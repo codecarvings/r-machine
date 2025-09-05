@@ -1,0 +1,9 @@
+{
+  "name": "r-machine-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Monorepo for R-Machine library",
+  "workspaces": [
+    "packages/*"
+  ]
+}
