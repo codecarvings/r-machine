@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "jsx": "react",
+
+    "strict": true,
+    "alwaysStrict": true,
+    "noUncheckedIndexedAccess": false,
+
+    "types": [],
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noImplicitOverride": true,
+
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true,
+
+    "removeComments": false,
+    "esModuleInterop": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "downlevelIteration": true,
+    "isolatedModules": true,
+
+    "pretty": true,
+    "customConditions": ["@r-machine/source"]
+  },
+  "include": ["**/*.ts", "**/*.mts", "**/*.cts"],
+  "exclude": [
+    "node_modules",
+    "**/*.d.ts",
+    "**/*.d.cts",
+    "**/*.d.mts",
+    "packages/docs",
+    "vitest.root.mjs"
+  ]
+}

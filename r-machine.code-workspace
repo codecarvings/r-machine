@@ -12,7 +12,7 @@
   "settings": {
     "search.useIgnoreFiles": true,
     "search.exclude": {
-      "**/dist": true
+      "**/lib": true
     }
   }
 }
