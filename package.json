@@ -6,22 +6,39 @@
     "url": "git+https://github.com/codecarvings/r-machine.git"
   },
   "bugs": "https://github.com/codecarvings/r-machine/issues",
-  "packageManager": "pnpm@10.15.1",
+  "packageManager": "pnpm@10.17.1",
   "scripts": {
-    "format": "biome format --write .",
-    "format:dry": "biome format .",
-    "lint": "biome lint --write .",
-    "lint:dry": "biome lint .",
     "check": "biome check --write .",
     "check:dry": "biome check .",
     "clean": "pnpm run -r clean",
-    "prepare": "husky"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepare": "husky",
+    "check:semver": "tsx scripts/check-semver.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.3",
+    "@types/node": "^24.5.2",
+    "@types/semver": "^7.7.1",
     "husky": "9.1.7",
+    "lint-staged": "^16.2.0",
+    "semver": "^7.7.2",
+    "tsx": "^4.20.5",
     "typescript": "5.9.2",
     "vitest": "3.2.4",
     "zshy": "0.4.1"
+  },
+  "lint-staged": {
+    "packages/*/src/**/*.ts": [
+      "biome format --no-errors-on-unmatched --write",
+      "biome lint --no-errors-on-unmatched --write"
+    ],
+    "packages/*/**/*.json": [
+      "biome format --no-errors-on-unmatched --write",
+      "biome lint --no-errors-on-unmatched --write"
+    ],
+    "packages/*/**/*.md": [
+      "prettier --ignore-unknown --write"
+    ]
   }
 }

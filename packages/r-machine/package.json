@@ -31,6 +31,6 @@
     "build": "zshy --project tsconfig.build.json",
     "postbuild": "pnpm biome check --write .",
     "test": "pnpm vitest run",
-    "test:watch": "pnpm vitest"
+    "test:watch": "pnpm vitest watch"
   }
 }
