@@ -13,7 +13,7 @@ export default defineConfig({
     isolate: true,
     setupFiles: [resolve(__dirname, "scripts/fail-on-console.ts")],
     typecheck: {
-      include: ["**/*.test.ts"],
+      include: ["**/*.test-d.ts"],
       enabled: true,
       ignoreSourceErrors: false,
       checker: "tsc",

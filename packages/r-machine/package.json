@@ -30,7 +30,7 @@
     "clean": "git clean -xdf . -e node_modules",
     "build": "zshy --project tsconfig.build.json",
     "postbuild": "pnpm biome check --write .",
-    "test": "pnpm vitest run",
-    "test:watch": "pnpm vitest watch"
+    "test": "pnpm vitest run --typecheck",
+    "test:watch": "pnpm vitest watch --typecheck"
   }
 }

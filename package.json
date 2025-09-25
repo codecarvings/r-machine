@@ -13,6 +13,7 @@
     "clean": "pnpm run -r clean",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:ui": "vitest --ui",
     "prepare": "husky",
     "check:semver": "tsx scripts/check-semver.ts"
   },
@@ -20,6 +21,7 @@
     "@biomejs/biome": "2.2.3",
     "@types/node": "^24.5.2",
     "@types/semver": "^7.7.1",
+    "@vitest/ui": "^3.2.4",
     "husky": "9.1.7",
     "lint-staged": "^16.2.0",
     "semver": "^7.7.2",
