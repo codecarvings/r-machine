@@ -23,9 +23,36 @@
     "typescript",
     "library"
   ],
+  "sideEffects": false,
+  "files": [
+    "**/*.js",
+    "**/*.mjs",
+    "**/*.cjs",
+    "**/*.d.ts",
+    "**/*.d.mts",
+    "**/*.d.cts"
+  ],
   "main": "./index.cjs",
   "types": "./index.d.cts",
   "module": "./index.js",
+  "zshy": {
+    "exports": {
+      "./package.json": "./package.json",
+      ".": "./src/index.ts"
+    },
+    "conditions": {
+      "@r-machine/source": "src"
+    }
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r-machine/source": "./src/index.ts",
+      "types": "./index.d.cts",
+      "import": "./index.js",
+      "require": "./index.cjs"
+    }
+  },
   "scripts": {
     "clean": "git clean -xdf . -e node_modules",
     "build": "zshy --project tsconfig.build.json",

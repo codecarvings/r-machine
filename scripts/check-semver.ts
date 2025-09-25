@@ -1,8 +1,8 @@
 /*
-  This script checks if the version in R-Machine package.json follows semantic versioning (semver)
-  ---
-  Adapted from: Zod - https://github.com/colinhacks/zod/blob/main/scripts/check-semver.ts
-*/
+ * This script checks if the version in R-Machine package.json follows semantic versioning (semver)
+ * ---
+ * Adapted from: Zod - https://github.com/colinhacks/zod/blob/main/scripts/check-semver.ts
+ */
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

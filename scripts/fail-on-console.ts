@@ -1,11 +1,11 @@
 /*
-  This script makes sure that any unexpected console output during tests
-  causes the test to fail. This helps keep the test output clean and ensures
-  that all important information is conveyed through test results rather than
-  console logs.
-  ---
-  Adopted from: Zod - https://github.com/colinhacks/zod/blob/main/scripts/fail-on-console.ts
-*/
+ * This script makes sure that any unexpected console output during tests
+ * causes the test to fail. This helps keep the test output clean and ensures
+ * that all important information is conveyed through test results rather than
+ * console logs.
+ * ---
+ * Adopted from: Zod - https://github.com/colinhacks/zod/blob/main/scripts/fail-on-console.ts
+ */
 
 import { afterAll, beforeAll } from "vitest";
 

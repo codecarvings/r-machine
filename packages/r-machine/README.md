@@ -1,6 +1,6 @@
 # R-Machine
 
-This repository is the home of \*R-Machine\*\* and related packages.
+This repository is the home of **R-Machine** and related packages.
 
 ## Packages
 

@@ -1,8 +1,8 @@
-import { defineProject, mergeConfig, ViteUserConfig } from "vitest/config";
-import rootConfig from "../../vitest.root.js";
+import { defineProject, mergeConfig, type ViteUserConfig } from "vitest/config";
+import baseConfig from "../../configs/vitest.base.js";
 
 export default mergeConfig(
-  rootConfig,
+  baseConfig,
   defineProject({
     test: {
       typecheck: {
