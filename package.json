@@ -20,6 +20,7 @@
     "test:ui": "vitest --ui",
     "prepare": "husky",
     "dev": "tsx --conditions @r-machine/source",
+    "dev:play": "pnpm dev play.ts",
     "check:semver": "tsx scripts/check-semver.ts"
   },
   "lint-staged": {
@@ -42,6 +43,7 @@
     "lint-staged": "^16.2.0",
     "prettier": "^3.6.2",
     "semver": "^7.7.2",
+    "r-machine": "workspace:*",
     "tsx": "^4.20.5",
     "typescript": "5.9.2",
     "vitest": "3.2.4",

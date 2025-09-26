@@ -7,7 +7,9 @@ export interface Config<L extends string, R extends $Resources> {
   readonly loader: <NS extends keyof R>(locale: L, namespace: NS) => Promise<R[NS]>;
 }
 
-export function createConfig<L extends string, R extends $Resources>(_resourceType: R, config: Config<L, R>) {
+export function createConfig<L extends string, R extends $Resources>(resourcesType: R, config: Config<L, R>) {
+  void resourcesType; // Suppress unused parameter warning without prefixing with an underscore
+
   if (!config.locales.length) {
     throw new Error("No locales provided");
   }

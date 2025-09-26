@@ -29,6 +29,9 @@ importers:
       prettier:
         specifier: ^3.6.2
         version: 3.6.2
+      r-machine:
+        specifier: workspace:*
+        version: link:packages/r-machine
       semver:
         specifier: ^7.7.2
         version: 7.7.2

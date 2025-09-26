@@ -1,0 +1,16 @@
+import { createConfig, typeOf } from "r-machine";
+
+type Resources = {
+  common: { message: string };
+};
+
+const config = createConfig(typeOf<Resources>(), {
+  locales: ["en", "it"],
+  defaultLocale: "en",
+  preloadResources: [],
+  loader: async (locale: "en" | "it", namespace: keyof Resources) => {
+    return { message: `${namespace} in ${locale}` };
+  },
+});
+
+console.log(config);
