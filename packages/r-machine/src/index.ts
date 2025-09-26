@@ -1,3 +1,2 @@
-export function hello(): string {
-  return "word";
-}
+export * from "./config.js";
+export * from "./utils.js";
