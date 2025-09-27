@@ -9,17 +9,14 @@ describe("createConfig", () => {
       common: { message: string };
     };
 
-    const baseConfig = {
+    const config = createConfig(typeOf<Resources>(), {
       locales: ["en", "it"],
       defaultLocale: "en",
-      preloadResources: ["common"],
-      loader: async (locale: "en" | "it", namespace: keyof Resources) => {
+      loader: async (namespace, locale) => {
         return { message: `${namespace} in ${locale}` };
       },
-    } as const;
+    });
 
-    const config = createConfig(typeOf<Resources>(), baseConfig);
-
-    expectTypeOf(config).toEqualTypeOf<Config<"en" | "it", Resources>>();
+    expectTypeOf(config).toEqualTypeOf<Config<Resources, readonly ["en", "it"]>>();
   });
 });

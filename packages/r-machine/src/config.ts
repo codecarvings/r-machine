@@ -1,25 +1,43 @@
-import type { $Resources } from "./resources.js";
+import type { $Locales } from "../locales.js";
+import type { $Resources, NamespaceOf } from "./resource.js";
 
-export interface Config<L extends string, R extends $Resources> {
-  readonly locales: ReadonlyArray<L>;
-  readonly defaultLocale: L;
-  readonly preloadResources: ReadonlyArray<keyof R>;
-  readonly loader: <NS extends keyof R>(locale: L, namespace: NS) => Promise<R[NS]>;
+export interface PartialConfig<RS extends $Resources, LS extends $Locales> {
+  readonly locales: LS;
+  readonly defaultLocale: LS[number];
+  readonly loader: <N extends NamespaceOf<RS>>(namespace: N, locale: LS[number]) => Promise<RS[N]>;
+
+  readonly preloadResources?: ReadonlyArray<NamespaceOf<RS>>;
 }
 
-export function createConfig<L extends string, R extends $Resources>(resourcesType: R, config: Config<L, R>) {
+export interface Config<RS extends $Resources, LS extends $Locales> extends PartialConfig<RS, LS> {
+  readonly preloadResources: ReadonlyArray<NamespaceOf<RS>>;
+}
+
+export function createConfig<RS extends $Resources, const LS extends $Locales>(
+  resourcesType: RS,
+  config: PartialConfig<RS, LS>
+): Config<RS, LS> {
   void resourcesType; // Suppress unused parameter warning without prefixing with an underscore
 
   if (!config.locales.length) {
     throw new Error("No locales provided");
   }
 
+  if (new Set(config.locales).size !== config.locales.length) {
+    throw new Error("Duplicate locales provided");
+  }
+
   if (!config.locales.includes(config.defaultLocale)) {
     throw new Error(`Default locale "${config.defaultLocale}" is not in the list of locales`);
   }
-  return config;
+
+  return {
+    ...config,
+    locales: [...config.locales] as LS,
+    preloadResources: config.preloadResources ?? [],
+  };
 }
 
-export type LocaleOf<C extends Config<any, any>> = C extends Config<infer L, any> ? L : never;
+export type LocalesOf<C extends Config<any, any>> = C extends Config<infer LS, any> ? LS : never;
 
-export type ResourcesOf<C extends Config<any, any>> = C extends Config<any, infer R> ? R : never;
+export type ResourcesOf<C extends Config<any, any>> = C extends Config<any, infer RS> ? RS : never;

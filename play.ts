@@ -7,8 +7,7 @@ type Resources = {
 const config = createConfig(typeOf<Resources>(), {
   locales: ["en", "it"],
   defaultLocale: "en",
-  preloadResources: [],
-  loader: async (locale: "en" | "it", namespace: keyof Resources) => {
+  loader: async (namespace, locale) => {
     return { message: `${namespace} in ${locale}` };
   },
 });
