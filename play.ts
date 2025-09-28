@@ -1,10 +1,10 @@
-import { createConfig, typeOf } from "r-machine";
+import { createConfig, typeRef } from "r-machine";
 
-type Resources = {
-  common: { message: string };
+type Atlas = {
+  ns1: { message: string };
 };
 
-const config = createConfig(typeOf<Resources>(), {
+const config = createConfig(typeRef<Atlas>(), {
   locales: ["en", "it"],
   defaultLocale: "en",
   loader: async (namespace, locale) => {

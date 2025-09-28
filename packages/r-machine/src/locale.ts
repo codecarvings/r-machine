@@ -1,1 +1,3 @@
-export type $Locales = ReadonlyArray<string>;
+export type AnyLocale = string;
+
+export type AnyLocaleList = ReadonlyArray<AnyLocale>;

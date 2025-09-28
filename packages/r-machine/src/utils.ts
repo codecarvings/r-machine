@@ -1,3 +1,3 @@
-export function typeOf<T>(): T {
+export function typeRef<T>(): T {
   return undefined!;
 }

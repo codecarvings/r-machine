@@ -1,3 +1,5 @@
 export * from "./config.js";
-export type { NamespaceOf as NamespacesOf } from "./resource.js";
+export * from "./locale.js";
+export * from "./r.js";
+export * from "./r-machine.js";
 export * from "./utils.js";
