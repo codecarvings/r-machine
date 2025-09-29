@@ -17,6 +17,12 @@
       },
       "suspicious": {
         "noExplicitAny": "off"
+      },
+      "correctness": {
+        "noUnusedImports": {
+          "level": "warn",
+          "fix": "safe"
+        }
       }
     }
   },

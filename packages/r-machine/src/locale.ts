@@ -1,3 +1,5 @@
 export type AnyLocale = string;
 
-export type AnyLocaleList = ReadonlyArray<AnyLocale>;
+export type AnyLocaleList = readonly AnyLocale[];
+
+export type LocaleList<L extends AnyLocale> = readonly L[];

@@ -13,8 +13,8 @@ describe("createConfig", () => {
 
     const config = createConfig(typeRef<Atlas>(), {
       locales,
-      defaultLocale: locales[0],
-      loader: async (namespace, locale) => {
+      fallbackLocale: locales[0],
+      rLoader: async (namespace, locale) => {
         return { message: `${namespace} in ${locale}` };
       },
     });
