@@ -1,4 +1,4 @@
-import { createConfig, RMachine, typeRef } from "r-machine";
+import { RMachine, type RMachineConfig } from "r-machine";
 import { createRMachineContext } from "react-r-machine";
 
 type Atlas = {
@@ -7,14 +7,14 @@ type Atlas = {
   ns3: { message: string };
 };
 
-const config = createConfig(typeRef<Atlas>(), {
+const config: RMachineConfig = {
   locales: ["en", "it"],
   rLoader: async (locale, namespace) => {
     return { message: `${namespace} in ${locale}` };
   },
-});
+};
 
-const rMachine = new RMachine(config);
+const rMachine = new RMachine<Atlas>(config);
 
 const r = await rMachine.pickR("en", "ns1");
 console.log(r.message);
@@ -23,7 +23,7 @@ const [r1, r2] = await rMachine.pickRKit("en", "ns1", "ns2");
 console.log(r1.message);
 console.log(r2.message);
 
-export const { RMachineProvider, useR, useRKit } = createRMachineContext(typeRef<Atlas>());
+export const { RMachineProvider, useR, useRKit } = createRMachineContext<Atlas>();
 
 const _helloWorld = (
   <RMachineProvider rMachine={rMachine} locale="en">

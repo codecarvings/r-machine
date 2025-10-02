@@ -26,8 +26,7 @@ interface RMachineContext<A extends AnyAtlas> {
   useRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
 }
 
-export function createRMachineContext<A extends AnyAtlas>(atlasType: A): RMachineContext<A> {
-  void atlasType; // Suppress unused parameter warning without prefixing with an underscore
+export function createRMachineContext<A extends AnyAtlas>(): RMachineContext<A> {
   const RMachineContext = createContext<RMachineContextValue<A> | null>(null);
 
   function RMachineProvider({ rMachine, locale, children, displayName }: RMachineProviderProps<A>) {

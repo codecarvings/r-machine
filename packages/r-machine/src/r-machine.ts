@@ -1,13 +1,18 @@
-import type { Config } from "./config.js";
 import { Engine } from "./engine.js";
 import type { AnyAtlas, AtlasNamespace } from "./r.js";
 import type { AtlasNamespaceList, RKit } from "./r-kit.js";
+import { type RMachineConfig, validateRMachineConfig } from "./r-machine-config.js";
 
 // Facade for Engine
 // Provides a simple API to pickR and pickRKit
 // Handles the async loading of contexts internally
 export class RMachine<A extends AnyAtlas> {
-  constructor(protected config: Config<A>) {
+  constructor(protected config: RMachineConfig) {
+    const configError = validateRMachineConfig(config);
+    if (configError) {
+      throw configError;
+    }
+
     this.engine = new Engine(config);
   }
 

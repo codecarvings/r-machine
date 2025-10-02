@@ -1,6 +1,6 @@
-import { RMachineError } from "./error.js";
 import type { AnyNamespace, AnyR } from "./r.js";
 import { type AnyNamespaceList, type AnyRKit, getRKitKey } from "./r-kit.js";
+import { RMachineError } from "./r-machine-error.js";
 
 export class Ctx {
   constructor(

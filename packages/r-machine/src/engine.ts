@@ -1,9 +1,9 @@
-import type { AnyConfig } from "./config.js";
 import { Ctx } from "./ctx.js";
-import { RMachineError } from "./error.js";
+import type { RMachineConfig } from "./r-machine-config.js";
+import { RMachineError } from "./r-machine-error.js";
 
 export class Engine {
-  constructor(protected config: AnyConfig) {}
+  constructor(protected config: RMachineConfig) {}
 
   protected ctxs = new Map<string, Ctx>();
   protected resolvedLocales = new Map<string, string>();
