@@ -23,7 +23,7 @@ const [r1, r2] = await rMachine.pickRKit("en", "ns1", "ns2");
 console.log(r1.message);
 console.log(r2.message);
 
-export const { RMachineProvider, useR, useRKit } = createRMachineContext(config);
+export const { RMachineProvider, useR, useRKit } = createRMachineContext(typeRef<Atlas>());
 
 const _helloWorld = (
   <RMachineProvider rMachine={rMachine} locale="en">

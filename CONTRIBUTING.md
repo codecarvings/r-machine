@@ -29,7 +29,7 @@ The following steps will get you setup to contribute changes to this repo:
 
 3. Run `pnpm i` to install dependencies.
 
-4. Start playing with the code! You can do some simple experimentation in [`play.ts`](play.ts) (see `pnpm play` below) or start implementing a feature right away.
+4. Start playing with the code! You can do some simple experimentation in [`play.tsx`](play.tsx) (see `pnpm play` below) or start implementing a feature right away.
 
 ### Commands
 
@@ -55,7 +55,7 @@ The following steps will get you setup to contribute changes to this repo:
 
 **`pnpm dev:play`**
 
-- executes [`play.ts`](play.ts), watches for changes. useful for experimentation
+- executes [`play.tsx`](play.tsx), watches for changes. useful for experimentation
 
 ### Tests
 

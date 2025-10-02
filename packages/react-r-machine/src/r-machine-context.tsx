@@ -1,41 +1,37 @@
 import {
   type AnyAtlas,
-  type AnyLocale,
   type AtlasNamespace,
   type AtlasNamespaceList,
-  type Config,
   type RKit,
   type RMachine,
   RMachineError,
 } from "r-machine";
 import { createContext, type ReactNode, useContext } from "react";
 
-interface RMachineProviderProps<A extends AnyAtlas, L extends AnyLocale> {
-  rMachine: RMachine<A, L>;
-  locale: L;
+interface RMachineProviderProps<A extends AnyAtlas> {
+  rMachine: RMachine<A>;
+  locale: string;
   children: ReactNode;
   displayName?: string;
 }
 
-interface RMachineContextValue<A extends AnyAtlas, L extends AnyLocale> {
-  rMachine: RMachine<A, L>;
-  locale: L;
+interface RMachineContextValue<A extends AnyAtlas> {
+  rMachine: RMachine<A>;
+  locale: string;
 }
 
-interface RMachineContext<A extends AnyAtlas, L extends AnyLocale> {
-  RMachineProvider: (props: RMachineProviderProps<A, L>) => JSX.Element;
+interface RMachineContext<A extends AnyAtlas> {
+  RMachineProvider: (props: RMachineProviderProps<A>) => JSX.Element;
   useR: <N extends AtlasNamespace<A>>(namespace: N) => A[N];
   useRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
 }
 
-export function createRMachineContext<A extends AnyAtlas, L extends AnyLocale>(
-  configType: Config<A, L>
-): RMachineContext<A, L> {
-  void configType; // Suppress unused parameter warning without prefixing with an underscore
-  const RMachineContext = createContext<RMachineContextValue<A, L> | null>(null);
+export function createRMachineContext<A extends AnyAtlas>(atlasType: A): RMachineContext<A> {
+  void atlasType; // Suppress unused parameter warning without prefixing with an underscore
+  const RMachineContext = createContext<RMachineContextValue<A> | null>(null);
 
-  function RMachineProvider({ rMachine, locale, children, displayName }: RMachineProviderProps<A, L>) {
-    const value: RMachineContextValue<A, L> = {
+  function RMachineProvider({ rMachine, locale, children, displayName }: RMachineProviderProps<A>) {
+    const value: RMachineContextValue<A> = {
       rMachine,
       locale,
     };
@@ -46,7 +42,7 @@ export function createRMachineContext<A extends AnyAtlas, L extends AnyLocale>(
     return <RMachineContext.Provider value={value}>{children}</RMachineContext.Provider>;
   }
 
-  function useRMachineContext(): RMachineContextValue<A, L> {
+  function useRMachineContext(): RMachineContextValue<A> {
     const context = useContext(RMachineContext);
     if (!context) {
       throw new RMachineError("useRMachineContext must be used from within a RMachineProvider");

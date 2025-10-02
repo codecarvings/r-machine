@@ -12,10 +12,10 @@ describe("createConfig", () => {
 
     const baseConfig = {
       locales: ["en", "it"],
-      rLoader: async (locale: "en" | "it", namespace: AtlasNamespace<Atlas>) => {
+      rLoader: async (locale: string, namespace: AtlasNamespace<Atlas>) => {
         return { message: `${namespace} in ${locale}` };
       },
-    } as const;
+    };
 
     const config = createConfig(typeRef<Atlas>(), baseConfig);
 
@@ -29,10 +29,10 @@ describe("createConfig", () => {
 
     const baseConfig = {
       locales: ["en", "it"],
-      rLoader: async (locale: "en" | "it", namespace: AtlasNamespace<Atlas>) => {
+      rLoader: async (locale: string, namespace: AtlasNamespace<Atlas>) => {
         return { message: `${namespace} in ${locale}` };
       },
-    } as const;
+    };
 
     const config = createConfig(typeRef<Atlas>(), baseConfig);
 
@@ -46,10 +46,10 @@ describe("createConfig", () => {
 
     const baseConfig = {
       locales: [] as any,
-      rLoader: async (locale: "en" | "it", namespace: AtlasNamespace<Atlas>) => {
+      rLoader: async (locale: string, namespace: AtlasNamespace<Atlas>) => {
         return { message: `${namespace} in ${locale}` };
       },
-    } as const;
+    };
 
     expect(() => createConfig(typeRef<Atlas>(), baseConfig)).toThrowError(RMachineError);
     expect(() => createConfig(typeRef<Atlas>(), baseConfig)).toThrowError("R-Machine Error: No locales provided");
@@ -62,10 +62,10 @@ describe("createConfig", () => {
 
     const baseConfig = {
       locales: ["en", "it", "en"],
-      rLoader: async (locale: "en" | "it", namespace: AtlasNamespace<Atlas>) => {
+      rLoader: async (locale: string, namespace: AtlasNamespace<Atlas>) => {
         return { message: `${namespace} in ${locale}` };
       },
-    } as const;
+    };
 
     expect(() => createConfig(typeRef<Atlas>(), baseConfig)).toThrowError(RMachineError);
     expect(() => createConfig(typeRef<Atlas>(), baseConfig)).toThrowError(
@@ -80,8 +80,8 @@ describe("createConfig", () => {
 
     const baseConfig = {
       locales: ["it"],
-      fallbackLocale: "en" as any,
-      rLoader: async (locale: "en" | "it", namespace: AtlasNamespace<Atlas>) => {
+      fallbackLocale: "en",
+      rLoader: async (locale: string, namespace: AtlasNamespace<Atlas>) => {
         return { message: `${namespace} in ${locale}` };
       },
     } as const;

@@ -14,7 +14,7 @@ This project uses **pnpm** as the package manager. The required version is speci
 
 ### Development
 - `pnpm dev` - Run development mode using tsx with custom conditions
-- `pnpm dev:play` - Run play.ts file for quick experimentation
+- `pnpm dev:play` - Run play.tsx file for quick experimentation
 - `pnpm build` - Build all packages in the monorepo
 - `pnpm clean` - Clean all packages
 

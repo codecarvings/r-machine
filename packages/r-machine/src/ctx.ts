@@ -1,12 +1,11 @@
 import { RMachineError } from "./error.js";
-import type { AnyLocale } from "./locale.js";
 import type { AnyNamespace, AnyR } from "./r.js";
 import { type AnyNamespaceList, type AnyRKit, getRKitKey } from "./r-kit.js";
 
 export class Ctx {
   constructor(
-    readonly locale: AnyLocale,
-    protected rLoader: (namespace: AnyNamespace, locale: AnyLocale) => Promise<AnyR>
+    readonly locale: string,
+    protected rLoader: (namespace: AnyNamespace, locale: string) => Promise<AnyR>
   ) {}
 
   protected rs = new Map<AnyNamespace, AnyR | Promise<AnyR>>();

@@ -1,15 +1,14 @@
 import type { AnyConfig } from "./config.js";
 import { Ctx } from "./ctx.js";
 import { RMachineError } from "./error.js";
-import type { AnyLocale } from "./locale.js";
 
 export class Engine {
   constructor(protected config: AnyConfig) {}
 
   protected ctxs = new Map<string, Ctx>();
-  protected resolvedLocales = new Map<AnyLocale, AnyLocale>();
+  protected resolvedLocales = new Map<string, string>();
 
-  protected resolveLocale(locale: AnyLocale): AnyLocale {
+  protected resolveLocale(locale: string): string {
     if (this.config.localeResolver) {
       // Resolver provided
       const resolvedLocale = this.config.localeResolver(locale);
@@ -31,7 +30,7 @@ export class Engine {
     }
   }
 
-  getResolvedLocale(locale: AnyLocale): AnyLocale {
+  getResolvedLocale(locale: string): string {
     const resolvedLocale = this.resolvedLocales.get(locale);
     if (resolvedLocale !== undefined) {
       return resolvedLocale;

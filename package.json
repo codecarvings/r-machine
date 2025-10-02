@@ -20,7 +20,7 @@
     "test:ui": "vitest --ui",
     "prepare": "husky",
     "dev": "tsx --conditions @r-machine/source",
-    "dev:play": "pnpm dev play.ts",
+    "dev:play": "pnpm dev play.tsx",
     "check:semver": "tsx scripts/check-semver.ts"
   },
   "lint-staged": {
