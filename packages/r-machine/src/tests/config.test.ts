@@ -12,7 +12,6 @@ describe("createConfig", () => {
 
     const baseConfig = {
       locales: ["en", "it"],
-      fallbackLocale: "en",
       rLoader: async (locale: "en" | "it", namespace: AtlasNamespace<Atlas>) => {
         return { message: `${namespace} in ${locale}` };
       },
@@ -30,11 +29,9 @@ describe("createConfig", () => {
 
     const baseConfig = {
       locales: ["en", "it"],
-      fallbackLocale: "en",
       rLoader: async (locale: "en" | "it", namespace: AtlasNamespace<Atlas>) => {
         return { message: `${namespace} in ${locale}` };
       },
-      namespacesToPreload: ["ns1"],
     } as const;
 
     const config = createConfig(typeRef<Atlas>(), baseConfig);
@@ -49,7 +46,6 @@ describe("createConfig", () => {
 
     const baseConfig = {
       locales: [] as any,
-      fallbackLocale: "en",
       rLoader: async (locale: "en" | "it", namespace: AtlasNamespace<Atlas>) => {
         return { message: `${namespace} in ${locale}` };
       },
@@ -66,7 +62,6 @@ describe("createConfig", () => {
 
     const baseConfig = {
       locales: ["en", "it", "en"],
-      fallbackLocale: "en",
       rLoader: async (locale: "en" | "it", namespace: AtlasNamespace<Atlas>) => {
         return { message: `${namespace} in ${locale}` };
       },
@@ -95,23 +90,5 @@ describe("createConfig", () => {
     expect(() => createConfig(typeRef<Atlas>(), baseConfig)).toThrowError(
       `R-Machine Error: Fallback locale "en" is not in the list of locales`
     );
-  });
-
-  test("should set namespacesToPreload to an empty array if not provided", () => {
-    type Atlas = {
-      ns1: { message: string };
-    };
-
-    const baseConfig = {
-      locales: ["en", "it"],
-      fallbackLocale: "en",
-      rLoader: async (locale: "en" | "it", namespace: AtlasNamespace<Atlas>) => {
-        return { message: `${namespace} in ${locale}` };
-      },
-    } as const;
-
-    const config = createConfig(typeRef<Atlas>(), baseConfig);
-
-    expect(config.namespacesToPreload).toEqual([]);
   });
 });

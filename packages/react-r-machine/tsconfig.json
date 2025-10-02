@@ -4,7 +4,8 @@
     "module": "NodeNext",
     "customConditions": ["@r-machine/source"],
     "noEmit": true,
-    "types": ["vitest"]
+    "types": ["vitest"],
+    "jsx": "react-jsx"
   },
   "include": ["**/*.ts"]
 }

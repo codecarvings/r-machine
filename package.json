@@ -37,11 +37,13 @@
   "devDependencies": {
     "@biomejs/biome": "2.2.3",
     "@types/node": "^24.5.2",
+    "@types/react": "^17",
     "@types/semver": "^7.7.1",
     "@vitest/ui": "^3.2.4",
     "husky": "9.1.7",
     "lint-staged": "^16.2.0",
     "prettier": "^3.6.2",
+    "react": "^17",
     "semver": "^7.7.2",
     "r-machine": "workspace:*",
     "react-r-machine": "workspace:*",

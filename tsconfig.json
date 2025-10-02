@@ -5,8 +5,9 @@
     "customConditions": ["@r-machine/source"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "types": []
+    "types": [],
+    "jsx": "react-jsx"
   },
-  "include": ["**/*.ts", "**/*.mts", "**/*.cts"],
+  "include": ["**/*.ts", "**/*.mts", "**/*.cts", "play.tsx"],
   "exclude": ["**/*.d.ts", "**/*.d.cts", "**/*.d.mts", "configs/vitest.base.ts"]
 }
