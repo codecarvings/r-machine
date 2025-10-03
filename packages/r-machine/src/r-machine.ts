@@ -7,7 +7,7 @@ import { type RMachineConfig, validateRMachineConfig } from "./r-machine-config.
 // Provides a simple API to pickR and pickRKit
 // Handles the async loading of contexts internally
 export class RMachine<A extends AnyAtlas> {
-  constructor(protected config: RMachineConfig) {
+  constructor(readonly config: RMachineConfig) {
     const configError = validateRMachineConfig(config);
     if (configError) {
       throw configError;

@@ -1,0 +1,12 @@
+import { useR } from "./r-machine/context";
+
+export default function Home() {
+  const r = useR("common");
+
+  return (
+    <div>
+      <h1>{r.title}</h1>
+      <p>{r.welcomeMessage}</p>
+    </div>
+  );
+}

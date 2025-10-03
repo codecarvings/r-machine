@@ -11,13 +11,17 @@
     {
       "name": "🔵 packages / react-r-machine",
       "path": "./packages/react-r-machine"
-    }
+    },
     /*
     {
       "name": "🟣 packages / next-r-machine",
       "path": "./packages/next-r-machine"
     }
     */
+    {
+      "name": "🟥 examples",
+      "path": "./examples"
+    }
   ],
   "settings": {
     "search.useIgnoreFiles": true,

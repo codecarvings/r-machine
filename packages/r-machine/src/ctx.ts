@@ -8,19 +8,19 @@ export class Ctx {
     protected rLoader: (namespace: AnyNamespace, locale: string) => Promise<AnyR>
   ) {}
 
-  protected rs = new Map<AnyNamespace, AnyR | Promise<AnyR>>();
+  protected resources = new Map<AnyNamespace, AnyR | Promise<AnyR>>();
   protected pendingRKits = new Map<string, Promise<AnyRKit>>();
 
   protected loadR(namespace: AnyNamespace): Promise<AnyR> {
     const r = new Promise<AnyR>((resolve, reject) => {
       void this.rLoader(this.locale, namespace).then(
         (resolvedR) => {
-          this.rs.set(namespace, resolvedR);
+          this.resources.set(namespace, resolvedR);
 
           resolve(resolvedR);
         },
         (reason) => {
-          this.rs.delete(namespace);
+          this.resources.delete(namespace);
 
           const error = new RMachineError(`Unable to load resource "${namespace}" for locale "${this.locale}"`, reason);
           console.error(error);
@@ -29,12 +29,12 @@ export class Ctx {
       );
     });
 
-    this.rs.set(namespace, r);
+    this.resources.set(namespace, r);
     return r;
   }
 
   pickR(namespace: AnyNamespace): AnyR | Promise<AnyR> {
-    const r = this.rs.get(namespace);
+    const r = this.resources.get(namespace);
     if (r !== undefined) {
       // The resource is already loaded or loading
       return r;
@@ -50,7 +50,7 @@ export class Ctx {
       return [];
     }
 
-    const initialRKit = namespaces.map((namespace) => this.rs.get(namespace));
+    const initialRKit = namespaces.map((namespace) => this.resources.get(namespace));
     if (initialRKit.every((r) => r !== undefined && !(r instanceof Promise))) {
       // All resources are already loaded
       return initialRKit as AnyRKit;
@@ -67,7 +67,7 @@ export class Ctx {
 
     pendingRKit = new Promise<AnyRKit>((resolve, reject) => {
       // Must re-check the current state of each resource
-      const rKit = namespaces.map((namespace) => this.rs.get(namespace));
+      const rKit = namespaces.map((namespace) => this.resources.get(namespace));
 
       let totReadyR = 0;
       const onRReady = () => {

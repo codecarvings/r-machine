@@ -8,48 +8,45 @@ import {
 } from "r-machine";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
 
-interface RMachineProviderProps<A extends AnyAtlas> {
-  rMachine: RMachine<A>;
+interface RMachineProviderProps {
   locale: string;
-  children: ReactNode;
   displayName?: string;
+  children: ReactNode;
 }
 
-interface RMachineContextValue<A extends AnyAtlas> {
+interface RMachineContextValue {
   contextId: symbol;
-  rMachine: RMachine<A>;
   locale: string;
 }
 
 interface RMachineContext<A extends AnyAtlas> {
-  RMachineProvider: (props: RMachineProviderProps<A>) => JSX.Element;
+  RMachineProvider: (props: RMachineProviderProps) => JSX.Element;
   useR: <N extends AtlasNamespace<A>>(namespace: N) => A[N];
   useRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
 }
 
 let contextIdCounter = 0;
 
-export function createRMachineContext<A extends AnyAtlas>(): RMachineContext<A> {
+export function createRMachineContext<A extends AnyAtlas>(rMachine: RMachine<A>): RMachineContext<A> {
   const contextId = Symbol(`RMachineContext#${++contextIdCounter}`);
-  const RMachineContext = createContext<RMachineContextValue<A> | null>(null);
+  const RMachineContext = createContext<RMachineContextValue | null>(null);
 
-  function RMachineProvider({ rMachine, locale, children, displayName }: RMachineProviderProps<A>) {
+  function RMachineProvider({ locale, displayName, children }: RMachineProviderProps) {
     const value = useMemo(() => {
-      const memoValue: RMachineContextValue<A> = {
+      const memoValue: RMachineContextValue = {
         contextId,
-        rMachine,
         locale,
       };
       if (displayName) {
         RMachineContext.displayName = displayName;
       }
       return memoValue;
-    }, [rMachine, locale, displayName]);
+    }, [locale, displayName]);
 
     return <RMachineContext.Provider value={value}>{children}</RMachineContext.Provider>;
   }
 
-  function useRMachineContext(): RMachineContextValue<A> {
+  function useRMachineContext(): RMachineContextValue {
     const context = useContext(RMachineContext);
     if (!context) {
       throw new RMachineError("useRMachineContext must be invoked from within a RMachineProvider");
@@ -61,7 +58,7 @@ export function createRMachineContext<A extends AnyAtlas>(): RMachineContext<A> 
   }
 
   function useR<N extends AtlasNamespace<A>>(namespace: N): A[N] {
-    const { rMachine, locale } = useRMachineContext();
+    const { locale } = useRMachineContext();
     const r = rMachine.pickR(locale, namespace);
 
     if (r instanceof Promise) {
@@ -72,7 +69,7 @@ export function createRMachineContext<A extends AnyAtlas>(): RMachineContext<A> 
   }
 
   function useRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): RKit<A, NL> {
-    const { rMachine, locale } = useRMachineContext();
+    const { locale } = useRMachineContext();
     const rKit = rMachine.pickRKit(locale, ...namespaces);
 
     if (rKit instanceof Promise) {

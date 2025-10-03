@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.3/schema.json",
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 
   "formatter": {
     "enabled": true,
@@ -47,5 +47,9 @@
         "organizeImports": "on"
       }
     }
+  },
+
+  "files": {
+    "includes": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts", "!**/*.d.ts", "!**/.d.mts", "!**/.d.cts"]
   }
 }
