@@ -6,7 +6,7 @@ import {
   type RMachine,
   RMachineError,
 } from "r-machine";
-import { createContext, type ReactNode, useContext } from "react";
+import { createContext, type ReactNode, useContext, useMemo } from "react";
 
 interface RMachineProviderProps<A extends AnyAtlas> {
   rMachine: RMachine<A>;
@@ -16,6 +16,7 @@ interface RMachineProviderProps<A extends AnyAtlas> {
 }
 
 interface RMachineContextValue<A extends AnyAtlas> {
+  contextId: symbol;
   rMachine: RMachine<A>;
   locale: string;
 }
@@ -26,17 +27,24 @@ interface RMachineContext<A extends AnyAtlas> {
   useRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
 }
 
+let contextIdCounter = 0;
+
 export function createRMachineContext<A extends AnyAtlas>(): RMachineContext<A> {
+  const contextId = Symbol(`RMachineContext#${++contextIdCounter}`);
   const RMachineContext = createContext<RMachineContextValue<A> | null>(null);
 
   function RMachineProvider({ rMachine, locale, children, displayName }: RMachineProviderProps<A>) {
-    const value: RMachineContextValue<A> = {
-      rMachine,
-      locale,
-    };
-    if (displayName) {
-      RMachineContext.displayName = displayName;
-    }
+    const value = useMemo(() => {
+      const memoValue: RMachineContextValue<A> = {
+        contextId,
+        rMachine,
+        locale,
+      };
+      if (displayName) {
+        RMachineContext.displayName = displayName;
+      }
+      return memoValue;
+    }, [rMachine, locale, displayName]);
 
     return <RMachineContext.Provider value={value}>{children}</RMachineContext.Provider>;
   }
@@ -44,7 +52,10 @@ export function createRMachineContext<A extends AnyAtlas>(): RMachineContext<A> 
   function useRMachineContext(): RMachineContextValue<A> {
     const context = useContext(RMachineContext);
     if (!context) {
-      throw new RMachineError("useRMachineContext must be used from within a RMachineProvider");
+      throw new RMachineError("useRMachineContext must be invoked from within a RMachineProvider");
+    }
+    if (context.contextId !== contextId) {
+      throw new RMachineError("useRMachineContext context mismatch");
     }
     return context;
   }
