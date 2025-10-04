@@ -1,4 +1,5 @@
 import { Ctx } from "./ctx.js";
+import { resolveLocale } from "./locale/resolve-locale.js";
 import type { RMachineConfig } from "./r-machine-config.js";
 import { RMachineError } from "./r-machine-error.js";
 
@@ -18,15 +19,8 @@ export class Engine {
         throw new RMachineError(`Resolved locale "${resolvedLocale}" for "${locale}" is not supported`);
       }
     } else {
-      // Resolver not provided
-      if (this.config.locales.includes(locale)) {
-        return locale;
-      }
-      if (this.config.fallbackLocale !== undefined) {
-        return this.config.fallbackLocale;
-      } else {
-        throw new RMachineError(`Locale "${locale}" is not supported and no fallback locale is configured`);
-      }
+      // Resolver not provided, use the built-in one
+      return resolveLocale([locale], this.config.locales, this.config.fallbackLocale);
     }
   }
 

@@ -1,7 +1,12 @@
 import { Engine } from "./engine.js";
 import type { AnyAtlas, AtlasNamespace } from "./r.js";
 import type { AtlasNamespaceList, RKit } from "./r-kit.js";
-import { type RMachineConfig, validateRMachineConfig } from "./r-machine-config.js";
+import { type RMachineConfig, type RMachineConfigFactory, validateRMachineConfig } from "./r-machine-config.js";
+
+const rMachineInstance: unique symbol = Symbol.for("R-Machine.instance");
+interface InternalRMachineConfigFactory extends RMachineConfigFactory {
+  [rMachineInstance]: RMachine<AnyAtlas> | undefined;
+}
 
 // Facade for Engine
 // Provides a simple API to pickR and pickRKit
@@ -43,4 +48,17 @@ export class RMachine<A extends AnyAtlas> {
     const ctx = this.engine.getCtx(resolvedLocale);
     return ctx.pickRKit(...namespaces) as RKit<A, NL> | Promise<RKit<A, NL>>;
   };
+
+  static get<A extends AnyAtlas>(factory: RMachineConfigFactory): RMachine<A> {
+    const internalFactory = factory as InternalRMachineConfigFactory;
+    const instance = internalFactory[rMachineInstance] as RMachine<A> | undefined;
+    if (instance) {
+      return instance;
+    }
+
+    const config = factory();
+    const newInstance = new RMachine<A>(config);
+    internalFactory[rMachineInstance] = newInstance as RMachine<AnyAtlas>;
+    return newInstance;
+  }
 }
