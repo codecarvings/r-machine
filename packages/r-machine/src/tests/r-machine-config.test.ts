@@ -6,7 +6,7 @@ describe("validateRMachineConfig", () => {
   test("should return an RMachineError if no locales are provided", () => {
     const config: RMachineConfig = {
       locales: [],
-      fallbackLocale: "en",
+      defaultLocale: "en",
       rLoader: async (locale, namespace) => {
         return { message: `${namespace} in ${locale}` };
       },
@@ -20,7 +20,7 @@ describe("validateRMachineConfig", () => {
   test("should return an RMachineError if locales contains duplicates", () => {
     const config: RMachineConfig = {
       locales: ["en", "it", "en"],
-      fallbackLocale: "en",
+      defaultLocale: "en",
       rLoader: async (locale, namespace) => {
         return { message: `${namespace} in ${locale}` };
       },
@@ -31,10 +31,10 @@ describe("validateRMachineConfig", () => {
     expect(error?.message).toContain("Duplicate locales provided");
   });
 
-  test("should return an RMachineError if fallback locale is not in the list of locales", () => {
+  test("should return an RMachineError if default locale is not in the list of locales", () => {
     const config: RMachineConfig = {
       locales: ["it"],
-      fallbackLocale: "en",
+      defaultLocale: "en",
       rLoader: async (locale, namespace) => {
         return { message: `${namespace} in ${locale}` };
       },
@@ -42,13 +42,13 @@ describe("validateRMachineConfig", () => {
 
     const error = validateRMachineConfig(config);
     expect(error).toBeInstanceOf(RMachineError);
-    expect(error?.message).toContain(`Fallback locale "en" is not in the list of locales`);
+    expect(error?.message).toContain(`Default locale "en" is not in the list of locales`);
   });
 
   test("should return an RMachineError if a locale is not canonical", () => {
     const config: RMachineConfig = {
       locales: ["en_US"],
-      fallbackLocale: "en_US",
+      defaultLocale: "en_US",
       rLoader: async (locale, namespace) => {
         return { message: `${namespace} in ${locale}` };
       },
@@ -60,10 +60,10 @@ describe("validateRMachineConfig", () => {
     expect(error?.message).toContain('Did you mean: "en-US"?');
   });
 
-  test("should return an RMachineError if fallback locale is not canonical", () => {
+  test("should return an RMachineError if default locale is not canonical", () => {
     const config: RMachineConfig = {
       locales: ["en", "it"],
-      fallbackLocale: "en_US",
+      defaultLocale: "en_US",
       rLoader: async (locale, namespace) => {
         return { message: `${namespace} in ${locale}` };
       },
@@ -78,7 +78,7 @@ describe("validateRMachineConfig", () => {
   test("should return null for valid canonical locale IDs", () => {
     const config: RMachineConfig = {
       locales: ["en", "en-US", "it", "de-DE"],
-      fallbackLocale: "en",
+      defaultLocale: "en",
       rLoader: async (locale, namespace) => {
         return { message: `${namespace} in ${locale}` };
       },

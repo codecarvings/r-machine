@@ -4,7 +4,7 @@ import { RMachineError } from "./r-machine-error.js";
 
 export interface RMachineConfig {
   readonly locales: readonly string[];
-  readonly fallbackLocale: string;
+  readonly defaultLocale: string;
   readonly rLoader: (locale: string, namespace: AnyNamespace) => Promise<AnyR>;
   readonly localeResolver?: (locale: string) => string;
 }
@@ -27,13 +27,13 @@ export function validateRMachineConfig(config: RMachineConfig): RMachineError | 
     return new RMachineError("Duplicate locales provided");
   }
 
-  const fallbackLocaleError = validateCanonicalUnicodeLocaleId(config.fallbackLocale);
+  const fallbackLocaleError = validateCanonicalUnicodeLocaleId(config.defaultLocale);
   if (fallbackLocaleError) {
     return fallbackLocaleError;
   }
 
-  if (!config.locales.includes(config.fallbackLocale)) {
-    return new RMachineError(`Fallback locale "${config.fallbackLocale}" is not in the list of locales`);
+  if (!config.locales.includes(config.defaultLocale)) {
+    return new RMachineError(`Default locale "${config.defaultLocale}" is not in the list of locales`);
   }
 
   return null;

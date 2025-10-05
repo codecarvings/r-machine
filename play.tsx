@@ -9,7 +9,7 @@ type Atlas = {
 
 const config: RMachineConfig = {
   locales: ["en", "it"],
-  fallbackLocale: "en",
+  defaultLocale: "en",
   rLoader: async (locale, namespace) => {
     return { message: `${namespace} in ${locale}` };
   },

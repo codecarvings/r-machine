@@ -3,6 +3,8 @@ import { resolveLocale } from "./locale/resolve-locale.js";
 import type { RMachineConfig } from "./r-machine-config.js";
 import { RMachineError } from "./r-machine-error.js";
 
+const defaultLocaleResolverAlgorithm = "lookup";
+
 export class Engine {
   constructor(protected config: RMachineConfig) {}
 
@@ -20,7 +22,9 @@ export class Engine {
       }
     } else {
       // Resolver not provided, use the built-in one
-      return resolveLocale([locale], this.config.locales, this.config.fallbackLocale);
+      return resolveLocale([locale], this.config.locales, this.config.defaultLocale, {
+        algorithm: defaultLocaleResolverAlgorithm,
+      });
     }
   }
 
