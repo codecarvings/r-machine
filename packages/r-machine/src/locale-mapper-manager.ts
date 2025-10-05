@@ -1,6 +1,6 @@
-import { RMachineError } from "../r-machine-error.js";
 import { matchLocales } from "./locale/locale-matcher.js";
 import type { LocaleMapper } from "./r-machine-config.js";
+import { RMachineError } from "./r-machine-error.js";
 
 const defaultMatchLocalesAlgorithm = "lookup";
 

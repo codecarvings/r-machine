@@ -9,6 +9,6 @@ const rMachineConfigFactory: RMachineConfigFactory = () => ({
     const { default: r } = await import(/* @vite-ignore */ `./resources/${namespace}/${locale}`);
     return r;
   },
-};
+});
 
 export const rMachine = RMachine.get<Atlas>(rMachineConfigFactory);
