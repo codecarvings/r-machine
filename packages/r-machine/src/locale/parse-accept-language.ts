@@ -4,7 +4,7 @@
  * @see https://www.rfc-editor.org/rfc/rfc9110.html#name-accept-language
  * @see https://www.rfc-editor.org/rfc/rfc4647.html
  */
-interface AcceptLanguageEntry {
+export interface AcceptLanguageEntry {
   /**
    * The language range (e.g., "en-US", "fr", "*")
    * Case-insensitive as per RFC 4647
@@ -42,7 +42,7 @@ interface AcceptLanguageEntry {
  *
  * @example
  * ```ts
- * parseAcceptLanguage("en-US,en;q=0.9,fr;q=0.8")
+ * fullParseAcceptLanguage("en-US,en;q=0.9,fr;q=0.8")
  * // Returns:
  * // [
  * //   { range: "en-US", quality: 1.0 },
@@ -50,7 +50,7 @@ interface AcceptLanguageEntry {
  * //   { range: "fr", quality: 0.8 }
  * // ]
  *
- * parseAcceptLanguage("da, en-GB;q=0.8, en;q=0.7")
+ * fullParseAcceptLanguage("da, en-GB;q=0.8, en;q=0.7")
  * // Returns:
  * // [
  * //   { range: "da", quality: 1.0 },
@@ -62,7 +62,7 @@ interface AcceptLanguageEntry {
  * @see https://www.rfc-editor.org/rfc/rfc9110.html#name-accept-language
  * @see https://www.rfc-editor.org/rfc/rfc4647.html#section-2.1
  */
-export function parseAcceptLanguage(header: string): AcceptLanguageEntry[] {
+export function fullParseAcceptLanguage(header: string): AcceptLanguageEntry[] {
   if (!header || typeof header !== "string") {
     return [];
   }
@@ -142,6 +142,27 @@ export function parseAcceptLanguage(header: string): AcceptLanguageEntry[] {
 
   // Remove the order property before returning
   return entries.map(({ range, quality }) => ({ range, quality }));
+}
+
+/**
+ * Parses an Accept-Language header value and returns a sorted array of language ranges.
+ *
+ * @param header - The Accept-Language header value to parse
+ * @returns Array of language ranges sorted by preference (quality descending)
+ *
+ * @example
+ * ```ts
+ * parseAcceptLanguage("en-US,en;q=0.9,fr;q=0.8")
+ * // Returns: ["en-US", "en", "fr"]
+ *
+ * parseAcceptLanguage("da, en-GB;q=0.8, en;q=0.7")
+ * // Returns: ["da", "en-GB", "en"]
+ * ```
+ *
+ * @see https://www.rfc-editor.org/rfc/rfc9110.html#name-accept-language
+ */
+export function parseAcceptLanguage(header: string): string[] {
+  return fullParseAcceptLanguage(header).map((entry) => entry.range);
 }
 
 /**

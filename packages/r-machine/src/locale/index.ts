@@ -1,2 +1,2 @@
-export * from "./parse-accept-language.js";
-export * from "./resolve-locale.js";
+export { parseAcceptLanguage } from "./parse-accept-language.js";
+export { resolveLocale } from "./resolve-locale.js";
