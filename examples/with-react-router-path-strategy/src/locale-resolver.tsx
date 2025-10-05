@@ -1,5 +1,6 @@
 import { Outlet, useParams } from "react-router";
-import { RMachineProvider } from "./r-machine/context";
+import { rMachineConfigFactory } from "./r-machine/config";
+import { RMachineProvider } from "./r-machine/react-context";
 
 export default function LocaleResolver() {
   let { locale } = useParams();
@@ -8,7 +9,7 @@ export default function LocaleResolver() {
   }
 
   return (
-    <RMachineProvider locale={locale}>
+    <RMachineProvider configFactory={rMachineConfigFactory} locale={locale}>
       <Outlet />
     </RMachineProvider>
   );

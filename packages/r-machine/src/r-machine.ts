@@ -16,7 +16,7 @@ interface InternalRMachineConfigFactory extends RMachineConfigFactory {
 }
 
 export class RMachine<A extends AnyAtlas> {
-  constructor(readonly config: RMachineConfig) {
+  protected constructor(readonly config: RMachineConfig) {
     const configError = validateRMachineConfig(config);
     if (configError) {
       throw configError;
