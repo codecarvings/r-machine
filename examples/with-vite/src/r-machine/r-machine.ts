@@ -1,11 +1,14 @@
-import { RMachine } from "r-machine";
+import { RMachine, type RMachineConfigFactory } from "r-machine";
 import type { Atlas } from "./atlas";
 
-export const rMachine = new RMachine<Atlas>({
+const rMachineConfigFactory: RMachineConfigFactory = () => ({
   locales: ["en", "it"],
+  defaultLocale: "en",
 
-  rLoader: async (locale, namespace) => {
+  rResolver: async (locale, namespace) => {
     const { default: r } = await import(/* @vite-ignore */ `./resources/${namespace}/${locale}`);
     return r;
   },
-});
+};
+
+export const rMachine = RMachine.get<Atlas>(rMachineConfigFactory);

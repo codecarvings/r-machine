@@ -2,13 +2,13 @@
 
 import { getCanonicalUnicodeLocaleId } from "./canonical-unicode-locale-id.js";
 
-type Algorithm = "best-fit" | "lookup";
+export type MatchLocalesAlgorithm = "best-fit" | "lookup";
 
-interface ResolveLocaleOptions {
-  algorithm?: Algorithm;
+interface MatchLocalesOptions {
+  algorithm?: MatchLocalesAlgorithm | undefined;
 }
 
-const defaultAlgorithm: Algorithm = "best-fit";
+export const defaultAlgorithm: MatchLocalesAlgorithm = "best-fit";
 
 function normalizeWildcardRange(range: string): string {
   return range.replace(/_/g, "-").toLowerCase();
@@ -131,11 +131,11 @@ function lookupMatcher(
   return getCanonicalUnicodeLocaleId(defaultLocale);
 }
 
-export function resolveLocale(
+export function matchLocales(
   requestedLocales: readonly string[],
   availableLocales: readonly string[],
   defaultLocale: string,
-  options: ResolveLocaleOptions = {}
+  options: MatchLocalesOptions = {}
 ): string {
   if (requestedLocales.length === 0) {
     return getCanonicalUnicodeLocaleId(defaultLocale);
@@ -147,7 +147,5 @@ export function resolveLocale(
 
   const { algorithm = defaultAlgorithm } = options;
   const matcher = algorithm === "best-fit" ? bestFitMatcher : lookupMatcher;
-  const resolvedLocale = matcher(requestedLocales, availableLocales, defaultLocale);
-
-  return resolvedLocale;
+  return matcher(requestedLocales, availableLocales, defaultLocale);
 }

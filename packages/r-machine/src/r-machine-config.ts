@@ -2,11 +2,15 @@ import { validateCanonicalUnicodeLocaleId } from "./locale/canonical-unicode-loc
 import type { AnyNamespace, AnyR } from "./r.js";
 import { RMachineError } from "./r-machine-error.js";
 
+export type RResolver = (locale: string, namespace: AnyNamespace) => Promise<AnyR>;
+
+export type LocaleMapper = (locale: string) => string;
+
 export interface RMachineConfig {
   readonly locales: readonly string[];
   readonly defaultLocale: string;
-  readonly rLoader: (locale: string, namespace: AnyNamespace) => Promise<AnyR>;
-  readonly localeResolver?: (locale: string) => string;
+  readonly rResolver: RResolver;
+  readonly localeMapper?: LocaleMapper;
 }
 
 export type RMachineConfigFactory = () => RMachineConfig;

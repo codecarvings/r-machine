@@ -1,19 +1,20 @@
 import type { AnyNamespace, AnyR } from "./r.js";
 import { type AnyNamespaceList, type AnyRKit, getRKitKey } from "./r-kit.js";
+import type { RResolver } from "./r-machine-config.js";
 import { RMachineError } from "./r-machine-error.js";
 
 export class Ctx {
   constructor(
     readonly locale: string,
-    protected rLoader: (namespace: AnyNamespace, locale: string) => Promise<AnyR>
+    protected readonly rResolver: RResolver
   ) {}
 
   protected resources = new Map<AnyNamespace, AnyR | Promise<AnyR>>();
   protected pendingRKits = new Map<string, Promise<AnyRKit>>();
 
-  protected loadR(namespace: AnyNamespace): Promise<AnyR> {
+  protected resolveR(namespace: AnyNamespace): Promise<AnyR> {
     const r = new Promise<AnyR>((resolve, reject) => {
-      void this.rLoader(this.locale, namespace).then(
+      void this.rResolver(this.locale, namespace).then(
         (resolvedR) => {
           this.resources.set(namespace, resolvedR);
 
@@ -22,7 +23,10 @@ export class Ctx {
         (reason) => {
           this.resources.delete(namespace);
 
-          const error = new RMachineError(`Unable to load resource "${namespace}" for locale "${this.locale}"`, reason);
+          const error = new RMachineError(
+            `Unable to resolve resource "${namespace}" for locale "${this.locale}"`,
+            reason
+          );
           console.error(error);
           reject(error);
         }
@@ -36,12 +40,12 @@ export class Ctx {
   pickR(namespace: AnyNamespace): AnyR | Promise<AnyR> {
     const r = this.resources.get(namespace);
     if (r !== undefined) {
-      // The resource is already loaded or loading
+      // The resource is already resolved or resolving
       return r;
-    } else {
-      // The resource has not been loaded yet nor is loading
-      return this.loadR(namespace);
     }
+
+    // The resource has not been resolved yet nor is resolving
+    return this.resolveR(namespace);
   }
 
   pickRKit(...namespaces: AnyNamespaceList): AnyRKit | Promise<AnyRKit> {
@@ -52,7 +56,7 @@ export class Ctx {
 
     const initialRKit = namespaces.map((namespace) => this.resources.get(namespace));
     if (initialRKit.every((r) => r !== undefined && !(r instanceof Promise))) {
-      // All resources are already loaded
+      // All resources are already resolved
       return initialRKit as AnyRKit;
     }
 
@@ -69,49 +73,49 @@ export class Ctx {
       // Must re-check the current state of each resource
       const rKit = namespaces.map((namespace) => this.resources.get(namespace));
 
-      let totReadyR = 0;
-      const onRReady = () => {
-        totReadyR++;
-        if (totReadyR === totRequestedR) {
+      let totRFulfilled = 0;
+      const onResolveFulfilled = () => {
+        totRFulfilled++;
+        if (totRFulfilled === totRequestedR) {
           this.pendingRKits.delete(key);
           resolve(rKit as AnyRKit);
         }
       };
-      const onRLoadFail = (reason: unknown) => {
+      const onRResolveRejected = (reason: unknown) => {
         this.pendingRKits.delete(key);
         reject(reason);
       };
 
       rKit.forEach((r, i) => {
         if (r !== undefined) {
-          // The resource is already loaded or loading
+          // The resource is already resolved or resolving
           if (r instanceof Promise) {
-            // The resource is loading
+            // The resource is resolving
             r.then(
               (resolvedR) => {
-                // Finished loading - Success
+                // Finished resolving - Success
                 rKit[i] = resolvedR;
-                onRReady();
+                onResolveFulfilled();
               },
               (reason) => {
-                // Finished loading - Fail
-                onRLoadFail(reason);
+                // Finished resolving - Fail
+                onRResolveRejected(reason);
               }
             );
           } else {
-            // The resource is already loaded
-            onRReady();
+            // The resource is already resolved
+            onResolveFulfilled();
           }
         } else {
-          // The resource is not loaded nor loading
+          // The resource is not resolved nor resolving
           const namespace = namespaces[i];
-          void this.loadR(namespace).then(
+          void this.resolveR(namespace).then(
             (resolvedR) => {
               rKit[i] = resolvedR;
-              onRReady();
+              onResolveFulfilled();
             },
             (reject) => {
-              onRLoadFail(reject);
+              onRResolveRejected(reject);
             }
           );
         }

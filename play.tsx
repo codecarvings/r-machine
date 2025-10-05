@@ -10,7 +10,7 @@ type Atlas = {
 const config: RMachineConfig = {
   locales: ["en", "it"],
   defaultLocale: "en",
-  rLoader: async (locale, namespace) => {
+  rResolver: async (locale, namespace) => {
     return { message: `${namespace} in ${locale}` };
   },
 };
@@ -19,6 +19,8 @@ const rMachine = new RMachine<Atlas>(config);
 
 const r = await rMachine.pickR("en", "ns1");
 console.log(r.message);
+
+rMachine.mapLocale;
 
 const [r1, r2] = await rMachine.pickRKit("en", "ns1", "ns2");
 console.log(r1.message);

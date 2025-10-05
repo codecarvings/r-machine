@@ -62,7 +62,7 @@ function MyComponent() {
 
 ## Suspense Support
 
-Both `useR` and `useRKit` support React Suspense for async resource loading. Wrap your components in a Suspense boundary:
+Both `useR` and `useRKit` support React Suspense for async resource resolving. Wrap your components in a Suspense boundary:
 
 ```tsx
 import { Suspense } from "react";

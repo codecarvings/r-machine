@@ -1,6 +1,7 @@
 import { Navigate } from "react-router";
+import { rMachine } from "./r-machine/r-machine";
 
 export default function DefaultLocaleRedirect() {
-  const locale = "en";
-  return <Navigate to={`/${locale}`} replace />;
+  const defaultLocale = rMachine.matchLocales(navigator.languages);
+  return <Navigate to={`/${defaultLocale}`} replace />;
 }
