@@ -222,4 +222,41 @@ describe("validateCanonicalUnicodeLocaleId", () => {
       expect(error?.message).toContain('Did you mean: "en-US-x-private"');
     });
   });
+
+  describe("wildcards", () => {
+    it("should return error for wildcard only", () => {
+      const error = validateCanonicalUnicodeLocaleId("*");
+      expect(error).toBeInstanceOf(RMachineError);
+      expect(error?.message).toContain('Invalid locale identifier: "*"');
+      expect(error?.message).toContain("Wildcards are not allowed");
+    });
+
+    it("should return error for wildcard in language position", () => {
+      const error = validateCanonicalUnicodeLocaleId("*-US");
+      expect(error).toBeInstanceOf(RMachineError);
+      expect(error?.message).toContain('Invalid locale identifier: "*-US"');
+      expect(error?.message).toContain("Wildcards are not allowed");
+    });
+
+    it("should return error for wildcard in region position", () => {
+      const error = validateCanonicalUnicodeLocaleId("en-*");
+      expect(error).toBeInstanceOf(RMachineError);
+      expect(error?.message).toContain('Invalid locale identifier: "en-*"');
+      expect(error?.message).toContain("Wildcards are not allowed");
+    });
+
+    it("should return error for wildcard in script position", () => {
+      const error = validateCanonicalUnicodeLocaleId("zh-*-CN");
+      expect(error).toBeInstanceOf(RMachineError);
+      expect(error?.message).toContain('Invalid locale identifier: "zh-*-CN"');
+      expect(error?.message).toContain("Wildcards are not allowed");
+    });
+
+    it("should return error for multiple wildcards", () => {
+      const error = validateCanonicalUnicodeLocaleId("*-*");
+      expect(error).toBeInstanceOf(RMachineError);
+      expect(error?.message).toContain('Invalid locale identifier: "*-*"');
+      expect(error?.message).toContain("Wildcards are not allowed");
+    });
+  });
 });

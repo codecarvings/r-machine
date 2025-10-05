@@ -45,6 +45,12 @@ export function getCanonicalUnicodeLocaleId(locale: string): string {
 }
 
 export function validateCanonicalUnicodeLocaleId(locale: string): RMachineError | null {
+  if (locale.includes("*")) {
+    return new RMachineError(
+      `Invalid locale identifier: "${locale}". Wildcards are not allowed in canonical Unicode locale identifiers.`
+    );
+  }
+
   const canonical = getCanonicalUnicodeLocaleId(locale);
   if (canonical !== locale) {
     return new RMachineError(

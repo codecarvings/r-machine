@@ -8,7 +8,7 @@ This is a monorepo for R-Machine, a TypeScript library for internationalization 
 
 ## Package Manager
 
-This project uses **pnpm** as the package manager. The required version is specified in `package.json` as `pnpm@10.17.1`.
+This project uses **pnpm** as the package manager. The required version is specified in `package.json` as `pnpm@10.18.0`.
 
 ## Common Commands
 

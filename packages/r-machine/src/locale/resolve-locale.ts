@@ -10,6 +10,36 @@ interface ResolveLocaleOptions {
 
 const defaultAlgorithm: Algorithm = "best-fit";
 
+function normalizeWildcardRange(range: string): string {
+  return range.replace(/_/g, "-").toLowerCase();
+}
+
+function matchesWildcardRange(range: string, locale: string): boolean {
+  const normalizedRange = normalizeWildcardRange(range);
+
+  if (normalizedRange === "*") {
+    return true;
+  }
+
+  const rangeParts = normalizedRange.split("-");
+  const localeParts = locale.toLowerCase().split("-");
+
+  for (let i = 0; i < rangeParts.length; i++) {
+    if (rangeParts[i] === "*") {
+      if (i === 0) {
+        return true;
+      }
+      continue;
+    }
+
+    if (i >= localeParts.length || rangeParts[i] !== localeParts[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function bestFitMatcher(
   requestedLocales: readonly string[],
   availableLocales: readonly string[],
@@ -18,10 +48,24 @@ function bestFitMatcher(
   const canonicalAvailable = new Set(availableLocales.map(getCanonicalUnicodeLocaleId));
 
   for (const requestedLocale of requestedLocales) {
+    if (requestedLocale === "*") {
+      continue;
+    }
+
     const canonical = getCanonicalUnicodeLocaleId(requestedLocale);
 
     if (canonicalAvailable.has(canonical)) {
       return canonical;
+    }
+
+    if (requestedLocale.includes("*")) {
+      for (const available of availableLocales) {
+        const availableCanonical = getCanonicalUnicodeLocaleId(available);
+        if (matchesWildcardRange(requestedLocale, availableCanonical)) {
+          return availableCanonical;
+        }
+      }
+      continue;
     }
 
     const [language] = canonical.split("-");
@@ -47,6 +91,20 @@ function lookupMatcher(
   const canonicalAvailable = new Set(availableLocales.map(getCanonicalUnicodeLocaleId));
 
   for (const requestedLocale of requestedLocales) {
+    if (requestedLocale === "*") {
+      continue;
+    }
+
+    if (requestedLocale.includes("*")) {
+      for (const available of availableLocales) {
+        const availableCanonical = getCanonicalUnicodeLocaleId(available);
+        if (matchesWildcardRange(requestedLocale, availableCanonical)) {
+          return availableCanonical;
+        }
+      }
+      continue;
+    }
+
     const canonical = getCanonicalUnicodeLocaleId(requestedLocale);
 
     if (canonicalAvailable.has(canonical)) {

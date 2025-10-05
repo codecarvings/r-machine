@@ -267,4 +267,103 @@ describe("resolveLocale", () => {
       expect(result).toBe("zh");
     });
   });
+
+  describe("wildcard matching (RFC 4647)", () => {
+    describe("universal wildcard '*'", () => {
+      it("should skip '*' and continue to next range in lookup", () => {
+        const result = resolveLocale(["*", "en-US"], ["en-US", "it-IT"], "it", { algorithm: "lookup" });
+        expect(result).toBe("en-US");
+      });
+
+      it("should skip '*' and continue to next range in best-fit", () => {
+        const result = resolveLocale(["*", "it-IT"], ["en-US", "it-IT"], "en", { algorithm: "best-fit" });
+        expect(result).toBe("it-IT");
+      });
+
+      it("should return default when only '*' is provided", () => {
+        const result = resolveLocale(["*"], ["en-US", "it-IT"], "de", { algorithm: "lookup" });
+        expect(result).toBe("de");
+      });
+
+      it("should return default when '*' is last and no previous match", () => {
+        const result = resolveLocale(["zh-CN", "*"], ["en-US", "it-IT"], "en", { algorithm: "best-fit" });
+        expect(result).toBe("en");
+      });
+    });
+
+    describe("extended wildcard ranges", () => {
+      it("should match 'en-*' to any English locale in lookup", () => {
+        const result = resolveLocale(["en-*"], ["en-US", "it-IT", "en-GB"], "it", { algorithm: "lookup" });
+        expect(result).toBe("en-US");
+      });
+
+      it("should match 'en-*' to any English locale in best-fit", () => {
+        const result = resolveLocale(["en-*"], ["it-IT", "en-GB", "de-DE"], "it", { algorithm: "best-fit" });
+        expect(result).toBe("en-GB");
+      });
+
+      it("should match 'zh-Hans-*' to Chinese simplified locales", () => {
+        const result = resolveLocale(["zh-Hans-*"], ["zh-Hant-TW", "zh-Hans-CN", "en-US"], "en", {
+          algorithm: "lookup",
+        });
+        expect(result).toBe("zh-Hans-CN");
+      });
+
+      it("should not match wildcard when prefix differs", () => {
+        const result = resolveLocale(["en-*"], ["it-IT", "de-DE"], "it", { algorithm: "lookup" });
+        expect(result).toBe("it");
+      });
+
+      it("should prioritize wildcard match over language-only fallback", () => {
+        const result = resolveLocale(["en-*", "it"], ["it-IT", "en-GB"], "de", { algorithm: "lookup" });
+        expect(result).toBe("en-GB");
+      });
+
+      it("should match exact locale before wildcard in same range", () => {
+        const result = resolveLocale(["en-US", "en-*"], ["en-GB", "it-IT"], "it", { algorithm: "lookup" });
+        expect(result).toBe("en-GB");
+      });
+    });
+
+    describe("wildcard position handling", () => {
+      it("should match '*-US' to first available locale (wildcard in first position)", () => {
+        const result = resolveLocale(["*-US"], ["it-IT", "en-US", "de-DE"], "it", { algorithm: "lookup" });
+        expect(result).toBe("it-IT");
+      });
+
+      it("should ignore wildcard in non-first positions per RFC 4647", () => {
+        const result = resolveLocale(["en-*-foo"], ["en-US", "it-IT"], "it", { algorithm: "lookup" });
+        expect(result).toBe("it");
+      });
+    });
+
+    describe("wildcard with priority order", () => {
+      it("should process wildcards in order with other ranges", () => {
+        const result = resolveLocale(["it-*", "en-*", "de"], ["en-US", "de-DE"], "fr", { algorithm: "lookup" });
+        expect(result).toBe("en-US");
+      });
+
+      it("should return first match when multiple wildcards match", () => {
+        const result = resolveLocale(["en-*", "en-GB"], ["en-US", "en-GB", "en-AU"], "it", { algorithm: "lookup" });
+        expect(result).toBe("en-US");
+      });
+    });
+
+    describe("edge cases with wildcards", () => {
+      it("should handle empty locale list with wildcard", () => {
+        const result = resolveLocale(["en-*"], [], "en", { algorithm: "lookup" });
+        expect(result).toBe("en");
+      });
+
+      it("should handle wildcard with case normalization", () => {
+        const result = resolveLocale(["EN-*"], ["en-US", "it-IT"], "it", { algorithm: "lookup" });
+        expect(result).toBe("en-US");
+      });
+
+      it("should match wildcard after canonicalization", () => {
+        const result = resolveLocale(["en_*"], ["en-US", "it-IT"], "it", { algorithm: "lookup" });
+        expect(result).toBe("en-US");
+      });
+    });
+  });
 });
