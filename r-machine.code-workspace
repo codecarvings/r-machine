@@ -9,8 +9,12 @@
       "path": "./packages/r-machine"
     },
     {
-      "name": "🔵 packages / react-r-machine",
+      "name": "🟣 packages / react-r-machine",
       "path": "./packages/react-r-machine"
+    },
+    {
+      "name": "🟣 packages / react-router-r-machine",
+      "path": "./packages/react-router-r-machine"
     },
     /*
     {

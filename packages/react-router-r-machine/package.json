@@ -1,5 +1,5 @@
 {
-  "name": "react-r-machine",
+  "name": "react-router-r-machine",
   "version": "0.1.0",
   "description": "R-Machine library",
   "author": "Sergio Turolla <hello@codecarvings.com>",
@@ -62,7 +62,9 @@
   },
   "peerDependencies": {
     "react": "^18 || ^19",
-    "r-machine": "workspace:*"
+    "react-router": "^7",
+    "react-r-machine": "workspace:*",
+    "r-machine": "workspace:*",
   },
   "devDependencies": {
     "@types/react": "^18"
