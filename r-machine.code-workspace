@@ -13,15 +13,9 @@
       "path": "./packages/react-r-machine"
     },
     {
-      "name": "🟣 packages / react-router-r-machine",
-      "path": "./packages/react-router-r-machine"
-    },
-    /*
-    {
       "name": "🟣 packages / next-r-machine",
       "path": "./packages/next-r-machine"
-    }
-    */
+    },
     {
       "name": "🟥 examples",
       "path": "./examples"

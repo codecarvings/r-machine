@@ -1,7 +1,7 @@
 {
   "name": "react-r-machine",
   "version": "0.1.0",
-  "description": "R-Machine library",
+  "description": "Official React bindings for R-Machine",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "MIT",
   "type": "module",
@@ -61,10 +61,10 @@
     "test:watch": "pnpm vitest watch --typecheck"
   },
   "peerDependencies": {
-    "react": "^18 || ^19",
+    "react": "^18.2.0 || ^19.0.0",
     "r-machine": "workspace:*"
   },
   "devDependencies": {
-    "@types/react": "^18"
+    "@types/react": "^18.2.0"
   }
 }

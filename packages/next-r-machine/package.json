@@ -1,7 +1,7 @@
 {
-  "name": "react-router-r-machine",
+  "name": "next-r-machine",
   "version": "0.1.0",
-  "description": "R-Machine library",
+  "description": "Official Next.js bindings for R-Machine",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "MIT",
   "type": "module",
@@ -61,12 +61,13 @@
     "test:watch": "pnpm vitest watch --typecheck"
   },
   "peerDependencies": {
-    "react": "^18 || ^19",
-    "react-router": "^7",
+    "next": "^13.0.0 || ^14.0.0 || ^15.0.0",
+    "react": "^18.2.0 || ^19.0.0",
     "react-r-machine": "workspace:*",
     "r-machine": "workspace:*"
   },
   "devDependencies": {
-    "@types/react": "^18"
+    "@types/react": "^18.2.0",
+    "next": "^15.0.0"
   }
 }
