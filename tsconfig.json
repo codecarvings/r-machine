@@ -7,6 +7,6 @@
     "moduleResolution": "NodeNext",
     "types": []
   },
-  "include": ["**/*.ts", "**/*.mts", "**/*.cts", "play.tsx"],
+  "include": ["**/*.ts", "**/*.mts", "**/*.cts", "**/*.tsx"],
   "exclude": ["**/*.d.ts", "**/*.d.cts", "**/*.d.mts", "configs/vitest.base.ts"]
 }

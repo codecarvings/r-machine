@@ -1,3 +1,5 @@
+"use client";
+
 import {
   type AnyAtlas,
   type AtlasNamespace,
@@ -16,10 +18,10 @@ export interface FullLocaleProvider {
 }
 */
 
-interface RMachineProviderProps {
+interface ReactRMachineProviderProps {
   configFactory: RMachineConfigFactory;
   locale: string;
-  displayName?: string;
+  displayName?: string | undefined;
   children: ReactNode;
 }
 
@@ -38,7 +40,7 @@ interface ReactRMachineHooks<A extends AnyAtlas> {
 
 const ReactRMachineContext = createContext<ReactRMachineContextValue | null>(null);
 
-export function RMachineProvider({ configFactory, locale, displayName, children }: RMachineProviderProps) {
+export function ReactRMachineProvider({ configFactory, locale, displayName, children }: ReactRMachineProviderProps) {
   const value = useMemo(() => {
     const rMachine = RMachine.get(configFactory);
     const useLocale: UseLocaleFn = () => {
@@ -99,7 +101,6 @@ export function createReactRMachineHooks<A extends AnyAtlas>(): ReactRMachineHoo
 
     return rKit as RKit<A, NL>;
   }
-  1;
 
   return {
     useR,

@@ -1,5 +1,5 @@
 import { RMachine, type RMachineConfigFactory } from "r-machine";
-import { createReactRMachineHooks, RMachineProvider } from "react-r-machine";
+import { createReactRMachineHooks, ReactRMachineProvider } from "react-r-machine";
 import type { R$ } from "./packages/r-machine/src/r-module.js";
 
 type Atlas = {
@@ -36,7 +36,7 @@ console.log(r2.message);
 export const { useR, useRKit } = createReactRMachineHooks<Atlas>();
 
 const _helloWorld = (
-  <RMachineProvider configFactory={configFactory} locale="en">
+  <ReactRMachineProvider configFactory={configFactory} locale="en">
     Hello World
-  </RMachineProvider>
+  </ReactRMachineProvider>
 );
