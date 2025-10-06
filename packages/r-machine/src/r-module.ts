@@ -1,5 +1,5 @@
-import { RMachineError } from "../r-machine-error.js";
 import type { AnyNamespace, AnyR } from "./r.js";
+import { RMachineError } from "./r-machine-error.js";
 
 export interface R$ {
   readonly locale: string;
@@ -11,39 +11,73 @@ export type AnyRFactory = ($?: R$) => AnyR | Promise<AnyR>;
 export type AnyRForge = AnyR | AnyRFactory;
 
 export interface AnyRModule {
-  readonly r: AnyRForge;
+  readonly default: AnyRForge;
 }
 
 export type RModuleResolver = (locale: string, namespace: AnyNamespace) => Promise<AnyRModule>;
 
-export function resolveRFromModule(rModule: AnyRModule, $: R$): AnyR | Promise<AnyR> {
+function getResolveRFromModuleError(
+  locale: string,
+  namespace: AnyNamespace,
+  reason: string,
+  innerError?: Error | undefined
+) {
+  const error = new RMachineError(
+    `Unable to resolve resource "${namespace}" for locale "${locale}" - ${reason}`,
+    innerError
+  );
+  console.error(error);
+  return error;
+}
+
+export function resolveRFromModule(rModule: AnyRModule, $: R$): Promise<AnyR> {
   return new Promise<AnyR>((resolve, reject) => {
-    if (typeof rModule.r === "function") {
+    if (!rModule || typeof rModule !== "object") {
+      reject(getResolveRFromModuleError($.locale, $.namespace, "module is not an object"));
+      return;
+    }
+
+    const processFactoryResult = (r: any) => {
+      const rType = typeof r;
+      if (rType === "object") {
+        if (r !== null) {
+          resolve(r);
+        } else {
+          reject(getResolveRFromModuleError($.locale, $.namespace, "resource returned by factory is null"));
+        }
+      } else {
+        reject(
+          getResolveRFromModuleError($.locale, $.namespace, `invalid resource type returned by factory (${rType})`)
+        );
+      }
+    };
+
+    const rForge = rModule.default;
+    const rForgeType = typeof rForge;
+    if (rForgeType === "function") {
       // The module exports a factory function
-      const r = rModule.r($);
+      const r = (rForge as AnyRFactory)($);
 
       if (r instanceof Promise) {
         // The factory returned a promise, wait for it to resolve
         r.then(
           (resolvedR) => {
-            resolve(resolvedR);
+            processFactoryResult(resolvedR);
           },
-          (reason) => {
-            const error = new RMachineError(
-              `Unable to resolve resource "${$.namespace}" for locale "${$.locale}" (factory failed)`,
-              reason
-            );
-            console.error(error);
-            reject(error);
-          }
+          (reason) => reject(getResolveRFromModuleError($.locale, $.namespace, "factory promise rejected", reason))
         );
       } else {
         // The factory returned the resource directly
-        resolve(r);
+        processFactoryResult(r);
+      }
+    } else if (rForgeType === "object") {
+      if (rForge !== null) {
+        resolve(rForge);
+      } else {
+        reject(getResolveRFromModuleError($.locale, $.namespace, "exported resource is null"));
       }
     } else {
-      // The module exports the resource directly
-      resolve(rModule.r);
+      reject(getResolveRFromModuleError($.locale, $.namespace, `invalid export type (${rForgeType})`));
     }
   });
 }
@@ -52,16 +86,11 @@ export function resolveR(rModuleResolver: RModuleResolver, locale: string, names
   return new Promise<AnyR>((resolve, reject) => {
     rModuleResolver(locale, namespace).then(
       (resolvedRModule) => {
-        const r = resolveRFromModule(resolvedRModule, { locale, namespace });
-        if (r instanceof Promise) {
-          r.then(resolve, reject);
-        } else {
-          resolve(r);
-        }
+        resolveRFromModule(resolvedRModule, { locale, namespace }).then(resolve, reject);
       },
       (reason) => {
         const error = new RMachineError(
-          `Unable to resolve resource module "${namespace}" for locale "${locale}" (rModuleResolver failed)`,
+          `Unable to resolve resource module "${namespace}" for locale "${locale}" - rModuleResolver failed`,
           reason
         );
         console.error(error);

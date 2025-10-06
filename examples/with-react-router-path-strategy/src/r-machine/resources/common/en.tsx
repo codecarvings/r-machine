@@ -1,11 +1,17 @@
 import type { R, R$ } from "r-machine";
 
-export const r = ($: R$) => ({
-  title: "R-Machine example with React",
-  welcomeMessage: "Welcome to R-Machine with React!",
-  currentLanguage: ({ locale }: { locale: string }) => {
-    return `Current language is: ${locale} - NS: ${$.namespace}`;
-  },
-});
+const rFactory = ($: R$) => {
+  const format = new Intl.DateTimeFormat($.locale, {
+    dateStyle: "full",
+    timeStyle: "long",
+  });
 
-export type R_Common = R<typeof r>;
+  return {
+    title: "R-Machine example with React",
+    welcomeMessage: ({ date }: { date: Date }) => `Welcome to R-Machine with React! - ${format.format(date)}`,
+    currentLanguage: `Current language is: (${$.locale}) - NS: ${$.namespace}`,
+  };
+};
+
+export default rFactory;
+export type R_Common = R<typeof rFactory>;

@@ -1,11 +1,17 @@
 import type { R$ } from "r-machine";
 import type { R_Common } from "./en";
 
-export const r = ($: R$) =>
-  ({
+const rFactory = ($: R$) => {
+  const format = new Intl.DateTimeFormat($.locale, {
+    dateStyle: "full",
+    timeStyle: "long",
+  });
+
+  return {
     title: "Esempio di R-Machine con React",
-    welcomeMessage: "Benvenuto in R-Machine con React!",
-    currentLanguage: ({ locale }: { locale: string }) => {
-      return `La lingua corrente è: ${locale} - NS: ${$.namespace}`;
-    },
-  }) satisfies R_Common;
+    welcomeMessage: ({ date }: { date: Date }) => `Benvenuto in R-Machine con React! - ${format.format(date)}`,
+    currentLanguage: `La lingua corrente è: (${$.locale}) - NS: ${$.namespace}`,
+  } as R_Common;
+};
+
+export default rFactory;
