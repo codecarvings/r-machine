@@ -25,70 +25,61 @@ interface RMachineProviderProps {
 
 type UseLocaleFn = () => [string, (locale: string) => void];
 
-interface ReactRMachineContextValue<A extends AnyAtlas> {
-  contextId: symbol;
+interface ReactRMachineContextValue<A extends AnyAtlas = AnyAtlas> {
   rMachine: RMachine<A>;
   locale: string;
   useLocale: UseLocaleFn;
 }
 
-interface ReactRMachineContext<A extends AnyAtlas> {
-  RMachineProvider: (props: RMachineProviderProps) => JSX.Element;
-  useLocale: UseLocaleFn;
+interface ReactRMachineHooks<A extends AnyAtlas> {
   useR: <N extends AtlasNamespace<A>>(namespace: N) => A[N];
   useRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
 }
 
-let contextIdCounter = 0;
+const ReactRMachineContext = createContext<ReactRMachineContextValue | null>(null);
 
-export function createReactRMachineContext<A extends AnyAtlas>(): ReactRMachineContext<A> {
-  const contextId = Symbol(`ReactRMachineContext#${++contextIdCounter}`);
-  const ReactRMachineContext = createContext<ReactRMachineContextValue<A> | null>(null);
-
-  function RMachineProvider({ configFactory, locale, displayName, children }: RMachineProviderProps) {
-    const value = useMemo(() => {
-      const rMachine = RMachine.get<A>(configFactory);
-      const useLocale: UseLocaleFn = () => {
-        return [
-          locale,
-          (_newLocale: string) => {
-            throw new RMachineError("setLocale not implemented");
-          },
-        ];
-      };
-      const memoValue: ReactRMachineContextValue<A> = {
-        contextId,
-        rMachine,
+export function RMachineProvider({ configFactory, locale, displayName, children }: RMachineProviderProps) {
+  const value = useMemo(() => {
+    const rMachine = RMachine.get(configFactory);
+    const useLocale: UseLocaleFn = () => {
+      return [
         locale,
-        useLocale,
-      };
-      if (displayName) {
-        ReactRMachineContext.displayName = displayName;
-      }
-      return memoValue;
-    }, [configFactory, locale, displayName]);
-
-    return <ReactRMachineContext.Provider value={value}>{children}</ReactRMachineContext.Provider>;
-  }
-
-  function useReactRMachineContext(): ReactRMachineContextValue<A> {
-    const context = useContext(ReactRMachineContext);
-    if (!context) {
-      throw new RMachineError("useReactRMachineContext must be invoked from within a RMachineProvider");
+        (_newLocale: string) => {
+          throw new RMachineError("setLocale not implemented");
+        },
+      ];
+    };
+    const memoValue: ReactRMachineContextValue = {
+      rMachine,
+      locale,
+      useLocale,
+    };
+    if (displayName) {
+      ReactRMachineContext.displayName = displayName;
     }
-    if (context.contextId !== contextId) {
-      throw new RMachineError("useReactRMachineContext context mismatch");
-    }
-    return context;
+    return memoValue;
+  }, [configFactory, locale, displayName]);
+
+  return <ReactRMachineContext.Provider value={value}>{children}</ReactRMachineContext.Provider>;
+}
+
+function useReactRMachineContext<A extends AnyAtlas>(): ReactRMachineContextValue<A> {
+  const context = useContext(ReactRMachineContext) as ReactRMachineContextValue<A> | null;
+  if (!context) {
+    throw new RMachineError("useReactRMachineContext must be invoked from within a RMachineProvider");
   }
 
-  function useLocale(): ReturnType<UseLocaleFn> {
-    const { useLocale } = useReactRMachineContext();
-    return useLocale();
-  }
+  return context;
+}
 
+export function useLocale(): ReturnType<UseLocaleFn> {
+  const { useLocale } = useReactRMachineContext();
+  return useLocale();
+}
+
+export function createReactRMachineHooks<A extends AnyAtlas>(): ReactRMachineHooks<A> {
   function useR<N extends AtlasNamespace<A>>(namespace: N): A[N] {
-    const { rMachine, locale } = useReactRMachineContext();
+    const { rMachine, locale } = useReactRMachineContext<A>();
     const r = rMachine.pickR(locale, namespace);
 
     if (r instanceof Promise) {
@@ -99,7 +90,7 @@ export function createReactRMachineContext<A extends AnyAtlas>(): ReactRMachineC
   }
 
   function useRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): RKit<A, NL> {
-    const { rMachine, locale } = useReactRMachineContext();
+    const { rMachine, locale } = useReactRMachineContext<A>();
     const rKit = rMachine.pickRKit(locale, ...namespaces);
 
     if (rKit instanceof Promise) {
@@ -111,8 +102,6 @@ export function createReactRMachineContext<A extends AnyAtlas>(): ReactRMachineC
   1;
 
   return {
-    RMachineProvider,
-    useLocale,
     useR,
     useRKit,
   };

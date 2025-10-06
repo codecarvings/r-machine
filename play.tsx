@@ -1,5 +1,5 @@
 import { RMachine, type RMachineConfigFactory } from "r-machine";
-import { createReactRMachineContext } from "react-r-machine";
+import { createReactRMachineHooks, RMachineProvider } from "react-r-machine";
 
 type Atlas = {
   ns1: { message: string };
@@ -26,7 +26,7 @@ const [r1, r2] = await rMachine.pickRKit("en", "ns1", "ns2");
 console.log(r1.message);
 console.log(r2.message);
 
-export const { RMachineProvider, useLocale, useR, useRKit } = createReactRMachineContext<Atlas>();
+export const { useR, useRKit } = createReactRMachineHooks<Atlas>();
 
 const _helloWorld = (
   <RMachineProvider configFactory={configFactory} locale="en">
