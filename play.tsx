@@ -1,5 +1,6 @@
 import { RMachine, type RMachineConfigFactory } from "r-machine";
 import { createReactRMachineHooks, RMachineProvider } from "react-r-machine";
+import type { R$ } from "./packages/r-machine/src/r-module.js";
 
 type Atlas = {
   ns1: { message: string };
@@ -10,8 +11,14 @@ type Atlas = {
 const configFactory: RMachineConfigFactory = () => ({
   locales: ["en", "it"],
   defaultLocale: "en",
-  rResolver: async (locale, namespace) => {
-    return { message: `${namespace} in ${locale}` };
+  rModuleResolver: async (locale, namespace) => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return {
+      default: async ($: R$) => {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        return { message: `${namespace}(${$.namespace}) in ${locale}(${$.locale})` };
+      },
+    };
   },
 });
 

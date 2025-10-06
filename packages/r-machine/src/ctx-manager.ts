@@ -1,8 +1,8 @@
 import { Ctx } from "./ctx.js";
-import type { RResolver } from "./r-machine-config.js";
+import type { RModuleResolver } from "./r-module.js";
 
 export class CtxManager {
-  constructor(protected readonly rResolver: RResolver) {}
+  constructor(protected readonly rModuleResolver: RModuleResolver) {}
 
   protected cache = new Map<string, Ctx>();
 
@@ -12,7 +12,7 @@ export class CtxManager {
       return ctx;
     }
 
-    const newCtx = new Ctx(locale, this.rResolver);
+    const newCtx = new Ctx(locale, this.rModuleResolver);
     this.cache.set(locale, newCtx);
     return newCtx;
   }

@@ -1,15 +1,13 @@
 import { validateCanonicalUnicodeLocaleId } from "./locale/canonical-unicode-locale-id.js";
-import type { AnyNamespace, AnyR } from "./r.js";
 import { RMachineError } from "./r-machine-error.js";
-
-export type RResolver = (locale: string, namespace: AnyNamespace) => Promise<AnyR>;
+import type { RModuleResolver } from "./r-module.js";
 
 export type LocaleMapper = (locale: string) => string;
 
 export interface RMachineConfig {
   readonly locales: readonly string[];
   readonly defaultLocale: string;
-  readonly rResolver: RResolver;
+  readonly rModuleResolver: RModuleResolver;
   readonly localeMapper?: LocaleMapper;
 }
 

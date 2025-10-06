@@ -1,12 +1,11 @@
 import type { AnyNamespace, AnyR } from "./r.js";
 import { type AnyNamespaceList, type AnyRKit, getRKitKey } from "./r-kit.js";
-import type { RResolver } from "./r-machine-config.js";
-import { RMachineError } from "./r-machine-error.js";
+import { type RModuleResolver, resolveR } from "./r-module.js";
 
 export class Ctx {
   constructor(
     readonly locale: string,
-    protected readonly rResolver: RResolver
+    protected readonly rModuleResolver: RModuleResolver
   ) {}
 
   protected resources = new Map<AnyNamespace, AnyR | Promise<AnyR>>();
@@ -14,21 +13,14 @@ export class Ctx {
 
   protected resolveR(namespace: AnyNamespace): Promise<AnyR> {
     const r = new Promise<AnyR>((resolve, reject) => {
-      void this.rResolver(this.locale, namespace).then(
-        (resolvedR) => {
-          this.resources.set(namespace, resolvedR);
-
-          resolve(resolvedR);
+      resolveR(this.rModuleResolver, this.locale, namespace).then(
+        (r) => {
+          this.resources.set(namespace, r);
+          resolve(r);
         },
         (reason) => {
           this.resources.delete(namespace);
-
-          const error = new RMachineError(
-            `Unable to resolve resource "${namespace}" for locale "${this.locale}"`,
-            reason
-          );
-          console.error(error);
-          reject(error);
+          reject(reason);
         }
       );
     });
@@ -81,7 +73,7 @@ export class Ctx {
           resolve(rKit as AnyRKit);
         }
       };
-      const onRResolveRejected = (reason: unknown) => {
+      const onResolveRejected = (reason: unknown) => {
         this.pendingRKits.delete(key);
         reject(reason);
       };
@@ -99,7 +91,7 @@ export class Ctx {
               },
               (reason) => {
                 // Finished resolving - Fail
-                onRResolveRejected(reason);
+                onResolveRejected(reason);
               }
             );
           } else {
@@ -115,7 +107,7 @@ export class Ctx {
               onResolveFulfilled();
             },
             (reject) => {
-              onRResolveRejected(reject);
+              onResolveRejected(reject);
             }
           );
         }

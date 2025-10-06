@@ -1,7 +1,7 @@
 import { CtxManager } from "./ctx-manager.js";
 import { type MatchLocalesAlgorithm, matchLocales } from "./locale/locale-matcher.js";
 import { LocaleMapperManager } from "./locale-mapper-manager.js";
-import type { AnyAtlas, AtlasNamespace } from "./r.js";
+import type { AnyAtlas, AtlasNamespace, RX } from "./r.js";
 import type { AtlasNamespaceList, RKit } from "./r-kit.js";
 import {
   type LocaleMapper,
@@ -22,7 +22,7 @@ export class RMachine<A extends AnyAtlas> {
       throw configError;
     }
     this.localeMapperManager = new LocaleMapperManager(config.locales, config.defaultLocale, config.localeMapper);
-    this.ctxManager = new CtxManager(config.rResolver);
+    this.ctxManager = new CtxManager(config.rModuleResolver);
 
     this.mapLocale = this.localeMapperManager.map;
   }
@@ -38,10 +38,10 @@ export class RMachine<A extends AnyAtlas> {
 
   // Can return a promise or a value
   // This is to make suspense work with react on client
-  readonly pickR = <N extends AtlasNamespace<A>>(locale: string, namespace: N): A[N] | Promise<A[N]> => {
+  readonly pickR = <N extends AtlasNamespace<A>>(locale: string, namespace: N): RX<A, N> | Promise<RX<A, N>> => {
     const mappedLocale = this.mapLocale(locale);
     const ctx = this.ctxManager.get(mappedLocale);
-    return ctx.pickR(namespace) as A[N] | Promise<A[N]>;
+    return ctx.pickR(namespace) as RX<A, N> | Promise<RX<A, N>>;
   };
 
   // Can return a promise or a value
