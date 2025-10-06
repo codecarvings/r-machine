@@ -14,7 +14,7 @@ const configFactory: RMachineConfigFactory = () => ({
   rModuleResolver: async (locale, namespace) => {
     await new Promise((resolve) => setTimeout(resolve, 500));
     return {
-      default: async ($: R$) => {
+      r: async ($: R$) => {
         await new Promise((resolve) => setTimeout(resolve, 500));
         return { message: `${namespace}(${$.namespace}) in ${locale}(${$.locale})` };
       },

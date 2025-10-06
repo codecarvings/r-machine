@@ -8,19 +8,19 @@ export interface R$ {
 
 export type AnyRFactory = ($?: R$) => AnyR | Promise<AnyR>;
 
-export type AnyRModuleContent = AnyR | AnyRFactory;
+export type AnyRForge = AnyR | AnyRFactory;
 
 export interface AnyRModule {
-  readonly default: AnyRModuleContent;
+  readonly r: AnyRForge;
 }
 
 export type RModuleResolver = (locale: string, namespace: AnyNamespace) => Promise<AnyRModule>;
 
 export function resolveRFromModule(rModule: AnyRModule, $: R$): AnyR | Promise<AnyR> {
   return new Promise<AnyR>((resolve, reject) => {
-    if (typeof rModule.default === "function") {
+    if (typeof rModule.r === "function") {
       // The module exports a factory function
-      const r = rModule.default($);
+      const r = rModule.r($);
 
       if (r instanceof Promise) {
         // The factory returned a promise, wait for it to resolve
@@ -43,7 +43,7 @@ export function resolveRFromModule(rModule: AnyRModule, $: R$): AnyR | Promise<A
       }
     } else {
       // The module exports the resource directly
-      resolve(rModule.default);
+      resolve(rModule.r);
     }
   });
 }

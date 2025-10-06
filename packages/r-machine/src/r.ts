@@ -1,21 +1,21 @@
-import type { AnyRModuleContent } from "./r-module.js";
+import type { AnyRForge } from "./r-module.js";
 
 export type AnyNamespace = string;
 
 export type AnyR = object;
 
 export interface AnyAtlas {
-  readonly [namespace: AnyNamespace]: AnyRModuleContent;
+  readonly [namespace: AnyNamespace]: AnyRForge;
 }
 
 export type AtlasNamespace<A extends AnyAtlas> = Extract<keyof A, AnyNamespace>;
 
-export type RX<A extends AnyAtlas, N extends AtlasNamespace<A>> = A[N] extends (...args: any[]) => infer R
-  ? R extends Promise<infer R2>
-    ? R2
-    : R
-  : A[N];
+type RType<F extends AnyRForge> = F extends (...args: any[]) => infer R ? (R extends Promise<infer R2> ? R2 : R) : F;
 
 // Force branded type name
 const r: unique symbol = Symbol.for("R");
-export type R<T> = T & { [r]?: "R-Machine resource" };
+export interface RBrand {
+  readonly [r]?: "R-Machine resource";
+}
+
+export type R<F extends AnyRForge> = RType<F> & RBrand;

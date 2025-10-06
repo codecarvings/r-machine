@@ -2,7 +2,7 @@ import type { AnyNamespace, AnyR } from "./r.js";
 import { type AnyNamespaceList, type AnyRKit, getRKitKey } from "./r-kit.js";
 import { type RModuleResolver, resolveR } from "./r-module.js";
 
-export class Ctx {
+export class Domain {
   constructor(
     readonly locale: string,
     protected readonly rModuleResolver: RModuleResolver
