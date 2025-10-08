@@ -11,8 +11,6 @@ export interface RMachineConfig {
   readonly localeMapper?: LocaleMapper;
 }
 
-export type RMachineConfigFactory = () => RMachineConfig;
-
 export function validateRMachineConfig(config: RMachineConfig): RMachineError | null {
   if (!config.locales.length) {
     return new RMachineError("No locales provided");
@@ -39,4 +37,11 @@ export function validateRMachineConfig(config: RMachineConfig): RMachineError | 
   }
 
   return null;
+}
+
+export function cloneRMachineConfig(config: RMachineConfig): RMachineConfig {
+  return {
+    ...config,
+    locales: [...config.locales],
+  };
 }

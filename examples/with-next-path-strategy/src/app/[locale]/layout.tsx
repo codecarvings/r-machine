@@ -1,5 +1,4 @@
-import { NextRMachineProvider } from "next-r-machine";
-import { rMachineConfigFactory } from "@/r-machine/config";
+import { NextRMachineProvider } from "@/r-machine/next-r-machine";
 
 export default async function LocaleLayout({
   params,
@@ -10,9 +9,5 @@ export default async function LocaleLayout({
 }) {
   const locale = (await params).locale;
 
-  return (
-    <NextRMachineProvider configFactory={rMachineConfigFactory} locale={locale}>
-      {children}
-    </NextRMachineProvider>
-  );
+  return <NextRMachineProvider locale={locale}>{children}</NextRMachineProvider>;
 }

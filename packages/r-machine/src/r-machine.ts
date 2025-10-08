@@ -4,31 +4,28 @@ import { LocaleMapperManager } from "./locale-mapper-manager.js";
 import type { AnyAtlas, AtlasNamespace } from "./r.js";
 import type { AtlasNamespaceList, RKit } from "./r-kit.js";
 import {
+  cloneRMachineConfig,
   type LocaleMapper,
   type RMachineConfig,
-  type RMachineConfigFactory,
   validateRMachineConfig,
 } from "./r-machine-config.js";
 
-const rMachineInstance: unique symbol = Symbol.for("R-Machine.instance");
-interface InternalRMachineConfigFactory extends RMachineConfigFactory {
-  [rMachineInstance]: RMachine<AnyAtlas> | undefined;
-}
-
 export class RMachine<A extends AnyAtlas> {
-  protected constructor(readonly config: RMachineConfig) {
+  constructor(config: RMachineConfig) {
     const configError = validateRMachineConfig(config);
     if (configError) {
       throw configError;
     }
+    this.config = cloneRMachineConfig(config);
     this.localeMapperManager = new LocaleMapperManager(config.locales, config.defaultLocale, config.localeMapper);
     this.domainManager = new DomainManager(config.rModuleResolver);
 
     this.mapLocale = this.localeMapperManager.map;
   }
 
-  protected localeMapperManager: LocaleMapperManager;
-  protected domainManager: DomainManager;
+  readonly config: RMachineConfig;
+  protected readonly localeMapperManager: LocaleMapperManager;
+  protected readonly domainManager: DomainManager;
 
   readonly matchLocales = (requestedLocales: readonly string[], algorithm?: MatchLocalesAlgorithm): string => {
     return matchLocales(requestedLocales, this.config.locales, this.config.defaultLocale, { algorithm });
@@ -54,18 +51,6 @@ export class RMachine<A extends AnyAtlas> {
     const domain = this.domainManager.get(mappedLocale);
     return domain.pickRKit(...namespaces) as RKit<A, NL> | Promise<RKit<A, NL>>;
   };
-
-  // Singleton factory method
-  static get<A extends AnyAtlas>(factory: RMachineConfigFactory): RMachine<A> {
-    const internalFactory = factory as InternalRMachineConfigFactory;
-    const instance = internalFactory[rMachineInstance] as RMachine<A> | undefined;
-    if (instance) {
-      return instance;
-    }
-
-    const config = factory();
-    const newInstance = new RMachine<A>(config);
-    internalFactory[rMachineInstance] = newInstance as RMachine<AnyAtlas>;
-    return newInstance;
-  }
 }
+
+export type RMachineResolver<A extends AnyAtlas = AnyAtlas> = (token: string | undefined) => RMachine<A>;

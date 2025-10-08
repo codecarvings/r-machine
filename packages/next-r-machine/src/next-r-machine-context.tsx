@@ -1,11 +1,9 @@
-import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine, RMachineConfigFactory } from "r-machine";
+import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine, RMachineResolver } from "r-machine";
 import type { ReactNode } from "react";
-import { ReactRMachineProvider } from "react-r-machine";
+import type { ReactRMachineProvider } from "react-r-machine";
 
 interface NextRMachineProviderProps {
-  configFactory: RMachineConfigFactory;
   locale: string;
-  displayName?: string | undefined;
   children: ReactNode;
 }
 
@@ -22,10 +20,12 @@ export interface NextRMachineFunctions<A extends AnyAtlas> {
   pickRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
 }
 
-export function NextRMachineProvider({ configFactory, locale, displayName, children }: NextRMachineProviderProps) {
-  return (
-    <ReactRMachineProvider configFactory={configFactory} locale={locale} displayName={displayName}>
-      {children}
-    </ReactRMachineProvider>
-  );
+export function createNextRMachineProvider<A extends AnyAtlas = AnyAtlas>(
+  rMachineResolver: RMachineResolver<A>,
+  ReactRMachineProvider: ReactRMachineProvider
+) {
+  void rMachineResolver;
+  return function NextRMachineProvider({ locale, children }: NextRMachineProviderProps) {
+    return <ReactRMachineProvider locale={locale}>{children}</ReactRMachineProvider>;
+  };
 }
