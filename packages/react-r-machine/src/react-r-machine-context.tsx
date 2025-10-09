@@ -7,18 +7,19 @@ import {
   type RKit,
   RMachineError,
   type RMachineResolver,
+  type RMachineToken,
 } from "r-machine";
 import type { ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
 
 export interface ReactRMachineContextValue {
   readonly locale: string;
-  readonly token: string | undefined;
+  readonly token: RMachineToken;
 }
 
 interface ReactRMachineProviderProps {
   readonly locale: string;
-  readonly token?: string;
+  readonly token?: RMachineToken;
   readonly children: ReactNode;
 }
 
@@ -54,7 +55,7 @@ export function createReactRMachineContext<A extends AnyAtlas>(
     return <ReactRMachineContext.Provider value={value}>{children}</ReactRMachineContext.Provider>;
   }
 
-  function resolveRMachine(token: string | undefined) {
+  function resolveRMachine(token: RMachineToken) {
     const rMachine = rMachineResolver(token);
     if (rMachine) {
       return rMachine;

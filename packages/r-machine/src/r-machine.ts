@@ -52,5 +52,3 @@ export class RMachine<A extends AnyAtlas> {
     return domain.pickRKit(...namespaces) as RKit<A, NL> | Promise<RKit<A, NL>>;
   };
 }
-
-export type RMachineResolver<A extends AnyAtlas = AnyAtlas> = (token: string | undefined) => RMachine<A>;

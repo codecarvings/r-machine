@@ -1,31 +1,61 @@
-import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine, RMachineResolver } from "r-machine";
+import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachineResolver, RMachineToken } from "r-machine";
 import type { ReactNode } from "react";
 import type { ReactRMachineProvider } from "react-r-machine";
 
 interface NextRMachineProviderProps {
-  locale: string;
-  children: ReactNode;
+  readonly locale: string;
+  readonly token?: RMachineToken;
+  readonly children: ReactNode;
 }
 
-type UseLocaleFn = () => [string, (locale: string) => void];
+export type NextRMachineProvider = (props: NextRMachineProviderProps) => JSX.Element;
 
-export interface NextRMachineContextValue<A extends AnyAtlas = AnyAtlas> {
-  rMachine: RMachine<A>;
-  locale: string;
-  useLocale: UseLocaleFn;
+interface NextRMachineContext<A extends AnyAtlas> {
+  readonly NextRMachineProvider: NextRMachineProvider;
+  readonly getLocale: () => string;
+  readonly setLocale: (locale: string) => void;
+  readonly pickR: <N extends AtlasNamespace<A>>(namespace: N) => A[N];
+  readonly pickRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
 }
 
-export interface NextRMachineFunctions<A extends AnyAtlas> {
-  pickR: <N extends AtlasNamespace<A>>(namespace: N) => A[N];
-  pickRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
-}
-
-export function createNextRMachineProvider<A extends AnyAtlas = AnyAtlas>(
+export function createNextRMachineContext<A extends AnyAtlas = AnyAtlas>(
   rMachineResolver: RMachineResolver<A>,
   ReactRMachineProvider: ReactRMachineProvider
-) {
+): NextRMachineContext<A> {
   void rMachineResolver;
-  return function NextRMachineProvider({ locale, children }: NextRMachineProviderProps) {
-    return <ReactRMachineProvider locale={locale}>{children}</ReactRMachineProvider>;
+
+  function NextRMachineProvider({ locale, token, children }: NextRMachineProviderProps) {
+    return (
+      <ReactRMachineProvider locale={locale} token={token}>
+        {children}
+      </ReactRMachineProvider>
+    );
+  }
+
+  function getLocale() {
+    return undefined!;
+  }
+
+  function setLocale(locale: string) {
+    void locale;
+    throw new Error("Not implemented");
+  }
+
+  function pickR<N extends AtlasNamespace<A>>(namespace: N): A[N] {
+    void namespace;
+    return undefined!;
+  }
+
+  function pickRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): RKit<A, NL> {
+    void namespaces;
+    return undefined!;
+  }
+
+  return {
+    NextRMachineProvider,
+    getLocale,
+    setLocale,
+    pickR,
+    pickRKit,
   };
 }
