@@ -25,7 +25,10 @@ export default async function LocaleLayout({
   return (
     <NextRMachineProvider {...rMachineProviderProps}>
       <html lang={locale}>
-        <body className={`${geistSans.variable}`}>{children}</body>
+        <body className={`${geistSans.variable}`}>
+          <div>{locale}</div>
+          {children}
+        </body>
       </html>
     </NextRMachineProvider>
   );

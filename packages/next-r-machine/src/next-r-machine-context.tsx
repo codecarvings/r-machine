@@ -2,6 +2,7 @@ import {
   type AnyAtlas,
   type AtlasNamespace,
   type AtlasNamespaceList,
+  type LocaleContextBridge,
   type RKit,
   type RMachine,
   type RMachineResolver,
@@ -42,9 +43,10 @@ interface NextRMachineContext<A extends AnyAtlas> {
 
 export function createNextRMachineContext<A extends AnyAtlas = AnyAtlas>(
   rMachineResolver: RMachineResolver<A>,
+  localeContextBridge: LocaleContextBridge,
   ReactRMachineProvider: ReactRMachineProvider
 ): NextRMachineContext<A> {
-  void rMachineResolver;
+  const { getLocale: _getLocale, setLocale: _setLocale } = localeContextBridge;
 
   function NextRMachineProvider({ localeOption, token, children }: NextRMachineProviderProps) {
     return (
@@ -57,9 +59,11 @@ export function createNextRMachineContext<A extends AnyAtlas = AnyAtlas>(
   NextRMachineProvider.probe = (props?: NextRMachineProviderProbeProps) => {
     const { token, localeOption } = props || {};
     const rMachine = resolveRMachine(rMachineResolver, token);
-    // TODO: Implement locale resolution
-    const locale = localeOption || "";
-    const isValidLocale = rMachine.localeHelper.validateLocale(locale) === null;
+    let locale = _getLocale({ localeOption, token, rMachine });
+    const isValidLocale = locale !== undefined && rMachine.localeHelper.validateLocale(locale) === null;
+    if (!isValidLocale) {
+      locale = undefined;
+    }
     return {
       rMachine,
       locale,

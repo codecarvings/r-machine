@@ -61,6 +61,9 @@ export function createReactRMachineContext<A extends AnyAtlas>(
     const value = useMemo<ReactRMachineContextValue>(() => {
       const rMachine = resolveRMachine(rMachineResolver, token);
       const locale = getLocale({ localeOption, token, rMachine });
+      if (locale === undefined) {
+        throw new RMachineError("LocaleContextBridge.getLocale function is unable to determine the locale (undefined)");
+      }
       const error = rMachine.localeHelper.validateLocale(locale);
       if (error) {
         throw error;

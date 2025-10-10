@@ -7,7 +7,7 @@ interface GetLocale$ {
   readonly token: RMachineToken;
   readonly rMachine: RMachine<AnyAtlas>;
 }
-type GetLocale = ($: GetLocale$) => string;
+type GetLocale = ($: GetLocale$) => string | undefined;
 
 interface SetLocale$ extends GetLocale$ {
   readonly currentLocale: string;
