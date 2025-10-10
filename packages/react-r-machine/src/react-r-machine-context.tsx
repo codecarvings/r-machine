@@ -9,6 +9,7 @@ import {
   RMachineError,
   type RMachineResolver,
   type RMachineToken,
+  resolveRMachine,
 } from "r-machine";
 import type { ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
@@ -56,7 +57,7 @@ export function createReactRMachineContext<A extends AnyAtlas>(
 
   function ReactRMachineProvider({ localeOption, token, children }: ReactRMachineProviderProps) {
     const value = useMemo<ReactRMachineContextValue>(() => {
-      const rMachine = rMachineResolver(token);
+      const rMachine = resolveRMachine(rMachineResolver, token);
       const locale = getLocale({ localeOption, token, rMachine });
       const error = rMachine.localeHelper.validateLocale(locale);
       if (error) {
@@ -69,14 +70,6 @@ export function createReactRMachineContext<A extends AnyAtlas>(
     return <ReactRMachineContext.Provider value={value}>{children}</ReactRMachineContext.Provider>;
   }
 
-  function resolveRMachine(token: RMachineToken) {
-    const rMachine = rMachineResolver(token);
-    if (rMachine) {
-      return rMachine;
-    }
-    throw new RMachineError("RMachine not found for the given token");
-  }
-
   function useLocale(): ReturnType<UseLocaleFn> {
     const { localeOption, token, locale } = useReactRMachineContext();
 
@@ -84,7 +77,7 @@ export function createReactRMachineContext<A extends AnyAtlas>(
       () => [
         locale,
         (newLocale: string) => {
-          const rMachine = resolveRMachine(token);
+          const rMachine = resolveRMachine(rMachineResolver, token);
           const error = rMachine.localeHelper.validateLocale(newLocale);
           if (error) {
             throw error;
@@ -93,13 +86,13 @@ export function createReactRMachineContext<A extends AnyAtlas>(
           setLocale(newLocale, { localeOption, token, rMachine, currentLocale: locale });
         },
       ],
-      [localeOption, token, locale]
+      [localeOption, token, locale, rMachineResolver]
     );
   }
 
   function useR<N extends AtlasNamespace<A>>(namespace: N): A[N] {
     const { token, locale } = useReactRMachineContext();
-    const rMachine = resolveRMachine(token);
+    const rMachine = resolveRMachine(rMachineResolver, token);
     const r = rMachine.pickR(locale, namespace);
 
     if (r instanceof Promise) {
@@ -111,7 +104,7 @@ export function createReactRMachineContext<A extends AnyAtlas>(
 
   function useRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): RKit<A, NL> {
     const { token, locale } = useReactRMachineContext();
-    const rMachine = resolveRMachine(token);
+    const rMachine = resolveRMachine(rMachineResolver, token);
     const rKit = rMachine.pickRKit(locale, ...namespaces);
 
     if (rKit instanceof Promise) {

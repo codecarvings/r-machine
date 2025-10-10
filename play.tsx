@@ -30,8 +30,8 @@ console.log(r1.message);
 console.log(r2.message);
 
 export const { ReactRMachineProvider, useLocale, useR, useRKit } = createReactRMachineContext(() => rMachine, {
-  getLocale: (localeOption) => localeOption ?? "en",
-  setLocale: (locale) => {
+  getLocale: ($) => $.localeOption || $.rMachine.config.defaultLocale,
+  setLocale: () => {
     throw new Error("Not implemented");
   },
 });
