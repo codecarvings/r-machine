@@ -26,8 +26,4 @@ export class LocaleHelper {
 
     return null;
   };
-
-  isValidLocale = (locale: string): boolean => {
-    return this.validateLocale(locale) === null;
-  };
 }

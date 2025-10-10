@@ -6,6 +6,7 @@ import {
   type AtlasNamespaceList,
   type LocaleContextBridge,
   type RKit,
+  type RMachine,
   RMachineError,
   type RMachineResolver,
   type RMachineToken,
@@ -28,11 +29,12 @@ interface ReactRMachineProviderProps {
 
 export type ReactRMachineProvider = (props: ReactRMachineProviderProps) => JSX.Element;
 
-type UseLocaleFn = () => [string, (locale: string) => void];
+type UseLocale = () => [string, (locale: string) => void];
 
 interface ReactRMachineContext<A extends AnyAtlas> {
   readonly ReactRMachineProvider: ReactRMachineProvider;
-  readonly useLocale: UseLocaleFn;
+  readonly useLocale: UseLocale;
+  readonly useRMachine: () => RMachine<A>;
   readonly useR: <N extends AtlasNamespace<A>>(namespace: N) => A[N];
   readonly useRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
 }
@@ -70,10 +72,10 @@ export function createReactRMachineContext<A extends AnyAtlas>(
     return <ReactRMachineContext.Provider value={value}>{children}</ReactRMachineContext.Provider>;
   }
 
-  function useLocale(): ReturnType<UseLocaleFn> {
+  function useLocale(): ReturnType<UseLocale> {
     const { localeOption, token, locale } = useReactRMachineContext();
 
-    return useMemo<ReturnType<UseLocaleFn>>(
+    return useMemo<ReturnType<UseLocale>>(
       () => [
         locale,
         (newLocale: string) => {
@@ -88,6 +90,12 @@ export function createReactRMachineContext<A extends AnyAtlas>(
       ],
       [localeOption, token, locale, rMachineResolver]
     );
+  }
+
+  function useRMachine(): RMachine<A> {
+    const { token } = useReactRMachineContext();
+    const rMachine = resolveRMachine(rMachineResolver, token);
+    return rMachine;
   }
 
   function useR<N extends AtlasNamespace<A>>(namespace: N): A[N] {
@@ -117,6 +125,7 @@ export function createReactRMachineContext<A extends AnyAtlas>(
   return {
     ReactRMachineProvider,
     useLocale,
+    useRMachine,
     useR,
     useRKit,
   };
