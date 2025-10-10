@@ -17,8 +17,8 @@ export default async function LocaleLayout({
 }) {
   const localeOption = (await params).locale;
   const rMachineProviderProps = { localeOption };
-  const { isValidLocale, locale } = NextRMachineProvider.probe(rMachineProviderProps);
-  if (!isValidLocale) {
+  const { locale } = NextRMachineProvider.probe(rMachineProviderProps);
+  if (locale === undefined) {
     return notFound();
   }
 
