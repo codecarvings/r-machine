@@ -4,6 +4,7 @@ import {
   type AnyAtlas,
   type AtlasNamespace,
   type AtlasNamespaceList,
+  type LocaleContextBridge,
   type RKit,
   RMachineError,
   type RMachineResolver,
@@ -13,12 +14,13 @@ import type { ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
 
 export interface ReactRMachineContextValue {
-  readonly locale: string;
+  readonly localeOption: string | undefined;
   readonly token: RMachineToken;
+  readonly locale: string;
 }
 
 interface ReactRMachineProviderProps {
-  readonly locale: string;
+  readonly localeOption?: string | undefined;
   readonly token?: RMachineToken;
   readonly children: ReactNode;
 }
@@ -47,10 +49,22 @@ function useReactRMachineContext(): ReactRMachineContextValue {
 }
 
 export function createReactRMachineContext<A extends AnyAtlas>(
-  rMachineResolver: RMachineResolver<A>
+  rMachineResolver: RMachineResolver<A>,
+  localeContextBridge: LocaleContextBridge
 ): ReactRMachineContext<A> {
-  function ReactRMachineProvider({ locale, token, children }: ReactRMachineProviderProps) {
-    const value = useMemo<ReactRMachineContextValue>(() => ({ locale, token }), [locale, token]);
+  const { getLocale, setLocale } = localeContextBridge;
+
+  function ReactRMachineProvider({ localeOption, token, children }: ReactRMachineProviderProps) {
+    const value = useMemo<ReactRMachineContextValue>(() => {
+      const rMachine = rMachineResolver(token);
+      const locale = getLocale({ localeOption, token, rMachine });
+      const error = rMachine.localeHelper.validateLocale(locale);
+      if (error) {
+        throw error;
+      }
+
+      return { localeOption, token, locale };
+    }, [localeOption, token, rMachineResolver]);
 
     return <ReactRMachineContext.Provider value={value}>{children}</ReactRMachineContext.Provider>;
   }
@@ -64,13 +78,23 @@ export function createReactRMachineContext<A extends AnyAtlas>(
   }
 
   function useLocale(): ReturnType<UseLocaleFn> {
-    const { locale } = useReactRMachineContext();
-    return [
-      locale,
-      (_newLocale: string) => {
-        throw new RMachineError("setLocale not implemented");
-      },
-    ];
+    const { localeOption, token, locale } = useReactRMachineContext();
+
+    return useMemo<ReturnType<UseLocaleFn>>(
+      () => [
+        locale,
+        (newLocale: string) => {
+          const rMachine = resolveRMachine(token);
+          const error = rMachine.localeHelper.validateLocale(newLocale);
+          if (error) {
+            throw error;
+          }
+
+          setLocale(newLocale, { localeOption, token, rMachine, currentLocale: locale });
+        },
+      ],
+      [localeOption, token, locale]
+    );
   }
 
   function useR<N extends AtlasNamespace<A>>(namespace: N): A[N] {

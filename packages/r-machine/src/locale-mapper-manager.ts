@@ -1,6 +1,7 @@
 import { matchLocales } from "./locale/locale-matcher.js";
-import type { LocaleMapper } from "./r-machine-config.js";
 import { RMachineError } from "./r-machine-error.js";
+
+export type LocaleMapper = (locale: string) => string;
 
 const defaultMatchLocalesAlgorithm = "lookup";
 
@@ -30,7 +31,7 @@ export class LocaleMapperManager {
     }
   }
 
-  readonly map = (locale: string): string => {
+  readonly mapLocale = (locale: string): string => {
     const mappedLocale = this.cache.get(locale);
     if (mappedLocale !== undefined) {
       return mappedLocale;

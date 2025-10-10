@@ -1,8 +1,7 @@
 import { validateCanonicalUnicodeLocaleId } from "./locale/canonical-unicode-locale-id.js";
+import type { LocaleMapper } from "./locale-mapper-manager.js";
 import { RMachineError } from "./r-machine-error.js";
 import type { RModuleResolver } from "./r-module.js";
-
-export type LocaleMapper = (locale: string) => string;
 
 export interface RMachineConfig {
   readonly locales: readonly string[];

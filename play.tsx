@@ -25,12 +25,15 @@ const rMachine = new RMachine<Atlas>({
 const r = await rMachine.pickR("en", "ns1");
 console.log(r.message);
 
-rMachine.mapLocale;
-
 const [r1, r2] = await rMachine.pickRKit("en", "ns1", "ns2");
 console.log(r1.message);
 console.log(r2.message);
 
-export const { ReactRMachineProvider, useLocale, useR, useRKit } = createReactRMachineContext(() => rMachine);
+export const { ReactRMachineProvider, useLocale, useR, useRKit } = createReactRMachineContext(() => rMachine, {
+  getLocale: (localeOption) => localeOption ?? "en",
+  setLocale: (locale) => {
+    throw new Error("Not implemented");
+  },
+});
 
-const _helloWorld = <ReactRMachineProvider locale="en">Hello World</ReactRMachineProvider>;
+const _helloWorld = <ReactRMachineProvider localeOption="en">Hello World</ReactRMachineProvider>;

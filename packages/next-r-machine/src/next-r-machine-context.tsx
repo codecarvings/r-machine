@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { ReactRMachineProvider } from "react-r-machine";
 
 interface NextRMachineProviderProps {
-  readonly locale: string;
+  readonly localeOption?: string | undefined;
   readonly token?: RMachineToken;
   readonly children: ReactNode;
 }
@@ -24,9 +24,9 @@ export function createNextRMachineContext<A extends AnyAtlas = AnyAtlas>(
 ): NextRMachineContext<A> {
   void rMachineResolver;
 
-  function NextRMachineProvider({ locale, token, children }: NextRMachineProviderProps) {
+  function NextRMachineProvider({ localeOption, token, children }: NextRMachineProviderProps) {
     return (
-      <ReactRMachineProvider locale={locale} token={token}>
+      <ReactRMachineProvider localeOption={localeOption} token={token}>
         {children}
       </ReactRMachineProvider>
     );

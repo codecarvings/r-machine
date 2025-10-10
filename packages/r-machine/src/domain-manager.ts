@@ -6,7 +6,7 @@ export class DomainManager {
 
   protected cache = new Map<string, Domain>();
 
-  get(locale: string): Domain {
+  getDomain(locale: string): Domain {
     const domain = this.cache.get(locale);
     if (domain !== undefined) {
       return domain;
