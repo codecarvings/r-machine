@@ -4,5 +4,4 @@ export type { AnyNamespaceList, AnyRKit, AtlasNamespaceList, RKit } from "./r-ki
 export * from "./r-machine.js";
 export type { RMachineConfig } from "./r-machine-config.js";
 export * from "./r-machine-error.js";
-export * from "./r-machine-resolver-manager.js";
 export type { R$ } from "./r-module.js";

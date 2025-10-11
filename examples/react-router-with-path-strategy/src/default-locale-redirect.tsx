@@ -1,8 +1,7 @@
-import { RMachine } from "r-machine";
 import { Navigate } from "react-router";
-import { rMachineConfigFactory } from "./r-machine/config";
+import { rMachine } from "./r-machine/r-machine";
 
 export default function DefaultLocaleRedirect() {
-  const defaultLocale = RMachine.get(rMachineConfigFactory).matchLocales(navigator.languages);
+  const defaultLocale = rMachine.localeHelper.matchLocales(navigator.languages);
   return <Navigate to={`/${defaultLocale}`} replace />;
 }

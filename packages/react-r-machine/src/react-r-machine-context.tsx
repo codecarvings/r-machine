@@ -7,8 +7,6 @@ import {
   type RKit,
   type RMachine,
   RMachineError,
-  type RMachineResolver,
-  RMachineResolverManager,
 } from "r-machine";
 import type { JSX, ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
@@ -16,24 +14,34 @@ import type { ReactRMachineLocaleContextBridge } from "./react-r-machine-locale-
 
 interface ReactRMachineContextValue {
   readonly localeOption: string | undefined;
-  readonly token: string | undefined;
   readonly locale: string;
+  readonly token: string | undefined;
 }
 
-interface ReactRMachineProviderProps {
+interface ReactRMachineProviderProbeProps {
   readonly localeOption?: string | undefined;
+}
+
+interface ReactRMachineProviderProps extends ReactRMachineProviderProbeProps {
   readonly token?: string | undefined;
   readonly children: ReactNode;
 }
 
-export type ReactRMachineProvider = (props: ReactRMachineProviderProps) => JSX.Element;
+interface ReactRMachineProviderProbeResult<A extends AnyAtlas> {
+  readonly locale: string | undefined;
+  readonly rMachine: RMachine<A>;
+}
+
+export interface ReactRMachineProvider<A extends AnyAtlas> {
+  (props: ReactRMachineProviderProps): JSX.Element;
+  probe: (props: ReactRMachineProviderProbeProps) => ReactRMachineProviderProbeResult<A>;
+}
 
 type UseLocale = () => [string, (locale: string) => void];
 
 interface ReactRMachineContext<A extends AnyAtlas> {
-  readonly ReactRMachineProvider: ReactRMachineProvider;
+  readonly ReactRMachineProvider: ReactRMachineProvider<A>;
   readonly useLocale: UseLocale;
-  readonly useRMachine: () => RMachine<A>;
   readonly useR: <N extends AtlasNamespace<A>>(namespace: N) => A[N];
   readonly useRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
 }
@@ -50,33 +58,31 @@ function useReactRMachineContext(): ReactRMachineContextValue {
   return context;
 }
 
-interface CreateReactRMachineContextOptions<A extends AnyAtlas> {
-  readonly rMachine: RMachine<A>;
-  readonly bridge: ReactRMachineLocaleContextBridge;
-  readonly rMachineResolver?: RMachineResolver<A>;
-}
-
 export function createReactRMachineContext<A extends AnyAtlas>(
-  options: CreateReactRMachineContextOptions<A>
+  rMachine: RMachine<A>,
+  localeBridge: ReactRMachineLocaleContextBridge
 ): ReactRMachineContext<A> {
-  const resolveRMachine = new RMachineResolverManager(
-    options.rMachine,
-    options.rMachineResolver ?? RMachineResolverManager.defaultRMachineResolver
-  ).resolveRMachine;
-  const { getLocale, setLocale } = options.bridge;
+  const { getLocale, setLocale } = localeBridge;
+
+  function probe(localeOption: string | undefined): ReactRMachineProviderProbeResult<A> {
+    let locale = getLocale({ localeOption, rMachine });
+    if (locale !== undefined && rMachine.localeHelper.validateLocale(locale) !== null) {
+      locale = undefined;
+    }
+
+    return {
+      locale,
+      rMachine,
+    };
+  }
 
   function ReactRMachineProvider({ localeOption, token, children }: ReactRMachineProviderProps) {
     const value = useMemo<ReactRMachineContextValue>(() => {
-      const rMachine = resolveRMachine(token);
-      const locale = getLocale({ localeOption, rMachine });
+      const { locale } = probe(localeOption);
       if (locale === undefined) {
         throw new RMachineError(
-          "Unable to render ReactRMachineProvider - LocaleContextBridge.getLocale function cannot determine the locale (undefined)"
+          "Unable to render ReactRMachineProvider - localeBridge.getLocale function cannot determine a valid locale"
         );
-      }
-      const error = rMachine.localeHelper.validateLocale(locale);
-      if (error) {
-        throw error;
       }
 
       return { localeOption, token, locale };
@@ -85,36 +91,33 @@ export function createReactRMachineContext<A extends AnyAtlas>(
     return <ReactRMachineContext.Provider value={value}>{children}</ReactRMachineContext.Provider>;
   }
 
+  ReactRMachineProvider.probe = (props?: ReactRMachineProviderProbeProps) => {
+    const { localeOption } = props || {};
+    return probe(localeOption);
+  };
+
   function useLocale(): ReturnType<UseLocale> {
-    const { localeOption, token, locale } = useReactRMachineContext();
+    const { localeOption, locale } = useReactRMachineContext();
 
     return useMemo<ReturnType<UseLocale>>(
       () => [
         locale,
         (newLocale: string) => {
-          const rMachine = resolveRMachine(rMachineResolver, token);
           const error = rMachine.localeHelper.validateLocale(newLocale);
           if (error) {
             throw error;
           }
 
-          setLocale(newLocale, { localeOption, token, rMachine, currentLocale: locale });
+          setLocale(newLocale, { localeOption, rMachine, currentLocale: locale });
         },
       ],
-      [localeOption, token, locale, rMachineResolver]
+      [localeOption, locale, rMachine]
     );
   }
 
-  function useRMachine(): RMachine<A> {
-    const { token } = useReactRMachineContext();
-    const rMachine = resolveRMachine(rMachineResolver, token);
-    return rMachine;
-  }
-
   function useR<N extends AtlasNamespace<A>>(namespace: N): A[N] {
-    const { token, locale } = useReactRMachineContext();
-    const rMachine = resolveRMachine(rMachineResolver, token);
-    const r = rMachine.pickR(locale, namespace);
+    const { locale, token } = useReactRMachineContext();
+    const r = rMachine.pickR(namespace, locale, token);
 
     if (r instanceof Promise) {
       throw r;
@@ -124,9 +127,8 @@ export function createReactRMachineContext<A extends AnyAtlas>(
   }
 
   function useRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): RKit<A, NL> {
-    const { token, locale } = useReactRMachineContext();
-    const rMachine = resolveRMachine(rMachineResolver, token);
-    const rKit = rMachine.pickRKit(locale, ...namespaces);
+    const { locale, token } = useReactRMachineContext();
+    const rKit = rMachine.pickRKit(namespaces, locale, token);
 
     if (rKit instanceof Promise) {
       throw rKit;
@@ -138,7 +140,6 @@ export function createReactRMachineContext<A extends AnyAtlas>(
   return {
     ReactRMachineProvider,
     useLocale,
-    useRMachine,
     useR,
     useRKit,
   };

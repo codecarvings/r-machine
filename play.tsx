@@ -29,7 +29,7 @@ const [r1, r2] = await rMachine.pickRKit(["ns1", "ns2"], "it");
 console.log(r1.message);
 console.log(r2.message);
 
-export const { ReactRMachineProvider, useLocale, useR, useRKit } = createReactRMachineContext(() => rMachine, {
+export const { ReactRMachineProvider, useLocale, useR, useRKit } = createReactRMachineContext(rMachine, {
   getLocale: ($) => $.localeOption,
   setLocale: () => {
     throw new Error("Not implemented");

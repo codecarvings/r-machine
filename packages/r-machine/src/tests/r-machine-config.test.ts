@@ -7,8 +7,8 @@ describe("validateRMachineConfig", () => {
     const config: RMachineConfig = {
       locales: [],
       defaultLocale: "en",
-      rModuleResolver: async (locale, namespace) => {
-        return { message: `${namespace} in ${locale}` };
+      rModuleResolver: async (namespace, locale) => {
+        return { default: { message: `${namespace} in ${locale}` } };
       },
     };
 
@@ -21,8 +21,8 @@ describe("validateRMachineConfig", () => {
     const config: RMachineConfig = {
       locales: ["en", "it", "en"],
       defaultLocale: "en",
-      rModuleResolver: async (locale, namespace) => {
-        return { message: `${namespace} in ${locale}` };
+      rModuleResolver: async (namespace, locale) => {
+        return { default: { message: `${namespace} in ${locale}` } };
       },
     };
 
@@ -35,8 +35,8 @@ describe("validateRMachineConfig", () => {
     const config: RMachineConfig = {
       locales: ["it"],
       defaultLocale: "en",
-      rModuleResolver: async (locale, namespace) => {
-        return { message: `${namespace} in ${locale}` };
+      rModuleResolver: async (namespace, locale) => {
+        return { default: { message: `${namespace} in ${locale}` } };
       },
     };
 
@@ -49,8 +49,8 @@ describe("validateRMachineConfig", () => {
     const config: RMachineConfig = {
       locales: ["en_US"],
       defaultLocale: "en_US",
-      rModuleResolver: async (locale, namespace) => {
-        return { message: `${namespace} in ${locale}` };
+      rModuleResolver: async (namespace, locale) => {
+        return { default: { message: `${namespace} in ${locale}` } };
       },
     };
 
@@ -64,8 +64,8 @@ describe("validateRMachineConfig", () => {
     const config: RMachineConfig = {
       locales: ["en", "it"],
       defaultLocale: "en_US",
-      rModuleResolver: async (locale, namespace) => {
-        return { message: `${namespace} in ${locale}` };
+      rModuleResolver: async (namespace, locale) => {
+        return { default: { message: `${namespace} in ${locale}` } };
       },
     };
 
@@ -79,8 +79,8 @@ describe("validateRMachineConfig", () => {
     const config: RMachineConfig = {
       locales: ["en", "en-US", "it", "de-DE"],
       defaultLocale: "en",
-      rModuleResolver: async (locale, namespace) => {
-        return { message: `${namespace} in ${locale}` };
+      rModuleResolver: async (namespace, locale) => {
+        return { default: { message: `${namespace} in ${locale}` } };
       },
     };
 
