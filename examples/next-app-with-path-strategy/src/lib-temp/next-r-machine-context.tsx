@@ -14,7 +14,6 @@ import type { NextRMachineLocaleContextBridge } from "./next-r-machine-locale-co
 interface NextRMachineContextValue {
   readonly ready: true;
   readonly localeOption: string | undefined;
-  readonly token: string | undefined;
   readonly locale: string;
 }
 
@@ -23,7 +22,6 @@ interface NextRMachineProviderProbeProps {
 }
 
 interface NextRMachineProviderProps extends NextRMachineProviderProbeProps {
-  readonly token?: string | undefined;
   readonly children: ReactNode;
 }
 
@@ -76,7 +74,7 @@ export function createNextRMachineContext<A extends AnyAtlas = AnyAtlas>(
     };
   }
 
-  function NextRMachineProvider({ localeOption, token, children }: NextRMachineProviderProps) {
+  function NextRMachineProvider({ localeOption, children }: NextRMachineProviderProps) {
     const { locale } = probe(localeOption);
     if (locale === undefined) {
       throw new RMachineError(
@@ -90,13 +88,8 @@ export function createNextRMachineContext<A extends AnyAtlas = AnyAtlas>(
     context.ready = true;
     context.locale = locale;
     context.localeOption = localeOption;
-    context.token = token;
 
-    return (
-      <ReactRMachineProvider localeOption={localeOption} token={token}>
-        {children}
-      </ReactRMachineProvider>
-    );
+    return <ReactRMachineProvider localeOption={localeOption}>{children}</ReactRMachineProvider>;
   }
 
   NextRMachineProvider.probe = (props?: NextRMachineProviderProbeProps) => {
@@ -120,13 +113,13 @@ export function createNextRMachineContext<A extends AnyAtlas = AnyAtlas>(
   }
 
   async function pickR<N extends AtlasNamespace<A>>(namespace: N): Promise<A[N]> {
-    const { locale, token } = await getNextRMachineContext();
-    return rMachine.pickR(namespace, locale, token);
+    const { locale } = await getNextRMachineContext();
+    return rMachine.pickR(locale, namespace);
   }
 
   async function pickRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): Promise<RKit<A, NL>> {
-    const { locale, token } = await getNextRMachineContext();
-    return rMachine.pickRKit(namespaces, locale, token) as Promise<RKit<A, NL>>;
+    const { locale } = await getNextRMachineContext();
+    return rMachine.pickRKit(locale, ...namespaces) as Promise<RKit<A, NL>>;
   }
 
   return {

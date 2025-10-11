@@ -6,16 +6,14 @@ export class DomainManager {
 
   protected cache = new Map<string, Domain>();
 
-  getDomain(locale: string, token: string | undefined): Domain {
-    const key = token === undefined ? locale : `${locale}⧺${token}`;
-
-    const domain = this.cache.get(key);
+  getDomain(locale: string): Domain {
+    const domain = this.cache.get(locale);
     if (domain !== undefined) {
       return domain;
     }
 
-    const newDomain = new Domain(locale, token, this.rModuleResolver);
-    this.cache.set(key, newDomain);
+    const newDomain = new Domain(locale, this.rModuleResolver);
+    this.cache.set(locale, newDomain);
     return newDomain;
   }
 }

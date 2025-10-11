@@ -22,10 +22,10 @@ const rMachine = new RMachine<Atlas>({
   },
 });
 
-const r = await rMachine.pickR("ns1", "en");
+const r = await rMachine.pickR("en", "ns1");
 console.log(r.message);
 
-const [r1, r2] = await rMachine.pickRKit(["ns1", "ns2"], "it");
+const [r1, r2] = await rMachine.pickRKit("it", "ns1", "ns2");
 console.log(r1.message);
 console.log(r2.message);
 

@@ -15,7 +15,6 @@ import type { ReactRMachineLocaleContextBridge } from "./react-r-machine-locale-
 interface ReactRMachineContextValue {
   readonly localeOption: string | undefined;
   readonly locale: string;
-  readonly token: string | undefined;
 }
 
 interface ReactRMachineProviderProbeProps {
@@ -23,7 +22,6 @@ interface ReactRMachineProviderProbeProps {
 }
 
 interface ReactRMachineProviderProps extends ReactRMachineProviderProbeProps {
-  readonly token?: string | undefined;
   readonly children: ReactNode;
 }
 
@@ -76,7 +74,7 @@ export function createReactRMachineContext<A extends AnyAtlas>(
     };
   }
 
-  function ReactRMachineProvider({ localeOption, token, children }: ReactRMachineProviderProps) {
+  function ReactRMachineProvider({ localeOption, children }: ReactRMachineProviderProps) {
     const value = useMemo<ReactRMachineContextValue>(() => {
       const { locale } = probe(localeOption);
       if (locale === undefined) {
@@ -85,8 +83,8 @@ export function createReactRMachineContext<A extends AnyAtlas>(
         );
       }
 
-      return { localeOption, token, locale };
-    }, [localeOption, token]);
+      return { localeOption, locale };
+    }, [localeOption]);
 
     return <ReactRMachineContext.Provider value={value}>{children}</ReactRMachineContext.Provider>;
   }
@@ -116,8 +114,8 @@ export function createReactRMachineContext<A extends AnyAtlas>(
   }
 
   function useR<N extends AtlasNamespace<A>>(namespace: N): A[N] {
-    const { locale, token } = useReactRMachineContext();
-    const r = rMachine.pickR(namespace, locale, token);
+    const { locale } = useReactRMachineContext();
+    const r = rMachine.pickR(locale, namespace);
 
     if (r instanceof Promise) {
       throw r;
@@ -127,8 +125,8 @@ export function createReactRMachineContext<A extends AnyAtlas>(
   }
 
   function useRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): RKit<A, NL> {
-    const { locale, token } = useReactRMachineContext();
-    const rKit = rMachine.pickRKit(namespaces, locale, token);
+    const { locale } = useReactRMachineContext();
+    const rKit = rMachine.pickRKit(locale, ...namespaces);
 
     if (rKit instanceof Promise) {
       throw rKit;

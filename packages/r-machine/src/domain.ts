@@ -9,7 +9,6 @@ function getRKitKey(...namespaces: AnyNamespaceList): string {
 export class Domain {
   constructor(
     readonly locale: string,
-    readonly token: string | undefined,
     protected readonly rModuleResolver: RModuleResolver
   ) {}
 
@@ -18,7 +17,7 @@ export class Domain {
 
   protected resolveR(namespace: AnyNamespace): Promise<AnyR> {
     const r = new Promise<AnyR>((resolve, reject) => {
-      resolveR(this.rModuleResolver, namespace, this.locale, this.token).then(
+      resolveR(this.rModuleResolver, namespace, this.locale).then(
         (r) => {
           this.resources.set(namespace, r);
           resolve(r);
