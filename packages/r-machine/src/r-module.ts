@@ -2,8 +2,9 @@ import type { AnyNamespace, AnyR } from "./r.js";
 import { RMachineError } from "./r-machine-error.js";
 
 export interface R$ {
-  readonly locale: string;
   readonly namespace: string;
+  readonly locale: string;
+  readonly token: string | undefined;
 }
 
 export type AnyRFactory = ($?: R$) => AnyR | Promise<AnyR>;
@@ -14,16 +15,21 @@ export interface AnyRModule {
   readonly default: AnyRForge;
 }
 
-export type RModuleResolver = (locale: string, namespace: AnyNamespace) => Promise<AnyRModule>;
+export type RModuleResolver = (
+  namespace: AnyNamespace,
+  locale: string,
+  token: string | undefined
+) => Promise<AnyRModule>;
 
 function getResolveRFromModuleError(
-  locale: string,
   namespace: AnyNamespace,
+  locale: string,
+  token: string | undefined,
   reason: string,
   innerError?: Error | undefined
 ) {
   const error = new RMachineError(
-    `Unable to resolve resource "${namespace}" for locale "${locale}" - ${reason}`,
+    `Unable to resolve resource "${namespace}" for locale "${locale}", token: ${JSON.stringify(token)} - ${reason}`,
     innerError
   );
   console.error(error);
@@ -33,7 +39,7 @@ function getResolveRFromModuleError(
 export function resolveRFromModule(rModule: AnyRModule, $: R$): Promise<AnyR> {
   return new Promise<AnyR>((resolve, reject) => {
     if (!rModule || typeof rModule !== "object") {
-      reject(getResolveRFromModuleError($.locale, $.namespace, "module is not an object"));
+      reject(getResolveRFromModuleError($.namespace, $.locale, $.token, "module is not an object"));
       return;
     }
 
@@ -43,11 +49,16 @@ export function resolveRFromModule(rModule: AnyRModule, $: R$): Promise<AnyR> {
         if (r !== null) {
           resolve(r);
         } else {
-          reject(getResolveRFromModuleError($.locale, $.namespace, "resource returned by factory is null"));
+          reject(getResolveRFromModuleError($.namespace, $.locale, $.token, "resource returned by factory is null"));
         }
       } else {
         reject(
-          getResolveRFromModuleError($.locale, $.namespace, `invalid resource type returned by factory (${rType})`)
+          getResolveRFromModuleError(
+            $.namespace,
+            $.namespace,
+            $.token,
+            `invalid resource type returned by factory (${rType})`
+          )
         );
       }
     };
@@ -64,7 +75,8 @@ export function resolveRFromModule(rModule: AnyRModule, $: R$): Promise<AnyR> {
           (resolvedR) => {
             processFactoryResult(resolvedR);
           },
-          (reason) => reject(getResolveRFromModuleError($.locale, $.namespace, "factory promise rejected", reason))
+          (reason) =>
+            reject(getResolveRFromModuleError($.namespace, $.locale, $.token, "factory promise rejected", reason))
         );
       } else {
         // The factory returned the resource directly
@@ -74,23 +86,28 @@ export function resolveRFromModule(rModule: AnyRModule, $: R$): Promise<AnyR> {
       if (rForge !== null) {
         resolve(rForge);
       } else {
-        reject(getResolveRFromModuleError($.locale, $.namespace, "exported resource is null"));
+        reject(getResolveRFromModuleError($.namespace, $.locale, $.token, "exported resource is null"));
       }
     } else {
-      reject(getResolveRFromModuleError($.locale, $.namespace, `invalid export type (${rForgeType})`));
+      reject(getResolveRFromModuleError($.namespace, $.locale, $.token, `invalid export type (${rForgeType})`));
     }
   });
 }
 
-export function resolveR(rModuleResolver: RModuleResolver, locale: string, namespace: AnyNamespace): Promise<AnyR> {
+export function resolveR(
+  rModuleResolver: RModuleResolver,
+  namespace: AnyNamespace,
+  locale: string,
+  token: string | undefined
+): Promise<AnyR> {
   return new Promise<AnyR>((resolve, reject) => {
-    rModuleResolver(locale, namespace).then(
+    rModuleResolver(namespace, locale, token).then(
       (resolvedRModule) => {
-        resolveRFromModule(resolvedRModule, { locale, namespace }).then(resolve, reject);
+        resolveRFromModule(resolvedRModule, { namespace, locale, token }).then(resolve, reject);
       },
       (reason) => {
         const error = new RMachineError(
-          `Unable to resolve resource module "${namespace}" for locale "${locale}" - rModuleResolver failed`,
+          `Unable to resolve resource module "${namespace}" for locale "${locale}", token: ${JSON.stringify(token)} - rModuleResolver failed`,
           reason
         );
         console.error(error);

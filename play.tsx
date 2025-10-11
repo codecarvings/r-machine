@@ -11,7 +11,7 @@ type Atlas = {
 const rMachine = new RMachine<Atlas>({
   locales: ["en", "it"],
   defaultLocale: "en",
-  rModuleResolver: async (locale, namespace) => {
+  rModuleResolver: async (namespace, locale) => {
     await new Promise((resolve) => setTimeout(resolve, 500));
     return {
       default: async ($: R$) => {
@@ -22,10 +22,10 @@ const rMachine = new RMachine<Atlas>({
   },
 });
 
-const r = await rMachine.pickR("en", "ns1");
+const r = await rMachine.pickR("ns1", "en");
 console.log(r.message);
 
-const [r1, r2] = await rMachine.pickRKit("en", "ns1", "ns2");
+const [r1, r2] = await rMachine.pickRKit(["ns1", "ns2"], "it");
 console.log(r1.message);
 console.log(r2.message);
 

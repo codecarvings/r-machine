@@ -1,10 +1,15 @@
 import type { AnyNamespace, AnyR } from "./r.js";
-import { type AnyNamespaceList, type AnyRKit, getRKitKey } from "./r-kit.js";
+import type { AnyNamespaceList, AnyRKit } from "./r-kit.js";
 import { type RModuleResolver, resolveR } from "./r-module.js";
+
+function getRKitKey(...namespaces: AnyNamespaceList): string {
+  return namespaces.join("⨆");
+}
 
 export class Domain {
   constructor(
     readonly locale: string,
+    readonly token: string | undefined,
     protected readonly rModuleResolver: RModuleResolver
   ) {}
 
@@ -13,7 +18,7 @@ export class Domain {
 
   protected resolveR(namespace: AnyNamespace): Promise<AnyR> {
     const r = new Promise<AnyR>((resolve, reject) => {
-      resolveR(this.rModuleResolver, this.locale, namespace).then(
+      resolveR(this.rModuleResolver, namespace, this.locale, this.token).then(
         (r) => {
           this.resources.set(namespace, r);
           resolve(r);
@@ -40,7 +45,7 @@ export class Domain {
     return this.resolveR(namespace);
   }
 
-  pickRKit(...namespaces: AnyNamespaceList): AnyRKit | Promise<AnyRKit> {
+  pickRKit(namespaces: AnyNamespaceList): AnyRKit | Promise<AnyRKit> {
     const totRequestedR = namespaces.length;
     if (totRequestedR === 0) {
       return [];

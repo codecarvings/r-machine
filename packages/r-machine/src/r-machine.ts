@@ -30,20 +30,23 @@ export class RMachine<A extends AnyAtlas> {
 
   // Can return a promise or a value
   // This is to make suspense work with react on client
-  readonly pickR = <N extends AtlasNamespace<A>>(locale: string, namespace: N): A[N] | Promise<A[N]> => {
+  readonly pickR = <N extends AtlasNamespace<A>>(
+    namespace: N,
+    locale: string,
+    token?: string | undefined
+  ): A[N] | Promise<A[N]> => {
     const mappedLocale = this.localeMapperManager.mapLocale(locale);
-    const domain = this.domainManager.getDomain(mappedLocale);
+    const domain = this.domainManager.getDomain(mappedLocale, token);
     return domain.pickR(namespace) as A[N] | Promise<A[N]>;
   };
 
-  // Can return a promise or a value
-  // This is to make suspense work with react on client
   readonly pickRKit = <NL extends AtlasNamespaceList<A>>(
+    namespaces: NL,
     locale: string,
-    ...namespaces: NL
+    token?: string | undefined
   ): RKit<A, NL> | Promise<RKit<A, NL>> => {
     const mappedLocale = this.localeMapperManager.mapLocale(locale);
-    const domain = this.domainManager.getDomain(mappedLocale);
-    return domain.pickRKit(...namespaces) as RKit<A, NL> | Promise<RKit<A, NL>>;
+    const domain = this.domainManager.getDomain(mappedLocale, token);
+    return domain.pickRKit(namespaces) as RKit<A, NL> | Promise<RKit<A, NL>>;
   };
 }
