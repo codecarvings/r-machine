@@ -4,26 +4,25 @@ import {
   type AnyAtlas,
   type AtlasNamespace,
   type AtlasNamespaceList,
-  type LocaleContextBridge,
   type RKit,
   type RMachine,
   RMachineError,
   type RMachineResolver,
-  type RMachineToken,
-  resolveRMachine,
+  RMachineResolverManager,
 } from "r-machine";
 import type { JSX, ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
+import type { ReactRMachineLocaleContextBridge } from "./react-r-machine-locale-context-bridge.js";
 
 interface ReactRMachineContextValue {
   readonly localeOption: string | undefined;
-  readonly token: RMachineToken;
+  readonly token: string | undefined;
   readonly locale: string;
 }
 
 interface ReactRMachineProviderProps {
   readonly localeOption?: string | undefined;
-  readonly token?: RMachineToken;
+  readonly token?: string | undefined;
   readonly children: ReactNode;
 }
 
@@ -51,16 +50,25 @@ function useReactRMachineContext(): ReactRMachineContextValue {
   return context;
 }
 
+interface CreateReactRMachineContextOptions<A extends AnyAtlas> {
+  readonly rMachine: RMachine<A>;
+  readonly bridge: ReactRMachineLocaleContextBridge;
+  readonly rMachineResolver?: RMachineResolver<A>;
+}
+
 export function createReactRMachineContext<A extends AnyAtlas>(
-  rMachineResolver: RMachineResolver<A>,
-  localeContextBridge: LocaleContextBridge
+  options: CreateReactRMachineContextOptions<A>
 ): ReactRMachineContext<A> {
-  const { getLocale, setLocale } = localeContextBridge;
+  const resolveRMachine = new RMachineResolverManager(
+    options.rMachine,
+    options.rMachineResolver ?? RMachineResolverManager.defaultRMachineResolver
+  ).resolveRMachine;
+  const { getLocale, setLocale } = options.bridge;
 
   function ReactRMachineProvider({ localeOption, token, children }: ReactRMachineProviderProps) {
     const value = useMemo<ReactRMachineContextValue>(() => {
-      const rMachine = resolveRMachine(rMachineResolver, token);
-      const locale = getLocale({ localeOption, token, rMachine });
+      const rMachine = resolveRMachine(token);
+      const locale = getLocale({ localeOption, rMachine });
       if (locale === undefined) {
         throw new RMachineError(
           "Unable to render ReactRMachineProvider - LocaleContextBridge.getLocale function cannot determine the locale (undefined)"
@@ -72,7 +80,7 @@ export function createReactRMachineContext<A extends AnyAtlas>(
       }
 
       return { localeOption, token, locale };
-    }, [localeOption, token, rMachineResolver]);
+    }, [localeOption, token]);
 
     return <ReactRMachineContext.Provider value={value}>{children}</ReactRMachineContext.Provider>;
   }

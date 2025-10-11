@@ -1,7 +1,9 @@
+import type { NextFetchEvent, NextRequest, NextResponse } from "next/server";
 import {
   type AnyAtlas,
   type AtlasNamespace,
   type AtlasNamespaceList,
+  type LocaleContextBridge,
   type RKit,
   type RMachine,
   RMachineError,
@@ -40,6 +42,7 @@ export interface NextRMachineProvider<A extends AnyAtlas> {
 }
 
 interface NextRMachineContext<A extends AnyAtlas> {
+  readonly rMachineMiddleware: (request: NextRequest, event: NextFetchEvent) => NextResponse;
   readonly NextRMachineProvider: NextRMachineProvider<A>;
   readonly getLocale: () => Promise<string>;
   readonly setLocale: (newLocale: string) => Promise<void>;

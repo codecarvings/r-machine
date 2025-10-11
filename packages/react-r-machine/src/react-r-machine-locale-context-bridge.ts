@@ -1,10 +1,7 @@
-import type { AnyAtlas } from "../r.js";
-import type { RMachine } from "../r-machine.js";
-import type { RMachineToken } from "../r-machine-resolver.js";
+import type { AnyAtlas, RMachine } from "r-machine";
 
 interface GetLocale$ {
   readonly localeOption: string | undefined;
-  readonly token: RMachineToken;
   readonly rMachine: RMachine<AnyAtlas>;
 }
 type GetLocale = ($: GetLocale$) => string | undefined;
@@ -14,7 +11,7 @@ interface SetLocale$ extends GetLocale$ {
 }
 type SetLocale = (newLocale: string, $: SetLocale$) => void;
 
-export interface LocaleContextBridge {
+export interface ReactRMachineLocaleContextBridge {
   readonly getLocale: GetLocale;
   readonly setLocale: SetLocale;
 }
