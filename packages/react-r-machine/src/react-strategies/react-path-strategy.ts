@@ -10,7 +10,7 @@ export class ReactPathStrategy extends ReactStrategy {
         return localeOption;
       },
       writeLocale: () => {
-        throw new Error("ReactToolsPathStrategy does not support writing locale");
+        throw new Error("ReactPathStrategy does not support writing locale");
       },
     };
   }

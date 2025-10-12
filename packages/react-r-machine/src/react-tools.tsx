@@ -75,7 +75,7 @@ export function createReactTools<A extends AnyAtlas>(rMachine: RMachine<A>, stra
       const { locale } = probe(localeOption);
       if (locale === undefined) {
         throw new RMachineError(
-          "Unable to render ReactRMachine - localeBridge.getLocale function cannot determine a valid locale"
+          "Unable to render ReactRMachine - ReactStrategyImpl.getLocale function cannot determine a valid locale"
         );
       }
 
