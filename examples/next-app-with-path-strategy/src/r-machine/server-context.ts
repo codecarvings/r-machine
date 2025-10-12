@@ -5,8 +5,8 @@ import { rMachine } from "./r-machine";
 export const { NextRMachineProvider, getLocale, setLocale, pickR, pickRKit } = createNextRMachineContext(
   rMachine,
   {
-    getLocale: ($) => $.localeOption,
-    setLocale: () => {
+    readLocale: ($) => "en",
+    writeLocale: () => {
       throw new Error("Not implemented");
     },
   },

@@ -10,38 +10,37 @@ import {
 } from "r-machine";
 import type { JSX, ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
-import type { ReactRMachineLocaleContextBridge } from "./react-r-machine-locale-context-bridge.js";
+import { ReactStrategy } from "./react-strategy.js";
 
-interface ReactRMachineContextValue {
-  readonly localeOption: string | undefined;
-  readonly locale: string;
-}
-
-interface ReactRMachineProviderProbeProps {
-  readonly localeOption?: string | undefined;
-}
-
-interface ReactRMachineProviderProps extends ReactRMachineProviderProbeProps {
-  readonly children: ReactNode;
-}
-
-interface ReactRMachineProviderProbeResult<A extends AnyAtlas> {
-  readonly locale: string | undefined;
-  readonly rMachine: RMachine<A>;
-}
-
-export interface ReactRMachineProvider<A extends AnyAtlas> {
-  (props: ReactRMachineProviderProps): JSX.Element;
-  probe: (props: ReactRMachineProviderProbeProps) => ReactRMachineProviderProbeResult<A>;
+interface ReactTools<A extends AnyAtlas> {
+  readonly ReactRMachine: ReactRMachine<A>;
+  readonly useLocale: UseLocale;
+  readonly useR: <N extends AtlasNamespace<A>>(namespace: N) => A[N];
+  readonly useRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
 }
 
 type UseLocale = () => [string, (locale: string) => void];
 
-interface ReactRMachineContext<A extends AnyAtlas> {
-  readonly ReactRMachineProvider: ReactRMachineProvider<A>;
-  readonly useLocale: UseLocale;
-  readonly useR: <N extends AtlasNamespace<A>>(namespace: N) => A[N];
-  readonly useRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
+interface ReactRMachineContextValue {
+  readonly locale: string;
+}
+
+interface ReactRMachineProbeProps {
+  readonly localeOption?: string | undefined;
+}
+
+interface ReactRMachineProps extends ReactRMachineProbeProps {
+  readonly children: ReactNode;
+}
+
+interface ReactRMachineProbeResult<A extends AnyAtlas> {
+  readonly locale: string | undefined;
+  readonly rMachine: RMachine<A>;
+}
+
+export interface ReactRMachine<A extends AnyAtlas> {
+  (props: ReactRMachineProps): JSX.Element;
+  probe: (props: ReactRMachineProbeProps) => ReactRMachineProbeResult<A>;
 }
 
 const ReactRMachineContext = createContext<ReactRMachineContextValue | null>(null);
@@ -50,20 +49,17 @@ ReactRMachineContext.displayName = "ReactRMachineContext";
 function useReactRMachineContext(): ReactRMachineContextValue {
   const context = useContext(ReactRMachineContext) as ReactRMachineContextValue | null;
   if (!context) {
-    throw new RMachineError("useReactRMachineContext must be invoked from within a ReactRMachineProvider");
+    throw new RMachineError("useReactRMachineContext must be invoked from within a ReactRMachine");
   }
 
   return context;
 }
 
-export function createReactRMachineContext<A extends AnyAtlas>(
-  rMachine: RMachine<A>,
-  localeBridge: ReactRMachineLocaleContextBridge
-): ReactRMachineContext<A> {
-  const { getLocale, setLocale } = localeBridge;
+export function createReactTools<A extends AnyAtlas>(rMachine: RMachine<A>, strategy: ReactStrategy): ReactTools<A> {
+  const { readLocale, writeLocale } = ReactStrategy.getReactStrategyImpl(strategy, rMachine);
 
-  function probe(localeOption: string | undefined): ReactRMachineProviderProbeResult<A> {
-    let locale = getLocale({ localeOption, rMachine });
+  function probe(localeOption: string | undefined): ReactRMachineProbeResult<A> {
+    let locale = readLocale({ localeOption });
     if (locale !== undefined && rMachine.localeHelper.validateLocale(locale) !== null) {
       locale = undefined;
     }
@@ -74,28 +70,28 @@ export function createReactRMachineContext<A extends AnyAtlas>(
     };
   }
 
-  function ReactRMachineProvider({ localeOption, children }: ReactRMachineProviderProps) {
+  function ReactRMachine({ localeOption, children }: ReactRMachineProps) {
     const value = useMemo<ReactRMachineContextValue>(() => {
       const { locale } = probe(localeOption);
       if (locale === undefined) {
         throw new RMachineError(
-          "Unable to render ReactRMachineProvider - localeBridge.getLocale function cannot determine a valid locale"
+          "Unable to render ReactRMachine - localeBridge.getLocale function cannot determine a valid locale"
         );
       }
 
-      return { localeOption, locale };
+      return { locale };
     }, [localeOption]);
 
     return <ReactRMachineContext.Provider value={value}>{children}</ReactRMachineContext.Provider>;
   }
 
-  ReactRMachineProvider.probe = (props?: ReactRMachineProviderProbeProps) => {
+  ReactRMachine.probe = (props?: ReactRMachineProbeProps) => {
     const { localeOption } = props || {};
     return probe(localeOption);
   };
 
   function useLocale(): ReturnType<UseLocale> {
-    const { localeOption, locale } = useReactRMachineContext();
+    const { locale } = useReactRMachineContext();
 
     return useMemo<ReturnType<UseLocale>>(
       () => [
@@ -106,10 +102,10 @@ export function createReactRMachineContext<A extends AnyAtlas>(
             throw error;
           }
 
-          setLocale(newLocale, { localeOption, rMachine, currentLocale: locale });
+          writeLocale(newLocale, { currentLocale: locale });
         },
       ],
-      [localeOption, locale, rMachine]
+      [locale, rMachine]
     );
   }
 
@@ -136,7 +132,7 @@ export function createReactRMachineContext<A extends AnyAtlas>(
   }
 
   return {
-    ReactRMachineProvider,
+    ReactRMachine,
     useLocale,
     useR,
     useRKit,

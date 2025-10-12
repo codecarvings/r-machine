@@ -1,18 +1,18 @@
 import { Outlet, useParams } from "react-router";
-import { ReactRMachineProvider } from "./r-machine/context";
+import { ReactRMachine } from "./r-machine/tools";
 
 export default function LocaleRoot() {
   const { locale: localeOption } = useParams();
 
-  const rMachineProviderProps = { localeOption };
-  const { locale } = ReactRMachineProvider.probe(rMachineProviderProps);
+  const rMachineProps = { localeOption };
+  const { locale } = ReactRMachine.probe(rMachineProps);
   if (locale === undefined) {
     return <div>404 Not Found</div>;
   }
 
   return (
-    <ReactRMachineProvider {...rMachineProviderProps}>
+    <ReactRMachine {...rMachineProps}>
       <Outlet />
-    </ReactRMachineProvider>
+    </ReactRMachine>
   );
 }
