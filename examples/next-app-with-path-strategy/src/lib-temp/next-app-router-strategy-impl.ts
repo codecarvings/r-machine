@@ -1,17 +1,18 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 
 interface ReadLocale$ {
-  readonly rMachine: RMachine<AnyAtlas>;
+  readonly localeOption: string | undefined;
 }
 type ReadLocale = ($: ReadLocale$) => string | undefined;
 
 interface WriteLocale$ {
   readonly currentLocale: string;
-  readonly rMachine: RMachine<AnyAtlas>;
 }
 type WriteLocale = (newLocale: string, $: WriteLocale$) => void;
 
-export interface NextRMachineContextLocaleBridge {
+export interface NextAppRouterStrategyImpl {
   readonly readLocale: ReadLocale;
   readonly writeLocale: WriteLocale;
 }
+
+export type NextAppRouterStrategyImplFactory = (rMachine: RMachine<AnyAtlas>) => NextAppRouterStrategyImpl;

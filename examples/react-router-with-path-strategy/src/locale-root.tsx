@@ -3,15 +3,13 @@ import { ReactRMachine } from "./r-machine/tools";
 
 export default function LocaleRoot() {
   const { locale: localeOption } = useParams();
-
-  const rMachineProps = { localeOption };
-  const { locale } = ReactRMachine.probe(rMachineProps);
+  const locale = ReactRMachine.probe(localeOption);
   if (locale === undefined) {
     return <div>404 Not Found</div>;
   }
 
   return (
-    <ReactRMachine {...rMachineProps}>
+    <ReactRMachine locale={locale}>
       <Outlet />
     </ReactRMachine>
   );

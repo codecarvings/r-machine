@@ -2,8 +2,10 @@ import type { ReactStrategyImpl, ReactStrategyImplFactory } from "../react-strat
 import { ReactDefaultStrategy } from "./react-default-strategy.js";
 
 export class ReactCustomStrategy extends ReactDefaultStrategy {
-  constructor(implOrImplFactory: ReactStrategyImpl | ReactStrategyImplFactory) {
-    super(implOrImplFactory);
-    void implOrImplFactory;
+  constructor(config: ReactStrategyImpl);
+  constructor(config: ReactStrategyImplFactory);
+  constructor(config: ReactStrategyImpl | ReactStrategyImplFactory) {
+    super(config);
+    void config;
   }
 }

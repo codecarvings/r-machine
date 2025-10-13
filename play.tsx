@@ -1,5 +1,5 @@
 import { RMachine } from "r-machine";
-import { createReactRMachineContext } from "react-r-machine";
+import { ReactDefaultStrategy, ReactTools } from "react-r-machine";
 import type { R$ } from "./packages/r-machine/src/r-module.js";
 
 type Atlas = {
@@ -29,11 +29,7 @@ const [r1, r2] = await rMachine.pickRKit("it", "ns1", "ns2");
 console.log(r1.message);
 console.log(r2.message);
 
-export const { ReactRMachineProvider, useLocale, useR, useRKit } = createReactRMachineContext(rMachine, {
-  getLocale: ($) => $.localeOption,
-  setLocale: () => {
-    throw new Error("Not implemented");
-  },
-});
+const strategy = new ReactDefaultStrategy();
+export const { ReactRMachine, useLocale, useR, useRKit } = ReactTools.create(rMachine, strategy);
 
-const _helloWorld = <ReactRMachineProvider localeOption="en">Hello World</ReactRMachineProvider>;
+const _helloWorld = <ReactRMachine locale="it">Hello World</ReactRMachine>;

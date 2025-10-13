@@ -13,7 +13,7 @@ import { createContext, useContext, useMemo } from "react";
 import { ReactStrategy } from "./react-strategy.js";
 
 interface ReactTools<A extends AnyAtlas> {
-  readonly ReactRMachine: ReactRMachine<A>;
+  readonly ReactRMachine: ReactRMachine;
   readonly useLocale: UseLocale;
   readonly useR: <N extends AtlasNamespace<A>>(namespace: N) => A[N];
   readonly useRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
@@ -25,22 +25,14 @@ interface ReactRMachineContextValue {
   readonly locale: string;
 }
 
-interface ReactRMachineProbeProps {
-  readonly localeOption?: string | undefined;
-}
-
-interface ReactRMachineProps extends ReactRMachineProbeProps {
+interface ReactRMachineProps {
+  readonly locale: string;
   readonly children: ReactNode;
 }
 
-interface ReactRMachineProbeResult<A extends AnyAtlas> {
-  readonly locale: string | undefined;
-  readonly rMachine: RMachine<A>;
-}
-
-export interface ReactRMachine<A extends AnyAtlas> {
+export interface ReactRMachine {
   (props: ReactRMachineProps): JSX.Element;
-  probe: (props: ReactRMachineProbeProps) => ReactRMachineProbeResult<A>;
+  probe: (localeOption: string | undefined) => string | undefined;
 }
 
 const ReactRMachineContext = createContext<ReactRMachineContextValue | null>(null);
@@ -57,37 +49,28 @@ function useReactRMachineContext(): ReactRMachineContextValue {
 
 export function createReactTools<A extends AnyAtlas>(rMachine: RMachine<A>, strategy: ReactStrategy): ReactTools<A> {
   const { readLocale, writeLocale } = ReactStrategy.getReactStrategyImpl(strategy, rMachine);
+  const validateLocale = rMachine.localeHelper.validateLocale;
 
-  function probe(localeOption: string | undefined): ReactRMachineProbeResult<A> {
+  function ReactRMachine({ locale, children }: ReactRMachineProps) {
+    const value = useMemo<ReactRMachineContextValue>(() => {
+      const error = validateLocale(locale);
+      if (error) {
+        throw new RMachineError("Unable to render ReactRMachine - invalid locale provided", error);
+      }
+
+      return { locale };
+    }, [locale]);
+
+    return <ReactRMachineContext.Provider value={value}>{children}</ReactRMachineContext.Provider>;
+  }
+
+  ReactRMachine.probe = (localeOption: string | undefined) => {
     let locale = readLocale({ localeOption });
     if (locale !== undefined && rMachine.localeHelper.validateLocale(locale) !== null) {
       locale = undefined;
     }
 
-    return {
-      locale,
-      rMachine,
-    };
-  }
-
-  function ReactRMachine({ localeOption, children }: ReactRMachineProps) {
-    const value = useMemo<ReactRMachineContextValue>(() => {
-      const { locale } = probe(localeOption);
-      if (locale === undefined) {
-        throw new RMachineError(
-          "Unable to render ReactRMachine - ReactStrategyImpl.getLocale function cannot determine a valid locale"
-        );
-      }
-
-      return { locale };
-    }, [localeOption]);
-
-    return <ReactRMachineContext.Provider value={value}>{children}</ReactRMachineContext.Provider>;
-  }
-
-  ReactRMachine.probe = (props?: ReactRMachineProbeProps) => {
-    const { localeOption } = props || {};
-    return probe(localeOption);
+    return locale;
   };
 
   function useLocale(): ReturnType<UseLocale> {
@@ -97,7 +80,7 @@ export function createReactTools<A extends AnyAtlas>(rMachine: RMachine<A>, stra
       () => [
         locale,
         (newLocale: string) => {
-          const error = rMachine.localeHelper.validateLocale(newLocale);
+          const error = validateLocale(newLocale);
           if (error) {
             throw error;
           }
@@ -105,7 +88,7 @@ export function createReactTools<A extends AnyAtlas>(rMachine: RMachine<A>, stra
           writeLocale(newLocale, { currentLocale: locale });
         },
       ],
-      [locale, rMachine]
+      [locale]
     );
   }
 

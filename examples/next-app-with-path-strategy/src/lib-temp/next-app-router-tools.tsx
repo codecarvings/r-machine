@@ -8,8 +8,6 @@ import {
 } from "r-machine";
 import type { ReactNode } from "react";
 import { cache, type JSX } from "react";
-import type { ReactRMachineProvider } from "react-r-machine";
-import type { NextRMachineContextLocaleBridge } from "./next-r-machine-context-locale-bridge.js";
 
 interface NextRMachineContextValue {
   readonly ready: true;
@@ -70,7 +68,7 @@ export function createNextRMachineContext<A extends AnyAtlas = AnyAtlas>(
     context.ready = true;
     context.locale = locale;
 
-    return <ReactRMachineProvider localeOption={locale}>{children}</ReactRMachineProvider>;
+    return <ReactRMachineProvider locale={locale}>{children}</ReactRMachineProvider>;
   }
 
   async function getLocale(): Promise<string> {
