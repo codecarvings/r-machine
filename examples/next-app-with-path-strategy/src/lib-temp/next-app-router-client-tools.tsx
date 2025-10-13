@@ -4,23 +4,22 @@ import type { AnyAtlas, RMachine } from "r-machine";
 import { type ReactRMachine, ReactTools, type ReactToolsInterface } from "react-r-machine";
 import type { NextAppRouterStrategy } from "./next-app-router-strategy";
 
-export interface NextAppRouterClientRMachine<A extends AnyAtlas, LK extends string> extends ReactRMachine {
-  readonly rMachine: RMachine<A>;
-  readonly strategy: NextAppRouterStrategy<LK>;
+const brand: unique symbol = Symbol.for("NextAppRouterClientRMachine");
+export interface NextAppRouterClientRMachine extends ReactRMachine {
+  readonly [brand]: true;
 }
 
-type NextAppRouterClientTools<A extends AnyAtlas, LK extends string> = Omit<ReactToolsInterface<A>, "ReactRMachine"> & {
-  readonly NextClientRMachine: NextAppRouterClientRMachine<A, LK>;
+type NextAppRouterClientTools<A extends AnyAtlas> = Omit<ReactToolsInterface<A>, "ReactRMachine"> & {
+  readonly NextClientRMachine: NextAppRouterClientRMachine;
 };
 
 export function createNextAppRouterClientTools<A extends AnyAtlas, LK extends string>(
   rMachine: RMachine<A>,
   strategy: NextAppRouterStrategy<LK>
-): NextAppRouterClientTools<A, LK> {
+): NextAppRouterClientTools<A> {
   const { ReactRMachine, ...otherTools } = ReactTools.create(rMachine, strategy);
   const NextClientRMachine = ReactRMachine as any;
-  NextClientRMachine.rMachine = rMachine;
-  NextClientRMachine.strategy = strategy;
+  NextClientRMachine[brand] = true;
 
   return {
     NextClientRMachine,

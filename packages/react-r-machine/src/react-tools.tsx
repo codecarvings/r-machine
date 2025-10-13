@@ -51,7 +51,7 @@ export function createReactTools<A extends AnyAtlas>(rMachine: RMachine<A>, stra
     const value = useMemo<string>(() => {
       const error = validateLocale(locale);
       if (error) {
-        throw new RMachineError("Unable to render ReactRMachine - invalid locale provided", error);
+        throw new RMachineError(`Unable to render ReactRMachine - invalid locale provided "${locale}"`, error);
       }
 
       return locale;

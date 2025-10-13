@@ -18,11 +18,17 @@ export abstract class NextAppRouterStrategy<LK extends string> extends NextStrat
   readonly config: NextAppRouterStrategyConfig<LK>;
 
   protected getReactStrategyImpl(rMachine: RMachine<AnyAtlas>): ReactStrategyImpl {
-    return undefined!;
+    return {
+      readLocale: ($) => $.localeOption,
+      writeLocale: (newLocale, $) => {},
+    };
   }
 
   protected getNextStrategyImpl(rMachine: RMachine<AnyAtlas>): NextAppRouterStrategyImpl {
-    return undefined!;
+    return {
+      readLocale: ($) => $.localeOption,
+      writeLocale: (newLocale, $) => {},
+    };
   }
 
   static getNextStrategyImpl(

@@ -30,21 +30,13 @@ interface NextAppRouterServerRMachineContext {
   value: string | null;
 }
 
-type AtlasOfRMachine<T extends RMachine<AnyAtlas>> = T extends RMachine<infer A> ? A : never;
-type LocaleKeyOfNextAppRouterStrategy<T extends NextAppRouterStrategy<string>> = T extends NextAppRouterStrategy<
-  infer LK
->
-  ? LK
-  : never;
-
-export function createNextAppRouterServerTools<CP extends NextAppRouterClientRMachine<any, any>>(
-  NextClientRMachine: CP
-): NextAppRouterServerTools<AtlasOfRMachine<CP["rMachine"]>, LocaleKeyOfNextAppRouterStrategy<CP["strategy"]>> {
-  type A = AtlasOfRMachine<CP["rMachine"]>;
-  type LK = LocaleKeyOfNextAppRouterStrategy<CP["strategy"]>;
-
-  const { rMachine, strategy } = NextClientRMachine;
+export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends string>(
+  rMachine: RMachine<A>,
+  strategy: NextAppRouterStrategy<LK>,
+  NextClientRMachine: NextAppRouterClientRMachine
+): NextAppRouterServerTools<A, LK> {
   const { readLocale, writeLocale } = NextAppRouterStrategy.getNextStrategyImpl(strategy, rMachine);
+  const validateLocale = rMachine.localeHelper.validateLocale;
 
   const getContext = cache((): NextAppRouterServerRMachineContext => {
     return {
@@ -61,16 +53,23 @@ export function createNextAppRouterServerTools<CP extends NextAppRouterClientRMa
   }
 
   function applyLocale(localeOption: string | undefined): LK {
-    const context = getContext();
-    if (context.value !== null) {
-      throw new RMachineError(
-        "NextAppRouterServerRMachineContext already initialized. applyLocale called multiple times?"
-      );
-    }
-
     const locale = readLocale({ localeOption });
     if (locale === undefined) {
       throw new RMachineError("Unable to determine locale");
+    }
+
+    const error = validateLocale(locale);
+    if (error) {
+      throw new RMachineError(`Invalid locale provided to applyLocale "${locale}"`, error);
+    }
+
+    const context = getContext();
+    if (context.value !== null) {
+      if (locale !== context.value) {
+        throw new RMachineError(
+          `applyLocale called multiple times with different locales in the same request. Previous: "${context.value}", New: "${locale}"`
+        );
+      }
     }
 
     context.value = locale;

@@ -13,10 +13,7 @@ export default async function LocaleLayout({ params, children }: LayoutProps<"/[
   return (
     <NextServerRMachine>
       <html lang={locale}>
-        <body className={`${geistSans.variable}`}>
-          <div>{locale}</div>
-          {children}
-        </body>
+        <body className={`${geistSans.variable}`}>{children}</body>
       </html>
     </NextServerRMachine>
   );

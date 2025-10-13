@@ -8,7 +8,7 @@ const rFactory = ($: R$) => {
   });
 
   return {
-    title: "Esempio di R-Machine con React",
+    title: "Esempio di R-Machine con Next.js",
     welcomeMessage: ({ date }: { date: Date }) => `Benvenuto in R-Machine con React! - ${format.format(date)}`,
     currentLanguage: `La lingua corrente è: (${$.locale}) - NS: ${$.namespace}`,
   } as R_Common;
