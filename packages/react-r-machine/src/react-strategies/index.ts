@@ -1,1 +1,1 @@
-export * from "./react-path-strategy.js";
+export * from "./react-default-strategy.js";

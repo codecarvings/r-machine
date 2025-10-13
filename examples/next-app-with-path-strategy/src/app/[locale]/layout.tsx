@@ -1,6 +1,4 @@
 import { Geist } from "next/font/google";
-import { notFound } from "next/navigation";
-import { NextRMachineProvider } from "@/r-machine/server-context";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,21 +13,14 @@ export default async function LocaleLayout({
   params: Promise<{ locale: string }>;
   children: React.ReactNode;
 }) {
-  const localeOption = (await params).locale;
-  const rMachineProviderProps = { localeOption };
-  const { locale } = NextRMachineProvider.probe(rMachineProviderProps);
-  if (locale === undefined) {
-    return notFound();
-  }
+  const locale = (await params).locale;
 
   return (
-    <NextRMachineProvider {...rMachineProviderProps}>
-      <html lang={locale}>
-        <body className={`${geistSans.variable}`}>
-          <div>{locale}</div>
-          {children}
-        </body>
-      </html>
-    </NextRMachineProvider>
+    <html lang={locale}>
+      <body className={`${geistSans.variable}`}>
+        <div>{locale}</div>
+        {children}
+      </body>
+    </html>
   );
 }

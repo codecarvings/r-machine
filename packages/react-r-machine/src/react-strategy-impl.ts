@@ -1,3 +1,5 @@
+import type { AnyAtlas, RMachine } from "r-machine";
+
 interface ReadLocale$ {
   readonly localeOption: string | undefined;
 }
@@ -12,3 +14,5 @@ export interface ReactStrategyImpl {
   readonly readLocale: ReadLocale;
   readonly writeLocale: WriteLocale;
 }
+
+export type ReactStrategyImplFactory = (rMachine: RMachine<AnyAtlas>) => ReactStrategyImpl;
