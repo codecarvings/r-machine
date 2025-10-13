@@ -1,14 +1,7 @@
-import { createNextRMachineContext } from "@/lib-temp/next-app-router-tools";
-import { ReactRMachine } from "./client-tools";
-import { rMachine } from "./r-machine";
+import { createNextAppRouterServerTools } from "@/lib-temp/next-app-router-server-tools";
+import { NextClientRMachine } from "./client-tools";
 
-export const { NextRMachineProvider, getLocale, setLocale, pickR, pickRKit } = createNextRMachineContext(
-  rMachine,
-  {
-    readLocale: ($) => "en",
-    writeLocale: () => {
-      throw new Error("Not implemented");
-    },
-  },
-  ReactRMachine
-);
+export const { NextServerRMachine, applyLocale, getLocale, setLocale, pickR, pickRKit } =
+  createNextAppRouterServerTools(NextClientRMachine);
+
+

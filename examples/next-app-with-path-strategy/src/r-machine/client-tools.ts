@@ -1,7 +1,6 @@
 "use client";
 
-import { ReactDefaultStrategy, ReactTools } from "react-r-machine";
-import { rMachine } from "./r-machine";
+import { createNextAppRouterClientTools } from "@/lib-temp/next-app-router-client-tools";
+import { rMachine, strategy } from "./r-machine";
 
-export const { ReactRMachine, useLocale, useR, useRKit } = ReactTools.create(rMachine, new ReactDefaultStrategy());
-});
+export const { NextClientRMachine, useLocale, useR, useRKit } = createNextAppRouterClientTools(rMachine, strategy);

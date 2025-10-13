@@ -1,6 +1,6 @@
 import type { AnyAtlas, RMachine } from "r-machine";
-import type { NextMiddlewareStrategyImpl } from "./next-middleware-strategy-impl.js";
-import { NextStrategy } from "./next-strategy.js";
+import type { NextMiddlewareStrategyImpl } from "./next-middleware-strategy-impl";
+import { NextStrategy } from "./next-strategy";
 
 export abstract class NextMiddlewareStrategy extends NextStrategy {
   protected abstract getNextStrategyImpl(rMachine: RMachine<AnyAtlas>): NextMiddlewareStrategyImpl;

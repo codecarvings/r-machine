@@ -1,26 +1,23 @@
 import { Geist } from "next/font/google";
 import "./globals.css";
+import { applyLocale, NextServerRMachine } from "@/r-machine/server-tools";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-export default async function LocaleLayout({
-  params,
-  children,
-}: {
-  params: Promise<{ locale: string }>;
-  children: React.ReactNode;
-}) {
-  const locale = (await params).locale;
+export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
+  const locale = applyLocale((await params).locale);
 
   return (
-    <html lang={locale}>
-      <body className={`${geistSans.variable}`}>
-        <div>{locale}</div>
-        {children}
-      </body>
-    </html>
+    <NextServerRMachine>
+      <html lang={locale}>
+        <body className={`${geistSans.variable}`}>
+          <div>{locale}</div>
+          {children}
+        </body>
+      </html>
+    </NextServerRMachine>
   );
 }

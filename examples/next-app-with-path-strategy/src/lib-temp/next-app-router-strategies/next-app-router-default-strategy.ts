@@ -1,4 +1,4 @@
-import { NextAppRouterStrategy, type NextAppRouterStrategyConfig } from "../next-app-router-strategy.js";
+import { NextAppRouterStrategy, type NextAppRouterStrategyConfig } from "../next-app-router-strategy";
 
 const defaultLocaleKey = "locale" as const;
 type DefaultLocaleKey = typeof defaultLocaleKey;

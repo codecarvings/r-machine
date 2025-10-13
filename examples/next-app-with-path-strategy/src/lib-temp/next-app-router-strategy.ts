@@ -1,7 +1,7 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import type { ReactStrategyImpl } from "react-r-machine";
-import type { NextAppRouterStrategyImpl } from "./next-app-router-strategy-impl.js";
-import { NextStrategy } from "./next-strategy.js";
+import type { NextAppRouterStrategyImpl } from "./next-app-router-strategy-impl";
+import { NextStrategy } from "./next-strategy";
 
 export interface NextAppRouterStrategyConfig<LK extends string> {
   readonly localeKey: LK;
