@@ -1,6 +1,6 @@
 "use client";
 
-import { createNextAppRouterClientTools } from "@/lib-temp/next-app-router-client-tools";
+import { NextTools } from "@/lib-temp/next-tools-builder";
 import { rMachine, strategy } from "./r-machine";
 
-export const { NextClientRMachine, useLocale, useR, useRKit } = createNextAppRouterClientTools(rMachine, strategy);
+export const { NextClientRMachine, useLocale, useR, useRKit } = NextTools.createClient(rMachine, strategy);

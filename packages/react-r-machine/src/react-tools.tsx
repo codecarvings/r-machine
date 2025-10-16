@@ -31,8 +31,12 @@ export interface ReactRMachine {
 
 type UseLocale = () => [string, (locale: string) => void];
 
-export function createReactTools<A extends AnyAtlas>(rMachine: RMachine<A>, strategy: ReactStrategy): ReactTools<A> {
-  const { writeLocale } = ReactStrategy.buildReactStrategyImpl(strategy);
+export function createReactTools<A extends AnyAtlas>(
+  rMachine: RMachine<A>,
+  strategy: ReactStrategy<any>
+): ReactTools<A> {
+  const strategyConfig = ReactStrategy.getConfig(strategy);
+  const { writeLocale } = ReactStrategy.getReactStrategyImpl(strategy);
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const Context = createContext<string | null>(null);
@@ -80,7 +84,7 @@ export function createReactTools<A extends AnyAtlas>(rMachine: RMachine<A>, stra
             throw error;
           }
 
-          writeLocale(newLocale, { rMachine, currentLocale: locale });
+          writeLocale(newLocale, { strategyConfig, rMachine, currentLocale: locale });
         },
       ],
       [locale, rMachine]

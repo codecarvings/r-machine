@@ -1,11 +1,15 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 
-interface WriteLocale$ {
+interface ReactStrategyImplFn$<SC> {
+  readonly strategyConfig: SC;
   readonly rMachine: RMachine<AnyAtlas>;
+}
+
+interface WriteLocale$<SC> extends ReactStrategyImplFn$<SC> {
   readonly currentLocale: string;
 }
-type WriteLocale = (newLocale: string, $: WriteLocale$) => void;
+type WriteLocale<SC> = (newLocale: string, $: WriteLocale$<SC>) => void;
 
-export interface ReactStrategyImpl {
-  readonly writeLocale: WriteLocale;
+export interface ReactStrategyImpl<SC> {
+  readonly writeLocale: WriteLocale<SC>;
 }

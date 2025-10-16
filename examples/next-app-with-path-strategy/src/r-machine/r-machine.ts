@@ -1,5 +1,5 @@
 import { RMachine } from "r-machine";
-import { NextAppRouterDefaultStrategy } from "@/lib-temp/next-app-router-strategies";
+import { NextAppRouterDefaultStrategy } from "@/lib-temp/next-app-router/strategies";
 import type { Atlas } from "./atlas";
 
 export const rMachine = new RMachine<Atlas>({

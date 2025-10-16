@@ -1,44 +1,37 @@
 import { ReactStrategy } from "../react-strategy.js";
 import type { ReactStrategyImpl } from "../react-strategy-impl.js";
 
+type ReactDefaultStrategyImpl = ReactStrategyImpl<ReactDefaultStrategyConfig>;
 interface ReactDefaultStrategyConfig {
-  readonly implFactory: ReactStrategyImplFactory;
+  readonly impl: ReactDefaultStrategyImpl;
 }
 
-type ReactStrategyImplFactory = () => ReactStrategyImpl;
-
+type PartialReactDefaultStrategyImpl = Partial<ReactDefaultStrategyImpl>;
 interface ReactPartialDefaultStrategyConfig {
-  readonly impl?: PartialReactStrategyImpl | ReactDefaultStrategyImplFactory;
+  readonly impl?: PartialReactDefaultStrategyImpl;
 }
-
-type PartialReactStrategyImpl = Partial<ReactStrategyImpl>;
-type ReactDefaultStrategyImplFactory = () => PartialReactStrategyImpl;
 
 const defaultConfig: ReactDefaultStrategyConfig = {
-  implFactory: () => ({
+  impl: {
     writeLocale: () => {
       throw new Error(
         "ReactDefaultStrategy by default does not support writing locale and no custom implementation was provided."
       );
     },
-  }),
+  },
 };
 
-export class ReactDefaultStrategy extends ReactStrategy {
+export class ReactDefaultStrategy extends ReactStrategy<ReactDefaultStrategyConfig> {
   constructor();
   constructor(config: ReactPartialDefaultStrategyConfig);
   constructor(config?: ReactPartialDefaultStrategyConfig) {
-    super();
-    function implFactory(): ReactStrategyImpl {
-      const partialImpl = config?.impl ? (typeof config.impl === "function" ? config.impl() : config.impl) : {};
-      return { ...defaultConfig.implFactory(), ...partialImpl };
-    }
-    this.config = { ...defaultConfig, implFactory };
+    super({
+      ...defaultConfig,
+      impl: { ...defaultConfig.impl, ...config?.impl },
+    });
   }
 
-  protected readonly config: ReactDefaultStrategyConfig;
-
-  protected buildReactStrategyImpl(): ReactStrategyImpl {
-    return this.config.implFactory();
+  protected getReactStrategyImpl(): ReactDefaultStrategyImpl {
+    return this.config.impl;
   }
 }

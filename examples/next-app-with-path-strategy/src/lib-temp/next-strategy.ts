@@ -1,3 +1,3 @@
 import { ReactStrategy } from "react-r-machine";
 
-export abstract class NextStrategy extends ReactStrategy {}
+export abstract class NextStrategy<SC> extends ReactStrategy<SC> {}

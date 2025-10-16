@@ -44,10 +44,12 @@ interface NextAppRouterServerRMachineContext {
 
 export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends string>(
   rMachine: RMachine<A>,
-  strategy: NextAppRouterStrategy<LK>,
+  strategy: NextAppRouterStrategy<any, LK>,
   NextClientRMachine: NextAppRouterClientRMachine
 ): NextAppRouterServerTools<A, LK> {
-  const { onBindLocale, writeLocale } = NextAppRouterStrategy.getNextStrategyServerImpl(strategy, rMachine);
+  const strategyConfig = NextAppRouterStrategy.getConfig(strategy);
+  const { onBindLocaleError, writeLocale } = NextAppRouterStrategy.getNextStrategyServerImpl(strategy);
+  const localeKey = NextAppRouterStrategy.getLocaleKey(strategy);
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const getContext = cache((): NextAppRouterServerRMachineContext => {
@@ -81,15 +83,11 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
         }
       }
 
-      onBindLocale({
-        locale,
-        error,
-      });
-
       if (error) {
         if (unsafe === true) {
           locale = undefined;
         } else {
+          onBindLocaleError(error, { strategyConfig, rMachine, localeOption: locale });
           throw error;
         }
       }
@@ -107,7 +105,7 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
     }
 
     async function asyncBindLocale(localePromise: Promise<RMachineParams<LK>>): Promise<string | undefined> {
-      const locale = (await localePromise)[strategy.config.localeKey];
+      const locale = (await localePromise)[localeKey];
       return syncBindLocale(locale);
     }
 
@@ -131,17 +129,12 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
   }
 
   function setLocale(newLocale: string) {
-    const currentLocale = getLocale();
-    if (newLocale === currentLocale) {
-      return;
-    }
-
     const error = rMachine.localeHelper.validateLocale(newLocale);
     if (error) {
       throw error;
     }
 
-    writeLocale(newLocale, { currentLocale });
+    writeLocale(newLocale, { strategyConfig, rMachine });
   }
 
   async function pickR<N extends AtlasNamespace<A>>(namespace: N): Promise<A[N]> {
