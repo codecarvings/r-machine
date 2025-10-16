@@ -35,7 +35,7 @@ type UseLocale = () => [string, (locale: string) => void];
 export function createReactTools<A extends AnyAtlas, E extends ReactStrategyImpl$Ext>(
   rMachine: RMachine<A>,
   strategy: ReactStrategy<any, E>,
-  implFn$: ReactStrategyImpl$ExtProvider<E>
+  impl$ExtProvider: ReactStrategyImpl$ExtProvider<E>
 ): ReactTools<A> {
   const strategyConfig = ReactStrategy.getConfig(strategy);
   const { writeLocale } = ReactStrategy.getReactStrategyImpl(strategy);
@@ -76,7 +76,7 @@ export function createReactTools<A extends AnyAtlas, E extends ReactStrategyImpl
 
   function useLocale(): ReturnType<UseLocale> {
     const locale = useCurrentLocale();
-    const $ext = implFn$.writeLocale();
+    const $ext = impl$ExtProvider.writeLocale();
 
     return [
       locale,
@@ -86,7 +86,7 @@ export function createReactTools<A extends AnyAtlas, E extends ReactStrategyImpl
           throw error;
         }
 
-        writeLocale(newLocale, { strategyConfig, rMachine, currentLocale: locale, ...$ext });
+        writeLocale(newLocale, { ...$ext, strategyConfig, rMachine, currentLocale: locale });
       },
     ];
   }
