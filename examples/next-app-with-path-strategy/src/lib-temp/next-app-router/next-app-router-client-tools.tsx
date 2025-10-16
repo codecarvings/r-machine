@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import type { AnyAtlas, RMachine } from "r-machine";
 import type { ReactNode } from "react";
-import { type ReactRMachine, ReactTools, type ReactToolsInterface } from "react-r-machine";
+import type { ReactRMachine, ReactToolsInterface } from "react-r-machine";
+import { createReactTools } from "react-r-machine";
 import type { NextAppRouterStrategy } from "./next-app-router-strategy";
 
 const brand: unique symbol = Symbol.for("NextAppRouterClientRMachine");
@@ -25,14 +26,15 @@ export function createNextAppRouterClientTools<A extends AnyAtlas>(
   rMachine: RMachine<A>,
   strategy: NextAppRouterStrategy<any, string>
 ): NextAppRouterClientTools<A> {
-  const { ReactRMachine, ...otherTools } = ReactTools.create(rMachine, strategy);
+  const { ReactRMachine, ...otherTools } = createReactTools(rMachine, strategy, {
+    writeLocale: () => {
+      const router = useRouter();
+      return { router };
+    },
+  });
   // const NextClientRMachine = ReactRMachine as any;
 
   function NextClientRMachine({ locale, children }: NextAppRouterClientRMachineProps) {
-    // Workaround to make the Next.js router available in the client implementation
-    const router = useRouter();
-    (global as any).__R_MACHINE_NEXT_ROUTER = router;
-
     return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
   }
   NextClientRMachine[brand] = true;

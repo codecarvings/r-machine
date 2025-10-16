@@ -11,6 +11,7 @@ import {
 import type { JSX, ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
 import { ReactStrategy } from "./react-strategy.js";
+import type { ReactStrategyImpl$Ext, ReactStrategyImpl$ExtProvider } from "./react-strategy-impl.js";
 
 export interface ReactTools<A extends AnyAtlas> {
   readonly ReactRMachine: ReactRMachine;
@@ -31,9 +32,10 @@ export interface ReactRMachine {
 
 type UseLocale = () => [string, (locale: string) => void];
 
-export function createReactTools<A extends AnyAtlas>(
+export function createReactTools<A extends AnyAtlas, E extends ReactStrategyImpl$Ext>(
   rMachine: RMachine<A>,
-  strategy: ReactStrategy<any>
+  strategy: ReactStrategy<any, E>,
+  implFn$: ReactStrategyImpl$ExtProvider<E>
 ): ReactTools<A> {
   const strategyConfig = ReactStrategy.getConfig(strategy);
   const { writeLocale } = ReactStrategy.getReactStrategyImpl(strategy);
@@ -74,21 +76,19 @@ export function createReactTools<A extends AnyAtlas>(
 
   function useLocale(): ReturnType<UseLocale> {
     const locale = useCurrentLocale();
+    const $ext = implFn$.writeLocale();
 
-    return useMemo<ReturnType<UseLocale>>(
-      () => [
-        locale,
-        (newLocale: string) => {
-          const error = validateLocale(newLocale);
-          if (error) {
-            throw error;
-          }
+    return [
+      locale,
+      (newLocale: string) => {
+        const error = validateLocale(newLocale);
+        if (error) {
+          throw error;
+        }
 
-          writeLocale(newLocale, { strategyConfig, rMachine, currentLocale: locale });
-        },
-      ],
-      [locale, rMachine]
-    );
+        writeLocale(newLocale, { strategyConfig, rMachine, currentLocale: locale, ...$ext });
+      },
+    ];
   }
 
   function useR<N extends AtlasNamespace<A>>(namespace: N): A[N] {

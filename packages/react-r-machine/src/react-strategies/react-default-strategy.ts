@@ -1,7 +1,7 @@
 import { ReactStrategy } from "../react-strategy.js";
-import type { ReactStrategyImpl } from "../react-strategy-impl.js";
+import type { ReactStrategyImpl, ReactStrategyImpl$Ext } from "../react-strategy-impl.js";
 
-type ReactDefaultStrategyImpl = ReactStrategyImpl<ReactDefaultStrategyConfig>;
+type ReactDefaultStrategyImpl = ReactStrategyImpl<ReactDefaultStrategyConfig, ReactStrategyImpl$Ext>;
 interface ReactDefaultStrategyConfig {
   readonly impl: ReactDefaultStrategyImpl;
 }
@@ -21,7 +21,7 @@ const defaultConfig: ReactDefaultStrategyConfig = {
   },
 };
 
-export class ReactDefaultStrategy extends ReactStrategy<ReactDefaultStrategyConfig> {
+export class ReactDefaultStrategy extends ReactStrategy<ReactDefaultStrategyConfig, ReactStrategyImpl$Ext> {
   constructor();
   constructor(config: ReactPartialDefaultStrategyConfig);
   constructor(config?: ReactPartialDefaultStrategyConfig) {

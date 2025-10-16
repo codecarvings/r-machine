@@ -1,8 +1,14 @@
 import { NextStrategy } from "../next-strategy";
-import type { NextAppRouterStrategyClientImpl } from "./next-app-router-strategy-client-impl";
+import type {
+  NextAppRouterStrategyClientImpl,
+  NextAppRouterStrategyClientImplFn$Ext,
+} from "./next-app-router-strategy-client-impl";
 import type { NextAppRouterStrategyServerImpl } from "./next-app-router-strategy-server-impl";
 
-export abstract class NextAppRouterStrategy<SC, LK extends string> extends NextStrategy<SC> {
+export abstract class NextAppRouterStrategy<SC, LK extends string> extends NextStrategy<
+  SC,
+  NextAppRouterStrategyClientImplFn$Ext
+> {
   protected abstract getNextStrategyServerImpl(): NextAppRouterStrategyServerImpl<SC>;
   static getNextStrategyServerImpl<SC, LK extends string>(
     strategy: NextAppRouterStrategy<SC, LK>
