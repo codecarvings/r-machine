@@ -11,9 +11,21 @@ import { cache } from "react";
 import type { NextAppRouterClientRMachine } from "./next-app-router-client-tools";
 import { NextAppRouterStrategy } from "./next-app-router-strategy";
 
+type RMachineParams<LK extends string> = {
+  [P in LK]: string;
+};
+
+interface BindLocale<LK extends string> {
+  (locale: string, unsafe?: false): string;
+  (params: Promise<RMachineParams<LK>>, unsafe?: false): Promise<string>;
+
+  (locale: string, unsafe: true): string | undefined;
+  (params: Promise<RMachineParams<LK>>, unsafe: true): Promise<string | undefined>;
+}
+
 interface NextAppRouterServerTools<A extends AnyAtlas, LK extends string> {
   readonly NextServerRMachine: NextAppRouterServerRMachine;
-  readonly applyLocale: (locale: string | undefined) => LK;
+  readonly bindLocale: BindLocale<LK>;
   readonly getLocale: () => string;
   readonly setLocale: (newLocale: string) => void;
   readonly pickR: <N extends AtlasNamespace<A>>(namespace: N) => Promise<A[N]>;
@@ -27,7 +39,7 @@ interface NextAppRouterServerRMachineProps {
 export type NextAppRouterServerRMachine = (props: NextAppRouterServerRMachineProps) => JSX.Element;
 
 interface NextAppRouterServerRMachineContext {
-  value: string | null;
+  value: string | undefined | null;
 }
 
 export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends string>(
@@ -35,7 +47,7 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
   strategy: NextAppRouterStrategy<LK>,
   NextClientRMachine: NextAppRouterClientRMachine
 ): NextAppRouterServerTools<A, LK> {
-  const { readLocale, writeLocale } = NextAppRouterStrategy.getNextStrategyImpl(strategy, rMachine);
+  const { onBindLocale, writeLocale } = NextAppRouterStrategy.getNextStrategyServerImpl(strategy, rMachine);
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const getContext = cache((): NextAppRouterServerRMachineContext => {
@@ -52,36 +64,68 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
     return <UntypedNextClientRMachine locale={locale}>{children}</UntypedNextClientRMachine>;
   }
 
-  function applyLocale(localeOption: string | undefined): LK {
-    const locale = readLocale({ localeOption });
-    if (locale === undefined) {
-      throw new RMachineError("Unable to determine locale");
-    }
+  function bindLocale(
+    locale: string | Promise<RMachineParams<LK>>,
+    unsafe?: boolean
+  ): string | undefined | Promise<string | undefined> {
+    function syncBindLocale(locale: string | undefined): string | undefined {
+      let error: RMachineError | undefined;
 
-    const error = validateLocale(locale);
-    if (error) {
-      throw new RMachineError(`Invalid locale provided to applyLocale "${locale}"`, error);
-    }
-
-    const context = getContext();
-    if (context.value !== null) {
-      if (locale !== context.value) {
-        throw new RMachineError(
-          `applyLocale called multiple times with different locales in the same request. Previous: "${context.value}", New: "${locale}"`
-        );
+      // If onBindLocale does not throw, the error is
+      if (locale === undefined) {
+        error = new RMachineError("Invalid locale provided to bindLocale: undefined");
+      } else {
+        const validationError = validateLocale(locale);
+        if (validationError) {
+          error = new RMachineError(`Invalid locale provided to bindLocale: "${locale}"`, validationError);
+        }
       }
+
+      onBindLocale({
+        locale,
+        error,
+      });
+
+      if (error) {
+        if (unsafe === true) {
+          locale = undefined;
+        } else {
+          throw error;
+        }
+      }
+
+      const context = getContext();
+      if (context.value !== null) {
+        if (locale !== context.value) {
+          throw new RMachineError(
+            `bindLocale called multiple times with different locales in the same request. Previous: "${context.value}", New: "${locale}"`
+          );
+        }
+      }
+      context.value = locale;
+      return locale;
     }
 
-    context.value = locale;
-    return locale as any;
+    async function asyncBindLocale(localePromise: Promise<RMachineParams<LK>>): Promise<string | undefined> {
+      const locale = (await localePromise)[strategy.config.localeKey];
+      return syncBindLocale(locale);
+    }
+
+    if (locale instanceof Promise) {
+      return asyncBindLocale(locale);
+    } else {
+      return syncBindLocale(locale);
+    }
   }
 
   function getLocale(): string {
     const context = getContext();
     if (context.value === null) {
       throw new RMachineError(
-        "NextAppRouterServerRMachineContext not initialized. applyLocale not invoked? (you must invoke applyLocale at the top of every page or layout)"
+        "NextAppRouterServerRMachineContext not initialized. bindLocale not invoked? (you must invoke bindLocale at the beginning of every page or layout component)"
       );
+    } else if (context.value === undefined) {
+      throw new RMachineError("Locale is undefined. Invalid value passed to bindLocale (safe mode disabled)");
     }
     return context.value;
   }
@@ -112,7 +156,7 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
 
   return {
     NextServerRMachine,
-    applyLocale,
+    bindLocale: bindLocale as BindLocale<LK>,
     getLocale,
     setLocale,
     pickR,

@@ -32,7 +32,7 @@ export interface ReactRMachine {
 type UseLocale = () => [string, (locale: string) => void];
 
 export function createReactTools<A extends AnyAtlas>(rMachine: RMachine<A>, strategy: ReactStrategy): ReactTools<A> {
-  const { readLocale, writeLocale } = ReactStrategy.getReactStrategyImpl(strategy, rMachine);
+  const { writeLocale } = ReactStrategy.buildReactStrategyImpl(strategy);
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const Context = createContext<string | null>(null);
@@ -60,8 +60,7 @@ export function createReactTools<A extends AnyAtlas>(rMachine: RMachine<A>, stra
     return <Context.Provider value={value}>{children}</Context.Provider>;
   }
 
-  ReactRMachine.probe = (localeOption: string | undefined) => {
-    let locale = readLocale({ localeOption });
+  ReactRMachine.probe = (locale: string | undefined) => {
     if (locale !== undefined && rMachine.localeHelper.validateLocale(locale) !== null) {
       locale = undefined;
     }
@@ -81,10 +80,10 @@ export function createReactTools<A extends AnyAtlas>(rMachine: RMachine<A>, stra
             throw error;
           }
 
-          writeLocale(newLocale, { currentLocale: locale });
+          writeLocale(newLocale, { rMachine, currentLocale: locale });
         },
       ],
-      [locale]
+      [locale, rMachine]
     );
   }
 

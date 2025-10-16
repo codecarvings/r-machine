@@ -1,8 +1,8 @@
-import { applyLocale, pickR } from "@/r-machine/server-tools";
+import { bindLocale, pickR } from "@/r-machine/server-tools";
 import Comp1 from "@/server-components/comp1";
 
-export default async function Home(props: PageProps<"/[locale]">) {
-  applyLocale((await props.params).locale);
+export default async function Home({ params }: PageProps<"/[locale]">) {
+  await bindLocale(params);
   const r = await pickR("common");
 
   return (

@@ -1,6 +1,6 @@
 import { Geist } from "next/font/google";
 import "./globals.css";
-import { applyLocale, NextServerRMachine } from "@/r-machine/server-tools";
+import { bindLocale, NextServerRMachine } from "@/r-machine/server-tools";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -8,7 +8,7 @@ const geistSans = Geist({
 });
 
 export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
-  const locale = applyLocale((await params).locale);
+  const locale = await bindLocale(params);
 
   return (
     <NextServerRMachine>

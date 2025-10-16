@@ -1,42 +1,44 @@
-import type { AnyAtlas, RMachine } from "r-machine";
 import { ReactStrategy } from "../react-strategy.js";
 import type { ReactStrategyImpl } from "../react-strategy-impl.js";
 
-type ReactPartialStrategyImpl = Partial<ReactDefaultStrategy>;
-type ReactPartialStrategyImplFactory = (rMachine: RMachine<AnyAtlas>) => ReactPartialStrategyImpl;
+interface ReactDefaultStrategyConfig {
+  readonly implFactory: ReactStrategyImplFactory;
+}
 
-const defaultImpl: ReactStrategyImpl = {
-  readLocale: ({ localeOption }) => {
-    return localeOption;
-  },
-  writeLocale: () => {
-    throw new Error(
-      "ReactDefaultStrategy by default does not support writing locale and no custom implementation was provided."
-    );
-  },
+type ReactStrategyImplFactory = () => ReactStrategyImpl;
+
+interface ReactPartialDefaultStrategyConfig {
+  readonly impl?: PartialReactStrategyImpl | ReactDefaultStrategyImplFactory;
+}
+
+type PartialReactStrategyImpl = Partial<ReactStrategyImpl>;
+type ReactDefaultStrategyImplFactory = () => PartialReactStrategyImpl;
+
+const defaultConfig: ReactDefaultStrategyConfig = {
+  implFactory: () => ({
+    writeLocale: () => {
+      throw new Error(
+        "ReactDefaultStrategy by default does not support writing locale and no custom implementation was provided."
+      );
+    },
+  }),
 };
 
 export class ReactDefaultStrategy extends ReactStrategy {
   constructor();
-  constructor(config: ReactPartialStrategyImpl);
-  constructor(config: ReactPartialStrategyImplFactory);
-  constructor(protected readonly config?: ReactPartialStrategyImpl | ReactPartialStrategyImplFactory | undefined) {
+  constructor(config: ReactPartialDefaultStrategyConfig);
+  constructor(config?: ReactPartialDefaultStrategyConfig) {
     super();
+    function implFactory(): ReactStrategyImpl {
+      const partialImpl = config?.impl ? (typeof config.impl === "function" ? config.impl() : config.impl) : {};
+      return { ...defaultConfig.implFactory(), ...partialImpl };
+    }
+    this.config = { ...defaultConfig, implFactory };
   }
 
-  protected getReactStrategyImpl(rMachine: RMachine<AnyAtlas>): ReactStrategyImpl {
-    if (typeof this.config === "function") {
-      const impl = this.config(rMachine);
-      return {
-        ...defaultImpl,
-        ...impl,
-      };
-    } else {
-      const impl = this.config ?? {};
-      return {
-        ...defaultImpl,
-        ...impl,
-      };
-    }
+  protected readonly config: ReactDefaultStrategyConfig;
+
+  protected buildReactStrategyImpl(): ReactStrategyImpl {
+    return this.config.implFactory();
   }
 }
