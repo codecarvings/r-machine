@@ -1,3 +1,5 @@
-# @r-machine/react
+⚠️ WARNING: THIS LIBRARY IS STILL IN DEVELOPMENT (PRE-ALPHA STAGE) ⚠️
 
-React bindings for R-Machine i18n library.
+`@r-machine/react`
+
+# React bindings for the R-Machine library.

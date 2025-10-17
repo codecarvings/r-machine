@@ -1,3 +1,5 @@
-# @r-machine/next
+⚠️ WARNING: THIS LIBRARY IS STILL IN DEVELOPMENT (PRE-ALPHA STAGE) ⚠️
 
-Next.js bindings for R-Machine i18n library.
+`@r-machine/next`
+
+# Next.js bindings for the R-Machine library.

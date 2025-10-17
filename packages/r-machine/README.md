@@ -1,11 +1,5 @@
-# R-Machine
+⚠️ WARNING: THIS LIBRARY IS STILL IN DEVELOPMENT (PRE-ALPHA STAGE) ⚠️
 
-This repository is the home of **R-Machine** and related packages.
+`r-machine`
 
-## Packages
-
-- `packages/r-machine`: The main library.
-
-## License
-
-MIT
+# R-Machine core library
