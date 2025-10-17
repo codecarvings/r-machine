@@ -1,5 +1,5 @@
+import type { ReactStrategyImpl } from "@r-machine/react";
 import type { useRouter } from "next/navigation";
-import type { ReactStrategyImpl } from "react-r-machine";
 
 export interface NextAppRouterStrategyClientImplFn$Ext {
   readonly writeLocale: {

@@ -42,7 +42,7 @@ export interface AcceptLanguageEntry {
  *
  * @example
  * ```ts
- * fullParseAcceptLanguage("en-US,en;q=0.9,fr;q=0.8")
+ * fullParseAcceptLanguageHeader("en-US,en;q=0.9,fr;q=0.8")
  * // Returns:
  * // [
  * //   { range: "en-US", quality: 1.0 },
@@ -50,7 +50,7 @@ export interface AcceptLanguageEntry {
  * //   { range: "fr", quality: 0.8 }
  * // ]
  *
- * fullParseAcceptLanguage("da, en-GB;q=0.8, en;q=0.7")
+ * fullParseAcceptLanguageHeader("da, en-GB;q=0.8, en;q=0.7")
  * // Returns:
  * // [
  * //   { range: "da", quality: 1.0 },
@@ -62,7 +62,7 @@ export interface AcceptLanguageEntry {
  * @see https://www.rfc-editor.org/rfc/rfc9110.html#name-accept-language
  * @see https://www.rfc-editor.org/rfc/rfc4647.html#section-2.1
  */
-export function fullParseAcceptLanguage(header: string): AcceptLanguageEntry[] {
+export function fullParseAcceptLanguageHeader(header: string): AcceptLanguageEntry[] {
   if (!header || typeof header !== "string") {
     return [];
   }
@@ -152,17 +152,17 @@ export function fullParseAcceptLanguage(header: string): AcceptLanguageEntry[] {
  *
  * @example
  * ```ts
- * parseAcceptLanguage("en-US,en;q=0.9,fr;q=0.8")
+ * parseAcceptLanguageHeader("en-US,en;q=0.9,fr;q=0.8")
  * // Returns: ["en-US", "en", "fr"]
  *
- * parseAcceptLanguage("da, en-GB;q=0.8, en;q=0.7")
+ * parseAcceptLanguageHeader("da, en-GB;q=0.8, en;q=0.7")
  * // Returns: ["da", "en-GB", "en"]
  * ```
  *
  * @see https://www.rfc-editor.org/rfc/rfc9110.html#name-accept-language
  */
-export function parseAcceptLanguage(header: string): string[] {
-  return fullParseAcceptLanguage(header).map((entry) => entry.range);
+export function parseAcceptLanguageHeader(header: string): string[] {
+  return fullParseAcceptLanguageHeader(header).map((entry) => entry.range);
 }
 
 /**

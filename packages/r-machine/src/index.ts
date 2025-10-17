@@ -1,4 +1,3 @@
-export * from "./locale/index.js";
 export * from "./r.js";
 export type { AnyNamespaceList, AnyRKit, AtlasNamespaceList, RKit } from "./r-kit.js";
 export * from "./r-machine.js";

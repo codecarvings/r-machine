@@ -1,7 +1,3 @@
-import { redirect } from "next/navigation";
-import { rMachine } from "@/r-machine/r-machine";
+import { EntrancePage } from "@/r-machine/server-tools";
 
-export default function Page() {
-  const defaultLocale = rMachine.localeHelper.matchLocales(navigator.languages);
-  redirect(`/${defaultLocale}`);
-}
+export default EntrancePage;

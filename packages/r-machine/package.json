@@ -38,7 +38,8 @@
   "zshy": {
     "exports": {
       "./package.json": "./package.json",
-      ".": "./src/index.ts"
+      ".": "./src/index.ts",
+      "./locale": "./src/locale/index.ts"
     },
     "conditions": {
       "@r-machine/source": "src"
@@ -51,6 +52,12 @@
       "types": "./index.d.cts",
       "import": "./index.js",
       "require": "./index.cjs"
+    },
+    "./locale": {
+      "@r-machine/source": "./src/locale/index.ts",
+      "types": "./locale/index.d.cts",
+      "import": "./locale/index.js",
+      "require": "./locale/index.cjs"
     }
   },
   "scripts": {

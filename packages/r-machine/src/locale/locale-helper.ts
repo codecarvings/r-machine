@@ -2,6 +2,7 @@ import type { LocaleMapper } from "../locale-mapper-manager.js";
 import { RMachineError } from "../r-machine-error.js";
 import { validateCanonicalUnicodeLocaleId } from "./canonical-unicode-locale-id.js";
 import { type MatchLocalesAlgorithm, matchLocales } from "./locale-matcher.js";
+import { parseAcceptLanguageHeader } from "./parse-accept-language-header.js";
 
 export class LocaleHelper {
   constructor(
@@ -11,6 +12,14 @@ export class LocaleHelper {
   ) {}
 
   readonly matchLocales = (requestedLocales: readonly string[], algorithm?: MatchLocalesAlgorithm): string => {
+    return matchLocales(requestedLocales, this.locales, this.defaultLocale, { algorithm });
+  };
+
+  readonly matchLocalesForAcceptLanguageHeader = (
+    acceptLanguageHeader: string | undefined | null,
+    algorithm?: MatchLocalesAlgorithm
+  ): string => {
+    const requestedLocales = parseAcceptLanguageHeader(acceptLanguageHeader ?? "");
     return matchLocales(requestedLocales, this.locales, this.defaultLocale, { algorithm });
   };
 

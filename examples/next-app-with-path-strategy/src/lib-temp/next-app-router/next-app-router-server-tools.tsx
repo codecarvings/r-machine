@@ -9,6 +9,7 @@ import {
 import type { ReactNode } from "react";
 import { cache } from "react";
 import type { NextAppRouterClientRMachine } from "./next-app-router-client-tools";
+import { NextAppRouterServerToolsEntrancePage } from "./next-app-router-server-tools-entrance-page";
 import { NextAppRouterStrategy } from "./next-app-router-strategy";
 
 type RMachineParams<LK extends string> = {
@@ -25,6 +26,8 @@ interface BindLocale<LK extends string> {
 
 interface NextAppRouterServerTools<A extends AnyAtlas, LK extends string> {
   readonly NextServerRMachine: NextAppRouterServerRMachine;
+  readonly EntrancePage: EntrancePage;
+  readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
   readonly bindLocale: BindLocale<LK>;
   readonly getLocale: () => string;
   readonly setLocale: (newLocale: string) => void;
@@ -35,8 +38,14 @@ interface NextAppRouterServerTools<A extends AnyAtlas, LK extends string> {
 interface NextAppRouterServerRMachineProps {
   readonly children: ReactNode;
 }
+type NextAppRouterServerRMachine = (props: NextAppRouterServerRMachineProps) => JSX.Element;
 
-export type NextAppRouterServerRMachine = (props: NextAppRouterServerRMachineProps) => JSX.Element;
+type LocaleStaticParamsGenerator<LK extends string> = () => Promise<readonly RMachineParams<LK>[]>;
+
+interface EntrancePageProps {
+  readonly locale?: string | undefined | null;
+}
+type EntrancePage = (props: EntrancePageProps) => Promise<JSX.Element>;
 
 interface NextAppRouterServerRMachineContext {
   value: string | undefined | null;
@@ -60,10 +69,25 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
 
   function NextServerRMachine({ children }: NextAppRouterServerRMachineProps) {
     const locale = getLocale();
+    return <NextClientRMachine locale={locale}>{children}</NextClientRMachine>;
+  }
 
-    // Workaround for TypeScript's strict typing
-    const UntypedNextClientRMachine = NextClientRMachine as any;
-    return <UntypedNextClientRMachine locale={locale}>{children}</UntypedNextClientRMachine>;
+  async function EntrancePage({ locale }: EntrancePageProps) {
+    // Workaround for typescript error:
+    // NextAppRouterServerToolsEntrancePage' cannot be used as a JSX component. Its return type 'Promise<void>' is not a valid JSX element.
+    return (
+      <>
+        {/* @ts-expect-error Async Server Component */}
+        <NextAppRouterServerToolsEntrancePage rMachine={rMachine} locale={locale ?? undefined} setLocale={setLocale} />
+      </>
+    );
+  }
+
+  async function generateLocaleStaticParams() {
+    console.log("Generating locale static params...", rMachine.config.locales);
+    return rMachine.config.locales.map((locale) => ({
+      [localeKey]: locale,
+    })) as RMachineParams<LK>[];
   }
 
   function bindLocale(
@@ -131,7 +155,7 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
   function setLocale(newLocale: string) {
     const error = rMachine.localeHelper.validateLocale(newLocale);
     if (error) {
-      throw error;
+      throw new RMachineError(`Cannot set locale to invalid locale: "${newLocale}"`, error);
     }
 
     writeLocale(newLocale, { strategyConfig, rMachine });
@@ -149,6 +173,8 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
 
   return {
     NextServerRMachine,
+    EntrancePage,
+    generateLocaleStaticParams,
     bindLocale: bindLocale as BindLocale<LK>,
     getLocale,
     setLocale,

@@ -1,5 +1,5 @@
 {
-  "name": "next-r-machine",
+  "name": "@r-machine/next",
   "version": "0.1.0",
   "description": "Official Next.js bindings for R-Machine",
   "author": "Sergio Turolla <hello@codecarvings.com>",
@@ -63,10 +63,10 @@
   "peerDependencies": {
     "next": "^13.0.0 || ^14.0.0 || ^15.0.0",
     "react": "^19.0.0",
-    "react-r-machine": "workspace:*",
     "r-machine": "workspace:*"
   },
   "devDependencies": {
+    "@r-machine/react": "workspace:*",
     "@types/react": "^19.0.0",
     "next": "^15.0.0"
   }

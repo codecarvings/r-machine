@@ -1,5 +1,5 @@
+import { ReactDefaultStrategy } from "@r-machine/react";
 import { RMachine } from "r-machine";
-import { ReactDefaultStrategy } from "react-r-machine";
 import type { Atlas } from "./atlas";
 
 export const rMachine = new RMachine<Atlas>({

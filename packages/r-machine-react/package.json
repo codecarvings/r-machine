@@ -1,5 +1,5 @@
 {
-  "name": "react-r-machine",
+  "name": "@r-machine/react",
   "version": "0.1.0",
   "description": "Official React bindings for R-Machine",
   "author": "Sergio Turolla <hello@codecarvings.com>",

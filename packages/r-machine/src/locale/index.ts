@@ -1,3 +1,3 @@
-export { getCanonicalUnicodeLocaleId } from "./canonical-unicode-locale-id.js";
+export { getCanonicalUnicodeLocaleId, validateCanonicalUnicodeLocaleId } from "./canonical-unicode-locale-id.js";
 export { matchLocales } from "./locale-matcher.js";
-export { parseAcceptLanguage } from "./parse-accept-language.js";
+export { fullParseAcceptLanguageHeader, parseAcceptLanguageHeader } from "./parse-accept-language-header.js";

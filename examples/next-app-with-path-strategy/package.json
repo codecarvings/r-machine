@@ -8,12 +8,12 @@
     "start": "next start"
   },
   "dependencies": {
+    "@r-machine/next": "workspace:*",
+    "@r-machine/react": "workspace:*",
     "r-machine": "workspace:*",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-r-machine": "workspace:*",
-    "next": "15.5.4",
-    "next-r-machine": "workspace:*"
+    "next": "15.5.4"
   },
   "devDependencies": {
     "typescript": "^5",

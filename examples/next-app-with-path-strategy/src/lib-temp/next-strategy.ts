@@ -1,4 +1,4 @@
-import { ReactStrategy } from "react-r-machine";
-import type { ReactStrategyImpl$Ext } from "react-r-machine/lib";
+import { ReactStrategy } from "@r-machine/react";
+import type { ReactStrategyImpl$Ext } from "@r-machine/react/lib";
 
 export abstract class NextStrategy<SC, E extends ReactStrategyImpl$Ext> extends ReactStrategy<SC, E> {}
