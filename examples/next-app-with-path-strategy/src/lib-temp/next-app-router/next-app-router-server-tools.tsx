@@ -40,7 +40,7 @@ interface NextAppRouterServerRMachineProps {
 }
 type NextAppRouterServerRMachine = (props: NextAppRouterServerRMachineProps) => JSX.Element;
 
-type LocaleStaticParamsGenerator<LK extends string> = () => Promise<readonly RMachineParams<LK>[]>;
+type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
 
 interface EntrancePageProps {
   readonly locale?: string | undefined | null;
@@ -84,10 +84,9 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
   }
 
   async function generateLocaleStaticParams() {
-    console.log("Generating locale static params...", rMachine.config.locales);
     return rMachine.config.locales.map((locale) => ({
       [localeKey]: locale,
-    })) as RMachineParams<LK>[];
+    }));
   }
 
   function bindLocale(

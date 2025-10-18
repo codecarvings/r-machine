@@ -1,5 +1,2 @@
-export * from "./react-strategies/index.js";
-export * from "./react-strategy.js";
-export type { ReactStrategyImpl } from "./react-strategy-impl.js";
-export type { ReactRMachine } from "./react-tools.js";
-export { ReactTools } from "./react-tools-builder.js";
+export { ReactDefaultStrategy } from "./lib/react-strategies/react-default-strategy.js";
+export { ReactTools } from "./lib/react-tools-builder.js";

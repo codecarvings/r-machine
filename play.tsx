@@ -1,6 +1,5 @@
 import { ReactDefaultStrategy, ReactTools } from "@r-machine/react";
 import { RMachine } from "r-machine";
-import type { R$ } from "./packages/r-machine/src/r-module.js";
 
 type Atlas = {
   ns1: { message: string };
@@ -14,7 +13,7 @@ const rMachine = new RMachine<Atlas>({
   rModuleResolver: async (namespace, locale) => {
     await new Promise((resolve) => setTimeout(resolve, 500));
     return {
-      default: async ($: R$) => {
+      default: async ($) => {
         await new Promise((resolve) => setTimeout(resolve, 500));
         return { message: `${namespace}(${$.namespace}) in ${locale}(${$.locale})` };
       },

@@ -39,7 +39,7 @@
     "exports": {
       "./package.json": "./package.json",
       ".": "./src/index.ts",
-      "./locale": "./src/locale/index.ts"
+      "./locale": "./src/locale.ts"
     },
     "conditions": {
       "@r-machine/source": "src"
@@ -54,10 +54,10 @@
       "require": "./index.cjs"
     },
     "./locale": {
-      "@r-machine/source": "./src/locale/index.ts",
-      "types": "./locale/index.d.cts",
-      "import": "./locale/index.js",
-      "require": "./locale/index.cjs"
+      "@r-machine/source": "./src/locale.ts",
+      "types": "./locale.d.cts",
+      "import": "./locale.js",
+      "require": "./locale.cjs"
     }
   },
   "scripts": {

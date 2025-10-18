@@ -1,3 +1,3 @@
-import { NextAppRouterDefaultStrategy } from "@/lib-temp/next-app-router/strategies";
+import { NextAppRouterDefaultStrategy } from "@/lib-temp/next-app-router";
 
 export const strategy = new NextAppRouterDefaultStrategy();
