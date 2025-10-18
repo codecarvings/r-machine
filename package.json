@@ -21,7 +21,8 @@
     "prepare": "husky",
     "dev": "tsx --conditions @r-machine/source",
     "dev:play": "pnpm dev play.tsx",
-    "check:semver": "tsx scripts/check-semver.ts"
+    "verify:versions": "tsx scripts/verify-versions.ts",
+    "prepublishOnly": "pnpm run test && pnpm run build"
   },
   "lint-staged": {
     "packages/*/src/**/*.ts": [
@@ -35,22 +36,22 @@
     ]
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.3",
-    "@r-machine/react": "workspace:*",
+    "@biomejs/biome": "2.2.6",
     "@r-machine/next": "workspace:*",
-    "@types/node": "^24.5.2",
-    "@types/react": "^17",
+    "@r-machine/react": "workspace:*",
+    "@types/node": "^24.8.1",
+    "@types/react": "^19.0.0",
     "@types/semver": "^7.7.1",
     "@vitest/ui": "^3.2.4",
     "husky": "9.1.7",
-    "lint-staged": "^16.2.0",
+    "lint-staged": "^16.2.4",
     "prettier": "^3.6.2",
-    "react": "^17",
-    "semver": "^7.7.2",
     "r-machine": "workspace:*",
-    "tsx": "^4.20.5",
-    "typescript": "5.9.2",
+    "react": "^19.0.0",
+    "semver": "^7.7.3",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3",
     "vitest": "3.2.4",
-    "zshy": "0.4.1"
+    "zshy": "0.4.4"
   }
 }

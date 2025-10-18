@@ -1,4 +1,4 @@
-import type { ReactStrategyImpl } from "@r-machine/react";
+import type { ReactStrategyImpl } from "@r-machine/react/lib";
 import type { useRouter } from "next/navigation";
 
 export interface NextAppRouterStrategyClientImplFn$Ext {

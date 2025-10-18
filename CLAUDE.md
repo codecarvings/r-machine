@@ -21,7 +21,6 @@ This project uses **pnpm** as the package manager.
 ### Code Quality
 - `pnpm check` - Format and fix code using Biome (auto-fixes issues)
 - `pnpm check:dry` - Check code without making changes
-- `pnpm check:semver` - Check semantic versioning consistency
 
 ### Testing
 - `pnpm test` - Run all tests using Vitest
@@ -31,9 +30,8 @@ This project uses **pnpm** as the package manager.
 ### Package-specific Commands
 Navigate to `packages/r-machine/` for package-specific operations:
 - `pnpm build` - Build the r-machine package using zshy
-- `pnpm test` - Run tests with type checking for this package
-- `pnpm test:watch` - Run tests in watch mode with type checking
 - `pnpm clean` - Clean build artifacts
+- `pnpm verify:versions` - Check versioning consistency
 
 ## Architecture
 

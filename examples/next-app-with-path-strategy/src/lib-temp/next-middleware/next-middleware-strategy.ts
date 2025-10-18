@@ -1,9 +1,10 @@
+/*
 import type { AnyAtlas, RMachine } from "r-machine";
+import { NextStrategy } from "../next-strategy";
 import type { NextMiddlewareStrategyImpl } from "./next-middleware-strategy-impl";
-import { NextStrategy } from "./next-strategy";
 
-export abstract class NextMiddlewareStrategy extends NextStrategy {
-  protected abstract getNextStrategyImpl(rMachine: RMachine<AnyAtlas>): NextMiddlewareStrategyImpl;
+export abstract class NextMiddlewareStrategy<SC> extends NextStrategy<SC, {}> {
+  protected abstract getNextStrategyImpl(): NextMiddlewareStrategyImpl;
 
   static getNextStrategyImpl(
     strategy: NextMiddlewareStrategy,
@@ -12,3 +13,4 @@ export abstract class NextMiddlewareStrategy extends NextStrategy {
     return strategy.getNextStrategyImpl(rMachine);
   }
 }
+*/
