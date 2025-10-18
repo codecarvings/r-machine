@@ -1,0 +1,12 @@
+{
+  "extends": "./configs/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "customConditions": ["@r-machine/source"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": []
+  },
+  "include": ["**/*.ts", "**/*.mts", "**/*.cts", "**/*.tsx"],
+  "exclude": ["**/*.d.ts", "**/*.d.cts", "**/*.d.mts", "configs/vitest.base.ts"]
+}

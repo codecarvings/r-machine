@@ -1,0 +1,10 @@
+{
+  "extends": "../../configs/tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "customConditions": ["@r-machine/source"],
+    "noEmit": true,
+    "types": ["vitest"]
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

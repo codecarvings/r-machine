@@ -1,10 +1,14 @@
+⚠️ WARNING: THIS LIBRARY IS STILL IN DEVELOPMENT (PRE-ALPHA STAGE) ⚠️
+
 # R-Machine
 
-This repository is the home of \*R-Machine\*\* and related packages.
+This repository is the home of **R-Machine** and related packages.
 
 ## Packages
 
-- `packages/r-machine`: The main library.
+- `r-machine` → `packages/r-machine` : The main library.
+- `@r-machine/react` → `packages/r-machine-react` : The main library.
+- `@r-machine/next` → `packages/r-machine-next` : The main library.
 
 ## License
 

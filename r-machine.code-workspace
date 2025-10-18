@@ -5,14 +5,26 @@
       "path": "."
     },
     {
-      "name": "packages / r-machine",
+      "name": "🟠 packages ― r-machine",
       "path": "./packages/r-machine"
+    },
+    {
+      "name": "🟣 packages ― @r-machine/react",
+      "path": "./packages/r-machine-react"
+    },
+    {
+      "name": "🟣 packages ― @r-machine/next",
+      "path": "./packages/r-machine-next"
+    },
+    {
+      "name": "🟥 examples",
+      "path": "./examples"
     }
   ],
   "settings": {
     "search.useIgnoreFiles": true,
     "search.exclude": {
-      "**/dist": true
+      "**/lib": true
     }
   }
 }

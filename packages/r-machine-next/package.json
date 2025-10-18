@@ -1,0 +1,73 @@
+{
+  "name": "@r-machine/next",
+  "version": "0.1.0",
+  "description": "Official Next.js bindings for R-Machine",
+  "author": "Sergio Turolla <hello@codecarvings.com>",
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://r-machine.codecarvings.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codecarvings/r-machine.git"
+  },
+  "bugs": "https://github.com/codecarvings/r-machine/issues",
+  "keywords": [
+    "i18n",
+    "i10n",
+    "internationalization",
+    "localization",
+    "globalization",
+    "translation",
+    "translate",
+    "locale",
+    "typescript",
+    "library"
+  ],
+  "sideEffects": false,
+  "files": [
+    "**/*.js",
+    "**/*.mjs",
+    "**/*.cjs",
+    "**/*.d.ts",
+    "**/*.d.mts",
+    "**/*.d.cts"
+  ],
+  "main": "./index.cjs",
+  "types": "./index.d.cts",
+  "module": "./index.js",
+  "zshy": {
+    "exports": {
+      "./package.json": "./package.json",
+      ".": "./src/index.ts"
+    },
+    "conditions": {
+      "@r-machine/source": "src"
+    }
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r-machine/source": "./src/index.ts",
+      "types": "./index.d.cts",
+      "import": "./index.js",
+      "require": "./index.cjs"
+    }
+  },
+  "scripts": {
+    "clean": "git clean -xdf . -e node_modules",
+    "build": "zshy --project tsconfig.build.json",
+    "postbuild": "pnpm biome check --write .",
+    "test": "pnpm vitest run --typecheck",
+    "test:watch": "pnpm vitest watch --typecheck"
+  },
+  "peerDependencies": {
+    "next": "^13.0.0 || ^14.0.0 || ^15.0.0",
+    "react": "^19.0.0",
+    "r-machine": "workspace:*"
+  },
+  "devDependencies": {
+    "@r-machine/react": "workspace:*",
+    "@types/react": "^19.0.0",
+    "next": "^15.0.0"
+  }
+}

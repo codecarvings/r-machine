@@ -1,9 +1,56 @@
 {
-  "name": "r-machine-monorepo",
   "private": true,
-  "version": "1.0.0",
-  "description": "Monorepo for R-Machine library",
-  "workspaces": [
-    "packages/*"
-  ]
+  "description": "Monorepo for R-Machine packages",
+  "author": "Sergio Turolla <hello@codecarvings.com>",
+  "type": "module",
+  "homepage": "https://r-machine.codecarvings.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codecarvings/r-machine.git"
+  },
+  "bugs": "https://github.com/codecarvings/r-machine/issues",
+  "packageManager": "pnpm@10.18.3",
+  "scripts": {
+    "check": "biome check --write .",
+    "check:dry": "biome check .",
+    "clean": "pnpm run -r clean",
+    "build": "pnpm run -r build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "prepare": "husky",
+    "dev": "tsx --conditions @r-machine/source",
+    "dev:play": "pnpm dev play.tsx",
+    "check:semver": "tsx scripts/check-semver.ts"
+  },
+  "lint-staged": {
+    "packages/*/src/**/*.ts": [
+      "biome check --no-errors-on-unmatched --write"
+    ],
+    "packages/*/**/*.json": [
+      "biome check --no-errors-on-unmatched --write"
+    ],
+    "packages/*/**/*.md": [
+      "prettier --ignore-unknown --write"
+    ]
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.3",
+    "@r-machine/react": "workspace:*",
+    "@r-machine/next": "workspace:*",
+    "@types/node": "^24.5.2",
+    "@types/react": "^17",
+    "@types/semver": "^7.7.1",
+    "@vitest/ui": "^3.2.4",
+    "husky": "9.1.7",
+    "lint-staged": "^16.2.0",
+    "prettier": "^3.6.2",
+    "react": "^17",
+    "semver": "^7.7.2",
+    "r-machine": "workspace:*",
+    "tsx": "^4.20.5",
+    "typescript": "5.9.2",
+    "vitest": "3.2.4",
+    "zshy": "0.4.1"
+  }
 }

@@ -1,14 +1,10 @@
 {
+  "extends": "../../configs/tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2019",
-    "module": "CommonJS",
-    "declaration": true,
-    "outDir": "dist",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "module": "NodeNext",
+    "customConditions": ["@r-machine/source"],
+    "noEmit": true,
+    "types": ["vitest"]
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "include": ["**/*.ts"]
 }

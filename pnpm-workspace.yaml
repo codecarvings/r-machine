@@ -1,2 +1,12 @@
 packages:
-  - "packages/*"
+  - packages/*
+  - examples/*
+
+hoistWorkspacePackages: false
+
+linkWorkspacePackages: true
+
+onlyBuiltDependencies:
+  - sharp
+
+saveWorkspaceProtocol: false
