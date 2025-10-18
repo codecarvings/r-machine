@@ -7,7 +7,7 @@ import {
   RMachineError,
 } from "r-machine";
 import type { ReactNode } from "react";
-import { cache } from "react";
+import { cache, type JSX } from "react";
 import type { NextAppRouterClientRMachine } from "./next-app-router-client-tools";
 import { NextAppRouterServerToolsEntrancePage } from "./next-app-router-server-tools-entrance-page";
 import { NextAppRouterStrategy } from "./next-app-router-strategy";
@@ -173,7 +173,7 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
   return {
     NextServerRMachine,
     EntrancePage,
-    generateLocaleStaticParams,
+    generateLocaleStaticParams: generateLocaleStaticParams as LocaleStaticParamsGenerator<LK>,
     bindLocale: bindLocale as BindLocale<LK>,
     getLocale,
     setLocale,

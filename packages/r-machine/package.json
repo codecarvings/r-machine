@@ -1,7 +1,7 @@
 {
   "name": "r-machine",
-  "version": "0.1.0",
-  "description": "R-Machine library",
+  "version": "1.0.0-alpha.1",
+  "description": "A TypeScript library for internationalization (i18n) with a focus on developer experience",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "MIT",
   "type": "module",
@@ -65,6 +65,7 @@
     "build": "zshy --project tsconfig.build.json",
     "postbuild": "pnpm biome check --write .",
     "test": "pnpm vitest run --typecheck",
-    "test:watch": "pnpm vitest watch --typecheck"
+    "test:watch": "pnpm vitest watch --typecheck",
+    "prepublishOnly": "tsx ../../scripts/verify-versions.ts -tag"
   }
 }

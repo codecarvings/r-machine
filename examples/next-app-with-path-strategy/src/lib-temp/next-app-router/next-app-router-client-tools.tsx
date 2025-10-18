@@ -1,10 +1,9 @@
 "use client";
 
-import type { ReactRMachine } from "@r-machine/react";
-import { createReactTools, type ReactToolsInterface } from "@r-machine/react/lib";
+import { createReactTools, type ReactRMachine, type ReactToolsInterface } from "@r-machine/react/lib";
 import { useRouter } from "next/navigation";
 import type { AnyAtlas, RMachine } from "r-machine";
-import type { ReactNode } from "react";
+import type { JSX, ReactNode } from "react";
 import type { NextAppRouterStrategy } from "./next-app-router-strategy";
 
 const brand: unique symbol = Symbol.for("NextAppRouterClientRMachine");
