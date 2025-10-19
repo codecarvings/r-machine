@@ -1,5 +1,5 @@
 {
-  "name": "next-app-with-path-strategy",
+  "name": "@r-machine/examples-next-app-with-path-strategy",
   "version": "0.1.0",
   "private": true,
   "scripts": {

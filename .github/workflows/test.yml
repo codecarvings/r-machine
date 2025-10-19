@@ -1,0 +1,45 @@
+name: test
+
+on:
+  push:
+    branches:
+      - main
+      - alpha
+  pull_request:
+    branches:
+      - main
+      - alpha
+
+jobs:
+  build-test-and-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'latest'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run build
+        run: pnpm build
+
+      - name: Run tests
+        run: pnpm test        
+
+      - name: Run check
+        run: pnpm check
+
+      - name: Run version check
+        run: pnpm verify:versions
