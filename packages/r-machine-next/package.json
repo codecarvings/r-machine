@@ -1,6 +1,6 @@
 {
   "name": "@r-machine/next",
-  "version": "1.0.0-alpha.2",
+  "version": "1.0.0-alpha.1",
   "description": "Official Next.js bindings for R-Machine - A TypeScript library for internationalization (i18n) with a focus on developer experience",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "MIT",
@@ -58,8 +58,7 @@
     "build": "zshy --project tsconfig.build.json",
     "postbuild": "pnpm biome check --write .",
     "test": "pnpm vitest run --typecheck",
-    "test:watch": "pnpm vitest watch --typecheck",
-    "prepublishOnly": "tsx ../../scripts/verify-versions.ts -tag"
+    "test:watch": "pnpm vitest watch --typecheck"
   },
   "peerDependencies": {
     "next": "^13.0.0 || ^14.0.0 || ^15.0.0",

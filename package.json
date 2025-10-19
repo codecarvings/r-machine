@@ -15,14 +15,20 @@
     "check:dry": "biome check .",
     "clean": "pnpm run -r clean",
     "build": "pnpm run -r build",
+    "build:packages": "pnpm run -r --filter './packages/**' build",
+    "build:examples": "pnpm run -r --filter './examples/**' build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "prepare": "husky",
     "dev": "tsx --conditions @r-machine/source",
     "dev:play": "pnpm dev play.tsx",
-    "verify:versions": "tsx scripts/verify-versions.ts",
-    "prepublishOnly": "pnpm run test && pnpm run build"
+    "prepublishOnly": "pnpm run test && pnpm run build",
+    "changeset": "pnpm exec changeset",
+    "changeset:version": "pnpm exec changeset version",
+    "changeset:publish": "pnpm exec changeset publish",
+    "changeset:pre-enter-alpha": "pnpm exec changeset pre enter alpha",
+    "changeset:pre-exit": "pnpm exec changeset pre exit"
   },
   "lint-staged": {
     "packages/*/src/**/*.ts": [
@@ -37,6 +43,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.6",
+    "@changesets/cli": "^2.29.7",
     "@r-machine/next": "workspace:*",
     "@r-machine/react": "workspace:*",
     "@types/node": "^24.8.1",
