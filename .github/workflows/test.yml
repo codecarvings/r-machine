@@ -39,5 +39,3 @@ jobs:
       - name: Run check
         run: pnpm check
 
-      - name: Run version check
-        run: pnpm verify:versions

@@ -7,5 +7,8 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": []
+  "ignore": [
+    "@r-machine/examples-react-router-with-path-strategy", 
+    "@r-machine/examples-next-app-with-path-strategy"
+  ]
 }
