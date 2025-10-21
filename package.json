@@ -24,8 +24,8 @@
     "dev": "tsx --conditions @r-machine/source",
     "dev:play": "pnpm dev play.tsx",
     "changeset": "changeset",
-    "changeset:pre-enter-alpha": "changeset pre enter alpha",
-    "changeset:pre-exit": "changeset pre exit",
+    "__changeset:pre-enter-alpha": "changeset pre enter alpha",
+    "__changeset:pre-exit": "changeset pre exit",
     "version-packages": "changeset version && pnpm check",
     "release": "pnpm build:packages && changeset publish"
   },
