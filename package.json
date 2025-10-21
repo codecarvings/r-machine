@@ -23,12 +23,12 @@
     "prepare": "husky",
     "dev": "tsx --conditions @r-machine/source",
     "dev:play": "pnpm dev play.tsx",
-    "prepublishOnly": "pnpm run test && pnpm run build",
-    "changeset": "pnpm exec changeset",
-    "changeset:version": "pnpm exec changeset version",
-    "changeset:publish": "pnpm exec changeset publish",
-    "changeset:pre-enter-alpha": "pnpm exec changeset pre enter alpha",
-    "changeset:pre-exit": "pnpm exec changeset pre exit"
+    "changeset": "changeset",
+    "changeset:version": "changeset version && pnpm check",
+    "changeset:publish": "changeset publish",
+    "changeset:pre-enter-alpha": "changeset pre enter alpha",
+    "changeset:pre-exit": "changeset pre exit",
+    "release": "pnpm build && changeset publish"
   },
   "lint-staged": {
     "packages/*/src/**/*.ts": [
