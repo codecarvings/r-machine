@@ -1,5 +1,13 @@
 # @r-machine/next
 
+## 1.0.0-alpha.2
+
+### Patch Changes
+
+- 7ffa541: Add changeset
+- Updated dependencies [7ffa541]
+  - r-machine@1.0.0-alpha.2
+
 ## 1.0.0-alpha.1
 
 ### Patch Changes
