@@ -24,7 +24,16 @@
   "settings": {
     "search.useIgnoreFiles": true,
     "search.exclude": {
-      "**/lib": true
-    }
+      "**/node_modules": true,
+      "packages/*/lib/**": true,
+      "packages/*/*.js": true,
+      "packages/*/*.cjs": true,
+      "packages/*/*.d.cts": true,
+      "packages/*/*.d.ts": true,
+    },
+    "github-actions.workflows.pinned.workflows": [
+      "⚙️ R-Machine/.github/workflows/ci.yml",
+      "⚙️ R-Machine/.github/workflows/changeset-version.yml"
+    ]
   }
 }

@@ -1,0 +1,12 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "@r-machine/examples-next-app-with-path-strategy": "0.0.0",
+    "@r-machine/examples-react-router-with-path-strategy": "0.0.0",
+    "r-machine": "1.0.0-alpha.1",
+    "@r-machine/next": "1.0.0-alpha.1",
+    "@r-machine/react": "1.0.0-alpha.1"
+  },
+  "changesets": []
+}
