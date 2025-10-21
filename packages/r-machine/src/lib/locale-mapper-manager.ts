@@ -21,7 +21,7 @@ export class LocaleMapperManager {
       if (this.locales.includes(mappedLocale)) {
         return mappedLocale;
       } else {
-        throw new RMachineError(`Mapped locale "${mappedLocale}" for "${locale}" is not supported`);
+        throw new RMachineError(`Mapped locale "${mappedLocale}" for "${locale}" is not supported.`);
       }
     } else {
       // Mapper not provided, use the built-in one

@@ -18,7 +18,7 @@ export const NextTools: NextToolsBuilder = {
       return createNextAppRouterClientTools(rMachine, strategy);
     }
 
-    throw new RMachineError("Unable to create RMachine Next Client Tools - Unsupported strategy");
+    throw new RMachineError("Unable to create RMachine Next Client Tools - Unsupported strategy.");
   },
 
   createServer: (rMachine, strategy, NextClientRMachine) => {
@@ -26,6 +26,6 @@ export const NextTools: NextToolsBuilder = {
       return createNextAppRouterServerTools(rMachine, strategy, NextClientRMachine);
     }
 
-    throw new RMachineError("Unable to create RMachine Next Server Tools - Unsupported strategy");
+    throw new RMachineError("Unable to create RMachine Next Server Tools - Unsupported strategy.");
   },
 };

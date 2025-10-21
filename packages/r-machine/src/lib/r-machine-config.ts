@@ -12,7 +12,7 @@ export interface RMachineConfig {
 
 export function validateRMachineConfig(config: RMachineConfig): RMachineError | null {
   if (!config.locales.length) {
-    return new RMachineError("No locales provided");
+    return new RMachineError("No locales provided.");
   }
 
   for (const locale of config.locales) {
@@ -23,7 +23,7 @@ export function validateRMachineConfig(config: RMachineConfig): RMachineError | 
   }
 
   if (new Set(config.locales).size !== config.locales.length) {
-    return new RMachineError("Duplicate locales provided");
+    return new RMachineError("Duplicate locales provided. All locales must be unique.");
   }
 
   const fallbackLocaleError = validateCanonicalUnicodeLocaleId(config.defaultLocale);
@@ -32,7 +32,7 @@ export function validateRMachineConfig(config: RMachineConfig): RMachineError | 
   }
 
   if (!config.locales.includes(config.defaultLocale)) {
-    return new RMachineError(`Default locale "${config.defaultLocale}" is not in the list of locales`);
+    return new RMachineError(`Default locale "${config.defaultLocale}" is not in the list of locales.`);
   }
 
   return null;

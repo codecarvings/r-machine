@@ -98,11 +98,11 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
 
       // If onBindLocale does not throw, the error is
       if (locale === undefined) {
-        error = new RMachineError("Invalid locale provided to bindLocale: undefined");
+        error = new RMachineError("Invalid locale provided to bindLocale: undefined.");
       } else {
         const validationError = validateLocale(locale);
         if (validationError) {
-          error = new RMachineError(`Invalid locale provided to bindLocale: "${locale}"`, validationError);
+          error = new RMachineError(`Invalid locale provided to bindLocale: "${locale}".`, validationError);
         }
       }
 
@@ -119,7 +119,7 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
       if (context.value !== null) {
         if (locale !== context.value) {
           throw new RMachineError(
-            `bindLocale called multiple times with different locales in the same request. Previous: "${context.value}", New: "${locale}"`
+            `bindLocale called multiple times with different locales in the same request. Previous: "${context.value}", New: "${locale}".`
           );
         }
       }
@@ -143,10 +143,10 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
     const context = getContext();
     if (context.value === null) {
       throw new RMachineError(
-        "NextAppRouterServerRMachineContext not initialized. bindLocale not invoked? (you must invoke bindLocale at the beginning of every page or layout component)"
+        "NextAppRouterServerRMachineContext not initialized. bindLocale not invoked? (you must invoke bindLocale at the beginning of every page or layout component)."
       );
     } else if (context.value === undefined) {
-      throw new RMachineError("Locale is undefined. Invalid value passed to bindLocale (safe mode disabled)");
+      throw new RMachineError("Locale is undefined. Invalid value passed to bindLocale (safe mode disabled).");
     }
     return context.value;
   }
@@ -154,7 +154,7 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
   function setLocale(newLocale: string) {
     const error = rMachine.localeHelper.validateLocale(newLocale);
     if (error) {
-      throw new RMachineError(`Cannot set locale to invalid locale: "${newLocale}"`, error);
+      throw new RMachineError(`Cannot set locale to invalid locale: "${newLocale}".`, error);
     }
 
     writeLocale(newLocale, { strategyConfig, rMachine });

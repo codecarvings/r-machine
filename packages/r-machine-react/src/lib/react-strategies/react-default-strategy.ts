@@ -1,3 +1,4 @@
+import { RMachineError } from "r-machine";
 import { ReactStrategy } from "../react-strategy.js";
 import type { ReactStrategyImpl, ReactStrategyImpl$Ext } from "../react-strategy-impl.js";
 
@@ -14,7 +15,7 @@ interface ReactPartialDefaultStrategyConfig {
 const defaultConfig: ReactDefaultStrategyConfig = {
   impl: {
     writeLocale: () => {
-      throw new Error(
+      throw new RMachineError(
         "ReactDefaultStrategy by default does not support writing locale and no custom implementation was provided."
       );
     },

@@ -30,7 +30,7 @@ export class LocaleHelper {
     }
 
     if (!this.locales.includes(locale)) {
-      return new RMachineError(`Locale "${locale}" is not in the list of locales`);
+      return new RMachineError(`Locale "${locale}" is not in the list of locales.`);
     }
 
     return null;

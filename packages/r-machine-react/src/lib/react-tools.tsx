@@ -47,7 +47,7 @@ export function createReactTools<A extends AnyAtlas, E extends ReactStrategyImpl
   function useCurrentLocale(): string {
     const locale = useContext(Context);
     if (locale === null) {
-      throw new RMachineError("ReactToolsContext not found. ReactTools must be invoked from within a ReactRMachine");
+      throw new RMachineError("ReactToolsContext not found. ReactTools must be invoked from within a ReactRMachine.");
     }
 
     return locale;
@@ -57,7 +57,7 @@ export function createReactTools<A extends AnyAtlas, E extends ReactStrategyImpl
     const value = useMemo<string>(() => {
       const error = validateLocale(locale);
       if (error) {
-        throw new RMachineError(`Unable to render ReactRMachine - invalid locale provided "${locale}"`, error);
+        throw new RMachineError(`Unable to render ReactRMachine - invalid locale provided "${locale}".`, error);
       }
 
       return locale;

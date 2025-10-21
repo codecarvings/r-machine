@@ -23,7 +23,7 @@ function getResolveRFromModuleError(
   innerError?: Error | undefined
 ) {
   const error = new RMachineError(
-    `Unable to resolve resource "${namespace}" for locale "${locale}" - ${reason}`,
+    `Unable to resolve resource "${namespace}" for locale "${locale}" - ${reason}.`,
     innerError
   );
   console.error(error);
@@ -90,7 +90,7 @@ export function resolveR(rModuleResolver: RModuleResolver, namespace: AnyNamespa
       },
       (reason) => {
         const error = new RMachineError(
-          `Unable to resolve resource module "${namespace}" for locale "${locale}" - rModuleResolver failed`,
+          `Unable to resolve resource module "${namespace}" for locale "${locale}" - rModuleResolver failed.`,
           reason
         );
         console.error(error);
