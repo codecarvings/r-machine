@@ -9,13 +9,12 @@ export interface ReactStrategyImpl$Ext {
   readonly writeLocale: object;
 }
 
+// Current locale not passed for consistency with other strategy impls - NextAppRouterStrategyServerImpl
 export type ReactStrategyImpl$ExtProvider<E extends ReactStrategyImpl$Ext> = {
   readonly [K in keyof E]: () => E[K];
 };
 
-type WriteLocale$<SC, E extends object> = ReactStrategyImpl$<SC> & {
-  readonly currentLocale: string;
-} & E;
+type WriteLocale$<SC, E extends object> = ReactStrategyImpl$<SC> & E;
 type WriteLocale<SC, E extends object> = (newLocale: string, $: WriteLocale$<SC, E>) => void;
 
 export interface ReactStrategyImpl<SC, E extends ReactStrategyImpl$Ext> {

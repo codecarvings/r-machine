@@ -10,6 +10,7 @@ interface OnBindLocaleError$<SC> extends NextAppRouterStrategyServerImplFn$<SC> 
 }
 type OnBindLocaleError<SC> = (error: RMachineError, $: OnBindLocaleError$<SC>) => void;
 
+// Current locale not available since setLocale can be invoked even if bindLocale was not invoked
 interface WriteLocale$<SC> extends NextAppRouterStrategyServerImplFn$<SC> {}
 type WriteLocale<SC> = (newLocale: string, $: WriteLocale$<SC>) => void;
 

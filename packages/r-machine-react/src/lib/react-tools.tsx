@@ -81,12 +81,16 @@ export function createReactTools<A extends AnyAtlas, E extends ReactStrategyImpl
     return [
       locale,
       (newLocale: string) => {
+        if (newLocale === locale) {
+          return;
+        }
+
         const error = validateLocale(newLocale);
         if (error) {
           throw error;
         }
 
-        writeLocale(newLocale, { ...$ext, strategyConfig, rMachine, currentLocale: locale });
+        writeLocale(newLocale, { ...$ext, strategyConfig, rMachine });
       },
     ];
   }

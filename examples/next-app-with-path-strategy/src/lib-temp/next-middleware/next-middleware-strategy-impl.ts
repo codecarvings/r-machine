@@ -12,7 +12,6 @@ type ReadLocale = ($: ReadLocale$) => string | undefined;
 
 interface WriteLocale$ {
   readonly rMachine: RMachine<AnyAtlas>;
-  readonly currentLocale: string;
 }
 type WriteLocale = (newLocale: string, $: WriteLocale$) => void;
 
