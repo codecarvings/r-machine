@@ -10,6 +10,7 @@ jobs:
   build-test-and-check:
     name: Build, Test and Check
     runs-on: ubuntu-latest
+    timeout-minutes: 20    
 
     steps:
       - name: Checkout Repo
