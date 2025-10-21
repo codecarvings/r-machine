@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-test-and-check:
+    name: Build, Test and Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup CI
+        uses: ./.github/actions/ci-setup
+
+      - name: Run Build
+        run: pnpm build
+
+      - name: Run Test
+        run: pnpm test        
+
+      - name: Run Check
+        run: pnpm check
+

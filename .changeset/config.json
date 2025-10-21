@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "fixed": [],
+  "linked": [["r-machine", "@r-machine/react", "@r-machine/next"]],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": [
+    "@r-machine/examples-react-router-with-path-strategy", 
+    "@r-machine/examples-next-app-with-path-strategy"
+  ]
+}

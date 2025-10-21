@@ -3,5 +3,4 @@ if [ -n "$(git ls-files --others --exclude-standard)" ]; then
   git status;
   exit 1
 fi
-pnpm verify:versions
 pnpm test

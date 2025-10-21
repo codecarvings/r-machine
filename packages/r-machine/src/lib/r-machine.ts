@@ -4,7 +4,6 @@ import { LocaleMapperManager } from "./locale-mapper-manager.js";
 import type { AnyAtlas, AtlasNamespace } from "./r.js";
 import type { AtlasNamespaceList, RKit } from "./r-kit.js";
 import { cloneRMachineConfig, type RMachineConfig, validateRMachineConfig } from "./r-machine-config.js";
-import { version } from "./version.js";
 
 export class RMachine<A extends AnyAtlas> {
   constructor(config: RMachineConfig) {
@@ -45,6 +44,4 @@ export class RMachine<A extends AnyAtlas> {
     const domain = this.domainManager.getDomain(mappedLocale);
     return domain.pickRKit(namespaces) as RKit<A, NL> | Promise<RKit<A, NL>>;
   };
-
-  static readonly version = version;
 }

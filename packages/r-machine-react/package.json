@@ -65,8 +65,7 @@
     "build": "zshy --project tsconfig.build.json",
     "postbuild": "pnpm biome check --write .",
     "test": "pnpm vitest run --typecheck",
-    "test:watch": "pnpm vitest watch --typecheck",
-    "prepublishOnly": "tsx ../../scripts/verify-versions.ts -tag"
+    "test:watch": "pnpm vitest watch --typecheck"
   },
   "peerDependencies": {
     "react": "^19.0.0",
