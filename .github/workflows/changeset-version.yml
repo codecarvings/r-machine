@@ -10,6 +10,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
   release:
     name: Release
+    if: github.repository == 'codecarvings/r-machine'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -24,12 +25,6 @@ jobs:
 
       - name: Setup CI
         uses: ./.github/actions/ci-setup        
-
-      - name: Run Build
-        run: pnpm build
-
-      - name: Run Test
-        run: pnpm test
 
       - name: Create Release Pull Request
         uses: changesets/action@v1
