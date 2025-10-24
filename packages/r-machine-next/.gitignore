@@ -5,3 +5,4 @@
 **/*.d.mts
 **/*.d.cts
 **/package.json
+/lib

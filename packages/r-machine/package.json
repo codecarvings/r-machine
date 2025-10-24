@@ -39,7 +39,8 @@
     "exports": {
       "./package.json": "./package.json",
       ".": "./src/index.ts",
-      "./locale": "./src/locale.ts"
+      "./locale": "./src/locale.ts",
+      "./strategy": "./src/strategy.ts"
     },
     "conditions": {
       "@r-machine/source": "src"
@@ -58,6 +59,12 @@
       "types": "./locale.d.cts",
       "import": "./locale.js",
       "require": "./locale.cjs"
+    },
+    "./strategy": {
+      "@r-machine/source": "./src/strategy.ts",
+      "types": "./strategy.d.cts",
+      "import": "./strategy.js",
+      "require": "./strategy.cjs"
     }
   },
   "scripts": {
