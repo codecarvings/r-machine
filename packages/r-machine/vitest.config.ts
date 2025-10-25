@@ -9,5 +9,8 @@ export default mergeConfig(
         tsconfig: "./tsconfig.test.json",
       },
     },
+    resolve: {
+      conditions: ["@r-machine/source"],
+    },
   })
 ) as ViteUserConfig;

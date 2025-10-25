@@ -1,4 +1,4 @@
-import { RMachineError } from "../common/r-machine-error.js";
+import { RMachineError } from "r-machine/common";
 
 function computeCanonicalUnicodeLocaleId(locale: string): string {
   if (locale === "") {

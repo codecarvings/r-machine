@@ -76,8 +76,9 @@
   },
   "scripts": {
     "clean": "git clean -xdf . -e node_modules",
+    "prebuild": "tsx ../../scripts/package-build-symlink.ts . start",
     "build": "zshy --project tsconfig.build.json",
-    "postbuild": "pnpm biome check --write .",
+    "postbuild": "tsx ../../scripts/package-build-symlink.ts . stop && pnpm biome check --write .",
     "test": "pnpm vitest run --typecheck",
     "test:watch": "pnpm vitest watch --typecheck"
   }

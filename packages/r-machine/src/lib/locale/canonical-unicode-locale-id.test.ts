@@ -1,5 +1,5 @@
+import { RMachineError } from "r-machine/common";
 import { describe, expect, it } from "vitest";
-import { RMachineError } from "../common/r-machine-error.js";
 import { getCanonicalUnicodeLocaleId, validateCanonicalUnicodeLocaleId } from "./canonical-unicode-locale-id.js";
 
 describe("getCanonicalUnicodeLocaleId", () => {

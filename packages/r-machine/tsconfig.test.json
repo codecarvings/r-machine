@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noUncheckedIndexedAccess": false,
-    "noUnusedLocals": false
+    "noUnusedLocals": false,
+    "customConditions": ["@r-machine/source"],
   }
 }
