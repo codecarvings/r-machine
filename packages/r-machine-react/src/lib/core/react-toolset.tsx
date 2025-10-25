@@ -7,7 +7,7 @@ import type { JSX, ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
 import type { ReactImpl } from "./react-impl.js";
 
-export interface ReactTools<A extends AnyAtlas> {
+export interface ReactToolset<A extends AnyAtlas> {
   readonly ReactRMachine: ReactRMachine;
   readonly useLocale: UseLocale;
   readonly useR: <N extends AtlasNamespace<A>>(namespace: N) => A[N];
@@ -26,11 +26,11 @@ export interface ReactRMachine {
 
 type UseLocale = () => [string, (locale: string) => void];
 
-export function createReactTools<A extends AnyAtlas, C>(
+export function createReactToolset<A extends AnyAtlas, C>(
   rMachine: RMachine<A>,
   strategyConfig: C,
   implPackage: ImplPackage<ReactImpl<C>>
-): ReactTools<A> {
+): ReactToolset<A> {
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const Context = createContext<string | null>(null);

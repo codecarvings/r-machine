@@ -61,6 +61,16 @@
     },
     "./package.json": "./package.json"
   },
+  "imports": {
+    "#r-machine/react": {
+      "@r-machine/source": "./src/index.ts",
+      "default": "./index.js"
+    },
+    "#r-machine/react/*": {
+      "@r-machine/source": "./src/*.ts",
+      "default": "./*.js"
+    }
+  },
   "scripts": {
     "clean": "git clean -xdf . -e node_modules",
     "build": "zshy --project tsconfig.build.json",

@@ -1,4 +1,4 @@
-import { RMachineError } from "../common/r-machine-error.js";
+import { RMachineError } from "#r-machine/common";
 import type { AnyNamespace, AnyR } from "./r.js";
 
 export interface R$ {
@@ -6,7 +6,7 @@ export interface R$ {
   readonly locale: string;
 }
 
-export type AnyRFactory = ($?: R$) => AnyR | Promise<AnyR>;
+export type AnyRFactory = ($: R$) => AnyR | Promise<AnyR>;
 
 export type AnyRForge = AnyR | AnyRFactory;
 

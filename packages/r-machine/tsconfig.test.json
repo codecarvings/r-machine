@@ -3,6 +3,5 @@
   "compilerOptions": {
     "noUncheckedIndexedAccess": false,
     "noUnusedLocals": false,
-    "customConditions": ["@r-machine/source"],
   }
 }

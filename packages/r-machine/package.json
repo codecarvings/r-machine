@@ -74,11 +74,20 @@
     },
     "./package.json": "./package.json"
   },
+  "imports": {
+    "#r-machine": {
+      "@r-machine/source": "./src/index.ts",
+      "default": "./index.js"
+    },
+    "#r-machine/*": {
+      "@r-machine/source": "./src/*.ts",
+      "default": "./*.js"
+    }
+  },
   "scripts": {
     "clean": "git clean -xdf . -e node_modules",
-    "prebuild": "tsx ../../scripts/package-build-symlink.ts . start",
     "build": "zshy --project tsconfig.build.json",
-    "postbuild": "tsx ../../scripts/package-build-symlink.ts . stop && pnpm biome check --write .",
+    "postbuild": "pnpm biome check --write .",
     "test": "pnpm vitest run --typecheck",
     "test:watch": "pnpm vitest watch --typecheck"
   }

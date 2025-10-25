@@ -4,6 +4,9 @@
     "rootDir": "src",
     "outDir": ".",
     "customConditions": ["@r-machine/source"],
-    "typeRoots": []
+    "paths": {
+      "#r-machine": ["./src/index.ts"],
+      "#r-machine/*": ["./src/*"]
+    }
   }
 }

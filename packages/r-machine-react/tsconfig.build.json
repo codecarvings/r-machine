@@ -4,5 +4,9 @@
     "rootDir": "src",
     "outDir": ".",
     "customConditions": ["@r-machine/source"],
+    "paths": {
+      "#r-machine/react": ["./src/index.ts"],
+      "#r-machine/react/*": ["./src/*"]
+    }
   }
 }

@@ -1,4 +1,4 @@
-import type { AnyAtlas, RMachine } from "r-machine";
+import type { AnyAtlas, RMachine } from "#r-machine";
 
 interface AnyImpl {
   readonly [key: string]: (...args: any[]) => any;

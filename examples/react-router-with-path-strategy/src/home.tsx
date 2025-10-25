@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { useR } from "./r-machine/tools";
+import { useR } from "./r-machine/toolset";
 
 export default function Home() {
   const r = useR("common");

@@ -1,10 +1,10 @@
-import { RMachineError } from "r-machine/common";
+import { RMachineError } from "#r-machine/common";
 import {
   type MatchLocalesAlgorithm,
   matchLocales,
   parseAcceptLanguageHeader,
   validateCanonicalUnicodeLocaleId,
-} from "r-machine/locale";
+} from "#r-machine/locale";
 import type { LocaleMapper } from "./locale-mapper-manager.js";
 
 export class LocaleHelper {
