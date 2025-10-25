@@ -1,6 +1,6 @@
 {
   "name": "@r-machine/react",
-  "version": "1.0.0-alpha.2",
+  "version": "1.0.0-alpha.3",
   "description": "Official React bindings for R-Machine - A TypeScript library for internationalization (i18n) with a focus on developer experience",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "MIT",

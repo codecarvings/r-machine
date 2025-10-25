@@ -1,5 +1,12 @@
 # @r-machine/next
 
+## 1.0.0-alpha.3
+
+### Patch Changes
+
+- Updated dependencies [67952cd]
+  - r-machine@1.0.0-alpha.3
+
 ## 1.0.0-alpha.2
 
 ### Patch Changes
