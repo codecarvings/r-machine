@@ -1,5 +1,4 @@
-import type { AnyAtlas } from "../lib/r.js";
-import type { RMachine } from "../lib/r-machine.js";
+import type { AnyAtlas, RMachine } from "r-machine";
 
 interface AnyImpl {
   readonly [key: string]: (...args: any[]) => any;

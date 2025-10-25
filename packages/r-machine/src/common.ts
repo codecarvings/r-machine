@@ -1,1 +1,1 @@
-export { RMachineError } from "./common/r-machine-error.js";
+export { RMachineError } from "./lib/common/r-machine-error.js";

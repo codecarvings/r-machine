@@ -1,2 +1,2 @@
-export { ReactDefaultStrategy } from "./lib/react-strategies/react-default-strategy.js";
-export { ReactTools } from "./lib/react-tools-builder.js";
+export { ReactDefaultStrategy } from "./lib/main/react-default-strategy.js";
+export { ReactTools } from "./lib/main/react-tools-builder.js";

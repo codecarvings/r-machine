@@ -1,7 +1,7 @@
 import { RMachineError } from "r-machine/common";
 import { defaultBinProvider } from "r-machine/strategy";
-import type { ReactImpl, ReactImplPackage } from "../react-impl.js";
-import { ReactStrategy } from "../react-strategy.js";
+import type { ReactImpl, ReactImplPackage } from "../core/react-impl.js";
+import { ReactStrategy } from "../core/react-strategy.js";
 
 type ReactDefaultStrategyImpl = ReactImpl<ReactDefaultStrategyConfig>;
 interface ReactDefaultStrategyConfig {

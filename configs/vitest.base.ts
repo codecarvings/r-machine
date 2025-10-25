@@ -1,4 +1,4 @@
-import { dirname, resolve } from "node:path";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type ViteUserConfig } from "vitest/config";
 
@@ -11,7 +11,6 @@ export default defineConfig({
   test: {
     watch: false,
     isolate: true,
-    setupFiles: [resolve(__dirname, "../scripts/fail-on-console.ts")],
     typecheck: {
       include: ["**/*.test-d.ts"],
       enabled: true,

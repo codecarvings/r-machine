@@ -32,47 +32,47 @@
     "**/*.d.mts",
     "**/*.d.cts"
   ],
-  "main": "./dist/index.cjs",
-  "types": "./dist/index.d.cts",
-  "module": "./dist/index.js",
+  "main": "./index.cjs",
+  "types": "./index.d.cts",
+  "module": "./index.js",
   "zshy": {
     "exports": {
-      "./package.json": "./package.json",
       "./common": "./src/common.ts",
       "./locale": "./src/locale.ts",
       ".": "./src/index.ts",
-      "./strategy": "./src/strategy.ts"
+      "./strategy": "./src/strategy.ts",
+      "./package.json": "./package.json"
     },
     "conditions": {
       "@r-machine/source": "src"
     }
   },
   "exports": {
-    "./package.json": "./package.json",
     "./common": {
       "@r-machine/source": "./src/common.ts",
-      "types": "./dist/common.d.cts",
-      "import": "./dist/common.js",
-      "require": "./dist/common.cjs"
+      "types": "./common.d.cts",
+      "import": "./common.js",
+      "require": "./common.cjs"
     },
     "./locale": {
       "@r-machine/source": "./src/locale.ts",
-      "types": "./dist/locale.d.cts",
-      "import": "./dist/locale.js",
-      "require": "./dist/locale.cjs"
+      "types": "./locale.d.cts",
+      "import": "./locale.js",
+      "require": "./locale.cjs"
     },
     ".": {
       "@r-machine/source": "./src/index.ts",
-      "types": "./dist/index.d.cts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "types": "./index.d.cts",
+      "import": "./index.js",
+      "require": "./index.cjs"
     },
     "./strategy": {
       "@r-machine/source": "./src/strategy.ts",
-      "types": "./dist/strategy.d.cts",
-      "import": "./dist/strategy.js",
-      "require": "./dist/strategy.cjs"
-    }
+      "types": "./strategy.d.cts",
+      "import": "./strategy.js",
+      "require": "./strategy.cjs"
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
     "clean": "git clean -xdf . -e node_modules",

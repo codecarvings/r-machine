@@ -1,4 +1,4 @@
-import { RMachineError } from "../common.js";
+import { RMachineError } from "../../common.js";
 import { validateCanonicalUnicodeLocaleId } from "../locale/canonical-unicode-locale-id.js";
 import type { LocaleMapper } from "./locale-mapper-manager.js";
 import type { RModuleResolver } from "./r-module.js";
