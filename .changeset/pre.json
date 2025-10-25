@@ -9,6 +9,8 @@
     "@r-machine/react": "1.0.0-alpha.1"
   },
   "changesets": [
+    "hot-pears-melt",
+    "sunny-towns-cover",
     "thirty-friends-wave"
   ]
 }

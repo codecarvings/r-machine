@@ -1,5 +1,11 @@
 # r-machine
 
+## 1.0.0-alpha.3
+
+### Patch Changes
+
+- 67952cd: Add base strategy implementation to R-Machine library
+
 ## 1.0.0-alpha.2
 
 ### Patch Changes
