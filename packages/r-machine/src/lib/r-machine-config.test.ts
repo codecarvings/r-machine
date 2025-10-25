@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
+import { RMachineError } from "../common.js";
 import { type RMachineConfig, validateRMachineConfig } from "./r-machine-config.js";
-import { RMachineError } from "./r-machine-error.js";
 
 describe("validateRMachineConfig", () => {
   test("should return an RMachineError if no locales are provided", () => {

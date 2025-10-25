@@ -1,5 +1,5 @@
+import { RMachineError } from "../common/r-machine-error.js";
 import type { AnyNamespace, AnyR } from "./r.js";
-import { RMachineError } from "./r-machine-error.js";
 
 export interface R$ {
   readonly namespace: string;

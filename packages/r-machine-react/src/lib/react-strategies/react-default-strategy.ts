@@ -1,8 +1,9 @@
-import { RMachineError } from "r-machine";
+import { RMachineError } from "r-machine/common";
+import { defaultBinProvider } from "r-machine/strategy";
+import type { ReactImpl, ReactImplPackage } from "../react-impl.js";
 import { ReactStrategy } from "../react-strategy.js";
-import type { ReactStrategyImpl, ReactStrategyImpl$Ext } from "../react-strategy-impl.js";
 
-type ReactDefaultStrategyImpl = ReactStrategyImpl<ReactDefaultStrategyConfig, ReactStrategyImpl$Ext>;
+type ReactDefaultStrategyImpl = ReactImpl<ReactDefaultStrategyConfig>;
 interface ReactDefaultStrategyConfig {
   readonly impl: ReactDefaultStrategyImpl;
 }
@@ -22,7 +23,7 @@ const defaultConfig: ReactDefaultStrategyConfig = {
   },
 };
 
-export class ReactDefaultStrategy extends ReactStrategy<ReactDefaultStrategyConfig, ReactStrategyImpl$Ext> {
+export class ReactDefaultStrategy extends ReactStrategy<ReactDefaultStrategyConfig> {
   constructor();
   constructor(config: ReactPartialDefaultStrategyConfig);
   constructor(config?: ReactPartialDefaultStrategyConfig) {
@@ -30,9 +31,17 @@ export class ReactDefaultStrategy extends ReactStrategy<ReactDefaultStrategyConf
       ...defaultConfig,
       impl: { ...defaultConfig.impl, ...config?.impl },
     });
+
+    this.implPackage = {
+      impl: this.config.impl,
+      binProviders: {
+        writeLocale: defaultBinProvider,
+      },
+    };
   }
 
-  protected getReactStrategyImpl(): ReactDefaultStrategyImpl {
-    return this.config.impl;
+  protected readonly implPackage: ReactImplPackage<ReactDefaultStrategyConfig>;
+  protected getImplPackage() {
+    return this.implPackage;
   }
 }

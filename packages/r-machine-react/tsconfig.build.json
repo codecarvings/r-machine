@@ -2,7 +2,7 @@
   "extends": "../../configs/tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": ".",
-    "customConditions": ["@r-machine/source"]
+    "outDir": "./dist",
+    "customConditions": ["@r-machine/source"],
   }
 }

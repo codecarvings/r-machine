@@ -41,23 +41,23 @@
     ]
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.6",
+    "@biomejs/biome": "2.3.0",
     "@changesets/cli": "^2.29.7",
     "@r-machine/next": "workspace:*",
     "@r-machine/react": "workspace:*",
-    "@types/node": "^24.8.1",
+    "@types/node": "^24.9.1",
     "@types/react": "^19.0.0",
     "@types/semver": "^7.7.1",
-    "@vitest/ui": "^3.2.4",
+    "@vitest/ui": "^4.0.3",
     "husky": "9.1.7",
-    "lint-staged": "^16.2.4",
+    "lint-staged": "^16.2.6",
     "prettier": "^3.6.2",
     "r-machine": "workspace:*",
     "react": "^19.0.0",
     "semver": "^7.7.3",
     "tsx": "^4.20.6",
     "typescript": "5.9.3",
-    "vitest": "3.2.4",
+    "vitest": "4.0.3",
     "zshy": "0.4.4"
   }
 }

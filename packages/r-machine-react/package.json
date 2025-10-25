@@ -32,9 +32,9 @@
     "**/*.d.mts",
     "**/*.d.cts"
   ],
-  "main": "./index.cjs",
-  "types": "./index.d.cts",
-  "module": "./index.js",
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.cts",
+  "module": "./dist/index.js",
   "zshy": {
     "exports": {
       "./package.json": "./package.json",
@@ -49,15 +49,15 @@
     "./package.json": "./package.json",
     ".": {
       "@r-machine/source": "./src/index.ts",
-      "types": "./index.d.cts",
-      "import": "./index.js",
-      "require": "./index.cjs"
+      "types": "./dist/index.d.cts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     },
     "./lib": {
       "@r-machine/source": "./src/lib.ts",
-      "types": "./lib.d.cts",
-      "import": "./lib.js",
-      "require": "./lib.cjs"
+      "types": "./dist/lib.d.cts",
+      "import": "./dist/lib.js",
+      "require": "./dist/lib.cjs"
     }
   },
   "scripts": {

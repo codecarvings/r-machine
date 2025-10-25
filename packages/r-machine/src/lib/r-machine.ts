@@ -1,5 +1,5 @@
 import { DomainManager } from "./domain-manager.js";
-import { LocaleHelper } from "./locale/locale-helper.js";
+import { LocaleHelper } from "./locale-helper.js";
 import { LocaleMapperManager } from "./locale-mapper-manager.js";
 import type { AnyAtlas, AtlasNamespace } from "./r.js";
 import type { AtlasNamespaceList, RKit } from "./r-kit.js";

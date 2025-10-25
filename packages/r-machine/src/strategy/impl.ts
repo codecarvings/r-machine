@@ -1,5 +1,5 @@
-import type { AnyAtlas } from "../r.js";
-import type { RMachine } from "../r-machine.js";
+import type { AnyAtlas } from "../lib/r.js";
+import type { RMachine } from "../lib/r-machine.js";
 
 interface AnyImpl {
   readonly [key: string]: (...args: any[]) => any;
@@ -36,3 +36,7 @@ export type ImplPackage<I extends AnyImpl> = {
   readonly impl: I;
   readonly binProviders: BinProviderMap<I>;
 };
+
+export function defaultBinProvider<T>(partialBin: T): T {
+  return partialBin;
+}

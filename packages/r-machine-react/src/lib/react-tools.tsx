@@ -1,17 +1,11 @@
 "use client";
 
-import {
-  type AnyAtlas,
-  type AtlasNamespace,
-  type AtlasNamespaceList,
-  type RKit,
-  type RMachine,
-  RMachineError,
-} from "r-machine";
+import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
+import { RMachineError } from "r-machine/common";
+import type { ImplPackage } from "r-machine/strategy";
 import type { JSX, ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
-import { ReactStrategy } from "./react-strategy.js";
-import type { ReactStrategyImpl$Ext, ReactStrategyImpl$ExtProvider } from "./react-strategy-impl.js";
+import type { ReactImpl } from "./react-impl.js";
 
 export interface ReactTools<A extends AnyAtlas> {
   readonly ReactRMachine: ReactRMachine;
@@ -32,13 +26,11 @@ export interface ReactRMachine {
 
 type UseLocale = () => [string, (locale: string) => void];
 
-export function createReactTools<A extends AnyAtlas, E extends ReactStrategyImpl$Ext>(
+export function createReactTools<A extends AnyAtlas, C>(
   rMachine: RMachine<A>,
-  strategy: ReactStrategy<any, E>,
-  impl$ExtProvider: ReactStrategyImpl$ExtProvider<E>
+  strategyConfig: C,
+  implPackage: ImplPackage<ReactImpl<C>>
 ): ReactTools<A> {
-  const strategyConfig = ReactStrategy.getConfig(strategy);
-  const { writeLocale } = ReactStrategy.getReactStrategyImpl(strategy);
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const Context = createContext<string | null>(null);
@@ -76,7 +68,7 @@ export function createReactTools<A extends AnyAtlas, E extends ReactStrategyImpl
 
   function useLocale(): ReturnType<UseLocale> {
     const locale = useCurrentLocale();
-    const $ext = impl$ExtProvider.writeLocale();
+    const bin = implPackage.binProviders.writeLocale({ strategyConfig, rMachine });
 
     return [
       locale,
@@ -90,7 +82,7 @@ export function createReactTools<A extends AnyAtlas, E extends ReactStrategyImpl
           throw error;
         }
 
-        writeLocale(newLocale, { ...$ext, strategyConfig, rMachine });
+        implPackage.impl.writeLocale(newLocale, bin);
       },
     ];
   }

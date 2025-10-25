@@ -1,5 +1,5 @@
-import { matchLocales } from "./locale/locale-matcher.js";
-import { RMachineError } from "./r-machine-error.js";
+import { RMachineError } from "../common/r-machine-error.js";
+import { matchLocales } from "../locale/locale-matcher.js";
 
 export type LocaleMapper = (locale: string) => string;
 
