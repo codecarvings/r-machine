@@ -37,21 +37,21 @@
   "module": "./index.js",
   "zshy": {
     "exports": {
-      "./package.json": "./package.json",
-      ".": "./src/index.ts"
+      ".": "./src/index.ts",
+      "./package.json": "./package.json"
     },
     "conditions": {
       "@r-machine/source": "src"
     }
   },
   "exports": {
-    "./package.json": "./package.json",
     ".": {
       "@r-machine/source": "./src/index.ts",
       "types": "./index.d.cts",
       "import": "./index.js",
       "require": "./index.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
     "clean": "git clean -xdf . -e node_modules",

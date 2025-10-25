@@ -3,6 +3,10 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": ".",
-    "customConditions": ["@r-machine/source"]
+    "customConditions": ["@r-machine/source"],
+    "paths": {
+      "#r-machine": ["./src/index.ts"],
+      "#r-machine/*": ["./src/*"]
+    }
   }
 }

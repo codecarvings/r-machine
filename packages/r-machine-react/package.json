@@ -20,6 +20,7 @@
     "translation",
     "translate",
     "locale",
+    "react",
     "typescript",
     "library"
   ],
@@ -37,27 +38,37 @@
   "module": "./index.js",
   "zshy": {
     "exports": {
-      "./package.json": "./package.json",
+      "./core": "./src/core.ts",
       ".": "./src/index.ts",
-      "./lib": "./src/lib.ts"
+      "./package.json": "./package.json"
     },
     "conditions": {
       "@r-machine/source": "src"
     }
   },
   "exports": {
-    "./package.json": "./package.json",
+    "./core": {
+      "@r-machine/source": "./src/core.ts",
+      "types": "./core.d.cts",
+      "import": "./core.js",
+      "require": "./core.cjs"
+    },
     ".": {
       "@r-machine/source": "./src/index.ts",
       "types": "./index.d.cts",
       "import": "./index.js",
       "require": "./index.cjs"
     },
-    "./lib": {
-      "@r-machine/source": "./src/lib.ts",
-      "types": "./lib.d.cts",
-      "import": "./lib.js",
-      "require": "./lib.cjs"
+    "./package.json": "./package.json"
+  },
+  "imports": {
+    "#r-machine/react": {
+      "@r-machine/source": "./src/index.ts",
+      "default": "./index.js"
+    },
+    "#r-machine/react/*": {
+      "@r-machine/source": "./src/*.ts",
+      "default": "./*.js"
     }
   },
   "scripts": {
@@ -70,9 +81,5 @@
   "peerDependencies": {
     "react": "^19.0.0",
     "r-machine": "workspace:*"
-  },
-  "devDependencies": {
-    "@types/react": "^19.0.0",
-    "typescript": "5.9.3"
   }
 }

@@ -1,3 +1,3 @@
-import { EntrancePage } from "@/r-machine/server-tools";
+import { EntrancePage } from "@/r-machine/server-toolset";
 
 export default EntrancePage;

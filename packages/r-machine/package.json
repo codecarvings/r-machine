@@ -37,27 +37,51 @@
   "module": "./index.js",
   "zshy": {
     "exports": {
-      "./package.json": "./package.json",
+      "./common": "./src/common.ts",
+      "./locale": "./src/locale.ts",
       ".": "./src/index.ts",
-      "./locale": "./src/locale.ts"
+      "./strategy": "./src/strategy.ts",
+      "./package.json": "./package.json"
     },
     "conditions": {
       "@r-machine/source": "src"
     }
   },
   "exports": {
-    "./package.json": "./package.json",
-    ".": {
-      "@r-machine/source": "./src/index.ts",
-      "types": "./index.d.cts",
-      "import": "./index.js",
-      "require": "./index.cjs"
+    "./common": {
+      "@r-machine/source": "./src/common.ts",
+      "types": "./common.d.cts",
+      "import": "./common.js",
+      "require": "./common.cjs"
     },
     "./locale": {
       "@r-machine/source": "./src/locale.ts",
       "types": "./locale.d.cts",
       "import": "./locale.js",
       "require": "./locale.cjs"
+    },
+    ".": {
+      "@r-machine/source": "./src/index.ts",
+      "types": "./index.d.cts",
+      "import": "./index.js",
+      "require": "./index.cjs"
+    },
+    "./strategy": {
+      "@r-machine/source": "./src/strategy.ts",
+      "types": "./strategy.d.cts",
+      "import": "./strategy.js",
+      "require": "./strategy.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "imports": {
+    "#r-machine": {
+      "@r-machine/source": "./src/index.ts",
+      "default": "./index.js"
+    },
+    "#r-machine/*": {
+      "@r-machine/source": "./src/*.ts",
+      "default": "./*.js"
     }
   },
   "scripts": {
