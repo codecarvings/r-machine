@@ -1,6 +1,6 @@
 import { Geist } from "next/font/google";
 import "./globals.css";
-import { bindLocale, generateLocaleStaticParams, NextServerRMachine } from "@/r-machine/server-tools";
+import { bindLocale, generateLocaleStaticParams, NextServerRMachine } from "@/r-machine/server-toolset";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

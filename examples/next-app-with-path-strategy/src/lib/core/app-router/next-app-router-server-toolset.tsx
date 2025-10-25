@@ -1,16 +1,9 @@
-import {
-  type AnyAtlas,
-  type AtlasNamespace,
-  type AtlasNamespaceList,
-  type RKit,
-  type RMachine,
-  RMachineError,
-} from "r-machine";
-import type { ReactNode } from "react";
-import { cache, type JSX } from "react";
-import type { NextAppRouterClientRMachine } from "./next-app-router-client-tools";
-import { NextAppRouterServerToolsEntrancePage } from "./next-app-router-server-tools-entrance-page";
-import { NextAppRouterStrategy } from "./next-app-router-strategy";
+import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
+import { RMachineError } from "r-machine/common";
+import { cache, type JSX, type ReactNode } from "react";
+import type { NextClientRMachine } from "../next-client-toolset";
+import { NextAppRouterEntrancePage } from "./next-app-router-entrance-page";
+import type { NextAppRouterServerImplPackage } from "./next-app-router-server-impl";
 
 type RMachineParams<LK extends string> = {
   [P in LK]: string;
@@ -24,7 +17,7 @@ interface BindLocale<LK extends string> {
   (params: Promise<RMachineParams<LK>>, unsafe: true): Promise<string | undefined>;
 }
 
-interface NextAppRouterServerTools<A extends AnyAtlas, LK extends string> {
+export interface NextAppRouterServerToolset<A extends AnyAtlas, LK extends string> {
   readonly NextServerRMachine: NextAppRouterServerRMachine;
   readonly EntrancePage: EntrancePage;
   readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
@@ -51,14 +44,13 @@ interface NextAppRouterServerRMachineContext {
   value: string | undefined | null;
 }
 
-export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends string>(
+export function createNextAppRouterServerToolset<A extends AnyAtlas, LK extends string, C>(
   rMachine: RMachine<A>,
-  strategy: NextAppRouterStrategy<any, LK>,
-  NextClientRMachine: NextAppRouterClientRMachine
-): NextAppRouterServerTools<A, LK> {
-  const strategyConfig = NextAppRouterStrategy.getConfig(strategy);
-  const { onBindLocaleError, writeLocale } = NextAppRouterStrategy.getNextStrategyServerImpl(strategy);
-  const localeKey = NextAppRouterStrategy.getLocaleKey(strategy);
+  localeKey: LK,
+  strategyConfig: C,
+  implPackage: NextAppRouterServerImplPackage<C>,
+  NextClientRMachine: NextClientRMachine
+): NextAppRouterServerToolset<A, LK> {
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const getContext = cache((): NextAppRouterServerRMachineContext => {
@@ -78,7 +70,7 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
     return (
       <>
         {/* @ts-expect-error Async Server Component */}
-        <NextAppRouterServerToolsEntrancePage rMachine={rMachine} locale={locale ?? undefined} setLocale={setLocale} />
+        <NextAppRouterEntrancePage rMachine={rMachine} locale={locale ?? undefined} setLocale={setLocale} />
       </>
     );
   }
@@ -95,6 +87,11 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
   ): string | undefined | Promise<string | undefined> {
     function syncBindLocale(locale: string | undefined): string | undefined {
       let error: RMachineError | undefined;
+      const bin = implPackage.binProviders.onBindLocaleError({
+        strategyConfig,
+        rMachine: rMachine as any, // TODO: fix type
+        localeOption: locale,
+      });
 
       // If onBindLocale does not throw, the error is
       if (locale === undefined) {
@@ -110,7 +107,7 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
         if (unsafe === true) {
           locale = undefined;
         } else {
-          onBindLocaleError(error, { strategyConfig, rMachine, localeOption: locale });
+          implPackage.impl.onBindLocaleError(error, bin);
           throw error;
         }
       }
@@ -152,12 +149,17 @@ export function createNextAppRouterServerTools<A extends AnyAtlas, LK extends st
   }
 
   function setLocale(newLocale: string) {
+    const bin = implPackage.binProviders.writeLocale({
+      strategyConfig,
+      rMachine: rMachine as any, // TODO: fix type
+    });
+
     const error = rMachine.localeHelper.validateLocale(newLocale);
     if (error) {
       throw new RMachineError(`Cannot set locale to invalid locale: "${newLocale}".`, error);
     }
 
-    writeLocale(newLocale, { strategyConfig, rMachine });
+    implPackage.impl.writeLocale(newLocale, bin);
   }
 
   async function pickR<N extends AtlasNamespace<A>>(namespace: N): Promise<A[N]> {

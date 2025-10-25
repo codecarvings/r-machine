@@ -9,7 +9,7 @@ interface BinCore<C> {
   readonly rMachine: RMachine<AnyAtlas>;
 }
 
-// Required for correct type inference
+// Required for correct type inference & ExtractBinParameter
 class BinSignature<C, I, O> {
   protected readonly __C?: C;
   protected readonly __I?: I;
@@ -22,12 +22,12 @@ export type Bin<C, I extends object, O extends object> = Prettify<BinCore<C> & I
 type PartialBin<B extends Bin<any, any, any>> = B extends Bin<infer C, infer I, any> ? Prettify<BinCore<C> & I> : never;
 
 type ExtractBinParameter<F extends (...args: any) => any> = F extends (...args: infer P) => any
-  ? Extract<P[number], Bin<any, any, any>>
+  ? Extract<P[number], BinSignature<any, any, any>>
   : never;
 
 type BinProvider<B extends Bin<any, any, any>> = (partialBin: PartialBin<B>) => B;
 
-type BinProviderMap<I extends AnyImpl> = {
+export type BinProviderMap<I extends AnyImpl> = {
   readonly [K in keyof I]: BinProvider<ExtractBinParameter<I[K]>>;
 };
 

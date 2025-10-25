@@ -1,5 +1,5 @@
-import { NextTools } from "@/lib-temp/next-tools-builder";
-import { NextClientRMachine } from "./client-tools";
+import { NextToolset } from "@/lib/main/next-toolset-builder";
+import { NextClientRMachine } from "./client-toolset";
 import { rMachine, strategy } from "./r-machine";
 
 export const {
@@ -11,4 +11,4 @@ export const {
   setLocale,
   pickR,
   pickRKit,
-} = NextTools.createServer(rMachine, strategy, NextClientRMachine);
+} = NextToolset.createServer(rMachine, strategy, NextClientRMachine);

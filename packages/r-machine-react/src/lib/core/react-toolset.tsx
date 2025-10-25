@@ -2,10 +2,9 @@
 
 import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/common";
-import type { ImplPackage } from "r-machine/strategy";
 import type { JSX, ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
-import type { ReactImpl } from "./react-impl.js";
+import type { ReactImplPackage } from "#r-machine/react/core";
 
 export interface ReactToolset<A extends AnyAtlas> {
   readonly ReactRMachine: ReactRMachine;
@@ -29,7 +28,7 @@ type UseLocale = () => [string, (locale: string) => void];
 export function createReactToolset<A extends AnyAtlas, C>(
   rMachine: RMachine<A>,
   strategyConfig: C,
-  implPackage: ImplPackage<ReactImpl<C>>
+  implPackage: ReactImplPackage<C>
 ): ReactToolset<A> {
   const validateLocale = rMachine.localeHelper.validateLocale;
 

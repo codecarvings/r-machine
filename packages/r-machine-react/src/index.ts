@@ -1,2 +1,2 @@
-export { ReactDefaultStrategy } from "./lib/main/react-default-strategy.js";
+export { ReactStandardStrategy } from "./lib/main/react-standard-strategy.js";
 export { ReactToolset } from "./lib/main/react-toolset-builder.js";

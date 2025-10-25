@@ -1,4 +1,4 @@
-import { pickR } from "@/r-machine/server-tools";
+import { pickR } from "@/r-machine/server-toolset";
 
 export default async function ServerComp1() {
   const r = await pickR("common");
