@@ -1,14 +1,15 @@
 import type { AnyAtlas, RMachine } from "r-machine";
-import { createReactToolset, ReactStrategy, type ReactToolset as ReactTools } from "#r-machine/react/core";
+import { defaultBinProvider } from "r-machine/strategy";
+import { createReactToolset, type ReactToolset as ReactTools } from "#r-machine/react/core";
 
 interface ReactToolsetBuilder {
-  readonly create: <A extends AnyAtlas>(rMachine: RMachine<A>, strategy: ReactStrategy<any>) => ReactTools<A>;
+  readonly create: <A extends AnyAtlas>(rMachine: RMachine<A>) => ReactTools<A, null>;
 }
 
 export const ReactToolset: ReactToolsetBuilder = {
-  create: (rMachine, strategy) => {
-    const strategyConfig = ReactStrategy.getConfig(strategy);
-    const implPackage = ReactStrategy.getImplPackage(strategy);
-    return createReactToolset(rMachine, strategyConfig, implPackage);
+  create: (rMachine) => {
+    return createReactToolset(rMachine, null, {
+      writeLocale: defaultBinProvider,
+    });
   },
 };
