@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { RMachineError } from "#r-machine/common";
+import { RMachineError } from "#r-machine/errors";
 import { type RMachineConfig, validateRMachineConfig } from "./r-machine-config.js";
 
 describe("validateRMachineConfig", () => {

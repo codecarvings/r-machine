@@ -9,7 +9,7 @@
     "url": "git+https://github.com/codecarvings/r-machine.git"
   },
   "bugs": "https://github.com/codecarvings/r-machine/issues",
-  "packageManager": "pnpm@10.18.3",
+  "packageManager": "pnpm@10.19.0",
   "scripts": {
     "check": "biome check --write .",
     "check:dry": "biome check .",

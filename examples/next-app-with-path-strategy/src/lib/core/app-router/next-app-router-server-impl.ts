@@ -1,4 +1,4 @@
-import type { RMachineError } from "r-machine/common";
+import type { RMachineError } from "r-machine/errors";
 import type { Bin, ImplPackage } from "r-machine/strategy";
 
 type OnBindLocaleErrorBin<C> = Bin<

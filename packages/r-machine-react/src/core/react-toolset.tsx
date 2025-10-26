@@ -1,7 +1,7 @@
 "use client";
 
 import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
-import { RMachineError } from "r-machine/common";
+import { RMachineError } from "r-machine/errors";
 import type { JSX, ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
 import type { ReactImplPackage } from "#r-machine/react/core";

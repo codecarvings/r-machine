@@ -32,56 +32,62 @@
     "**/*.d.mts",
     "**/*.d.cts"
   ],
-  "main": "./index.cjs",
-  "types": "./index.d.cts",
-  "module": "./index.js",
+  "main": "./lib/index.cjs",
+  "types": "./lib/index.d.cts",
+  "module": "./lib/index.js",
   "zshy": {
     "exports": {
-      "./common": "./src/common.ts",
-      "./locale": "./src/locale.ts",
-      ".": "./src/index.ts",
-      "./strategy": "./src/strategy.ts",
-      "./package.json": "./package.json"
+      "./errors": "./src/errors/index.ts",
+      "./locale": "./src/locale/index.ts",
+      ".": "./src/lib/index.ts",
+      "./strategy": "./src/strategy/index.ts"
     },
     "conditions": {
       "@r-machine/source": "src"
     }
   },
   "exports": {
-    "./common": {
-      "@r-machine/source": "./src/common.ts",
-      "types": "./common.d.cts",
-      "import": "./common.js",
-      "require": "./common.cjs"
+    "./errors": {
+      "@r-machine/source": "./src/errors/index.ts",
+      "types": "./errors/index.d.cts",
+      "import": "./errors/index.js",
+      "require": "./errors/index.cjs"
     },
     "./locale": {
-      "@r-machine/source": "./src/locale.ts",
-      "types": "./locale.d.cts",
-      "import": "./locale.js",
-      "require": "./locale.cjs"
+      "@r-machine/source": "./src/locale/index.ts",
+      "types": "./locale/index.d.cts",
+      "import": "./locale/index.js",
+      "require": "./locale/index.cjs"
     },
     ".": {
-      "@r-machine/source": "./src/index.ts",
-      "types": "./index.d.cts",
-      "import": "./index.js",
-      "require": "./index.cjs"
+      "@r-machine/source": "./src/lib/index.ts",
+      "types": "./lib/index.d.cts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.cjs"
     },
     "./strategy": {
-      "@r-machine/source": "./src/strategy.ts",
-      "types": "./strategy.d.cts",
-      "import": "./strategy.js",
-      "require": "./strategy.cjs"
-    },
-    "./package.json": "./package.json"
+      "@r-machine/source": "./src/strategy/index.ts",
+      "types": "./strategy/index.d.cts",
+      "import": "./strategy/index.js",
+      "require": "./strategy/index.cjs"
+    }
   },
   "imports": {
-    "#r-machine": {
-      "@r-machine/source": "./src/index.ts",
-      "default": "./index.js"
+    "#r-machine/errors": {
+      "@r-machine/source": "./src/errors/index.ts",
+      "default": "./errors/index.js"
     },
-    "#r-machine/*": {
-      "@r-machine/source": "./src/*.ts",
-      "default": "./*.js"
+    "#r-machine/locale": {
+      "@r-machine/source": "./src/locale/index.ts",
+      "default": "./locale/index.js"
+    },
+    "#r-machine": {
+      "@r-machine/source": "./src/lib/index.ts",
+      "default": "./lib/index.js"
+    },
+    "#r-machine/strategy": {
+      "@r-machine/source": "./src/strategy/index.ts",
+      "default": "./strategy/index.js"
     }
   },
   "scripts": {

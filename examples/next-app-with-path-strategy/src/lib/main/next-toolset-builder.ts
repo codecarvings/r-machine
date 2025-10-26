@@ -1,5 +1,5 @@
 import type { AnyAtlas, RMachine } from "r-machine";
-import { RMachineError } from "r-machine/common";
+import { RMachineError } from "r-machine/errors";
 import {
   createNextAppRouterServerToolset,
   type NextAppRouterServerToolset,

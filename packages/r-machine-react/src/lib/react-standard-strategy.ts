@@ -1,4 +1,4 @@
-import { RMachineError } from "r-machine/common";
+import { RMachineError } from "r-machine/errors";
 import { type BinProviderMap, defaultBinProvider } from "r-machine/strategy";
 import { type ReactImpl, type ReactImplPackage, ReactStrategy } from "#r-machine/react/core";
 

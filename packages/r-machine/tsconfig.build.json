@@ -5,8 +5,10 @@
     "outDir": ".",
     "customConditions": ["@r-machine/source"],
     "paths": {
-      "#r-machine": ["./src/index.ts"],
-      "#r-machine/*": ["./src/*"]
+      "#r-machine/errors": ["./src/errors"],
+      "#r-machine/locale": ["./src/locale"],
+      "#r-machine": ["./src/lib"],
+      "#r-machine/strategy": ["./src/strategy"],
     }
   }
 }

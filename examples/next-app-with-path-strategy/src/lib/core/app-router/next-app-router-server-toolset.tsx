@@ -1,5 +1,5 @@
 import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
-import { RMachineError } from "r-machine/common";
+import { RMachineError } from "r-machine/errors";
 import { cache, type JSX, type ReactNode } from "react";
 import type { NextClientRMachine } from "../next-client-toolset";
 import { NextAppRouterEntrancePage } from "./next-app-router-entrance-page";
