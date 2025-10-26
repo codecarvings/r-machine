@@ -12,8 +12,3 @@ const r: R_Boxes_Box_1_2 = {
 };
 
 export default r;
-
-  },
-};
-
-export default r;

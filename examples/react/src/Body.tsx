@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import Box1 from "./components/Box1";
 import Box2 from "./components/Box2";
 import Box3 from "./components/Box3";
+import BoxLoading from "./components/BoxLoading";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import Logo from "./components/Logo";
 import { useRKit } from "./r-machine/toolset";
@@ -23,7 +25,10 @@ export default function Body() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
               <Box1 />
               <Box2 />
-              <Box3 />
+
+              <Suspense fallback={<BoxLoading />}>
+                <Box3 />
+              </Suspense>
             </div>
 
             <div className="mt-12 pt-8 border-t border-gray-200">

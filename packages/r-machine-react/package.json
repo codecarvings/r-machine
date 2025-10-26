@@ -39,7 +39,8 @@
   "zshy": {
     "exports": {
       "./core": "./src/core/index.ts",
-      ".": "./src/lib/index.ts"
+      ".": "./src/lib/index.ts",
+      "./utils": "./src/utils/index.ts"
     },
     "conditions": {
       "@r-machine/source": "src"
@@ -57,6 +58,12 @@
       "types": "./lib/index.d.cts",
       "import": "./lib/index.js",
       "require": "./lib/index.cjs"
+    },
+    "./utils": {
+      "@r-machine/source": "./src/utils/index.ts",
+      "types": "./utils/index.d.cts",
+      "import": "./utils/index.js",
+      "require": "./utils/index.cjs"
     }
   },
   "imports": {
@@ -67,6 +74,10 @@
     "#r-machine/react": {
       "@r-machine/source": "./src/lib/index.ts",
       "default": "./lib/index.js"
+    },
+    "#r-machine/react/utils": {
+      "@r-machine/source": "./src/utils/index.ts",
+      "default": "./utils/index.js"
     }
   },
   "scripts": {

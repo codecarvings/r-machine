@@ -12,10 +12,10 @@ export type AtlasNamespace<A extends AnyAtlas> = Extract<keyof A, AnyNamespace>;
 
 type RType<F extends AnyRForge> = F extends (...args: any[]) => infer R ? (R extends Promise<infer R2> ? R2 : R) : F;
 
-// Force branded type name
+// Force branded type
 const r = Symbol("R");
-export interface RBrand {
-  readonly [r]?: "R-Machine resource";
+class RBrand {
+  protected readonly [r]?: "R-Machine resource";
 }
 
 export type R<F extends AnyRForge> = RType<F> & RBrand;
