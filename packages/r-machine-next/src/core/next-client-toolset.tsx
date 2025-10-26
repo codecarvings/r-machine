@@ -8,7 +8,7 @@ import {
 } from "@r-machine/react/core";
 import type { AnyAtlas, RMachine } from "r-machine";
 import type { JSX, ReactNode } from "react";
-import type { NextClientImplPackage } from "./next-client-impl";
+import type { NextClientImplPackage } from "./next-client-impl.js";
 
 const brand = Symbol("NextAppRouterClientRMachine");
 

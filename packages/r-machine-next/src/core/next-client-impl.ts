@@ -1,4 +1,4 @@
-import type { useRouter } from "next/dist/client/components/navigation";
+import type { useRouter } from "next/navigation";
 import type { Bin, ImplPackage } from "r-machine/strategy";
 
 type WriteLocaleBin<C> = Bin<

@@ -68,9 +68,6 @@ importers:
       '@r-machine/next':
         specifier: workspace:*
         version: link:../../packages/r-machine-next
-      '@r-machine/react':
-        specifier: workspace:*
-        version: link:../../packages/r-machine-react
       next:
         specifier: 15.5.4
         version: 15.5.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)

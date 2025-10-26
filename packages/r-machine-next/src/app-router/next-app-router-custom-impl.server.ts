@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { type BinProviderMap, defaultBinProvider } from "r-machine/strategy";
-import type { NextAppRouterCustomServerImpl } from "./next-app-router-custom-strategy";
+import type { NextAppRouterCustomServerImpl } from "./next-app-router-custom-strategy.js";
 
 export const serverImpl: NextAppRouterCustomServerImpl<any> = {
   onBindLocaleError() {

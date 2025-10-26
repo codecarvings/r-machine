@@ -1,11 +1,11 @@
-import type {
-  NextAppRouterServerImpl,
-  NextAppRouterServerImplPackage,
-} from "../core/app-router/next-app-router-server-impl";
-import { NextAppRouterStrategy } from "../core/app-router/next-app-router-strategy";
-import type { NextClientImpl, NextClientImplPackage } from "../core/next-client-impl";
-import { clientBinProviders, clientImpl } from "./next-app-router-custom-impl.client";
-import { serverBinProviders, serverImpl } from "./next-app-router-custom-impl.server";
+import type { NextClientImpl, NextClientImplPackage } from "#r-machine/next/core";
+import {
+  type NextAppRouterServerImpl,
+  type NextAppRouterServerImplPackage,
+  NextAppRouterStrategy,
+} from "#r-machine/next/core/app-router";
+import { clientBinProviders, clientImpl } from "./next-app-router-custom-impl.client.js";
+import { serverBinProviders, serverImpl } from "./next-app-router-custom-impl.server.js";
 
 export type NextAppRouterCustomServerImpl<LK extends string> = NextAppRouterServerImpl<
   NextAppRouterCustomStrategyConfig<LK>

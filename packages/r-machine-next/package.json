@@ -20,6 +20,9 @@
     "translation",
     "translate",
     "locale",
+    "next",
+    "next.js",
+    "nextjs",
     "typescript",
     "library"
   ],
@@ -32,26 +35,63 @@
     "**/*.d.mts",
     "**/*.d.cts"
   ],
-  "main": "./index.cjs",
-  "types": "./index.d.cts",
-  "module": "./index.js",
+  "main": "./lib/index.cjs",
+  "types": "./lib/index.d.cts",
+  "module": "./lib/index.js",
   "zshy": {
     "exports": {
-      ".": "./src/index.ts",
-      "./package.json": "./package.json"
+      "./core": "./src/core/index.ts",
+      "./core/app-router": "./src/core/app-router/index.ts",
+      "./app-router": "./src/app-router/index.ts",
+      ".": "./src/lib/index.ts"
     },
     "conditions": {
       "@r-machine/source": "src"
     }
   },
   "exports": {
-    ".": {
-      "@r-machine/source": "./src/index.ts",
-      "types": "./index.d.cts",
-      "import": "./index.js",
-      "require": "./index.cjs"
+    "./core": {
+      "@r-machine/source": "./src/core/index.ts",
+      "types": "./core/index.d.cts",
+      "import": "./core/index.js",
+      "require": "./core/index.cjs"
     },
-    "./package.json": "./package.json"
+    "./core/app-router": {
+      "@r-machine/source": "./src/core/app-router/index.ts",
+      "types": "./core/app-router/index.d.cts",
+      "import": "./core/app-router/index.js",
+      "require": "./core/app-router/index.cjs"
+    },
+    "./app-router": {
+      "@r-machine/source": "./src/app-router/index.ts",
+      "types": "./app-router/index.d.cts",
+      "import": "./app-router/index.js",
+      "require": "./app-router/index.cjs"
+    },
+    ".": {
+      "@r-machine/source": "./src/lib/index.ts",
+      "types": "./lib/index.d.cts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.cjs"
+    }
+  },
+  "imports": {
+    "#r-machine/next/core": {
+      "@r-machine/source": "./src/core/index.ts",
+      "default": "./core/index.js"
+    },
+    "#r-machine/next/core/app-router": {
+      "@r-machine/source": "./src/core/app-router/index.ts",
+      "default": "./core/app-router/index.js"
+    },
+    "#r-machine/next/app-router": {
+      "@r-machine/source": "./src/app-router/index.ts",
+      "default": "./app-router/index.js"
+    },
+    "#r-machine/next": {
+      "@r-machine/source": "./src/lib/index.ts",
+      "default": "./lib/index.js"
+    }
   },
   "scripts": {
     "clean": "git clean -xdf . -e node_modules",
@@ -61,9 +101,9 @@
     "test:watch": "pnpm vitest watch --typecheck"
   },
   "peerDependencies": {
-    "next": "^13.0.0 || ^14.0.0 || ^15.0.0",
-    "react": "^19.0.0",
-    "r-machine": "workspace:*"
+    "next": "^15.0.0 || ^16.0.0",
+    "r-machine": "workspace:*",
+    "react": "^19.0.0"
   },
   "devDependencies": {
     "@r-machine/react": "workspace:*",

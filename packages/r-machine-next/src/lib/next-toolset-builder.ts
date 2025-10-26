@@ -1,12 +1,16 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import {
+  createNextClientToolset,
+  type NextClientRMachine,
+  type NextClientToolset,
+  NextStrategy,
+} from "#r-machine/next/core";
+import {
   createNextAppRouterServerToolset,
   type NextAppRouterServerToolset,
-} from "../core/app-router/next-app-router-server-toolset";
-import { NextAppRouterStrategy } from "../core/app-router/next-app-router-strategy";
-import { createNextClientToolset, type NextClientRMachine, type NextClientToolset } from "../core/next-client-toolset";
-import { NextStrategy } from "../core/next-strategy";
+  NextAppRouterStrategy,
+} from "#r-machine/next/core/app-router";
 
 interface NextToolsetBuilder {
   readonly createClient: <A extends AnyAtlas>(

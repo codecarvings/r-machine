@@ -1,4 +1,4 @@
-import { NextToolset } from "@/lib/main/next-toolset-builder";
+import { NextToolset } from "@r-machine/next";
 import { NextClientRMachine } from "./client-toolset";
 import { rMachine, strategy } from "./r-machine";
 

@@ -1,5 +1,5 @@
-import { NextStrategy } from "../next-strategy";
-import type { NextAppRouterServerImplPackage } from "./next-app-router-server-impl";
+import { NextStrategy } from "#r-machine/next/core";
+import type { NextAppRouterServerImplPackage } from "./next-app-router-server-impl.js";
 
 export abstract class NextAppRouterStrategy<C, LK extends string> extends NextStrategy<C> {
   protected abstract getServerImplPackage(): NextAppRouterServerImplPackage<C>;

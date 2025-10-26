@@ -4,7 +4,11 @@
     "module": "NodeNext",
     "customConditions": ["@r-machine/source"],
     "noEmit": true,
-    "types": ["vitest"]
+    "types": ["vitest"],
+    "paths": {
+      "next/navigation": ["./node_modules/next/navigation.d.ts"],
+      "next/headers": ["./node_modules/next/headers.d.ts"]
+    }
   },
   "include": ["**/*.ts", "**/*.tsx"]
 }

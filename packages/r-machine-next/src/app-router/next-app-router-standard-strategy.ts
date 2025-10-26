@@ -2,7 +2,7 @@ import {
   NextAppRouterCustomStrategy,
   type PartialNextAppRouterCustomClientImpl,
   type PartialNextAppRouterCustomServerImpl,
-} from "./next-app-router-custom-strategy";
+} from "./next-app-router-custom-strategy.js";
 
 const standardLocaleKey = "locale" as const;
 type StandardLocaleKey = typeof standardLocaleKey;
