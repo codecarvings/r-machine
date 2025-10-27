@@ -2,6 +2,7 @@
 
 import { createReactToolset, type ReactToolset } from "@r-machine/react/core";
 import type { AnyAtlas, RMachine } from "r-machine";
+import type { RMachineError } from "r-machine/errors";
 import type { JSX, ReactNode } from "react";
 import type { NextClientImplPackage } from "./next-client-impl.js";
 
@@ -16,28 +17,58 @@ export interface NextClientRMachine {
   readonly [brand]: true;
 }
 
-export type NextClientToolset<A extends AnyAtlas> = Omit<ReactToolset<A, unknown>, "ReactRMachine"> & {
+export type NextClientToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "ReactRMachine"> & {
   readonly NextClientRMachine: NextClientRMachine;
 };
+
+function setLocale(
+  locale: string,
+  newLocale: string,
+  writeLocaleBin: unknown,
+  validateLocale: (locale: string) => RMachineError | null,
+  writeLocale: (newLocale: string, bin: any) => void
+) {
+  if (newLocale === locale) {
+    return;
+  }
+
+  const error = validateLocale(newLocale);
+  if (error) {
+    throw error;
+  }
+
+  writeLocale(newLocale, writeLocaleBin);
+}
 
 export function createNextClientToolset<A extends AnyAtlas, C>(
   rMachine: RMachine<A>,
   strategyConfig: C,
   implPackage: NextClientImplPackage<C>
 ): NextClientToolset<A> {
-  const { ReactRMachine, ...otherTools } = createReactToolset(rMachine, strategyConfig, implPackage.binProviders);
+  const { ReactRMachine, useLocale: useInternalLocale, ...otherTools } = createReactToolset(rMachine);
+  const validateLocale = rMachine.localeHelper.validateLocale;
+  const writeLocale = implPackage.impl.writeLocale;
+
+  function useLocale(): ReturnType<ReactToolset<A>["useLocale"]> {
+    const [locale] = useInternalLocale();
+    const bin = implPackage.binProviders.writeLocale({ strategyConfig, rMachine });
+
+    return [
+      locale,
+      (newLocale: string) => {
+        setLocale(locale, newLocale, bin, validateLocale, writeLocale);
+      },
+    ];
+  }
 
   function NextClientRMachine({ locale, children }: NextClientRMachineProps) {
-    return (
-      <ReactRMachine locale={locale} writeLocale={implPackage.impl.writeLocale as any}>
-        {children}
-      </ReactRMachine>
-    );
+    return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
   }
   NextClientRMachine[brand] = true;
 
   return {
-    NextClientRMachine: NextClientRMachine as NextClientRMachine,
     ...otherTools,
+    NextClientRMachine: NextClientRMachine as NextClientRMachine,
+    useLocale,
   };
 }

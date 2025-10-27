@@ -10,10 +10,13 @@ interface BinCore<C> {
 }
 
 // Required for correct type inference & ExtractBinParameter
+const c = Symbol("C");
+const i = Symbol("I");
+const o = Symbol("O");
 class BinSignature<C, I, O> {
-  protected readonly __C?: C;
-  protected readonly __I?: I;
-  protected readonly __O?: O;
+  protected readonly [c]?: C;
+  protected readonly [i]?: I;
+  protected readonly [o]?: O;
 }
 
 type Prettify<T> = { [K in keyof T]: T[K] } & {};

@@ -2,53 +2,42 @@
 
 import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
-import type { Bin, BinProviderMap } from "r-machine/strategy";
 import type { JSX, ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
 
 type UseLocale = () => [string, (locale: string) => void];
+type WriteLocale = (newLocale: string) => void;
 
-type WriteLocaleBin<C> = Bin<C, {}, {}>;
-type WriteLocale<C> = (newLocale: string, bin: WriteLocaleBin<C>) => void;
-type ReactImpl<C> = {
-  readonly writeLocale: WriteLocale<C>;
-};
-type ReactBinProviderMap<C> = BinProviderMap<ReactImpl<C>>;
-
-export interface ReactToolset<A extends AnyAtlas, C> {
-  readonly ReactRMachine: ReactRMachine<C>;
+export interface ReactToolset<A extends AnyAtlas> {
+  readonly ReactRMachine: ReactRMachine;
   readonly useLocale: UseLocale;
   readonly useR: <N extends AtlasNamespace<A>>(namespace: N) => A[N];
   readonly useRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
 }
 
-interface ReactRMachineProps<C> {
+interface ReactRMachineProps {
   readonly locale: string;
-  readonly writeLocale?: WriteLocale<C>;
+  readonly writeLocale?: WriteLocale;
   readonly children: ReactNode;
 }
 
-export interface ReactRMachine<C> {
-  (props: ReactRMachineProps<C>): JSX.Element;
+export interface ReactRMachine {
+  (props: ReactRMachineProps): JSX.Element;
   probe: (localeOption: string | undefined) => string | undefined;
 }
 
-interface ReactToolsetContext<C> {
+interface ReactToolsetContext {
   readonly locale: string;
-  readonly writeLocale: WriteLocale<C> | undefined;
+  readonly writeLocale: WriteLocale | undefined;
 }
 
-export function createReactToolset<A extends AnyAtlas, C>(
-  rMachine: RMachine<A>,
-  strategyConfig: C,
-  binProviders: ReactBinProviderMap<C>
-): ReactToolset<A, C> {
+export function createReactToolset<A extends AnyAtlas>(rMachine: RMachine<A>): ReactToolset<A> {
   const validateLocale = rMachine.localeHelper.validateLocale;
 
-  const Context = createContext<ReactToolsetContext<C> | null>(null);
+  const Context = createContext<ReactToolsetContext | null>(null);
   Context.displayName = "ReactToolsContext";
 
-  function useReactToolsetContext(): ReactToolsetContext<C> {
+  function useReactToolsetContext(): ReactToolsetContext {
     const context = useContext(Context);
     if (context === null) {
       throw new RMachineError("ReactToolsetContext not found.");
@@ -57,8 +46,8 @@ export function createReactToolset<A extends AnyAtlas, C>(
     return context;
   }
 
-  function ReactRMachine({ locale, writeLocale, children }: ReactRMachineProps<C>) {
-    const value = useMemo<ReactToolsetContext<C>>(() => {
+  function ReactRMachine({ locale, writeLocale, children }: ReactRMachineProps) {
+    const value = useMemo<ReactToolsetContext>(() => {
       const error = validateLocale(locale);
       if (error) {
         throw new RMachineError(`Unable to render <ReactRMachine> - invalid locale provided "${locale}".`, error);
@@ -79,32 +68,33 @@ export function createReactToolset<A extends AnyAtlas, C>(
   };
 
   function useLocale(): ReturnType<UseLocale> {
-    const { locale, writeLocale } = useReactToolsetContext();
-    const bin = binProviders.writeLocale({ strategyConfig, rMachine });
+    const context = useReactToolsetContext();
+    return useMemo<ReturnType<UseLocale>>(() => {
+      const { locale, writeLocale } = context;
+      const setLocale = (newLocale: string) => {
+        if (newLocale === locale) {
+          return;
+        }
 
-    const setLocale = (newLocale: string) => {
-      if (newLocale === locale) {
-        return;
-      }
+        const error = validateLocale(newLocale);
+        if (error) {
+          throw error;
+        }
 
-      const error = validateLocale(newLocale);
-      if (error) {
-        throw error;
-      }
+        if (writeLocale === undefined) {
+          throw new RMachineError("No writeLocale function provided to <ReactRMachine>.");
+        }
 
-      if (writeLocale === undefined) {
-        throw new RMachineError("No writeLocale function provided to <ReactRMachine>.");
-      }
+        writeLocale(newLocale);
+      };
 
-      writeLocale(newLocale, bin);
-    };
-
-    return [locale, setLocale];
+      return [locale, setLocale];
+    }, [context]);
   }
 
   function useR<N extends AtlasNamespace<A>>(namespace: N): A[N] {
-    const { locale } = useReactToolsetContext();
-    const r = rMachine.pickR(locale, namespace);
+    const context = useReactToolsetContext();
+    const r = rMachine.pickR(context.locale, namespace);
 
     if (r instanceof Promise) {
       throw r;
@@ -114,8 +104,8 @@ export function createReactToolset<A extends AnyAtlas, C>(
   }
 
   function useRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): RKit<A, NL> {
-    const { locale } = useReactToolsetContext();
-    const rKit = rMachine.pickRKit(locale, ...namespaces);
+    const context = useReactToolsetContext();
+    const rKit = rMachine.pickRKit(context.locale, ...namespaces);
 
     if (rKit instanceof Promise) {
       throw rKit;
