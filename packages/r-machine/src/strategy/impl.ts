@@ -28,17 +28,17 @@ type ExtractBinParameter<F extends (...args: any) => any> = F extends (...args: 
   ? Extract<P[number], BinSignature<any, any, any>>
   : never;
 
-type BinProvider<B extends Bin<any, any, any>> = (partialBin: PartialBin<B>) => B;
+type BinFactory<B extends Bin<any, any, any>> = (partialBin: PartialBin<B>) => B;
 
-export type BinProviderMap<I extends AnyImpl> = {
-  readonly [K in keyof I]: BinProvider<ExtractBinParameter<I[K]>>;
+export type BinFactoryMap<I extends AnyImpl> = {
+  readonly [K in keyof I]: BinFactory<ExtractBinParameter<I[K]>>;
 };
 
 export type ImplPackage<I extends AnyImpl> = {
   readonly impl: I;
-  readonly binProviders: BinProviderMap<I>;
+  readonly binFactories: BinFactoryMap<I>;
 };
 
-export function defaultBinProvider<T>(partialBin: T): T {
+export function defaultBinFactory<T>(partialBin: T): T {
   return partialBin;
 }

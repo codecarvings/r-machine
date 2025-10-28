@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { BinProviderMap } from "r-machine/strategy";
+import type { BinFactoryMap } from "r-machine/strategy";
 import type { NextAppRouterCustomClientImpl } from "./next-app-router-custom-strategy.js";
 
 export const clientImpl: NextAppRouterCustomClientImpl<any> = {
@@ -14,7 +14,7 @@ export const clientImpl: NextAppRouterCustomClientImpl<any> = {
   },
 };
 
-export const clientBinProviders: BinProviderMap<NextAppRouterCustomClientImpl<any>> = {
+export const clientBinFactories: BinFactoryMap<NextAppRouterCustomClientImpl<any>> = {
   writeLocale: (partialBin) => {
     const router = useRouter();
     return {

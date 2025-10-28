@@ -1,24 +1,15 @@
-"use client";
-
-import { createReactToolset, type ReactToolset } from "@r-machine/react/core";
 import type { AnyAtlas, RMachine } from "r-machine";
 import type { RMachineError } from "r-machine/errors";
 import type { JSX, ReactNode } from "react";
-import type { NextClientImplPackage } from "./next-client-impl.js";
+import type { ReactToolset } from "./react-toolset.js";
 
-const brand = Symbol("NextAppRouterClientRMachine");
-
-interface NextClientRMachineProps {
-  readonly locale: string;
+interface ReactStandardRMachineProps {
   readonly children: ReactNode;
 }
-export interface NextClientRMachine {
-  (props: NextClientRMachineProps): JSX.Element;
-  readonly [brand]: true;
-}
+export type ReactStandardRMachine = (props: ReactStandardRMachineProps) => JSX.Element;
 
-export type NextClientToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "ReactRMachine"> & {
-  readonly NextClientRMachine: NextClientRMachine;
+export type ReactStandardToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "ReactRMachine"> & {
+  readonly ReactStandardRMachine: ReactStandardRMachine;
 };
 
 function setLocale(
@@ -40,11 +31,11 @@ function setLocale(
   writeLocale(newLocale, writeLocaleBin);
 }
 
-export function createNextClientToolset<A extends AnyAtlas, C>(
+export function createReactStandardToolset<A extends AnyAtlas, C>(
   rMachine: RMachine<A>,
   strategyConfig: C,
-  implPackage: NextClientImplPackage<C>
-): NextClientToolset<A> {
+  implPackage: ReactStandardImplPackage<C>
+): ReactStandardToolset<A> {
   const { ReactRMachine, useLocale: useInternalLocale, ...otherTools } = createReactToolset(rMachine);
   const validateLocale = rMachine.localeHelper.validateLocale;
   const writeLocale = implPackage.impl.writeLocale;
@@ -61,14 +52,13 @@ export function createNextClientToolset<A extends AnyAtlas, C>(
     ];
   }
 
-  function NextClientRMachine({ locale, children }: NextClientRMachineProps) {
+  function ReactStandardRMachine({ children }: ReactStandardRMachineProps) {
     return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
   }
-  NextClientRMachine[brand] = true;
 
   return {
     ...otherTools,
-    NextClientRMachine: NextClientRMachine as NextClientRMachine,
+    ReactStandardRMachine: ReactStandardRMachine as ReactStandardRMachine,
     useLocale,
   };
 }

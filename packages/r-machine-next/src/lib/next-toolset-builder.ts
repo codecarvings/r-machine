@@ -13,16 +13,13 @@ import {
 } from "#r-machine/next/core/app-router";
 
 interface NextToolsetBuilder {
-  readonly createClient: <A extends AnyAtlas>(
-    rMachine: RMachine<A>,
-    strategy: NextStrategy<any>
-  ) => NextClientToolset<A>;
+  createClient<A extends AnyAtlas>(rMachine: RMachine<A>, strategy: NextStrategy<any>): NextClientToolset<A>;
 
-  readonly createServer: <A extends AnyAtlas, LK extends string>(
+  createServer<A extends AnyAtlas, LK extends string>(
     rMachine: RMachine<A>,
     strategy: NextAppRouterStrategy<any, LK>,
     NextClientRMachine: NextClientRMachine
-  ) => NextAppRouterServerToolset<A, LK>;
+  ): NextAppRouterServerToolset<A, LK>;
 }
 
 export const NextToolset: NextToolsetBuilder = {

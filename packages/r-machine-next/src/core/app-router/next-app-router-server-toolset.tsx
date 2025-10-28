@@ -87,7 +87,7 @@ export function createNextAppRouterServerToolset<A extends AnyAtlas, LK extends 
   ): string | undefined | Promise<string | undefined> {
     function syncBindLocale(locale: string | undefined): string | undefined {
       let error: RMachineError | undefined;
-      const bin = implPackage.binProviders.onBindLocaleError({
+      const bin = implPackage.binFactories.onBindLocaleError({
         strategyConfig,
         rMachine,
         localeOption: locale,
@@ -149,7 +149,7 @@ export function createNextAppRouterServerToolset<A extends AnyAtlas, LK extends 
   }
 
   function setLocale(newLocale: string) {
-    const bin = implPackage.binProviders.writeLocale({
+    const bin = implPackage.binFactories.writeLocale({
       strategyConfig,
       rMachine,
     });

@@ -4,8 +4,8 @@ import {
   type NextAppRouterServerImplPackage,
   NextAppRouterStrategy,
 } from "#r-machine/next/core/app-router";
-import { clientBinProviders, clientImpl } from "./next-app-router-custom-impl.client.js";
-import { serverBinProviders, serverImpl } from "./next-app-router-custom-impl.server.js";
+import { clientBinFactories, clientImpl } from "./next-app-router-custom-impl.client.js";
+import { serverBinFactories, serverImpl } from "./next-app-router-custom-impl.server.js";
 
 export type NextAppRouterCustomServerImpl<LK extends string> = NextAppRouterServerImpl<
   NextAppRouterCustomStrategyConfig<LK>
@@ -51,12 +51,12 @@ export class NextAppRouterCustomStrategy<LK extends string> extends NextAppRoute
 
     this.clientImplPackage = {
       impl: this.config.clientImpl,
-      binProviders: clientBinProviders,
+      binFactories: clientBinFactories,
     };
 
     this.serverImplPackage = {
       impl: this.config.serverImpl,
-      binProviders: serverBinProviders,
+      binFactories: serverBinFactories,
     };
   }
 
