@@ -1,7 +1,8 @@
-import { useLocale } from "../r-machine/toolset";
+import { useLocale, useSetLocale } from "../r-machine/toolset";
 
 export default function LanguageSwitcher() {
-  const [locale, setLocale] = useLocale();
+  const locale = useLocale();
+  const setLocale = useSetLocale();
 
   const languages = [
     { code: "en", label: "English", flag: "🇬🇧" },

@@ -1,6 +1,5 @@
 import { RMachineError } from "r-machine/errors";
-import type { ReactStandardImpl } from "../core/react-standard-impl.js";
-import { ReactStandardImplProvider } from "../core/react-standard-impl-provider.js";
+import { type ReactStandardImpl, ReactStandardImplProvider } from "#r-machine/react/core";
 
 interface ReactStandardStrategyConfig {
   readonly detectLocale: (() => string) | undefined;
@@ -43,9 +42,7 @@ const impl: ReactStandardImpl<ReactStandardStrategyConfig> = {
 };
 
 export class ReactStandardStrategy extends ReactStandardImplProvider<ReactStandardStrategyConfig> {
-  public constructor();
-  public constructor(config: PartialReactStandardStrategyConfig);
-  public constructor(config?: PartialReactStandardStrategyConfig) {
+  constructor(config: PartialReactStandardStrategyConfig) {
     super(
       {
         ...defaultConfig,

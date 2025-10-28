@@ -1,7 +1,8 @@
 import type { AnyAtlas, RMachine } from "r-machine";
-import type { RMachineError } from "r-machine/errors";
-import type { JSX, ReactNode } from "react";
-import type { ReactToolset } from "./react-toolset.js";
+import { RMachineError } from "r-machine/errors";
+import { createContext, type JSX, type ReactNode, useContext, useState } from "react";
+import type { ReactStandardImplPackage } from "./react-standard-impl.js";
+import { createReactToolset, type ReactToolset } from "./react-toolset.js";
 
 interface ReactStandardRMachineProps {
   readonly children: ReactNode;
@@ -9,56 +10,78 @@ interface ReactStandardRMachineProps {
 export type ReactStandardRMachine = (props: ReactStandardRMachineProps) => JSX.Element;
 
 export type ReactStandardToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "ReactRMachine"> & {
-  readonly ReactStandardRMachine: ReactStandardRMachine;
+  readonly ReactRMachine: ReactStandardRMachine;
 };
 
-function setLocale(
-  locale: string,
-  newLocale: string,
-  writeLocaleBin: unknown,
-  validateLocale: (locale: string) => RMachineError | null,
-  writeLocale: (newLocale: string, bin: any) => void
-) {
-  if (newLocale === locale) {
-    return;
-  }
-
-  const error = validateLocale(newLocale);
-  if (error) {
-    throw error;
-  }
-
-  writeLocale(newLocale, writeLocaleBin);
-}
+type ReactStandardToolsetContext = [string, (newLocale: string) => void];
 
 export function createReactStandardToolset<A extends AnyAtlas, C>(
   rMachine: RMachine<A>,
   strategyConfig: C,
   implPackage: ReactStandardImplPackage<C>
 ): ReactStandardToolset<A> {
-  const { ReactRMachine, useLocale: useInternalLocale, ...otherTools } = createReactToolset(rMachine);
+  const { ReactRMachine: InternalReactRMachine, ...otherTools } = createReactToolset(rMachine);
   const validateLocale = rMachine.localeHelper.validateLocale;
   const writeLocale = implPackage.impl.writeLocale;
 
-  function useLocale(): ReturnType<ReactToolset<A>["useLocale"]> {
-    const [locale] = useInternalLocale();
-    const bin = implPackage.binFactories.writeLocale({ strategyConfig, rMachine });
+  const Context = createContext<ReactStandardToolsetContext | null>(null);
+  Context.displayName = "ReactStandardToolsetContext";
 
-    return [
-      locale,
-      (newLocale: string) => {
-        setLocale(locale, newLocale, bin, validateLocale, writeLocale);
-      },
-    ];
+  function useReactStandardToolsetContext(): ReactStandardToolsetContext {
+    const context = useContext(Context);
+    if (context === null) {
+      throw new RMachineError("ReactStandardToolsetContext not found.");
+    }
+
+    return context;
   }
 
-  function ReactStandardRMachine({ children }: ReactStandardRMachineProps) {
-    return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
+  function setLocale(
+    newLocale: string,
+    context: ReactStandardToolsetContext,
+    writeLocaleBin: Parameters<typeof writeLocale>[1]
+  ): void {
+    const [locale, setLocaleContext] = context;
+    if (newLocale === locale) {
+      return;
+    }
+
+    const error = validateLocale(newLocale);
+    if (error) {
+      throw error;
+    }
+
+    setLocaleContext(newLocale);
+    writeLocale(newLocale, writeLocaleBin);
+  }
+
+  function useSetLocale(): ReturnType<ReactToolset<A>["useSetLocale"]> {
+    const context = useReactStandardToolsetContext();
+    const bin = implPackage.binFactories.writeLocale({ strategyConfig, rMachine });
+
+    return (newLocale: string) => {
+      setLocale(newLocale, context, bin);
+    };
+  }
+
+  function readLocale(): string {
+    const bin = implPackage.binFactories.readLocale({ strategyConfig, rMachine });
+    return implPackage.impl.readLocale(bin);
+  }
+
+  function ReactRMachine({ children }: ReactStandardRMachineProps) {
+    const context = useState(readLocale);
+
+    return (
+      <Context.Provider value={context}>
+        <InternalReactRMachine locale={context[0]}>{children}</InternalReactRMachine>
+      </Context.Provider>
+    );
   }
 
   return {
     ...otherTools,
-    ReactStandardRMachine: ReactStandardRMachine as ReactStandardRMachine,
-    useLocale,
+    ReactRMachine,
+    useSetLocale,
   };
 }
