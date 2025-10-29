@@ -45,20 +45,17 @@ export function createNextClientToolset<A extends AnyAtlas, C>(
   strategyConfig: C,
   implPackage: NextClientImplPackage<C>
 ): NextClientToolset<A> {
-  const { ReactRMachine, useLocale: useInternalLocale, ...otherTools } = createReactToolset(rMachine);
+  const { ReactRMachine, useLocale, ...otherTools } = createReactToolset(rMachine);
   const validateLocale = rMachine.localeHelper.validateLocale;
   const writeLocale = implPackage.impl.writeLocale;
 
-  function useLocale(): ReturnType<ReactToolset<A>["useLocale"]> {
-    const [locale] = useInternalLocale();
+  function useSetLocale(): ReturnType<ReactToolset<A>["useSetLocale"]> {
+    const locale = useLocale();
     const bin = implPackage.binFactories.writeLocale({ strategyConfig, rMachine });
 
-    return [
-      locale,
-      (newLocale: string) => {
-        setLocale(locale, newLocale, bin, validateLocale, writeLocale);
-      },
-    ];
+    return (newLocale: string) => {
+      setLocale(locale, newLocale, bin, validateLocale, writeLocale);
+    };
   }
 
   function NextClientRMachine({ locale, children }: NextClientRMachineProps) {
@@ -70,5 +67,6 @@ export function createNextClientToolset<A extends AnyAtlas, C>(
     ...otherTools,
     NextClientRMachine: NextClientRMachine as NextClientRMachine,
     useLocale,
+    useSetLocale,
   };
 }

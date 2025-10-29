@@ -6,4 +6,9 @@ export abstract class NextStrategy<C> extends Strategy<C> {
   static getClientImplPackage<C>(strategy: NextStrategy<C>): NextClientImplPackage<C> {
     return strategy.getClientImplPackage();
   }
+
+  // TEMP: TODO: remove this
+  static getConfig<C>(strategy: NextStrategy<C>): C {
+    return strategy.config;
+  }
 }
