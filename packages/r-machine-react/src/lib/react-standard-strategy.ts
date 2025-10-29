@@ -1,43 +1,43 @@
-import { RMachineError } from "r-machine/errors";
+import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { type ReactStandardImpl, ReactStandardImplProvider } from "#r-machine/react/core";
 
 interface ReactStandardStrategyConfig {
-  readonly detectLocale: (() => string) | undefined;
-  readonly readLocale: (() => string | undefined) | undefined;
-  readonly writeLocale: ((newLocale: string) => void) | undefined;
+  readonly localeDetector: CustomLocaleDetector | undefined;
+  readonly localeStore: CustomLocaleStore | undefined;
 }
 type PartialReactStandardStrategyConfig = Partial<ReactStandardStrategyConfig>;
 
 const defaultConfig: ReactStandardStrategyConfig = {
-  detectLocale: undefined,
-  readLocale: undefined,
-  writeLocale: undefined,
+  localeDetector: undefined,
+  localeStore: undefined,
 };
 
 const impl: ReactStandardImpl<ReactStandardStrategyConfig> = {
   readLocale: (bin) => {
-    if (bin.strategyConfig.readLocale) {
-      const locale = bin.strategyConfig.readLocale();
+    if (bin.strategyConfig.localeStore) {
+      const locale = bin.strategyConfig.localeStore.get();
       if (locale !== undefined) {
         return locale;
       }
     }
 
-    if (bin.strategyConfig.detectLocale) {
-      return bin.strategyConfig.detectLocale();
+    let locale: string;
+    if (bin.strategyConfig.localeDetector) {
+      locale = bin.strategyConfig.localeDetector();
+    } else {
+      locale = bin.rMachine.config.defaultLocale;
     }
 
-    return bin.rMachine.config.defaultLocale;
+    if (bin.strategyConfig.localeStore) {
+      bin.strategyConfig.localeStore.set(locale);
+    }
+
+    return locale;
   },
   writeLocale: (newLocale, bin) => {
-    if (bin.strategyConfig.writeLocale) {
-      bin.strategyConfig.writeLocale(newLocale);
-      return;
+    if (bin.strategyConfig.localeStore) {
+      bin.strategyConfig.localeStore.set(newLocale);
     }
-
-    throw new RMachineError(
-      "ReactStandardStrategy by default does not support writing locale and no custom implementation was provided."
-    );
   },
 };
 

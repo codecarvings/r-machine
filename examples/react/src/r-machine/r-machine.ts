@@ -9,13 +9,13 @@ export const rMachine = new RMachine<Atlas>({
 });
 
 export const strategy = new ReactStandardStrategy({
-  detectLocale: () => {
+  localeDetector: () => {
     return rMachine.localeHelper.matchLocales(navigator.languages);
   },
-  readLocale: () => {
-    return localStorage.getItem("locale") ?? undefined;
-  },
-  writeLocale: (newLocale) => {
-    localStorage.setItem("locale", newLocale);
+  localeStore: {
+    get: () => localStorage.getItem("locale") ?? undefined,
+    set: (newLocale) => {
+      localStorage.setItem("locale", newLocale);
+    },
   },
 });
