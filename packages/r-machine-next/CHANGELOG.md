@@ -1,5 +1,14 @@
 # @r-machine/next
 
+## 1.0.0-alpha.4
+
+### Patch Changes
+
+- 315569e: Added initial implementation of NextAppRouter standard strategy.
+- Updated dependencies [315569e]
+- Updated dependencies [315569e]
+  - r-machine@1.0.0-alpha.4
+
 ## 1.0.0-alpha.3
 
 ### Patch Changes

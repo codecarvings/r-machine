@@ -1,6 +1,6 @@
 {
   "name": "@r-machine/next",
-  "version": "1.0.0-alpha.3",
+  "version": "1.0.0-alpha.4",
   "description": "Official Next.js bindings for R-Machine - A TypeScript library for internationalization (i18n) with a focus on developer experience",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "MIT",

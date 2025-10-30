@@ -1,5 +1,13 @@
 # r-machine
 
+## 1.0.0-alpha.4
+
+### Patch Changes
+
+- 315569e: Renamed subpath export path from "common" to "errors"
+- 315569e: Added CustomLocaleDetector and CustomLocaleStore types.
+  Removed Strategy.getConfig static method.
+
 ## 1.0.0-alpha.3
 
 ### Patch Changes
