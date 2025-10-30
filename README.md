@@ -6,7 +6,7 @@
 
 <br />  
 <p align="center">
-  <img src="logo.svg" width="128px" align="center" alt="R-Machine logo" />
+  <img src="r-machine.logo.svg" width="128px" align="center" alt="R-Machine logo" />
   <h1 align="center">R-Machine</h1>
   <p align="center">
     A TypeScript library for internationalization (i18n) with a focus on developer experience

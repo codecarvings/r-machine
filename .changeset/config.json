@@ -8,7 +8,7 @@
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [
-    "@r-machine/examples-react-router-with-path-strategy", 
+    "@r-machine/examples-react", 
     "@r-machine/examples-next-app-with-path-strategy"
   ]
 }

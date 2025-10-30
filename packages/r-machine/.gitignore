@@ -5,4 +5,7 @@
 **/*.d.mts
 **/*.d.cts
 **/package.json
+/errors
+/locale
 /lib
+/strategy

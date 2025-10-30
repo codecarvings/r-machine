@@ -1,10 +1,11 @@
 "use client";
 
-import { useLocale, useR } from "@/r-machine/client-toolset";
+import { useLocale, useR, useSetLocale } from "@/r-machine/client-toolset";
 
 export default function ClientComp1() {
   const r = useR("common");
-  const [locale, setLocale] = useLocale();
+  const locale = useLocale();
+  const setLocale = useSetLocale();
 
   return (
     <>
