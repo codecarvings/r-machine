@@ -3,7 +3,7 @@ import { RMachineError } from "#r-machine/errors";
 import { type RMachineConfig, validateRMachineConfig } from "./r-machine-config.js";
 
 describe("validateRMachineConfig", () => {
-  test("should return an RMachineError if no locales are provided", () => {
+  test("should return a RMachineError if no locales are provided", () => {
     const config: RMachineConfig = {
       locales: [],
       defaultLocale: "en",
@@ -17,7 +17,7 @@ describe("validateRMachineConfig", () => {
     expect(error?.message).toContain("No locales provided");
   });
 
-  test("should return an RMachineError if locales contains duplicates", () => {
+  test("should return a RMachineError if locales contains duplicates", () => {
     const config: RMachineConfig = {
       locales: ["en", "it", "en"],
       defaultLocale: "en",
@@ -31,7 +31,7 @@ describe("validateRMachineConfig", () => {
     expect(error?.message).toContain("Duplicate locales provided");
   });
 
-  test("should return an RMachineError if default locale is not in the list of locales", () => {
+  test("should return a RMachineError if default locale is not in the list of locales", () => {
     const config: RMachineConfig = {
       locales: ["it"],
       defaultLocale: "en",
@@ -45,7 +45,7 @@ describe("validateRMachineConfig", () => {
     expect(error?.message).toContain(`Default locale "en" is not in the list of locales`);
   });
 
-  test("should return an RMachineError if a locale is not canonical", () => {
+  test("should return a RMachineError if a locale is not canonical", () => {
     const config: RMachineConfig = {
       locales: ["en_US"],
       defaultLocale: "en_US",
@@ -60,7 +60,7 @@ describe("validateRMachineConfig", () => {
     expect(error?.message).toContain('Did you mean: "en-US"?');
   });
 
-  test("should return an RMachineError if default locale is not canonical", () => {
+  test("should return a RMachineError if default locale is not canonical", () => {
     const config: RMachineConfig = {
       locales: ["en", "it"],
       defaultLocale: "en_US",
