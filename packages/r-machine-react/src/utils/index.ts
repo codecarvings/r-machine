@@ -1,1 +1,1 @@
-export { DelayedSuspense } from "../utils/delayed-suspense.js";
+export { DelayedSuspense } from "./delayed-suspense.js";

@@ -1,4 +1,4 @@
-import { useR } from "../r-machine/toolset";
+import { useR } from "@/r-machine/toolset";
 
 export default function Box3() {
   const r = useR("boxes/box_3");

@@ -1,4 +1,4 @@
-import { useLocale, useSetLocale } from "../r-machine/toolset";
+import { useLocale, useSetLocale } from "@/r-machine/toolset";
 
 export default function LanguageSwitcher() {
   const locale = useLocale();

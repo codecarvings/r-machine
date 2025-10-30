@@ -1,11 +1,11 @@
 import { Suspense } from "react";
+import { useRKit } from "@/r-machine/toolset";
 import Box1 from "./components/Box1";
 import Box2 from "./components/Box2";
 import Box3 from "./components/Box3";
 import BoxLoading from "./components/BoxLoading";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import Logo from "./components/Logo";
-import { useRKit } from "./r-machine/toolset";
 
 export default function Body() {
   const [rBody, rCommon] = useRKit("body", "common"); // Fetch R-Machine content for the body section

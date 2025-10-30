@@ -8,4 +8,4 @@ export const rMachine = new RMachine<Atlas>({
   rModuleResolver: (namespace, locale) => import(`./resources/${namespace}/${locale}`),
 });
 
-export const strategy = new NextAppRouterStandardStrategy();
+export const strategy = new NextAppRouterStandardStrategy({});

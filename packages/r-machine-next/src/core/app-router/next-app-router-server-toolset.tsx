@@ -10,11 +10,8 @@ type RMachineParams<LK extends string> = {
 };
 
 interface BindLocale<LK extends string> {
-  (locale: string, unsafe?: false): string;
-  (params: Promise<RMachineParams<LK>>, unsafe?: false): Promise<string>;
-
-  (locale: string, unsafe: true): string | undefined;
-  (params: Promise<RMachineParams<LK>>, unsafe: true): Promise<string | undefined>;
+  (locale: string): string;
+  (params: Promise<RMachineParams<LK>>): Promise<string>;
 }
 
 export interface NextAppRouterServerToolset<A extends AnyAtlas, LK extends string> {
@@ -41,17 +38,18 @@ interface EntrancePageProps {
 type EntrancePage = (props: EntrancePageProps) => Promise<JSX.Element>;
 
 interface NextAppRouterServerRMachineContext {
-  value: string | undefined | null;
+  value: string | null;
 }
 
 export function createNextAppRouterServerToolset<A extends AnyAtlas, LK extends string, C>(
   rMachine: RMachine<A>,
-  localeKey: LK,
   strategyConfig: C,
+  localeKey: LK,
   implPackage: NextAppRouterServerImplPackage<C>,
   NextClientRMachine: NextClientRMachine
 ): NextAppRouterServerToolset<A, LK> {
   const validateLocale = rMachine.localeHelper.validateLocale;
+  const partialBin = { strategyConfig, rMachine };
 
   const getContext = cache((): NextAppRouterServerRMachineContext => {
     return {
@@ -81,35 +79,20 @@ export function createNextAppRouterServerToolset<A extends AnyAtlas, LK extends 
     }));
   }
 
-  function bindLocale(
-    locale: string | Promise<RMachineParams<LK>>,
-    unsafe?: boolean
-  ): string | undefined | Promise<string | undefined> {
-    function syncBindLocale(locale: string | undefined): string | undefined {
-      let error: RMachineError | undefined;
-      const bin = implPackage.binFactories.onBindLocaleError({
-        strategyConfig,
-        rMachine,
-        localeOption: locale,
-      });
+  function bindLocale(locale: string | Promise<RMachineParams<LK>>): string | Promise<string> {
+    function syncBindLocale(locale: string): string {
+      const validationError = validateLocale(locale);
+      if (validationError !== null) {
+        const error = new RMachineError(`Invalid locale provided to bindLocale: "${locale}".`, validationError);
 
-      // If onBindLocale does not throw, the error is
-      if (locale === undefined) {
-        error = new RMachineError("Invalid locale provided to bindLocale: undefined.");
-      } else {
-        const validationError = validateLocale(locale);
-        if (validationError) {
-          error = new RMachineError(`Invalid locale provided to bindLocale: "${locale}".`, validationError);
-        }
-      }
+        const bin = implPackage.binFactories.onBindLocaleError({
+          strategyConfig,
+          rMachine,
+          localeOption: locale,
+        });
+        implPackage.impl.onBindLocaleError(error, bin);
 
-      if (error) {
-        if (unsafe === true) {
-          locale = undefined;
-        } else {
-          implPackage.impl.onBindLocaleError(error, bin);
-          throw error;
-        }
+        throw error;
       }
 
       const context = getContext();
@@ -120,11 +103,12 @@ export function createNextAppRouterServerToolset<A extends AnyAtlas, LK extends 
           );
         }
       }
+
       context.value = locale;
       return locale;
     }
 
-    async function asyncBindLocale(localePromise: Promise<RMachineParams<LK>>): Promise<string | undefined> {
+    async function asyncBindLocale(localePromise: Promise<RMachineParams<LK>>): Promise<string> {
       const locale = (await localePromise)[localeKey];
       return syncBindLocale(locale);
     }
@@ -142,23 +126,17 @@ export function createNextAppRouterServerToolset<A extends AnyAtlas, LK extends 
       throw new RMachineError(
         "NextAppRouterServerRMachineContext not initialized. bindLocale not invoked? (you must invoke bindLocale at the beginning of every page or layout component)."
       );
-    } else if (context.value === undefined) {
-      throw new RMachineError("Locale is undefined. Invalid value passed to bindLocale (safe mode disabled).");
     }
     return context.value;
   }
 
   function setLocale(newLocale: string) {
-    const bin = implPackage.binFactories.writeLocale({
-      strategyConfig,
-      rMachine,
-    });
-
-    const error = rMachine.localeHelper.validateLocale(newLocale);
+    const error = validateLocale(newLocale);
     if (error) {
       throw new RMachineError(`Cannot set locale to invalid locale: "${newLocale}".`, error);
     }
 
+    const bin = implPackage.binFactories.writeLocale(partialBin);
     implPackage.impl.writeLocale(newLocale, bin);
   }
 

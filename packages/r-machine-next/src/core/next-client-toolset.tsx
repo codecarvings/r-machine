@@ -14,7 +14,7 @@ interface NextClientRMachineProps {
 }
 export interface NextClientRMachine {
   (props: NextClientRMachineProps): JSX.Element;
-  readonly [brand]: true;
+  readonly [brand]: "NextAppRouterClientRMachine";
 }
 
 export type NextClientToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "ReactRMachine"> & {
@@ -47,21 +47,21 @@ export function createNextClientToolset<A extends AnyAtlas, C>(
 ): NextClientToolset<A> {
   const { ReactRMachine, useLocale, ...otherTools } = createReactToolset(rMachine);
   const validateLocale = rMachine.localeHelper.validateLocale;
-  const writeLocale = implPackage.impl.writeLocale;
+  const partialBin = { strategyConfig, rMachine };
 
   function useSetLocale(): ReturnType<ReactToolset<A>["useSetLocale"]> {
     const locale = useLocale();
-    const bin = implPackage.binFactories.writeLocale({ strategyConfig, rMachine });
+    const bin = implPackage.binFactories.writeLocale(partialBin);
 
     return (newLocale: string) => {
-      setLocale(locale, newLocale, bin, validateLocale, writeLocale);
+      setLocale(locale, newLocale, bin, validateLocale, implPackage.impl.writeLocale);
     };
   }
 
   function NextClientRMachine({ locale, children }: NextClientRMachineProps) {
     return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
   }
-  NextClientRMachine[brand] = true;
+  NextClientRMachine[brand] = "NextAppRouterClientRMachine";
 
   return {
     ...otherTools,
