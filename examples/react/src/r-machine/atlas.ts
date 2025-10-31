@@ -1,11 +1,11 @@
-import type { R_Body } from "./resources/body/en";
-import type { R_Boxes_Box_1_2 } from "./resources/boxes/box_1_2/en";
-import type { R_Boxes_Box_3 } from "./resources/boxes/box_3/en";
 import type { R_Common } from "./resources/common/en";
+import type { R_Features_Box_1_2 } from "./resources/features/box_1_2/en";
+import type { R_Features_Box_3 } from "./resources/features/box_3/en";
+import type { R_LandingPage } from "./resources/landing-page/en";
 
 export type Atlas = {
-  body: R_Body;
   common: R_Common;
-  "boxes/box_1_2": R_Boxes_Box_1_2;
-  "boxes/box_3": R_Boxes_Box_3;
+  "landing-page": R_LandingPage;
+  "features/box_1_2": R_Features_Box_1_2;
+  "features/box_3": R_Features_Box_3;
 };

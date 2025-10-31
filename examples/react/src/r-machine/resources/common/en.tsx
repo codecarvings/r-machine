@@ -4,8 +4,10 @@ const r = {
   footer: {
     message: (
       <>
-        This is a React example demonstrating{" "}
-        <strong className="bg-slate-800 text-white rounded-xl px-2">R-Machine</strong> integration.
+        <strong>R-Machine</strong> example project. Learn more at
+        <a href="https://r-machine.codecarvings.com/en/" className="underline ml-1 font-semibold">
+          r-machine.codecarvings.com/en
+        </a>
       </>
     ),
   },

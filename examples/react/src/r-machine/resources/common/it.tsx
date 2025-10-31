@@ -4,8 +4,10 @@ const r: R_Common = {
   footer: {
     message: (
       <>
-        Questo è un esempio di React che dimostra l'integrazione di{" "}
-        <strong className="bg-slate-800 text-white rounded-xl px-2">R-Machine</strong>.
+        Progetto di esempio <strong>R-Machine</strong>. Scopri di più su
+        <a href="https://r-machine.codecarvings.com/it/" className="underline ml-1 font-semibold">
+          r-machine.codecarvings.com/it
+        </a>
       </>
     ),
   },
