@@ -1,7 +1,6 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { createContext, type JSX, type ReactNode, useContext, useState } from "react";
-import type { ReactStandardImplPackage } from "./react-standard-impl.js";
 import { createReactToolset, type ReactToolset } from "./react-toolset.js";
 
 interface ReactStandardRMachineProps {
@@ -15,14 +14,16 @@ export type ReactStandardToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "Re
 
 type ReactStandardToolsetContext = [string, (newLocale: string) => void];
 
-export function createReactStandardToolset<A extends AnyAtlas, C>(
+export type ReactStandardImpl = {
+  readonly readLocale: () => string;
+  readonly writeLocale: (newLocale: string) => void;
+};
+
+export function createReactStandardToolset<A extends AnyAtlas>(
   rMachine: RMachine<A>,
-  strategyConfig: C,
-  implPackage: ReactStandardImplPackage<C>
+  impl: ReactStandardImpl
 ): ReactStandardToolset<A> {
   const { ReactRMachine: InternalReactRMachine, ...otherTools } = createReactToolset(rMachine);
-  const validateLocale = rMachine.localeHelper.validateLocale;
-  const partialBin = { strategyConfig, rMachine };
 
   const Context = createContext<ReactStandardToolsetContext | null>(null);
   Context.displayName = "ReactStandardToolsetContext";
@@ -36,41 +37,31 @@ export function createReactStandardToolset<A extends AnyAtlas, C>(
     return context;
   }
 
-  function setLocale(
-    newLocale: string,
-    context: ReactStandardToolsetContext,
-    writeLocaleBin: Parameters<typeof implPackage.impl.writeLocale>[1]
-  ): void {
+  function setLocale(newLocale: string, context: ReactStandardToolsetContext): void {
     const [locale, setLocaleContext] = context;
     if (newLocale === locale) {
       return;
     }
 
-    const error = validateLocale(newLocale);
+    const error = rMachine.localeHelper.validateLocale(newLocale);
     if (error) {
-      throw error;
+      throw new RMachineError(`Cannot set invalid locale: ${newLocale}.`, error);
     }
 
     setLocaleContext(newLocale);
-    implPackage.impl.writeLocale(newLocale, writeLocaleBin);
+    impl.writeLocale(newLocale);
   }
 
   function useSetLocale(): ReturnType<ReactToolset<A>["useSetLocale"]> {
     const context = useReactStandardToolsetContext();
-    const bin = implPackage.binFactories.writeLocale(partialBin);
 
     return (newLocale: string) => {
-      setLocale(newLocale, context, bin);
+      setLocale(newLocale, context);
     };
   }
 
-  function readLocale(): string {
-    const bin = implPackage.binFactories.readLocale(partialBin);
-    return implPackage.impl.readLocale(bin);
-  }
-
   function ReactRMachine({ children }: ReactStandardRMachineProps) {
-    const context = useState(readLocale);
+    const context = useState(impl.readLocale);
 
     return (
       <Context.Provider value={context}>
