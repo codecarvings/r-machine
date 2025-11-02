@@ -11,4 +11,4 @@ export const {
   setLocale,
   pickR,
   pickRKit,
-} = NextToolset.createServer(rMachine, strategy, NextClientRMachine);
+} = NextToolset.createForServer(rMachine, strategy, NextClientRMachine);

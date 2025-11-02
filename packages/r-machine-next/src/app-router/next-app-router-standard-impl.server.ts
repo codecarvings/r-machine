@@ -8,9 +8,9 @@ export const nextAppRouterStandardImpl_server: NextAppRouterServerImpl<NextAppRo
   },
 
   writeLocale(newLocale, bin) {
-    const { basePath, lowercaseLocale } = bin.strategyConfig;
+    const { lowercaseLocale } = bin.strategyConfig;
     const locale = lowercaseLocale ? newLocale.toLowerCase() : newLocale;
-    const path = `${basePath}/${locale}`;
+    const path = `/${locale}`;
 
     redirect(path);
   },

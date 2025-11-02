@@ -5,15 +5,6 @@ import type { NextClientRMachine } from "#r-machine/next/core";
 import { NextAppRouterEntrancePage } from "./next-app-router-entrance-page.js";
 import type { NextAppRouterServerImplPackage } from "./next-app-router-server-impl.js";
 
-type RMachineParams<LK extends string> = {
-  [P in LK]: string;
-};
-
-interface BindLocale<LK extends string> {
-  (locale: string): string;
-  (params: Promise<RMachineParams<LK>>): Promise<string>;
-}
-
 export interface NextAppRouterServerToolset<A extends AnyAtlas, LK extends string> {
   readonly NextServerRMachine: NextAppRouterServerRMachine;
   readonly EntrancePage: EntrancePage;
@@ -24,6 +15,15 @@ export interface NextAppRouterServerToolset<A extends AnyAtlas, LK extends strin
   readonly pickR: <N extends AtlasNamespace<A>>(namespace: N) => Promise<A[N]>;
   readonly pickRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => Promise<RKit<A, NL>>;
 }
+
+interface BindLocale<LK extends string> {
+  (locale: string): string;
+  <P extends RMachineParams<LK>>(params: Promise<P>): Promise<P>;
+}
+
+type RMachineParams<LK extends string> = {
+  [P in LK]: string;
+};
 
 interface NextAppRouterServerRMachineProps {
   readonly children: ReactNode;
@@ -41,7 +41,7 @@ interface NextAppRouterServerRMachineContext {
   value: string | null;
 }
 
-export function createNextAppRouterServerToolset<A extends AnyAtlas, LK extends string, C>(
+export function createNextAppRouterServerToolset<A extends AnyAtlas, C, LK extends string>(
   rMachine: RMachine<A>,
   strategyConfig: C,
   localeKey: LK,
@@ -58,8 +58,7 @@ export function createNextAppRouterServerToolset<A extends AnyAtlas, LK extends 
   });
 
   function NextServerRMachine({ children }: NextAppRouterServerRMachineProps) {
-    const locale = getLocale();
-    return <NextClientRMachine locale={locale}>{children}</NextClientRMachine>;
+    return <NextClientRMachine locale={getLocale()}>{children}</NextClientRMachine>;
   }
 
   async function EntrancePage({ locale }: EntrancePageProps) {
@@ -79,8 +78,8 @@ export function createNextAppRouterServerToolset<A extends AnyAtlas, LK extends 
     }));
   }
 
-  function bindLocale(locale: string | Promise<RMachineParams<LK>>): string | Promise<string> {
-    function syncBindLocale(locale: string): string {
+  function bindLocale(locale: string | Promise<RMachineParams<LK>>) {
+    function syncBindLocale(locale: string): void {
       const validationError = validateLocale(locale);
       if (validationError !== null) {
         const error = new RMachineError(`Invalid locale provided to bindLocale: "${locale}".`, validationError);
@@ -105,18 +104,19 @@ export function createNextAppRouterServerToolset<A extends AnyAtlas, LK extends 
       }
 
       context.value = locale;
-      return locale;
     }
 
-    async function asyncBindLocale(localePromise: Promise<RMachineParams<LK>>): Promise<string> {
-      const locale = (await localePromise)[localeKey];
-      return syncBindLocale(locale);
+    async function asyncBindLocale(localePromise: Promise<RMachineParams<LK>>) {
+      const params = await localePromise;
+      syncBindLocale(params[localeKey]);
+      return params;
     }
 
     if (locale instanceof Promise) {
       return asyncBindLocale(locale);
     } else {
-      return syncBindLocale(locale);
+      syncBindLocale(locale);
+      return locale;
     }
   }
 
@@ -141,13 +141,11 @@ export function createNextAppRouterServerToolset<A extends AnyAtlas, LK extends 
   }
 
   async function pickR<N extends AtlasNamespace<A>>(namespace: N): Promise<A[N]> {
-    const locale = getLocale();
-    return rMachine.pickR(locale, namespace) as Promise<A[N]>;
+    return rMachine.pickR(getLocale(), namespace) as Promise<A[N]>;
   }
 
   async function pickRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): Promise<RKit<A, NL>> {
-    const locale = getLocale();
-    return rMachine.pickRKit(locale, ...namespaces) as Promise<RKit<A, NL>>;
+    return rMachine.pickRKit(getLocale(), ...namespaces) as Promise<RKit<A, NL>>;
   }
 
   return {

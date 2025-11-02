@@ -3,9 +3,9 @@ import type { NextAppRouterStandardStrategyConfig } from "./next-app-router-stan
 
 export const nextAppRouterStandardImpl_client: NextClientImpl<NextAppRouterStandardStrategyConfig<string>> = {
   writeLocale(newLocale, bin) {
-    const { basePath, lowercaseLocale } = bin.strategyConfig;
+    const { lowercaseLocale } = bin.strategyConfig;
     const locale = lowercaseLocale ? newLocale.toLowerCase() : newLocale;
-    const path = `${basePath}/${locale}`;
+    const path = `/${locale}`;
 
     bin.router.push(path);
   },

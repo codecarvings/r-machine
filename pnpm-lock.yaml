@@ -63,7 +63,7 @@ importers:
         specifier: 0.4.4
         version: 0.4.4(typescript@5.9.3)
 
-  examples/next-app-with-path-strategy:
+  examples/next-with-app-router-strategy:
     dependencies:
       '@r-machine/next':
         specifier: workspace:*
@@ -86,10 +86,10 @@ importers:
         version: 20.19.19
       '@types/react':
         specifier: ^19
-        version: 19.2.0
+        version: 19.2.2
       '@types/react-dom':
         specifier: ^19
-        version: 19.2.0(@types/react@19.2.0)
+        version: 19.2.0(@types/react@19.2.2)
       typescript:
         specifier: ^5
         version: 5.9.3
@@ -3329,10 +3329,6 @@ snapshots:
   '@types/node@24.9.2':
     dependencies:
       undici-types: 7.16.0
-
-  '@types/react-dom@19.2.0(@types/react@19.2.0)':
-    dependencies:
-      '@types/react': 19.2.0
 
   '@types/react-dom@19.2.0(@types/react@19.2.2)':
     dependencies:

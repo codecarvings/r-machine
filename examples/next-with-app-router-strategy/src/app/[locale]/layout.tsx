@@ -10,7 +10,7 @@ const geistSans = Geist({
 export const generateStaticParams = generateLocaleStaticParams;
 
 export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
-  const locale = await bindLocale(params);
+  const { locale } = await bindLocale(params);
 
   return (
     <NextServerRMachine>

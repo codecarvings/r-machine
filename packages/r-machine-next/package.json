@@ -42,7 +42,9 @@
     "exports": {
       "./core": "./src/core/index.ts",
       "./core/app-router": "./src/core/app-router/index.ts",
+      "./core/proxy": "./src/core/proxy/index.ts",
       "./app-router": "./src/app-router/index.ts",
+      "./proxy": "./src/proxy/index.ts",
       ".": "./src/lib/index.ts"
     },
     "conditions": {
@@ -62,11 +64,23 @@
       "import": "./core/app-router/index.js",
       "require": "./core/app-router/index.cjs"
     },
+    "./core/proxy": {
+      "@r-machine/source": "./src/core/proxy/index.ts",
+      "types": "./core/proxy/index.d.cts",
+      "import": "./core/proxy/index.js",
+      "require": "./core/proxy/index.cjs"
+    },
     "./app-router": {
       "@r-machine/source": "./src/app-router/index.ts",
       "types": "./app-router/index.d.cts",
       "import": "./app-router/index.js",
       "require": "./app-router/index.cjs"
+    },
+    "./proxy": {
+      "@r-machine/source": "./src/proxy/index.ts",
+      "types": "./proxy/index.d.cts",
+      "import": "./proxy/index.js",
+      "require": "./proxy/index.cjs"
     },
     ".": {
       "@r-machine/source": "./src/lib/index.ts",
@@ -84,9 +98,17 @@
       "@r-machine/source": "./src/core/app-router/index.ts",
       "default": "./core/app-router/index.js"
     },
+    "#r-machine/next/core/proxy": {
+      "@r-machine/source": "./src/core/proxy/index.ts",
+      "default": "./core/proxy/index.js"
+    },
     "#r-machine/next/app-router": {
       "@r-machine/source": "./src/app-router/index.ts",
       "default": "./app-router/index.js"
+    },
+    "#r-machine/next/proxy": {
+      "@r-machine/source": "./src/proxy/index.ts",
+      "default": "./proxy/index.js"
     },
     "#r-machine/next": {
       "@r-machine/source": "./src/lib/index.ts",

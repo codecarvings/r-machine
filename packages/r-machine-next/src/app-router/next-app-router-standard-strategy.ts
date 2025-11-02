@@ -8,7 +8,6 @@ type DefaultLocaleKey = typeof defaultLocaleKey;
 
 export interface NextAppRouterStandardStrategyConfig<LK extends string = DefaultLocaleKey> {
   readonly localeKey: LK;
-  readonly basePath: string;
   readonly lowercaseLocale: boolean;
 }
 export type PartialNextAppRouterStandardStrategyConfig<LK extends string = DefaultLocaleKey> = Partial<
@@ -17,7 +16,6 @@ export type PartialNextAppRouterStandardStrategyConfig<LK extends string = Defau
 
 const defaultConfig: NextAppRouterStandardStrategyConfig<DefaultLocaleKey> = {
   localeKey: defaultLocaleKey,
-  basePath: "",
   lowercaseLocale: true,
 };
 
