@@ -6,8 +6,8 @@
     "customConditions": ["@r-machine/source"],
     "paths": {
       "#r-machine/next/core": ["./src/core"],
-      "#r-machine/next/core/app-router": ["./src/core/app-router"],
-      "#r-machine/next/app-router": ["./src/app-router"],
+      "#r-machine/next/core/app": ["./src/core/app"],
+      "#r-machine/next/app": ["./src/app"],
       "#r-machine/next": ["./src/lib"],
     }
   }

@@ -1,4 +1,4 @@
-import { NextAppRouterStandardStrategy } from "@r-machine/next/app-router";
+import { NextAppPathStrategy } from "@r-machine/next/app";
 import { RMachine } from "r-machine";
 import type { Atlas } from "./atlas";
 
@@ -8,4 +8,4 @@ export const rMachine = new RMachine<Atlas>({
   rModuleResolver: (namespace, locale) => import(`./resources/${namespace}/${locale}`),
 });
 
-export const strategy = new NextAppRouterStandardStrategy({});
+export const strategy = new NextAppPathStrategy({});

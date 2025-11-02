@@ -41,8 +41,8 @@
   "zshy": {
     "exports": {
       "./core": "./src/core/index.ts",
-      "./core/app-router": "./src/core/app-router/index.ts",
-      "./app-router": "./src/app-router/index.ts",
+      "./core/app": "./src/core/app/index.ts",
+      "./app": "./src/app/index.ts",
       ".": "./src/lib/index.ts"
     },
     "conditions": {
@@ -56,17 +56,17 @@
       "import": "./core/index.js",
       "require": "./core/index.cjs"
     },
-    "./core/app-router": {
-      "@r-machine/source": "./src/core/app-router/index.ts",
-      "types": "./core/app-router/index.d.cts",
-      "import": "./core/app-router/index.js",
-      "require": "./core/app-router/index.cjs"
+    "./core/app": {
+      "@r-machine/source": "./src/core/app/index.ts",
+      "types": "./core/app/index.d.cts",
+      "import": "./core/app/index.js",
+      "require": "./core/app/index.cjs"
     },
-    "./app-router": {
-      "@r-machine/source": "./src/app-router/index.ts",
-      "types": "./app-router/index.d.cts",
-      "import": "./app-router/index.js",
-      "require": "./app-router/index.cjs"
+    "./app": {
+      "@r-machine/source": "./src/app/index.ts",
+      "types": "./app/index.d.cts",
+      "import": "./app/index.js",
+      "require": "./app/index.cjs"
     },
     ".": {
       "@r-machine/source": "./src/lib/index.ts",
@@ -80,13 +80,13 @@
       "@r-machine/source": "./src/core/index.ts",
       "default": "./core/index.js"
     },
-    "#r-machine/next/core/app-router": {
-      "@r-machine/source": "./src/core/app-router/index.ts",
-      "default": "./core/app-router/index.js"
+    "#r-machine/next/core/app": {
+      "@r-machine/source": "./src/core/app/index.ts",
+      "default": "./core/app/index.js"
     },
-    "#r-machine/next/app-router": {
-      "@r-machine/source": "./src/app-router/index.ts",
-      "default": "./app-router/index.js"
+    "#r-machine/next/app": {
+      "@r-machine/source": "./src/app/index.ts",
+      "default": "./app/index.js"
     },
     "#r-machine/next": {
       "@r-machine/source": "./src/lib/index.ts",

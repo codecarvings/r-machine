@@ -4,7 +4,7 @@ import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } fro
 import { RMachineError } from "r-machine/errors";
 import { cache, type JSX, type ReactNode } from "react";
 import type { NextClientRMachine } from "#r-machine/next/core";
-import { NextAppRouterEntrancePage } from "./next-app-router-entrance-page.js";
+import { NextAppEntrancePage } from "./next-app-entrance-page.js";
 
 export interface RMachineProxy extends NextMiddleware {
   readonly chain: (previousProxy: RMachineProxy) => NextMiddleware;
@@ -25,8 +25,8 @@ export interface RMachineProxy extends NextMiddleware {
   };
 */
 
-export interface NextAppRouterServerToolset<A extends AnyAtlas, LK extends string> {
-  readonly NextServerRMachine: NextAppRouterServerRMachine;
+export interface NextAppServerToolset<A extends AnyAtlas, LK extends string> {
+  readonly NextServerRMachine: NextAppServerRMachine;
   readonly EntrancePage: EntrancePage;
   readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
   readonly bindLocale: BindLocale<LK>;
@@ -45,10 +45,10 @@ type RMachineParams<LK extends string> = {
   [P in LK]: string;
 };
 
-interface NextAppRouterServerRMachineProps {
+interface NextAppServerRMachineProps {
   readonly children: ReactNode;
 }
-export type NextAppRouterServerRMachine = (props: NextAppRouterServerRMachineProps) => JSX.Element;
+export type NextAppServerRMachine = (props: NextAppServerRMachineProps) => JSX.Element;
 
 type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
 
@@ -57,39 +57,39 @@ interface EntrancePageProps {
 }
 type EntrancePage = (props: EntrancePageProps) => Promise<JSX.Element>;
 
-interface NextAppRouterServerRMachineContext {
+interface NextAppServerRMachineContext {
   value: string | null;
 }
 
-export type NextAppRouterServerImpl = {
+export type NextAppServerImpl = {
   readonly writeLocale: (newLocale: string) => void;
 };
 
-export function createNextAppRouterServerToolset<A extends AnyAtlas, LK extends string>(
+export function createNextAppServerToolset<A extends AnyAtlas, LK extends string>(
   rMachine: RMachine<A>,
-  impl: NextAppRouterServerImpl,
+  impl: NextAppServerImpl,
   localeKey: LK,
   NextClientRMachine: NextClientRMachine
-): NextAppRouterServerToolset<A, LK> {
+): NextAppServerToolset<A, LK> {
   const validateLocale = rMachine.localeHelper.validateLocale;
 
-  const getContext = cache((): NextAppRouterServerRMachineContext => {
+  const getContext = cache((): NextAppServerRMachineContext => {
     return {
       value: null,
     };
   });
 
-  function NextServerRMachine({ children }: NextAppRouterServerRMachineProps) {
+  function NextServerRMachine({ children }: NextAppServerRMachineProps) {
     return <NextClientRMachine locale={getLocale()}>{children}</NextClientRMachine>;
   }
 
   async function EntrancePage({ locale }: EntrancePageProps) {
     // Workaround for typescript error:
-    // NextAppRouterServerToolsEntrancePage' cannot be used as a JSX component. Its return type 'Promise<void>' is not a valid JSX element.
+    // NextAppEntrancePage' cannot be used as a JSX component. Its return type 'Promise<void>' is not a valid JSX element.
     return (
       <>
         {/* @ts-expect-error Async Server Component */}
-        <NextAppRouterEntrancePage rMachine={rMachine} locale={locale ?? undefined} setLocale={setLocale} />
+        <NextAppEntrancePage rMachine={rMachine} locale={locale ?? undefined} setLocale={setLocale} />
       </>
     );
   }
@@ -138,7 +138,7 @@ export function createNextAppRouterServerToolset<A extends AnyAtlas, LK extends 
     const context = getContext();
     if (context.value === null) {
       throw new RMachineError(
-        "NextAppRouterServerRMachineContext not initialized. bindLocale not invoked? (you must invoke bindLocale at the beginning of every page or layout component)."
+        "NextAppServerRMachineContext not initialized. bindLocale not invoked? (you must invoke bindLocale at the beginning of every page or layout component)."
       );
     }
     return context.value;

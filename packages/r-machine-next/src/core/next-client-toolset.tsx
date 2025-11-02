@@ -6,7 +6,7 @@ import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import type { JSX, ReactNode } from "react";
 
-const brand = Symbol("NextAppRouterClientRMachine");
+const brand = Symbol("NextClientRMachine");
 
 interface NextClientRMachineProps {
   readonly locale: string;
@@ -14,7 +14,7 @@ interface NextClientRMachineProps {
 }
 export interface NextClientRMachine {
   (props: NextClientRMachineProps): JSX.Element;
-  readonly [brand]: "NextAppRouterClientRMachine";
+  readonly [brand]: "NextClientRMachine";
 }
 
 export type NextClientToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "ReactRMachine"> & {
@@ -56,7 +56,7 @@ export function createNextClientToolset<A extends AnyAtlas>(
   function NextClientRMachine({ locale, children }: NextClientRMachineProps) {
     return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
   }
-  NextClientRMachine[brand] = "NextAppRouterClientRMachine";
+  NextClientRMachine[brand] = "NextClientRMachine";
 
   return {
     ...otherTools,

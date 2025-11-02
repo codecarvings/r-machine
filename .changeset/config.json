@@ -9,7 +9,7 @@
   "updateInternalDependencies": "patch",
   "ignore": [
     "@r-machine/examples-react", 
-    "@r-machine/examples-next-with-app-router-strategy",
+    "@r-machine/examples-next-with-app-path-strategy",
     "@r-machine/examples-next-with-proxy-path-strategy"
   ]
 }
