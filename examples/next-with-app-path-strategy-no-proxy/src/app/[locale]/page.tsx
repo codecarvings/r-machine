@@ -1,9 +1,10 @@
 import ClientComp1 from "@/client-components/client-comp-1";
 import ClientComp2 from "@/client-components/client-comp-2";
-import { pickR } from "@/r-machine/server-toolset";
+import { bindLocale, pickR } from "@/r-machine/server-toolset";
 import ServerComp1 from "@/server-components/server-comp-1";
 
-export async function Home2() {
+export default async function Home({ params }: PageProps<"/[locale]">) {
+  await bindLocale(params);
   const r = await pickR("common");
 
   return (
@@ -15,8 +16,4 @@ export async function Home2() {
       {r.currentLanguage}
     </div>
   );
-}
-
-export default async function Home() {
-  return <div>PAGE</div>;
 }

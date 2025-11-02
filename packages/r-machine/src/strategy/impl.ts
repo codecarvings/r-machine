@@ -1,7 +1,7 @@
 import type { AnyAtlas, RMachine } from "#r-machine";
 
 export interface AnyImpl {
-  readonly [key: string]: (...args: any[]) => any;
+  readonly [key: string]: ((...args: any[]) => any) | undefined;
 }
 
 export type ImplFactory<I extends AnyImpl, C> = (rMachine: RMachine<AnyAtlas>, strategyConfig: C) => I;

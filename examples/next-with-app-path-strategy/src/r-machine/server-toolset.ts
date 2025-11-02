@@ -3,8 +3,8 @@ import { NextClientRMachine } from "./client-toolset";
 import { rMachine, strategy } from "./r-machine";
 
 export const {
+  rMachineProxy,
   NextServerRMachine,
-  EntrancePage,
   generateLocaleStaticParams,
   bindLocale,
   getLocale,

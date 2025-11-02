@@ -2,5 +2,5 @@ import { NextToolset } from "@r-machine/next";
 import { NextClientRMachine } from "./client-toolset";
 import { rMachine, strategy } from "./r-machine";
 
-export const { NextServerRMachine, generateLocaleStaticParams, getLocale, setLocale, pickR, pickRKit } =
+export const { NextServerRMachine, generateLocaleStaticParams, bindLocale, getLocale, setLocale, pickR, pickRKit } =
   NextToolset.createForServer(rMachine, strategy, NextClientRMachine);

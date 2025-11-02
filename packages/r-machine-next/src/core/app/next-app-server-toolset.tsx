@@ -4,7 +4,18 @@ import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } fro
 import { RMachineError } from "r-machine/errors";
 import { cache, type JSX, type ReactNode } from "react";
 import type { NextClientRMachine } from "#r-machine/next/core";
-import { NextAppEntrancePage } from "./next-app-entrance-page.js";
+import { getLocaleFromRMachineHeader } from "./next-app-server-toolset.server.js";
+
+export interface NextAppServerToolset<A extends AnyAtlas, LK extends string> {
+  readonly rMachineProxy: RMachineProxy;
+  readonly NextServerRMachine: NextAppServerRMachine;
+  readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
+  readonly bindLocale: BindLocale<LK>;
+  readonly getLocale: () => string | Promise<string>;
+  readonly setLocale: (newLocale: string) => void;
+  readonly pickR: <N extends AtlasNamespace<A>>(namespace: N) => Promise<A[N]>;
+  readonly pickRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => Promise<RKit<A, NL>>;
+}
 
 export interface RMachineProxy extends NextMiddleware {
   readonly chain: (previousProxy: RMachineProxy) => NextMiddleware;
@@ -25,22 +36,6 @@ export interface RMachineProxy extends NextMiddleware {
   };
 */
 
-export interface NextAppServerToolset<A extends AnyAtlas, LK extends string> {
-  readonly NextServerRMachine: NextAppServerRMachine;
-  readonly EntrancePage: EntrancePage;
-  readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
-  readonly bindLocale: BindLocale<LK>;
-  readonly getLocale: () => string;
-  readonly setLocale: (newLocale: string) => void;
-  readonly pickR: <N extends AtlasNamespace<A>>(namespace: N) => Promise<A[N]>;
-  readonly pickRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => Promise<RKit<A, NL>>;
-}
-
-interface BindLocale<LK extends string> {
-  (locale: string): string;
-  <P extends RMachineParams<LK>>(params: Promise<P>): Promise<P>;
-}
-
 type RMachineParams<LK extends string> = {
   [P in LK]: string;
 };
@@ -48,21 +43,35 @@ type RMachineParams<LK extends string> = {
 interface NextAppServerRMachineProps {
   readonly children: ReactNode;
 }
-export type NextAppServerRMachine = (props: NextAppServerRMachineProps) => JSX.Element;
+export interface NextAppServerRMachine {
+  (props: NextAppServerRMachineProps): Promise<JSX.Element>;
+  readonly EntrancePage: EntrancePage;
+}
+
+export interface EntrancePageProps {
+  readonly locale?: string | undefined | null;
+}
+export type EntrancePage = (props: EntrancePageProps) => Promise<JSX.Element>;
 
 type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
 
-interface EntrancePageProps {
-  readonly locale?: string | undefined | null;
+interface BindLocale<LK extends string> {
+  (locale: string): string;
+  <P extends RMachineParams<LK>>(params: Promise<P>): Promise<P>;
 }
-type EntrancePage = (props: EntrancePageProps) => Promise<JSX.Element>;
 
 interface NextAppServerRMachineContext {
   value: string | null;
 }
 
+const ErrorEntrancePage: EntrancePage = async () => {
+  throw new RMachineError("EntrancePage implementation is not available for the current strategy options.");
+};
+
 export type NextAppServerImpl = {
   readonly writeLocale: (newLocale: string) => void;
+  readonly createProxy: () => RMachineProxy;
+  readonly createEntrancePage?: ((setLocale: (newLocale: string) => void) => EntrancePage) | undefined;
 };
 
 export function createNextAppServerToolset<A extends AnyAtlas, LK extends string>(
@@ -73,26 +82,20 @@ export function createNextAppServerToolset<A extends AnyAtlas, LK extends string
 ): NextAppServerToolset<A, LK> {
   const validateLocale = rMachine.localeHelper.validateLocale;
 
+  const rMachineProxy = impl.createProxy();
+
   const getContext = cache((): NextAppServerRMachineContext => {
     return {
       value: null,
     };
   });
 
-  function NextServerRMachine({ children }: NextAppServerRMachineProps) {
-    return <NextClientRMachine locale={getLocale()}>{children}</NextClientRMachine>;
+  async function NextServerRMachine({ children }: NextAppServerRMachineProps) {
+    return <NextClientRMachine locale={await getLocale()}>{children}</NextClientRMachine>;
   }
 
-  async function EntrancePage({ locale }: EntrancePageProps) {
-    // Workaround for typescript error:
-    // NextAppEntrancePage' cannot be used as a JSX component. Its return type 'Promise<void>' is not a valid JSX element.
-    return (
-      <>
-        {/* @ts-expect-error Async Server Component */}
-        <NextAppEntrancePage rMachine={rMachine} locale={locale ?? undefined} setLocale={setLocale} />
-      </>
-    );
-  }
+  NextServerRMachine.EntrancePage =
+    impl.createEntrancePage !== undefined ? impl.createEntrancePage(setLocale) : ErrorEntrancePage;
 
   async function generateLocaleStaticParams() {
     return rMachine.config.locales.map((locale) => ({
@@ -134,12 +137,21 @@ export function createNextAppServerToolset<A extends AnyAtlas, LK extends string
     }
   }
 
-  function getLocale(): string {
+  function getLocale(): string | Promise<string> {
     const context = getContext();
     if (context.value === null) {
+      // TODO: Handle racing conditions !!!
+      return getLocaleFromRMachineHeader(rMachine).then((locale) => {
+        console.log("Determined locale from header:", locale);
+        context.value = locale;
+        return locale;
+      });
+
+      /*
       throw new RMachineError(
         "NextAppServerRMachineContext not initialized. bindLocale not invoked? (you must invoke bindLocale at the beginning of every page or layout component)."
       );
+      */
     }
     return context.value;
   }
@@ -154,16 +166,20 @@ export function createNextAppServerToolset<A extends AnyAtlas, LK extends string
   }
 
   async function pickR<N extends AtlasNamespace<A>>(namespace: N): Promise<A[N]> {
-    return rMachine.pickR(getLocale(), namespace) as Promise<A[N]>;
+    const localeOrPromise = getLocale();
+    const locale = localeOrPromise instanceof Promise ? await localeOrPromise : localeOrPromise;
+    return rMachine.pickR(locale, namespace) as Promise<A[N]>;
   }
 
   async function pickRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): Promise<RKit<A, NL>> {
-    return rMachine.pickRKit(getLocale(), ...namespaces) as Promise<RKit<A, NL>>;
+    const localeOrPromise = getLocale();
+    const locale = localeOrPromise instanceof Promise ? await localeOrPromise : localeOrPromise;
+    return rMachine.pickRKit(locale, ...namespaces) as Promise<RKit<A, NL>>;
   }
 
   return {
+    rMachineProxy,
     NextServerRMachine,
-    EntrancePage,
     generateLocaleStaticParams: generateLocaleStaticParams as LocaleStaticParamsGenerator<LK>,
     bindLocale: bindLocale as BindLocale<LK>,
     getLocale,

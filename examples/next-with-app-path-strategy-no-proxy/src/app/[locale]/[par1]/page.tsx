@@ -1,16 +1,15 @@
-import { pickR } from "@/r-machine/server-toolset";
+import { bindLocale } from "@/r-machine/server-toolset";
 
 export function generateStaticParams() {
   return [{ par1: "param1" }, { par1: "param2" }];
 }
 
 export default async function Page1({ params }: PageProps<"/[locale]/[par1]">) {
-  const par1 = (await params).par1;
-  const r = await pickR("common");
+  const { locale, par1 } = await bindLocale(params);
 
   return (
     <div>
-      [{par1}] - {r.title}
+      [{locale}] - [{par1}]
     </div>
   );
 }

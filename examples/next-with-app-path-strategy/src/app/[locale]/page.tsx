@@ -1,10 +1,10 @@
 import ClientComp1 from "@/client-components/client-comp-1";
 import ClientComp2 from "@/client-components/client-comp-2";
-import { bindLocale, pickR } from "@/r-machine/server-toolset";
+import { pickR } from "@/r-machine/server-toolset";
 import ServerComp1 from "@/server-components/server-comp-1";
 
 export default async function Home({ params }: PageProps<"/[locale]">) {
-  await bindLocale(params);
+  // await bindLocale(params);
   const r = await pickR("common");
 
   return (
