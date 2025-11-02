@@ -1,7 +1,8 @@
+import type { ImplFactory } from "r-machine/strategy";
 import type { NextClientImpl } from "#r-machine/next/core";
 import { NextAppRouterImplProvider, type NextAppRouterServerImpl } from "#r-machine/next/core/app-router";
-import { nextAppRouterStandardImpl_client } from "./next-app-router-standard-impl.client.js";
-import { nextAppRouterStandardImpl_server } from "./next-app-router-standard-impl.server.js";
+import { nextAppRouterStandardImpl_clientFactory } from "./next-app-router-standard-impl.client.js";
+import { nextAppRouterStandardImpl_serverFactory } from "./next-app-router-standard-impl.server.js";
 
 const defaultLocaleKey = "locale" as const;
 type DefaultLocaleKey = typeof defaultLocaleKey;
@@ -20,8 +21,8 @@ const defaultConfig: NextAppRouterStandardStrategyConfig<DefaultLocaleKey> = {
 };
 
 export class NextAppRouterStandardStrategy<LK extends string = DefaultLocaleKey> extends NextAppRouterImplProvider<
-  NextAppRouterStandardStrategyConfig<LK>,
-  LK
+  LK,
+  NextAppRouterStandardStrategyConfig<LK>
 > {
   constructor(config: PartialNextAppRouterStandardStrategyConfig<LK>) {
     super(
@@ -29,8 +30,11 @@ export class NextAppRouterStandardStrategy<LK extends string = DefaultLocaleKey>
         ...defaultConfig,
         ...config,
       } as NextAppRouterStandardStrategyConfig<LK>,
-      nextAppRouterStandardImpl_client as NextClientImpl<NextAppRouterStandardStrategyConfig<LK>>,
-      nextAppRouterStandardImpl_server as NextAppRouterServerImpl<NextAppRouterStandardStrategyConfig<LK>>,
+      nextAppRouterStandardImpl_clientFactory as ImplFactory<NextClientImpl, NextAppRouterStandardStrategyConfig<LK>>,
+      nextAppRouterStandardImpl_serverFactory as ImplFactory<
+        NextAppRouterServerImpl,
+        NextAppRouterStandardStrategyConfig<LK>
+      >,
       (config.localeKey ?? defaultLocaleKey) as LK
     );
   }

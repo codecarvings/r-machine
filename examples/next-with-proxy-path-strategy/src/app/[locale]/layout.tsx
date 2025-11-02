@@ -21,7 +21,7 @@ export async function LocaleLayout2({ children }: { children: React.ReactNode })
   );
 }
 
-export default async function LocaleLayout({ children, params }: LayoutProps<"/[locale]">) {
+export default async function LocaleLayout({ params }: LayoutProps<"/[locale]">) {
   const data = await params;
   console.log("LAYOUT PARAMS:", data);
   return (

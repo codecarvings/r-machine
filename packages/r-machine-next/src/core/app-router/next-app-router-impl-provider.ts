@@ -1,45 +1,49 @@
 import type { AnyAtlas, RMachine } from "r-machine";
+import { getImplFactory, type ImplFactory, type ImplProvider } from "r-machine/strategy";
 import { type NextClientImpl, NextClientImplProvider, type NextClientRMachine } from "#r-machine/next/core";
-import { createNextAppRouterServerImplPackage, type NextAppRouterServerImpl } from "./next-app-router-server-impl.js";
-import { createNextAppRouterServerToolset } from "./next-app-router-server-toolset.js";
+import { createNextAppRouterServerToolset, type NextAppRouterServerImpl } from "./next-app-router-server-toolset.js";
 
-export class NextAppRouterImplProvider<C, LK extends string> extends NextClientImplProvider<C> {
+export class NextAppRouterImplProvider<LK extends string, C> extends NextClientImplProvider<C> {
   protected constructor(
     config: C,
-    clientImpl: NextClientImpl<C>,
-    protected readonly serverImpl: NextAppRouterServerImpl<C>,
-    protected readonly locateKey: LK
+    clientImplFactory: ImplFactory<NextClientImpl, C>,
+    protected readonly serverImplFactory: ImplFactory<NextAppRouterServerImpl, C>,
+    protected readonly localeKey: LK
   ) {
-    super(config, clientImpl);
+    super(config, clientImplFactory);
   }
 
   protected createServerToolset<A extends AnyAtlas>(rMachine: RMachine<A>, NextClientRMachine: NextClientRMachine) {
     return createNextAppRouterServerToolset(
       rMachine,
-      this.config,
-      this.locateKey,
-      createNextAppRouterServerImplPackage(this.serverImpl),
+      this.serverImplFactory(rMachine, this.config),
+      this.localeKey,
       NextClientRMachine
     );
   }
 
   static define<LK extends string>(
-    clientImpl: NextClientImpl<undefined>,
-    serverImpl: NextAppRouterServerImpl<undefined>,
+    clientImpl: ImplProvider<NextClientImpl, undefined>,
+    serverImpl: ImplProvider<NextAppRouterServerImpl, undefined>,
     localeKey: LK
-  ): NextAppRouterImplProvider<undefined, LK>;
+  ): NextAppRouterImplProvider<LK, undefined>;
   static define<C, LK extends string>(
-    clientImpl: NextClientImpl<C>,
-    serverImpl: NextAppRouterServerImpl<C>,
+    clientImpl: ImplProvider<NextClientImpl, C>,
+    serverImpl: ImplProvider<NextAppRouterServerImpl, C>,
     localeKey: LK,
     config: C
-  ): NextAppRouterImplProvider<C, LK>;
+  ): NextAppRouterImplProvider<LK, C>;
   static define<C, LK extends string>(
-    clientImpl: NextClientImpl<C>,
-    serverImpl: NextAppRouterServerImpl<C>,
+    clientImpl: ImplProvider<NextClientImpl, C>,
+    serverImpl: ImplProvider<NextAppRouterServerImpl, C>,
     localeKey: LK,
     config?: C
   ) {
-    return new NextAppRouterImplProvider<C, LK>(config as C, clientImpl, serverImpl, localeKey);
+    return new NextAppRouterImplProvider<LK, C>(
+      config as C,
+      getImplFactory(clientImpl),
+      getImplFactory(serverImpl),
+      localeKey
+    );
   }
 }

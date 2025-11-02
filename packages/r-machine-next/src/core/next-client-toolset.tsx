@@ -1,10 +1,10 @@
 "use client";
 
 import { createReactToolset, type ReactToolset } from "@r-machine/react/core";
+import { useRouter } from "next/navigation";
 import type { AnyAtlas, RMachine } from "r-machine";
-import type { RMachineError } from "r-machine/errors";
+import { RMachineError } from "r-machine/errors";
 import type { JSX, ReactNode } from "react";
-import type { NextClientImplPackage } from "./next-client-impl.js";
 
 const brand = Symbol("NextAppRouterClientRMachine");
 
@@ -21,40 +21,35 @@ export type NextClientToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "React
   readonly NextClientRMachine: NextClientRMachine;
 };
 
-function setLocale(
-  locale: string,
-  newLocale: string,
-  writeLocaleBin: unknown,
-  validateLocale: (locale: string) => RMachineError | null,
-  writeLocale: (newLocale: string, bin: any) => void
-) {
-  if (newLocale === locale) {
-    return;
-  }
+export type NextClientImpl = {
+  readonly writeLocale: (newLocale: string, router: ReturnType<typeof useRouter>) => void;
+};
 
-  const error = validateLocale(newLocale);
-  if (error) {
-    throw error;
-  }
-
-  writeLocale(newLocale, writeLocaleBin);
-}
-
-export function createNextClientToolset<A extends AnyAtlas, C>(
+export function createNextClientToolset<A extends AnyAtlas>(
   rMachine: RMachine<A>,
-  strategyConfig: C,
-  implPackage: NextClientImplPackage<C>
+  impl: NextClientImpl
 ): NextClientToolset<A> {
   const { ReactRMachine, useLocale, ...otherTools } = createReactToolset(rMachine);
-  const validateLocale = rMachine.localeHelper.validateLocale;
-  const partialBin = { strategyConfig, rMachine };
+
+  function setLocale(locale: string, newLocale: string, router: ReturnType<typeof useRouter>): void {
+    if (newLocale === locale) {
+      return;
+    }
+
+    const error = rMachine.localeHelper.validateLocale(newLocale);
+    if (error) {
+      throw new RMachineError(`Cannot set invalid locale: ${newLocale}.`, error);
+    }
+
+    impl.writeLocale(newLocale, router);
+  }
 
   function useSetLocale(): ReturnType<ReactToolset<A>["useSetLocale"]> {
     const locale = useLocale();
-    const bin = implPackage.binFactories.writeLocale(partialBin);
+    const router = useRouter();
 
     return (newLocale: string) => {
-      setLocale(locale, newLocale, bin, validateLocale, implPackage.impl.writeLocale);
+      setLocale(locale, newLocale, router);
     };
   }
 

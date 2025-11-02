@@ -1,8 +1,6 @@
 import type { NextMiddleware, NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-export { rMachineProxy as middleware2 } from "./r-machine/server-toolset";
-
 // biome-ignore lint/suspicious/noConfusingVoidType: Use exact type definition from Next.js
 type NextMiddlewareResult = NextResponse | Response | null | undefined | void;
 
@@ -94,7 +92,7 @@ export function middleware3(request: NextRequest) {
 
 export const config = {
   // Apply proxy to all routes except:
-  // - Common system routes: `/api`, `/trpc`, `/_next`, `/_vercel`
+  // - Common system routes: `/_next`, `/_vercel`, `/api`
   // - Static assets: files with extensions like `favicon.ico`, `robots.txt`
-  matcher: "/((?!api|trpc|_next|_vercel|.*\\..*).*)",
+  matcher: "/((?!_next|_vercel|api|.*\\..*).*)",
 };

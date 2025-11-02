@@ -19,7 +19,7 @@ export class ReactStandardImplProvider<C> extends ReactStrategy<C> {
     return createReactStandardToolset(rMachine, this.implFactory(rMachine, this.config));
   }
 
-  static define(impl: ImplProvider<ReactStandardImpl, any>): ReactStandardImplProvider<undefined>;
+  static define(impl: ImplProvider<ReactStandardImpl, undefined>): ReactStandardImplProvider<undefined>;
   static define<C>(impl: ImplProvider<ReactStandardImpl, C>, config: C): ReactStandardImplProvider<C>;
   static define<C>(impl: ImplProvider<ReactStandardImpl, C>, config?: C) {
     return new ReactStandardImplProvider<C>(config as C, getImplFactory(impl));
