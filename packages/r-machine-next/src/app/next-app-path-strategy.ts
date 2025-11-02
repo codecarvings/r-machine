@@ -1,8 +1,4 @@
-import type { ImplFactory } from "r-machine/strategy";
-import type { NextClientImpl } from "#r-machine/next/core";
-import { type DefaultLocaleKey, NextAppImplProvider, type NextAppServerImpl } from "#r-machine/next/core/app";
-import { nextAppPathImpl_clientFactory } from "./next-app-path-impl.client.js";
-import { nextAppPathImpl_serverFactory } from "./next-app-path-impl.server.js";
+import { type DefaultLocaleKey, NextAppImplProvider } from "#r-machine/next/core/app";
 
 export interface NextAppPathStrategyConfig<LK extends string = DefaultLocaleKey> {
   readonly localeKey: LK;
@@ -27,8 +23,14 @@ export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends N
         ...defaultConfig,
         ...config,
       } as NextAppPathStrategyConfig<LK>,
-      nextAppPathImpl_clientFactory as ImplFactory<NextClientImpl, NextAppPathStrategyConfig<LK>>,
-      nextAppPathImpl_serverFactory as ImplFactory<NextAppServerImpl, NextAppPathStrategyConfig<LK>>,
+      async (rMachine, strategyConfig) => {
+        const module = await import("./next-app-path-impl.client.js");
+        return await module.nextAppPathImpl_clientFactory(rMachine, strategyConfig);
+      },
+      async (rMachine, strategyConfig) => {
+        const module = await import("./next-app-path-impl.server.js");
+        return await module.nextAppPathImpl_serverFactory(rMachine, strategyConfig);
+      },
       (config.localeKey ?? NextAppImplProvider.defaultLocaleKey) as LK
     );
   }

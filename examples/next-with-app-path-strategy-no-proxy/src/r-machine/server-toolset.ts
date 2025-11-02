@@ -3,4 +3,4 @@ import { NextClientRMachine } from "./client-toolset";
 import { rMachine, strategy } from "./r-machine";
 
 export const { NextServerRMachine, generateLocaleStaticParams, bindLocale, getLocale, setLocale, pickR, pickRKit } =
-  NextToolset.createForServer(rMachine, strategy, NextClientRMachine);
+  await NextToolset.createForServer(rMachine, strategy, NextClientRMachine);

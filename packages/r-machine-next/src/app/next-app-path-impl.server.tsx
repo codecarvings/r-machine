@@ -4,7 +4,7 @@ import type { EntrancePageProps, NextAppServerImpl } from "#r-machine/next/core/
 import { NextAppEntrancePage } from "./next-app-entrance-page.js";
 import type { NextAppPathStrategyConfig } from "./next-app-path-strategy.js";
 
-export const nextAppPathImpl_serverFactory: ImplFactory<NextAppServerImpl, NextAppPathStrategyConfig<string>> = (
+export const nextAppPathImpl_serverFactory: ImplFactory<NextAppServerImpl, NextAppPathStrategyConfig<string>> = async (
   rMachine,
   strategyConfig
 ) => ({

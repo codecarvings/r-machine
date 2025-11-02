@@ -2,7 +2,7 @@ import type { ImplFactory } from "r-machine/strategy";
 import type { NextClientImpl } from "#r-machine/next/core";
 import type { NextAppPathStrategyConfig } from "./next-app-path-strategy.js";
 
-export const nextAppPathImpl_clientFactory: ImplFactory<NextClientImpl, NextAppPathStrategyConfig<string>> = (
+export const nextAppPathImpl_clientFactory: ImplFactory<NextClientImpl, NextAppPathStrategyConfig<string>> = async (
   _rMachine,
   strategyConfig
 ) => ({

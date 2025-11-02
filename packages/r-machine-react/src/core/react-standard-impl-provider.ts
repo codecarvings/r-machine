@@ -15,8 +15,9 @@ export class ReactStandardImplProvider<C> extends ReactStrategy<C> {
     super(config);
   }
 
-  protected createToolset<A extends AnyAtlas>(rMachine: RMachine<A>): ReactStandardToolset<A> {
-    return createReactStandardToolset(rMachine, this.implFactory(rMachine, this.config));
+  protected async createToolset<A extends AnyAtlas>(rMachine: RMachine<A>): Promise<ReactStandardToolset<A>> {
+    const impl = await this.implFactory(rMachine, this.config);
+    return createReactStandardToolset(rMachine, impl);
   }
 
   static define(impl: ImplProvider<ReactStandardImpl, undefined>): ReactStandardImplProvider<undefined>;

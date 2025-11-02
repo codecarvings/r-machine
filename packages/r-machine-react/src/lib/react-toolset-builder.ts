@@ -8,16 +8,19 @@ import {
 } from "#r-machine/react/core";
 
 interface ReactToolsetBuilder {
-  create<A extends AnyAtlas>(rMachine: RMachine<A>): ReactTools<A>;
-  create<A extends AnyAtlas>(rMachine: RMachine<A>, strategy: ReactStandardImplProvider<any>): ReactStandardToolset<A>;
+  create<A extends AnyAtlas>(rMachine: RMachine<A>): Promise<ReactTools<A>>;
+  create<A extends AnyAtlas>(
+    rMachine: RMachine<A>,
+    strategy: ReactStandardImplProvider<any>
+  ): Promise<ReactStandardToolset<A>>;
 }
 
 export const ReactToolset: ReactToolsetBuilder = {
-  create: (rMachine, strategy?: ReactStrategy<any>) => {
+  create: (rMachine, strategy?): any => {
     if (strategy !== undefined) {
-      return ReactStrategy.createToolset(rMachine, strategy);
+      return ReactStrategy.createToolset(rMachine, strategy as ReactStrategy<any>);
     }
 
-    return createReactToolset(rMachine);
+    return async () => createReactToolset(rMachine);
   },
 };

@@ -1,7 +1,7 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import { getImplFactory, type ImplFactory, type ImplProvider } from "r-machine/strategy";
 import { type NextClientImpl, NextClientImplProvider, type NextClientRMachine } from "#r-machine/next/core";
-import { createNextAppServerToolset, type NextAppServerImpl } from "./next-app-server-toolset.js";
+import type { NextAppServerImpl } from "./next-app-server-toolset.js";
 
 const defaultLocaleKey = "locale" as const;
 export type DefaultLocaleKey = typeof defaultLocaleKey;
@@ -16,13 +16,14 @@ export class NextAppImplProvider<LK extends string, C> extends NextClientImplPro
     super(config, clientImplFactory);
   }
 
-  protected createServerToolset<A extends AnyAtlas>(rMachine: RMachine<A>, NextClientRMachine: NextClientRMachine) {
-    return createNextAppServerToolset(
-      rMachine,
-      this.serverImplFactory(rMachine, this.config),
-      this.localeKey,
-      NextClientRMachine
-    );
+  protected async createServerToolset<A extends AnyAtlas>(
+    rMachine: RMachine<A>,
+    NextClientRMachine: NextClientRMachine
+  ) {
+    const impl = await this.serverImplFactory(rMachine, this.config);
+    // Dynamic import to separate client and server code
+    const module = await import("./next-app-server-toolset.js");
+    return module.createNextAppServerToolset(rMachine, impl, this.localeKey, NextClientRMachine);
   }
 
   static defaultLocaleKey = defaultLocaleKey;
