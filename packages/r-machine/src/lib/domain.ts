@@ -33,30 +33,9 @@ export class Domain {
     return r;
   }
 
-  pickR(namespace: AnyNamespace): AnyR | Promise<AnyR> {
-    const r = this.resources.get(namespace);
-    if (r !== undefined) {
-      // The resource is already resolved or resolving
-      return r;
-    }
-
-    // The resource has not been resolved yet nor is resolving
-    return this.resolveR(namespace);
-  }
-
-  pickRKit(namespaces: AnyNamespaceList): AnyRKit | Promise<AnyRKit> {
-    const totRequestedR = namespaces.length;
-    if (totRequestedR === 0) {
-      return [];
-    }
-
-    const initialRKit = namespaces.map((namespace) => this.resources.get(namespace));
-    if (initialRKit.every((r) => r !== undefined && !(r instanceof Promise))) {
-      // All resources are already resolved
-      return initialRKit as AnyRKit;
-    }
-
+  protected resolveRKit(namespaces: AnyNamespaceList): Promise<AnyRKit> {
     const key = getRKitKey(...namespaces);
+    const totRequestedR = namespaces.length;
 
     let pendingRKit = this.pendingRKits.get(key);
     if (pendingRKit) {
@@ -120,5 +99,57 @@ export class Domain {
 
     this.pendingRKits.set(key, pendingRKit);
     return pendingRKit;
+  }
+
+  // Required for react suspense support
+  hybridPickR(namespace: AnyNamespace): AnyR | Promise<AnyR> {
+    const r = this.resources.get(namespace);
+    if (r !== undefined) {
+      // The resource is already resolved or resolving
+      return r;
+    }
+
+    // The resource has not been resolved yet nor is resolving
+    return this.resolveR(namespace);
+  }
+
+  pickR(namespace: AnyNamespace): Promise<AnyR> {
+    const r = this.resources.get(namespace);
+    if (r !== undefined) {
+      // The resource is already resolved or resolving
+      return Promise.resolve(r);
+    }
+
+    // The resource has not been resolved yet nor is resolving
+    return this.resolveR(namespace);
+  }
+
+  // Required for react suspense support
+  hybridPickRKit(namespaces: AnyNamespaceList): AnyRKit | Promise<AnyRKit> {
+    if (namespaces.length === 0) {
+      return [];
+    }
+
+    const initialRKit = namespaces.map((namespace) => this.resources.get(namespace));
+    if (initialRKit.every((r) => r !== undefined && !(r instanceof Promise))) {
+      // All resources are already resolved
+      return initialRKit as AnyRKit;
+    }
+
+    return this.resolveRKit(namespaces);
+  }
+
+  pickRKit(namespaces: AnyNamespaceList): Promise<AnyRKit> {
+    if (namespaces.length === 0) {
+      return Promise.resolve([]);
+    }
+
+    const initialRKit = namespaces.map((namespace) => this.resources.get(namespace));
+    if (initialRKit.every((r) => r !== undefined && !(r instanceof Promise))) {
+      // All resources are already resolved
+      return Promise.resolve(initialRKit as AnyRKit);
+    }
+
+    return this.resolveRKit(namespaces);
   }
 }

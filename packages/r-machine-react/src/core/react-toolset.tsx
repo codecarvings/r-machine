@@ -105,7 +105,7 @@ export function createReactToolset<A extends AnyAtlas>(rMachine: RMachine<A>): R
 
   function useR<N extends AtlasNamespace<A>>(namespace: N): A[N] {
     const context = useReactToolsetContext();
-    const r = rMachine.pickR(context.locale, namespace);
+    const r = rMachine.hybridPickR(context.locale, namespace);
 
     if (r instanceof Promise) {
       throw r;
@@ -116,7 +116,7 @@ export function createReactToolset<A extends AnyAtlas>(rMachine: RMachine<A>): R
 
   function useRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): RKit<A, NL> {
     const context = useReactToolsetContext();
-    const rKit = rMachine.pickRKit(context.locale, ...namespaces);
+    const rKit = rMachine.hybridPickRKit(context.locale, ...namespaces);
 
     if (rKit instanceof Promise) {
       throw rKit;

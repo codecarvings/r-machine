@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import { type NextRequest, NextResponse } from "next/server";
 import type { ImplFactory } from "r-machine/strategy";
-import type { EntrancePageProps, NextAppServerImpl } from "#r-machine/next/core/app";
+import { type EntrancePageProps, localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
 import { NextAppEntrancePage } from "./next-app-entrance-page.js";
 import type { NextAppPathStrategyConfig } from "./next-app-path-strategy.js";
 
@@ -16,7 +17,21 @@ export const nextAppPathImpl_serverFactory: ImplFactory<NextAppServerImpl, NextA
   },
 
   createProxy() {
-    return undefined!;
+    const proxy = (request: NextRequest) => {
+      const pathname = request.nextUrl.pathname;
+      console.log("rMachineProxy pathname:", pathname);
+
+      const locale = "en";
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set(localeHeaderName, locale);
+      return NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
+    };
+    proxy.chain = undefined!;
+    return proxy;
   },
 
   createEntrancePage(setLocale) {

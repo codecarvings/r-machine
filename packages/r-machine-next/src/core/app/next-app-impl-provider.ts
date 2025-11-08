@@ -21,7 +21,6 @@ export class NextAppImplProvider<LK extends string, C> extends NextClientImplPro
     NextClientRMachine: NextClientRMachine
   ) {
     const impl = await this.serverImplFactory(rMachine, this.config);
-    // Dynamic import to separate client and server code
     const module = await import("./next-app-server-toolset.js");
     return module.createNextAppServerToolset(rMachine, impl, this.localeKey, NextClientRMachine);
   }

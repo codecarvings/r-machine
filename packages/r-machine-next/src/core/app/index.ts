@@ -3,6 +3,7 @@ export {
   createNextAppServerToolset,
   type EntrancePage,
   type EntrancePageProps,
+  localeHeaderName,
   type NextAppServerImpl,
   type NextAppServerRMachine,
   type NextAppServerToolset,

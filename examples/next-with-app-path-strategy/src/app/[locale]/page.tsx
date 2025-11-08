@@ -4,6 +4,7 @@ import { pickR } from "@/r-machine/server-toolset";
 import ServerComp1 from "@/server-components/server-comp-1";
 
 export default async function Home({ params }: PageProps<"/[locale]">) {
+  void params;
   // await bindLocale(params);
   const r = await pickR("common");
 

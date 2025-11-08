@@ -25,11 +25,11 @@ export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends N
       } as NextAppPathStrategyConfig<LK>,
       async (rMachine, strategyConfig) => {
         const module = await import("./next-app-path-impl.client.js");
-        return await module.nextAppPathImpl_clientFactory(rMachine, strategyConfig);
+        return module.nextAppPathImpl_clientFactory(rMachine, strategyConfig);
       },
       async (rMachine, strategyConfig) => {
         const module = await import("./next-app-path-impl.server.js");
-        return await module.nextAppPathImpl_serverFactory(rMachine, strategyConfig);
+        return module.nextAppPathImpl_serverFactory(rMachine, strategyConfig);
       },
       (config.localeKey ?? NextAppImplProvider.defaultLocaleKey) as LK
     );
