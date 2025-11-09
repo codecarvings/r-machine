@@ -1,16 +1,34 @@
 import { type DefaultLocaleKey, NextAppImplProvider } from "#r-machine/next/core/app";
 
+interface ImplicitDefaultLocaleOptions {
+  pathRegexp: RegExp;
+  autoDetectLocalePathRegexp: RegExp;
+}
+
 export interface NextAppPathStrategyConfig<LK extends string = DefaultLocaleKey> {
   readonly localeKey: LK;
   readonly lowercaseLocale: boolean;
+  readonly implicitDefaultLocale: false | ImplicitDefaultLocaleOptions;
+  readonly allowAutoLocaleBinding: boolean;
+  readonly basePath: string;
+  readonly cookie: any;
 }
 export type PartialNextAppPathStrategyConfig<LK extends string = DefaultLocaleKey> = Partial<
-  NextAppPathStrategyConfig<LK>
+  Omit<NextAppPathStrategyConfig<LK>, "implicitDefaultLocale"> & {
+    readonly implicitDefaultLocale?: boolean | Partial<ImplicitDefaultLocaleOptions>;
+  }
 >;
 
 const defaultConfig: NextAppPathStrategyConfig<DefaultLocaleKey> = {
   localeKey: NextAppImplProvider.defaultLocaleKey,
   lowercaseLocale: true,
+  implicitDefaultLocale: {
+    pathRegexp: /^\/(?!(?:api|_next|_vercel)(?:\/|$)|.*\.[^/]+$)/,
+    autoDetectLocalePathRegexp: /^\/$/,
+  },
+  allowAutoLocaleBinding: true,
+  basePath: "",
+  cookie: undefined,
 };
 
 export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends NextAppImplProvider<

@@ -1,12 +1,15 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
-import { createContext, type JSX, type ReactNode, useContext, useState } from "react";
+import { createContext, type ReactNode, use, useContext, useMemo, useState } from "react";
+import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils";
 import { createReactToolset, type ReactToolset } from "./react-toolset.js";
 
 interface ReactStandardRMachineProps {
+  readonly fallback?: ReactNode;
+  readonly Suspense?: SuspenseComponent | null | undefined; // Null means no suspense
   readonly children: ReactNode;
 }
-export type ReactStandardRMachine = (props: ReactStandardRMachineProps) => JSX.Element;
+export type ReactStandardRMachine = (props: ReactStandardRMachineProps) => ReactNode;
 
 export type ReactStandardToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "ReactRMachine"> & {
   readonly ReactRMachine: ReactStandardRMachine;
@@ -15,15 +18,15 @@ export type ReactStandardToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "Re
 type ReactStandardToolsetContext = [string, (newLocale: string) => void];
 
 export type ReactStandardImpl = {
-  readonly readLocale: () => string;
-  readonly writeLocale: (newLocale: string) => void;
+  readonly readLocale: () => string | Promise<string>;
+  readonly writeLocale: (newLocale: string) => void | Promise<void>;
 };
 
 export function createReactStandardToolset<A extends AnyAtlas>(
   rMachine: RMachine<A>,
   impl: ReactStandardImpl
 ): ReactStandardToolset<A> {
-  const { ReactRMachine: InternalReactRMachine, ...otherTools } = createReactToolset(rMachine);
+  const { ReactRMachine: OriginalReactRMachine, ...otherTools } = createReactToolset(rMachine);
 
   const Context = createContext<ReactStandardToolsetContext | null>(null);
   Context.displayName = "ReactStandardToolsetContext";
@@ -37,7 +40,7 @@ export function createReactStandardToolset<A extends AnyAtlas>(
     return context;
   }
 
-  function setLocale(newLocale: string, context: ReactStandardToolsetContext): void {
+  async function setLocale(newLocale: string, context: ReactStandardToolsetContext) {
     const [locale, setLocaleContext] = context;
     if (newLocale === locale) {
       return;
@@ -49,25 +52,61 @@ export function createReactStandardToolset<A extends AnyAtlas>(
     }
 
     setLocaleContext(newLocale);
-    impl.writeLocale(newLocale);
+    const writeLocaleResult = impl.writeLocale(newLocale);
+    if (writeLocaleResult instanceof Promise) {
+      await writeLocaleResult;
+    }
   }
 
   function useSetLocale(): ReturnType<ReactToolset<A>["useSetLocale"]> {
     const context = useReactStandardToolsetContext();
 
-    return (newLocale: string) => {
-      setLocale(newLocale, context);
-    };
+    return (newLocale: string) => setLocale(newLocale, context);
   }
 
-  function ReactRMachine({ children }: ReactStandardRMachineProps) {
-    const context = useState(impl.readLocale);
+  function InternalReactRMachine({
+    initialLocaleOrPromise,
+    children,
+  }: {
+    readonly initialLocaleOrPromise: string | Promise<string>;
+    readonly children: ReactNode;
+  }) {
+    const initialLocale =
+      initialLocaleOrPromise instanceof Promise ? use(initialLocaleOrPromise) : initialLocaleOrPromise;
+    const context = useState(initialLocale);
 
+    // Suspense is already handled in the outer component
     return (
       <Context.Provider value={context}>
-        <InternalReactRMachine locale={context[0]}>{children}</InternalReactRMachine>
+        <OriginalReactRMachine locale={context[0]} Suspense={null}>
+          {children}
+        </OriginalReactRMachine>
       </Context.Provider>
     );
+  }
+
+  function ReactRMachine({ fallback, Suspense, children }: ReactStandardRMachineProps) {
+    const initialLocaleOrPromise = useMemo(() => impl.readLocale(), [impl.readLocale]);
+    const SuspenseComponent = useMemo(
+      () => Suspense || (Suspense !== null ? DelayedSuspense.create() : null),
+      [Suspense]
+    );
+
+    if (Suspense === null && initialLocaleOrPromise instanceof Promise) {
+      throw new RMachineError(
+        "<ReactRMachine> cannot have Suspense set to null when the initial locale is loaded asynchronously."
+      );
+    }
+
+    if (SuspenseComponent !== null) {
+      return (
+        <SuspenseComponent fallback={fallback}>
+          <InternalReactRMachine initialLocaleOrPromise={initialLocaleOrPromise}>{children}</InternalReactRMachine>
+        </SuspenseComponent>
+      );
+    } else {
+      return <InternalReactRMachine initialLocaleOrPromise={initialLocaleOrPromise}>{children}</InternalReactRMachine>;
+    }
   }
 
   return {

@@ -2,11 +2,13 @@
 
 import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
-import type { JSX, ReactNode } from "react";
-import { createContext, useCallback, useContext, useMemo } from "react";
+import type { ReactNode } from "react";
+import { createContext, use, useCallback, useContext, useMemo } from "react";
+import { DelayedSuspense } from "#r-machine/react/utils";
+import type { SuspenseComponent } from "../utils/delayed-suspense.js";
 
-type SetLocale = (newLocale: string) => void;
-type WriteLocale = (newLocale: string) => void;
+type SetLocale = (newLocale: string) => Promise<void>;
+type WriteLocale = (newLocale: string) => void | Promise<void>;
 
 export interface ReactToolset<A extends AnyAtlas> {
   readonly ReactRMachine: ReactRMachine;
@@ -20,12 +22,14 @@ export interface ReactToolset<A extends AnyAtlas> {
 
 interface ReactRMachineProps {
   readonly locale: string;
-  readonly writeLocale?: WriteLocale;
+  readonly writeLocale?: WriteLocale | undefined;
+  readonly fallback?: ReactNode;
+  readonly Suspense?: SuspenseComponent | null | undefined; // Null means no suspense
   readonly children: ReactNode;
 }
 
 export interface ReactRMachine {
-  (props: ReactRMachineProps): JSX.Element;
+  (props: ReactRMachineProps): ReactNode;
   probe: (localeOption: string | undefined) => string | undefined;
 }
 
@@ -49,7 +53,7 @@ export function createReactToolset<A extends AnyAtlas>(rMachine: RMachine<A>): R
     return context;
   }
 
-  function ReactRMachine({ locale, writeLocale, children }: ReactRMachineProps) {
+  function ReactRMachine({ locale, writeLocale, fallback, Suspense, children }: ReactRMachineProps) {
     const value = useMemo<ReactToolsetContext>(() => {
       const error = validateLocale(locale);
       if (error) {
@@ -59,7 +63,20 @@ export function createReactToolset<A extends AnyAtlas>(rMachine: RMachine<A>): R
       return { locale, writeLocale };
     }, [locale, writeLocale]);
 
-    return <Context.Provider value={value}>{children}</Context.Provider>;
+    const SuspenseComponent = useMemo(
+      () => Suspense || (Suspense !== null ? DelayedSuspense.create() : null),
+      [Suspense]
+    );
+
+    if (SuspenseComponent !== null) {
+      return (
+        <Context.Provider value={value}>
+          <SuspenseComponent fallback={fallback}>{children}</SuspenseComponent>
+        </Context.Provider>
+      );
+    } else {
+      return <Context.Provider value={value}>{children}</Context.Provider>;
+    }
   }
 
   ReactRMachine.probe = (locale: string | undefined) => {
@@ -71,11 +88,10 @@ export function createReactToolset<A extends AnyAtlas>(rMachine: RMachine<A>): R
   };
 
   function useLocale(): string {
-    const context = useReactToolsetContext();
-    return context.locale;
+    return useReactToolsetContext().locale;
   }
 
-  function setLocale(newLocale: string, context: ReactToolsetContext): void {
+  async function setLocale(newLocale: string, context: ReactToolsetContext) {
     const { locale, writeLocale } = context;
     if (newLocale === locale) {
       return;
@@ -90,39 +106,29 @@ export function createReactToolset<A extends AnyAtlas>(rMachine: RMachine<A>): R
       throw new RMachineError("No writeLocale function provided to <ReactRMachine>.");
     }
 
-    writeLocale(newLocale);
+    const writeLocaleResult = writeLocale(newLocale);
+    if (writeLocaleResult instanceof Promise) {
+      await writeLocaleResult;
+    }
   }
 
   function useSetLocale(): SetLocale {
     const context = useReactToolsetContext();
-    return useCallback<SetLocale>(
-      (newLocale: string) => {
-        setLocale(newLocale, context);
-      },
-      [context]
-    );
+    return useCallback<SetLocale>((newLocale: string) => setLocale(newLocale, context), [context]);
   }
 
   function useR<N extends AtlasNamespace<A>>(namespace: N): A[N] {
     const context = useReactToolsetContext();
     const r = rMachine.hybridPickR(context.locale, namespace);
 
-    if (r instanceof Promise) {
-      throw r;
-    }
-
-    return r;
+    return r instanceof Promise ? use(r) : r;
   }
 
   function useRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): RKit<A, NL> {
     const context = useReactToolsetContext();
     const rKit = rMachine.hybridPickRKit(context.locale, ...namespaces);
 
-    if (rKit instanceof Promise) {
-      throw rKit;
-    }
-
-    return rKit as RKit<A, NL>;
+    return (rKit instanceof Promise ? use(rKit) : rKit) as RKit<A, NL>;
   }
 
   return {

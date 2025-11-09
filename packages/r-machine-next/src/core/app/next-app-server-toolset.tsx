@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { NextFetchEvent, NextRequest, NextResponse } from "next/server";
 import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
-import { cache, type JSX, type ReactNode } from "react";
+import { cache, type ReactNode } from "react";
 import type { NextClientRMachine } from "#r-machine/next/core";
 
 export interface NextAppServerToolset<A extends AnyAtlas, LK extends string> {
@@ -23,21 +23,6 @@ export interface RMachineProxy extends NextProxy {
   readonly chain: (previousProxy: RMachineProxy) => NextProxy;
 }
 
-/*
-  function rMachineProxy(request: NextRequest): ReturnType<NextMiddleware> {
-    // const bin = implPackage.binFactories.readLocale({ strategyConfig, rMachine, request });
-    //const locale = implPackage.impl.readLocale(bin);
-    request.headers.set(localeHeaderName, "en");
-  }
-
-  rMachineProxy.chain = (followingProxy: RMachineProxy): NextMiddleware => {
-    return (request: NextRequest, event: NextFetchEvent) => {
-      rMachineProxy(request);
-      return followingProxy(request, event);
-    };
-  };
-*/
-
 type RMachineParams<LK extends string> = {
   [P in LK]: string;
 };
@@ -46,14 +31,14 @@ interface NextAppServerRMachineProps {
   readonly children: ReactNode;
 }
 export interface NextAppServerRMachine {
-  (props: NextAppServerRMachineProps): Promise<JSX.Element>;
+  (props: NextAppServerRMachineProps): Promise<ReactNode>;
   readonly EntrancePage: EntrancePage;
 }
 
 export interface EntrancePageProps {
   readonly locale?: string | undefined | null;
 }
-export type EntrancePage = (props: EntrancePageProps) => Promise<JSX.Element>;
+export type EntrancePage = (props: EntrancePageProps) => Promise<ReactNode>;
 
 type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
 

@@ -1,4 +1,5 @@
 import { Languages } from "lucide-react";
+import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,6 +18,15 @@ export function LocaleSwitcher() {
   const locale = useLocale();
   const setLocale = useSetLocale();
   const currentLocaleItem = localeItems[locale as keyof typeof localeItems];
+  const setLocaleAfterMenuClose = useCallback(
+    (newLocale: string) => {
+      setTimeout(() => {
+        // Delay setting the locale to allow the dropdown to close smoothly
+        setLocale(newLocale);
+      }, 200);
+    },
+    [setLocale]
+  );
 
   return (
     <DropdownMenu>
@@ -30,7 +40,7 @@ export function LocaleSwitcher() {
         {Object.entries(localeItems).map(([key, { name }]) => (
           <DropdownMenuItem
             key={key}
-            onClick={() => setLocale(key as "en" | "it")}
+            onClick={() => setLocaleAfterMenuClose(key)}
             className="cursor-pointer gap-2 text-base py-2"
           >
             <span>{name}</span>
