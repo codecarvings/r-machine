@@ -6,7 +6,10 @@ export interface ReactStandardStrategyConfig {
   readonly localeDetector: CustomLocaleDetector | undefined;
   readonly localeStore: CustomLocaleStore | undefined;
 }
-export type PartialReactStandardStrategyConfig = Partial<ReactStandardStrategyConfig>;
+export interface PartialReactStandardStrategyConfig {
+  readonly localeDetector?: CustomLocaleDetector | undefined;
+  readonly localeStore?: CustomLocaleStore | undefined;
+}
 
 const defaultConfig: ReactStandardStrategyConfig = {
   localeDetector: undefined,
@@ -14,7 +17,9 @@ const defaultConfig: ReactStandardStrategyConfig = {
 };
 
 export class ReactStandardStrategy extends ReactStandardImplProvider<ReactStandardStrategyConfig> {
-  constructor(config: PartialReactStandardStrategyConfig) {
+  constructor();
+  constructor(config: PartialReactStandardStrategyConfig);
+  constructor(config: PartialReactStandardStrategyConfig = {}) {
     super(
       {
         ...defaultConfig,

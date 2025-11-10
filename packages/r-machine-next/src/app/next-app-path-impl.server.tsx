@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
-import { type NextFetchEvent, type NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import type { ImplFactory } from "r-machine/strategy";
-import { createProxyChainFunction } from "#r-machine/next/core";
 import { type EntrancePageProps, localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
 import type { NextProxyResult } from "#r-machine/next/internal";
 import type { NextAppPathStrategyConfig } from "./next-app-path-strategy.js";
@@ -18,11 +17,7 @@ export const nextAppPathImpl_serverFactory: ImplFactory<NextAppServerImpl, NextA
   },
 
   createProxy() {
-    function proxyEngine(
-      request: NextRequest,
-      _event: NextFetchEvent,
-      _previousResult: NextProxyResult
-    ): NextProxyResult {
+    function proxy(request: NextRequest): NextProxyResult {
       const pathname = request.nextUrl.pathname;
       console.log("rMachineProxy pathname:", pathname);
 
@@ -35,11 +30,6 @@ export const nextAppPathImpl_serverFactory: ImplFactory<NextAppServerImpl, NextA
         },
       });
     }
-
-    function proxy(request: NextRequest, event: NextFetchEvent): NextProxyResult {
-      proxyEngine(request, event, undefined);
-    }
-    proxy.chain = createProxyChainFunction(proxyEngine);
 
     return proxy;
   },

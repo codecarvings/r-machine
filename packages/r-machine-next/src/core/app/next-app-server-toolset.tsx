@@ -4,7 +4,7 @@ import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } fro
 import { RMachineError } from "r-machine/errors";
 import { cache, type ReactNode } from "react";
 import type { NextClientRMachine, RMachineProxy } from "#r-machine/next/core";
-import type { HeadersFn } from "../../internal/next-types.js";
+import type { HeadersFn } from "#r-machine/next/internal";
 
 export interface NextAppServerToolset<A extends AnyAtlas, LK extends string> {
   readonly rMachineProxy: RMachineProxy;
