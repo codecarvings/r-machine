@@ -111,8 +111,11 @@
   },
   "devDependencies": {
     "@r-machine/react": "workspace:*",
+    "@types/js-cookie": "^3.0.6",
     "@types/react": "^19.0.0",
-    "next": "^15.0.0",
-    "typescript": "5.9.3"
+    "next": "^15.0.0"
+  },
+  "dependencies": {
+    "js-cookie": "^3.0.5"
   }
 }

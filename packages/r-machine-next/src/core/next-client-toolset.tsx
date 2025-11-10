@@ -4,7 +4,7 @@ import { createReactToolset, type ReactToolset } from "@r-machine/react/core";
 import { useRouter } from "next/navigation";
 import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 
 const brand = Symbol("NextClientRMachine");
 
@@ -23,6 +23,7 @@ export type NextClientToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "React
 
 export type NextClientImpl = {
   readonly writeLocale: (newLocale: string, router: ReturnType<typeof useRouter>) => void | Promise<void>;
+  readonly setLocaleCookie: ((locale: string) => void | Promise<void>) | undefined;
 };
 
 export function createNextClientToolset<A extends AnyAtlas>(
@@ -55,6 +56,11 @@ export function createNextClientToolset<A extends AnyAtlas>(
   }
 
   function NextClientRMachine({ locale, children }: NextClientRMachineProps) {
+    useEffect(() => {
+      if (impl.setLocaleCookie !== undefined) {
+        impl.setLocaleCookie(locale);
+      }
+    }, [locale, impl.setLocaleCookie]);
     return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
   }
   NextClientRMachine[brand] = "NextClientRMachine";

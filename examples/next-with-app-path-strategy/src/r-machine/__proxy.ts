@@ -32,26 +32,13 @@ export function createProxy() {
   const autoRegExp: RegExp | null = autoDetectLocale instanceof RegExp ? autoDetectLocale : null;
 
   const cookieSw = cookie !== "off";
-  const { name: cookieName, ...cookieOptions } = cookieSw ? cookie : {};
+  const { name: cookieName } = cookieSw ? cookie : {};
 
   const inLocalePattern = `^\\/(${pathLocales.join("|")})(?:\\/|$)`;
   const inLocaleRegex = new RegExp(inLocalePattern);
 
   const outLocalePattern = `^${basePath}\\/(${pathLocales.join("|")})(?:\\/|$)`;
   const outLocaleRegex = new RegExp(outLocalePattern);
-
-  function withLocaleCookie(response: NextResponse, localeCookie: string | undefined, locale: string) {
-    if (cookieSw) {
-      if (locale !== localeCookie) {
-        response.cookies.set(cookieName!, locale, cookieOptions);
-      }
-    } else {
-      if (localeCookie !== undefined) {
-        response.cookies.delete(cookieName!);
-      }
-    }
-    return response;
-  }
 
   function proxy(request: NextRequest): NextProxyResult {
     const pathname = request.nextUrl.pathname;
@@ -78,7 +65,7 @@ export function createProxy() {
         // Locale is present but canonical URL is implicit (no locale prefix)
         const implicitPath = pathname.replace(outLocaleRegex, "/");
         console.log("Redirecting to implicitPath:", implicitPath);
-        return withLocaleCookie(NextResponse.redirect(new URL(implicitPath, request.url)), localeCookie, locale);
+        return NextResponse.redirect(new URL(implicitPath, request.url));
       }
     } else {
       // Locale is not present in the URL
@@ -99,11 +86,7 @@ export function createProxy() {
               if (locale !== defaultLocale) {
                 // Redirect to the URL with the locale prefix
                 const redirectPathname = `/${lowercaseLocale ? locale.toLowerCase() : locale}${pathname}`;
-                return withLocaleCookie(
-                  NextResponse.redirect(new URL(redirectPathname, request.url)),
-                  localeCookie,
-                  locale
-                );
+                return NextResponse.redirect(new URL(redirectPathname, request.url));
               }
             }
           } else {
@@ -129,7 +112,7 @@ export function createProxy() {
 
           // Redirect to the URL with the locale prefix
           const redirectPathname = `/${lowercaseLocale ? locale.toLowerCase() : locale}${pathname}`;
-          return withLocaleCookie(NextResponse.redirect(new URL(redirectPathname, request.url)), localeCookie, locale);
+          return NextResponse.redirect(new URL(redirectPathname, request.url));
         } else {
           // Irrelevant URL, do not proxy
           return NextResponse.next();
@@ -146,18 +129,14 @@ export function createProxy() {
         // Bind locale to request headers
         const requestHeaders = new Headers(request.headers);
         requestHeaders.set(localeHeaderName, locale);
-        return withLocaleCookie(
-          NextResponse.rewrite(rewrittenUrl, {
-            request: {
-              headers: requestHeaders,
-            },
-          }),
-          localeCookie,
-          locale
-        );
+        return NextResponse.rewrite(rewrittenUrl, {
+          request: {
+            headers: requestHeaders,
+          },
+        });
       } else {
         // No locale binding needed
-        return withLocaleCookie(NextResponse.rewrite(rewrittenUrl), localeCookie, locale);
+        return NextResponse.rewrite(rewrittenUrl);
       }
     } else {
       // No rewrite needed
@@ -166,18 +145,13 @@ export function createProxy() {
         const requestHeaders = new Headers(request.headers);
         requestHeaders.set(localeHeaderName, locale);
 
-        return withLocaleCookie(
-          NextResponse.next({
-            request: {
-              headers: requestHeaders,
-            },
-          }),
-          localeCookie,
-          locale
-        );
+        return NextResponse.next({
+          request: {
+            headers: requestHeaders,
+          },
+        });
       } else {
-        // No locale binding needed
-        return withLocaleCookie(NextResponse.next(), localeCookie, locale);
+        // No locale binding needed - Nothing to do
       }
     }
   }

@@ -1,5 +1,10 @@
-import type { CookieDeclaration } from "r-machine/strategy";
 import { type DefaultLocaleKey, NextAppImplProvider } from "#r-machine/next/core/app";
+import {
+  getCookieOption,
+  NextAppWithCookieStrategy,
+  type NextAppWithCookieStrategyConfig,
+  type PartialNextAppWithCookieStrategyConfig,
+} from "./next-app-with-cookie-strategy.js";
 
 type ImplicitDefaultLocale =
   | "off"
@@ -15,29 +20,21 @@ type AutoDetectLocale =
       readonly pathMatcherRegExp: RegExp;
     };
 
-export interface NextAppPathStrategyConfig<LK extends string = DefaultLocaleKey> {
-  readonly localeKey: LK;
+export interface NextAppPathStrategyConfig<LK extends string> extends NextAppWithCookieStrategyConfig<LK> {
   readonly lowercaseLocale: boolean;
   readonly implicitDefaultLocale: ImplicitDefaultLocale;
   readonly autoDetectLocale: AutoDetectLocale;
   readonly allowAutoLocaleBinding: boolean;
   readonly basePath: string;
-  readonly cookie: "off" | CookieDeclaration;
 }
-export interface PartialNextAppPathStrategyConfig<LK extends string = DefaultLocaleKey> {
-  readonly localeKey?: LK;
+export interface PartialNextAppPathStrategyConfig<LK extends string>
+  extends PartialNextAppWithCookieStrategyConfig<LK> {
   readonly lowercaseLocale?: boolean;
   readonly implicitDefaultLocale?: ImplicitDefaultLocale;
   readonly autoDetectLocale?: AutoDetectLocale;
   readonly allowAutoLocaleBinding?: boolean;
   readonly basePath?: string;
-  readonly cookie?: "off" | "on" | CookieDeclaration;
 }
-
-const defaultCookieDeclaration: CookieDeclaration = {
-  name: "rm-locale",
-  maxAge: 60 * 60 * 24 * 30, // 30 days
-};
 
 const defaultConfig_explicit: NextAppPathStrategyConfig<DefaultLocaleKey> = {
   localeKey: NextAppImplProvider.defaultLocaleKey,
@@ -46,7 +43,7 @@ const defaultConfig_explicit: NextAppPathStrategyConfig<DefaultLocaleKey> = {
   autoDetectLocale: "on",
   allowAutoLocaleBinding: false,
   basePath: "",
-  cookie: defaultCookieDeclaration,
+  cookie: "off",
 };
 
 const defaultConfig_implicit: NextAppPathStrategyConfig<DefaultLocaleKey> = {
@@ -60,7 +57,7 @@ const defaultConfig_implicit: NextAppPathStrategyConfig<DefaultLocaleKey> = {
   },
   allowAutoLocaleBinding: false,
   basePath: "",
-  cookie: defaultCookieDeclaration,
+  cookie: "off",
 };
 
 function createConfigWithDefaults<LK extends string>(
@@ -71,14 +68,7 @@ function createConfigWithDefaults<LK extends string>(
       ? defaultConfig_explicit
       : defaultConfig_implicit;
 
-  let cookie: "off" | CookieDeclaration;
-  if (config.cookie === "off") {
-    cookie = "off";
-  } else if (config.cookie === undefined || config.cookie === "on") {
-    cookie = defaultCookieDeclaration;
-  } else {
-    cookie = config.cookie;
-  }
+  const cookie = getCookieOption(config.cookie ?? baseConfig.cookie);
 
   return {
     ...baseConfig,
@@ -87,7 +77,7 @@ function createConfigWithDefaults<LK extends string>(
   } as NextAppPathStrategyConfig<LK>;
 }
 
-export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends NextAppImplProvider<
+export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends NextAppWithCookieStrategy<
   LK,
   NextAppPathStrategyConfig<LK>
 > {
@@ -103,8 +93,7 @@ export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends N
       async (rMachine, strategyConfig) => {
         const module = await import("./next-app-path-impl.server.js");
         return module.nextAppPathImpl_serverFactory(rMachine, strategyConfig);
-      },
-      (config.localeKey ?? NextAppImplProvider.defaultLocaleKey) as LK
+      }
     );
   }
 }
