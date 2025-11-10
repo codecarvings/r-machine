@@ -76,6 +76,10 @@
     }
   },
   "imports": {
+    "#r-machine/next/internal": {
+      "@r-machine/source": "./src/internal/index.ts",
+      "default": "./internal/index.js"
+    },
     "#r-machine/next/core": {
       "@r-machine/source": "./src/core/index.ts",
       "default": "./core/index.js"

@@ -1,10 +1,10 @@
-import type { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import type { NextFetchEvent, NextRequest, NextResponse } from "next/server";
+
 import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { cache, type ReactNode } from "react";
-import type { NextClientRMachine } from "#r-machine/next/core";
+import type { NextClientRMachine, RMachineProxy } from "#r-machine/next/core";
+import type { HeadersFn } from "../../internal/next-types.js";
 
 export interface NextAppServerToolset<A extends AnyAtlas, LK extends string> {
   readonly rMachineProxy: RMachineProxy;
@@ -15,13 +15,6 @@ export interface NextAppServerToolset<A extends AnyAtlas, LK extends string> {
   readonly setLocale: (newLocale: string) => Promise<void>;
   readonly pickR: <N extends AtlasNamespace<A>>(namespace: N) => Promise<A[N]>;
   readonly pickRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => Promise<RKit<A, NL>>;
-}
-
-// biome-ignore lint/suspicious/noConfusingVoidType: Use exact type definition from Next.js
-type NextProxyResult = NextResponse | Response | null | undefined | void;
-type NextProxy = (request: NextRequest, event: NextFetchEvent) => NextProxyResult | Promise<NextProxyResult>;
-export interface RMachineProxy extends NextProxy {
-  readonly chain: (previousProxy: RMachineProxy) => NextProxy;
 }
 
 type RMachineParams<LK extends string> = {
@@ -59,12 +52,11 @@ const ErrorEntrancePage: EntrancePage = async () => {
 
 export const localeHeaderName = "x-rm-locale";
 
-type HeadersFn = typeof headers;
 export type NextAppServerImpl = {
   readonly writeLocale: (newLocale: string) => void | Promise<void>;
   readonly createProxy: () => RMachineProxy | Promise<RMachineProxy>;
   readonly createEntrancePage?:
-    | ((headers: HeadersFn, setLocale: (newLocale: string) => void) => EntrancePage | Promise<EntrancePage>)
+    | ((headers: HeadersFn, setLocale: (newLocale: string) => Promise<void>) => EntrancePage | Promise<EntrancePage>)
     | undefined;
 };
 

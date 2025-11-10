@@ -6,3 +6,4 @@ export {
   type NextClientToolset,
 } from "./next-client-toolset.js";
 export { NextStrategy } from "./next-strategy.js";
+export { createProxyChainFunction, type RMachineProxy } from "./proxy.js";

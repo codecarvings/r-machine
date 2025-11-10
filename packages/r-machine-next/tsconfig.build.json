@@ -5,6 +5,7 @@
     "outDir": ".",
     "customConditions": ["@r-machine/source"],
     "paths": {
+      "#r-machine/next/internal": ["./src/internal"],
       "#r-machine/next/core": ["./src/core"],
       "#r-machine/next/core/app": ["./src/core/app"],
       "#r-machine/next/app": ["./src/app"],
