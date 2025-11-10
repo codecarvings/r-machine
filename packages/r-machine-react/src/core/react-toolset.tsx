@@ -4,8 +4,7 @@ import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } fro
 import { RMachineError } from "r-machine/errors";
 import type { ReactNode } from "react";
 import { createContext, use, useCallback, useContext, useMemo } from "react";
-import { DelayedSuspense } from "#r-machine/react/utils";
-import type { SuspenseComponent } from "../utils/delayed-suspense.js";
+import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils";
 
 type SetLocale = (newLocale: string) => Promise<void>;
 type WriteLocale = (newLocale: string) => void | Promise<void>;
@@ -13,7 +12,8 @@ type WriteLocale = (newLocale: string) => void | Promise<void>;
 export interface ReactToolset<A extends AnyAtlas> {
   readonly ReactRMachine: ReactRMachine;
   readonly useLocale: () => string;
-  // Performance optimization: do not use the same approach as useState ([state, setState]) because with Bins
+  // Performance optimization: do not use the same approach as useState ([state, setState])
+  // because with required hooks (e.g. useRouter)
   // the setter function should be recreated on every render to capture the latest context.
   readonly useSetLocale: () => SetLocale;
   readonly useR: <N extends AtlasNamespace<A>>(namespace: N) => A[N];

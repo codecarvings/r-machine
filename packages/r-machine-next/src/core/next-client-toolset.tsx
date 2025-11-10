@@ -31,9 +31,9 @@ export function createNextClientToolset<A extends AnyAtlas>(
 ): NextClientToolset<A> {
   const { ReactRMachine, useLocale, ...otherTools } = createReactToolset(rMachine);
 
-  function setLocale(locale: string, newLocale: string, router: ReturnType<typeof useRouter>): Promise<void> {
+  async function setLocale(locale: string, newLocale: string, router: ReturnType<typeof useRouter>): Promise<void> {
     if (newLocale === locale) {
-      return Promise.resolve();
+      return;
     }
 
     const error = rMachine.localeHelper.validateLocale(newLocale);
@@ -43,10 +43,8 @@ export function createNextClientToolset<A extends AnyAtlas>(
 
     const writeLocaleResult = impl.writeLocale(newLocale, router);
     if (writeLocaleResult instanceof Promise) {
-      return writeLocaleResult;
+      await writeLocaleResult;
     }
-
-    return Promise.resolve();
   }
 
   function useSetLocale(): ReturnType<ReactToolset<A>["useSetLocale"]> {

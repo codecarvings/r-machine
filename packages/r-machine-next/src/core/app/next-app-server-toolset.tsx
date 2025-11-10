@@ -1,3 +1,4 @@
+import type { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import type { NextFetchEvent, NextRequest, NextResponse } from "next/server";
 import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
@@ -11,7 +12,7 @@ export interface NextAppServerToolset<A extends AnyAtlas, LK extends string> {
   readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
   readonly bindLocale: BindLocale<LK>;
   readonly getLocale: () => Promise<string>;
-  readonly setLocale: (newLocale: string) => void;
+  readonly setLocale: (newLocale: string) => Promise<void>;
   readonly pickR: <N extends AtlasNamespace<A>>(namespace: N) => Promise<A[N]>;
   readonly pickRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => Promise<RKit<A, NL>>;
 }
@@ -58,10 +59,13 @@ const ErrorEntrancePage: EntrancePage = async () => {
 
 export const localeHeaderName = "x-rm-locale";
 
+type HeadersFn = typeof headers;
 export type NextAppServerImpl = {
-  readonly writeLocale: (newLocale: string) => void;
-  readonly createProxy: () => RMachineProxy;
-  readonly createEntrancePage?: ((setLocale: (newLocale: string) => void) => EntrancePage) | undefined;
+  readonly writeLocale: (newLocale: string) => void | Promise<void>;
+  readonly createProxy: () => RMachineProxy | Promise<RMachineProxy>;
+  readonly createEntrancePage?:
+    | ((headers: HeadersFn, setLocale: (newLocale: string) => void) => EntrancePage | Promise<EntrancePage>)
+    | undefined;
 };
 
 export async function createNextAppServerToolset<A extends AnyAtlas, LK extends string>(
@@ -76,7 +80,7 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
   // You're importing a component that needs "next/headers". That only works in a Server Component which is not supported in the pages/ directory. Read more: https://nextjs.org/docs/app/building-your-application/rendering/server-components
   const { headers } = await import("next/headers");
 
-  const rMachineProxy = impl.createProxy();
+  const rMachineProxy = await impl.createProxy();
 
   const getContext = cache((): NextAppServerRMachineContext => {
     return {
@@ -90,7 +94,7 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
   }
 
   NextServerRMachine.EntrancePage =
-    impl.createEntrancePage !== undefined ? impl.createEntrancePage(setLocale) : ErrorEntrancePage;
+    impl.createEntrancePage !== undefined ? await impl.createEntrancePage(headers, setLocale) : ErrorEntrancePage;
 
   async function generateLocaleStaticParams() {
     return rMachine.config.locales.map((locale) => ({
@@ -171,13 +175,13 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
     }
   }
 
-  function setLocale(newLocale: string) {
+  async function setLocale(newLocale: string) {
     const error = validateLocale(newLocale);
     if (error) {
       throw new RMachineError(`Cannot set locale to invalid locale: "${newLocale}".`, error);
     }
 
-    impl.writeLocale(newLocale);
+    await impl.writeLocale(newLocale);
   }
 
   function pickR<N extends AtlasNamespace<A>>(namespace: N): Promise<A[N]> {

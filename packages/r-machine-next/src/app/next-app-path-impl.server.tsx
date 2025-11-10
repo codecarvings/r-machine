@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { ImplFactory } from "r-machine/strategy";
 import { type EntrancePageProps, localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
-import { NextAppEntrancePage } from "./next-app-entrance-page.js";
 import type { NextAppPathStrategyConfig } from "./next-app-path-strategy.js";
 
 export const nextAppPathImpl_serverFactory: ImplFactory<NextAppServerImpl, NextAppPathStrategyConfig<string>> = async (
@@ -34,16 +33,18 @@ export const nextAppPathImpl_serverFactory: ImplFactory<NextAppServerImpl, NextA
     return proxy;
   },
 
-  createEntrancePage(setLocale) {
+  createEntrancePage(headers, setLocale) {
     async function EntrancePage({ locale }: EntrancePageProps) {
-      // Workaround for typescript error:
-      // NextAppEntrancePage' cannot be used as a JSX component. Its return type 'Promise<void>' is not a valid JSX element.
-      return (
-        <>
-          {/* @ts-expect-error Async Server Component */}
-          <NextAppEntrancePage rMachine={rMachine} locale={locale ?? undefined} setLocale={setLocale} />
-        </>
-      );
+      if (locale) {
+        await setLocale(locale);
+      } else {
+        const headersList = await headers();
+        const acceptLanguageHeader = headersList.get("accept-language");
+        const defaultLocale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
+        await setLocale(defaultLocale);
+      }
+
+      return null;
     }
 
     return EntrancePage;
