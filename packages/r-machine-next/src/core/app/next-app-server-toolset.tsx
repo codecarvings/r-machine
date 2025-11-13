@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
+import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
 import type { NextClientRMachine, RMachineProxy } from "#r-machine/next/core";
 import type { HeadersFn } from "#r-machine/next/internal";
@@ -54,6 +55,10 @@ export const localeHeaderName = "x-rm-locale";
 
 export type NextAppServerImpl = {
   readonly writeLocale: (newLocale: string) => void | Promise<void>;
+  // must be dynamically generated because of strategy options (lowercaseLocale)
+  readonly createLocaleStaticParamsGenerator: () =>
+    | LocaleStaticParamsGenerator<string>
+    | Promise<LocaleStaticParamsGenerator<string>>;
   readonly createProxy: () => RMachineProxy | Promise<RMachineProxy>;
   readonly createEntrancePage?:
     | ((headers: HeadersFn, setLocale: (newLocale: string) => Promise<void>) => EntrancePage | Promise<EntrancePage>)
@@ -73,6 +78,7 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
   const { headers } = await import("next/headers");
 
   const rMachineProxy = await impl.createProxy();
+  const generateLocaleStaticParams = await impl.createLocaleStaticParamsGenerator();
 
   const getContext = cache((): NextAppServerRMachineContext => {
     return {
@@ -88,43 +94,44 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
   NextServerRMachine.EntrancePage =
     impl.createEntrancePage !== undefined ? await impl.createEntrancePage(headers, setLocale) : ErrorEntrancePage;
 
-  async function generateLocaleStaticParams() {
-    return rMachine.config.locales.map((locale) => ({
-      [localeKey]: locale,
-    }));
-  }
-
+  const localeCache = new Map<string, string>();
   function bindLocale(locale: string | Promise<RMachineParams<LK>>) {
-    function syncBindLocale(locale: string): void {
-      const validationError = validateLocale(locale);
-      if (validationError !== null) {
-        // Invalid locale, trigger 404
-        notFound();
+    function syncBindLocale(localeOption: string): string {
+      let locale = localeCache.get(localeOption);
+      if (locale === undefined) {
+        locale = getCanonicalUnicodeLocaleId(localeOption);
+        const validationError = validateLocale(locale);
+        if (validationError === null) {
+          localeCache.set(localeOption, locale);
+        } else {
+          // Invalid locale, trigger 404
+          notFound();
+        }
       }
 
       const context = getContext();
       if (context.value !== null) {
         if (locale !== context.value) {
           throw new RMachineError(
-            `bindLocale called multiple times with different locales in the same request. Previous: "${context.value}", New: "${locale}".`
+            `Locale bound multiple times with different values in the same request. Previous: "${context.value}", New: "${locale}".`
           );
         }
       }
 
       context.value = locale;
+      return locale;
     }
 
     async function asyncBindLocale(localePromise: Promise<RMachineParams<LK>>) {
       const params = await localePromise;
-      syncBindLocale(params[localeKey]);
+      params[localeKey] = syncBindLocale(params[localeKey]);
       return params;
     }
 
     if (locale instanceof Promise) {
       return asyncBindLocale(locale);
     } else {
-      syncBindLocale(locale);
-      return locale;
+      return syncBindLocale(locale);
     }
   }
 

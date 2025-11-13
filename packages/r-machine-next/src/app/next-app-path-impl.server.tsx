@@ -16,6 +16,13 @@ export const nextAppPathImpl_serverFactory: ImplFactory<NextAppServerImpl, NextA
     redirect(path);
   },
 
+  createLocaleStaticParamsGenerator() {
+    return async () =>
+      rMachine.config.locales.map((locale: string) => ({
+        [strategyConfig.localeKey]: strategyConfig.lowercaseLocale ? locale.toLowerCase() : locale,
+      }));
+  },
+
   createProxy() {
     function proxy(request: NextRequest): NextProxyResult {
       const pathname = request.nextUrl.pathname;

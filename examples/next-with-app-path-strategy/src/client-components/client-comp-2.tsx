@@ -8,7 +8,7 @@ export default function ClientComp2() {
       <button type="button" onClick={() => setLocaleOnServer("en")}>
         en (SERVER)
       </button>
-      <button type="button" onClick={() => setLocaleOnServer("it")}>
+      <button type="button" onClick={() => setLocaleOnServer("it-IT")}>
         it (SERVER)
       </button>
     </div>

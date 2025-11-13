@@ -8,10 +8,10 @@ import {
 type CookieOption = "off" | CookieDeclaration;
 type PartialCookieOption = "off" | "on" | CookieDeclaration | undefined;
 
-export interface NextAppWithCookieStrategyConfig<LK extends string> extends NextAppStrategyConfig<LK> {
+export interface NextAppPersistentStrategyConfig<LK extends string> extends NextAppStrategyConfig<LK> {
   readonly cookie: CookieOption;
 }
-export interface PartialNextAppWithCookieStrategyConfig<LK extends string>
+export interface PartialNextAppPersistentStrategyConfig<LK extends string>
   extends PartialNextAppPathStrategyConfig<LK> {
   readonly cookie?: PartialCookieOption;
 }
@@ -35,7 +35,7 @@ export function getCookieOption(option: PartialCookieOption): CookieOption {
   return result;
 }
 
-export abstract class NextAppWithCookieStrategy<
+export abstract class NextAppPersistentStrategy<
   LK extends string,
-  C extends NextAppWithCookieStrategyConfig<LK>,
+  C extends NextAppPersistentStrategyConfig<LK>,
 > extends NextAppStrategy<LK, C> {}

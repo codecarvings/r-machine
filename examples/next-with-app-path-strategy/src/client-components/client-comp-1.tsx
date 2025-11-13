@@ -16,7 +16,7 @@ export default function ClientComp1() {
         <button type="button" onClick={() => setLocale("en")}>
           en (CLIENT)
         </button>
-        <button type="button" onClick={() => setLocale("it")}>
+        <button type="button" onClick={() => setLocale("it-IT")}>
           it (CLIENT)
         </button>
       </div>

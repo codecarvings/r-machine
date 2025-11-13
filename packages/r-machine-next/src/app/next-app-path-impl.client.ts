@@ -1,7 +1,7 @@
 import type { ImplFactory } from "r-machine/strategy";
 import type { NextClientImpl } from "#r-machine/next/core";
+import { createSetLocaleCookieForNextClientImpl } from "./cookie.client.js";
 import type { NextAppPathStrategyConfig } from "./next-app-path-strategy.js";
-import { createSetLocaleCookieForImpl } from "./next-app-with-cookie-impl.client.js";
 
 export const nextAppPathImpl_clientFactory: ImplFactory<NextClientImpl, NextAppPathStrategyConfig<string>> = async (
   _rMachine,
@@ -13,5 +13,5 @@ export const nextAppPathImpl_clientFactory: ImplFactory<NextClientImpl, NextAppP
 
     router.push(path);
   },
-  setLocaleCookie: createSetLocaleCookieForImpl(strategyConfig),
+  setLocaleCookie: createSetLocaleCookieForNextClientImpl(strategyConfig),
 });

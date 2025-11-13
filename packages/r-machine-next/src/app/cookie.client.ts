@@ -1,9 +1,9 @@
 import Cookies from "js-cookie";
 import type { NextClientImpl } from "#r-machine/next/core";
-import type { NextAppWithCookieStrategyConfig } from "./next-app-with-cookie-strategy.js";
+import type { NextAppPersistentStrategyConfig } from "./next-app-persistent-strategy.js";
 
-export function createSetLocaleCookieForImpl(
-  strategyConfig: NextAppWithCookieStrategyConfig<string>
+export function createSetLocaleCookieForNextClientImpl(
+  strategyConfig: NextAppPersistentStrategyConfig<string>
 ): NextClientImpl["setLocaleCookie"] {
   const { cookie } = strategyConfig;
 

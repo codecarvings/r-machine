@@ -4,143 +4,90 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { rMachine, strategy } from "./r-machine";
 
+// ---- TEMP
 // biome-ignore lint/suspicious/noConfusingVoidType: Use exact type definition from Next.js
 type NextProxyResult = NextResponse | Response | null | undefined | void;
 const strategyConfig: NextAppPathStrategyConfig<string> = (strategy as any).config;
+// ---- TEMP
 
-export interface CookieDeclaration {
-  readonly name: string;
-  readonly path?: string | undefined;
-  readonly httpOnly?: boolean | undefined;
-  readonly secure?: boolean | undefined;
-  readonly sameSite?: "lax" | "strict" | "none" | undefined;
-  readonly maxAge?: number | undefined;
-  readonly domain?: string | undefined;
-}
+// const default_implicitDefaultLocale_pathMatcherRegExp = /^\/(?!(?:_next|_vercel|api)(?:\/|$)|.*\.[^/]+$)/;
+// const default_autoDetectLocale_pathMatcherRegExp: RegExp = /^\/$/;
+
+const default_implicitDefaultLocale_pathMatcherRegExp: RegExp | null = null; // Implicit for all paths (by default use Next.js proxy matching)
+const default_autoDetectLocale_pathMatcherRegExp_implicit: RegExp | null = /^\/$/; // Auto detect only root path
+const default_autoDetectLocale_pathMatcherRegExp_explicit: RegExp | null = null; // Auto detect all paths
 
 export function createProxy() {
   const locales = rMachine.config.locales;
-  const pathLocales = strategyConfig.lowercaseLocale ? locales.map((locale) => locale.toLowerCase()) : locales;
   const defaultLocale = rMachine.config.defaultLocale;
-  const { lowercaseLocale, implicitDefaultLocale, autoDetectLocale, allowAutoLocaleBinding, basePath, cookie } =
+
+  const { lowercaseLocale, implicitDefaultLocale, autoDetectLocale, enableAutoLocaleBinding, basePath, cookie } =
     strategyConfig;
 
   const implicitSw = implicitDefaultLocale !== "off";
-  const implicitRegExp: RegExp | null = implicitDefaultLocale instanceof RegExp ? implicitDefaultLocale : null;
+  const implicitRegExp: RegExp | null =
+    implicitDefaultLocale instanceof RegExp
+      ? implicitDefaultLocale
+      : implicitDefaultLocale === "on"
+        ? default_implicitDefaultLocale_pathMatcherRegExp
+        : null;
 
   const autoSw = autoDetectLocale !== "off";
-  const autoRegExp: RegExp | null = autoDetectLocale instanceof RegExp ? autoDetectLocale : null;
+  const autoRegExp: RegExp | null =
+    autoDetectLocale instanceof RegExp
+      ? autoDetectLocale
+      : autoDetectLocale === "on"
+        ? implicitSw
+          ? default_autoDetectLocale_pathMatcherRegExp_implicit
+          : default_autoDetectLocale_pathMatcherRegExp_explicit
+        : null;
 
   const cookieSw = cookie !== "off";
   const { name: cookieName } = cookieSw ? cookie : {};
 
-  const inLocalePattern = `^\\/(${pathLocales.join("|")})(?:\\/|$)`;
-  const inLocaleRegex = new RegExp(inLocalePattern);
+  // Need two regexes to handle basePath correctly
+  // Use case-insensitive matching for locale codes
+  const inLocaleRegex = new RegExp(`^\\/(${locales.join("|")})(?:\\/|$)`, "i");
+  const outLocaleRegex = new RegExp(`^${basePath}\\/(${locales.join("|")})(?:\\/|$)`, "i");
 
-  const outLocalePattern = `^${basePath}\\/(${pathLocales.join("|")})(?:\\/|$)`;
-  const outLocaleRegex = new RegExp(outLocalePattern);
+  function getLocalePathName(locale: string, pathName: string): string {
+    return `${basePath}/${lowercaseLocale ? locale.toLowerCase() : locale}${pathName}`;
+  }
+
+  function getLocaleFromCookie(request: NextRequest): string | undefined {
+    if (!cookieSw) {
+      return undefined;
+    }
+
+    const localeCookie = request.cookies.get(cookieName!)?.value;
+    if (localeCookie === undefined) {
+      return undefined;
+    }
+
+    if (!locales.includes(localeCookie)) {
+      return undefined;
+    }
+
+    return localeCookie;
+  }
 
   function proxy(request: NextRequest): NextProxyResult {
     const pathname = request.nextUrl.pathname;
-    console.log("rMachineProxy pathname:", pathname);
     const match = pathname.match(inLocaleRegex);
-
-    const localeCookie = cookieSw ? request.cookies.get(cookieName!)?.value : undefined;
-    const isValidLocaleCookie = localeCookie !== undefined && locales.includes(localeCookie);
-
-    let locale: string;
-    let rewrittenPathname: string | undefined;
 
     if (match) {
       // Locale is present in the URL
-      locale = match[1];
-      if (lowercaseLocale) {
-        locale = getCanonicalUnicodeLocaleId(locale);
-        if (locale !== getCanonicalUnicodeLocaleId(locale)) {
-          // Only rewrite if casing is incorrect
-          rewrittenPathname = pathname.replace(outLocaleRegex, `/${locale}/`);
-        }
-      }
-      if (locale === defaultLocale && implicitSw) {
+      const providedLocale = match[1];
+      const locale = getCanonicalUnicodeLocaleId(providedLocale);
+
+      if (implicitSw && locale === defaultLocale) {
         // Locale is present but canonical URL is implicit (no locale prefix)
         const implicitPath = pathname.replace(outLocaleRegex, "/");
-        console.log("Redirecting to implicitPath:", implicitPath);
         return NextResponse.redirect(new URL(implicitPath, request.url));
       }
-    } else {
-      // Locale is not present in the URL
-      if (implicitSw) {
-        if (implicitRegExp === null || implicitRegExp.test(pathname)) {
-          // Valid implicit URL
-          if (autoSw && (autoRegExp === null || autoRegExp.test(pathname))) {
-            // Is auto-detect URL
-            if (localeCookie !== undefined) {
-              // Cookie available, use locale from cookie
-              locale = localeCookie;
-            } else {
-              // First time visiting, auto-detect from Accept-Language header
-              locale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(
-                request.headers.get("accept-language")
-              );
 
-              if (locale !== defaultLocale) {
-                // Redirect to the URL with the locale prefix
-                const redirectPathname = `/${lowercaseLocale ? locale.toLowerCase() : locale}${pathname}`;
-                return NextResponse.redirect(new URL(redirectPathname, request.url));
-              }
-            }
-          } else {
-            // Non auto-detect URL, always use default locale
-            locale = defaultLocale;
-          }
-
-          // Rewrite to locale-prefixed URL internally
-          rewrittenPathname = `/${locale}${pathname}`;
-        } else {
-          // Irrelevant URL, do not proxy
-          return NextResponse.next();
-        }
-      } else {
-        // Do not use implicit URLs, redirect to locale-prefixed URL
-        if (autoSw && (autoRegExp === null || autoRegExp.test(pathname))) {
-          // Is auto-detect URL
-          if (isValidLocaleCookie) {
-            locale = localeCookie;
-          } else {
-            locale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
-          }
-
-          // Redirect to the URL with the locale prefix
-          const redirectPathname = `/${lowercaseLocale ? locale.toLowerCase() : locale}${pathname}`;
-          return NextResponse.redirect(new URL(redirectPathname, request.url));
-        } else {
-          // Irrelevant URL, do not proxy
-          return NextResponse.next();
-        }
-      }
-    }
-
-    if (rewrittenPathname !== undefined) {
-      // Need to rewrite the URL
-      const rewrittenUrl = request.nextUrl.clone();
-      rewrittenUrl.pathname = rewrittenPathname;
-
-      if (allowAutoLocaleBinding) {
-        // Bind locale to request headers
-        const requestHeaders = new Headers(request.headers);
-        requestHeaders.set(localeHeaderName, locale);
-        return NextResponse.rewrite(rewrittenUrl, {
-          request: {
-            headers: requestHeaders,
-          },
-        });
-      } else {
-        // No locale binding needed
-        return NextResponse.rewrite(rewrittenUrl);
-      }
-    } else {
-      // No rewrite needed
-      if (allowAutoLocaleBinding) {
+      // Standard locale-prefixed URL
+      if (enableAutoLocaleBinding) {
         // Bind locale to request headers
         const requestHeaders = new Headers(request.headers);
         requestHeaders.set(localeHeaderName, locale);
@@ -150,10 +97,84 @@ export function createProxy() {
             headers: requestHeaders,
           },
         });
-      } else {
-        // No locale binding needed - Nothing to do
       }
+
+      // No locale binding needed
+      return NextResponse.next();
     }
+
+    // Locale is not present in the URL
+    if (implicitSw) {
+      // Use implicit URLs
+
+      if (implicitRegExp === null || implicitRegExp.test(pathname)) {
+        // Valid implicit URL
+        let locale: string;
+        if (autoSw && (autoRegExp === null || autoRegExp.test(pathname))) {
+          // Is auto-detect URL
+          const localeCookie = getLocaleFromCookie(request);
+
+          if (localeCookie !== undefined) {
+            // Cookie enabled and available, use locale from cookie
+            locale = localeCookie;
+          } else {
+            // Cookie disabled - OR - First time visiting, auto-detect from Accept-Language header
+            locale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
+
+            if (locale !== defaultLocale) {
+              // Redirect to the URL with the locale prefix
+              return NextResponse.redirect(new URL(getLocalePathName(locale, pathname), request.url));
+            }
+          }
+        } else {
+          // Non auto-detect URL, always use default locale
+          locale = defaultLocale;
+        }
+
+        // Rewrite to locale-prefixed URL internally
+        const newUrl = request.nextUrl.clone();
+        newUrl.pathname = getLocalePathName(locale, pathname);
+
+        if (enableAutoLocaleBinding) {
+          // Bind locale to request headers
+          const requestHeaders = new Headers(request.headers);
+          requestHeaders.set(localeHeaderName, locale);
+          return NextResponse.rewrite(newUrl, {
+            request: {
+              headers: requestHeaders,
+            },
+          });
+        }
+
+        // No locale binding needed
+        return NextResponse.rewrite(newUrl);
+      }
+
+      // Invalid implicit URL, do not proxy - irrelevant for locale strategy
+      return NextResponse.next();
+    }
+
+    // Do not use implicit URLs
+    if (autoSw && (autoRegExp === null || autoRegExp.test(pathname))) {
+      // Is auto-detect URL
+      const localeCookie = getLocaleFromCookie(request);
+
+      let locale: string;
+      if (localeCookie !== undefined) {
+        // Cookie enabled and available, use locale from cookie
+        locale = localeCookie;
+      } else {
+        // Cookie disabled - OR - First time visiting, auto-detect from Accept-Language header
+        locale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
+      }
+
+      // Redirect to the URL with the locale prefix
+      return NextResponse.redirect(new URL(getLocalePathName(locale, pathname), request.url));
+    }
+
+    // NOot an auto-detect URL
+    // Irrelevant URL, do not proxy
+    return NextResponse.next();
   }
 
   return proxy;
