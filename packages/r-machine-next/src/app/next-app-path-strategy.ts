@@ -1,62 +1,46 @@
+import type { SwitchableOption } from "r-machine/strategy";
 import { type DefaultLocaleKey, NextAppImplProvider } from "#r-machine/next/core/app";
 import {
-  getCookieOption,
   NextAppPersistentStrategy,
   type NextAppPersistentStrategyConfig,
   type PartialNextAppPersistentStrategyConfig,
 } from "./next-app-persistent-strategy.js";
 
-type ImplicitDefaultLocale =
-  | "off"
-  | "on"
-  | {
-      readonly pathMatcherRegExp: RegExp | null;
-    };
+interface CustomImplicitDefaultLocale {
+  readonly pathMatcherRegExp: RegExp | null;
+}
+type ImplicitDefaultLocaleOption = SwitchableOption | CustomImplicitDefaultLocale;
 
-type AutoDetectLocale =
-  | "off"
-  | "on"
-  | {
-      readonly pathMatcherRegExp: RegExp | null;
-    };
+interface CustomAutoDetectLocale {
+  readonly pathMatcherRegExp: RegExp | null;
+}
+type AutoDetectLocaleOption = SwitchableOption | CustomAutoDetectLocale;
 
 export interface NextAppPathStrategyConfig<LK extends string> extends NextAppPersistentStrategyConfig<LK> {
-  readonly lowercaseLocale: boolean;
-  readonly implicitDefaultLocale: ImplicitDefaultLocale;
-  readonly autoDetectLocale: AutoDetectLocale;
-  readonly enableAutoLocaleBinding: boolean;
+  readonly lowercaseLocale: SwitchableOption;
+  readonly autoDetectLocale: AutoDetectLocaleOption;
+  readonly implicitDefaultLocale: ImplicitDefaultLocaleOption;
+  readonly autoLocaleBinding: SwitchableOption;
   readonly basePath: string;
 }
 export interface PartialNextAppPathStrategyConfig<LK extends string>
   extends PartialNextAppPersistentStrategyConfig<LK> {
-  readonly lowercaseLocale?: boolean;
-  readonly implicitDefaultLocale?: ImplicitDefaultLocale;
-  readonly autoDetectLocale?: AutoDetectLocale;
-  readonly enableAutoLocaleBinding?: boolean;
+  readonly lowercaseLocale?: SwitchableOption;
+  readonly autoDetectLocale?: AutoDetectLocaleOption;
+  readonly implicitDefaultLocale?: ImplicitDefaultLocaleOption;
+  readonly autoLocaleBinding?: SwitchableOption;
   readonly basePath?: string;
 }
 
 const defaultConfig: NextAppPathStrategyConfig<DefaultLocaleKey> = {
   localeKey: NextAppImplProvider.defaultLocaleKey,
-  lowercaseLocale: true,
-  implicitDefaultLocale: "off",
-  autoDetectLocale: "on",
-  enableAutoLocaleBinding: false,
-  basePath: "",
   cookie: "off",
+  lowercaseLocale: "on",
+  autoDetectLocale: "on",
+  implicitDefaultLocale: "off",
+  autoLocaleBinding: "off",
+  basePath: "",
 };
-
-function createConfigWithDefaults<LK extends string>(
-  config: PartialNextAppPathStrategyConfig<LK>
-): NextAppPathStrategyConfig<LK> {
-  const cookie = getCookieOption(config.cookie ?? defaultConfig.cookie);
-
-  return {
-    ...defaultConfig,
-    ...config,
-    cookie,
-  } as NextAppPathStrategyConfig<LK>;
-}
 
 export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends NextAppPersistentStrategy<
   LK,
@@ -66,7 +50,10 @@ export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends N
   constructor(config: PartialNextAppPathStrategyConfig<LK>);
   constructor(config: PartialNextAppPathStrategyConfig<LK> = {}) {
     super(
-      createConfigWithDefaults(config),
+      {
+        ...defaultConfig,
+        ...config,
+      } as NextAppPathStrategyConfig<LK>,
       async (rMachine, strategyConfig) => {
         const module = await import("./next-app-path-impl.client.js");
         return module.nextAppPathImpl_clientFactory(rMachine, strategyConfig);

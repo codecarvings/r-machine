@@ -1,3 +1,6 @@
+// Use strings instead of booleans for better clarity in config and for better DX with intellisense
+export type SwitchableOption = "off" | "on";
+
 export type CustomLocaleDetector = () => string | Promise<string>;
 
 export interface CustomLocaleStore {
@@ -14,3 +17,10 @@ export interface CookieDeclaration {
   readonly maxAge?: number | undefined;
   readonly domain?: string | undefined;
 }
+
+export type CookieOption = SwitchableOption | CookieDeclaration;
+
+export const defaultCookieDeclaration: CookieDeclaration = {
+  name: "rm-locale",
+  maxAge: 60 * 60 * 24 * 30, // 30 days
+};

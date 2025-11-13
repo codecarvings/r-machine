@@ -6,12 +6,18 @@ import type { NextAppPathStrategyConfig } from "./next-app-path-strategy.js";
 export const nextAppPathImpl_clientFactory: ImplFactory<NextClientImpl, NextAppPathStrategyConfig<string>> = async (
   _rMachine,
   strategyConfig
-) => ({
-  writeLocale(newLocale, router) {
-    const locale = strategyConfig.lowercaseLocale ? newLocale.toLowerCase() : newLocale;
-    const path = `/${locale}`;
+) => {
+  const { lowercaseLocale, basePath } = strategyConfig;
 
-    router.push(path);
-  },
-  setLocaleCookie: createSetLocaleCookieForNextClientImpl(strategyConfig),
-});
+  const lowercaseLocaleSw = lowercaseLocale === "on";
+
+  return {
+    writeLocale(newLocale, router) {
+      const locale = lowercaseLocaleSw ? newLocale.toLowerCase() : newLocale;
+      const path = `${basePath}/${locale}`;
+
+      router.push(path);
+    },
+    setLocaleCookie: createSetLocaleCookieForNextClientImpl(strategyConfig),
+  };
+};

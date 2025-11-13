@@ -2,6 +2,7 @@ import type { NextAppPathStrategyConfig } from "@r-machine/next/app";
 import { localeHeaderName } from "@r-machine/next/core/app";
 import { type NextRequest, NextResponse } from "next/server";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
+import { defaultCookieDeclaration } from "r-machine/strategy";
 import { rMachine, strategy } from "./r-machine";
 
 // ---- TEMP
@@ -13,16 +14,23 @@ const strategyConfig: NextAppPathStrategyConfig<string> = (strategy as any).conf
 // const default_implicitDefaultLocale_pathMatcherRegExp = /^\/(?!(?:_next|_vercel|api)(?:\/|$)|.*\.[^/]+$)/;
 // const default_autoDetectLocale_pathMatcherRegExp: RegExp = /^\/$/;
 
-const default_implicitDefaultLocale_pathMatcherRegExp: RegExp | null = null; // Implicit for all paths (by default use Next.js proxy matching)
 const default_autoDetectLocale_pathMatcherRegExp_implicit: RegExp | null = /^\/$/; // Auto detect only root path
 const default_autoDetectLocale_pathMatcherRegExp_explicit: RegExp | null = null; // Auto detect all paths
+const default_implicitDefaultLocale_pathMatcherRegExp: RegExp | null = null; // Implicit for all paths (by default use Next.js proxy matching)
 
 export function createProxy() {
   const locales = rMachine.config.locales;
   const defaultLocale = rMachine.config.defaultLocale;
 
-  const { lowercaseLocale, implicitDefaultLocale, autoDetectLocale, enableAutoLocaleBinding, basePath, cookie } =
+  const { cookie, lowercaseLocale, autoDetectLocale, implicitDefaultLocale, autoLocaleBinding, basePath } =
     strategyConfig;
+
+  const cookieSw = cookie !== "off";
+  const { name: cookieName } = cookieSw ? (cookie === "on" ? defaultCookieDeclaration : cookie) : {};
+
+  const lowercaseLocaleSw = lowercaseLocale === "on";
+
+  const autoLBSw = autoLocaleBinding === "on";
 
   const implicitSw = implicitDefaultLocale !== "off";
   const implicitRegExp: RegExp | null =
@@ -32,8 +40,8 @@ export function createProxy() {
         ? default_implicitDefaultLocale_pathMatcherRegExp
         : null;
 
-  const autoSw = autoDetectLocale !== "off";
-  const autoRegExp: RegExp | null =
+  const autoDLSw = autoDetectLocale !== "off";
+  const autoDLRegExp: RegExp | null =
     autoDetectLocale instanceof RegExp
       ? autoDetectLocale
       : autoDetectLocale === "on"
@@ -42,16 +50,13 @@ export function createProxy() {
           : default_autoDetectLocale_pathMatcherRegExp_explicit
         : null;
 
-  const cookieSw = cookie !== "off";
-  const { name: cookieName } = cookieSw ? cookie : {};
-
   // Need two regexes to handle basePath correctly
   // Use case-insensitive matching for locale codes
   const inLocaleRegex = new RegExp(`^\\/(${locales.join("|")})(?:\\/|$)`, "i");
   const outLocaleRegex = new RegExp(`^${basePath}\\/(${locales.join("|")})(?:\\/|$)`, "i");
 
   function getLocalePathName(locale: string, pathName: string): string {
-    return `${basePath}/${lowercaseLocale ? locale.toLowerCase() : locale}${pathName}`;
+    return `${basePath}/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${pathName}`;
   }
 
   function getLocaleFromCookie(request: NextRequest): string | undefined {
@@ -87,7 +92,7 @@ export function createProxy() {
       }
 
       // Standard locale-prefixed URL
-      if (enableAutoLocaleBinding) {
+      if (autoLBSw) {
         // Bind locale to request headers
         const requestHeaders = new Headers(request.headers);
         requestHeaders.set(localeHeaderName, locale);
@@ -110,7 +115,7 @@ export function createProxy() {
       if (implicitRegExp === null || implicitRegExp.test(pathname)) {
         // Valid implicit URL
         let locale: string;
-        if (autoSw && (autoRegExp === null || autoRegExp.test(pathname))) {
+        if (autoDLSw && (autoDLRegExp === null || autoDLRegExp.test(pathname))) {
           // Is auto-detect URL
           const localeCookie = getLocaleFromCookie(request);
 
@@ -135,7 +140,7 @@ export function createProxy() {
         const newUrl = request.nextUrl.clone();
         newUrl.pathname = getLocalePathName(locale, pathname);
 
-        if (enableAutoLocaleBinding) {
+        if (autoLBSw) {
           // Bind locale to request headers
           const requestHeaders = new Headers(request.headers);
           requestHeaders.set(localeHeaderName, locale);
@@ -155,7 +160,7 @@ export function createProxy() {
     }
 
     // Do not use implicit URLs
-    if (autoSw && (autoRegExp === null || autoRegExp.test(pathname))) {
+    if (autoDLSw && (autoDLRegExp === null || autoDLRegExp.test(pathname))) {
       // Is auto-detect URL
       const localeCookie = getLocaleFromCookie(request);
 

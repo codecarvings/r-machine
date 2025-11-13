@@ -1,4 +1,5 @@
 import Cookies from "js-cookie";
+import { defaultCookieDeclaration } from "r-machine/strategy";
 import type { NextClientImpl } from "#r-machine/next/core";
 import type { NextAppPersistentStrategyConfig } from "./next-app-persistent-strategy.js";
 
@@ -9,7 +10,7 @@ export function createSetLocaleCookieForNextClientImpl(
 
   let setLocaleCookie: NextClientImpl["setLocaleCookie"];
   if (cookie !== "off") {
-    const { name: cookieName, ...cookieOptions } = cookie;
+    const { name: cookieName, ...cookieOptions } = cookie === "on" ? defaultCookieDeclaration : cookie;
 
     setLocaleCookie = (locale) => {
       const localeCookie = Cookies.get(cookieName);

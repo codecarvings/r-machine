@@ -11,7 +11,7 @@ export const generateStaticParams = generateLocaleStaticParams;
 
 export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
   // const { locale } = await bindLocale(params);
-  void params;
+  await params;
   const locale = await getLocale();
 
   return (
