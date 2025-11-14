@@ -1,11 +1,5 @@
 export { NextAppImplProvider } from "./next-app-impl-provider.js";
 export {
-  type NextAppPersistentClientImplComplement,
-  NextAppPersistentStrategy,
-  type NextAppPersistentStrategyConfig,
-  type PartialNextAppPersistentStrategyConfig,
-} from "./next-app-persistent-strategy.js";
-export {
   createNextAppServerToolset,
   type EntrancePage,
   type EntrancePageProps,

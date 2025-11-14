@@ -23,7 +23,8 @@ export type NextClientToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "React
 
 export type NextClientImpl = {
   readonly writeLocale: (newLocale: string, router: ReturnType<typeof useRouter>) => void | Promise<void>;
-  readonly setLocaleCookie: ((locale: string) => void | Promise<void>) | undefined;
+  // biome-ignore lint/suspicious/noConfusingVoidType: As per design
+  readonly onLoad: ((locale: string) => void | (() => void)) | undefined;
 };
 
 export function createNextClientToolset<A extends AnyAtlas>(
@@ -57,10 +58,10 @@ export function createNextClientToolset<A extends AnyAtlas>(
 
   function NextClientRMachine({ locale, children }: NextClientRMachineProps) {
     useEffect(() => {
-      if (impl.setLocaleCookie !== undefined) {
-        impl.setLocaleCookie(locale);
+      if (impl.onLoad !== undefined) {
+        return impl.onLoad(locale);
       }
-    }, [locale, impl.setLocaleCookie]);
+    }, [locale, impl.onLoad]);
     return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
   }
   NextClientRMachine[brand] = "NextClientRMachine";

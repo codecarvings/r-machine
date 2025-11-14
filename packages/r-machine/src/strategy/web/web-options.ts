@@ -1,5 +1,3 @@
-import type { SwitchableOption } from "#r-machine/strategy";
-
 export interface CookieDeclaration {
   readonly name: string;
   readonly path?: string | undefined;
@@ -9,8 +7,6 @@ export interface CookieDeclaration {
   readonly maxAge?: number | undefined;
   readonly domain?: string | undefined;
 }
-
-export type CookieOption = SwitchableOption | CookieDeclaration;
 
 export const defaultCookieDeclaration: CookieDeclaration = {
   name: "rm-locale",

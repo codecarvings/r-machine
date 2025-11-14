@@ -27,7 +27,7 @@ export function createProxy() {
   const autoLBSw = autoLocaleBinding === "on";
 
   const cookieSw = cookie !== "off";
-  const { name: cookieName } = cookieSw ? (cookie === "on" ? defaultCookieDeclaration : cookie) : {};
+  const { name: cookieName, ...cookieOptions } = cookieSw ? (cookie === "on" ? defaultCookieDeclaration : cookie) : {};
 
   const lowercaseLocaleSw = lowercaseLocale === "on";
 
@@ -87,7 +87,15 @@ export function createProxy() {
       if (implicitSw && locale === defaultLocale) {
         // Locale is present but canonical URL is implicit (no locale prefix)
         const implicitPath = pathname.replace(outLocaleRegex, "/");
-        return NextResponse.redirect(new URL(implicitPath, request.url));
+        const response = NextResponse.redirect(new URL(implicitPath, request.url));
+        if (cookieSw) {
+          const localeCookie = getLocaleFromCookie(request);
+          if (localeCookie !== locale) {
+            // Set locale cookie
+            response.cookies.set(cookieName!, locale, cookieOptions);
+          }
+        }
+        return response;
       }
 
       // Standard locale-prefixed URL

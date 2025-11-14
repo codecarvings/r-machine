@@ -1,23 +1,42 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { ImplFactory } from "r-machine/strategy";
+import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import { type EntrancePageProps, localeHeaderName, type NextAppServerImplComplement } from "#r-machine/next/core/app";
-import type { NextProxyResult } from "#r-machine/next/internal";
+import type { CookiesFn, NextProxyResult } from "#r-machine/next/internal";
 import type { NextAppPathStrategyConfig } from "./next-app-path-strategy.js";
 
 export const createNextAppPathServerImplComplement: ImplFactory<
   NextAppServerImplComplement<string>,
   NextAppPathStrategyConfig<string>
 > = async (rMachine, strategyConfig) => {
-  const { basePath } = strategyConfig;
+  const { basePath, cookie } = strategyConfig;
   const lowercaseLocale = strategyConfig.lowercaseLocale === "on";
-  // Do not consider implicitDefaultLocale since when writing locale we always write explicit locale (to set cookie)
+  const implicitDefaultLocale = strategyConfig.implicitDefaultLocale !== "off";
+
+  // Setting of cookie required when implicitDefaultLocale is on and switching to default locale
+  // (problem with explicit path)
+  const cookieSw = cookie !== "off";
+  const { name: cookieName, ...cookieOptions } = cookieSw ? (cookie === "on" ? defaultCookieDeclaration : cookie) : {};
 
   return {
-    writeLocale(newLocale) {
-      const locale = lowercaseLocale ? newLocale.toLowerCase() : newLocale;
-      const path = `${basePath}/${locale}`;
+    async writeLocale(newLocale, cookies: CookiesFn) {
+      if (cookieSw) {
+        try {
+          const cookieStore = await cookies();
+          cookieStore.set(cookieName!, newLocale, cookieOptions);
+        } catch {
+          // SetLocale not invoked in a Server Action or Route Handler.
+        }
+      }
 
+      let localeParam: string;
+      if (implicitDefaultLocale && newLocale === rMachine.config.defaultLocale) {
+        localeParam = "";
+      } else {
+        localeParam = lowercaseLocale ? newLocale.toLowerCase() : newLocale;
+      }
+      const path = `${basePath}/${localeParam}`;
       redirect(path);
     },
 
@@ -51,8 +70,8 @@ export const createNextAppPathServerImplComplement: ImplFactory<
         if (locale) {
           await setLocale(locale);
         } else {
-          const headersList = await headers();
-          const acceptLanguageHeader = headersList.get("accept-language");
+          const headerStore = await headers();
+          const acceptLanguageHeader = headerStore.get("accept-language");
           const detectedLocale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
           await setLocale(detectedLocale);
         }

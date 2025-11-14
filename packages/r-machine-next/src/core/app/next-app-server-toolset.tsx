@@ -5,7 +5,7 @@ import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
 import type { NextClientRMachine, RMachineProxy } from "#r-machine/next/core";
-import type { HeadersFn } from "#r-machine/next/internal";
+import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
 
 export interface NextAppServerToolset<A extends AnyAtlas, LK extends string> {
   readonly rMachineProxy: RMachineProxy;
@@ -56,7 +56,7 @@ export const localeHeaderName = "x-rm-locale";
 export type NextAppServerImpl<LK extends string> = {
   readonly localeKey: LK;
   readonly autoLocaleBinding: boolean;
-  readonly writeLocale: (newLocale: string) => void | Promise<void>;
+  readonly writeLocale: (newLocale: string, cookies: CookiesFn) => void | Promise<void>;
   // must be dynamically generated because of strategy options (lowercaseLocale)
   readonly createLocaleStaticParamsGenerator: () =>
     | LocaleStaticParamsGenerator<string>
@@ -77,7 +77,7 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
 
   // Use dynamic import to bypass the "next/headers" import issue in pages/ directory
   // You're importing a component that needs "next/headers". That only works in a Server Component which is not supported in the pages/ directory. Read more: https://nextjs.org/docs/app/building-your-application/rendering/server-components
-  const { headers } = await import("next/headers");
+  const { headers, cookies } = await import("next/headers");
 
   const rMachineProxy = await impl.createProxy();
   const generateLocaleStaticParams = await impl.createLocaleStaticParamsGenerator();
@@ -183,7 +183,7 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
       throw new RMachineError(`Cannot set locale to invalid locale: "${newLocale}".`, error);
     }
 
-    await impl.writeLocale(newLocale);
+    await impl.writeLocale(newLocale, cookies);
   }
 
   function pickR<N extends AtlasNamespace<A>>(namespace: N): Promise<A[N]> {

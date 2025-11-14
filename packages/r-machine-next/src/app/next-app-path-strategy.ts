@@ -1,10 +1,11 @@
 import { RMachineError } from "r-machine/errors";
 import type { SwitchableOption } from "r-machine/strategy";
+import type { CookieDeclaration } from "r-machine/strategy/web";
 import {
   type DefaultLocaleKey,
-  NextAppPersistentStrategy,
-  type NextAppPersistentStrategyConfig,
-  type PartialNextAppPersistentStrategyConfig,
+  NextAppStrategy,
+  type NextAppStrategyConfig,
+  type PartialNextAppStrategyConfig,
 } from "#r-machine/next/core/app";
 
 interface CustomImplicitDefaultLocale {
@@ -16,27 +17,30 @@ interface CustomAutoDetectLocale {
   readonly pathMatcherRegExp: RegExp | null;
 }
 type AutoDetectLocaleOption = SwitchableOption | CustomAutoDetectLocale;
+type CookieOption = SwitchableOption | CookieDeclaration;
 
-export interface NextAppPathStrategyConfig<LK extends string> extends NextAppPersistentStrategyConfig<LK> {
+export interface NextAppPathStrategyConfig<LK extends string> extends NextAppStrategyConfig<LK> {
+  readonly cookie: CookieOption;
   readonly lowercaseLocale: SwitchableOption;
   readonly autoDetectLocale: AutoDetectLocaleOption;
   readonly implicitDefaultLocale: ImplicitDefaultLocaleOption;
 }
-export interface PartialNextAppPathStrategyConfig<LK extends string>
-  extends PartialNextAppPersistentStrategyConfig<LK> {
+export interface PartialNextAppPathStrategyConfig<LK extends string> extends PartialNextAppStrategyConfig<LK> {
+  readonly cookie?: CookieOption;
   readonly lowercaseLocale?: SwitchableOption;
   readonly autoDetectLocale?: AutoDetectLocaleOption;
   readonly implicitDefaultLocale?: ImplicitDefaultLocaleOption;
 }
 
 const defaultConfig: NextAppPathStrategyConfig<DefaultLocaleKey> = {
-  ...NextAppPersistentStrategy.defaultConfig,
+  ...NextAppStrategy.defaultConfig,
+  cookie: "off",
   lowercaseLocale: "on",
   autoDetectLocale: "on",
   implicitDefaultLocale: "off",
 };
 
-export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends NextAppPersistentStrategy<
+export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends NextAppStrategy<
   LK,
   NextAppPathStrategyConfig<LK>
 > {
@@ -51,8 +55,8 @@ export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends N
         ...config,
       } as NextAppPathStrategyConfig<LK>,
       async (rMachine, strategyConfig) => {
-        const module = await import("./next-app-path.client-impl-complement.js");
-        return module.createNextAppPathClientImplComplement(rMachine, strategyConfig);
+        const module = await import("./next-app-path.client-impl.js");
+        return module.createNextAppPathClientImpl(rMachine, strategyConfig);
       },
       async (rMachine, strategyConfig) => {
         const module = await import("./next-app-path.server-impl-complement.js");
