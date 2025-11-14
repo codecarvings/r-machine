@@ -1,21 +1,21 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { ImplFactory } from "r-machine/strategy";
-import { type EntrancePageProps, localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
+import { type EntrancePageProps, localeHeaderName, type NextAppServerImplComplement } from "#r-machine/next/core/app";
 import type { NextProxyResult } from "#r-machine/next/internal";
 import type { NextAppPathStrategyConfig } from "./next-app-path-strategy.js";
 
-export const nextAppPathImpl_serverFactory: ImplFactory<NextAppServerImpl, NextAppPathStrategyConfig<string>> = async (
-  rMachine,
-  strategyConfig
-) => {
-  const { lowercaseLocale, basePath } = strategyConfig;
+export const createNextAppPathServerImplComplement: ImplFactory<
+  NextAppServerImplComplement<string>,
+  NextAppPathStrategyConfig<string>
+> = async (rMachine, strategyConfig) => {
+  const { basePath } = strategyConfig;
 
-  const lowercaseLocaleSw = lowercaseLocale === "on";
+  const lowercaseLocale = strategyConfig.lowercaseLocale === "on";
 
   return {
     writeLocale(newLocale) {
-      const locale = lowercaseLocaleSw ? newLocale.toLowerCase() : newLocale;
+      const locale = lowercaseLocale ? newLocale.toLowerCase() : newLocale;
       const path = `${basePath}/${locale}`;
 
       redirect(path);

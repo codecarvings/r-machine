@@ -40,7 +40,8 @@
       "./errors": "./src/errors/index.ts",
       "./locale": "./src/locale/index.ts",
       ".": "./src/lib/index.ts",
-      "./strategy": "./src/strategy/index.ts"
+      "./strategy": "./src/strategy/index.ts",
+      "./strategy/web": "./src/strategy/web/index.ts"
     },
     "conditions": {
       "@r-machine/source": "src"
@@ -70,6 +71,12 @@
       "types": "./strategy/index.d.cts",
       "import": "./strategy/index.js",
       "require": "./strategy/index.cjs"
+    },
+    "./strategy/web": {
+      "@r-machine/source": "./src/strategy/web/index.ts",
+      "types": "./strategy/web/index.d.cts",
+      "import": "./strategy/web/index.js",
+      "require": "./strategy/web/index.cjs"
     }
   },
   "imports": {
@@ -88,6 +95,10 @@
     "#r-machine/strategy": {
       "@r-machine/source": "./src/strategy/index.ts",
       "default": "./strategy/index.js"
+    },
+    "#r-machine/strategy/web": {
+      "@r-machine/source": "./src/strategy/web/index.ts",
+      "default": "./strategy/web/index.js"
     }
   },
   "scripts": {

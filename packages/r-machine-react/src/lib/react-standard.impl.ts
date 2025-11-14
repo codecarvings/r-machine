@@ -3,7 +3,7 @@ import type { ImplFactory } from "r-machine/strategy";
 import type { ReactStandardImpl } from "#r-machine/react/core";
 import type { ReactStandardStrategyConfig } from "./react-standard-strategy.js";
 
-export const reactStandardImplFactory: ImplFactory<ReactStandardImpl, ReactStandardStrategyConfig> = async (
+export const createReactStandardImpl: ImplFactory<ReactStandardImpl, ReactStandardStrategyConfig> = async (
   rMachine,
   strategyConfig
 ) => {

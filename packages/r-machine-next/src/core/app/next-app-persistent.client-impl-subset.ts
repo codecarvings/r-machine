@@ -1,11 +1,16 @@
 import Cookies from "js-cookie";
-import { defaultCookieDeclaration } from "r-machine/strategy";
+import type { ImplFactory } from "r-machine/strategy";
+import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import type { NextClientImpl } from "#r-machine/next/core";
-import type { NextAppPersistentStrategyConfig } from "./next-app-persistent-strategy.js";
+import type {
+  NextAppPersistentClientImplSubset,
+  NextAppPersistentStrategyConfig,
+} from "./next-app-persistent-strategy.js";
 
-export function createSetLocaleCookieForNextClientImpl(
-  strategyConfig: NextAppPersistentStrategyConfig<string>
-): NextClientImpl["setLocaleCookie"] {
+export const createNextAppPersistentClientImplSubset: ImplFactory<
+  NextAppPersistentClientImplSubset,
+  NextAppPersistentStrategyConfig<string>
+> = async (_rMachine, strategyConfig) => {
   const { cookie } = strategyConfig;
 
   let setLocaleCookie: NextClientImpl["setLocaleCookie"];
@@ -26,5 +31,7 @@ export function createSetLocaleCookieForNextClientImpl(
     };
   }
 
-  return setLocaleCookie;
-}
+  return {
+    setLocaleCookie,
+  };
+};

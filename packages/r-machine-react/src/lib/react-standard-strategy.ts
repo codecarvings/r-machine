@@ -1,6 +1,6 @@
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { ReactStandardImplProvider } from "#r-machine/react/core";
-import { reactStandardImplFactory } from "./react-standard-impl.js";
+import { createReactStandardImpl } from "./react-standard.impl.js";
 
 export interface ReactStandardStrategyConfig {
   readonly localeDetector: CustomLocaleDetector | undefined;
@@ -25,7 +25,7 @@ export class ReactStandardStrategy extends ReactStandardImplProvider<ReactStanda
         ...defaultConfig,
         ...config,
       },
-      reactStandardImplFactory
+      createReactStandardImpl
     );
   }
 }

@@ -53,7 +53,9 @@ const ErrorEntrancePage: EntrancePage = async () => {
 
 export const localeHeaderName = "x-rm-locale";
 
-export type NextAppServerImpl = {
+export type NextAppServerImpl<LK extends string> = {
+  readonly localeKey: LK;
+  readonly autoLocaleBinding: boolean;
   readonly writeLocale: (newLocale: string) => void | Promise<void>;
   // must be dynamically generated because of strategy options (lowercaseLocale)
   readonly createLocaleStaticParamsGenerator: () =>
@@ -67,11 +69,11 @@ export type NextAppServerImpl = {
 
 export async function createNextAppServerToolset<A extends AnyAtlas, LK extends string>(
   rMachine: RMachine<A>,
-  impl: NextAppServerImpl,
-  localeKey: LK,
+  impl: NextAppServerImpl<LK>,
   NextClientRMachine: NextClientRMachine
 ): Promise<NextAppServerToolset<A, LK>> {
   const validateLocale = rMachine.localeHelper.validateLocale;
+  const { localeKey, autoLocaleBinding } = impl;
 
   // Use dynamic import to bypass the "next/headers" import issue in pages/ directory
   // You're importing a component that needs "next/headers". That only works in a Server Component which is not supported in the pages/ directory. Read more: https://nextjs.org/docs/app/building-your-application/rendering/server-components
@@ -140,29 +142,31 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
     if (context.value !== null) {
       return context.value;
     }
-    if (context.getLocalePromise !== null) {
-      return context.getLocalePromise;
-    }
 
-    context.getLocalePromise = headers().then((headersList) => {
-      context.getLocalePromise = null;
-
-      const locale = headersList.get(localeHeaderName);
-      if (locale === null) {
-        throw new RMachineError(
-          "TODO: Write error message for missing locale header in NextAppServerRMachineContext.getLocale."
-        );
+    if (autoLocaleBinding) {
+      if (context.getLocalePromise !== null) {
+        return context.getLocalePromise;
       }
-      console.log("Determined locale from header:", locale);
-      context.value = locale;
-      return locale;
-    });
-    return context.getLocalePromise;
-    /*
-    throw new RMachineError(
-      "NextAppServerRMachineContext not initialized. bindLocale not invoked? (you must invoke bindLocale at the beginning of every page or layout component)."
-    );
-    */
+
+      context.getLocalePromise = headers().then((headersList) => {
+        context.getLocalePromise = null;
+
+        const locale = headersList.get(localeHeaderName);
+        if (locale === null) {
+          throw new RMachineError(
+            "Cannot determine locale. Ensure that the RMachine proxy is properly configured and applied."
+          );
+        }
+        console.log("Determined locale from header:", locale);
+        context.value = locale;
+        return locale;
+      });
+      return context.getLocalePromise;
+    } else {
+      throw new RMachineError(
+        "Cannot determine locale. bindLocale not invoked? (you must invoke bindLocale at the beginning of every page or layout component)."
+      );
+    }
   }
 
   function getLocale(): Promise<string> {

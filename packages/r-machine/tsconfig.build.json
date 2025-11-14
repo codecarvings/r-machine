@@ -9,6 +9,7 @@
       "#r-machine/locale": ["./src/locale"],
       "#r-machine": ["./src/lib"],
       "#r-machine/strategy": ["./src/strategy"],
+      "#r-machine/strategy/web": ["./src/strategy/web"]
     }
   }
 }

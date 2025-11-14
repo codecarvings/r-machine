@@ -1,10 +1,10 @@
 import type { SwitchableOption } from "r-machine/strategy";
-import { type DefaultLocaleKey, NextAppImplProvider } from "#r-machine/next/core/app";
 import {
+  type DefaultLocaleKey,
   NextAppPersistentStrategy,
   type NextAppPersistentStrategyConfig,
   type PartialNextAppPersistentStrategyConfig,
-} from "./next-app-persistent-strategy.js";
+} from "#r-machine/next/core/app";
 
 interface CustomImplicitDefaultLocale {
   readonly pathMatcherRegExp: RegExp | null;
@@ -20,32 +20,27 @@ export interface NextAppPathStrategyConfig<LK extends string> extends NextAppPer
   readonly lowercaseLocale: SwitchableOption;
   readonly autoDetectLocale: AutoDetectLocaleOption;
   readonly implicitDefaultLocale: ImplicitDefaultLocaleOption;
-  readonly autoLocaleBinding: SwitchableOption;
-  readonly basePath: string;
 }
 export interface PartialNextAppPathStrategyConfig<LK extends string>
   extends PartialNextAppPersistentStrategyConfig<LK> {
   readonly lowercaseLocale?: SwitchableOption;
   readonly autoDetectLocale?: AutoDetectLocaleOption;
   readonly implicitDefaultLocale?: ImplicitDefaultLocaleOption;
-  readonly autoLocaleBinding?: SwitchableOption;
-  readonly basePath?: string;
 }
 
 const defaultConfig: NextAppPathStrategyConfig<DefaultLocaleKey> = {
-  localeKey: NextAppImplProvider.defaultLocaleKey,
-  cookie: "off",
+  ...NextAppPersistentStrategy.defaultConfig,
   lowercaseLocale: "on",
   autoDetectLocale: "on",
   implicitDefaultLocale: "off",
-  autoLocaleBinding: "off",
-  basePath: "",
 };
 
 export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends NextAppPersistentStrategy<
   LK,
   NextAppPathStrategyConfig<LK>
 > {
+  static override readonly defaultConfig = defaultConfig;
+
   constructor();
   constructor(config: PartialNextAppPathStrategyConfig<LK>);
   constructor(config: PartialNextAppPathStrategyConfig<LK> = {}) {
@@ -55,12 +50,12 @@ export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends N
         ...config,
       } as NextAppPathStrategyConfig<LK>,
       async (rMachine, strategyConfig) => {
-        const module = await import("./next-app-path-impl.client.js");
-        return module.nextAppPathImpl_clientFactory(rMachine, strategyConfig);
+        const module = await import("./next-app-path.client-impl-complement.js");
+        return module.createNextAppPathClientImplComplement(rMachine, strategyConfig);
       },
       async (rMachine, strategyConfig) => {
-        const module = await import("./next-app-path-impl.server.js");
-        return module.nextAppPathImpl_serverFactory(rMachine, strategyConfig);
+        const module = await import("./next-app-path.server-impl-complement.js");
+        return module.createNextAppPathServerImplComplement(rMachine, strategyConfig);
       }
     );
   }

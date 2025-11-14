@@ -2,7 +2,7 @@ import type { NextAppPathStrategyConfig } from "@r-machine/next/app";
 import { localeHeaderName } from "@r-machine/next/core/app";
 import { type NextRequest, NextResponse } from "next/server";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
-import { defaultCookieDeclaration } from "r-machine/strategy";
+import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import { rMachine, strategy } from "./r-machine";
 
 // ---- TEMP
