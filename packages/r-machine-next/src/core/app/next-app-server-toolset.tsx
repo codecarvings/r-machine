@@ -157,7 +157,6 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
             "Cannot determine locale. Ensure that the RMachine proxy is properly configured and applied."
           );
         }
-        console.log("Determined locale from header:", locale);
         context.value = locale;
         return locale;
       });

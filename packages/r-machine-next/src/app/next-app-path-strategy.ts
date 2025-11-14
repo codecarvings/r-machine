@@ -1,3 +1,4 @@
+import { RMachineError } from "r-machine/errors";
 import type { SwitchableOption } from "r-machine/strategy";
 import {
   type DefaultLocaleKey,
@@ -58,5 +59,13 @@ export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends N
         return module.createNextAppPathServerImplComplement(rMachine, strategyConfig);
       }
     );
+
+    const implicitDefaultLocale = this.config.implicitDefaultLocale !== "off";
+    const cookie = this.config.cookie !== "off";
+    if (implicitDefaultLocale && !cookie) {
+      throw new RMachineError(
+        'NextAppPathStrategy configuration error: "implicitDefaultLocale" option requires "cookie" to be enabled.'
+      );
+    }
   }
 }

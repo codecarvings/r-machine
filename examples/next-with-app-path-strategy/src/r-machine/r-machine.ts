@@ -10,6 +10,6 @@ export const rMachine = new RMachine<Atlas>({
 
 export const strategy = new NextAppPathStrategy({
   cookie: "on",
-  implicitDefaultLocale: "off",
+  implicitDefaultLocale: "on",
   autoLocaleBinding: "on",
 });

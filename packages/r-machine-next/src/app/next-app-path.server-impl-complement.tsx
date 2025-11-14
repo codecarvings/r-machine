@@ -10,8 +10,8 @@ export const createNextAppPathServerImplComplement: ImplFactory<
   NextAppPathStrategyConfig<string>
 > = async (rMachine, strategyConfig) => {
   const { basePath } = strategyConfig;
-
   const lowercaseLocale = strategyConfig.lowercaseLocale === "on";
+  // Do not consider implicitDefaultLocale since when writing locale we always write explicit locale (to set cookie)
 
   return {
     writeLocale(newLocale) {
@@ -53,8 +53,8 @@ export const createNextAppPathServerImplComplement: ImplFactory<
         } else {
           const headersList = await headers();
           const acceptLanguageHeader = headersList.get("accept-language");
-          const defaultLocale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
-          await setLocale(defaultLocale);
+          const detectedLocale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
+          await setLocale(detectedLocale);
         }
 
         return null;

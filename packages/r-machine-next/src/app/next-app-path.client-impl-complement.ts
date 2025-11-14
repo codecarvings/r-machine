@@ -8,6 +8,7 @@ export const createNextAppPathClientImplComplement: ImplFactory<
 > = async (_rMachine, strategyConfig) => {
   const { basePath } = strategyConfig;
   const lowercaseLocale = strategyConfig.lowercaseLocale === "on";
+  // Do not consider implicitDefaultLocale since when writing locale we always write explicit locale (to set cookie)
 
   return {
     writeLocale(newLocale, router) {
