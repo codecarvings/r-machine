@@ -1,5 +1,16 @@
 # @r-machine/next
 
+## 1.0.0-alpha.5
+
+### Patch Changes
+
+- 99e56a5: Add full implementation of NextAppPath strategy;
+  Add NextAppImplProvider, NextAppServerToolset, NextAppStrategy, createNextAppServerImpl;
+  Change NextToolset.createForClient and createForServer methods to return Promises;
+  Remove NextAppRouterEntrancePage, NextAppRouterImplProvider, NextAppRouterServerImpl, NextAppRouterStandardStrategy, NextAppRouterServerToolset.
+- Updated dependencies [99e56a5]
+  - r-machine@1.0.0-alpha.5
+
 ## 1.0.0-alpha.4
 
 ### Patch Changes

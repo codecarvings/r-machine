@@ -10,8 +10,11 @@
     "@r-machine/react": "1.0.0-alpha.1"
   },
   "changesets": [
+    "cozy-dragons-pay",
+    "hip-weeks-lose",
     "hot-pears-melt",
     "some-candles-happen2",
+    "sour-bees-change",
     "strict-games-tan2",
     "sunny-towns-cover",
     "ten-sides-smile2",

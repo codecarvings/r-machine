@@ -1,5 +1,16 @@
 # r-machine
 
+## 1.0.0-alpha.5
+
+### Patch Changes
+
+- 99e56a5: Add hybridPickR and hybridPickRKit methods to rMachine;
+  Add r-machine/strategy/web export path;
+  Add SwitchableOption;
+  Change return type of rMachine methods pickR and pickRKit to Promise<>;
+  Change CustomLocaleDetector and CustomLocaleStore to allow returning Promises;
+  Remove Bin types.
+
 ## 1.0.0-alpha.4
 
 ### Patch Changes

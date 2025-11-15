@@ -1,5 +1,18 @@
 # @r-machine/react
 
+## 1.0.0-alpha.5
+
+### Patch Changes
+
+- 99e56a5: Add ReactStandardImpl;
+  Add fallback and Suspense props to ReactStandardRMachine;
+  Add DelayedSuspense.create method;
+  Change ReactStandardImplProvider to accept an implFactory instead of an Impl object;
+  Change ReactStandardImpl to use the new impl factory logic without bins;
+  Change ReactStrategy.createToolset return type (Promise<>).
+- Updated dependencies [99e56a5]
+  - r-machine@1.0.0-alpha.5
+
 ## 1.0.0-alpha.4
 
 ### Patch Changes

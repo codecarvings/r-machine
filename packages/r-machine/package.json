@@ -1,6 +1,6 @@
 {
   "name": "r-machine",
-  "version": "1.0.0-alpha.4",
+  "version": "1.0.0-alpha.5",
   "description": "A TypeScript library for internationalization (i18n) with a focus on developer experience",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "MIT",
