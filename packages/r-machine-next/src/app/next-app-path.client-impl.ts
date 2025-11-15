@@ -23,7 +23,7 @@ export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, NextAppPat
     setLocaleCookie = (locale: string) => {
       Cookies.set(cookieName, locale, {
         domain: cookieOptions.domain,
-        path: cookieOptions.path,
+        path: cookieOptions.path ?? "/", // Ensure cookie is set for the root path if no path is specified (otherwise it is set for the current path)
         expires: cookieOptions.maxAge !== undefined ? new Date(Date.now() + cookieOptions.maxAge * 1000) : undefined,
         secure: cookieOptions.secure,
         sameSite: cookieOptions.sameSite,
@@ -53,7 +53,6 @@ export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, NextAppPat
         localeParam = lowercaseLocale ? newLocale.toLowerCase() : newLocale;
       }
       const path = `/${localeParam}`;
-      console.dir(router);
       router.push(path);
     },
     onLoad,

@@ -11,4 +11,5 @@ export interface CookieDeclaration {
 export const defaultCookieDeclaration: CookieDeclaration = {
   name: "rm-locale",
   maxAge: 60 * 60 * 24 * 30, // 30 days
+  path: "/",
 };

@@ -52,10 +52,6 @@ export function createProxy() {
   // Use case-insensitive matching for locale codes
   const localeRegex = new RegExp(`^\\/(${locales.join("|")})(?:\\/|$)`, "i");
 
-  function getExplicitLocalePathName(locale: string, pathName: string): string {
-    return `${basePath}/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${pathName}`;
-  }
-
   function getLocaleFromCookie(request: NextRequest): string | undefined {
     if (!cookieSw) {
       return undefined;
@@ -75,7 +71,6 @@ export function createProxy() {
 
   function proxy(request: NextRequest): NextProxyResult {
     const pathname = request.nextUrl.pathname;
-    console.log("Proxying request for pathname:", pathname);
     const match = pathname.match(localeRegex);
 
     if (match) {
@@ -85,7 +80,7 @@ export function createProxy() {
 
       if (implicitSw && locale === defaultLocale) {
         // Locale is present but canonical URL is implicit (no locale prefix)
-        const implicitPath = pathname.replace(localeRegex, "/");
+        const implicitPath = pathname.replace(localeRegex, `${basePath}/`);
         const response = NextResponse.redirect(new URL(implicitPath, request.url));
         if (cookieSw) {
           const localeCookie = getLocaleFromCookie(request);
@@ -124,7 +119,6 @@ export function createProxy() {
         if (autoDLSw && (autoDLRegExp === null || autoDLRegExp.test(pathname))) {
           // Is auto-detect URL
           const localeCookie = getLocaleFromCookie(request);
-          console.log("Locale cookie:", localeCookie);
 
           if (localeCookie !== undefined) {
             // Cookie enabled and available, use locale from cookie
@@ -136,17 +130,18 @@ export function createProxy() {
 
           if (locale !== defaultLocale) {
             // Redirect to the URL with the locale prefix
-            console.log("Redirecting to locale-prefixed URL for locale:", locale, pathname);
-            return NextResponse.redirect(new URL(getExplicitLocalePathName(locale, pathname), request.url));
+            return NextResponse.redirect(
+              new URL(`${basePath}/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${pathname}`, request.url)
+            );
           }
         } else {
           // Non auto-detect URL, always use default locale
           locale = defaultLocale;
         }
 
-        // Rewrite to locale-prefixed URL internally
+        // Rewrite to locale-prefixed URL internally - basePath already included
         const newUrl = request.nextUrl.clone();
-        newUrl.pathname = getExplicitLocalePathName(locale, pathname);
+        newUrl.pathname = `/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${pathname}`;
 
         if (autoLBSw) {
           // Bind locale to request headers
@@ -182,7 +177,9 @@ export function createProxy() {
       }
 
       // Redirect to the URL with the locale prefix
-      return NextResponse.redirect(new URL(getExplicitLocalePathName(locale, pathname), request.url));
+      return NextResponse.redirect(
+        new URL(`${basePath}/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${pathname}`, request.url)
+      );
     }
 
     // NOot an auto-detect URL
