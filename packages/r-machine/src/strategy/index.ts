@@ -1,8 +1,8 @@
 export {
-  type Bin,
-  type BinFactoryMap,
-  defaultBinFactory,
-  type ImplPackage,
+  type AnyImpl,
+  getImplFactory,
+  type ImplFactory,
+  type ImplProvider,
 } from "./impl.js";
 export * from "./options.js";
 export { Strategy } from "./strategy.js";

@@ -1,1 +1,1 @@
-export { DelayedSuspense } from "./delayed-suspense.js";
+export { DelayedSuspense, type SuspenseComponent } from "./delayed-suspense.js";

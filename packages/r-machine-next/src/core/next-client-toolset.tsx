@@ -1,67 +1,70 @@
 "use client";
 
 import { createReactToolset, type ReactToolset } from "@r-machine/react/core";
+import { useRouter } from "next/navigation";
 import type { AnyAtlas, RMachine } from "r-machine";
-import type { RMachineError } from "r-machine/errors";
-import type { JSX, ReactNode } from "react";
-import type { NextClientImplPackage } from "./next-client-impl.js";
+import { RMachineError } from "r-machine/errors";
+import { type ReactNode, useEffect } from "react";
 
-const brand = Symbol("NextAppRouterClientRMachine");
+const brand = Symbol("NextClientRMachine");
 
 interface NextClientRMachineProps {
   readonly locale: string;
   readonly children: ReactNode;
 }
 export interface NextClientRMachine {
-  (props: NextClientRMachineProps): JSX.Element;
-  readonly [brand]: "NextAppRouterClientRMachine";
+  (props: NextClientRMachineProps): ReactNode;
+  readonly [brand]: "NextClientRMachine";
 }
 
 export type NextClientToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "ReactRMachine"> & {
   readonly NextClientRMachine: NextClientRMachine;
 };
 
-function setLocale(
-  locale: string,
-  newLocale: string,
-  writeLocaleBin: unknown,
-  validateLocale: (locale: string) => RMachineError | null,
-  writeLocale: (newLocale: string, bin: any) => void
-) {
-  if (newLocale === locale) {
-    return;
-  }
+export type NextClientImpl = {
+  readonly writeLocale: (newLocale: string, router: ReturnType<typeof useRouter>) => void | Promise<void>;
+  // biome-ignore lint/suspicious/noConfusingVoidType: As per design
+  readonly onLoad: ((locale: string) => void | (() => void)) | undefined;
+};
 
-  const error = validateLocale(newLocale);
-  if (error) {
-    throw error;
-  }
-
-  writeLocale(newLocale, writeLocaleBin);
-}
-
-export function createNextClientToolset<A extends AnyAtlas, C>(
+export function createNextClientToolset<A extends AnyAtlas>(
   rMachine: RMachine<A>,
-  strategyConfig: C,
-  implPackage: NextClientImplPackage<C>
+  impl: NextClientImpl
 ): NextClientToolset<A> {
   const { ReactRMachine, useLocale, ...otherTools } = createReactToolset(rMachine);
-  const validateLocale = rMachine.localeHelper.validateLocale;
-  const partialBin = { strategyConfig, rMachine };
+
+  async function setLocale(locale: string, newLocale: string, router: ReturnType<typeof useRouter>): Promise<void> {
+    if (newLocale === locale) {
+      return;
+    }
+
+    const error = rMachine.localeHelper.validateLocale(newLocale);
+    if (error) {
+      throw new RMachineError(`Cannot set invalid locale: ${newLocale}.`, error);
+    }
+
+    const writeLocaleResult = impl.writeLocale(newLocale, router);
+    if (writeLocaleResult instanceof Promise) {
+      await writeLocaleResult;
+    }
+  }
 
   function useSetLocale(): ReturnType<ReactToolset<A>["useSetLocale"]> {
     const locale = useLocale();
-    const bin = implPackage.binFactories.writeLocale(partialBin);
+    const router = useRouter();
 
-    return (newLocale: string) => {
-      setLocale(locale, newLocale, bin, validateLocale, implPackage.impl.writeLocale);
-    };
+    return (newLocale: string) => setLocale(locale, newLocale, router);
   }
 
   function NextClientRMachine({ locale, children }: NextClientRMachineProps) {
+    useEffect(() => {
+      if (impl.onLoad !== undefined) {
+        return impl.onLoad(locale);
+      }
+    }, [locale, impl.onLoad]);
     return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
   }
-  NextClientRMachine[brand] = "NextAppRouterClientRMachine";
+  NextClientRMachine[brand] = "NextClientRMachine";
 
   return {
     ...otherTools,

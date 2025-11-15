@@ -1,4 +1,4 @@
-import { ReactDefaultStrategy, ReactToolset } from "@r-machine/react";
+import { ReactToolset } from "@r-machine/react";
 import { RMachine } from "r-machine";
 
 type Atlas = {
@@ -28,7 +28,6 @@ const [r1, r2] = await rMachine.pickRKit("it", "ns1", "ns2");
 console.log(r1.message);
 console.log(r2.message);
 
-const strategy = new ReactDefaultStrategy();
-export const { ReactRMachine, useLocale, useR, useRKit } = ReactToolset.create(rMachine, strategy);
+export const { ReactRMachine, useLocale, useR, useRKit } = await ReactToolset.create(rMachine);
 
-const _helloWorld = <ReactRMachine locale="it">Hello World</ReactRMachine>;
+const _helloWorld = <ReactRMachine locale="em">Hello World</ReactRMachine>;

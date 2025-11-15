@@ -1,12 +1,15 @@
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { ReactStandardImplProvider } from "#r-machine/react/core";
-import { reactStandardImpl } from "./react-standard-impl.js";
+import { createReactStandardImpl } from "./react-standard.impl.js";
 
 export interface ReactStandardStrategyConfig {
   readonly localeDetector: CustomLocaleDetector | undefined;
   readonly localeStore: CustomLocaleStore | undefined;
 }
-export type PartialReactStandardStrategyConfig = Partial<ReactStandardStrategyConfig>;
+export interface PartialReactStandardStrategyConfig {
+  readonly localeDetector?: CustomLocaleDetector | undefined;
+  readonly localeStore?: CustomLocaleStore | undefined;
+}
 
 const defaultConfig: ReactStandardStrategyConfig = {
   localeDetector: undefined,
@@ -14,13 +17,15 @@ const defaultConfig: ReactStandardStrategyConfig = {
 };
 
 export class ReactStandardStrategy extends ReactStandardImplProvider<ReactStandardStrategyConfig> {
-  constructor(config: PartialReactStandardStrategyConfig) {
+  constructor();
+  constructor(config: PartialReactStandardStrategyConfig);
+  constructor(config: PartialReactStandardStrategyConfig = {}) {
     super(
       {
         ...defaultConfig,
         ...config,
       },
-      reactStandardImpl
+      createReactStandardImpl
     );
   }
 }
