@@ -47,10 +47,6 @@ interface NextAppServerRMachineContext {
   getLocalePromise: Promise<string> | null;
 }
 
-const ErrorEntrancePage: EntrancePage = async () => {
-  throw new RMachineError("EntrancePage implementation is not available for the current strategy options.");
-};
-
 export const localeHeaderName = "x-rm-locale";
 
 export type NextAppServerImpl<LK extends string> = {
@@ -62,9 +58,11 @@ export type NextAppServerImpl<LK extends string> = {
     | LocaleStaticParamsGenerator<string>
     | Promise<LocaleStaticParamsGenerator<string>>;
   readonly createProxy: () => RMachineProxy | Promise<RMachineProxy>;
-  readonly createEntrancePage?:
-    | ((headers: HeadersFn, setLocale: (newLocale: string) => Promise<void>) => EntrancePage | Promise<EntrancePage>)
-    | undefined;
+  readonly createEntrancePage: (
+    headers: HeadersFn,
+    cookies: CookiesFn,
+    setLocale: (newLocale: string) => Promise<void>
+  ) => EntrancePage | Promise<EntrancePage>;
 };
 
 export async function createNextAppServerToolset<A extends AnyAtlas, LK extends string>(
@@ -93,8 +91,7 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
     return <NextClientRMachine locale={await getLocale()}>{children}</NextClientRMachine>;
   }
 
-  NextServerRMachine.EntrancePage =
-    impl.createEntrancePage !== undefined ? await impl.createEntrancePage(headers, setLocale) : ErrorEntrancePage;
+  NextServerRMachine.EntrancePage = await impl.createEntrancePage(headers, cookies, setLocale);
 
   const localeCache = new Map<string, string>();
   function bindLocale(locale: string | Promise<RMachineParams<LK>>) {

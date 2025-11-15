@@ -16,8 +16,8 @@ export default function ClientComp1() {
         <button type="button" onClick={async () => await setLocale("en")}>
           en (CLIENT)
         </button>
-        <button type="button" onClick={async () => await setLocale("it")}>
-          it (CLIENT)
+        <button type="button" onClick={async () => await setLocale("it-IT")}>
+          it-IT (CLIENT)
         </button>
       </div>
     </>

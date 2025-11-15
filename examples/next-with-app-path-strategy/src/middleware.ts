@@ -1,6 +1,5 @@
-import { createProxy } from "./r-machine/__proxy";
+import { rMachineProxy } from "./r-machine/server-toolset";
 
-const rMachineProxy = createProxy();
 export default rMachineProxy;
 
 export const config = {

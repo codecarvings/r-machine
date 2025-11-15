@@ -10,8 +10,8 @@ export const rMachine = new RMachine<Atlas>({
 
 export const strategy = new NextAppPathStrategy({
   cookie: "on",
-  // implicitDefaultLocale: "on",
-  autoLocaleBinding: "on",
+  implicitDefaultLocale: "on",
+  // autoLocaleBinding: "on",
   // lowercaseLocale: "off",
   // basePath: "/subdir",
 });
