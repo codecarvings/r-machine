@@ -22,7 +22,7 @@ export const createNextAppPathServerImplComplement: ImplFactory<
       if (cookieSw) {
         try {
           const cookieStore = await cookies();
-          // 3) Set cookie on write (required when implicitDefaultLocale is on - problem with explicit path)
+          // 3) Set cookie on write (required when implicitDefaultLocale is on - problem with double redirect on explicit path)
           cookieStore.set(cookieName!, newLocale, cookieOptions);
         } catch {
           // SetLocale not invoked in a Server Action or Route Handler.

@@ -49,10 +49,8 @@ export function createProxy() {
           : default_autoDetectLocale_pathMatcherRegExp_explicit
         : null;
 
-  // Need two regexes to handle basePath correctly
   // Use case-insensitive matching for locale codes
-  const inLocaleRegex = new RegExp(`^\\/(${locales.join("|")})(?:\\/|$)`, "i");
-  const outLocaleRegex = new RegExp(`^${basePath}\\/(${locales.join("|")})(?:\\/|$)`, "i");
+  const localeRegex = new RegExp(`^\\/(${locales.join("|")})(?:\\/|$)`, "i");
 
   function getExplicitLocalePathName(locale: string, pathName: string): string {
     return `${basePath}/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${pathName}`;
@@ -78,7 +76,7 @@ export function createProxy() {
   function proxy(request: NextRequest): NextProxyResult {
     const pathname = request.nextUrl.pathname;
     console.log("Proxying request for pathname:", pathname);
-    const match = pathname.match(inLocaleRegex);
+    const match = pathname.match(localeRegex);
 
     if (match) {
       // Locale is present in the URL
@@ -87,7 +85,7 @@ export function createProxy() {
 
       if (implicitSw && locale === defaultLocale) {
         // Locale is present but canonical URL is implicit (no locale prefix)
-        const implicitPath = pathname.replace(outLocaleRegex, "/");
+        const implicitPath = pathname.replace(localeRegex, "/");
         const response = NextResponse.redirect(new URL(implicitPath, request.url));
         if (cookieSw) {
           const localeCookie = getLocaleFromCookie(request);
@@ -139,7 +137,7 @@ export function createProxy() {
           if (locale !== defaultLocale) {
             // Redirect to the URL with the locale prefix
             console.log("Redirecting to locale-prefixed URL for locale:", locale, pathname);
-            return NextResponse.redirect(new URL("/sergio" + getExplicitLocalePathName(locale, pathname), request.url));
+            return NextResponse.redirect(new URL(getExplicitLocalePathName(locale, pathname), request.url));
           }
         } else {
           // Non auto-detect URL, always use default locale

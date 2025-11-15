@@ -42,7 +42,7 @@ export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, NextAppPat
   return {
     writeLocale(newLocale, router) {
       if (setLocaleCookie !== undefined) {
-        // 2) Set cookie on write (required when implicitDefaultLocale is on - problem with explicit path)
+        // 2) Set cookie on write (required when implicitDefaultLocale is on - problem with double redirect on explicit path)
         setLocaleCookie(newLocale);
       }
 
