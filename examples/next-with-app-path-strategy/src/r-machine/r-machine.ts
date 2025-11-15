@@ -12,4 +12,5 @@ export const strategy = new NextAppPathStrategy({
   cookie: "on",
   implicitDefaultLocale: "on",
   autoLocaleBinding: "on",
+  // basePath: "/sergio",
 });

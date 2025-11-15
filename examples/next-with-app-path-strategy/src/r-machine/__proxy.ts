@@ -77,6 +77,7 @@ export function createProxy() {
 
   function proxy(request: NextRequest): NextProxyResult {
     const pathname = request.nextUrl.pathname;
+    console.log("Proxying request for pathname:", pathname);
     const match = pathname.match(inLocaleRegex);
 
     if (match) {
@@ -91,7 +92,7 @@ export function createProxy() {
         if (cookieSw) {
           const localeCookie = getLocaleFromCookie(request);
           if (localeCookie !== locale) {
-            // Set locale cookie
+            // 4) Set cookie on redirect (required when implicitDefaultLocale is on and switching to default locale)
             response.cookies.set(cookieName!, locale, cookieOptions);
           }
         }
@@ -125,6 +126,7 @@ export function createProxy() {
         if (autoDLSw && (autoDLRegExp === null || autoDLRegExp.test(pathname))) {
           // Is auto-detect URL
           const localeCookie = getLocaleFromCookie(request);
+          console.log("Locale cookie:", localeCookie);
 
           if (localeCookie !== undefined) {
             // Cookie enabled and available, use locale from cookie
@@ -136,7 +138,8 @@ export function createProxy() {
 
           if (locale !== defaultLocale) {
             // Redirect to the URL with the locale prefix
-            return NextResponse.redirect(new URL(getExplicitLocalePathName(locale, pathname), request.url));
+            console.log("Redirecting to locale-prefixed URL for locale:", locale, pathname);
+            return NextResponse.redirect(new URL("/sergio" + getExplicitLocalePathName(locale, pathname), request.url));
           }
         } else {
           // Non auto-detect URL, always use default locale

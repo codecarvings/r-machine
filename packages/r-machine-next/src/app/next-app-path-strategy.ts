@@ -8,6 +8,14 @@ import {
   type PartialNextAppStrategyConfig,
 } from "#r-machine/next/core/app";
 
+/* NextAppPathStrategy - Cookies
+ * If cookies are enabled, cookies can be set in 4 different ways:
+ * 1) On client-side load (in NextAppPathClientImpl.onLoad) - required when not using the proxy
+ * 2) On client-side writeLocale (in NextAppPathClientImpl.writeLocale) - required when implicitDefaultLocale is on (problem with explicit path)
+ * 3) On server-side writeLocale (in NextAppPathServerImplComplement.writeLocale) - required when implicitDefaultLocale is on (problem with explicit path)
+ * 4) In the proxy (in NextAppPathServerImplComplement.createProxy) - required when using the proxy and autoDetectLocale is enabled
+ */
+
 interface CustomImplicitDefaultLocale {
   readonly pathMatcherRegExp: RegExp | null;
 }

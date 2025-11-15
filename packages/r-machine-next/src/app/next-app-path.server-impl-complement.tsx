@@ -10,12 +10,10 @@ export const createNextAppPathServerImplComplement: ImplFactory<
   NextAppServerImplComplement<string>,
   NextAppPathStrategyConfig<string>
 > = async (rMachine, strategyConfig) => {
-  const { basePath, cookie } = strategyConfig;
+  const { cookie } = strategyConfig;
   const lowercaseLocale = strategyConfig.lowercaseLocale === "on";
   const implicitDefaultLocale = strategyConfig.implicitDefaultLocale !== "off";
 
-  // Setting of cookie required when implicitDefaultLocale is on and switching to default locale
-  // (problem with explicit path)
   const cookieSw = cookie !== "off";
   const { name: cookieName, ...cookieOptions } = cookieSw ? (cookie === "on" ? defaultCookieDeclaration : cookie) : {};
 
@@ -24,6 +22,7 @@ export const createNextAppPathServerImplComplement: ImplFactory<
       if (cookieSw) {
         try {
           const cookieStore = await cookies();
+          // 3) Set cookie on write (required when implicitDefaultLocale is on - problem with explicit path)
           cookieStore.set(cookieName!, newLocale, cookieOptions);
         } catch {
           // SetLocale not invoked in a Server Action or Route Handler.
@@ -36,7 +35,7 @@ export const createNextAppPathServerImplComplement: ImplFactory<
       } else {
         localeParam = lowercaseLocale ? newLocale.toLowerCase() : newLocale;
       }
-      const path = `${basePath}/${localeParam}`;
+      const path = `/${localeParam}`;
       redirect(path);
     },
 

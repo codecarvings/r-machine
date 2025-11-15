@@ -8,14 +8,12 @@ export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, NextAppPat
   rMachine,
   strategyConfig
 ) => {
-  const { basePath, cookie } = strategyConfig;
+  const { cookie } = strategyConfig;
   const lowercaseLocale = strategyConfig.lowercaseLocale === "on";
   const implicitDefaultLocale = strategyConfig.implicitDefaultLocale !== "off";
   const defaultLocale = rMachine.config.defaultLocale;
 
   const cookieSw = cookie !== "off";
-  // Unlike server-side, setting of cookie NOT required when implicitDefaultLocale is on and switching to default locale
-  // Using implicit path for consistency with server-side
   let setLocaleCookie: ((locale: string) => void) | undefined;
 
   let onLoad: NextClientImpl["onLoad"];
@@ -35,6 +33,7 @@ export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, NextAppPat
     onLoad = (locale) => {
       const localeCookie = Cookies.get(cookieName);
       if (locale !== localeCookie) {
+        // 1) Set cookie on load (required when not using the proxy)
         setLocaleCookie!(locale);
       }
     };
@@ -43,6 +42,7 @@ export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, NextAppPat
   return {
     writeLocale(newLocale, router) {
       if (setLocaleCookie !== undefined) {
+        // 2) Set cookie on write (required when implicitDefaultLocale is on - problem with explicit path)
         setLocaleCookie(newLocale);
       }
 
@@ -52,7 +52,8 @@ export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, NextAppPat
       } else {
         localeParam = lowercaseLocale ? newLocale.toLowerCase() : newLocale;
       }
-      const path = `${basePath}/${localeParam}`;
+      const path = `/${localeParam}`;
+      console.dir(router);
       router.push(path);
     },
     onLoad,
