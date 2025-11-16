@@ -2,6 +2,7 @@
   "mode": "pre",
   "tag": "alpha",
   "initialVersions": {
+    "@r-machine/examples-next-with-app-flat-strategy": "0.0.0",
     "@r-machine/examples-next-with-app-path-strategy": "0.0.0",
     "@r-machine/examples-next-with-app-path-strategy-no-proxy": "0.0.0",
     "@r-machine/examples-react": "0.0.0",

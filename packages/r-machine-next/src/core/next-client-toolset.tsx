@@ -22,9 +22,9 @@ export type NextClientToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "React
 };
 
 export type NextClientImpl = {
-  readonly writeLocale: (newLocale: string, router: ReturnType<typeof useRouter>) => void | Promise<void>;
   // biome-ignore lint/suspicious/noConfusingVoidType: As per design
   readonly onLoad: ((locale: string) => void | (() => void)) | undefined;
+  readonly writeLocale: (newLocale: string, router: ReturnType<typeof useRouter>) => void | Promise<void>;
 };
 
 export function createNextClientToolset<A extends AnyAtlas>(

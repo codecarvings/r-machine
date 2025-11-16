@@ -17,12 +17,12 @@ import {
  */
 
 interface CustomImplicitDefaultLocale {
-  readonly pathMatcherRegExp: RegExp | null;
+  readonly pathMatcher: RegExp | null;
 }
 type ImplicitDefaultLocaleOption = SwitchableOption | CustomImplicitDefaultLocale;
 
 interface CustomAutoDetectLocale {
-  readonly pathMatcherRegExp: RegExp | null;
+  readonly pathMatcher: RegExp | null;
 }
 type AutoDetectLocaleOption = SwitchableOption | CustomAutoDetectLocale;
 type CookieOption = SwitchableOption | CookieDeclaration;

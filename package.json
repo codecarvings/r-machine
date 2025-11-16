@@ -54,10 +54,10 @@
     "lint-staged": "^16.2.6",
     "prettier": "^3.6.2",
     "r-machine": "workspace:*",
-    "react": "^19.0.0",
+    "react": "^19",
     "semver": "^7.7.3",
     "tsx": "^4.20.6",
-    "typescript": "5.9.3",
+    "typescript": "~5.9.3",
     "vitest": "4.0.9",
     "zshy": "0.4.4"
   }

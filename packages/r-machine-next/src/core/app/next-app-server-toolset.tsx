@@ -30,10 +30,7 @@ export interface NextAppServerRMachine {
   readonly EntrancePage: EntrancePage;
 }
 
-export interface EntrancePageProps {
-  readonly locale?: string | undefined | null;
-}
-export type EntrancePage = (props: EntrancePageProps) => Promise<ReactNode>;
+export type EntrancePage = () => Promise<ReactNode>;
 
 type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
 
