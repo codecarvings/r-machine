@@ -49,7 +49,7 @@ export const localeHeaderName = "x-rm-locale";
 export type NextAppServerImpl<LK extends string> = {
   readonly localeKey: LK;
   readonly autoLocaleBinding: boolean;
-  readonly writeLocale: (newLocale: string, cookies: CookiesFn) => void | Promise<void>;
+  readonly writeLocale: (newLocale: string, cookies: CookiesFn, headers: HeadersFn) => void | Promise<void>;
   // must be dynamically generated because of strategy options (lowercaseLocale)
   readonly createLocaleStaticParamsGenerator: () =>
     | LocaleStaticParamsGenerator<string>
@@ -177,7 +177,7 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
       throw new RMachineError(`Cannot set locale to invalid locale: "${newLocale}".`, error);
     }
 
-    await impl.writeLocale(newLocale, cookies);
+    await impl.writeLocale(newLocale, cookies, headers);
   }
 
   function pickR<N extends AtlasNamespace<A>>(namespace: N): Promise<A[N]> {

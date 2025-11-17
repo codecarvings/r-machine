@@ -11,15 +11,9 @@ export const createNextAppFlatServerImplComplement: ImplFactory<
   NextAppFlatStrategyConfig<string>
 > = async (rMachine, strategyConfig) => {
   const locales = rMachine.config.locales;
-  const defaultLocale = rMachine.config.defaultLocale;
-  const { localeKey, autoLocaleBinding, basePath, cookie, pathMatcher } = strategyConfig;
+  const { localeKey, autoLocaleBinding, cookie, pathMatcher } = strategyConfig;
   const autoLBSw = autoLocaleBinding === "on";
   const { name: cookieName, ...cookieConfig } = cookie;
-
-  void locales;
-  void defaultLocale;
-  void basePath;
-  void autoLBSw;
 
   return {
     async writeLocale(newLocale, cookies: CookiesFn) {

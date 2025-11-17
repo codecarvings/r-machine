@@ -1,0 +1,23 @@
+{
+  "name": "@r-machine/examples-next-with-app-origin-strategy",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack -d",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@r-machine/next": "workspace:*",
+    "r-machine": "workspace:*",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "next": "15.5.6"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0"
+  }
+}

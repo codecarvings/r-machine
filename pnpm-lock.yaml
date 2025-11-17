@@ -97,6 +97,37 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  examples/next-with-app-origin-strategy:
+    dependencies:
+      '@r-machine/next':
+        specifier: workspace:*
+        version: link:../../packages/r-machine-next
+      next:
+        specifier: 15.5.6
+        version: 15.5.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      r-machine:
+        specifier: workspace:*
+        version: link:../../packages/r-machine
+      react:
+        specifier: 19.2.0
+        version: 19.2.0
+      react-dom:
+        specifier: 19.2.0
+        version: 19.2.0(react@19.2.0)
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.19
+      '@types/react':
+        specifier: ^19.2.0
+        version: 19.2.5
+      '@types/react-dom':
+        specifier: ^19.2.0
+        version: 19.2.3(@types/react@19.2.5)
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
   examples/next-with-app-path-strategy:
     dependencies:
       '@r-machine/next':

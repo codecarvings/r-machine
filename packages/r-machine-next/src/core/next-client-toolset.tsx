@@ -33,10 +33,9 @@ export function createNextClientToolset<A extends AnyAtlas>(
 ): NextClientToolset<A> {
   const { ReactRMachine, useLocale, ...otherTools } = createReactToolset(rMachine);
 
-  async function setLocale(locale: string, newLocale: string, router: ReturnType<typeof useRouter>): Promise<void> {
-    if (newLocale === locale) {
-      return;
-    }
+  async function setLocale(newLocale: string, router: ReturnType<typeof useRouter>): Promise<void> {
+    // Do not check if the locale is different
+    // The origin strategy allows same locale on multiple origins, so the navigation might still be necessary
 
     const error = rMachine.localeHelper.validateLocale(newLocale);
     if (error) {
@@ -50,10 +49,9 @@ export function createNextClientToolset<A extends AnyAtlas>(
   }
 
   function useSetLocale(): ReturnType<ReactToolset<A>["useSetLocale"]> {
-    const locale = useLocale();
     const router = useRouter();
 
-    return (newLocale: string) => setLocale(locale, newLocale, router);
+    return (newLocale: string) => setLocale(newLocale, router);
   }
 
   function NextClientRMachine({ locale, children }: NextClientRMachineProps) {
