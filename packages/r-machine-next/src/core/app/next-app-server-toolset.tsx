@@ -56,8 +56,8 @@ export type NextAppServerImpl<LK extends string> = {
     | Promise<LocaleStaticParamsGenerator<string>>;
   readonly createProxy: () => RMachineProxy | Promise<RMachineProxy>;
   readonly createEntrancePage: (
-    headers: HeadersFn,
     cookies: CookiesFn,
+    headers: HeadersFn,
     setLocale: (newLocale: string) => Promise<void>
   ) => EntrancePage | Promise<EntrancePage>;
 };
@@ -72,7 +72,7 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
 
   // Use dynamic import to bypass the "next/headers" import issue in pages/ directory
   // You're importing a component that needs "next/headers". That only works in a Server Component which is not supported in the pages/ directory. Read more: https://nextjs.org/docs/app/building-your-application/rendering/server-components
-  const { headers, cookies } = await import("next/headers");
+  const { cookies, headers } = await import("next/headers");
 
   const rMachineProxy = await impl.createProxy();
   const generateLocaleStaticParams = await impl.createLocaleStaticParamsGenerator();
@@ -88,7 +88,7 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
     return <NextClientRMachine locale={await getLocale()}>{children}</NextClientRMachine>;
   }
 
-  NextServerRMachine.EntrancePage = await impl.createEntrancePage(headers, cookies, setLocale);
+  NextServerRMachine.EntrancePage = await impl.createEntrancePage(cookies, headers, setLocale);
 
   const localeCache = new Map<string, string>();
   function bindLocale(locale: string | Promise<RMachineParams<LK>>) {

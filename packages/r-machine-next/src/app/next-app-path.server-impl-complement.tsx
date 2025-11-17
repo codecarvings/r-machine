@@ -216,7 +216,7 @@ export const createNextAppPathServerImplComplement: ImplFactory<
       return proxy;
     },
 
-    createEntrancePage(headers, cookies, setLocale) {
+    createEntrancePage(cookies, headers, setLocale) {
       async function getLocaleFromCookie(): Promise<string | undefined> {
         if (!cookieSw) {
           return undefined;
