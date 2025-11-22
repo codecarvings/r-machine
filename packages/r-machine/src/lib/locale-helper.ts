@@ -1,18 +1,15 @@
 import { RMachineError } from "#r-machine/errors";
-import {
-  type MatchLocalesAlgorithm,
-  matchLocales,
-  parseAcceptLanguageHeader,
-  validateCanonicalUnicodeLocaleId,
-} from "#r-machine/locale";
-import type { LocaleMapper } from "./locale-mapper-manager.js";
+import { type MatchLocalesAlgorithm, matchLocales, parseAcceptLanguageHeader } from "#r-machine/locale";
 
 export class LocaleHelper {
   constructor(
     protected readonly locales: readonly string[],
-    protected readonly defaultLocale: string,
-    readonly mapLocale: LocaleMapper
-  ) {}
+    protected readonly defaultLocale: string
+  ) {
+    this.localeSet = new Set(locales);
+  }
+
+  protected readonly localeSet: Set<string>;
 
   readonly matchLocales = (requestedLocales: readonly string[], algorithm?: MatchLocalesAlgorithm): string => {
     return matchLocales(requestedLocales, this.locales, this.defaultLocale, { algorithm });
@@ -27,13 +24,10 @@ export class LocaleHelper {
   };
 
   readonly validateLocale = (locale: string): RMachineError | null => {
-    const error = validateCanonicalUnicodeLocaleId(locale);
-    if (error) {
-      return error;
-    }
+    // No need to check for validateCanonicalUnicodeLocaleId since the list of locales is already validated
 
-    if (!this.locales.includes(locale)) {
-      return new RMachineError(`Locale "${locale}" is not in the list of locales.`);
+    if (!this.localeSet.has(locale)) {
+      return new RMachineError(`Locale "${locale}" is invalid or is not in the list of locales.`);
     }
 
     return null;

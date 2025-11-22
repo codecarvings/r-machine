@@ -48,7 +48,7 @@ export function createReactStandardToolset<A extends AnyAtlas>(
 
     const error = rMachine.localeHelper.validateLocale(newLocale);
     if (error) {
-      throw new RMachineError(`Cannot set invalid locale: ${newLocale}.`, error);
+      throw new RMachineError(`Cannot set invalid locale: "${newLocale}".`, error);
     }
 
     setLocaleContext(newLocale);
