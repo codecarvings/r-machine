@@ -157,7 +157,7 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
       return context.getLocalePromise;
     } else {
       throw new RMachineError(
-        "Cannot determine locale. bindLocale not invoked? (you must invoke bindLocale at the beginning of every page or layout component)."
+        "Cannot determine locale. bindLocale function not invoked? (you must invoke bindLocale at the beginning of every page or layout component)."
       );
     }
   }

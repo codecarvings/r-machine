@@ -1,12 +1,7 @@
-import { Geist } from "next/font/google";
 import "../globals.css";
 import { bindLocale, generateLocaleStaticParams, NextServerRMachine } from "@/r-machine/server-toolset";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
+// Pre-render the static params for all locales
 export const generateStaticParams = generateLocaleStaticParams;
 
 export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
@@ -15,7 +10,7 @@ export default async function LocaleLayout({ params, children }: LayoutProps<"/[
   return (
     <NextServerRMachine>
       <html lang={locale}>
-        <body className={`${geistSans.variable}`}>{children}</body>
+        <body>{children}</body>
       </html>
     </NextServerRMachine>
   );

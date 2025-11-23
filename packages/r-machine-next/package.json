@@ -109,9 +109,6 @@
     "r-machine": "workspace:*",
     "react": "^19"
   },
-  "devDependencies": {
-    "next": "^15"
-  },
   "dependencies": {
     "@r-machine/react": "workspace:*",
     "js-cookie": "^3.0.5"

@@ -1,3 +1,5 @@
+"use client";
+
 import { Languages } from "lucide-react";
 import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -7,16 +9,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useLocale, useSetLocale } from "@/r-machine/toolset";
+import { useLocale, useSetLocale } from "@/r-machine/client-toolset";
 
 const localeItems = {
   en: { name: "English" },
-  it: { name: "Italiano" },
+  "it-IT": { name: "Italiano" },
 } as const;
 
 export function LocaleSwitcher() {
+  // Get the current locale and the function to change it
   const locale = useLocale();
   const setLocale = useSetLocale();
+
   const currentLocaleItem = localeItems[locale as keyof typeof localeItems];
   const setLocaleAfterMenuClose = useCallback(
     (newLocale: string) => {

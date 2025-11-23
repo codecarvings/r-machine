@@ -1,5 +1,5 @@
 import { ReactRMachine } from "@/r-machine/toolset";
-import PageLoading from "./components/PageLoading";
+import PageLoading from "./components/client/PageLoading";
 import LandingPage from "./LandingPage";
 
 export default function App() {

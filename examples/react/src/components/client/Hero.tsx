@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useR } from "@/r-machine/toolset";
 
 export default function Hero() {
+  // Load the required localized resource
   const r = useR("landing-page");
 
   return (

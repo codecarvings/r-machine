@@ -1,12 +1,13 @@
 import { Suspense } from "react";
 import { useRKit } from "@/r-machine/toolset";
-import Box3 from "./components/Box3";
-import FeatureBox from "./components/FeatureBox";
-import FeatureBoxLoading from "./components/FeatureBoxLoading";
-import Header from "./components/Header";
-import Hero from "./components/Hero";
+import Box3 from "./components/client/Box3";
+import FeatureBox from "./components/client/FeatureBox";
+import FeatureBoxLoading from "./components/client/FeatureBoxLoading";
+import Header from "./components/client/Header";
+import Hero from "./components/client/Hero";
 
 export default function LandingPage() {
+  // Load the required localized resources
   const [rPage, rBoxes, rCommon] = useRKit("landing-page", "features/box_1_2", "common");
 
   return (
