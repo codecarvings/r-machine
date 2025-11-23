@@ -5,7 +5,7 @@ import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils"
 import { createReactToolset, type ReactToolset } from "./react-toolset.js";
 
 interface ReactStandardRMachineProps {
-  readonly fallback?: ReactNode;
+  readonly fallback?: ReactNode; // ReactNode already includes undefined
   readonly Suspense?: SuspenseComponent | null | undefined; // Null means no suspense
   readonly children: ReactNode;
 }

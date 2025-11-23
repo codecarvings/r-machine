@@ -1,7 +1,7 @@
 "use client";
 
 import { useR } from "@/r-machine/client-toolset";
-import FeatureBox from "./feature-box";
+import FeatureBox from "../server/feature-box";
 
 export default function Box3() {
   // Load the required localized resource

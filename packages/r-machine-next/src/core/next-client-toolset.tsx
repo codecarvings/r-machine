@@ -1,6 +1,7 @@
 "use client";
 
 import { createReactToolset, type ReactToolset } from "@r-machine/react/core";
+import type { SuspenseComponent } from "@r-machine/react/utils";
 import { useRouter } from "next/navigation";
 import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
@@ -10,6 +11,8 @@ const brand = Symbol("NextClientRMachine");
 
 interface NextClientRMachineProps {
   readonly locale: string;
+  readonly fallback?: ReactNode;
+  readonly Suspense?: SuspenseComponent | null | undefined; // Null means no suspense
   readonly children: ReactNode;
 }
 export interface NextClientRMachine {
@@ -54,13 +57,17 @@ export function createNextClientToolset<A extends AnyAtlas>(
     return (newLocale: string) => setLocale(newLocale, router);
   }
 
-  function NextClientRMachine({ locale, children }: NextClientRMachineProps) {
+  function NextClientRMachine({ locale, fallback, Suspense, children }: NextClientRMachineProps) {
     useEffect(() => {
       if (impl.onLoad !== undefined) {
         return impl.onLoad(locale);
       }
     }, [locale, impl.onLoad]);
-    return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
+    return (
+      <ReactRMachine locale={locale} fallback={fallback} Suspense={Suspense}>
+        {children}
+      </ReactRMachine>
+    );
   }
   NextClientRMachine[brand] = "NextClientRMachine";
 

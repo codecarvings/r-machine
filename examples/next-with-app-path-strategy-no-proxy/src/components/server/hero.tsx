@@ -1,15 +1,14 @@
-"use client";
-
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import GitHubMark from "@/components/gfx/github-mark.svg";
 import RMachineLogo from "@/components/gfx/r-machine.logo.svg";
 import { Button } from "@/components/ui/button";
-import { useR } from "@/r-machine/client-toolset";
+import { pickR } from "@/r-machine/server-toolset";
 
-export default function Hero() {
+export default async function Hero() {
   // Load the required localized resource
-  const r = useR("landing-page");
+  const r = await pickR("landing-page");
 
   return (
     <section className="relative w-full py-12 sm:py-16 lg:py-20 bg-linear-to-br from-gray-200 via-gray-100 to-slate-100">
@@ -29,17 +28,12 @@ export default function Hero() {
               </h1>
               <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">{r.hero.subtitle}</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center lg:items-start">
-                <a
-                  href="https://r-machine.codecarvings.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center"
-                >
+                <Link href="en/start-now" className="flex items-center">
                   <Button size="lg" className="gap-2 text-base">
                     <ArrowRight className="size-4" />
                     {r.hero.cta.primary}
                   </Button>
-                </a>
+                </Link>
                 <a href="https://github.com/codecarvings/r-machine" target="_blank" rel="noopener noreferrer">
                   <Button size="lg" variant="outline" className="gap-2 text-base">
                     <Image src={GitHubMark} alt="GitHub Logo" className="size-4" />

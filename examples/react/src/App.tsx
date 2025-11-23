@@ -1,10 +1,10 @@
 import { ReactRMachine } from "@/r-machine/toolset";
-import PageLoading from "./components/client/PageLoading";
+import ContentLoading from "./components/client/ContentLoading";
 import LandingPage from "./LandingPage";
 
 export default function App() {
   return (
-    <ReactRMachine fallback={<PageLoading />}>
+    <ReactRMachine fallback={<ContentLoading />}>
       <LandingPage />
     </ReactRMachine>
   );

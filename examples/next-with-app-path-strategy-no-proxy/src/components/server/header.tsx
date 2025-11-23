@@ -1,10 +1,8 @@
-"use client";
-
 import Image from "next/image";
 import RMachineIcon from "@/components/gfx/r-machine.icon.svg";
-import { LocaleSwitcher } from "./locale-switcher";
+import { LocaleSwitcher } from "../client/locale-switcher";
 
-export default function Header() {
+export default function Header({ showLocaleSwitcher = true }: { showLocaleSwitcher?: boolean }) {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -15,7 +13,7 @@ export default function Header() {
               R-Machine ⧹ Examples ⧹ Next App \ Path Strategy (no proxy)
             </span>
           </div>
-          <LocaleSwitcher />
+          {showLocaleSwitcher && <LocaleSwitcher />}
         </div>
       </div>
     </header>
