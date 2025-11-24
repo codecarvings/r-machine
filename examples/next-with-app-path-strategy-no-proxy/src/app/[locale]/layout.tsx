@@ -1,4 +1,5 @@
 import "../globals.css";
+import { DelayedSuspense } from "@r-machine/react/utils";
 import ContentLoading from "@/components/server/content-loading";
 import Footer from "@/components/server/footer";
 import Header from "@/components/server/header";
@@ -12,17 +13,19 @@ export default async function LocaleLayout({ params, children }: LayoutProps<"/[
   const { locale } = await bindLocale(params);
 
   // Load the required localized resources
-  const rCommon = await pickR("common");
+  const r = await pickR("common");
 
   return (
-    <NextServerRMachine fallback={<ContentLoading />}>
+    <NextServerRMachine>
       <html lang={locale}>
         <body>
-          <div className="min-h-screen bg-background">
-            <Header />
-            {children}
-            <Footer r={rCommon.footer} />
-          </div>
+          <DelayedSuspense fallback={<ContentLoading />}>
+            <div className="min-h-screen bg-background">
+              <Header />
+              {children}
+              <Footer r={r.footer} />
+            </div>
+          </DelayedSuspense>
         </body>
       </html>
     </NextServerRMachine>

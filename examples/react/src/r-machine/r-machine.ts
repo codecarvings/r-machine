@@ -9,9 +9,9 @@ export const rMachine = new RMachine<Atlas>({
   locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: (namespace, locale) => {
+    // Find the appropriate module loader for either .tsx or .ts files
     const modulePathTsx = `./resources/${namespace}/${locale}.tsx`;
     const modulePathTs = `./resources/${namespace}/${locale}.ts`;
-
     const moduleLoader = moduleLoaders[modulePathTsx] || moduleLoaders[modulePathTs];
 
     if (!moduleLoader) {

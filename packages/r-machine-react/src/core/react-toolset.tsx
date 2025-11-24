@@ -4,7 +4,6 @@ import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } fro
 import { RMachineError } from "r-machine/errors";
 import type { ReactNode } from "react";
 import { createContext, use, useCallback, useContext, useMemo } from "react";
-import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils";
 
 type SetLocale = (newLocale: string) => Promise<void>;
 type WriteLocale = (newLocale: string) => void | Promise<void>;
@@ -23,8 +22,6 @@ export interface ReactToolset<A extends AnyAtlas> {
 interface ReactRMachineProps {
   readonly locale: string;
   readonly writeLocale?: WriteLocale | undefined;
-  readonly fallback?: ReactNode;
-  readonly Suspense?: SuspenseComponent | null | undefined; // Null means no suspense
   readonly children: ReactNode;
 }
 
@@ -53,7 +50,7 @@ export function createReactToolset<A extends AnyAtlas>(rMachine: RMachine<A>): R
     return context;
   }
 
-  function ReactRMachine({ locale, writeLocale, fallback, Suspense, children }: ReactRMachineProps) {
+  function ReactRMachine({ locale, writeLocale, children }: ReactRMachineProps) {
     const value = useMemo<ReactToolsetContext>(() => {
       const error = validateLocale(locale);
       if (error) {
@@ -63,20 +60,7 @@ export function createReactToolset<A extends AnyAtlas>(rMachine: RMachine<A>): R
       return { locale, writeLocale };
     }, [locale, writeLocale]);
 
-    const SuspenseComponent = useMemo(
-      () => Suspense || (Suspense !== null ? DelayedSuspense.create() : null),
-      [Suspense]
-    );
-
-    if (SuspenseComponent !== null) {
-      return (
-        <Context.Provider value={value}>
-          <SuspenseComponent fallback={fallback}>{children}</SuspenseComponent>
-        </Context.Provider>
-      );
-    } else {
-      return <Context.Provider value={value}>{children}</Context.Provider>;
-    }
+    return <Context.Provider value={value}>{children}</Context.Provider>;
   }
 
   ReactRMachine.probe = (locale: string | undefined) => {

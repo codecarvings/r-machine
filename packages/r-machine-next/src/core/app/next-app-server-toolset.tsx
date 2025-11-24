@@ -1,4 +1,3 @@
-import type { SuspenseComponent } from "@r-machine/react/utils";
 import { notFound } from "next/navigation";
 import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
@@ -23,8 +22,6 @@ type RMachineParams<LK extends string> = {
 };
 
 interface NextAppServerRMachineProps {
-  readonly fallback?: ReactNode;
-  readonly Suspense?: SuspenseComponent | null | undefined; // Null means no suspense
   readonly children: ReactNode;
 }
 export interface NextAppServerRMachine {
@@ -86,12 +83,8 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
     };
   });
 
-  async function NextServerRMachine({ fallback, Suspense, children }: NextAppServerRMachineProps) {
-    return (
-      <NextClientRMachine locale={await getLocale()} fallback={fallback} Suspense={Suspense}>
-        {children}
-      </NextClientRMachine>
-    );
+  async function NextServerRMachine({ children }: NextAppServerRMachineProps) {
+    return <NextClientRMachine locale={await getLocale()}>{children}</NextClientRMachine>;
   }
 
   NextServerRMachine.EntrancePage = await impl.createEntrancePage(cookies, headers, setLocale);

@@ -5,6 +5,7 @@ import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils"
 import { createReactToolset, type ReactToolset } from "./react-toolset.js";
 
 interface ReactStandardRMachineProps {
+  // Only ReactStandardRMachine requires fallback because of the async readLocale in ReactStandardImpl
   readonly fallback?: ReactNode; // ReactNode already includes undefined
   readonly Suspense?: SuspenseComponent | null | undefined; // Null means no suspense
   readonly children: ReactNode;
@@ -78,9 +79,7 @@ export function createReactStandardToolset<A extends AnyAtlas>(
     // Suspense is already handled in the outer component
     return (
       <Context.Provider value={context}>
-        <OriginalReactRMachine locale={context[0]} Suspense={null}>
-          {children}
-        </OriginalReactRMachine>
+        <OriginalReactRMachine locale={context[0]}>{children}</OriginalReactRMachine>
       </Context.Provider>
     );
   }
@@ -92,11 +91,8 @@ export function createReactStandardToolset<A extends AnyAtlas>(
       [Suspense]
     );
 
-    if (Suspense === null && initialLocaleOrPromise instanceof Promise) {
-      throw new RMachineError(
-        "<ReactRMachine> cannot have Suspense set to null when the initial locale is loaded asynchronously."
-      );
-    }
+    // Do not validate: Suspense === null && initialLocaleOrPromise instanceof Promise
+    // (a Suspense could be provided externally)
 
     if (SuspenseComponent !== null) {
       return (
