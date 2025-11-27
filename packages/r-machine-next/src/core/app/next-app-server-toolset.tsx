@@ -6,6 +6,8 @@ import { cache, type ReactNode } from "react";
 import type { NextClientRMachine, RMachineProxy } from "#r-machine/next/core";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
 
+const brand = Symbol("NextServerRMachine");
+
 export interface NextAppServerToolset<A extends AnyAtlas, LK extends string> {
   readonly rMachineProxy: RMachineProxy;
   readonly NextServerRMachine: NextAppServerRMachine;
@@ -26,6 +28,7 @@ interface NextAppServerRMachineProps {
 }
 export interface NextAppServerRMachine {
   (props: NextAppServerRMachineProps): Promise<ReactNode>;
+  readonly [brand]: "NextServerRMachine";
   readonly EntrancePage: EntrancePage;
 }
 
@@ -86,7 +89,7 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
   async function NextServerRMachine({ children }: NextAppServerRMachineProps) {
     return <NextClientRMachine locale={await getLocale()}>{children}</NextClientRMachine>;
   }
-
+  NextServerRMachine[brand] = "NextServerRMachine" as const;
   NextServerRMachine.EntrancePage = await impl.createEntrancePage(cookies, headers, setLocale);
 
   const localeCache = new Map<string, string>();
