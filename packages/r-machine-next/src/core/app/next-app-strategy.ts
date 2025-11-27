@@ -3,16 +3,16 @@ import type { NextClientImpl } from "#r-machine/next/core";
 import { NextAppImplProvider } from "./next-app-impl-provider.js";
 import type { NextAppServerImpl } from "./next-app-server-toolset.js";
 
-export type ServerImplSubset = "localeKey" | "autoLocaleBinding";
+type ServerImplSubset = "localeKey" | "autoLocaleBinding";
 export type NextAppServerImplSubset<LK extends string> = Pick<NextAppServerImpl<LK>, ServerImplSubset>;
 export type NextAppServerImplComplement<LK extends string> = Omit<NextAppServerImpl<LK>, ServerImplSubset>;
 
-export interface NextAppBaseStrategyConfig<LK extends string> {
+export interface NextAppStrategyConfig<LK extends string> {
   readonly localeKey: LK;
   readonly autoLocaleBinding: SwitchableOption;
   readonly basePath: string;
 }
-export interface PartialNextAppBaseStrategyConfig<LK extends string> {
+export interface PartialNextAppStrategyConfig<LK extends string> {
   readonly localeKey?: LK;
   readonly autoLocaleBinding?: SwitchableOption;
   readonly basePath?: string;
@@ -21,21 +21,21 @@ export interface PartialNextAppBaseStrategyConfig<LK extends string> {
 const defaultLocaleKey = "locale" as const;
 export type DefaultLocaleKey = typeof defaultLocaleKey;
 
-const defaultConfig: NextAppBaseStrategyConfig<DefaultLocaleKey> = {
+const defaultConfig: NextAppStrategyConfig<DefaultLocaleKey> = {
   localeKey: defaultLocaleKey,
   autoLocaleBinding: "off",
   basePath: "",
 };
 
-export abstract class NextAppBaseStrategy<
+export abstract class NextAppStrategy<
   LK extends string,
-  C extends NextAppBaseStrategyConfig<LK>,
+  C extends NextAppStrategyConfig<LK>,
 > extends NextAppImplProvider<LK, C> {
   static readonly defaultLocaleKey = defaultLocaleKey;
   static readonly defaultConfig = defaultConfig;
 
   constructor(
-    config: PartialNextAppBaseStrategyConfig<LK>,
+    config: PartialNextAppStrategyConfig<LK>,
     clientImplFactory: ImplFactory<NextClientImpl, C>,
     serverImplComplementFactory: ImplFactory<NextAppServerImplComplement<LK>, C>
   ) {

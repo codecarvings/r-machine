@@ -23,11 +23,11 @@ export type ReactStandardImpl = {
   readonly writeLocale: (newLocale: string) => void | Promise<void>;
 };
 
-export async function createReactStandardToolset<A extends AnyAtlas>(
+export function createReactStandardToolset<A extends AnyAtlas>(
   rMachine: RMachine<A>,
   impl: ReactStandardImpl
-): Promise<ReactStandardToolset<A>> {
-  const { ReactRMachine: OriginalReactRMachine, ...otherTools } = await createReactToolset(rMachine);
+): ReactStandardToolset<A> {
+  const { ReactRMachine: OriginalReactRMachine, ...otherTools } = createReactToolset(rMachine);
 
   const Context = createContext<ReactStandardToolsetContext | null>(null);
   Context.displayName = "ReactStandardToolsetContext";

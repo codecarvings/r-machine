@@ -1,28 +1,28 @@
 import { type CookieDeclaration, defaultCookieDeclaration } from "r-machine/strategy/web";
 import {
   type DefaultLocaleKey,
-  NextAppBaseStrategy,
-  type NextAppBaseStrategyConfig,
-  type PartialNextAppBaseStrategyConfig,
+  NextAppStrategy,
+  type NextAppStrategyConfig,
+  type PartialNextAppStrategyConfig,
 } from "#r-machine/next/core/app";
 import { defaultPathMatcher } from "../internal/matcher.js";
 
-export interface NextAppFlatStrategyConfig<LK extends string> extends NextAppBaseStrategyConfig<LK> {
+export interface NextAppFlatStrategyConfig<LK extends string> extends NextAppStrategyConfig<LK> {
   readonly cookie: CookieDeclaration;
   readonly pathMatcher: RegExp | null;
 }
-export interface PartialNextAppFlatStrategyConfig<LK extends string> extends PartialNextAppBaseStrategyConfig<LK> {
+export interface PartialNextAppFlatStrategyConfig<LK extends string> extends PartialNextAppStrategyConfig<LK> {
   readonly cookie?: CookieDeclaration;
   readonly pathMatcher?: RegExp | null;
 }
 
 const defaultConfig: NextAppFlatStrategyConfig<DefaultLocaleKey> = {
-  ...NextAppBaseStrategy.defaultConfig,
+  ...NextAppStrategy.defaultConfig,
   cookie: defaultCookieDeclaration,
   pathMatcher: defaultPathMatcher,
 };
 
-export class NextAppFlatStrategy<LK extends string = DefaultLocaleKey> extends NextAppBaseStrategy<
+export class NextAppFlatStrategy<LK extends string = DefaultLocaleKey> extends NextAppStrategy<
   LK,
   NextAppFlatStrategyConfig<LK>
 > {

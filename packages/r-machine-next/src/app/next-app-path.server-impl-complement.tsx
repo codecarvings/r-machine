@@ -4,7 +4,7 @@ import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import type { ImplFactory } from "r-machine/strategy";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
-import { localeHeaderName, type NextAppServerPathImplComplement } from "#r-machine/next/core/app";
+import { localeHeaderName, type NextAppServerImplComplement } from "#r-machine/next/core/app";
 import { type CookiesFn, defaultPathMatcher, type NextProxyResult } from "#r-machine/next/internal";
 import type { NextAppPathStrategyConfig } from "./next-app-path-strategy.js";
 
@@ -13,7 +13,7 @@ const default_autoDL_matcher_explicit: RegExp | null = defaultPathMatcher; // Au
 const default_implicit_matcher: RegExp | null = defaultPathMatcher; // Implicit for all standard paths
 
 export const createNextAppPathServerImplComplement: ImplFactory<
-  NextAppServerPathImplComplement<string>,
+  NextAppServerImplComplement<string>,
   NextAppPathStrategyConfig<string>
 > = async (rMachine, strategyConfig) => {
   const locales = rMachine.config.locales;
@@ -261,10 +261,6 @@ export const createNextAppPathServerImplComplement: ImplFactory<
       }
 
       return EntrancePage;
-    },
-
-    getHref(path) {
-      return path;
     },
   };
 };

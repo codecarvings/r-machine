@@ -3,9 +3,9 @@ import type { SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import {
   type DefaultLocaleKey,
-  NextAppBasePathStrategy,
-  type NextAppBaseStrategyConfig,
-  type PartialNextAppBaseStrategyConfig,
+  NextAppStrategy,
+  type NextAppStrategyConfig,
+  type PartialNextAppStrategyConfig,
 } from "#r-machine/next/core/app";
 
 /* NextAppPathStrategy - Cookies
@@ -27,13 +27,13 @@ interface CustomAutoDetectLocale {
 type AutoDetectLocaleOption = SwitchableOption | CustomAutoDetectLocale;
 type CookieOption = SwitchableOption | CookieDeclaration;
 
-export interface NextAppPathStrategyConfig<LK extends string> extends NextAppBaseStrategyConfig<LK> {
+export interface NextAppPathStrategyConfig<LK extends string> extends NextAppStrategyConfig<LK> {
   readonly cookie: CookieOption;
   readonly lowercaseLocale: SwitchableOption;
   readonly autoDetectLocale: AutoDetectLocaleOption;
   readonly implicitDefaultLocale: ImplicitDefaultLocaleOption;
 }
-export interface PartialNextAppPathStrategyConfig<LK extends string> extends PartialNextAppBaseStrategyConfig<LK> {
+export interface PartialNextAppPathStrategyConfig<LK extends string> extends PartialNextAppStrategyConfig<LK> {
   readonly cookie?: CookieOption;
   readonly lowercaseLocale?: SwitchableOption;
   readonly autoDetectLocale?: AutoDetectLocaleOption;
@@ -41,14 +41,14 @@ export interface PartialNextAppPathStrategyConfig<LK extends string> extends Par
 }
 
 const defaultConfig: NextAppPathStrategyConfig<DefaultLocaleKey> = {
-  ...NextAppBasePathStrategy.defaultConfig,
+  ...NextAppStrategy.defaultConfig,
   cookie: "off",
   lowercaseLocale: "on",
   autoDetectLocale: "on",
   implicitDefaultLocale: "off",
 };
 
-export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends NextAppBasePathStrategy<
+export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends NextAppStrategy<
   LK,
   NextAppPathStrategyConfig<LK>
 > {

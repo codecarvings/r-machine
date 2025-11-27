@@ -16,11 +16,11 @@ interface ReactToolsetBuilder {
 }
 
 export const ReactToolset: ReactToolsetBuilder = {
-  create: (rMachine, strategy?) => {
+  create: (rMachine, strategy?): any => {
     if (strategy !== undefined) {
       return ReactStrategy.createToolset(rMachine, strategy as ReactStrategy<any>);
     }
 
-    return createReactToolset(rMachine);
+    return async () => createReactToolset(rMachine);
   },
 };
