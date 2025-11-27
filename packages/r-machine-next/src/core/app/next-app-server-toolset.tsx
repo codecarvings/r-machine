@@ -6,6 +6,8 @@ import { cache, type ReactNode } from "react";
 import type { NextClientRMachine, RMachineProxy } from "#r-machine/next/core";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
 
+const brand = Symbol("NextServerRMachine");
+
 export interface NextAppServerToolset<A extends AnyAtlas, LK extends string> {
   readonly rMachineProxy: RMachineProxy;
   readonly NextServerRMachine: NextAppServerRMachine;
@@ -26,10 +28,8 @@ interface NextAppServerRMachineProps {
 }
 export interface NextAppServerRMachine {
   (props: NextAppServerRMachineProps): Promise<ReactNode>;
-  readonly EntrancePage: EntrancePage;
+  readonly [brand]: "NextServerRMachine";
 }
-
-export type EntrancePage = () => Promise<ReactNode>;
 
 type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
 
@@ -54,11 +54,6 @@ export type NextAppServerImpl<LK extends string> = {
     | LocaleStaticParamsGenerator<string>
     | Promise<LocaleStaticParamsGenerator<string>>;
   readonly createProxy: () => RMachineProxy | Promise<RMachineProxy>;
-  readonly createEntrancePage: (
-    cookies: CookiesFn,
-    headers: HeadersFn,
-    setLocale: (newLocale: string) => Promise<void>
-  ) => EntrancePage | Promise<EntrancePage>;
 };
 
 export async function createNextAppServerToolset<A extends AnyAtlas, LK extends string>(
@@ -86,8 +81,7 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
   async function NextServerRMachine({ children }: NextAppServerRMachineProps) {
     return <NextClientRMachine locale={await getLocale()}>{children}</NextClientRMachine>;
   }
-
-  NextServerRMachine.EntrancePage = await impl.createEntrancePage(cookies, headers, setLocale);
+  NextServerRMachine[brand] = "NextServerRMachine" as const;
 
   const localeCache = new Map<string, string>();
   function bindLocale(locale: string | Promise<RMachineParams<LK>>) {

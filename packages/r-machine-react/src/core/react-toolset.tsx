@@ -35,7 +35,7 @@ interface ReactToolsetContext {
   readonly writeLocale: WriteLocale | undefined;
 }
 
-export function createReactToolset<A extends AnyAtlas>(rMachine: RMachine<A>): ReactToolset<A> {
+export async function createReactToolset<A extends AnyAtlas>(rMachine: RMachine<A>): Promise<ReactToolset<A>> {
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const Context = createContext<ReactToolsetContext | null>(null);

@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import { RMachineError } from "r-machine/errors";
 import type { ImplFactory } from "r-machine/strategy";
 import { localeHeaderName, type NextAppServerImplComplement } from "#r-machine/next/core/app";
 import type { CookiesFn, HeadersFn, NextProxyResult } from "#r-machine/next/internal";
@@ -93,17 +92,6 @@ export const createNextAppOriginServerImplComplement: ImplFactory<
       }
 
       return proxy;
-    },
-
-    createEntrancePage() {
-      async function EntrancePage() {
-        throw new RMachineError("EntrancePage is not available with NextAppOriginStrategy.");
-
-        // biome-ignore lint/correctness/noUnreachable: This is required to satisfy the return type
-        return null;
-      }
-
-      return EntrancePage;
     },
   };
 };

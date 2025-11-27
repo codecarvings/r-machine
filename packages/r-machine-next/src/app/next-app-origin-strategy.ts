@@ -1,9 +1,9 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import {
   type DefaultLocaleKey,
-  NextAppStrategy,
-  type NextAppStrategyConfig,
-  type PartialNextAppStrategyConfig,
+  NextAppBaseStrategy,
+  type NextAppBaseStrategyConfig,
+  type PartialNextAppBaseStrategyConfig,
 } from "#r-machine/next/core/app";
 import { defaultPathMatcher } from "../internal/matcher.js";
 
@@ -13,22 +13,22 @@ export type LocaleOriginMap = {
 
 const defaultLocaleOriginMap: LocaleOriginMap = {};
 
-export interface NextAppOriginStrategyConfig<LK extends string> extends NextAppStrategyConfig<LK> {
+export interface NextAppOriginStrategyConfig<LK extends string> extends NextAppBaseStrategyConfig<LK> {
   readonly localeOriginMap: LocaleOriginMap;
   readonly pathMatcher: RegExp | null;
 }
-export interface PartialNextAppOriginStrategyConfig<LK extends string> extends PartialNextAppStrategyConfig<LK> {
+export interface PartialNextAppOriginStrategyConfig<LK extends string> extends PartialNextAppBaseStrategyConfig<LK> {
   readonly localeOriginMap: LocaleOriginMap; // Required
   readonly pathMatcher?: RegExp | null;
 }
 
 const defaultConfig: NextAppOriginStrategyConfig<DefaultLocaleKey> = {
-  ...NextAppStrategy.defaultConfig,
+  ...NextAppBaseStrategy.defaultConfig,
   localeOriginMap: defaultLocaleOriginMap,
   pathMatcher: defaultPathMatcher,
 };
 
-export class NextAppOriginStrategy<LK extends string = DefaultLocaleKey> extends NextAppStrategy<
+export class NextAppOriginStrategy<LK extends string = DefaultLocaleKey> extends NextAppBaseStrategy<
   LK,
   NextAppOriginStrategyConfig<LK>
 > {

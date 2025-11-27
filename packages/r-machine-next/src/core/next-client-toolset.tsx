@@ -27,11 +27,11 @@ export type NextClientImpl = {
   readonly writeLocale: (newLocale: string, router: ReturnType<typeof useRouter>) => void | Promise<void>;
 };
 
-export function createNextClientToolset<A extends AnyAtlas>(
+export async function createNextClientToolset<A extends AnyAtlas>(
   rMachine: RMachine<A>,
   impl: NextClientImpl
-): NextClientToolset<A> {
-  const { ReactRMachine, useLocale, ...otherTools } = createReactToolset(rMachine);
+): Promise<NextClientToolset<A>> {
+  const { ReactRMachine, useLocale, ...otherTools } = await createReactToolset(rMachine);
 
   async function setLocale(newLocale: string, router: ReturnType<typeof useRouter>): Promise<void> {
     // Do not check if the locale is different
@@ -62,11 +62,11 @@ export function createNextClientToolset<A extends AnyAtlas>(
     }, [locale, impl.onLoad]);
     return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
   }
-  NextClientRMachine[brand] = "NextClientRMachine";
+  NextClientRMachine[brand] = "NextClientRMachine" as const;
 
   return {
     ...otherTools,
-    NextClientRMachine: NextClientRMachine as NextClientRMachine,
+    NextClientRMachine,
     useLocale,
     useSetLocale,
   };

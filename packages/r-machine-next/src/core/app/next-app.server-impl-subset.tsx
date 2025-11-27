@@ -1,9 +1,9 @@
 import type { ImplFactory } from "r-machine/strategy";
-import type { NextAppServerImplSubset, NextAppStrategyConfig } from "./next-app-strategy.js";
+import type { NextAppBaseStrategyConfig, NextAppServerImplSubset } from "./next-app-base-strategy.js";
 
 export const createNextAppServerImplSubset: ImplFactory<
   NextAppServerImplSubset<string>,
-  NextAppStrategyConfig<string>
+  NextAppBaseStrategyConfig<string>
 > = async (_rMachine, strategyConfig) => {
   const { localeKey } = strategyConfig;
   const autoLocaleBinding = strategyConfig.autoLocaleBinding === "on";
