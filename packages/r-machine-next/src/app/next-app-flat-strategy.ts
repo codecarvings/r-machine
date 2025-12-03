@@ -5,7 +5,7 @@ import {
   type NextAppStrategyConfig,
   type PartialNextAppStrategyConfig,
 } from "#r-machine/next/core/app";
-import { defaultPathMatcher } from "../internal/matcher.js";
+import { defaultPathMatcher } from "#r-machine/next/internal";
 
 export interface NextAppFlatStrategyConfig<LK extends string> extends NextAppStrategyConfig<LK> {
   readonly cookie: CookieDeclaration;
@@ -23,6 +23,7 @@ const defaultConfig: NextAppFlatStrategyConfig<DefaultLocaleKey> = {
 };
 
 export class NextAppFlatStrategy<LK extends string = DefaultLocaleKey> extends NextAppStrategy<
+  "plain",
   LK,
   NextAppFlatStrategyConfig<LK>
 > {
@@ -32,6 +33,7 @@ export class NextAppFlatStrategy<LK extends string = DefaultLocaleKey> extends N
   constructor(config: PartialNextAppFlatStrategyConfig<LK>);
   constructor(config: PartialNextAppFlatStrategyConfig<LK> = {}) {
     super(
+      "plain",
       {
         ...defaultConfig,
         ...config,

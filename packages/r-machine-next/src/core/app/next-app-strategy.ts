@@ -1,5 +1,5 @@
 import type { ImplFactory, SwitchableOption } from "r-machine/strategy";
-import type { NextClientImpl } from "#r-machine/next/core";
+import type { NextClientImpl, NextStrategyKind } from "#r-machine/next/core";
 import { NextAppImplProvider } from "./next-app-impl-provider.js";
 import type { NextAppServerImpl } from "./next-app-server-toolset.js";
 
@@ -28,18 +28,21 @@ const defaultConfig: NextAppStrategyConfig<DefaultLocaleKey> = {
 };
 
 export abstract class NextAppStrategy<
+  SK extends NextStrategyKind,
   LK extends string,
   C extends NextAppStrategyConfig<LK>,
-> extends NextAppImplProvider<LK, C> {
+> extends NextAppImplProvider<SK, LK, C> {
   static readonly defaultLocaleKey = defaultLocaleKey;
   static readonly defaultConfig = defaultConfig;
 
   constructor(
+    kind: SK,
     config: PartialNextAppStrategyConfig<LK>,
     clientImplFactory: ImplFactory<NextClientImpl, C>,
     serverImplComplementFactory: ImplFactory<NextAppServerImplComplement<LK>, C>
   ) {
     super(
+      kind,
       {
         ...defaultConfig,
         ...config,

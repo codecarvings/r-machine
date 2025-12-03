@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { type ReactNode, useEffect } from "react";
+import type { NextStrategyKind } from "./index.js";
 
 const brand = Symbol("NextClientRMachine");
 
@@ -17,20 +18,41 @@ export interface NextClientRMachine {
   readonly [brand]: "NextClientRMachine";
 }
 
-export type NextClientToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "ReactRMachine"> & {
+export type NextClientPlainToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "ReactRMachine"> & {
   readonly NextClientRMachine: NextClientRMachine;
 };
 
-export type NextClientImpl = {
+export type NextClientPathToolset<A extends AnyAtlas> = NextClientPlainToolset<A> & {
+  readonly usePathBuilder: () => PathBuilder;
+};
+
+export type NextClientToolset<SK extends NextStrategyKind, A extends AnyAtlas> = SK extends "path"
+  ? NextClientPathToolset<A>
+  : NextClientPlainToolset<A>;
+
+type PathBuilder = (path: string) => string;
+interface NextClientImplPathAnnex {
+  readonly createUsePathBuilder: (useLocale: () => string) => () => PathBuilder;
+}
+
+export interface NextClientImpl {
   // biome-ignore lint/suspicious/noConfusingVoidType: As per design
   readonly onLoad: ((locale: string) => void | (() => void)) | undefined;
   readonly writeLocale: (newLocale: string, router: ReturnType<typeof useRouter>) => void | Promise<void>;
-};
+  readonly path?: undefined | NextClientImplPathAnnex;
+}
 
-export async function createNextClientToolset<A extends AnyAtlas>(
-  rMachine: RMachine<A>,
-  impl: NextClientImpl
-): Promise<NextClientToolset<A>> {
+export async function createNextClientToolset<SK extends NextStrategyKind, A extends AnyAtlas>(
+  strategyKind: SK,
+  impl: NextClientImpl,
+  rMachine: RMachine<A>
+): Promise<NextClientToolset<SK, A>> {
+  if (strategyKind === "plain" && impl.path !== undefined) {
+    throw new RMachineError("Path annex is not supported in plain strategy.");
+  } else if (strategyKind === "path" && impl.path === undefined) {
+    throw new RMachineError("Path annex is required in path strategy.");
+  }
+
   const { ReactRMachine, useLocale, ...otherTools } = await createReactToolset(rMachine);
 
   async function setLocale(newLocale: string, router: ReturnType<typeof useRouter>): Promise<void> {
@@ -64,10 +86,16 @@ export async function createNextClientToolset<A extends AnyAtlas>(
   }
   NextClientRMachine[brand] = "NextClientRMachine" as const;
 
+  let usePathBuilder: (() => PathBuilder) | undefined;
+  if (impl.path !== undefined) {
+    usePathBuilder = impl.path.createUsePathBuilder(useLocale);
+  }
+
   return {
     ...otherTools,
     NextClientRMachine,
     useLocale,
     useSetLocale,
-  };
+    usePathBuilder,
+  } as NextClientToolset<SK, A>;
 }

@@ -1,4 +1,4 @@
-import { RMachineError } from "../errors/r-machine-error.js";
+import { RMachineError } from "#r-machine/errors";
 import { DomainManager } from "./domain-manager.js";
 import { LocaleHelper } from "./locale-helper.js";
 import type { AnyAtlas, AtlasNamespace } from "./r.js";

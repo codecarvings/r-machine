@@ -5,7 +5,7 @@ import {
   type NextAppStrategyConfig,
   type PartialNextAppStrategyConfig,
 } from "#r-machine/next/core/app";
-import { defaultPathMatcher } from "../internal/matcher.js";
+import { defaultPathMatcher } from "#r-machine/next/internal";
 
 export type LocaleOriginMap = {
   readonly [locale: string]: string | string[];
@@ -29,6 +29,7 @@ const defaultConfig: NextAppOriginStrategyConfig<DefaultLocaleKey> = {
 };
 
 export class NextAppOriginStrategy<LK extends string = DefaultLocaleKey> extends NextAppStrategy<
+  "plain",
   LK,
   NextAppOriginStrategyConfig<LK>
 > {
@@ -40,6 +41,7 @@ export class NextAppOriginStrategy<LK extends string = DefaultLocaleKey> extends
     config: PartialNextAppOriginStrategyConfig<LK> = defaultConfig as PartialNextAppOriginStrategyConfig<LK>
   ) {
     super(
+      "plain",
       {
         ...defaultConfig,
         ...config,

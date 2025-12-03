@@ -12,6 +12,8 @@ const default_autoDL_matcher_implicit: RegExp | null = /^\/$/; // Auto detect on
 const default_autoDL_matcher_explicit: RegExp | null = defaultPathMatcher; // Auto detect all standard next paths
 const default_implicit_matcher: RegExp | null = defaultPathMatcher; // Implicit for all standard paths
 
+const pathBuilderNormalizerRegExp = /^\//;
+
 export const createNextAppPathServerImplComplement: ImplFactory<
   NextAppServerImplComplement<string>,
   NextAppPathStrategyConfig<string>
@@ -216,51 +218,75 @@ export const createNextAppPathServerImplComplement: ImplFactory<
       return proxy;
     },
 
-    createEntrancePage(cookies, headers, setLocale) {
-      async function getLocaleFromCookie(): Promise<string | undefined> {
-        if (!cookieSw) {
-          return undefined;
+    path: {
+      createEntrancePage(cookies, headers, setLocale) {
+        async function getLocaleFromCookie(): Promise<string | undefined> {
+          if (!cookieSw) {
+            return undefined;
+          }
+
+          const cookieStore = await cookies();
+          const cookieLocale = cookieStore.get(cookieName!)?.value;
+          if (cookieLocale === undefined) {
+            return undefined;
+          }
+
+          if (!locales.includes(cookieLocale)) {
+            return undefined;
+          }
+
+          return cookieLocale;
         }
 
-        const cookieStore = await cookies();
-        const cookieLocale = cookieStore.get(cookieName!)?.value;
-        if (cookieLocale === undefined) {
-          return undefined;
-        }
-
-        if (!locales.includes(cookieLocale)) {
-          return undefined;
-        }
-
-        return cookieLocale;
-      }
-
-      async function EntrancePage() {
-        if (implicitSw) {
+        function throwRequiredProxyError(details: string): never {
           throw new RMachineError(
-            "EntrancePage is not available when implicitDefaultLocale is enabled in NextAppPathStrategy."
-          );
-        }
-        if (autoLBSw) {
-          throw new RMachineError(
-            "EntrancePage is not available when autoDetectLocale is enabled in NextAppPathStrategy."
+            `EntrancePage is not available when some option requires the use of the proxy (${details}).`
           );
         }
 
-        const cookieLocale = await getLocaleFromCookie();
-        if (cookieLocale !== undefined) {
-          await setLocale(cookieLocale);
+        async function EntrancePage() {
+          if (implicitSw) {
+            throwRequiredProxyError("implicitDefaultLocale is on");
+          }
+          if (autoLBSw) {
+            throwRequiredProxyError("autoLocaleBinding is on");
+          }
+
+          const cookieLocale = await getLocaleFromCookie();
+          if (cookieLocale !== undefined) {
+            await setLocale(cookieLocale);
+            return null;
+          }
+
+          const headerStore = await headers();
+          const acceptLanguageHeader = headerStore.get("accept-language");
+          const detectedLocale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
+          await setLocale(detectedLocale);
           return null;
         }
 
-        const headerStore = await headers();
-        const acceptLanguageHeader = headerStore.get("accept-language");
-        const detectedLocale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
-        await setLocale(detectedLocale);
-        return null;
-      }
+        return EntrancePage;
+      },
 
-      return EntrancePage;
+      createPathBuilderSupplier(getLocale) {
+        async function getPathBuilder() {
+          const locale = await getLocale();
+
+          function getPath(path: string): string {
+            let localeParam: string;
+            if (implicitSw && locale === defaultLocale) {
+              localeParam = "";
+            } else {
+              localeParam = lowercaseLocaleSw ? locale.toLowerCase() : locale;
+            }
+            return `/${localeParam}/${path.replace(pathBuilderNormalizerRegExp, "")}`;
+          }
+
+          return getPath;
+        }
+
+        return getPathBuilder;
+      },
     },
   };
 };
