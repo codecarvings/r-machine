@@ -3,7 +3,7 @@
 import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import type { ReactNode } from "react";
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, use, useCallback, useContext, useMemo } from "react";
 
 type SetLocale = (newLocale: string) => Promise<void>;
 type WriteLocale = (newLocale: string) => void | Promise<void>;
@@ -105,34 +105,14 @@ export async function createReactToolset<A extends AnyAtlas>(rMachine: RMachine<
     const context = useReactToolsetContext();
     const r = rMachine.hybridPickR(context.locale, namespace);
 
-    // Workaround Next.js 16 problem with "use":
-    /*
-      Error occurred prerendering page "/it-it". Read more: https://nextjs.org/docs/messages/prerender-error
-      Error: Objects are not valid as a React child (found: object with keys {...}). If you meant to render a collection of children, use an array instead.
-    */
-    // return r instanceof Promise ? use(r) : r;
-
-    if (r instanceof Promise) {
-      throw r;
-    }
-    return r;
+    return r instanceof Promise ? use(r) : r;
   }
 
   function useRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): RKit<A, NL> {
     const context = useReactToolsetContext();
     const rKit = rMachine.hybridPickRKit(context.locale, ...namespaces);
 
-    // Workaround Next.js 16 problem with "use":
-    /*
-      Error occurred prerendering page "/it-it". Read more: https://nextjs.org/docs/messages/prerender-error
-      Error: Objects are not valid as a React child (found: object with keys {...}). If you meant to render a collection of children, use an array instead.
-    */
-    // return (rKit instanceof Promise ? use(rKit) : rKit) as RKit<A, NL>;
-
-    if (rKit instanceof Promise) {
-      throw rKit;
-    }
-    return rKit as RKit<A, NL>;
+    return (rKit instanceof Promise ? use(rKit) : rKit) as RKit<A, NL>;
   }
 
   return {
