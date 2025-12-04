@@ -4,8 +4,7 @@
 **/*.d.ts
 **/*.d.mts
 **/*.d.cts
-**/package.json
-/internal
-/core
 /app
+/core
+/internal
 /lib

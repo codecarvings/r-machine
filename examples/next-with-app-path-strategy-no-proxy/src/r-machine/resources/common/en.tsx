@@ -1,6 +1,7 @@
 import type { R } from "r-machine";
 
 const r = {
+  title: (locale: string) => `[${locale}] - R-Machine ⧹ Examples ⧹ Next App ⧹ Path Strategy (no proxy)`,
   footer: {
     message: (
       <>

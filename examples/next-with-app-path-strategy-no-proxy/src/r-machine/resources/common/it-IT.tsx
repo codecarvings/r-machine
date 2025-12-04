@@ -1,6 +1,7 @@
 import type { R_Common } from "./en";
 
 const r: R_Common = {
+  title: (locale: string) => `[${locale}] - R-Machine ⧹ Examples ⧹ Next App ⧹ Path Strategy (senza proxy)`,
   footer: {
     message: (
       <>
