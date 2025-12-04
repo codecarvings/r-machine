@@ -17,12 +17,12 @@ import {
  */
 
 interface CustomImplicitDefaultLocale {
-  readonly pathMatcherRegExp: RegExp | null;
+  readonly pathMatcher: RegExp | null;
 }
 type ImplicitDefaultLocaleOption = SwitchableOption | CustomImplicitDefaultLocale;
 
 interface CustomAutoDetectLocale {
-  readonly pathMatcherRegExp: RegExp | null;
+  readonly pathMatcher: RegExp | null;
 }
 type AutoDetectLocaleOption = SwitchableOption | CustomAutoDetectLocale;
 type CookieOption = SwitchableOption | CookieDeclaration;
@@ -49,6 +49,7 @@ const defaultConfig: NextAppPathStrategyConfig<DefaultLocaleKey> = {
 };
 
 export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends NextAppStrategy<
+  "path",
   LK,
   NextAppPathStrategyConfig<LK>
 > {
@@ -58,6 +59,7 @@ export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends N
   constructor(config: PartialNextAppPathStrategyConfig<LK>);
   constructor(config: PartialNextAppPathStrategyConfig<LK> = {}) {
     super(
+      "path",
       {
         ...defaultConfig,
         ...config,

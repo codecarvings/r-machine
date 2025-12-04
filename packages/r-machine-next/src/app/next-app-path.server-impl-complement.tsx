@@ -4,15 +4,15 @@ import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import type { ImplFactory } from "r-machine/strategy";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
-import { type EntrancePageProps, localeHeaderName, type NextAppServerImplComplement } from "#r-machine/next/core/app";
-import type { CookiesFn, NextProxyResult } from "#r-machine/next/internal";
+import { localeHeaderName, type NextAppServerImplComplement } from "#r-machine/next/core/app";
+import { type CookiesFn, defaultPathMatcher, type NextProxyResult } from "#r-machine/next/internal";
 import type { NextAppPathStrategyConfig } from "./next-app-path-strategy.js";
 
-const standardNextProxyMatcherRegExp: RegExp = /^\/(?!(?:_next|_vercel|api)(?:\/|$)|.*\.[^/]+$)/; // Standard Next.js proxy matching
+const default_autoDL_matcher_implicit: RegExp | null = /^\/$/; // Auto detect only root path
+const default_autoDL_matcher_explicit: RegExp | null = defaultPathMatcher; // Auto detect all standard next paths
+const default_implicit_matcher: RegExp | null = defaultPathMatcher; // Implicit for all standard paths
 
-const default_autoDetectLocale_pathMatcherRegExp_implicit: RegExp | null = /^\/$/; // Auto detect only root path
-const default_autoDetectLocale_pathMatcherRegExp_explicit: RegExp | null = standardNextProxyMatcherRegExp; // Auto detect all paths
-const default_implicitDefaultLocale_pathMatcherRegExp: RegExp | null = standardNextProxyMatcherRegExp; // Implicit for all paths
+const pathBuilderNormalizerRegExp = /^\//;
 
 export const createNextAppPathServerImplComplement: ImplFactory<
   NextAppServerImplComplement<string>,
@@ -20,17 +20,14 @@ export const createNextAppPathServerImplComplement: ImplFactory<
 > = async (rMachine, strategyConfig) => {
   const locales = rMachine.config.locales;
   const defaultLocale = rMachine.config.defaultLocale;
-
   const { localeKey, autoLocaleBinding, basePath, cookie, lowercaseLocale, autoDetectLocale, implicitDefaultLocale } =
     strategyConfig;
-
   const autoLBSw = autoLocaleBinding === "on";
   const lowercaseLocaleSw = lowercaseLocale === "on";
   const implicitSw = implicitDefaultLocale !== "off";
   const autoDLSw = autoDetectLocale !== "off";
-
   const cookieSw = cookie !== "off";
-  const { name: cookieName, ...cookieOptions } = cookieSw ? (cookie === "on" ? defaultCookieDeclaration : cookie) : {};
+  const { name: cookieName, ...cookieConfig } = cookieSw ? (cookie === "on" ? defaultCookieDeclaration : cookie) : {};
 
   return {
     async writeLocale(newLocale, cookies: CookiesFn) {
@@ -38,7 +35,7 @@ export const createNextAppPathServerImplComplement: ImplFactory<
         try {
           const cookieStore = await cookies();
           // 3) Set cookie on write (required when implicitDefaultLocale is on - problem with double redirect on explicit path)
-          cookieStore.set(cookieName!, newLocale, cookieOptions);
+          cookieStore.set(cookieName!, newLocale, cookieConfig);
         } catch {
           // SetLocale not invoked in a Server Action or Route Handler.
         }
@@ -63,20 +60,20 @@ export const createNextAppPathServerImplComplement: ImplFactory<
 
     createProxy() {
       const implicitRegExp: RegExp | null =
-        implicitDefaultLocale instanceof RegExp
-          ? implicitDefaultLocale
-          : implicitDefaultLocale === "on"
-            ? default_implicitDefaultLocale_pathMatcherRegExp
-            : null;
+        typeof implicitDefaultLocale === "string"
+          ? implicitDefaultLocale === "on"
+            ? default_implicit_matcher
+            : null
+          : implicitDefaultLocale.pathMatcher;
 
       const autoDLRegExp: RegExp | null =
-        autoDetectLocale instanceof RegExp
-          ? autoDetectLocale
-          : autoDetectLocale === "on"
+        typeof autoDetectLocale === "string"
+          ? autoDetectLocale === "on"
             ? implicitSw
-              ? default_autoDetectLocale_pathMatcherRegExp_implicit
-              : default_autoDetectLocale_pathMatcherRegExp_explicit
-            : null;
+              ? default_autoDL_matcher_implicit
+              : default_autoDL_matcher_explicit
+            : null
+          : autoDetectLocale.pathMatcher;
 
       // Use case-insensitive matching for locale codes
       const localeRegex = new RegExp(`^\\/(${locales.join("|")})(?:\\/|$)`, "i");
@@ -86,16 +83,16 @@ export const createNextAppPathServerImplComplement: ImplFactory<
           return undefined;
         }
 
-        const localeCookie = request.cookies.get(cookieName!)?.value;
-        if (localeCookie === undefined) {
+        const cookieLocale = request.cookies.get(cookieName!)?.value;
+        if (cookieLocale === undefined) {
           return undefined;
         }
 
-        if (!locales.includes(localeCookie)) {
+        if (!locales.includes(cookieLocale)) {
           return undefined;
         }
 
-        return localeCookie;
+        return cookieLocale;
       }
 
       function proxy(request: NextRequest): NextProxyResult {
@@ -112,10 +109,10 @@ export const createNextAppPathServerImplComplement: ImplFactory<
             const implicitPath = pathname.replace(localeRegex, `${basePath}/`);
             const response = NextResponse.redirect(new URL(implicitPath, request.url));
             if (cookieSw) {
-              const localeCookie = getLocaleFromCookie(request);
-              if (localeCookie !== locale) {
+              const cookieLocale = getLocaleFromCookie(request);
+              if (cookieLocale !== locale) {
                 // 4) Set cookie on redirect (required when implicitDefaultLocale is on and switching to default locale)
-                response.cookies.set(cookieName!, locale, cookieOptions);
+                response.cookies.set(cookieName!, locale, cookieConfig);
               }
             }
             return response;
@@ -147,11 +144,11 @@ export const createNextAppPathServerImplComplement: ImplFactory<
             let locale: string;
             if (autoDLSw && (autoDLRegExp === null || autoDLRegExp.test(pathname))) {
               // Is auto-detect URL
-              const localeCookie = getLocaleFromCookie(request);
+              const cookieLocale = getLocaleFromCookie(request);
 
-              if (localeCookie !== undefined) {
+              if (cookieLocale !== undefined) {
                 // Cookie enabled and available, use locale from cookie
-                locale = localeCookie;
+                locale = cookieLocale;
               } else {
                 // Cookie disabled - OR - First time visiting, auto-detect from Accept-Language header
                 locale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(
@@ -189,19 +186,19 @@ export const createNextAppPathServerImplComplement: ImplFactory<
             return NextResponse.rewrite(newUrl);
           }
 
-          // Invalid implicit URL, do not proxy - irrelevant for locale strategy
+          // Not an implicit URL, do not proxy - irrelevant for locale strategy
           return NextResponse.next();
         }
 
         // Do not use implicit URLs
         if (autoDLSw && (autoDLRegExp === null || autoDLRegExp.test(pathname))) {
           // Is auto-detect URL
-          const localeCookie = getLocaleFromCookie(request);
+          const cookieLocale = getLocaleFromCookie(request);
 
           let locale: string;
-          if (localeCookie !== undefined) {
+          if (cookieLocale !== undefined) {
             // Cookie enabled and available, use locale from cookie
-            locale = localeCookie;
+            locale = cookieLocale;
           } else {
             // Cookie disabled - OR - First time visiting, auto-detect from Accept-Language header
             locale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
@@ -213,7 +210,7 @@ export const createNextAppPathServerImplComplement: ImplFactory<
           );
         }
 
-        // NOot an auto-detect URL
+        // Not an auto-detect URL
         // Irrelevant URL, do not proxy
         return NextResponse.next();
       }
@@ -221,56 +218,75 @@ export const createNextAppPathServerImplComplement: ImplFactory<
       return proxy;
     },
 
-    createEntrancePage(headers, cookies, setLocale) {
-      async function getLocaleFromCookie(): Promise<string | undefined> {
-        if (!cookieSw) {
-          return undefined;
+    path: {
+      createEntrancePage(cookies, headers, setLocale) {
+        async function getLocaleFromCookie(): Promise<string | undefined> {
+          if (!cookieSw) {
+            return undefined;
+          }
+
+          const cookieStore = await cookies();
+          const cookieLocale = cookieStore.get(cookieName!)?.value;
+          if (cookieLocale === undefined) {
+            return undefined;
+          }
+
+          if (!locales.includes(cookieLocale)) {
+            return undefined;
+          }
+
+          return cookieLocale;
         }
 
-        const cookieStore = await cookies();
-        const localeCookie = cookieStore.get(cookieName!)?.value;
-        if (localeCookie === undefined) {
-          return undefined;
-        }
-
-        if (!locales.includes(localeCookie)) {
-          return undefined;
-        }
-
-        return localeCookie;
-      }
-
-      async function EntrancePage({ locale }: EntrancePageProps) {
-        if (implicitSw) {
+        function throwRequiredProxyError(details: string): never {
           throw new RMachineError(
-            "EntrancePage is not available when implicitDefaultLocale is enabled in NextAppPathStrategy."
-          );
-        }
-        if (autoLBSw) {
-          throw new RMachineError(
-            "EntrancePage is not available when autoDetectLocale is enabled in NextAppPathStrategy."
+            `EntrancePage is not available when some option requires the use of the proxy (${details}).`
           );
         }
 
-        if (locale !== undefined && locale !== null) {
-          await setLocale(locale);
+        async function EntrancePage() {
+          if (implicitSw) {
+            throwRequiredProxyError("implicitDefaultLocale is on");
+          }
+          if (autoLBSw) {
+            throwRequiredProxyError("autoLocaleBinding is on");
+          }
+
+          const cookieLocale = await getLocaleFromCookie();
+          if (cookieLocale !== undefined) {
+            await setLocale(cookieLocale);
+            return null;
+          }
+
+          const headerStore = await headers();
+          const acceptLanguageHeader = headerStore.get("accept-language");
+          const detectedLocale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
+          await setLocale(detectedLocale);
           return null;
         }
 
-        const localeCookie = await getLocaleFromCookie();
-        if (localeCookie !== undefined) {
-          await setLocale(localeCookie);
-          return null;
+        return EntrancePage;
+      },
+
+      createPathBuilderSupplier(getLocale) {
+        async function getPathBuilder() {
+          const locale = await getLocale();
+
+          function getPath(path: string): string {
+            let localeParam: string;
+            if (implicitSw && locale === defaultLocale) {
+              localeParam = "";
+            } else {
+              localeParam = lowercaseLocaleSw ? locale.toLowerCase() : locale;
+            }
+            return `/${localeParam}/${path.replace(pathBuilderNormalizerRegExp, "")}`;
+          }
+
+          return getPath;
         }
 
-        const headerStore = await headers();
-        const acceptLanguageHeader = headerStore.get("accept-language");
-        const detectedLocale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
-        await setLocale(detectedLocale);
-        return null;
-      }
-
-      return EntrancePage;
+        return getPathBuilder;
+      },
     },
   };
 };

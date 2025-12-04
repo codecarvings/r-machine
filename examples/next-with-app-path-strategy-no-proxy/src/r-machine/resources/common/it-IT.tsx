@@ -1,17 +1,17 @@
-import type { R$ } from "r-machine";
 import type { R_Common } from "./en";
 
-const rFactory = ($: R$) => {
-  const format = new Intl.DateTimeFormat($.locale, {
-    dateStyle: "full",
-    timeStyle: "long",
-  });
-
-  return {
-    title: "Esempio di R-Machine con Next.js",
-    welcomeMessage: ({ date }: { date: Date }) => `Benvenuto in R-Machine con React! - ${format.format(date)}`,
-    currentLanguage: `La lingua corrente è: (${$.locale}) - NS: ${$.namespace}`,
-  } as R_Common;
+const r: R_Common = {
+  title: (locale: string) => `[${locale}] - R-Machine ⧹ Examples ⧹ Next App ⧹ Path Strategy (senza proxy)`,
+  footer: {
+    message: (
+      <>
+        Progetto di esempio <strong>R-Machine</strong>. Scopri di più su
+        <a href="https://r-machine.codecarvings.com/it/" className="underline ml-1 font-semibold">
+          r-machine.codecarvings.com/it
+        </a>
+      </>
+    ),
+  },
 };
 
-export default rFactory;
+export default r;

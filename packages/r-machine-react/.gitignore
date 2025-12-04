@@ -4,7 +4,6 @@
 **/*.d.ts
 **/*.d.mts
 **/*.d.cts
-**/package.json
 /core
 /lib
 /utils

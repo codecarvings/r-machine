@@ -2,7 +2,6 @@ export { ReactStandardImplProvider } from "./react-standard-impl-provider.js";
 export {
   createReactStandardToolset,
   type ReactStandardImpl,
-  type ReactStandardRMachine,
   type ReactStandardToolset,
 } from "./react-standard-toolset.js";
 export { ReactStrategy } from "./react-strategy.js";

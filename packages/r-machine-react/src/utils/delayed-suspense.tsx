@@ -1,3 +1,5 @@
+"use client";
+
 import { type ReactNode, Suspense, useEffect, useState } from "react";
 
 const defaultDelay = 300;

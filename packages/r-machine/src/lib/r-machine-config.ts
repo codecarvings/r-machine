@@ -1,13 +1,11 @@
 import { RMachineError } from "#r-machine/errors";
 import { validateCanonicalUnicodeLocaleId } from "#r-machine/locale";
-import type { LocaleMapper } from "./locale-mapper-manager.js";
 import type { RModuleResolver } from "./r-module.js";
 
 export interface RMachineConfig {
   readonly locales: readonly string[];
   readonly defaultLocale: string;
   readonly rModuleResolver: RModuleResolver;
-  readonly localeMapper?: LocaleMapper;
 }
 
 export function validateRMachineConfig(config: RMachineConfig): RMachineError | null {

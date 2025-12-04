@@ -8,7 +8,7 @@ const rFactory = async () => {
     title: "Integrazione React",
     description: (
       <>
-        <span className="font-semibold">Hook e componenti React con re-rendering automatico.</span>
+        <span className="font-semibold">Hook e componenti con re-rendering automatico.</span>
         Integrazione perfetta con le tue applicazioni React esistenti.
       </>
     ),

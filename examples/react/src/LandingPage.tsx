@@ -1,17 +1,20 @@
 import { Suspense } from "react";
 import { useRKit } from "@/r-machine/toolset";
-import Box3 from "./components/Box3";
-import FeatureBox from "./components/FeatureBox";
-import FeatureBoxLoading from "./components/FeatureBoxLoading";
-import Header from "./components/Header";
-import Hero from "./components/Hero";
+import Box3 from "./components/client/Box3";
+import FeatureBox from "./components/client/FeatureBox";
+import FeatureBoxLoading from "./components/client/FeatureBoxLoading";
+import Footer from "./components/client/Footer";
+import Header from "./components/client/Header";
+import Hero from "./components/client/Hero";
 
 export default function LandingPage() {
+  // Load the required localized resources
   const [rPage, rBoxes, rCommon] = useRKit("landing-page", "features/box_1_2", "common");
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
+
       <Hero />
 
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
@@ -31,13 +34,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="border-t border-gray-200 py-8">
-            <p className="text-sm text-gray-500">{rCommon.footer.message}</p>
-          </div>
-        </div>
-      </section>
+      <Footer r={rCommon.footer} />
     </div>
   );
 }

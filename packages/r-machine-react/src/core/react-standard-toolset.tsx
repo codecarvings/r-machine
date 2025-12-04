@@ -5,7 +5,8 @@ import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils"
 import { createReactToolset, type ReactToolset } from "./react-toolset.js";
 
 interface ReactStandardRMachineProps {
-  readonly fallback?: ReactNode;
+  // Only ReactStandardRMachine requires fallback because of the async readLocale in ReactStandardImpl
+  readonly fallback?: ReactNode; // ReactNode already includes undefined
   readonly Suspense?: SuspenseComponent | null | undefined; // Null means no suspense
   readonly children: ReactNode;
 }
@@ -17,16 +18,16 @@ export type ReactStandardToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "Re
 
 type ReactStandardToolsetContext = [string, (newLocale: string) => void];
 
-export type ReactStandardImpl = {
+export interface ReactStandardImpl {
   readonly readLocale: () => string | Promise<string>;
   readonly writeLocale: (newLocale: string) => void | Promise<void>;
-};
+}
 
-export function createReactStandardToolset<A extends AnyAtlas>(
-  rMachine: RMachine<A>,
-  impl: ReactStandardImpl
-): ReactStandardToolset<A> {
-  const { ReactRMachine: OriginalReactRMachine, ...otherTools } = createReactToolset(rMachine);
+export async function createReactStandardToolset<A extends AnyAtlas>(
+  impl: ReactStandardImpl,
+  rMachine: RMachine<A>
+): Promise<ReactStandardToolset<A>> {
+  const { ReactRMachine: OriginalReactRMachine, ...otherTools } = await createReactToolset(rMachine);
 
   const Context = createContext<ReactStandardToolsetContext | null>(null);
   Context.displayName = "ReactStandardToolsetContext";
@@ -48,7 +49,7 @@ export function createReactStandardToolset<A extends AnyAtlas>(
 
     const error = rMachine.localeHelper.validateLocale(newLocale);
     if (error) {
-      throw new RMachineError(`Cannot set invalid locale: ${newLocale}.`, error);
+      throw new RMachineError(`Cannot set invalid locale: "${newLocale}".`, error);
     }
 
     setLocaleContext(newLocale);
@@ -78,9 +79,7 @@ export function createReactStandardToolset<A extends AnyAtlas>(
     // Suspense is already handled in the outer component
     return (
       <Context.Provider value={context}>
-        <OriginalReactRMachine locale={context[0]} Suspense={null}>
-          {children}
-        </OriginalReactRMachine>
+        <OriginalReactRMachine locale={context[0]}>{children}</OriginalReactRMachine>
       </Context.Provider>
     );
   }
@@ -92,11 +91,8 @@ export function createReactStandardToolset<A extends AnyAtlas>(
       [Suspense]
     );
 
-    if (Suspense === null && initialLocaleOrPromise instanceof Promise) {
-      throw new RMachineError(
-        "<ReactRMachine> cannot have Suspense set to null when the initial locale is loaded asynchronously."
-      );
-    }
+    // Do not validate: Suspense === null && initialLocaleOrPromise instanceof Promise
+    // (a Suspense could be provided externally)
 
     if (SuspenseComponent !== null) {
       return (
