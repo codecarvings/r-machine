@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { LocaleSwitcher } from "@/components/client/locale-switcher";
 import RMachineIcon from "@/components/gfx/r-machine.icon.svg";
 import { getPathBuilder } from "@/r-machine/server-toolset";
-import { LocaleSwitcher } from "../client/locale-switcher";
 
 export default async function Header() {
   // Get path builder for creating locale-aware links
