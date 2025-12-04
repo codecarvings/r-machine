@@ -1,5 +1,16 @@
 # @r-machine/react
 
+## 1.0.0-alpha.6
+
+### Patch Changes
+
+- 5288e2c: Change createReactStandardToolset function to return a promise;
+  Remove exportation of type ReactStandardRMachine;
+  Remove validation of suspense prop provided to the ReactRMachine component created by createReactStandardToolset;
+  Remove fallback and Suspense props from the ReactRMachine type returned by createReactToolset.
+- Updated dependencies [5288e2c]
+  - r-machine@1.0.0-alpha.6
+
 ## 1.0.0-alpha.5
 
 ### Patch Changes

@@ -1,5 +1,21 @@
 # @r-machine/next
 
+## 1.0.0-alpha.6
+
+### Patch Changes
+
+- 5288e2c: Add NextAppFlatStrategy implementation;
+  Add NextAppOriginStrategy implementation;
+  Add NextClientPlainToolset;
+  Add NextClientPathToolset with usePathBuilder;
+  Add NextAppServerPlainRMachine, NextAppServerPlainToolset;
+  Add NextAppServerPathRMachine, NextAppServerPathToolset with getPathBuilder and EntrancePage;
+  Change properties name pathMatcherRegExp to pathMatcher in CustomImplicitDefaultLocale and CustomAutoDetectLocale interfaces used by NextAppPathStrategyConfig.
+- Updated dependencies [5288e2c]
+- Updated dependencies [5288e2c]
+  - r-machine@1.0.0-alpha.6
+  - @r-machine/react@1.0.0-alpha.6
+
 ## 1.0.0-alpha.5
 
 ### Patch Changes
