@@ -5,6 +5,7 @@ import { getPathBuilder } from "@/r-machine/server-toolset";
 import { LocaleSwitcher } from "../client/locale-switcher";
 
 export default async function Header() {
+  // Get path builder for creating locale-aware links
   const getPath = await getPathBuilder();
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">

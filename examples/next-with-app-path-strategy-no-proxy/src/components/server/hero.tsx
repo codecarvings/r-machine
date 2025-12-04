@@ -9,6 +9,7 @@ import { getPathBuilder, pickR } from "@/r-machine/server-toolset";
 export default async function Hero() {
   // Load the required localized resource
   const r = await pickR("landing-page");
+  // Get path builder for creating locale-aware links
   const getPath = await getPathBuilder();
 
   return (
