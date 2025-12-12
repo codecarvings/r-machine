@@ -35,7 +35,7 @@ export function LocaleSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="default" className="gap-2 font-semibold" id="locale-switcher-button">
+        <Button variant="ghost" size="default" className="gap-2 font-semibold" id="locale-switcher-button">
           <Languages className="size-5" />
           <span className="hidden sm:inline text-base">{currentLocaleItem.name}</span>
         </Button>
