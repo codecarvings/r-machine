@@ -1,7 +1,6 @@
 export { NextAppImplProvider } from "./next-app-impl-provider.js";
 export {
   createNextAppServerToolset,
-  localeHeaderName,
   type NextAppServerImpl,
   type NextAppServerPathRMachine,
   type NextAppServerPathToolset,
@@ -11,6 +10,7 @@ export {
 } from "./next-app-server-toolset.js";
 export {
   type DefaultLocaleKey,
+  localeHeaderName,
   type NextAppServerImplComplement,
   NextAppStrategy,
   type NextAppStrategyConfig,

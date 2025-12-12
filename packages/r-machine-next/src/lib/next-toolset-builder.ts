@@ -1,32 +1,30 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import {
-  type AnyNextPathStrategy,
-  type AnyNextPlainStrategy,
   type NextClientPathToolset,
   type NextClientPlainToolset,
   type NextClientRMachine,
   NextStrategy,
 } from "#r-machine/next/core";
-import type { NextAppServerPathToolset, NextAppServerPlainToolset } from "#r-machine/next/core/app";
+import type { NextAppServerPathToolset, NextAppServerPlainToolset, NextAppStrategy } from "#r-machine/next/core/app";
 
 interface NextToolsetBuilder {
   createForClient<A extends AnyAtlas>(
     rMachine: RMachine<A>,
-    strategy: AnyNextPlainStrategy
+    strategy: NextStrategy<"plain", any>
   ): Promise<NextClientPlainToolset<A>>;
   createForClient<A extends AnyAtlas>(
     rMachine: RMachine<A>,
-    strategy: AnyNextPathStrategy
+    strategy: NextStrategy<"path", any>
   ): Promise<NextClientPathToolset<A>>;
 
   createForServer<A extends AnyAtlas, LK extends string>(
     rMachine: RMachine<A>,
-    strategy: AnyNextPlainStrategy,
+    strategy: NextAppStrategy<"plain", LK, any>,
     NextClientRMachine: NextClientRMachine
   ): Promise<NextAppServerPlainToolset<LK, A>>;
   createForServer<A extends AnyAtlas, LK extends string>(
     rMachine: RMachine<A>,
-    strategy: AnyNextPathStrategy,
+    strategy: NextAppStrategy<"path", LK, any>,
     NextClientRMachine: NextClientRMachine
   ): Promise<NextAppServerPathToolset<LK, A>>;
 }

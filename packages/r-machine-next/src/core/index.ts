@@ -8,8 +8,6 @@ export {
   type NextClientToolset,
 } from "./next-client-toolset.js";
 export {
-  type AnyNextPathStrategy,
-  type AnyNextPlainStrategy,
   NextStrategy,
   type NextStrategyKind,
 } from "./next-strategy.js";

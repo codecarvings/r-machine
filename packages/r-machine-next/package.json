@@ -105,12 +105,12 @@
     "test:watch": "pnpm vitest watch --typecheck"
   },
   "peerDependencies": {
+    "@r-machine/react": "workspace:*",
     "next": "^15 || ^16",
     "r-machine": "workspace:*",
     "react": "^19"
   },
   "dependencies": {
-    "@r-machine/react": "workspace:*",
     "js-cookie": "^3.0.5"
   }
 }

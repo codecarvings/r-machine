@@ -1,9 +1,9 @@
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import GitHubMark from "@/components/gfx/github-mark.svg";
-import RMachineLogo from "@/components/gfx/r-machine.logo.svg";
 import { Button } from "@/components/ui/button";
+import GitHubMark from "@/gfx/github-mark.svg";
+import RMachineLogo from "@/gfx/r-machine.logo.svg";
 import { getPathBuilder, pickR } from "@/r-machine/server-toolset";
 
 export default async function Hero() {

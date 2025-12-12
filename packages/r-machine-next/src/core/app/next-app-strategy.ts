@@ -3,6 +3,8 @@ import type { NextClientImpl, NextStrategyKind } from "#r-machine/next/core";
 import { NextAppImplProvider } from "./next-app-impl-provider.js";
 import type { NextAppServerImpl } from "./next-app-server-toolset.js";
 
+export const localeHeaderName = "x-rm-locale";
+
 type ServerImplSubset = "localeKey" | "autoLocaleBinding";
 export type NextAppServerImplSubset<LK extends string> = Pick<NextAppServerImpl<LK>, ServerImplSubset>;
 export type NextAppServerImplComplement<LK extends string> = Omit<NextAppServerImpl<LK>, ServerImplSubset>;

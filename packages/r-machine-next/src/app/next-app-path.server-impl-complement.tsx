@@ -5,7 +5,12 @@ import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import type { ImplFactory } from "r-machine/strategy";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import { localeHeaderName, type NextAppServerImplComplement } from "#r-machine/next/core/app";
-import { type CookiesFn, defaultPathMatcher, type NextProxyResult } from "#r-machine/next/internal";
+import {
+  type CookiesFn,
+  defaultPathMatcher,
+  type NextProxyResult,
+  validateServerOnlyUsage,
+} from "#r-machine/next/internal";
 import type { NextAppPathStrategyConfig } from "./next-app-path-strategy.js";
 
 const default_autoDL_matcher_implicit: RegExp | null = /^\/$/; // Auto detect only root path
@@ -245,6 +250,8 @@ export const createNextAppPathServerImplComplement: ImplFactory<
         }
 
         async function EntrancePage() {
+          validateServerOnlyUsage("EntrancePage");
+
           if (implicitSw) {
             throwRequiredProxyError("implicitDefaultLocale is on");
           }
@@ -270,6 +277,8 @@ export const createNextAppPathServerImplComplement: ImplFactory<
 
       createPathBuilderSupplier(getLocale) {
         async function getPathBuilder() {
+          validateServerOnlyUsage("getPathBuilder");
+
           const locale = await getLocale();
 
           function getPath(path: string): string {
@@ -277,9 +286,9 @@ export const createNextAppPathServerImplComplement: ImplFactory<
             if (implicitSw && locale === defaultLocale) {
               localeParam = "";
             } else {
-              localeParam = lowercaseLocaleSw ? locale.toLowerCase() : locale;
+              localeParam = `/${lowercaseLocaleSw ? locale.toLowerCase() : locale}`;
             }
-            return `/${localeParam}/${path.replace(pathBuilderNormalizerRegExp, "")}`;
+            return `${localeParam}/${path.replace(pathBuilderNormalizerRegExp, "")}`;
           }
 
           return getPath;
