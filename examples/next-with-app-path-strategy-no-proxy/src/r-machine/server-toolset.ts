@@ -4,6 +4,7 @@ import { rMachine, strategy } from "./r-machine";
 
 export const {
   NextServerRMachine,
+  rMachineProxy,
   generateLocaleStaticParams,
   bindLocale,
   getLocale,

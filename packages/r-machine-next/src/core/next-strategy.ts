@@ -4,9 +4,6 @@ import type { NextClientRMachine } from "./next-client-toolset.js";
 
 export type NextStrategyKind = "plain" | "path";
 
-export type AnyNextPathStrategy = NextStrategy<"path", any>;
-export type AnyNextPlainStrategy = NextStrategy<"plain", any>;
-
 export abstract class NextStrategy<SK extends NextStrategyKind, C> extends Strategy<C> {
   constructor(
     protected readonly kind: SK,

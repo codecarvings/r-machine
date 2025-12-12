@@ -8,6 +8,7 @@ import { bindLocale, generateLocaleStaticParams, NextServerRMachine, pickR } fro
 
 // Pre-render the static params for all locales
 export const generateStaticParams = generateLocaleStaticParams;
+export const dynamicParams = false;
 
 // Generate dynamic metadata based on the locale
 export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Promise<Metadata> {
@@ -27,9 +28,9 @@ export default async function LocaleLayout({ params, children }: LayoutProps<"/[
   const r = await pickR("common");
 
   return (
-    <NextServerRMachine>
-      <html lang={locale}>
-        <body>
+    <html lang={locale}>
+      <body>
+        <NextServerRMachine>
           <DelayedSuspense fallback={<ContentLoading />}>
             <div className="min-h-screen bg-background">
               <Header />
@@ -37,8 +38,8 @@ export default async function LocaleLayout({ params, children }: LayoutProps<"/[
               <Footer r={r.footer} />
             </div>
           </DelayedSuspense>
-        </body>
-      </html>
-    </NextServerRMachine>
+        </NextServerRMachine>
+      </body>
+    </html>
   );
 }

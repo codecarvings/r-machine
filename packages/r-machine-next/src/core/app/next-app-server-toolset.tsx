@@ -4,7 +4,8 @@ import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
 import type { NextClientRMachine, NextStrategyKind, RMachineProxy } from "#r-machine/next/core";
-import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
+import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
+import { localeHeaderName } from "./next-app-strategy.js";
 
 const brand = Symbol("NextServerRMachine");
 
@@ -61,8 +62,6 @@ interface NextAppServerRMachineContext {
   getLocalePromise: Promise<string> | null;
 }
 
-export const localeHeaderName = "x-rm-locale";
-
 interface NextAppServerImplPathAnnex {
   readonly createEntrancePage: (
     cookies: CookiesFn,
@@ -116,12 +115,16 @@ export async function createNextAppServerToolset<SK extends NextStrategyKind, LK
   });
 
   async function NextServerRMachine({ children }: NextAppServerRMachineProps) {
+    validateServerOnlyUsage("NextServerRMachine");
+
     return <NextClientRMachine locale={await getLocale()}>{children}</NextClientRMachine>;
   }
   NextServerRMachine[brand] = "NextServerRMachine" as const;
 
   const localeCache = new Map<string, string>();
   function bindLocale(locale: string | Promise<RMachineParams<LK>>) {
+    validateServerOnlyUsage("bindLocale");
+
     function syncBindLocale(localeOption: string): string {
       let locale = localeCache.get(localeOption);
       if (locale === undefined) {
@@ -193,6 +196,8 @@ export async function createNextAppServerToolset<SK extends NextStrategyKind, LK
   }
 
   function getLocale(): Promise<string> {
+    validateServerOnlyUsage("getLocale");
+
     const localeOrPromise = internalGetLocale();
     if (localeOrPromise instanceof Promise) {
       return localeOrPromise;
@@ -202,6 +207,8 @@ export async function createNextAppServerToolset<SK extends NextStrategyKind, LK
   }
 
   async function setLocale(newLocale: string) {
+    validateServerOnlyUsage("setLocale");
+
     const error = validateLocale(newLocale);
     if (error) {
       throw new RMachineError(`Cannot set locale to invalid locale: "${newLocale}".`, error);
@@ -211,6 +218,8 @@ export async function createNextAppServerToolset<SK extends NextStrategyKind, LK
   }
 
   function pickR<N extends AtlasNamespace<A>>(namespace: N): Promise<A[N]> {
+    validateServerOnlyUsage("pickR");
+
     const localeOrPromise = internalGetLocale();
     if (localeOrPromise instanceof Promise) {
       return localeOrPromise.then((locale) => rMachine.pickR(locale, namespace));
@@ -220,6 +229,8 @@ export async function createNextAppServerToolset<SK extends NextStrategyKind, LK
   }
 
   function pickRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): Promise<RKit<A, NL>> {
+    validateServerOnlyUsage("pickRKit");
+
     const localeOrPromise = internalGetLocale();
     if (localeOrPromise instanceof Promise) {
       return localeOrPromise.then((locale) => rMachine.pickRKit(locale, ...namespaces)) as Promise<RKit<A, NL>>;

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { LocaleSwitcher } from "@/components/client/locale-switcher";
-import RMachineIcon from "@/components/gfx/r-machine.icon.svg";
+import RMachineIcon from "@/gfx/r-machine.icon.svg";
 import { getPathBuilder } from "@/r-machine/server-toolset";
 
 export default async function Header() {

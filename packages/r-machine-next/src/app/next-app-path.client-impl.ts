@@ -58,9 +58,9 @@ export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, NextAppPat
             if (implicitDefaultLocale && locale === defaultLocale) {
               localeParam = "";
             } else {
-              localeParam = lowercaseLocale ? locale.toLowerCase() : locale;
+              localeParam = `/${lowercaseLocale ? locale.toLowerCase() : locale}`;
             }
-            return `/${localeParam}/${path.replace(pathBuilderNormalizerRegExp, "")}`;
+            return `${localeParam}/${path.replace(pathBuilderNormalizerRegExp, "")}`;
           }
 
           return getPath;

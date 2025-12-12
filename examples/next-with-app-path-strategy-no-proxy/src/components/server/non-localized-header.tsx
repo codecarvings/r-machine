@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import RMachineIcon from "@/components/gfx/r-machine.icon.svg";
+import RMachineIcon from "@/gfx/r-machine.icon.svg";
 
 export default function NonLocalizedHeader() {
   return (

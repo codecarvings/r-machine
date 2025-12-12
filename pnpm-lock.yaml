@@ -69,37 +69,6 @@ importers:
         specifier: 0.6.0
         version: 0.6.0(typescript@5.9.3)
 
-  examples/__next-with-app-path-strategy-no-proxy:
-    dependencies:
-      '@r-machine/next':
-        specifier: workspace:*
-        version: link:../../packages/r-machine-next
-      next:
-        specifier: 15.5.6
-        version: 15.5.6(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
-      r-machine:
-        specifier: workspace:*
-        version: link:../../packages/r-machine
-      react:
-        specifier: 19.2.1
-        version: 19.2.1
-      react-dom:
-        specifier: 19.2.1
-        version: 19.2.1(react@19.2.1)
-    devDependencies:
-      '@types/node':
-        specifier: ^20
-        version: 20.19.19
-      '@types/react':
-        specifier: ^19.2.7
-        version: 19.2.7
-      '@types/react-dom':
-        specifier: ^19.2.3
-        version: 19.2.3(@types/react@19.2.7)
-      typescript:
-        specifier: ^5
-        version: 5.9.3
-
   examples/next-with-app-flat-strategy:
     dependencies:
       '@r-machine/next':
@@ -198,6 +167,9 @@ importers:
       '@r-machine/next':
         specifier: workspace:*
         version: link:../../packages/r-machine-next
+      '@r-machine/react':
+        specifier: workspace:*
+        version: link:../../packages/r-machine-react
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.16
         version: 2.1.16(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -2241,6 +2213,7 @@ packages:
   next@15.5.6:
     resolution: {integrity: sha512-zTxsnI3LQo3c9HSdSf91O1jMNsEzIXDShXd4wVdg9y5shwLqBXi4ZtUUJyB86KGVSJLZx0PFONvO54aheGX8QQ==}
     engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
+    deprecated: This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/CVE-2025-66478 for more details.
     hasBin: true
     peerDependencies:
       '@opentelemetry/api': ^1.1.0

@@ -1,4 +1,4 @@
-import RMachineIcon from "@/components/gfx/r-machine.icon.svg";
+import RMachineIcon from "@/gfx/r-machine.icon.svg";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 
 export default function Header() {
