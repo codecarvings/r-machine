@@ -1,5 +1,14 @@
 # @r-machine/next
 
+## 1.0.0-alpha.7
+
+### Patch Changes
+
+- fb3657f: - Added checks to ensure that server elements (NextServerRMachine, bindLocale, getLocale, etc..) are not used in client components.
+  - Fixed NextToolsetBuilder return type.
+  - Fixed pathBuilder return value for implicitDefaultLocale.
+  - Removed AnyNextPlainStrategy and AnyNextPathStrategy types.
+
 ## 1.0.0-alpha.6
 
 ### Patch Changes
