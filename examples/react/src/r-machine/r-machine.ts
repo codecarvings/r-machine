@@ -22,7 +22,7 @@ export const rMachine = new RMachine<Atlas>({
   },
 });
 
-export const strategy = new ReactStandardStrategy({
+export const strategy = new ReactStandardStrategy(rMachine, {
   localeDetector: () => rMachine.localeHelper.matchLocales(navigator.languages),
   localeStore: {
     get: () => localStorage.getItem("locale") ?? undefined,

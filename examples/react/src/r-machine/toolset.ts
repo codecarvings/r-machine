@@ -1,4 +1,3 @@
-import { ReactToolset } from "@r-machine/react";
-import { rMachine, strategy } from "./r-machine";
+import { strategy } from "./r-machine";
 
-export const { ReactRMachine, useLocale, useSetLocale, useR, useRKit } = await ReactToolset.create(rMachine, strategy);
+export const { ReactRMachine, useLocale, useSetLocale, useR, useRKit } = await strategy.getToolset();

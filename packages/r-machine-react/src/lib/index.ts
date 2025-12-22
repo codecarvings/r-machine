@@ -3,4 +3,4 @@ export {
   ReactStandardStrategy,
   type ReactStandardStrategyConfig,
 } from "./react-standard-strategy.js";
-export { ReactToolset } from "./react-toolset-builder.js";
+export { ReactStrategy } from "./react-strategy.js";

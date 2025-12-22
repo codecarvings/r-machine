@@ -18,9 +18,7 @@ export interface NextClientRMachine {
   readonly [brand]: "NextClientRMachine";
 }
 
-export type NextClientPlainToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "ReactRMachine"> & {
-  readonly NextClientRMachine: NextClientRMachine;
-};
+export type NextClientPlainToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "ReactRMachine">;
 
 export type NextClientPathToolset<A extends AnyAtlas> = NextClientPlainToolset<A> & {
   readonly usePathBuilder: () => PathBuilder;
@@ -45,7 +43,8 @@ export interface NextClientImpl {
 export async function createNextClientToolset<SK extends NextStrategyKind, A extends AnyAtlas>(
   strategyKind: SK,
   impl: NextClientImpl,
-  rMachine: RMachine<A>
+  rMachine: RMachine<A>,
+  onNextClientRMachineCreated: (NextClientRMachine: NextClientRMachine) => void
 ): Promise<NextClientToolset<SK, A>> {
   if (strategyKind === "plain" && impl.path !== undefined) {
     throw new RMachineError("Path annex is not supported in plain strategy.");
@@ -91,9 +90,9 @@ export async function createNextClientToolset<SK extends NextStrategyKind, A ext
     usePathBuilder = impl.path.createUsePathBuilder(useLocale);
   }
 
+  onNextClientRMachineCreated(NextClientRMachine);
   return {
     ...otherTools,
-    NextClientRMachine,
     useLocale,
     useSetLocale,
     usePathBuilder,

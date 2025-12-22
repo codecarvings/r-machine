@@ -1,3 +1,4 @@
+import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import type { SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
@@ -48,17 +49,19 @@ const defaultConfig: NextAppPathStrategyConfig<DefaultLocaleKey> = {
   implicitDefaultLocale: "off",
 };
 
-export class NextAppPathStrategy<LK extends string = DefaultLocaleKey> extends NextAppStrategy<
+export class NextAppPathStrategy<A extends AnyAtlas, LK extends string = DefaultLocaleKey> extends NextAppStrategy<
+  A,
   "path",
   LK,
   NextAppPathStrategyConfig<LK>
 > {
   static override readonly defaultConfig = defaultConfig;
 
-  constructor();
-  constructor(config: PartialNextAppPathStrategyConfig<LK>);
-  constructor(config: PartialNextAppPathStrategyConfig<LK> = {}) {
+  constructor(rMachine: RMachine<A>);
+  constructor(rMachine: RMachine<A>, config: PartialNextAppPathStrategyConfig<LK>);
+  constructor(rMachine: RMachine<A>, config: PartialNextAppPathStrategyConfig<LK> = {}) {
     super(
+      rMachine,
       "path",
       {
         ...defaultConfig,

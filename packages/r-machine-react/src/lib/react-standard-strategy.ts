@@ -1,3 +1,4 @@
+import type { AnyAtlas, RMachine } from "r-machine";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { ReactStandardImplProvider } from "#r-machine/react/core";
 import { createReactStandardImpl } from "./react-standard.impl.js";
@@ -16,11 +17,15 @@ const defaultConfig: ReactStandardStrategyConfig = {
   localeStore: undefined,
 };
 
-export class ReactStandardStrategy extends ReactStandardImplProvider<ReactStandardStrategyConfig> {
-  constructor();
-  constructor(config: PartialReactStandardStrategyConfig);
-  constructor(config: PartialReactStandardStrategyConfig = {}) {
+export class ReactStandardStrategy<A extends AnyAtlas> extends ReactStandardImplProvider<
+  A,
+  ReactStandardStrategyConfig
+> {
+  constructor(rMachine: RMachine<A>);
+  constructor(rMachine: RMachine<A>, config: PartialReactStandardStrategyConfig);
+  constructor(rMachine: RMachine<A>, config: PartialReactStandardStrategyConfig = {}) {
     super(
+      rMachine,
       {
         ...defaultConfig,
         ...config,

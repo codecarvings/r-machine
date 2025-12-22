@@ -1,3 +1,4 @@
+import type { AnyAtlas, RMachine } from "r-machine";
 import type { ImplFactory, SwitchableOption } from "r-machine/strategy";
 import type { NextClientImpl, NextStrategyKind } from "#r-machine/next/core";
 import { NextAppImplProvider } from "./next-app-impl-provider.js";
@@ -30,20 +31,23 @@ const defaultConfig: NextAppStrategyConfig<DefaultLocaleKey> = {
 };
 
 export abstract class NextAppStrategy<
+  A extends AnyAtlas,
   SK extends NextStrategyKind,
   LK extends string,
   C extends NextAppStrategyConfig<LK>,
-> extends NextAppImplProvider<SK, LK, C> {
+> extends NextAppImplProvider<A, SK, LK, C> {
   static readonly defaultLocaleKey = defaultLocaleKey;
   static readonly defaultConfig = defaultConfig;
 
   constructor(
+    rMachine: RMachine<A>,
     kind: SK,
     config: PartialNextAppStrategyConfig<LK>,
     clientImplFactory: ImplFactory<NextClientImpl, C>,
     serverImplComplementFactory: ImplFactory<NextAppServerImplComplement<LK>, C>
   ) {
     super(
+      rMachine,
       kind,
       {
         ...defaultConfig,
