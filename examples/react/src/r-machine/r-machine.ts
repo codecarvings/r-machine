@@ -1,4 +1,4 @@
-import { ReactStandardStrategy } from "@r-machine/react";
+import { ReactStrategy } from "@r-machine/react";
 import { RMachine } from "r-machine";
 import type { Atlas } from "./atlas";
 
@@ -22,7 +22,7 @@ export const rMachine = new RMachine<Atlas>({
   },
 });
 
-export const strategy = new ReactStandardStrategy(rMachine, {
+export const strategy = new ReactStrategy(rMachine, {
   localeDetector: () => rMachine.localeHelper.matchLocales(navigator.languages),
   localeStore: {
     get: () => localStorage.getItem("locale") ?? undefined,

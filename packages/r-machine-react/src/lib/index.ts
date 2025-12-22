@@ -1,6 +1,5 @@
 export {
-  type PartialReactStandardStrategyConfig,
-  ReactStandardStrategy,
-  type ReactStandardStrategyConfig,
-} from "./react-standard-strategy.js";
-export { ReactStrategy } from "./react-strategy.js";
+  type PartialReactStrategyConfig,
+  ReactStrategy,
+  type ReactStrategyConfig,
+} from "./react-strategy.js";

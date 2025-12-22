@@ -27,13 +27,7 @@ export class RMachine<A extends AnyAtlas> {
     }
   }
 
-  // Required for react suspense support
-  readonly hybridPickR = <N extends AtlasNamespace<A>>(locale: string, namespace: N): A[N] | Promise<A[N]> => {
-    this.validateLocaleForPick(locale);
-    const domain = this.domainManager.getDomain(locale);
-    return domain.hybridPickR(namespace) as A[N] | Promise<A[N]>;
-  };
-
+  // Use property syntax to bind 'this' correctly
   readonly pickR = <N extends AtlasNamespace<A>>(locale: string, namespace: N): Promise<A[N]> => {
     this.validateLocaleForPick(locale);
     const domain = this.domainManager.getDomain(locale);
@@ -41,18 +35,28 @@ export class RMachine<A extends AnyAtlas> {
   };
 
   // Required for react suspense support
-  readonly hybridPickRKit = <NL extends AtlasNamespaceList<A>>(
+  protected readonly hybridPickR = <N extends AtlasNamespace<A>>(
     locale: string,
-    ...namespaces: NL
-  ): RKit<A, NL> | Promise<RKit<A, NL>> => {
+    namespace: N
+  ): A[N] | Promise<A[N]> => {
     this.validateLocaleForPick(locale);
     const domain = this.domainManager.getDomain(locale);
-    return domain.hybridPickRKit(namespaces) as RKit<A, NL> | Promise<RKit<A, NL>>;
+    return domain.hybridPickR(namespace) as A[N] | Promise<A[N]>;
   };
 
   readonly pickRKit = <NL extends AtlasNamespaceList<A>>(locale: string, ...namespaces: NL): Promise<RKit<A, NL>> => {
     this.validateLocaleForPick(locale);
     const domain = this.domainManager.getDomain(locale);
     return domain.pickRKit(namespaces) as Promise<RKit<A, NL>>;
+  };
+
+  // Required for react suspense support
+  protected readonly hybridPickRKit = <NL extends AtlasNamespaceList<A>>(
+    locale: string,
+    ...namespaces: NL
+  ): RKit<A, NL> | Promise<RKit<A, NL>> => {
+    this.validateLocaleForPick(locale);
+    const domain = this.domainManager.getDomain(locale);
+    return domain.hybridPickRKit(namespaces) as RKit<A, NL> | Promise<RKit<A, NL>>;
   };
 }

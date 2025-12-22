@@ -1,12 +1,9 @@
 import { RMachineError } from "r-machine/errors";
 import type { ImplFactory } from "r-machine/strategy";
-import type { ReactStandardImpl } from "#r-machine/react/core";
-import type { ReactStandardStrategyConfig } from "./react-standard-strategy.js";
+import type { ReactImpl } from "#r-machine/react/core";
+import type { ReactStrategyConfig } from "./react-strategy.js";
 
-export const createReactStandardImpl: ImplFactory<ReactStandardImpl, ReactStandardStrategyConfig> = async (
-  rMachine,
-  strategyConfig
-) => {
+export const createReactImpl: ImplFactory<ReactImpl, ReactStrategyConfig> = async (rMachine, strategyConfig) => {
   function returnValidLocale(locale: string): string {
     const error = rMachine.localeHelper.validateLocale(locale);
     if (error) {

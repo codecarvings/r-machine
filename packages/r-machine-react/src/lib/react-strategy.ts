@@ -1,15 +1,33 @@
-import type { AnyAtlas } from "r-machine";
-import { Strategy } from "r-machine/strategy";
-import { createReactToolset, type ReactToolset } from "#r-machine/react/core";
+import type { AnyAtlas, RMachine } from "r-machine";
+import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
+import { ReactStrategyCore } from "#r-machine/react/core";
+import { createReactImpl } from "./react.impl.js";
 
-export class ReactStrategy<A extends AnyAtlas, C> extends Strategy<A, C> {
-  protected toolsetPromise: Promise<ReactToolset<A>> | undefined;
-  getToolset(): Promise<ReactToolset<A>> {
-    if (this.toolsetPromise === undefined) {
-      this.toolsetPromise = (async () => {
-        return await createReactToolset(this.rMachine);
-      })();
-    }
-    return this.toolsetPromise;
+export interface ReactStrategyConfig {
+  readonly localeDetector: CustomLocaleDetector | undefined;
+  readonly localeStore: CustomLocaleStore | undefined;
+}
+export interface PartialReactStrategyConfig {
+  readonly localeDetector?: CustomLocaleDetector | undefined;
+  readonly localeStore?: CustomLocaleStore | undefined;
+}
+
+const defaultConfig: ReactStrategyConfig = {
+  localeDetector: undefined,
+  localeStore: undefined,
+};
+
+export class ReactStrategy<A extends AnyAtlas> extends ReactStrategyCore<A, ReactStrategyConfig> {
+  constructor(rMachine: RMachine<A>);
+  constructor(rMachine: RMachine<A>, config: PartialReactStrategyConfig);
+  constructor(rMachine: RMachine<A>, config: PartialReactStrategyConfig = {}) {
+    super(
+      rMachine,
+      {
+        ...defaultConfig,
+        ...config,
+      },
+      createReactImpl
+    );
   }
 }

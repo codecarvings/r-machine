@@ -1,42 +1,33 @@
-"use client";
-
-import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
+import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
-import type { ReactNode } from "react";
-import { createContext, use, useCallback, useContext, useMemo } from "react";
-
-type SetLocale = (newLocale: string) => Promise<void>;
-type WriteLocale = (newLocale: string) => void | Promise<void>;
-
-export interface ReactToolset<A extends AnyAtlas> {
-  readonly ReactRMachine: ReactRMachine;
-  readonly useLocale: () => string;
-  // Performance optimization: do not use the same approach as useState ([state, setState])
-  // because with required hooks (e.g. useRouter)
-  // the setter function should be recreated on every render to capture the latest context.
-  readonly useSetLocale: () => SetLocale;
-  readonly useR: <N extends AtlasNamespace<A>>(namespace: N) => A[N];
-  readonly useRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
-}
+import { createContext, type ReactNode, use, useContext, useMemo, useState } from "react";
+import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils";
+import { createReactBareToolset, type ReactBareToolset } from "./react-bare-toolset.js";
 
 interface ReactRMachineProps {
-  readonly locale: string;
-  readonly writeLocale?: WriteLocale | undefined;
+  // Only ReactRMachineProps requires fallback because of the async readLocale in ReactImpl
+  readonly fallback?: ReactNode; // ReactNode already includes undefined
+  readonly Suspense?: SuspenseComponent | null | undefined; // Null means no suspense
   readonly children: ReactNode;
 }
+export type ReactRMachine = (props: ReactRMachineProps) => ReactNode;
 
-export interface ReactRMachine {
-  (props: ReactRMachineProps): ReactNode;
-  probe: (localeOption: string | undefined) => string | undefined;
+export type ReactToolset<A extends AnyAtlas> = Omit<ReactBareToolset<A>, "ReactRMachine"> & {
+  readonly ReactRMachine: ReactRMachine;
+};
+
+type ReactToolsetContext = [string, (newLocale: string) => void];
+
+export interface ReactImpl {
+  readonly readLocale: () => string | Promise<string>;
+  readonly writeLocale: (newLocale: string) => void | Promise<void>;
 }
 
-interface ReactToolsetContext {
-  readonly locale: string;
-  readonly writeLocale: WriteLocale | undefined;
-}
-
-export async function createReactToolset<A extends AnyAtlas>(rMachine: RMachine<A>): Promise<ReactToolset<A>> {
-  const validateLocale = rMachine.localeHelper.validateLocale;
+export async function createReactToolset<A extends AnyAtlas>(
+  rMachine: RMachine<A>,
+  impl: ReactImpl
+): Promise<ReactToolset<A>> {
+  const { ReactRMachine: OriginalReactRMachine, ...otherTools } = await createReactBareToolset(rMachine);
 
   const Context = createContext<ReactToolsetContext | null>(null);
   Context.displayName = "ReactToolsetContext";
@@ -50,76 +41,73 @@ export async function createReactToolset<A extends AnyAtlas>(rMachine: RMachine<
     return context;
   }
 
-  function ReactRMachine({ locale, writeLocale, children }: ReactRMachineProps) {
-    const value = useMemo<ReactToolsetContext>(() => {
-      const error = validateLocale(locale);
-      if (error) {
-        throw new RMachineError(`Unable to render <ReactRMachine> - invalid locale provided "${locale}".`, error);
-      }
-
-      return { locale, writeLocale };
-    }, [locale, writeLocale]);
-
-    return <Context.Provider value={value}>{children}</Context.Provider>;
-  }
-
-  ReactRMachine.probe = (locale: string | undefined) => {
-    if (locale !== undefined && rMachine.localeHelper.validateLocale(locale) !== null) {
-      locale = undefined;
-    }
-
-    return locale;
-  };
-
-  function useLocale(): string {
-    return useReactToolsetContext().locale;
-  }
-
   async function setLocale(newLocale: string, context: ReactToolsetContext) {
-    const { locale, writeLocale } = context;
+    const [locale, setLocaleContext] = context;
     if (newLocale === locale) {
       return;
     }
 
-    const error = validateLocale(newLocale);
+    const error = rMachine.localeHelper.validateLocale(newLocale);
     if (error) {
-      throw error;
+      throw new RMachineError(`Cannot set invalid locale: "${newLocale}".`, error);
     }
 
-    if (writeLocale === undefined) {
-      throw new RMachineError("No writeLocale function provided to <ReactRMachine>.");
-    }
-
-    const writeLocaleResult = writeLocale(newLocale);
+    setLocaleContext(newLocale);
+    const writeLocaleResult = impl.writeLocale(newLocale);
     if (writeLocaleResult instanceof Promise) {
       await writeLocaleResult;
     }
   }
 
-  function useSetLocale(): SetLocale {
+  function useSetLocale(): ReturnType<ReactBareToolset<A>["useSetLocale"]> {
     const context = useReactToolsetContext();
-    return useCallback<SetLocale>((newLocale: string) => setLocale(newLocale, context), [context]);
+
+    return (newLocale: string) => setLocale(newLocale, context);
   }
 
-  function useR<N extends AtlasNamespace<A>>(namespace: N): A[N] {
-    const context = useReactToolsetContext();
-    const r = rMachine.hybridPickR(context.locale, namespace);
+  function InternalReactRMachine({
+    initialLocaleOrPromise,
+    children,
+  }: {
+    readonly initialLocaleOrPromise: string | Promise<string>;
+    readonly children: ReactNode;
+  }) {
+    const initialLocale =
+      initialLocaleOrPromise instanceof Promise ? use(initialLocaleOrPromise) : initialLocaleOrPromise;
+    const context = useState(initialLocale);
 
-    return r instanceof Promise ? use(r) : r;
+    // Suspense is already handled in the outer component
+    return (
+      <Context.Provider value={context}>
+        <OriginalReactRMachine locale={context[0]}>{children}</OriginalReactRMachine>
+      </Context.Provider>
+    );
   }
 
-  function useRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): RKit<A, NL> {
-    const context = useReactToolsetContext();
-    const rKit = rMachine.hybridPickRKit(context.locale, ...namespaces);
+  function ReactRMachine({ fallback, Suspense, children }: ReactRMachineProps) {
+    const initialLocaleOrPromise = useMemo(() => impl.readLocale(), [impl.readLocale]);
+    const SuspenseComponent = useMemo(
+      () => Suspense || (Suspense !== null ? DelayedSuspense.create() : null),
+      [Suspense]
+    );
 
-    return (rKit instanceof Promise ? use(rKit) : rKit) as RKit<A, NL>;
+    // Do not validate: Suspense === null && initialLocaleOrPromise instanceof Promise
+    // (a Suspense could be provided externally)
+
+    if (SuspenseComponent !== null) {
+      return (
+        <SuspenseComponent fallback={fallback}>
+          <InternalReactRMachine initialLocaleOrPromise={initialLocaleOrPromise}>{children}</InternalReactRMachine>
+        </SuspenseComponent>
+      );
+    } else {
+      return <InternalReactRMachine initialLocaleOrPromise={initialLocaleOrPromise}>{children}</InternalReactRMachine>;
+    }
   }
 
   return {
+    ...otherTools,
     ReactRMachine,
-    useLocale,
     useSetLocale,
-    useR,
-    useRKit,
   };
 }
