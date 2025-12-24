@@ -13,3 +13,4 @@ export {
 } from "./next-path-client-toolset.js";
 export { NextPathStrategyCore } from "./next-path-strategy-core.js";
 export { NextStrategyCore } from "./next-strategy-core.js";
+export type { RMachineProxy } from "./proxy.js";

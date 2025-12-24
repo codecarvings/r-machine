@@ -3,13 +3,13 @@ import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } fro
 import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
-import type { NextClientRMachine, NextStrategyKind, RMachineProxy } from "#r-machine/next/core";
+import type { NextClientRMachine, RMachineProxy } from "#r-machine/next/core";
 import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
-import { localeHeaderName } from "./next-app-strategy.js";
+import { localeHeaderName } from "./next-app-strategy-core.js";
 
-export interface NextAppServerPlainToolset<LK extends string, A extends AnyAtlas> {
+export interface NextAppServerToolset<A extends AnyAtlas, LK extends string> {
   readonly rMachineProxy: RMachineProxy;
-  readonly NextServerRMachine: NextAppServerPlainRMachine;
+  readonly NextServerRMachine: NextAppServerRMachine;
   readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
   readonly bindLocale: BindLocale<LK>;
   readonly getLocale: () => Promise<string>;
@@ -18,16 +18,6 @@ export interface NextAppServerPlainToolset<LK extends string, A extends AnyAtlas
   readonly pickRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => Promise<RKit<A, NL>>;
 }
 
-export interface NextAppServerPathToolset<LK extends string, A extends AnyAtlas>
-  extends NextAppServerPlainToolset<LK, A> {
-  readonly NextServerRMachine: NextAppServerPathRMachine;
-  readonly getPathBuilder: PathBuilderSupplier;
-}
-
-export type NextAppServerToolset<SK extends NextStrategyKind, LK extends string, A extends AnyAtlas> = SK extends "path"
-  ? NextAppServerPlainToolset<LK, A>
-  : NextAppServerPathToolset<LK, A>;
-
 type RMachineParams<LK extends string> = {
   [P in LK]: string;
 };
@@ -35,15 +25,7 @@ type RMachineParams<LK extends string> = {
 interface NextAppServerRMachineProps {
   readonly children: ReactNode;
 }
-export type NextAppServerPlainRMachine = (props: NextAppServerRMachineProps) => Promise<ReactNode>;
-
-export interface NextAppServerPathRMachine extends NextAppServerPlainRMachine {
-  readonly EntrancePage: EntrancePage;
-}
-
-type EntrancePage = () => Promise<ReactNode>;
-type PathBuilder = (path: string) => string;
-type PathBuilderSupplier = () => Promise<PathBuilder>;
+export type NextAppServerRMachine = (props: NextAppServerRMachineProps) => Promise<ReactNode>;
 
 type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
 
@@ -57,17 +39,6 @@ interface NextAppServerRMachineContext {
   getLocalePromise: Promise<string> | null;
 }
 
-interface NextAppServerImplPathAnnex {
-  readonly createEntrancePage: (
-    cookies: CookiesFn,
-    headers: HeadersFn,
-    setLocale: (newLocale: string) => Promise<void>
-  ) => EntrancePage | Promise<EntrancePage>;
-  readonly createPathBuilderSupplier: (
-    getLocale: () => Promise<string>
-  ) => PathBuilderSupplier | Promise<PathBuilderSupplier>;
-}
-
 export interface NextAppServerImpl<LK extends string> {
   readonly localeKey: LK;
   readonly autoLocaleBinding: boolean;
@@ -77,21 +48,13 @@ export interface NextAppServerImpl<LK extends string> {
     | LocaleStaticParamsGenerator<string>
     | Promise<LocaleStaticParamsGenerator<string>>;
   readonly createProxy: () => RMachineProxy | Promise<RMachineProxy>;
-  readonly path?: undefined | NextAppServerImplPathAnnex;
 }
 
-export async function createNextAppServerToolset<SK extends NextStrategyKind, LK extends string, A extends AnyAtlas>(
-  strategyKind: SK,
-  impl: NextAppServerImpl<LK>,
+export async function createNextAppServerToolset<A extends AnyAtlas, LK extends string>(
   rMachine: RMachine<A>,
+  impl: NextAppServerImpl<LK>,
   NextClientRMachine: NextClientRMachine
-): Promise<NextAppServerToolset<SK, LK, A>> {
-  if (strategyKind === "plain" && impl.path !== undefined) {
-    throw new RMachineError("Path annex is not supported in plain strategy.");
-  } else if (strategyKind === "path" && impl.path === undefined) {
-    throw new RMachineError("Path annex is required in path strategy.");
-  }
-
+): Promise<NextAppServerToolset<A, LK>> {
   const validateLocale = rMachine.localeHelper.validateLocale;
   const { localeKey, autoLocaleBinding } = impl;
 
@@ -233,12 +196,6 @@ export async function createNextAppServerToolset<SK extends NextStrategyKind, LK
     }
   }
 
-  let getPathBuilder: PathBuilderSupplier | undefined;
-  if (impl.path !== undefined) {
-    NextServerRMachine.EntrancePage = await impl.path.createEntrancePage(cookies, headers, setLocale);
-    getPathBuilder = await impl.path.createPathBuilderSupplier(getLocale);
-  }
-
   return {
     rMachineProxy,
     NextServerRMachine,
@@ -248,6 +205,5 @@ export async function createNextAppServerToolset<SK extends NextStrategyKind, LK
     setLocale,
     pickR,
     pickRKit,
-    getPathBuilder,
-  } as NextAppServerToolset<SK, LK, A>;
+  };
 }

@@ -3,7 +3,7 @@ import { type ImplFactory, Strategy } from "r-machine/strategy";
 import type { NextClientImpl, NextClientToolset, NextClientToolsetEnvelope } from "./next-client-toolset.js";
 
 export abstract class NextStrategyCore<A extends AnyAtlas, C> extends Strategy<A, C> {
-  protected constructor(
+  constructor(
     rMachine: RMachine<A>,
     config: C,
     protected readonly clientImplFactory: ImplFactory<NextClientImpl, C>

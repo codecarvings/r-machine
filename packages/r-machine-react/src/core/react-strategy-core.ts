@@ -1,9 +1,9 @@
 import type { AnyAtlas, RMachine } from "r-machine";
-import { getImplFactory, type ImplFactory, type ImplProvider, Strategy } from "r-machine/strategy";
+import { type ImplFactory, Strategy } from "r-machine/strategy";
 import { createReactToolset, type ReactImpl, type ReactToolset } from "./react-toolset.js";
 
 export class ReactStrategyCore<A extends AnyAtlas, C> extends Strategy<A, C> {
-  protected constructor(
+  constructor(
     rMachine: RMachine<A>,
     config: C,
     protected readonly implFactory: ImplFactory<ReactImpl, C>
@@ -17,18 +17,5 @@ export class ReactStrategyCore<A extends AnyAtlas, C> extends Strategy<A, C> {
   };
   getToolset(): Promise<ReactToolset<A>> {
     return this.getCached(this.createToolset);
-  }
-
-  static define<A extends AnyAtlas>(
-    rMachine: RMachine<A>,
-    impl: ImplProvider<ReactImpl, undefined>
-  ): ReactStrategyCore<A, undefined>;
-  static define<A extends AnyAtlas, C>(
-    rMachine: RMachine<A>,
-    impl: ImplProvider<ReactImpl, C>,
-    config: C
-  ): ReactStrategyCore<A, C>;
-  static define<A extends AnyAtlas, C>(rMachine: RMachine<A>, impl: ImplProvider<ReactImpl, C>, config?: C) {
-    return new ReactStrategyCore<A, C>(rMachine, config as C, getImplFactory(impl));
   }
 }

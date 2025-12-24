@@ -15,7 +15,7 @@ export interface PathHelper {
 }
 
 export abstract class NextPathStrategyCore<A extends AnyAtlas, C> extends NextStrategyCore<A, C> {
-  protected constructor(
+  constructor(
     rMachine: RMachine<A>,
     config: C,
     protected override readonly clientImplFactory: ImplFactory<NextPathClientImpl, C>
