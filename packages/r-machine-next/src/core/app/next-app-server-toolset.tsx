@@ -7,8 +7,6 @@ import type { NextClientRMachine, NextStrategyKind, RMachineProxy } from "#r-mac
 import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
 import { localeHeaderName } from "./next-app-strategy.js";
 
-const brand = Symbol("NextServerRMachine");
-
 export interface NextAppServerPlainToolset<LK extends string, A extends AnyAtlas> {
   readonly rMachineProxy: RMachineProxy;
   readonly NextServerRMachine: NextAppServerPlainRMachine;
@@ -37,10 +35,7 @@ type RMachineParams<LK extends string> = {
 interface NextAppServerRMachineProps {
   readonly children: ReactNode;
 }
-export interface NextAppServerPlainRMachine {
-  (props: NextAppServerRMachineProps): Promise<ReactNode>;
-  readonly [brand]: "NextServerRMachine";
-}
+export type NextAppServerPlainRMachine = (props: NextAppServerRMachineProps) => Promise<ReactNode>;
 
 export interface NextAppServerPathRMachine extends NextAppServerPlainRMachine {
   readonly EntrancePage: EntrancePage;
@@ -119,7 +114,6 @@ export async function createNextAppServerToolset<SK extends NextStrategyKind, LK
 
     return <NextClientRMachine locale={await getLocale()}>{children}</NextClientRMachine>;
   }
-  NextServerRMachine[brand] = "NextServerRMachine" as const;
 
   const localeCache = new Map<string, string>();
   function bindLocale(locale: string | Promise<RMachineParams<LK>>) {

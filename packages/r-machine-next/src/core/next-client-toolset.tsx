@@ -1,58 +1,34 @@
 "use client";
 
-import { createReactToolset, type ReactToolset } from "@r-machine/react/core";
+import { createReactBareToolset, type ReactBareToolset } from "@r-machine/react/core";
 import { useRouter } from "next/navigation";
 import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { type ReactNode, useEffect } from "react";
-import type { NextStrategyKind } from "./index.js";
-
-const brand = Symbol("NextClientRMachine");
 
 interface NextClientRMachineProps {
   readonly locale: string;
   readonly children: ReactNode;
 }
-export interface NextClientRMachine {
-  (props: NextClientRMachineProps): ReactNode;
-  readonly [brand]: "NextClientRMachine";
-}
+export type NextClientRMachine = (props: NextClientRMachineProps) => ReactNode;
 
-export type NextClientPlainToolset<A extends AnyAtlas> = Omit<ReactToolset<A>, "ReactRMachine">;
-
-export type NextClientPathToolset<A extends AnyAtlas> = NextClientPlainToolset<A> & {
-  readonly usePathBuilder: () => PathBuilder;
-};
-
-export type NextClientToolset<SK extends NextStrategyKind, A extends AnyAtlas> = SK extends "path"
-  ? NextClientPathToolset<A>
-  : NextClientPlainToolset<A>;
-
-type PathBuilder = (path: string) => string;
-interface NextClientImplPathAnnex {
-  readonly createUsePathBuilder: (useLocale: () => string) => () => PathBuilder;
+export type NextClientToolset<A extends AnyAtlas> = Omit<ReactBareToolset<A>, "ReactRMachine">;
+export interface NextClientToolsetEnvelope<A extends AnyAtlas> {
+  readonly NextClientRMachine: NextClientRMachine;
+  readonly toolset: NextClientToolset<A>;
 }
 
 export interface NextClientImpl {
   // biome-ignore lint/suspicious/noConfusingVoidType: As per design
   readonly onLoad: ((locale: string) => void | (() => void)) | undefined;
   readonly writeLocale: (newLocale: string, router: ReturnType<typeof useRouter>) => void | Promise<void>;
-  readonly path?: undefined | NextClientImplPathAnnex;
 }
 
-export async function createNextClientToolset<SK extends NextStrategyKind, A extends AnyAtlas>(
-  strategyKind: SK,
-  impl: NextClientImpl,
+export async function createNextClientToolsetEnvelope<A extends AnyAtlas>(
   rMachine: RMachine<A>,
-  onNextClientRMachineCreated: (NextClientRMachine: NextClientRMachine) => void
-): Promise<NextClientToolset<SK, A>> {
-  if (strategyKind === "plain" && impl.path !== undefined) {
-    throw new RMachineError("Path annex is not supported in plain strategy.");
-  } else if (strategyKind === "path" && impl.path === undefined) {
-    throw new RMachineError("Path annex is required in path strategy.");
-  }
-
-  const { ReactRMachine, useLocale, ...otherTools } = await createReactToolset(rMachine);
+  impl: NextClientImpl
+): Promise<NextClientToolsetEnvelope<A>> {
+  const { ReactRMachine, useLocale, ...otherTools } = await createReactBareToolset(rMachine);
 
   async function setLocale(newLocale: string, router: ReturnType<typeof useRouter>): Promise<void> {
     // Do not check if the locale is different
@@ -69,7 +45,7 @@ export async function createNextClientToolset<SK extends NextStrategyKind, A ext
     }
   }
 
-  function useSetLocale(): ReturnType<ReactToolset<A>["useSetLocale"]> {
+  function useSetLocale(): ReturnType<ReactBareToolset<A>["useSetLocale"]> {
     const router = useRouter();
 
     return (newLocale: string) => setLocale(newLocale, router);
@@ -83,18 +59,11 @@ export async function createNextClientToolset<SK extends NextStrategyKind, A ext
     }, [locale, impl.onLoad]);
     return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
   }
-  NextClientRMachine[brand] = "NextClientRMachine" as const;
 
-  let usePathBuilder: (() => PathBuilder) | undefined;
-  if (impl.path !== undefined) {
-    usePathBuilder = impl.path.createUsePathBuilder(useLocale);
-  }
-
-  onNextClientRMachineCreated(NextClientRMachine);
-  return {
+  const toolset: NextClientToolset<A> = {
     ...otherTools,
     useLocale,
     useSetLocale,
-    usePathBuilder,
-  } as NextClientToolset<SK, A>;
+  };
+  return { NextClientRMachine, toolset };
 }

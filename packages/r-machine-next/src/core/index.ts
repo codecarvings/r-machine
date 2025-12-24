@@ -1,14 +1,15 @@
-export { NextClientImplProvider } from "./next-client-impl-provider.js";
 export {
-  createNextClientToolset,
+  createNextClientToolsetEnvelope,
   type NextClientImpl,
-  type NextClientPathToolset,
-  type NextClientPlainToolset,
   type NextClientRMachine,
   type NextClientToolset,
+  type NextClientToolsetEnvelope,
 } from "./next-client-toolset.js";
 export {
-  NextStrategy,
-  type NextStrategyKind,
-} from "./next-strategy.js";
-export type { RMachineProxy } from "./proxy.js";
+  createNextPathClientToolsetEnvelope,
+  type NextPathClientImpl,
+  type NextPathClientToolset,
+  type NextPathClientToolsetEnvelope,
+} from "./next-path-client-toolset.js";
+export { NextPathStrategyCore } from "./next-path-strategy-core.js";
+export { NextStrategyCore } from "./next-strategy-core.js";
