@@ -11,15 +11,12 @@ export class ReactStrategyCore<A extends AnyAtlas, C> extends Strategy<A, C> {
     super(rMachine, config);
   }
 
-  protected toolsetPromise: Promise<ReactToolset<A>> | undefined;
+  protected readonly createToolset = async (): Promise<ReactToolset<A>> => {
+    const impl = await this.implFactory(this.rMachine, this.config);
+    return await createReactToolset(this.rMachine, impl);
+  };
   getToolset(): Promise<ReactToolset<A>> {
-    if (this.toolsetPromise === undefined) {
-      this.toolsetPromise = (async () => {
-        const impl = await this.implFactory(this.rMachine, this.config);
-        return await createReactToolset(this.rMachine, impl);
-      })();
-    }
-    return this.toolsetPromise;
+    return this.getCached(this.createToolset);
   }
 
   static define<A extends AnyAtlas>(
