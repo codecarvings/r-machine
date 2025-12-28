@@ -64,10 +64,29 @@ type LocalizableSegmentDecl<T> = {
               };
 };
 
-type SegmentDecl<T> = {
-  -readonly [K in keyof T as K extends AnySegmentKey ? K : never]: T[K] extends object ? SegmentDecl<T[K]> : never;
+type PathDecl<T> = {
+  -readonly [K in keyof T as K extends AnySegmentKey ? K : never]: T[K] extends object ? PathDecl<T[K]> : never;
 } & {};
 
-export function declarePaths<const T>(obj: NonLocalizableSegmentDecl<T>): SegmentDecl<T> {
-  return undefined!;
+const brand = Symbol("AppPaths");
+class DeclaredPathsBrand {
+  protected readonly [brand]?: "AppPaths";
 }
+
+export function declarePaths<const T, const N = "App">(obj: NonLocalizableSegmentDecl<T>, name?: N) {
+  void name;
+
+  type DeclaredPaths<_N> = PathDecl<T> & DeclaredPathsBrand;
+  const result: DeclaredPaths<N> = undefined!;
+  return result!;
+}
+
+type PathSelector<T> = T extends object
+  ? {
+      [K in keyof T]: K extends string ? (T[K] extends object ? `${K}` | `${K}${PathSelector<T[K]>}` : `${K}`) : never;
+    }[keyof T]
+  : never;
+
+type RootPathSelector<T> = "/" | PathSelector<T>;
+
+export function getPath<T>(decl: T, path: RootPathSelector<T>) {}

@@ -1,10 +1,8 @@
-import { declarePaths } from "./path.js";
+import { declarePaths, getPath } from "./path.js";
 
 export const paths = declarePaths({
   "/about": {
     it: "/chi-siamo",
-
-    "/[...details]": {},
   },
   "/blog": {
     fr: "/blogue",
@@ -16,3 +14,5 @@ export const paths = declarePaths({
     },
   },
 });
+
+const x = getPath(paths, "/blog/[postId]");
