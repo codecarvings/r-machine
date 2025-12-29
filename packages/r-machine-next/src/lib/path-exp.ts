@@ -1,6 +1,6 @@
-import { declarePaths, getPath } from "./path.js";
+import { createPathAtlas, getPath } from "./path.js";
 
-export const paths = declarePaths({
+export const pathAtlas = createPathAtlas({
   "/about": {
     it: "/chi-siamo",
   },
@@ -10,9 +10,11 @@ export const paths = declarePaths({
     "/[postId]": {
       "/comments": {
         it: "/commenti",
+        "/[[...commentIds]]": {},
       },
     },
   },
 });
 
-const x = getPath(paths, "/blog/[postId]");
+// ✅ Valid: only required params
+const x = getPath(pathAtlas, "/blog/[postId]");

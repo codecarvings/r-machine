@@ -68,16 +68,22 @@ type PathDecl<T> = {
   -readonly [K in keyof T as K extends AnySegmentKey ? K : never]: T[K] extends object ? PathDecl<T[K]> : never;
 } & {};
 
-const brand = Symbol("AppPaths");
-class DeclaredPathsBrand {
-  protected readonly [brand]?: "AppPaths";
+// Branded type
+const brand = Symbol("PathAtlas");
+class PathAtlasCore {
+  protected readonly [brand]?: "PathAtlas";
+  readonly decl: unknown;
 }
 
-export function declarePaths<const T, const N = "App">(obj: NonLocalizableSegmentDecl<T>, name?: N) {
+export function createPathAtlas<const T, const N = "App">(obj: NonLocalizableSegmentDecl<T>, name?: N) {
   void name;
 
-  type DeclaredPaths<_N> = PathDecl<T> & DeclaredPathsBrand;
-  const result: DeclaredPaths<N> = undefined!;
+  type PathAtlas<_N> = PathAtlasCore & {
+    decl: PathDecl<T>;
+  };
+  const result: PathAtlas<N> = {
+    decl: obj as any,
+  };
   return result!;
 }
 
@@ -89,4 +95,41 @@ type PathSelector<T> = T extends object
 
 type RootPathSelector<T> = "/" | PathSelector<T>;
 
-export function getPath<T>(decl: T, path: RootPathSelector<T>) {}
+/**
+ * Recursively parses a path string and extracts parameter types from dynamic segments.
+ * - `/[param]` -> `{ param?: string }`
+ * - `/[...param]` -> `{ param?: string[] }`
+ * - `/[[...param]]` -> `{ param?: string[] }`
+ */
+type ParamMap<P extends string> = P extends `/${infer First}/${infer Rest}`
+  ? (First extends `[...${infer Name}]`
+      ? { [K in Name]?: string[] }
+      : First extends `[[...${infer Name}]]`
+        ? { [K in Name]?: string[] }
+        : First extends `[${infer Name}]`
+          ? { [K in Name]?: string }
+          : {}) &
+      ParamMap<`/${Rest}`>
+  : P extends `/${infer Last}`
+    ? Last extends `[...${infer Name}]`
+      ? { [K in Name]?: string[] }
+      : Last extends `[[...${infer Name}]]`
+        ? { [K in Name]?: string[] }
+        : Last extends `[${infer Name}]`
+          ? { [K in Name]?: string }
+          : {}
+    : {};
+
+type Prettify<T> = { [K in keyof T]: T[K] } & {};
+
+type Params<P extends string, O extends ParamMap<P>> = [keyof O] extends [keyof ParamMap<P>]
+  ? [keyof ParamMap<P>] extends [keyof O]
+    ? Prettify<O>
+    : Prettify<ParamMap<P>>
+  : never;
+
+export function getPath<T extends PathAtlasCore, P extends RootPathSelector<T["decl"]>, O extends ParamMap<P>>(
+  decl: T,
+  path: P,
+  params?: Params<P, O>
+) {}
