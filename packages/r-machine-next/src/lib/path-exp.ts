@@ -10,6 +10,7 @@ export const pathAtlas = createPathAtlas({
     "/[postId]": {
       "/comments": {
         it: "/commenti",
+
         "/[[...commentIds]]": {},
       },
     },

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { type ReactNode, useEffect } from "react";
+import type { PathAtlas } from "#r-machine/next";
+import type { BoundPathComposer } from "./next-strategy-core.js";
 
 interface NextClientRMachineProps {
   readonly locale: string;
@@ -12,22 +14,25 @@ interface NextClientRMachineProps {
 }
 export type NextClientRMachine = (props: NextClientRMachineProps) => ReactNode;
 
-export type NextClientToolset<A extends AnyAtlas> = Omit<ReactBareToolset<A>, "ReactRMachine">;
-export interface NextClientToolsetEnvelope<A extends AnyAtlas> {
+export type NextClientToolset<A extends AnyAtlas, PA extends PathAtlas> = Omit<ReactBareToolset<A>, "ReactRMachine"> & {
+  readonly usePathComposer: () => BoundPathComposer<PA>;
+};
+export interface NextClientToolsetEnvelope<A extends AnyAtlas, PA extends PathAtlas> {
   readonly NextClientRMachine: NextClientRMachine;
-  readonly toolset: NextClientToolset<A>;
+  readonly toolset: NextClientToolset<A, PA>;
 }
 
-export interface NextClientImpl {
+export interface NextClientImpl<PA extends PathAtlas> {
   // biome-ignore lint/suspicious/noConfusingVoidType: As per design
   readonly onLoad: ((locale: string) => void | (() => void)) | undefined;
   readonly writeLocale: (newLocale: string, router: ReturnType<typeof useRouter>) => void | Promise<void>;
+  createUsePathComposer: (useLocale: () => string) => () => BoundPathComposer<PA>;
 }
 
-export async function createNextClientToolsetEnvelope<A extends AnyAtlas>(
+export async function createNextClientToolsetEnvelope<A extends AnyAtlas, PA extends PathAtlas>(
   rMachine: RMachine<A>,
-  impl: NextClientImpl
-): Promise<NextClientToolsetEnvelope<A>> {
+  impl: NextClientImpl<PA>
+): Promise<NextClientToolsetEnvelope<A, PA>> {
   const { ReactRMachine, useLocale, ...otherTools } = await createReactBareToolset(rMachine);
 
   async function setLocale(newLocale: string, router: ReturnType<typeof useRouter>): Promise<void> {
@@ -60,10 +65,13 @@ export async function createNextClientToolsetEnvelope<A extends AnyAtlas>(
     return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
   }
 
-  const toolset: NextClientToolset<A> = {
+  const usePathComposer = impl.createUsePathComposer(useLocale);
+
+  const toolset: NextClientToolset<A, PA> = {
     ...otherTools,
     useLocale,
     useSetLocale,
+    usePathComposer,
   };
   return { NextClientRMachine, toolset };
 }

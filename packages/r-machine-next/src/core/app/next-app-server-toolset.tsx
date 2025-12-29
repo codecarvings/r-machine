@@ -3,11 +3,13 @@ import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } fro
 import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
+import type { PathAtlas } from "#r-machine/next";
 import type { NextClientRMachine, RMachineProxy } from "#r-machine/next/core";
 import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
+import type { BoundPathComposer } from "../next-strategy-core.js";
 import { localeHeaderName } from "./next-app-strategy-core.js";
 
-export interface NextAppServerToolset<A extends AnyAtlas, LK extends string> {
+export interface NextAppServerToolset<A extends AnyAtlas, PA extends PathAtlas, LK extends string> {
   readonly rMachineProxy: RMachineProxy;
   readonly NextServerRMachine: NextAppServerRMachine;
   readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
@@ -16,7 +18,10 @@ export interface NextAppServerToolset<A extends AnyAtlas, LK extends string> {
   readonly setLocale: (newLocale: string) => Promise<void>;
   readonly pickR: <N extends AtlasNamespace<A>>(namespace: N) => Promise<A[N]>;
   readonly pickRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => Promise<RKit<A, NL>>;
+  readonly getPathComposer: BoundPathComposerSupplier<PA>;
 }
+
+type BoundPathComposerSupplier<PA extends PathAtlas> = () => Promise<BoundPathComposer<PA>>;
 
 type RMachineParams<LK extends string> = {
   [P in LK]: string;
@@ -25,7 +30,11 @@ type RMachineParams<LK extends string> = {
 interface NextAppServerRMachineProps {
   readonly children: ReactNode;
 }
-export type NextAppServerRMachine = (props: NextAppServerRMachineProps) => Promise<ReactNode>;
+export interface NextAppServerRMachine {
+  (props: NextAppServerRMachineProps): Promise<ReactNode>;
+  readonly EntrancePage: EntrancePage;
+}
+type EntrancePage = () => Promise<ReactNode>;
 
 type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
 
@@ -39,7 +48,7 @@ interface NextAppServerRMachineContext {
   getLocalePromise: Promise<string> | null;
 }
 
-export interface NextAppServerImpl<LK extends string> {
+export interface NextAppServerImpl<PA extends PathAtlas, LK extends string> {
   readonly localeKey: LK;
   readonly autoLocaleBinding: boolean;
   readonly writeLocale: (newLocale: string, cookies: CookiesFn, headers: HeadersFn) => void | Promise<void>;
@@ -48,13 +57,22 @@ export interface NextAppServerImpl<LK extends string> {
     | LocaleStaticParamsGenerator<string>
     | Promise<LocaleStaticParamsGenerator<string>>;
   readonly createProxy: () => RMachineProxy | Promise<RMachineProxy>;
+  readonly createEntrancePage: (
+    cookies: CookiesFn,
+    headers: HeadersFn,
+    setLocale: (newLocale: string) => Promise<void>
+  ) => EntrancePage | Promise<EntrancePage>;
+
+  readonly createBoundPathComposerSupplier: (
+    getLocale: () => Promise<string>
+  ) => BoundPathComposerSupplier<PA> | Promise<BoundPathComposerSupplier<PA>>;
 }
 
-export async function createNextAppServerToolset<A extends AnyAtlas, LK extends string>(
+export async function createNextAppServerToolset<A extends AnyAtlas, PA extends PathAtlas, LK extends string>(
   rMachine: RMachine<A>,
-  impl: NextAppServerImpl<LK>,
+  impl: NextAppServerImpl<PA, LK>,
   NextClientRMachine: NextClientRMachine
-): Promise<NextAppServerToolset<A, LK>> {
+): Promise<NextAppServerToolset<A, PA, LK>> {
   const validateLocale = rMachine.localeHelper.validateLocale;
   const { localeKey, autoLocaleBinding } = impl;
 
@@ -77,6 +95,7 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
 
     return <NextClientRMachine locale={await getLocale()}>{children}</NextClientRMachine>;
   }
+  NextServerRMachine.EntrancePage = await impl.createEntrancePage(cookies, headers, setLocale);
 
   const localeCache = new Map<string, string>();
   function bindLocale(locale: string | Promise<RMachineParams<LK>>) {
@@ -196,6 +215,8 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
     }
   }
 
+  const getPathComposer = await impl.createBoundPathComposerSupplier(getLocale);
+
   return {
     rMachineProxy,
     NextServerRMachine,
@@ -205,5 +226,6 @@ export async function createNextAppServerToolset<A extends AnyAtlas, LK extends 
     setLocale,
     pickR,
     pickRKit,
+    getPathComposer,
   };
 }

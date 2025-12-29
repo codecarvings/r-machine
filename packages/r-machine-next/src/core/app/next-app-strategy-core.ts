@@ -1,25 +1,33 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import type { ImplFactory, SwitchableOption } from "r-machine/strategy";
-import { type NextClientImpl, NextStrategyCore } from "#r-machine/next/core";
+import type { PathAtlas } from "#r-machine/next";
+import { type NextClientImpl, NextStrategyCore, type PartialNextStrategyCoreConfig } from "#r-machine/next/core";
+import type { NextStrategyCoreConfig } from "../next-strategy-core.js";
 import type { NextAppServerImpl, NextAppServerToolset } from "./next-app-server-toolset.js";
 
 export const localeHeaderName = "x-rm-locale";
 
-export interface NextAppStrategyCoreConfig<LK extends string> {
+export interface NextAppStrategyCoreConfig<PA extends PathAtlas, LK extends string> extends NextStrategyCoreConfig<PA> {
   readonly localeKey: LK;
   readonly autoLocaleBinding: SwitchableOption;
   readonly basePath: string;
 }
-export interface PartialNextAppStrategyCoreConfig<LK extends string> {
+export type AnyNextAppStrategyCoreConfig = NextAppStrategyCoreConfig<any, any>;
+
+export interface PartialNextAppStrategyCoreConfig<PA extends PathAtlas, LK extends string>
+  extends PartialNextStrategyCoreConfig<PA> {
   readonly localeKey?: LK;
   readonly autoLocaleBinding?: SwitchableOption;
   readonly basePath?: string;
 }
 
 const defaultLocaleKey = "locale" as const;
-export type DefaultLocaleKey = typeof defaultLocaleKey;
 
-const defaultConfig: NextAppStrategyCoreConfig<DefaultLocaleKey> = {
+const defaultConfig: NextAppStrategyCoreConfig<
+  typeof NextStrategyCore.defaultConfig.pathAtlas,
+  typeof defaultLocaleKey
+> = {
+  ...NextStrategyCore.defaultConfig,
   localeKey: defaultLocaleKey,
   autoLocaleBinding: "off",
   basePath: "",
@@ -27,17 +35,15 @@ const defaultConfig: NextAppStrategyCoreConfig<DefaultLocaleKey> = {
 
 export abstract class NextAppStrategyCore<
   A extends AnyAtlas,
-  C extends NextAppStrategyCoreConfig<LK>,
-  LK extends string,
+  C extends AnyNextAppStrategyCoreConfig,
 > extends NextStrategyCore<A, C> {
-  static readonly defaultLocaleKey = defaultConfig.localeKey;
-  static readonly defaultConfig = defaultConfig;
+  static override readonly defaultConfig = defaultConfig;
 
   constructor(
     rMachine: RMachine<A>,
-    config: PartialNextAppStrategyCoreConfig<LK>,
-    clientImplFactory: ImplFactory<NextClientImpl, C>,
-    protected readonly serverImplFactory: ImplFactory<NextAppServerImpl<LK>, C>
+    config: PartialNextAppStrategyCoreConfig<C["pathAtlas"], C["localeKey"]>,
+    clientImplFactory: ImplFactory<NextClientImpl<C["pathAtlas"]>, C>,
+    protected readonly serverImplFactory: ImplFactory<NextAppServerImpl<C["pathAtlas"], C["localeKey"]>, C>
   ) {
     super(
       rMachine,
@@ -49,13 +55,15 @@ export abstract class NextAppStrategyCore<
     );
   }
 
-  protected readonly createServerToolset = async (): Promise<NextAppServerToolset<A, LK>> => {
+  protected readonly createServerToolset = async (): Promise<
+    NextAppServerToolset<A, C["pathAtlas"], C["localeKey"]>
+  > => {
     const { NextClientRMachine } = await this.getClientToolsetEnvelope();
     const impl = await this.serverImplFactory(this.rMachine, this.config);
     const module = await import("./next-app-server-toolset.js");
     return module.createNextAppServerToolset(this.rMachine, impl, NextClientRMachine);
   };
-  protected getServerToolset(): Promise<NextAppServerToolset<A, LK>> {
+  protected getServerToolset(): Promise<NextAppServerToolset<A, C["pathAtlas"], C["localeKey"]>> {
     return this.getCached(this.createServerToolset);
   }
 }
