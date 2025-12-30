@@ -14,7 +14,7 @@ type EmptyObject = {
   [key: string]: never;
 };
 
-type NonLocalizableSegmentDecl<T> = {
+export type NonLocalizableSegmentDecl<T> = {
   [K in keyof T]: K extends "/"
     ? { [__error]: "Invalid empty segment key"; [__invalidKey]: K }
     : K extends AnyCatchAllSegmentKey | AnyOptionalCatchAllSegmentKey
@@ -36,7 +36,7 @@ type NonLocalizableSegmentDecl<T> = {
           : { [__error]: "Unexpected localization. Object keys must match pattern /${string}"; [__invalidKey]: K };
 };
 
-type LocalizableSegmentDecl<T> = {
+export type LocalizableSegmentDecl<T> = {
   [K in keyof T]: K extends "/"
     ? { [__error]: "Invalid empty segment key"; [__invalidKey]: K }
     : K extends AnyCatchAllSegmentKey | AnyOptionalCatchAllSegmentKey
@@ -64,7 +64,7 @@ type LocalizableSegmentDecl<T> = {
               };
 };
 
-type PathDecl<T> = {
+export type PathDecl<T> = {
   -readonly [K in keyof T as K extends AnySegmentKey ? K : never]: T[K] extends object ? PathDecl<T[K]> : never;
 } & {};
 
@@ -76,19 +76,6 @@ export class PathAtlas {
   constructor(readonly decl: object) {
     void this[brand];
   }
-}
-
-const defaultPathAtlasName = "App" as const;
-type DefaultPathAtlasName = typeof defaultPathAtlasName;
-
-export function createPathAtlas<const T, const N = DefaultPathAtlasName>(obj: NonLocalizableSegmentDecl<T>, name?: N) {
-  void name;
-
-  type StatedPathAtlas<_N> = PathAtlas & {
-    readonly decl: PathDecl<T>;
-  };
-  const result: StatedPathAtlas<N> = new PathAtlas(obj) as any;
-  return result!;
 }
 
 type ChildPathSelector<T> = T extends object
@@ -129,15 +116,8 @@ export type PathParamMap<P extends string> = P extends `/${infer First}/${infer 
     : {};
 
 type Prettify<T> = { [K in keyof T]: T[K] } & {};
-
 export type PathParams<P extends string, O extends PathParamMap<P>> = [keyof O] extends [keyof PathParamMap<P>]
   ? [keyof PathParamMap<P>] extends [keyof O]
     ? Prettify<O>
     : Prettify<PathParamMap<P>>
   : never;
-
-export function getPath<PA extends PathAtlas, P extends PathSelector<PA>, O extends PathParamMap<P>>(
-  decl: PA,
-  path: P,
-  params?: PathParams<P, O>
-) {}

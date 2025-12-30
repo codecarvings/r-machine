@@ -1,13 +1,7 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import { type ImplFactory, Strategy } from "r-machine/strategy";
-import {
-  createPathAtlas,
-  type PathAtlas,
-  type PathParamMap,
-  type PathParams,
-  type PathSelector,
-} from "#r-machine/next";
 import type { NextClientImpl, NextClientToolset, NextClientToolsetEnvelope } from "./next-client-toolset.js";
+import { PathAtlas, type PathParamMap, type PathParams, type PathSelector } from "./path-atlas.js";
 
 type PathComposer<PA extends PathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
   locale: string,
@@ -32,7 +26,7 @@ export interface PartialNextStrategyCoreConfig<PA extends PathAtlas> {
   readonly pathAtlas?: PA;
 }
 
-const defaultPathAtlas = createPathAtlas({}, "DefaultPathAtlas");
+const defaultPathAtlas = new PathAtlas({});
 type DefaultPathAtlas = typeof defaultPathAtlas;
 
 const defaultConfig: NextStrategyCoreConfig<DefaultPathAtlas> = {

@@ -10,4 +10,13 @@ export {
   type NextStrategyCoreConfig,
   type PartialNextStrategyCoreConfig,
 } from "./next-strategy-core.js";
+export {
+  type LocalizableSegmentDecl,
+  type NonLocalizableSegmentDecl,
+  PathAtlas,
+  type PathDecl,
+  type PathParamMap,
+  type PathParams,
+  type PathSelector,
+} from "./path-atlas.js";
 export type { RMachineProxy } from "./proxy.js";

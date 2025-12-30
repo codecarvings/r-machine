@@ -3,11 +3,10 @@ import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } fro
 import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
-import type { PathAtlas } from "#r-machine/next";
-import type { NextClientRMachine, RMachineProxy } from "#r-machine/next/core";
+import type { NextClientRMachine, PathAtlas, RMachineProxy } from "#r-machine/next/core";
 import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { BoundPathComposer } from "../next-strategy-core.js";
-import { localeHeaderName } from "./next-app-strategy-core.js";
+import { localeHeaderName, type NextAppStrategyCoreConfig } from "./next-app-strategy-core.js";
 
 export interface NextAppServerToolset<A extends AnyAtlas, PA extends PathAtlas, LK extends string> {
   readonly rMachineProxy: RMachineProxy;
@@ -30,11 +29,7 @@ type RMachineParams<LK extends string> = {
 interface NextAppServerRMachineProps {
   readonly children: ReactNode;
 }
-export interface NextAppServerRMachine {
-  (props: NextAppServerRMachineProps): Promise<ReactNode>;
-  readonly EntrancePage: EntrancePage;
-}
-type EntrancePage = () => Promise<ReactNode>;
+export type NextAppServerRMachine = (props: NextAppServerRMachineProps) => Promise<ReactNode>;
 
 type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
 
@@ -48,21 +43,13 @@ interface NextAppServerRMachineContext {
   getLocalePromise: Promise<string> | null;
 }
 
-export interface NextAppServerImpl<PA extends PathAtlas, LK extends string> {
-  readonly localeKey: LK;
-  readonly autoLocaleBinding: boolean;
+export interface NextAppServerImpl<PA extends PathAtlas> {
   readonly writeLocale: (newLocale: string, cookies: CookiesFn, headers: HeadersFn) => void | Promise<void>;
   // must be dynamically generated because of strategy options (lowercaseLocale)
   readonly createLocaleStaticParamsGenerator: () =>
     | LocaleStaticParamsGenerator<string>
     | Promise<LocaleStaticParamsGenerator<string>>;
   readonly createProxy: () => RMachineProxy | Promise<RMachineProxy>;
-  readonly createEntrancePage: (
-    cookies: CookiesFn,
-    headers: HeadersFn,
-    setLocale: (newLocale: string) => Promise<void>
-  ) => EntrancePage | Promise<EntrancePage>;
-
   readonly createBoundPathComposerSupplier: (
     getLocale: () => Promise<string>
   ) => BoundPathComposerSupplier<PA> | Promise<BoundPathComposerSupplier<PA>>;
@@ -70,11 +57,13 @@ export interface NextAppServerImpl<PA extends PathAtlas, LK extends string> {
 
 export async function createNextAppServerToolset<A extends AnyAtlas, PA extends PathAtlas, LK extends string>(
   rMachine: RMachine<A>,
-  impl: NextAppServerImpl<PA, LK>,
+  config: NextAppStrategyCoreConfig<PA, LK>,
+  impl: NextAppServerImpl<PA>,
   NextClientRMachine: NextClientRMachine
 ): Promise<NextAppServerToolset<A, PA, LK>> {
+  const { localeKey } = config;
+  const autoLocaleBinding = config.autoLocaleBinding === "on";
   const validateLocale = rMachine.localeHelper.validateLocale;
-  const { localeKey, autoLocaleBinding } = impl;
 
   // Use dynamic import to bypass the "next/headers" import issue in pages/ directory
   // You're importing a component that needs "next/headers". That only works in a Server Component which is not supported in the pages/ directory. Read more: https://nextjs.org/docs/app/building-your-application/rendering/server-components
@@ -92,10 +81,8 @@ export async function createNextAppServerToolset<A extends AnyAtlas, PA extends 
 
   async function NextServerRMachine({ children }: NextAppServerRMachineProps) {
     validateServerOnlyUsage("NextServerRMachine");
-
     return <NextClientRMachine locale={await getLocale()}>{children}</NextClientRMachine>;
   }
-  NextServerRMachine.EntrancePage = await impl.createEntrancePage(cookies, headers, setLocale);
 
   const localeCache = new Map<string, string>();
   function bindLocale(locale: string | Promise<RMachineParams<LK>>) {

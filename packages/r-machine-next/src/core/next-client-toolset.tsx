@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { type ReactNode, useEffect } from "react";
-import type { PathAtlas } from "#r-machine/next";
 import type { BoundPathComposer } from "./next-strategy-core.js";
+import type { PathAtlas } from "./path-atlas.js";
 
 interface NextClientRMachineProps {
   readonly locale: string;
