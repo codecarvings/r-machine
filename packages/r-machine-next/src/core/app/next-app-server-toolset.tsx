@@ -6,7 +6,7 @@ import { cache, type ReactNode } from "react";
 import type { NextClientRMachine, PathAtlas, RMachineProxy } from "#r-machine/next/core";
 import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { BoundPathComposer } from "../next-strategy-core.js";
-import { localeHeaderName, type NextAppStrategyCoreConfig } from "./next-app-strategy-core.js";
+import { localeHeaderName } from "./next-app-strategy-core.js";
 
 export interface NextAppServerToolset<A extends AnyAtlas, PA extends PathAtlas, LK extends string> {
   readonly rMachineProxy: RMachineProxy;
@@ -43,7 +43,9 @@ interface NextAppServerRMachineContext {
   getLocalePromise: Promise<string> | null;
 }
 
-export interface NextAppServerImpl<PA extends PathAtlas> {
+export interface NextAppServerImpl<PA extends PathAtlas, LK extends string> {
+  readonly localeKey: LK;
+  readonly autoLocaleBinding: boolean;
   readonly writeLocale: (newLocale: string, cookies: CookiesFn, headers: HeadersFn) => void | Promise<void>;
   // must be dynamically generated because of strategy options (lowercaseLocale)
   readonly createLocaleStaticParamsGenerator: () =>
@@ -57,12 +59,14 @@ export interface NextAppServerImpl<PA extends PathAtlas> {
 
 export async function createNextAppServerToolset<A extends AnyAtlas, PA extends PathAtlas, LK extends string>(
   rMachine: RMachine<A>,
-  config: NextAppStrategyCoreConfig<PA, LK>,
-  impl: NextAppServerImpl<PA>,
+  impl: NextAppServerImpl<PA, LK>,
   NextClientRMachine: NextClientRMachine
 ): Promise<NextAppServerToolset<A, PA, LK>> {
+  const { localeKey, autoLocaleBinding } = impl;
+  /*
   const { localeKey } = config;
   const autoLocaleBinding = config.autoLocaleBinding === "on";
+  */
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   // Use dynamic import to bypass the "next/headers" import issue in pages/ directory

@@ -8,7 +8,6 @@ import {
   type NextAppServerRMachine,
   type NextAppServerToolset,
 } from "./next-app-server-toolset.js";
-import type { NextAppStandaloneStrategyCoreConfig } from "./next-app-standalone-strategy-core.js";
 
 export interface NextAppStandaloneServerToolset<A extends AnyAtlas, PA extends PathAtlas, LK extends string>
   extends NextAppServerToolset<A, PA, LK> {
@@ -20,7 +19,8 @@ export interface NextAppStandaloneServerRMachine extends NextAppServerRMachine {
 }
 type EntrancePage = () => Promise<ReactNode>;
 
-export interface NextAppStandaloneServerImpl<PA extends PathAtlas> extends NextAppServerImpl<PA> {
+export interface NextAppStandaloneServerImpl<PA extends PathAtlas, LK extends string>
+  extends NextAppServerImpl<PA, LK> {
   readonly createEntrancePage: (
     cookies: CookiesFn,
     headers: HeadersFn,
@@ -30,13 +30,11 @@ export interface NextAppStandaloneServerImpl<PA extends PathAtlas> extends NextA
 
 export async function createNextAppStandaloneServerToolset<A extends AnyAtlas, PA extends PathAtlas, LK extends string>(
   rMachine: RMachine<A>,
-  config: NextAppStandaloneStrategyCoreConfig<PA, LK>,
-  impl: NextAppStandaloneServerImpl<PA>,
+  impl: NextAppStandaloneServerImpl<PA, LK>,
   NextClientRMachine: NextClientRMachine
 ): Promise<NextAppStandaloneServerToolset<A, PA, LK>> {
   const { NextServerRMachine, setLocale, ...otherTools } = await createNextAppServerToolset<A, PA, LK>(
     rMachine,
-    config,
     impl,
     NextClientRMachine
   );

@@ -12,6 +12,7 @@ export {
 } from "./next-app-standalone-server-toolset.js";
 export {
   type AnyNextAppStandaloneStrategyCoreConfig,
+  type NextAppStandaloneServerImplAddon,
   NextAppStandaloneStrategyCore,
   type NextAppStandaloneStrategyCoreConfig,
   type PartialNextAppStandaloneStrategyCoreConfig,
@@ -19,6 +20,7 @@ export {
 export {
   type AnyNextAppStrategyCoreConfig,
   localeHeaderName,
+  type NextAppServerImplAddon,
   NextAppStrategyCore,
   type NextAppStrategyCoreConfig,
   type PartialNextAppStrategyCoreConfig,
