@@ -1,6 +1,6 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import type { ReactNode } from "react";
-import type { NextClientRMachine, PathAtlas } from "#r-machine/next/core";
+import type { AnyPathAtlas, NextClientRMachine } from "#r-machine/next/core";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
 import {
   createNextAppServerToolset,
@@ -9,18 +9,17 @@ import {
   type NextAppServerToolset,
 } from "./next-app-server-toolset.js";
 
-export interface NextAppStandaloneServerToolset<A extends AnyAtlas, PA extends PathAtlas, LK extends string>
+export interface NextAppPathServerToolset<A extends AnyAtlas, PA extends AnyPathAtlas, LK extends string>
   extends NextAppServerToolset<A, PA, LK> {
-  readonly NextServerRMachine: NextAppStandaloneServerRMachine;
+  readonly NextServerRMachine: NextAppPathServerRMachine;
 }
 
-export interface NextAppStandaloneServerRMachine extends NextAppServerRMachine {
+export interface NextAppPathServerRMachine extends NextAppServerRMachine {
   readonly EntrancePage: EntrancePage;
 }
 type EntrancePage = () => Promise<ReactNode>;
 
-export interface NextAppStandaloneServerImpl<PA extends PathAtlas, LK extends string>
-  extends NextAppServerImpl<PA, LK> {
+export interface NextAppPathServerImpl<PA extends AnyPathAtlas, LK extends string> extends NextAppServerImpl<PA, LK> {
   readonly createEntrancePage: (
     cookies: CookiesFn,
     headers: HeadersFn,
@@ -28,11 +27,11 @@ export interface NextAppStandaloneServerImpl<PA extends PathAtlas, LK extends st
   ) => EntrancePage | Promise<EntrancePage>;
 }
 
-export async function createNextAppStandaloneServerToolset<A extends AnyAtlas, PA extends PathAtlas, LK extends string>(
+export async function createNextAppPathServerToolset<A extends AnyAtlas, PA extends AnyPathAtlas, LK extends string>(
   rMachine: RMachine<A>,
-  impl: NextAppStandaloneServerImpl<PA, LK>,
+  impl: NextAppPathServerImpl<PA, LK>,
   NextClientRMachine: NextClientRMachine
-): Promise<NextAppStandaloneServerToolset<A, PA, LK>> {
+): Promise<NextAppPathServerToolset<A, PA, LK>> {
   const { NextServerRMachine, setLocale, ...otherTools } = await createNextAppServerToolset<A, PA, LK>(
     rMachine,
     impl,
@@ -47,7 +46,7 @@ export async function createNextAppStandaloneServerToolset<A extends AnyAtlas, P
 
   return {
     ...otherTools,
-    NextServerRMachine: NextServerRMachine as NextAppStandaloneServerRMachine,
+    NextServerRMachine: NextServerRMachine as NextAppPathServerRMachine,
     setLocale,
   };
 }

@@ -77,6 +77,7 @@ export class PathAtlas {
     void this[brand];
   }
 }
+export type AnyPathAtlas = PathAtlas;
 
 type ChildPathSelector<T> = T extends object
   ? {
@@ -88,7 +89,7 @@ type ChildPathSelector<T> = T extends object
     }[keyof T]
   : never;
 
-export type PathSelector<PA extends PathAtlas> = "/" | ChildPathSelector<PA["decl"]>;
+export type PathSelector<PA extends AnyPathAtlas> = "/" | ChildPathSelector<PA["decl"]>;
 
 /**
  * Recursively parses a path string and extracts parameter types from dynamic segments.

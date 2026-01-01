@@ -1,0 +1,106 @@
+import type { AnyAtlas, RMachine } from "r-machine";
+import type { ImplFactory, SwitchableOption } from "r-machine/strategy";
+import type { CookieDeclaration } from "r-machine/strategy/web";
+import type { AnyPathAtlas, NextClientImpl, PathParamMap, PathParams, PathSelector } from "#r-machine/next/core";
+import type { NextAppPathServerImpl, NextAppPathServerToolset } from "./next-app-path-server-toolset.js";
+import {
+  type NextAppServerImplCoreKeys,
+  type NextAppStrategyConfig,
+  NextAppStrategyCore,
+  type PartialNextAppStrategyConfig,
+} from "./next-app-strategy-core.js";
+
+export type NextAppPathServerImplAddon<PA extends AnyPathAtlas, LK extends string> = Omit<
+  NextAppPathServerImpl<PA, LK>,
+  NextAppServerImplCoreKeys
+> & {
+  [K in NextAppServerImplCoreKeys]?: NextAppPathServerImpl<PA, LK>[K];
+};
+
+interface CustomImplicitDefaultLocale {
+  readonly pathMatcher: RegExp | null;
+}
+type ImplicitDefaultLocaleOption = SwitchableOption | CustomImplicitDefaultLocale;
+
+interface CustomAutoDetectLocale {
+  readonly pathMatcher: RegExp | null;
+}
+type AutoDetectLocaleOption = SwitchableOption | CustomAutoDetectLocale;
+type CookieOption = SwitchableOption | CookieDeclaration;
+
+export interface NextAppPathStrategyConfig<PA extends AnyPathAtlas, LK extends string>
+  extends NextAppStrategyConfig<PA, LK> {
+  readonly cookie: CookieOption;
+  readonly lowercaseLocale: SwitchableOption;
+  readonly autoDetectLocale: AutoDetectLocaleOption;
+  readonly implicitDefaultLocale: ImplicitDefaultLocaleOption;
+}
+export type AnyNextAppPathStrategyConfig = NextAppPathStrategyConfig<any, any>;
+export interface PartialNextAppPathStrategyConfig<PA extends AnyPathAtlas, LK extends string>
+  extends PartialNextAppStrategyConfig<PA, LK> {
+  readonly cookie?: CookieOption;
+  readonly lowercaseLocale?: SwitchableOption;
+  readonly autoDetectLocale?: AutoDetectLocaleOption;
+  readonly implicitDefaultLocale?: ImplicitDefaultLocaleOption;
+}
+
+const defaultConfig: NextAppPathStrategyConfig<
+  typeof NextAppStrategyCore.defaultConfig.pathAtlas,
+  typeof NextAppStrategyCore.defaultConfig.localeKey
+> = {
+  ...NextAppStrategyCore.defaultConfig,
+  cookie: "off",
+  lowercaseLocale: "on",
+  autoDetectLocale: "on",
+  implicitDefaultLocale: "off",
+};
+
+type PathComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
+  locale: string,
+  path: P,
+  params?: PathParams<P, O>
+) => string;
+interface PathHelper<PA extends AnyPathAtlas> {
+  readonly getPath: PathComposer<PA>;
+}
+
+export abstract class NextAppPathStrategyCore<
+  A extends AnyAtlas,
+  C extends AnyNextAppPathStrategyConfig,
+> extends NextAppStrategyCore<A, C> {
+  static override readonly defaultConfig = defaultConfig;
+
+  constructor(
+    rMachine: RMachine<A>,
+    config: C,
+    clientImplFactory: ImplFactory<NextClientImpl<C["pathAtlas"]>, C>,
+    serverImplAddonFactory: ImplFactory<NextAppPathServerImplAddon<C["pathAtlas"], C["localeKey"]>, C>
+  ) {
+    super(
+      rMachine,
+      {
+        ...defaultConfig,
+        ...config,
+      } as C,
+      clientImplFactory,
+      serverImplAddonFactory
+    );
+  }
+
+  // Initialized by the parent class constructor
+  protected override readonly serverImplFactory!: ImplFactory<NextAppPathServerImpl<C["pathAtlas"], C["localeKey"]>, C>;
+
+  protected override readonly createServerToolset = async (): Promise<
+    NextAppPathServerToolset<A, C["pathAtlas"], C["localeKey"]>
+  > => {
+    const { NextClientRMachine } = await this.getClientToolsetEnvelope();
+    const impl = await this.serverImplFactory(this.rMachine, this.config);
+    const module = await import("./next-app-path-server-toolset.js");
+    return module.createNextAppPathServerToolset(this.rMachine, impl, NextClientRMachine);
+  };
+  protected override getServerToolset(): Promise<NextAppPathServerToolset<A, C["pathAtlas"], C["localeKey"]>> {
+    return this.getCached(this.createServerToolset);
+  }
+
+  abstract readonly PathHelper: PathHelper<C["pathAtlas"]>;
+}

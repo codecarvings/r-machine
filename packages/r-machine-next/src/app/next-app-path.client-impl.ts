@@ -1,16 +1,15 @@
 import Cookies from "js-cookie";
 import type { ImplFactory } from "r-machine/strategy";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
-import type { NextClientImpl } from "#r-machine/next/core";
+import type { AnyPathAtlas, NextClientImpl } from "#r-machine/next/core";
 import { setCookie } from "#r-machine/next/internal";
-import type { NextAppPathStrategyConfig } from "./next-app-path-strategy.js";
 
 const pathBuilderNormalizerRegExp = /^\//;
 
-export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, NextAppPathStrategyConfig<string>> = async (
-  rMachine,
-  strategyConfig
-) => {
+export const createNextAppPathClientImpl: ImplFactory<
+  NextClientImpl<AnyPathAtlas>,
+  PartialNextAppPathStrategyConfig<string>
+> = async (rMachine, strategyConfig) => {
   const { cookie } = strategyConfig;
   const lowercaseLocale = strategyConfig.lowercaseLocale === "on";
   const implicitDefaultLocale = strategyConfig.implicitDefaultLocale !== "off";
@@ -18,7 +17,7 @@ export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, NextAppPat
   const cookieSw = cookie !== "off";
   const { name: cookieName, ...cookieConfig } = cookieSw ? (cookie === "on" ? defaultCookieDeclaration : cookie) : {};
 
-  let onLoad: NextClientImpl["onLoad"];
+  let onLoad: NextClientImpl<AnyPathAtlas>["onLoad"];
   if (cookieSw) {
     onLoad = (locale) => {
       const cookieLocale = Cookies.get(cookieName!);

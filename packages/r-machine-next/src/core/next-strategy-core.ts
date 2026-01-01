@@ -1,53 +1,31 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import { type ImplFactory, Strategy } from "r-machine/strategy";
 import type { NextClientImpl, NextClientToolset, NextClientToolsetEnvelope } from "./next-client-toolset.js";
-import { PathAtlas, type PathParamMap, type PathParams, type PathSelector } from "./path-atlas.js";
+import { type AnyPathAtlas, PathAtlas } from "./path-atlas.js";
 
-type PathComposer<PA extends PathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
-  locale: string,
-  path: P,
-  params?: PathParams<P, O>
-) => string;
-export type BoundPathComposer<PA extends PathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
-  path: P,
-  params?: PathParams<P, O>
-) => string;
-
-interface PathHelper<PA extends PathAtlas> {
-  readonly getPath: PathComposer<PA>;
-}
-
-export interface NextStrategyCoreConfig<PA extends PathAtlas> {
+export interface NextStrategyConfig<PA extends AnyPathAtlas> {
   readonly pathAtlas: PA;
 }
-type AnyNextStrategyCoreConfig = NextStrategyCoreConfig<any>;
-
-export interface PartialNextStrategyCoreConfig<PA extends PathAtlas> {
+type AnyNextStrategyConfig = NextStrategyConfig<any>;
+export interface PartialNextStrategyConfig<PA extends AnyPathAtlas> {
   readonly pathAtlas?: PA;
 }
 
 const defaultPathAtlas = new PathAtlas({});
-type DefaultPathAtlas = typeof defaultPathAtlas;
-
-const defaultConfig: NextStrategyCoreConfig<DefaultPathAtlas> = {
+const defaultConfig: NextStrategyConfig<typeof defaultPathAtlas> = {
   pathAtlas: defaultPathAtlas,
 };
 
-export abstract class NextStrategyCore<A extends AnyAtlas, C extends AnyNextStrategyCoreConfig> extends Strategy<A, C> {
+export abstract class NextStrategyCore<A extends AnyAtlas, C extends AnyNextStrategyConfig> extends Strategy<A, C> {
   static readonly defaultConfig = defaultConfig;
 
   constructor(
     rMachine: RMachine<A>,
-    config: PartialNextStrategyCoreConfig<C["pathAtlas"]>,
+    config: C,
     protected readonly clientImplFactory: ImplFactory<NextClientImpl<C["pathAtlas"]>, C>
   ) {
-    super(rMachine, {
-      ...defaultConfig,
-      ...config,
-    } as C);
+    super(rMachine, config as C);
   }
-
-  abstract readonly pathHelper: PathHelper<C["pathAtlas"]>;
 
   protected readonly createClientToolsetEnvelope = async (): Promise<NextClientToolsetEnvelope<A, C["pathAtlas"]>> => {
     const impl = await this.clientImplFactory(this.rMachine, this.config);

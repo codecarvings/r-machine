@@ -8,8 +8,4 @@ export {
   type NextAppOriginStrategyConfig,
   type PartialNextAppOriginStrategyConfig,
 } from "./next-app-origin-strategy.js";
-export {
-  NextAppPathStrategy,
-  type NextAppPathStrategyConfig,
-  type PartialNextAppPathStrategyConfig,
-} from "./next-app-path-strategy.js";
+export { NextAppPathStrategy } from "./next-app-path-strategy.js";

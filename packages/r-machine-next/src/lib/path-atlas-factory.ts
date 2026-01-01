@@ -17,7 +17,7 @@ export function createPathAtlas<const T, const N = DefaultStatedPathAtlasName>(
 }
 
 /*
-export function getPath<PA extends PathAtlas, P extends PathSelector<PA>, O extends PathParamMap<P>>(
+export function getPath<PA extends AnyPathAtlas, P extends PathSelector<PA>, O extends PathParamMap<P>>(
   decl: PA,
   path: P,
   params?: PathParams<P, O>

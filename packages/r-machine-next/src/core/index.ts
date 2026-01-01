@@ -6,11 +6,16 @@ export {
   type NextClientToolsetEnvelope,
 } from "./next-client-toolset.js";
 export {
+  type NextStrategyConfig,
   NextStrategyCore,
-  type NextStrategyCoreConfig,
-  type PartialNextStrategyCoreConfig,
+  type PartialNextStrategyConfig,
 } from "./next-strategy-core.js";
+export type {
+  BoundPathComposer,
+  PathHelper,
+} from "./path.js";
 export {
+  type AnyPathAtlas,
   type LocalizableSegmentDecl,
   type NonLocalizableSegmentDecl,
   PathAtlas,

@@ -1,43 +1,43 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import type { ImplFactory, SwitchableOption } from "r-machine/strategy";
-import type { PathAtlas } from "#r-machine/next/core";
-import { type NextClientImpl, NextStrategyCore, type PartialNextStrategyCoreConfig } from "#r-machine/next/core";
-import type { NextStrategyCoreConfig } from "../next-strategy-core.js";
+import {
+  type AnyPathAtlas,
+  type NextClientImpl,
+  type NextStrategyConfig,
+  NextStrategyCore,
+  type PartialNextStrategyConfig,
+} from "#r-machine/next/core";
 import type { NextAppServerImpl, NextAppServerToolset } from "./next-app-server-toolset.js";
 
 export const localeHeaderName = "x-rm-locale";
 
 export type NextAppServerImplCoreKeys = "localeKey" | "autoLocaleBinding";
-export type NextAppServerImplCore<PA extends PathAtlas, LK extends string> = Pick<
+export type NextAppServerImplCore<PA extends AnyPathAtlas, LK extends string> = Pick<
   NextAppServerImpl<PA, LK>,
   NextAppServerImplCoreKeys
 >;
-export type NextAppServerImplAddon<PA extends PathAtlas, LK extends string> = Omit<
+export type NextAppServerImplAddon<PA extends AnyPathAtlas, LK extends string> = Omit<
   NextAppServerImpl<PA, LK>,
   NextAppServerImplCoreKeys
 > & {
   [K in NextAppServerImplCoreKeys]?: NextAppServerImpl<PA, LK>[K];
 };
 
-export interface NextAppStrategyCoreConfig<PA extends PathAtlas, LK extends string> extends NextStrategyCoreConfig<PA> {
+export interface NextAppStrategyConfig<PA extends AnyPathAtlas, LK extends string> extends NextStrategyConfig<PA> {
   readonly localeKey: LK;
   readonly autoLocaleBinding: SwitchableOption;
   readonly basePath: string;
 }
-export type AnyNextAppStrategyCoreConfig = NextAppStrategyCoreConfig<any, any>;
-export interface PartialNextAppStrategyCoreConfig<PA extends PathAtlas, LK extends string>
-  extends PartialNextStrategyCoreConfig<PA> {
+export type AnyNextAppStrategyConfig = NextAppStrategyConfig<any, any>;
+export interface PartialNextAppStrategyConfig<PA extends AnyPathAtlas, LK extends string>
+  extends PartialNextStrategyConfig<PA> {
   readonly localeKey?: LK;
   readonly autoLocaleBinding?: SwitchableOption;
   readonly basePath?: string;
 }
 
 const defaultLocaleKey = "locale" as const;
-
-const defaultConfig: NextAppStrategyCoreConfig<
-  typeof NextStrategyCore.defaultConfig.pathAtlas,
-  typeof defaultLocaleKey
-> = {
+const defaultConfig: NextAppStrategyConfig<typeof NextStrategyCore.defaultConfig.pathAtlas, typeof defaultLocaleKey> = {
   ...NextStrategyCore.defaultConfig,
   localeKey: defaultLocaleKey,
   autoLocaleBinding: "off",
@@ -46,24 +46,17 @@ const defaultConfig: NextAppStrategyCoreConfig<
 
 export abstract class NextAppStrategyCore<
   A extends AnyAtlas,
-  C extends AnyNextAppStrategyCoreConfig,
+  C extends AnyNextAppStrategyConfig,
 > extends NextStrategyCore<A, C> {
   static override readonly defaultConfig = defaultConfig;
 
   constructor(
     rMachine: RMachine<A>,
-    config: PartialNextAppStrategyCoreConfig<C["pathAtlas"], C["localeKey"]>,
+    config: C,
     clientImplFactory: ImplFactory<NextClientImpl<C["pathAtlas"]>, C>,
     serverImplAddonFactory: ImplFactory<NextAppServerImplAddon<C["pathAtlas"], C["localeKey"]>, C>
   ) {
-    super(
-      rMachine,
-      {
-        ...defaultConfig,
-        ...config,
-      } as C,
-      clientImplFactory
-    );
+    super(rMachine, config, clientImplFactory);
 
     this.serverImplFactory = async (rMachine, strategyConfig) => {
       const module = await import("./next-app.server-impl-core.js");

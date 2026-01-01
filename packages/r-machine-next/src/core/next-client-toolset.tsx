@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { type ReactNode, useEffect } from "react";
-import type { BoundPathComposer } from "./next-strategy-core.js";
-import type { PathAtlas } from "./path-atlas.js";
+import type { BoundPathComposer } from "./path.js";
+import type { AnyPathAtlas } from "./path-atlas.js";
 
 interface NextClientRMachineProps {
   readonly locale: string;
@@ -14,22 +14,25 @@ interface NextClientRMachineProps {
 }
 export type NextClientRMachine = (props: NextClientRMachineProps) => ReactNode;
 
-export type NextClientToolset<A extends AnyAtlas, PA extends PathAtlas> = Omit<ReactBareToolset<A>, "ReactRMachine"> & {
+export type NextClientToolset<A extends AnyAtlas, PA extends AnyPathAtlas> = Omit<
+  ReactBareToolset<A>,
+  "ReactRMachine"
+> & {
   readonly usePathComposer: () => BoundPathComposer<PA>;
 };
-export interface NextClientToolsetEnvelope<A extends AnyAtlas, PA extends PathAtlas> {
+export interface NextClientToolsetEnvelope<A extends AnyAtlas, PA extends AnyPathAtlas> {
   readonly NextClientRMachine: NextClientRMachine;
   readonly toolset: NextClientToolset<A, PA>;
 }
 
-export interface NextClientImpl<PA extends PathAtlas> {
+export interface NextClientImpl<PA extends AnyPathAtlas> {
   // biome-ignore lint/suspicious/noConfusingVoidType: As per design
   readonly onLoad: ((locale: string) => void | (() => void)) | undefined;
   readonly writeLocale: (newLocale: string, router: ReturnType<typeof useRouter>) => void | Promise<void>;
   createUsePathComposer: (useLocale: () => string) => () => BoundPathComposer<PA>;
 }
 
-export async function createNextClientToolsetEnvelope<A extends AnyAtlas, PA extends PathAtlas>(
+export async function createNextClientToolsetEnvelope<A extends AnyAtlas, PA extends AnyPathAtlas>(
   rMachine: RMachine<A>,
   impl: NextClientImpl<PA>
 ): Promise<NextClientToolsetEnvelope<A, PA>> {

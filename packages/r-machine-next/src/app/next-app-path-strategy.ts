@@ -1,12 +1,10 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
-import type { SwitchableOption } from "r-machine/strategy";
-import type { CookieDeclaration } from "r-machine/strategy/web";
+import type { PathHelper } from "#r-machine/next/core";
 import {
-  type DefaultLocaleKey,
-  NextAppStrategy,
-  type NextAppStrategyConfig,
-  type PartialNextAppStrategyConfig,
+  type AnyNextAppPathStrategyConfig,
+  NextAppPathStrategyCore,
+  type PartialNextAppPathStrategyConfig,
 } from "#r-machine/next/core/app";
 
 /* NextAppPathStrategy - Cookies
@@ -17,62 +15,25 @@ import {
  * 4) In the proxy (in NextAppPathServerImplComplement.createProxy) - required when using the proxy and autoDetectLocale is enabled
  */
 
-interface CustomImplicitDefaultLocale {
-  readonly pathMatcher: RegExp | null;
-}
-type ImplicitDefaultLocaleOption = SwitchableOption | CustomImplicitDefaultLocale;
-
-interface CustomAutoDetectLocale {
-  readonly pathMatcher: RegExp | null;
-}
-type AutoDetectLocaleOption = SwitchableOption | CustomAutoDetectLocale;
-type CookieOption = SwitchableOption | CookieDeclaration;
-
-export interface NextAppPathStrategyConfig<LK extends string> extends NextAppStrategyConfig<LK> {
-  readonly cookie: CookieOption;
-  readonly lowercaseLocale: SwitchableOption;
-  readonly autoDetectLocale: AutoDetectLocaleOption;
-  readonly implicitDefaultLocale: ImplicitDefaultLocaleOption;
-}
-export interface PartialNextAppPathStrategyConfig<LK extends string> extends PartialNextAppStrategyConfig<LK> {
-  readonly cookie?: CookieOption;
-  readonly lowercaseLocale?: SwitchableOption;
-  readonly autoDetectLocale?: AutoDetectLocaleOption;
-  readonly implicitDefaultLocale?: ImplicitDefaultLocaleOption;
-}
-
-const defaultConfig: NextAppPathStrategyConfig<DefaultLocaleKey> = {
-  ...NextAppStrategy.defaultConfig,
-  cookie: "off",
-  lowercaseLocale: "on",
-  autoDetectLocale: "on",
-  implicitDefaultLocale: "off",
-};
-
-export class NextAppPathStrategy<A extends AnyAtlas, LK extends string = DefaultLocaleKey> extends NextAppStrategy<
-  A,
-  "path",
-  LK,
-  NextAppPathStrategyConfig<LK>
-> {
-  static override readonly defaultConfig = defaultConfig;
-
+export class NextAppPathStrategy<
+  A extends AnyAtlas,
+  C extends AnyNextAppPathStrategyConfig,
+> extends NextAppPathStrategyCore<A, C> {
   constructor(rMachine: RMachine<A>);
-  constructor(rMachine: RMachine<A>, config: PartialNextAppPathStrategyConfig<LK>);
-  constructor(rMachine: RMachine<A>, config: PartialNextAppPathStrategyConfig<LK> = {}) {
+  constructor(rMachine: RMachine<A>, config?: PartialNextAppPathStrategyConfig<C["pathAtlas"], C["localeKey"]>);
+  constructor(rMachine: RMachine<A>, config: PartialNextAppPathStrategyConfig<C["pathAtlas"], C["localeKey"]> = {}) {
     super(
       rMachine,
-      "path",
       {
-        ...defaultConfig,
+        ...NextAppPathStrategyCore.defaultConfig,
         ...config,
-      } as NextAppPathStrategyConfig<LK>,
+      } as C,
       async (rMachine, strategyConfig) => {
         const module = await import("./next-app-path.client-impl.js");
         return module.createNextAppPathClientImpl(rMachine, strategyConfig);
       },
       async (rMachine, strategyConfig) => {
-        const module = await import("./next-app-path.server-impl-complement.js");
+        const module = await import("./next-app-path.server-impl.js");
         return module.createNextAppPathServerImplComplement(rMachine, strategyConfig);
       }
     );
@@ -85,4 +46,6 @@ export class NextAppPathStrategy<A extends AnyAtlas, LK extends string = Default
       );
     }
   }
+
+  readonly PathHelper: PathHelper<C["pathAtlas"]> = undefined!;
 }

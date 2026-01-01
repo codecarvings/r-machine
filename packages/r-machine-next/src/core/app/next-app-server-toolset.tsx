@@ -3,12 +3,11 @@ import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } fro
 import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
-import type { NextClientRMachine, PathAtlas, RMachineProxy } from "#r-machine/next/core";
+import type { AnyPathAtlas, BoundPathComposer, NextClientRMachine, RMachineProxy } from "#r-machine/next/core";
 import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
-import type { BoundPathComposer } from "../next-strategy-core.js";
 import { localeHeaderName } from "./next-app-strategy-core.js";
 
-export interface NextAppServerToolset<A extends AnyAtlas, PA extends PathAtlas, LK extends string> {
+export interface NextAppServerToolset<A extends AnyAtlas, PA extends AnyPathAtlas, LK extends string> {
   readonly rMachineProxy: RMachineProxy;
   readonly NextServerRMachine: NextAppServerRMachine;
   readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
@@ -20,7 +19,7 @@ export interface NextAppServerToolset<A extends AnyAtlas, PA extends PathAtlas, 
   readonly getPathComposer: BoundPathComposerSupplier<PA>;
 }
 
-type BoundPathComposerSupplier<PA extends PathAtlas> = () => Promise<BoundPathComposer<PA>>;
+type BoundPathComposerSupplier<PA extends AnyPathAtlas> = () => Promise<BoundPathComposer<PA>>;
 
 type RMachineParams<LK extends string> = {
   [P in LK]: string;
@@ -43,7 +42,7 @@ interface NextAppServerRMachineContext {
   getLocalePromise: Promise<string> | null;
 }
 
-export interface NextAppServerImpl<PA extends PathAtlas, LK extends string> {
+export interface NextAppServerImpl<PA extends AnyPathAtlas, LK extends string> {
   readonly localeKey: LK;
   readonly autoLocaleBinding: boolean;
   readonly writeLocale: (newLocale: string, cookies: CookiesFn, headers: HeadersFn) => void | Promise<void>;
@@ -57,7 +56,7 @@ export interface NextAppServerImpl<PA extends PathAtlas, LK extends string> {
   ) => BoundPathComposerSupplier<PA> | Promise<BoundPathComposerSupplier<PA>>;
 }
 
-export async function createNextAppServerToolset<A extends AnyAtlas, PA extends PathAtlas, LK extends string>(
+export async function createNextAppServerToolset<A extends AnyAtlas, PA extends AnyPathAtlas, LK extends string>(
   rMachine: RMachine<A>,
   impl: NextAppServerImpl<PA, LK>,
   NextClientRMachine: NextClientRMachine

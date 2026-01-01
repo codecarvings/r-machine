@@ -18,6 +18,8 @@ const defaultConfig: ReactStrategyConfig = {
 };
 
 export class ReactStrategy<A extends AnyAtlas> extends ReactStrategyCore<A, ReactStrategyConfig> {
+  static readonly defaultConfig = defaultConfig;
+
   constructor(rMachine: RMachine<A>);
   constructor(rMachine: RMachine<A>, config: PartialReactStrategyConfig);
   constructor(rMachine: RMachine<A>, config: PartialReactStrategyConfig = {}) {
