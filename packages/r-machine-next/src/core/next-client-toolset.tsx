@@ -25,16 +25,16 @@ export interface NextClientToolsetEnvelope<A extends AnyAtlas, PA extends AnyPat
   readonly toolset: NextClientToolset<A, PA>;
 }
 
-export interface NextClientImpl<PA extends AnyPathAtlas> {
+export interface NextClientImpl {
   // biome-ignore lint/suspicious/noConfusingVoidType: As per design
   readonly onLoad: ((locale: string) => void | (() => void)) | undefined;
   readonly writeLocale: (newLocale: string, router: ReturnType<typeof useRouter>) => void | Promise<void>;
-  createUsePathComposer: (useLocale: () => string) => () => BoundPathComposer<PA>;
+  createUsePathComposer: (useLocale: () => string) => () => BoundPathComposer<AnyPathAtlas>;
 }
 
 export async function createNextClientToolsetEnvelope<A extends AnyAtlas, PA extends AnyPathAtlas>(
   rMachine: RMachine<A>,
-  impl: NextClientImpl<PA>
+  impl: NextClientImpl
 ): Promise<NextClientToolsetEnvelope<A, PA>> {
   const { ReactRMachine, useLocale, ...otherTools } = await createReactBareToolset(rMachine);
 

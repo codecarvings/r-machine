@@ -1,20 +1,22 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { ImplFactory } from "r-machine/strategy";
-import { localeHeaderName, type NextAppServerImplComplement } from "#r-machine/next/core/app";
+import { type AnyNextAppFlatStrategyConfig, localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
 import type { CookiesFn, NextProxyResult } from "#r-machine/next/internal";
-import type { NextAppFlatStrategyConfig } from "./next-app-flat-strategy.js";
 
-export const createNextAppFlatServerImplComplement: ImplFactory<
-  NextAppServerImplComplement<string>,
-  NextAppFlatStrategyConfig<string>
-> = async (rMachine, strategyConfig) => {
+export const createNextAppFlatServerImpl: ImplFactory<NextAppServerImpl, AnyNextAppFlatStrategyConfig> = async (
+  rMachine,
+  strategyConfig
+) => {
   const locales = rMachine.config.locales;
   const { localeKey, autoLocaleBinding, cookie, pathMatcher } = strategyConfig;
   const autoLBSw = autoLocaleBinding === "on";
   const { name: cookieName, ...cookieConfig } = cookie;
 
   return {
+    localeKey,
+    autoLocaleBinding: autoLBSw,
+
     async writeLocale(newLocale, cookies: CookiesFn) {
       try {
         const cookieStore = await cookies();

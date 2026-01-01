@@ -1,4 +1,17 @@
 export {
+  type AnyNextAppFlatStrategyConfig,
+  type NextAppFlatStrategyConfig,
+  NextAppFlatStrategyCore,
+  type PartialNextAppFlatStrategyConfig,
+} from "./next-app-flat-strategy-core.js";
+export {
+  type AnyNextAppOriginStrategyConfig,
+  type LocaleOriginMap,
+  type NextAppOriginStrategyConfig,
+  NextAppOriginStrategyCore,
+  type PartialNextAppOriginStrategyConfig,
+} from "./next-app-origin-strategy-core.js";
+export {
   createNextAppPathServerToolset,
   type NextAppPathServerImpl,
   type NextAppPathServerRMachine,
@@ -6,7 +19,6 @@ export {
 } from "./next-app-path-server-toolset.js";
 export {
   type AnyNextAppPathStrategyConfig,
-  type NextAppPathServerImplAddon,
   type NextAppPathStrategyConfig,
   NextAppPathStrategyCore,
   type PartialNextAppPathStrategyConfig,
@@ -20,7 +32,6 @@ export {
 export {
   type AnyNextAppStrategyConfig,
   localeHeaderName,
-  type NextAppServerImplAddon,
   type NextAppStrategyConfig,
   NextAppStrategyCore,
   type PartialNextAppStrategyConfig,

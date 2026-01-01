@@ -34,7 +34,7 @@ export class NextAppPathStrategy<
       },
       async (rMachine, strategyConfig) => {
         const module = await import("./next-app-path.server-impl.js");
-        return module.createNextAppPathServerImplComplement(rMachine, strategyConfig);
+        return module.createNextAppPathServerImpl(rMachine, strategyConfig);
       }
     );
 

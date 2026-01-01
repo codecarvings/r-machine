@@ -1,14 +1,18 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { ImplFactory } from "r-machine/strategy";
-import { localeHeaderName, type NextAppServerImplComplement } from "#r-machine/next/core/app";
+import {
+  type AnyNextAppOriginStrategyConfig,
+  localeHeaderName,
+  type NextAppServerImpl,
+} from "#r-machine/next/core/app";
 import type { CookiesFn, HeadersFn, NextProxyResult } from "#r-machine/next/internal";
-import { getOriginResolver, type NextAppOriginStrategyConfig } from "./next-app-origin-strategy.js";
+import { getOriginResolver } from "./next-app-origin-strategy.js";
 
-export const createNextAppOriginServerImplComplement: ImplFactory<
-  NextAppServerImplComplement<string>,
-  NextAppOriginStrategyConfig<string>
-> = async (rMachine, strategyConfig) => {
+export const createNextAppOriginServerImpl: ImplFactory<NextAppServerImpl, AnyNextAppOriginStrategyConfig> = async (
+  rMachine,
+  strategyConfig
+) => {
   const defaultLocale = rMachine.config.defaultLocale;
   const { localeKey, autoLocaleBinding, localeOriginMap, pathMatcher } = strategyConfig;
   const autoLBSw = autoLocaleBinding === "on";
@@ -16,6 +20,9 @@ export const createNextAppOriginServerImplComplement: ImplFactory<
   const resolveOrigin = getOriginResolver(strategyConfig.localeOriginMap, rMachine);
 
   return {
+    localeKey,
+    autoLocaleBinding: autoLBSw,
+
     async writeLocale(newLocale, _cookies: CookiesFn, headers: HeadersFn) {
       const headerStore = await headers();
       const currentOrigin = headerStore.get("origin");

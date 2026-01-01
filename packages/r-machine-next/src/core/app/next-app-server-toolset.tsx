@@ -42,8 +42,8 @@ interface NextAppServerRMachineContext {
   getLocalePromise: Promise<string> | null;
 }
 
-export interface NextAppServerImpl<PA extends AnyPathAtlas, LK extends string> {
-  readonly localeKey: LK;
+export interface NextAppServerImpl {
+  readonly localeKey: string;
   readonly autoLocaleBinding: boolean;
   readonly writeLocale: (newLocale: string, cookies: CookiesFn, headers: HeadersFn) => void | Promise<void>;
   // must be dynamically generated because of strategy options (lowercaseLocale)
@@ -53,19 +53,17 @@ export interface NextAppServerImpl<PA extends AnyPathAtlas, LK extends string> {
   readonly createProxy: () => RMachineProxy | Promise<RMachineProxy>;
   readonly createBoundPathComposerSupplier: (
     getLocale: () => Promise<string>
-  ) => BoundPathComposerSupplier<PA> | Promise<BoundPathComposerSupplier<PA>>;
+  ) => BoundPathComposerSupplier<AnyPathAtlas> | Promise<BoundPathComposerSupplier<AnyPathAtlas>>;
 }
 
 export async function createNextAppServerToolset<A extends AnyAtlas, PA extends AnyPathAtlas, LK extends string>(
   rMachine: RMachine<A>,
-  impl: NextAppServerImpl<PA, LK>,
+  impl: NextAppServerImpl,
   NextClientRMachine: NextClientRMachine
 ): Promise<NextAppServerToolset<A, PA, LK>> {
-  const { localeKey, autoLocaleBinding } = impl;
-  /*
-  const { localeKey } = config;
-  const autoLocaleBinding = config.autoLocaleBinding === "on";
-  */
+  const localeKey = impl.localeKey as LK;
+  const { autoLocaleBinding } = impl;
+
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   // Use dynamic import to bypass the "next/headers" import issue in pages/ directory

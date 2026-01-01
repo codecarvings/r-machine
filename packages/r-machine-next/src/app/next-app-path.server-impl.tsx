@@ -4,14 +4,17 @@ import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import type { ImplFactory } from "r-machine/strategy";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
-import { localeHeaderName, type NextAppServerImplComplement } from "#r-machine/next/core/app";
+import {
+  type AnyNextAppPathStrategyConfig,
+  localeHeaderName,
+  type NextAppPathServerImpl,
+} from "#r-machine/next/core/app";
 import {
   type CookiesFn,
   defaultPathMatcher,
   type NextProxyResult,
   validateServerOnlyUsage,
 } from "#r-machine/next/internal";
-import type { NextAppPathStrategyConfig } from "./next-app-path-strategy.js";
 
 const default_autoDL_matcher_implicit: RegExp | null = /^\/$/; // Auto detect only root path
 const default_autoDL_matcher_explicit: RegExp | null = defaultPathMatcher; // Auto detect all standard next paths
@@ -19,10 +22,10 @@ const default_implicit_matcher: RegExp | null = defaultPathMatcher; // Implicit 
 
 const pathBuilderNormalizerRegExp = /^\//;
 
-export const createNextAppPathServerImplComplement: ImplFactory<
-  NextAppServerImplComplement<string>,
-  NextAppPathStrategyConfig<string>
-> = async (rMachine, strategyConfig) => {
+export const createNextAppPathServerImpl: ImplFactory<NextAppPathServerImpl, AnyNextAppPathStrategyConfig> = async (
+  rMachine,
+  strategyConfig
+) => {
   const locales = rMachine.config.locales;
   const defaultLocale = rMachine.config.defaultLocale;
   const { localeKey, autoLocaleBinding, basePath, cookie, lowercaseLocale, autoDetectLocale, implicitDefaultLocale } =
@@ -35,6 +38,9 @@ export const createNextAppPathServerImplComplement: ImplFactory<
   const { name: cookieName, ...cookieConfig } = cookieSw ? (cookie === "on" ? defaultCookieDeclaration : cookie) : {};
 
   return {
+    localeKey,
+    autoLocaleBinding: autoLBSw,
+
     async writeLocale(newLocale, cookies: CookiesFn) {
       if (cookieSw) {
         try {
@@ -223,79 +229,77 @@ export const createNextAppPathServerImplComplement: ImplFactory<
       return proxy;
     },
 
-    path: {
-      createEntrancePage(cookies, headers, setLocale) {
-        async function getLocaleFromCookie(): Promise<string | undefined> {
-          if (!cookieSw) {
-            return undefined;
-          }
-
-          const cookieStore = await cookies();
-          const cookieLocale = cookieStore.get(cookieName!)?.value;
-          if (cookieLocale === undefined) {
-            return undefined;
-          }
-
-          if (!locales.includes(cookieLocale)) {
-            return undefined;
-          }
-
-          return cookieLocale;
+    createEntrancePage(cookies, headers, setLocale) {
+      async function getLocaleFromCookie(): Promise<string | undefined> {
+        if (!cookieSw) {
+          return undefined;
         }
 
-        function throwRequiredProxyError(details: string): never {
-          throw new RMachineError(
-            `EntrancePage is not available when some option requires the use of the proxy (${details}).`
-          );
+        const cookieStore = await cookies();
+        const cookieLocale = cookieStore.get(cookieName!)?.value;
+        if (cookieLocale === undefined) {
+          return undefined;
         }
 
-        async function EntrancePage() {
-          validateServerOnlyUsage("EntrancePage");
+        if (!locales.includes(cookieLocale)) {
+          return undefined;
+        }
 
-          if (implicitSw) {
-            throwRequiredProxyError("implicitDefaultLocale is on");
-          }
-          if (autoLBSw) {
-            throwRequiredProxyError("autoLocaleBinding is on");
-          }
+        return cookieLocale;
+      }
 
-          const cookieLocale = await getLocaleFromCookie();
-          if (cookieLocale !== undefined) {
-            await setLocale(cookieLocale);
-            return null;
-          }
+      function throwRequiredProxyError(details: string): never {
+        throw new RMachineError(
+          `EntrancePage is not available when some option requires the use of the proxy (${details}).`
+        );
+      }
 
-          const headerStore = await headers();
-          const acceptLanguageHeader = headerStore.get("accept-language");
-          const detectedLocale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
-          await setLocale(detectedLocale);
+      async function EntrancePage() {
+        validateServerOnlyUsage("EntrancePage");
+
+        if (implicitSw) {
+          throwRequiredProxyError("implicitDefaultLocale is on");
+        }
+        if (autoLBSw) {
+          throwRequiredProxyError("autoLocaleBinding is on");
+        }
+
+        const cookieLocale = await getLocaleFromCookie();
+        if (cookieLocale !== undefined) {
+          await setLocale(cookieLocale);
           return null;
         }
 
-        return EntrancePage;
-      },
+        const headerStore = await headers();
+        const acceptLanguageHeader = headerStore.get("accept-language");
+        const detectedLocale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
+        await setLocale(detectedLocale);
+        return null;
+      }
 
-      createPathBuilderSupplier(getLocale) {
-        async function getPathBuilder() {
-          validateServerOnlyUsage("getPathBuilder");
+      return EntrancePage;
+    },
 
-          const locale = await getLocale();
+    createBoundPathComposerSupplier(getLocale) {
+      async function getPathBuilder() {
+        validateServerOnlyUsage("getPathBuilder");
 
-          function getPath(path: string): string {
-            let localeParam: string;
-            if (implicitSw && locale === defaultLocale) {
-              localeParam = "";
-            } else {
-              localeParam = `/${lowercaseLocaleSw ? locale.toLowerCase() : locale}`;
-            }
-            return `${localeParam}/${path.replace(pathBuilderNormalizerRegExp, "")}`;
+        const locale = await getLocale();
+
+        function getPath(path: string): string {
+          let localeParam: string;
+          if (implicitSw && locale === defaultLocale) {
+            localeParam = "";
+          } else {
+            localeParam = `/${lowercaseLocaleSw ? locale.toLowerCase() : locale}`;
           }
-
-          return getPath;
+          return `${localeParam}/${path.replace(pathBuilderNormalizerRegExp, "")}`;
         }
 
-        return getPathBuilder;
-      },
+        return getPath;
+      }
+
+      return getPathBuilder;
     },
   };
 };

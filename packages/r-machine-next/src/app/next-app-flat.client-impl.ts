@@ -1,10 +1,10 @@
 import Cookies from "js-cookie";
 import type { ImplFactory } from "r-machine/strategy";
 import type { NextClientImpl } from "#r-machine/next/core";
+import type { AnyNextAppFlatStrategyConfig } from "#r-machine/next/core/app";
 import { setCookie } from "#r-machine/next/internal";
-import type { NextAppFlatStrategyConfig } from "./next-app-flat-strategy.js";
 
-export const createNextAppFlatClientImpl: ImplFactory<NextClientImpl, NextAppFlatStrategyConfig<string>> = async (
+export const createNextAppFlatClientImpl: ImplFactory<NextClientImpl, AnyNextAppFlatStrategyConfig> = async (
   _rMachine,
   strategyConfig
 ) => {

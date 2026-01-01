@@ -19,7 +19,7 @@ export interface NextAppPathServerRMachine extends NextAppServerRMachine {
 }
 type EntrancePage = () => Promise<ReactNode>;
 
-export interface NextAppPathServerImpl<PA extends AnyPathAtlas, LK extends string> extends NextAppServerImpl<PA, LK> {
+export interface NextAppPathServerImpl extends NextAppServerImpl {
   readonly createEntrancePage: (
     cookies: CookiesFn,
     headers: HeadersFn,
@@ -29,7 +29,7 @@ export interface NextAppPathServerImpl<PA extends AnyPathAtlas, LK extends strin
 
 export async function createNextAppPathServerToolset<A extends AnyAtlas, PA extends AnyPathAtlas, LK extends string>(
   rMachine: RMachine<A>,
-  impl: NextAppPathServerImpl<PA, LK>,
+  impl: NextAppPathServerImpl,
   NextClientRMachine: NextClientRMachine
 ): Promise<NextAppPathServerToolset<A, PA, LK>> {
   const { NextServerRMachine, setLocale, ...otherTools } = await createNextAppServerToolset<A, PA, LK>(

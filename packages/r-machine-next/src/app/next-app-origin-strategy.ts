@@ -1,58 +1,30 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import {
-  type DefaultLocaleKey,
-  NextAppStrategy,
-  type NextAppStrategyConfig,
-  type PartialNextAppStrategyConfig,
+  type AnyNextAppOriginStrategyConfig,
+  type LocaleOriginMap,
+  NextAppOriginStrategyCore,
+  type PartialNextAppOriginStrategyConfig,
 } from "#r-machine/next/core/app";
-import { defaultPathMatcher } from "#r-machine/next/internal";
 
-export type LocaleOriginMap = {
-  readonly [locale: string]: string | string[];
-};
-
-const defaultLocaleOriginMap: LocaleOriginMap = {};
-
-export interface NextAppOriginStrategyConfig<LK extends string> extends NextAppStrategyConfig<LK> {
-  readonly localeOriginMap: LocaleOriginMap;
-  readonly pathMatcher: RegExp | null;
-}
-export interface PartialNextAppOriginStrategyConfig<LK extends string> extends PartialNextAppStrategyConfig<LK> {
-  readonly localeOriginMap: LocaleOriginMap; // Required
-  readonly pathMatcher?: RegExp | null;
-}
-
-const defaultConfig: NextAppOriginStrategyConfig<DefaultLocaleKey> = {
-  ...NextAppStrategy.defaultConfig,
-  localeOriginMap: defaultLocaleOriginMap,
-  pathMatcher: defaultPathMatcher,
-};
-
-export class NextAppOriginStrategy<LK extends string = DefaultLocaleKey> extends NextAppStrategy<
-  "plain",
-  LK,
-  NextAppOriginStrategyConfig<LK>
-> {
-  static override readonly defaultConfig = defaultConfig;
-
-  constructor();
-  constructor(config: PartialNextAppOriginStrategyConfig<LK>);
-  constructor(
-    config: PartialNextAppOriginStrategyConfig<LK> = defaultConfig as PartialNextAppOriginStrategyConfig<LK>
-  ) {
+export class NextAppOriginStrategy<
+  A extends AnyAtlas,
+  C extends AnyNextAppOriginStrategyConfig,
+> extends NextAppOriginStrategyCore<A, C> {
+  // Config is required since localeOriginMap is required
+  constructor(rMachine: RMachine<A>, config: PartialNextAppOriginStrategyConfig<C["pathAtlas"], C["localeKey"]>) {
     super(
-      "plain",
+      rMachine,
       {
-        ...defaultConfig,
+        ...NextAppOriginStrategyCore.defaultConfig,
         ...config,
-      } as NextAppOriginStrategyConfig<LK>,
+      } as C,
       async (rMachine, strategyConfig) => {
         const module = await import("./next-app-origin.client-impl.js");
         return module.createNextAppOriginClientImpl(rMachine, strategyConfig);
       },
       async (rMachine, strategyConfig) => {
-        const module = await import("./next-app-origin.server-impl-complement.js");
-        return module.createNextAppOriginServerImplComplement(rMachine, strategyConfig);
+        const module = await import("./next-app-origin.server-impl.js");
+        return module.createNextAppOriginServerImpl(rMachine, strategyConfig);
       }
     );
   }

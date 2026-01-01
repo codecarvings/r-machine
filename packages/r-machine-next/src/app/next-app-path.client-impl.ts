@@ -1,15 +1,16 @@
 import Cookies from "js-cookie";
 import type { ImplFactory } from "r-machine/strategy";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
-import type { AnyPathAtlas, NextClientImpl } from "#r-machine/next/core";
+import type { NextClientImpl } from "#r-machine/next/core";
+import type { AnyNextAppPathStrategyConfig } from "#r-machine/next/core/app";
 import { setCookie } from "#r-machine/next/internal";
 
 const pathBuilderNormalizerRegExp = /^\//;
 
-export const createNextAppPathClientImpl: ImplFactory<
-  NextClientImpl<AnyPathAtlas>,
-  PartialNextAppPathStrategyConfig<string>
-> = async (rMachine, strategyConfig) => {
+export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, AnyNextAppPathStrategyConfig> = async (
+  rMachine,
+  strategyConfig
+) => {
   const { cookie } = strategyConfig;
   const lowercaseLocale = strategyConfig.lowercaseLocale === "on";
   const implicitDefaultLocale = strategyConfig.implicitDefaultLocale !== "off";
@@ -17,7 +18,7 @@ export const createNextAppPathClientImpl: ImplFactory<
   const cookieSw = cookie !== "off";
   const { name: cookieName, ...cookieConfig } = cookieSw ? (cookie === "on" ? defaultCookieDeclaration : cookie) : {};
 
-  let onLoad: NextClientImpl<AnyPathAtlas>["onLoad"];
+  let onLoad: NextClientImpl["onLoad"];
   if (cookieSw) {
     onLoad = (locale) => {
       const cookieLocale = Cookies.get(cookieName!);
@@ -47,26 +48,24 @@ export const createNextAppPathClientImpl: ImplFactory<
       router.push(path);
     },
 
-    path: {
-      createUsePathBuilder(useLocale) {
-        function getPathBuilder() {
-          const locale = useLocale();
+    createUsePathComposer(useLocale) {
+      function getPathBuilder() {
+        const locale = useLocale();
 
-          function getPath(path: string): string {
-            let localeParam: string;
-            if (implicitDefaultLocale && locale === defaultLocale) {
-              localeParam = "";
-            } else {
-              localeParam = `/${lowercaseLocale ? locale.toLowerCase() : locale}`;
-            }
-            return `${localeParam}/${path.replace(pathBuilderNormalizerRegExp, "")}`;
+        function getPath(path: string): string {
+          let localeParam: string;
+          if (implicitDefaultLocale && locale === defaultLocale) {
+            localeParam = "";
+          } else {
+            localeParam = `/${lowercaseLocale ? locale.toLowerCase() : locale}`;
           }
-
-          return getPath;
+          return `${localeParam}/${path.replace(pathBuilderNormalizerRegExp, "")}`;
         }
 
-        return getPathBuilder;
-      },
+        return getPath;
+      }
+
+      return getPathBuilder;
     },
   };
 };

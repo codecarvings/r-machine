@@ -1,8 +1,9 @@
 import type { ImplFactory } from "r-machine/strategy";
 import type { NextClientImpl } from "#r-machine/next/core";
-import { getOriginResolver, type NextAppOriginStrategyConfig } from "./next-app-origin-strategy.js";
+import type { AnyNextAppOriginStrategyConfig } from "#r-machine/next/core/app";
+import { getOriginResolver } from "./next-app-origin-strategy.js";
 
-export const createNextAppOriginClientImpl: ImplFactory<NextClientImpl, NextAppOriginStrategyConfig<string>> = async (
+export const createNextAppOriginClientImpl: ImplFactory<NextClientImpl, AnyNextAppOriginStrategyConfig> = async (
   rMachine,
   strategyConfig
 ) => {

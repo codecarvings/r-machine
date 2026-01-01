@@ -14,3 +14,7 @@ type PathComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O exte
 export interface PathHelper<PA extends AnyPathAtlas> {
   readonly getPath: PathComposer<PA>;
 }
+
+export interface HrefHelper<PA extends AnyPathAtlas> {
+  readonly getHref: PathComposer<PA>;
+}

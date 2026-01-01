@@ -4,18 +4,10 @@ import type { CookieDeclaration } from "r-machine/strategy/web";
 import type { AnyPathAtlas, NextClientImpl, PathParamMap, PathParams, PathSelector } from "#r-machine/next/core";
 import type { NextAppPathServerImpl, NextAppPathServerToolset } from "./next-app-path-server-toolset.js";
 import {
-  type NextAppServerImplCoreKeys,
   type NextAppStrategyConfig,
   NextAppStrategyCore,
   type PartialNextAppStrategyConfig,
 } from "./next-app-strategy-core.js";
-
-export type NextAppPathServerImplAddon<PA extends AnyPathAtlas, LK extends string> = Omit<
-  NextAppPathServerImpl<PA, LK>,
-  NextAppServerImplCoreKeys
-> & {
-  [K in NextAppServerImplCoreKeys]?: NextAppPathServerImpl<PA, LK>[K];
-};
 
 interface CustomImplicitDefaultLocale {
   readonly pathMatcher: RegExp | null;
@@ -70,25 +62,18 @@ export abstract class NextAppPathStrategyCore<
 > extends NextAppStrategyCore<A, C> {
   static override readonly defaultConfig = defaultConfig;
 
+  // biome-ignore lint/complexity/noUselessConstructor: New type for serverImplFactory
   constructor(
     rMachine: RMachine<A>,
     config: C,
-    clientImplFactory: ImplFactory<NextClientImpl<C["pathAtlas"]>, C>,
-    serverImplAddonFactory: ImplFactory<NextAppPathServerImplAddon<C["pathAtlas"], C["localeKey"]>, C>
+    clientImplFactory: ImplFactory<NextClientImpl, C>,
+    serverImplFactory: ImplFactory<NextAppPathServerImpl, C>
   ) {
-    super(
-      rMachine,
-      {
-        ...defaultConfig,
-        ...config,
-      } as C,
-      clientImplFactory,
-      serverImplAddonFactory
-    );
+    super(rMachine, config, clientImplFactory, serverImplFactory);
   }
 
   // Initialized by the parent class constructor
-  protected override readonly serverImplFactory!: ImplFactory<NextAppPathServerImpl<C["pathAtlas"], C["localeKey"]>, C>;
+  protected override readonly serverImplFactory!: ImplFactory<NextAppPathServerImpl, C>;
 
   protected override readonly createServerToolset = async (): Promise<
     NextAppPathServerToolset<A, C["pathAtlas"], C["localeKey"]>

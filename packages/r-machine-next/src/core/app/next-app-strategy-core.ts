@@ -11,18 +11,6 @@ import type { NextAppServerImpl, NextAppServerToolset } from "./next-app-server-
 
 export const localeHeaderName = "x-rm-locale";
 
-export type NextAppServerImplCoreKeys = "localeKey" | "autoLocaleBinding";
-export type NextAppServerImplCore<PA extends AnyPathAtlas, LK extends string> = Pick<
-  NextAppServerImpl<PA, LK>,
-  NextAppServerImplCoreKeys
->;
-export type NextAppServerImplAddon<PA extends AnyPathAtlas, LK extends string> = Omit<
-  NextAppServerImpl<PA, LK>,
-  NextAppServerImplCoreKeys
-> & {
-  [K in NextAppServerImplCoreKeys]?: NextAppServerImpl<PA, LK>[K];
-};
-
 export interface NextAppStrategyConfig<PA extends AnyPathAtlas, LK extends string> extends NextStrategyConfig<PA> {
   readonly localeKey: LK;
   readonly autoLocaleBinding: SwitchableOption;
@@ -53,21 +41,11 @@ export abstract class NextAppStrategyCore<
   constructor(
     rMachine: RMachine<A>,
     config: C,
-    clientImplFactory: ImplFactory<NextClientImpl<C["pathAtlas"]>, C>,
-    serverImplAddonFactory: ImplFactory<NextAppServerImplAddon<C["pathAtlas"], C["localeKey"]>, C>
+    clientImplFactory: ImplFactory<NextClientImpl, C>,
+    protected readonly serverImplFactory: ImplFactory<NextAppServerImpl, C>
   ) {
     super(rMachine, config, clientImplFactory);
-
-    this.serverImplFactory = async (rMachine, strategyConfig) => {
-      const module = await import("./next-app.server-impl-core.js");
-      return {
-        ...(await module.createNextAppServerImplCore(rMachine, strategyConfig)),
-        ...(await serverImplAddonFactory(rMachine, strategyConfig)),
-      };
-    };
   }
-
-  protected readonly serverImplFactory: ImplFactory<NextAppServerImpl<C["pathAtlas"], C["localeKey"]>, C>;
 
   protected readonly createServerToolset = async (): Promise<
     NextAppServerToolset<A, C["pathAtlas"], C["localeKey"]>

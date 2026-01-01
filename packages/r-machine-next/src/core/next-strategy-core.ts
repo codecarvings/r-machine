@@ -22,7 +22,7 @@ export abstract class NextStrategyCore<A extends AnyAtlas, C extends AnyNextStra
   constructor(
     rMachine: RMachine<A>,
     config: C,
-    protected readonly clientImplFactory: ImplFactory<NextClientImpl<C["pathAtlas"]>, C>
+    protected readonly clientImplFactory: ImplFactory<NextClientImpl, C>
   ) {
     super(rMachine, config as C);
   }
