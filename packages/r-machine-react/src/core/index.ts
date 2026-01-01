@@ -4,6 +4,11 @@ export {
   type ReactBareRMachine,
   type ReactBareToolset,
 } from "./react-bare-toolset.js";
+export {
+  type PartialReactStandardStrategyConfig,
+  type ReactStandardStrategyConfig,
+  ReactStandardStrategyCore,
+} from "./react-standard-strategy-core.js";
 export { ReactStrategyCore } from "./react-strategy-core.js";
 export {
   createReactToolset,
