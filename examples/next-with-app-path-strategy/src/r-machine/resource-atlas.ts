@@ -1,5 +1,5 @@
 import type { R_Common } from "./resources/common/en";
 
-export type Atlas = {
+export type ResourceAtlas = {
   common: R_Common;
 };

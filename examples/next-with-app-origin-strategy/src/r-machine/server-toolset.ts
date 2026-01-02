@@ -1,6 +1,5 @@
-import { NextToolset } from "@r-machine/next";
 import { NextClientRMachine } from "./client-toolset";
-import { rMachine, strategy } from "./r-machine";
+import { strategy } from "./r-machine";
 
 export const {
   rMachineProxy,
@@ -11,4 +10,5 @@ export const {
   setLocale,
   pickR,
   pickRKit,
-} = await NextToolset.createForServer(rMachine, strategy, NextClientRMachine);
+  getPathComposer,
+} = await strategy.createServerToolset(NextClientRMachine);
