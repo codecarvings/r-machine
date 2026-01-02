@@ -2,7 +2,7 @@ import { ArrowLeft, BookOpen, Code2, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
-import { bindLocale, getPathBuilder, pickR } from "@/r-machine/server-toolset";
+import { bindLocale, getPathComposer, pickR } from "@/r-machine/server-toolset";
 
 export default async function StartNowPage({ params }: PageProps<"/[locale]">) {
   // Bind the locale based on the route parameter
@@ -11,8 +11,8 @@ export default async function StartNowPage({ params }: PageProps<"/[locale]">) {
   // Load the required localized resource
   const r = await pickR("start-now-page");
 
-  // Get path builder for creating locale-aware links
-  const getPath = await getPathBuilder();
+  // Get path composer for creating locale-aware links
+  const getPath = await getPathComposer();
 
   return (
     <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16">

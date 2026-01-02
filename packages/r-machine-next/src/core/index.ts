@@ -1,9 +1,8 @@
 export {
-  createNextClientToolsetEnvelope,
+  createNextClientToolset,
   type NextClientImpl,
   type NextClientRMachine,
   type NextClientToolset,
-  type NextClientToolsetEnvelope,
 } from "./next-client-toolset.js";
 export {
   type NextStrategyConfig,

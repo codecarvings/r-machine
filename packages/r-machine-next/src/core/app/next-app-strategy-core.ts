@@ -3,6 +3,7 @@ import type { ImplFactory, SwitchableOption } from "r-machine/strategy";
 import {
   type AnyPathAtlas,
   type NextClientImpl,
+  type NextClientRMachine,
   type NextStrategyConfig,
   NextStrategyCore,
   type PartialNextStrategyConfig,
@@ -47,15 +48,11 @@ export abstract class NextAppStrategyCore<
     super(rMachine, config, clientImplFactory);
   }
 
-  protected readonly createServerToolset = async (): Promise<
-    NextAppServerToolset<A, C["pathAtlas"], C["localeKey"]>
-  > => {
-    const { NextClientRMachine } = await this.getClientToolsetEnvelope();
+  async createServerToolset(
+    NextClientRMachine: NextClientRMachine
+  ): Promise<NextAppServerToolset<A, C["pathAtlas"], C["localeKey"]>> {
     const impl = await this.serverImplFactory(this.rMachine, this.config);
     const module = await import("./next-app-server-toolset.js");
     return module.createNextAppServerToolset(this.rMachine, impl, NextClientRMachine);
-  };
-  getServerToolset(): Promise<NextAppServerToolset<A, C["pathAtlas"], C["localeKey"]>> {
-    return this.getCached(this.createServerToolset);
   }
 }

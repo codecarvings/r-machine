@@ -1,7 +1,14 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import type { ImplFactory, SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
-import type { AnyPathAtlas, NextClientImpl, PathParamMap, PathParams, PathSelector } from "#r-machine/next/core";
+import type {
+  AnyPathAtlas,
+  NextClientImpl,
+  NextClientRMachine,
+  PathParamMap,
+  PathParams,
+  PathSelector,
+} from "#r-machine/next/core";
 import type { NextAppPathServerImpl, NextAppPathServerToolset } from "./next-app-path-server-toolset.js";
 import {
   type NextAppStrategyConfig,
@@ -75,16 +82,12 @@ export abstract class NextAppPathStrategyCore<
   // Initialized by the parent class constructor
   protected override readonly serverImplFactory!: ImplFactory<NextAppPathServerImpl, C>;
 
-  protected override readonly createServerToolset = async (): Promise<
-    NextAppPathServerToolset<A, C["pathAtlas"], C["localeKey"]>
-  > => {
-    const { NextClientRMachine } = await this.getClientToolsetEnvelope();
+  override async createServerToolset(
+    NextClientRMachine: NextClientRMachine
+  ): Promise<NextAppPathServerToolset<A, C["pathAtlas"], C["localeKey"]>> {
     const impl = await this.serverImplFactory(this.rMachine, this.config);
     const module = await import("./next-app-path-server-toolset.js");
     return module.createNextAppPathServerToolset(this.rMachine, impl, NextClientRMachine);
-  };
-  override getServerToolset(): Promise<NextAppPathServerToolset<A, C["pathAtlas"], C["localeKey"]>> {
-    return this.getCached(this.createServerToolset);
   }
 
   abstract readonly PathHelper: PathHelper<C["pathAtlas"]>;

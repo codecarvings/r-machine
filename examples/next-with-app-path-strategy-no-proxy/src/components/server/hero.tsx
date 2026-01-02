@@ -4,13 +4,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import GitHubMark from "@/gfx/github-mark.svg";
 import RMachineLogo from "@/gfx/r-machine.logo.svg";
-import { getPathBuilder, pickR } from "@/r-machine/server-toolset";
+import { getPathComposer, pickR } from "@/r-machine/server-toolset";
 
 export default async function Hero() {
   // Load the required localized resource
   const r = await pickR("landing-page");
-  // Get path builder for creating locale-aware links
-  const getPath = await getPathBuilder();
+  // Get path composer for creating locale-aware links
+  const getPath = await getPathComposer();
 
   return (
     <section className="relative w-full py-12 sm:py-16 lg:py-20 bg-linear-to-br from-gray-200 via-gray-100 to-slate-100">
@@ -30,7 +30,7 @@ export default async function Hero() {
               </h1>
               <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">{r.hero.subtitle}</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center lg:items-start">
-                <Link href={getPath("start-now")} className="flex items-center">
+                <Link href={getPath("/start-now")} className="flex items-center">
                   <Button size="lg" className="gap-2 text-base">
                     <ArrowRight className="size-4" />
                     {r.hero.cta.primary}

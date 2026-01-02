@@ -11,11 +11,8 @@ export abstract class ReactStrategyCore<A extends AnyAtlas, C> extends Strategy<
     super(rMachine, config);
   }
 
-  protected readonly createToolset = async (): Promise<ReactToolset<A>> => {
+  async createToolset(): Promise<ReactToolset<A>> {
     const impl = await this.implFactory(this.rMachine, this.config);
     return await createReactToolset(this.rMachine, impl);
-  };
-  getToolset(): Promise<ReactToolset<A>> {
-    return this.getCached(this.createToolset);
   }
 }

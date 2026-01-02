@@ -1,3 +1,4 @@
+import { NextClientRMachine } from "./client-toolset";
 import { strategy } from "./r-machine";
 
 export const {
@@ -10,4 +11,4 @@ export const {
   pickR,
   pickRKit,
   getPathComposer,
-} = await strategy.getServerToolset();
+} = await strategy.createServerToolset(NextClientRMachine);

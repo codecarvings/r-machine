@@ -1,6 +1,6 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import { type ImplFactory, Strategy } from "r-machine/strategy";
-import type { NextClientImpl, NextClientToolset, NextClientToolsetEnvelope } from "./next-client-toolset.js";
+import type { NextClientImpl, NextClientToolset } from "./next-client-toolset.js";
 import { type AnyPathAtlas, PathAtlas } from "./path-atlas.js";
 
 export interface NextStrategyConfig<PA extends AnyPathAtlas> {
@@ -30,16 +30,9 @@ export abstract class NextStrategyCore<A extends AnyAtlas, C extends AnyNextStra
     super(rMachine, config as C);
   }
 
-  protected readonly createClientToolsetEnvelope = async (): Promise<NextClientToolsetEnvelope<A, C["pathAtlas"]>> => {
+  async createClientToolset(): Promise<NextClientToolset<A, C["pathAtlas"]>> {
     const impl = await this.clientImplFactory(this.rMachine, this.config);
     const module = await import("./next-client-toolset.js");
-    return module.createNextClientToolsetEnvelope(this.rMachine, impl);
-  };
-  protected getClientToolsetEnvelope(): Promise<NextClientToolsetEnvelope<A, C["pathAtlas"]>> {
-    return this.getCached(this.createClientToolsetEnvelope);
-  }
-  async getClientToolset(): Promise<NextClientToolset<A, C["pathAtlas"]>> {
-    const envelope = await this.getClientToolsetEnvelope();
-    return envelope.toolset;
+    return module.createNextClientToolset(this.rMachine, impl);
   }
 }

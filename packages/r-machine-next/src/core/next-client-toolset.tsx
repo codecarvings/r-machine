@@ -18,12 +18,9 @@ export type NextClientToolset<A extends AnyAtlas, PA extends AnyPathAtlas> = Omi
   ReactBareToolset<A>,
   "ReactRMachine"
 > & {
+  readonly NextClientRMachine: NextClientRMachine;
   readonly usePathComposer: () => BoundPathComposer<PA>;
 };
-export interface NextClientToolsetEnvelope<A extends AnyAtlas, PA extends AnyPathAtlas> {
-  readonly NextClientRMachine: NextClientRMachine;
-  readonly toolset: NextClientToolset<A, PA>;
-}
 
 export interface NextClientImpl {
   // biome-ignore lint/suspicious/noConfusingVoidType: As per design
@@ -32,10 +29,10 @@ export interface NextClientImpl {
   createUsePathComposer: (useLocale: () => string) => () => BoundPathComposer<AnyPathAtlas>;
 }
 
-export async function createNextClientToolsetEnvelope<A extends AnyAtlas, PA extends AnyPathAtlas>(
+export async function createNextClientToolset<A extends AnyAtlas, PA extends AnyPathAtlas>(
   rMachine: RMachine<A>,
   impl: NextClientImpl
-): Promise<NextClientToolsetEnvelope<A, PA>> {
+): Promise<NextClientToolset<A, PA>> {
   const { ReactRMachine, useLocale, ...otherTools } = await createReactBareToolset(rMachine);
 
   async function setLocale(newLocale: string, router: ReturnType<typeof useRouter>): Promise<void> {
@@ -70,11 +67,11 @@ export async function createNextClientToolsetEnvelope<A extends AnyAtlas, PA ext
 
   const usePathComposer = impl.createUsePathComposer(useLocale);
 
-  const toolset: NextClientToolset<A, PA> = {
+  return {
     ...otherTools,
     useLocale,
     useSetLocale,
     usePathComposer,
+    NextClientRMachine,
   };
-  return { NextClientRMachine, toolset };
 }

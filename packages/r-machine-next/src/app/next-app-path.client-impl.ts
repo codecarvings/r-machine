@@ -5,7 +5,7 @@ import type { NextClientImpl } from "#r-machine/next/core";
 import type { AnyNextAppPathStrategyConfig } from "#r-machine/next/core/app";
 import { setCookie } from "#r-machine/next/internal";
 
-const pathBuilderNormalizerRegExp = /^\//;
+const pathComposerNormalizerRegExp = /^\//;
 
 export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, AnyNextAppPathStrategyConfig> = async (
   rMachine,
@@ -49,7 +49,7 @@ export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, AnyNextApp
     },
 
     createUsePathComposer(useLocale) {
-      function getPathBuilder() {
+      function getPathComposer() {
         const locale = useLocale();
 
         function getPath(path: string): string {
@@ -59,13 +59,13 @@ export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, AnyNextApp
           } else {
             localeParam = `/${lowercaseLocale ? locale.toLowerCase() : locale}`;
           }
-          return `${localeParam}/${path.replace(pathBuilderNormalizerRegExp, "")}`;
+          return `${localeParam}/${path.replace(pathComposerNormalizerRegExp, "")}`;
         }
 
         return getPath;
       }
 
-      return getPathBuilder;
+      return getPathComposer;
     },
   };
 };

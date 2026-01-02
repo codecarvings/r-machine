@@ -2,11 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { LocaleSwitcher } from "@/components/client/locale-switcher";
 import RMachineIcon from "@/gfx/r-machine.icon.svg";
-import { getPathBuilder } from "@/r-machine/server-toolset";
+import { getPathComposer } from "@/r-machine/server-toolset";
 
 export default async function Header() {
-  // Get path builder for creating locale-aware links
-  const getPath = await getPathBuilder();
+  // Get path composer for creating locale-aware links
+  const getPath = await getPathComposer();
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,9 +1,9 @@
 import { NextAppPathStrategy } from "@r-machine/next/app";
 import { RMachine } from "r-machine";
-import type { Atlas } from "./atlas";
 import { pathAtlas } from "./path-atlas";
+import type { ResourcesAtlas } from "./resources-atlas";
 
-export const rMachine = new RMachine<Atlas>({
+export const rMachine = new RMachine<ResourcesAtlas>({
   locales: ["en", "it-IT"],
   defaultLocale: "en",
   rModuleResolver: (namespace, locale) => import(`./resources/${namespace}/${locale}`),

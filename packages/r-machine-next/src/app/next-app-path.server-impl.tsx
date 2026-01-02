@@ -20,7 +20,7 @@ const default_autoDL_matcher_implicit: RegExp | null = /^\/$/; // Auto detect on
 const default_autoDL_matcher_explicit: RegExp | null = defaultPathMatcher; // Auto detect all standard next paths
 const default_implicit_matcher: RegExp | null = defaultPathMatcher; // Implicit for all standard paths
 
-const pathBuilderNormalizerRegExp = /^\//;
+const pathComposerNormalizerRegExp = /^\//;
 
 export const createNextAppPathServerImpl: ImplFactory<NextAppPathServerImpl, AnyNextAppPathStrategyConfig> = async (
   rMachine,
@@ -281,8 +281,8 @@ export const createNextAppPathServerImpl: ImplFactory<NextAppPathServerImpl, Any
     },
 
     createBoundPathComposerSupplier(getLocale) {
-      async function getPathBuilder() {
-        validateServerOnlyUsage("getPathBuilder");
+      async function getPathComposer() {
+        validateServerOnlyUsage("getPathComposer");
 
         const locale = await getLocale();
 
@@ -293,13 +293,13 @@ export const createNextAppPathServerImpl: ImplFactory<NextAppPathServerImpl, Any
           } else {
             localeParam = `/${lowercaseLocaleSw ? locale.toLowerCase() : locale}`;
           }
-          return `${localeParam}/${path.replace(pathBuilderNormalizerRegExp, "")}`;
+          return `${localeParam}/${path.replace(pathComposerNormalizerRegExp, "")}`;
         }
 
         return getPath;
       }
 
-      return getPathBuilder;
+      return getPathComposer;
     },
   };
 };
