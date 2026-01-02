@@ -1,23 +1,25 @@
 import type { AnyAtlas, RMachine } from "r-machine";
+import type { AnyPathAtlas, HrefHelper } from "#r-machine/next/core";
 import {
-  type AnyNextAppOriginStrategyConfig,
   type LocaleOriginMap,
+  type NextAppOriginStrategyConfig,
   NextAppOriginStrategyCore,
   type PartialNextAppOriginStrategyConfig,
 } from "#r-machine/next/core/app";
 
 export class NextAppOriginStrategy<
   A extends AnyAtlas,
-  C extends AnyNextAppOriginStrategyConfig,
-> extends NextAppOriginStrategyCore<A, C> {
+  PA extends AnyPathAtlas = (typeof NextAppOriginStrategyCore.defaultConfig)["pathAtlas"],
+  LK extends string = (typeof NextAppOriginStrategyCore.defaultConfig)["localeKey"],
+> extends NextAppOriginStrategyCore<A, NextAppOriginStrategyConfig<PA, LK>> {
   // Config is required since localeOriginMap is required
-  constructor(rMachine: RMachine<A>, config: PartialNextAppOriginStrategyConfig<C["pathAtlas"], C["localeKey"]>) {
+  constructor(rMachine: RMachine<A>, config: PartialNextAppOriginStrategyConfig<PA, LK>) {
     super(
       rMachine,
       {
         ...NextAppOriginStrategyCore.defaultConfig,
         ...config,
-      } as C,
+      } as NextAppOriginStrategyConfig<PA, LK>,
       async (rMachine, strategyConfig) => {
         const module = await import("./next-app-origin.client-impl.js");
         return module.createNextAppOriginClientImpl(rMachine, strategyConfig);
@@ -28,6 +30,9 @@ export class NextAppOriginStrategy<
       }
     );
   }
+
+  // TODO: Implement PathHelper
+  readonly HrefHelper: HrefHelper<PA> = undefined!;
 }
 
 export function getOriginResolver(

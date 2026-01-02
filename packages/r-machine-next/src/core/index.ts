@@ -12,6 +12,7 @@ export {
 } from "./next-strategy-core.js";
 export type {
   BoundPathComposer,
+  HrefHelper,
   PathHelper,
 } from "./path.js";
 export {

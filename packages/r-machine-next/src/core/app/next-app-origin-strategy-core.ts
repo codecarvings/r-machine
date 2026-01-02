@@ -1,12 +1,11 @@
 import type { AnyAtlas } from "r-machine";
+import type { AnyPathAtlas, HrefHelper } from "#r-machine/next/core";
 import {
   type NextAppStrategyConfig,
   NextAppStrategyCore,
   type PartialNextAppStrategyConfig,
 } from "#r-machine/next/core/app";
 import { defaultPathMatcher } from "#r-machine/next/internal";
-import type { AnyPathAtlas } from "../index.js";
-import type { HrefHelper } from "../path.js";
 
 export type LocaleOriginMap = {
   readonly [locale: string]: string | string[];

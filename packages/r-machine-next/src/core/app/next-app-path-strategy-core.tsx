@@ -83,7 +83,7 @@ export abstract class NextAppPathStrategyCore<
     const module = await import("./next-app-path-server-toolset.js");
     return module.createNextAppPathServerToolset(this.rMachine, impl, NextClientRMachine);
   };
-  protected override getServerToolset(): Promise<NextAppPathServerToolset<A, C["pathAtlas"], C["localeKey"]>> {
+  override getServerToolset(): Promise<NextAppPathServerToolset<A, C["pathAtlas"], C["localeKey"]>> {
     return this.getCached(this.createServerToolset);
   }
 

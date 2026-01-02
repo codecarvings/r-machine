@@ -1,13 +1,12 @@
 import type { AnyAtlas } from "r-machine";
 import { type CookieDeclaration, defaultCookieDeclaration } from "r-machine/strategy/web";
+import type { AnyPathAtlas, PathHelper } from "#r-machine/next/core";
 import {
   type NextAppStrategyConfig,
   NextAppStrategyCore,
   type PartialNextAppStrategyConfig,
 } from "#r-machine/next/core/app";
 import { defaultPathMatcher } from "#r-machine/next/internal";
-import type { PathHelper } from "../path.js";
-import type { AnyPathAtlas } from "../path-atlas.js";
 
 export interface NextAppFlatStrategyConfig<PA extends AnyPathAtlas, LK extends string>
   extends NextAppStrategyConfig<PA, LK> {

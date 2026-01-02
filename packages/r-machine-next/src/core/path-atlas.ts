@@ -1,3 +1,5 @@
+import type { Prettify } from "#r-machine/next/internal";
+
 type AnySegmentKey = `/${string}`;
 type AnyCatchAllSegmentKey = `/[...${string}]`;
 type AnyOptionalCatchAllSegmentKey = `/[[...${string}]]`;
@@ -89,7 +91,12 @@ type ChildPathSelector<T> = T extends object
     }[keyof T]
   : never;
 
-export type PathSelector<PA extends AnyPathAtlas> = "/" | ChildPathSelector<PA["decl"]>;
+// Check if PA or PA["decl"] are any, if so, allow any /${string} path
+export type PathSelector<PA extends AnyPathAtlas> = 0 extends 1 & PA
+  ? `/${string}`
+  : null extends PA["decl"]
+    ? `/${string}`
+    : "/" | ChildPathSelector<PA["decl"]>;
 
 /**
  * Recursively parses a path string and extracts parameter types from dynamic segments.
@@ -116,7 +123,6 @@ export type PathParamMap<P extends string> = P extends `/${infer First}/${infer 
           : {}
     : {};
 
-type Prettify<T> = { [K in keyof T]: T[K] } & {};
 export type PathParams<P extends string, O extends PathParamMap<P>> = [keyof O] extends [keyof PathParamMap<P>]
   ? [keyof PathParamMap<P>] extends [keyof O]
     ? Prettify<O>

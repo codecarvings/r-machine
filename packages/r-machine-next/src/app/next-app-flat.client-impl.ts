@@ -23,5 +23,8 @@ export const createNextAppFlatClientImpl: ImplFactory<NextClientImpl, AnyNextApp
       setCookie(cookieName, newLocale, cookieConfig);
       router.refresh();
     },
+
+    // TODO: Implement createUsePathComposer
+    createUsePathComposer: undefined!,
   };
 };

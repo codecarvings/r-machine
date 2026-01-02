@@ -1,8 +1,8 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
-import type { PathHelper } from "#r-machine/next/core";
+import type { AnyPathAtlas, PathHelper } from "#r-machine/next/core";
 import {
-  type AnyNextAppPathStrategyConfig,
+  type NextAppPathStrategyConfig,
   NextAppPathStrategyCore,
   type PartialNextAppPathStrategyConfig,
 } from "#r-machine/next/core/app";
@@ -17,17 +17,18 @@ import {
 
 export class NextAppPathStrategy<
   A extends AnyAtlas,
-  C extends AnyNextAppPathStrategyConfig,
-> extends NextAppPathStrategyCore<A, C> {
+  PA extends AnyPathAtlas = (typeof NextAppPathStrategyCore.defaultConfig)["pathAtlas"],
+  LK extends string = (typeof NextAppPathStrategyCore.defaultConfig)["localeKey"],
+> extends NextAppPathStrategyCore<A, NextAppPathStrategyConfig<PA, LK>> {
   constructor(rMachine: RMachine<A>);
-  constructor(rMachine: RMachine<A>, config?: PartialNextAppPathStrategyConfig<C["pathAtlas"], C["localeKey"]>);
-  constructor(rMachine: RMachine<A>, config: PartialNextAppPathStrategyConfig<C["pathAtlas"], C["localeKey"]> = {}) {
+  constructor(rMachine: RMachine<A>, config: PartialNextAppPathStrategyConfig<PA, LK>);
+  constructor(rMachine: RMachine<A>, config: PartialNextAppPathStrategyConfig<PA, LK> = {}) {
     super(
       rMachine,
       {
         ...NextAppPathStrategyCore.defaultConfig,
         ...config,
-      } as C,
+      } as NextAppPathStrategyConfig<PA, LK>,
       async (rMachine, strategyConfig) => {
         const module = await import("./next-app-path.client-impl.js");
         return module.createNextAppPathClientImpl(rMachine, strategyConfig);
@@ -47,5 +48,6 @@ export class NextAppPathStrategy<
     }
   }
 
-  readonly PathHelper: PathHelper<C["pathAtlas"]> = undefined!;
+  // TODO: Implement PathHelper
+  readonly PathHelper: PathHelper<PA> = undefined!;
 }

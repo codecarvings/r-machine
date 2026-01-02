@@ -11,8 +11,11 @@ export interface PartialNextStrategyConfig<PA extends AnyPathAtlas> {
   readonly pathAtlas?: PA;
 }
 
+export type UnknownPathAtlas = PathAtlas & {
+  decl: any;
+};
 const defaultPathAtlas = new PathAtlas({});
-const defaultConfig: NextStrategyConfig<typeof defaultPathAtlas> = {
+const defaultConfig: NextStrategyConfig<UnknownPathAtlas> = {
   pathAtlas: defaultPathAtlas,
 };
 

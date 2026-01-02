@@ -100,5 +100,8 @@ export const createNextAppOriginServerImpl: ImplFactory<NextAppServerImpl, AnyNe
 
       return proxy;
     },
+
+    // TODO: implement createBoundPathComposerSupplier
+    createBoundPathComposerSupplier: undefined!,
   };
 };

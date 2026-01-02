@@ -16,5 +16,8 @@ export const createNextAppOriginClientImpl: ImplFactory<NextClientImpl, AnyNextA
       const href = resolveOriginHref(newLocale);
       router.push(href!);
     },
+
+    // TODO: Implement createUsePathComposer
+    createUsePathComposer: undefined!,
   };
 };

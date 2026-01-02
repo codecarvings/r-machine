@@ -55,7 +55,7 @@ export abstract class NextAppStrategyCore<
     const module = await import("./next-app-server-toolset.js");
     return module.createNextAppServerToolset(this.rMachine, impl, NextClientRMachine);
   };
-  protected getServerToolset(): Promise<NextAppServerToolset<A, C["pathAtlas"], C["localeKey"]>> {
+  getServerToolset(): Promise<NextAppServerToolset<A, C["pathAtlas"], C["localeKey"]>> {
     return this.getCached(this.createServerToolset);
   }
 }
