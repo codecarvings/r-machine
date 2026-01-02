@@ -9,8 +9,8 @@ import {
 
 export class NextAppOriginStrategy<
   A extends AnyAtlas,
-  PA extends AnyPathAtlas = (typeof NextAppOriginStrategyCore.defaultConfig)["pathAtlas"],
-  LK extends string = (typeof NextAppOriginStrategyCore.defaultConfig)["localeKey"],
+  PA extends AnyPathAtlas = InstanceType<typeof NextAppOriginStrategyCore.defaultConfig.PathAtlas>,
+  LK extends string = typeof NextAppOriginStrategyCore.defaultConfig.localeKey,
 > extends NextAppOriginStrategyCore<A, NextAppOriginStrategyConfig<PA, LK>> {
   // Config is required since localeOriginMap is required
   constructor(rMachine: RMachine<A>, config: PartialNextAppOriginStrategyConfig<PA, LK>) {

@@ -1,22 +1,22 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import { type ImplFactory, Strategy } from "r-machine/strategy";
 import type { NextClientImpl, NextClientToolset } from "./next-client-toolset.js";
-import { type AnyPathAtlas, PathAtlas } from "./path-atlas.js";
+import type { AnyPathAtlas, PathAtlasCtor } from "./path-atlas.js";
 
 export interface NextStrategyConfig<PA extends AnyPathAtlas> {
-  readonly pathAtlas: PA;
+  readonly PathAtlas: PathAtlasCtor<PA>;
 }
 type AnyNextStrategyConfig = NextStrategyConfig<any>;
 export interface PartialNextStrategyConfig<PA extends AnyPathAtlas> {
-  readonly pathAtlas?: PA;
+  readonly PathAtlas?: PathAtlasCtor<PA>;
 }
 
-export type UnknownPathAtlas = PathAtlas & {
-  decl: any;
-};
-const defaultPathAtlas = new PathAtlas({});
-const defaultConfig: NextStrategyConfig<UnknownPathAtlas> = {
-  pathAtlas: defaultPathAtlas,
+// Need to export otherwise TS will expose the type as { decl: any; }
+export class DefaultPathAtlas {
+  readonly decl: any = {};
+}
+const defaultConfig: NextStrategyConfig<DefaultPathAtlas> = {
+  PathAtlas: DefaultPathAtlas,
 };
 
 export abstract class NextStrategyCore<A extends AnyAtlas, C extends AnyNextStrategyConfig> extends Strategy<A, C> {
@@ -30,7 +30,7 @@ export abstract class NextStrategyCore<A extends AnyAtlas, C extends AnyNextStra
     super(rMachine, config as C);
   }
 
-  async createClientToolset(): Promise<NextClientToolset<A, C["pathAtlas"]>> {
+  async createClientToolset(): Promise<NextClientToolset<A, InstanceType<C["PathAtlas"]>>> {
     const impl = await this.clientImplFactory(this.rMachine, this.config);
     const module = await import("./next-client-toolset.js");
     return module.createNextClientToolset(this.rMachine, impl);

@@ -8,8 +8,8 @@ import {
 
 export class NextAppFlatStrategy<
   A extends AnyAtlas,
-  PA extends AnyPathAtlas = (typeof NextAppFlatStrategyCore.defaultConfig)["pathAtlas"],
-  LK extends string = (typeof NextAppFlatStrategyCore.defaultConfig)["localeKey"],
+  PA extends AnyPathAtlas = InstanceType<typeof NextAppFlatStrategyCore.defaultConfig.PathAtlas>,
+  LK extends string = typeof NextAppFlatStrategyCore.defaultConfig.localeKey,
 > extends NextAppFlatStrategyCore<A, NextAppFlatStrategyConfig<PA, LK>> {
   constructor(rMachine: RMachine<A>);
   constructor(rMachine: RMachine<A>, config: PartialNextAppFlatStrategyConfig<PA, LK>);

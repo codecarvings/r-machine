@@ -24,7 +24,7 @@ export interface PartialNextAppOriginStrategyConfig<PA extends AnyPathAtlas, LK 
 }
 
 const defaultConfig: NextAppOriginStrategyConfig<
-  typeof NextAppStrategyCore.defaultConfig.pathAtlas,
+  InstanceType<typeof NextAppStrategyCore.defaultConfig.PathAtlas>,
   typeof NextAppStrategyCore.defaultConfig.localeKey
 > = {
   ...NextAppStrategyCore.defaultConfig,
@@ -38,5 +38,5 @@ export abstract class NextAppOriginStrategyCore<
 > extends NextAppStrategyCore<A, C> {
   static override readonly defaultConfig = defaultConfig;
 
-  abstract readonly HrefHelper: HrefHelper<C["pathAtlas"]>;
+  abstract readonly HrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>>;
 }

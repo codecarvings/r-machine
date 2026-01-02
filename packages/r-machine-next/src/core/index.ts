@@ -14,14 +14,14 @@ export type {
   HrefHelper,
   PathHelper,
 } from "./path.js";
-export {
-  type AnyPathAtlas,
-  type LocalizableSegmentDecl,
-  type NonLocalizableSegmentDecl,
-  PathAtlas,
-  type PathDecl,
-  type PathParamMap,
-  type PathParams,
-  type PathSelector,
+export type {
+  AnyPathAtlas,
+  LocalizableSegmentDecl,
+  NonLocalizableSegmentDecl,
+  PathAtlasCtor,
+  PathDecl,
+  PathParamMap,
+  PathParams,
+  PathSelector,
 } from "./path-atlas.js";
 export type { RMachineProxy } from "./proxy.js";

@@ -1,15 +1,15 @@
 import { NextAppPathStrategy } from "@r-machine/next/app";
 import { RMachine } from "r-machine";
-import { pathAtlas } from "./path-atlas";
-import type { ResourcesAtlas } from "./resources-atlas";
+import { PathAtlas } from "./path-atlas";
+import type { ResourceAtlas } from "./resource-atlas";
 
-export const rMachine = new RMachine<ResourcesAtlas>({
+export const rMachine = new RMachine<ResourceAtlas>({
   locales: ["en", "it-IT"],
   defaultLocale: "en",
   rModuleResolver: (namespace, locale) => import(`./resources/${namespace}/${locale}`),
 });
 
 export const strategy = new NextAppPathStrategy(rMachine, {
-  pathAtlas,
+  PathAtlas,
   cookie: "on",
 });

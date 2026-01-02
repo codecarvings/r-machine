@@ -44,7 +44,7 @@ export interface PartialNextAppPathStrategyConfig<PA extends AnyPathAtlas, LK ex
 }
 
 const defaultConfig: NextAppPathStrategyConfig<
-  typeof NextAppStrategyCore.defaultConfig.pathAtlas,
+  InstanceType<typeof NextAppStrategyCore.defaultConfig.PathAtlas>,
   typeof NextAppStrategyCore.defaultConfig.localeKey
 > = {
   ...NextAppStrategyCore.defaultConfig,
@@ -84,11 +84,11 @@ export abstract class NextAppPathStrategyCore<
 
   override async createServerToolset(
     NextClientRMachine: NextClientRMachine
-  ): Promise<NextAppPathServerToolset<A, C["pathAtlas"], C["localeKey"]>> {
+  ): Promise<NextAppPathServerToolset<A, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     const impl = await this.serverImplFactory(this.rMachine, this.config);
     const module = await import("./next-app-path-server-toolset.js");
     return module.createNextAppPathServerToolset(this.rMachine, impl, NextClientRMachine);
   }
 
-  abstract readonly PathHelper: PathHelper<C["pathAtlas"]>;
+  abstract readonly PathHelper: PathHelper<InstanceType<C["PathAtlas"]>>;
 }

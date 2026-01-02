@@ -70,16 +70,10 @@ export type PathDecl<T> = {
   -readonly [K in keyof T as K extends AnySegmentKey ? K : never]: T[K] extends object ? PathDecl<T[K]> : never;
 } & {};
 
-// Branded type
-const brand = Symbol("PathAtlas");
-export class PathAtlas {
-  private readonly [brand]?: "PathAtlas";
-
-  constructor(readonly decl: object) {
-    void this[brand];
-  }
+export interface AnyPathAtlas {
+  readonly decl: PathDecl<any>;
 }
-export type AnyPathAtlas = PathAtlas;
+export type PathAtlasCtor<PA extends AnyPathAtlas> = new () => PA;
 
 type ChildPathSelector<T> = T extends object
   ? {

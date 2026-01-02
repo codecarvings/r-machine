@@ -17,8 +17,8 @@ import {
 
 export class NextAppPathStrategy<
   A extends AnyAtlas,
-  PA extends AnyPathAtlas = (typeof NextAppPathStrategyCore.defaultConfig)["pathAtlas"],
-  LK extends string = (typeof NextAppPathStrategyCore.defaultConfig)["localeKey"],
+  PA extends AnyPathAtlas = InstanceType<typeof NextAppPathStrategyCore.defaultConfig.PathAtlas>,
+  LK extends string = typeof NextAppPathStrategyCore.defaultConfig.localeKey,
 > extends NextAppPathStrategyCore<A, NextAppPathStrategyConfig<PA, LK>> {
   constructor(rMachine: RMachine<A>);
   constructor(rMachine: RMachine<A>, config: PartialNextAppPathStrategyConfig<PA, LK>);

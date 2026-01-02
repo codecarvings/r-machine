@@ -21,7 +21,7 @@ export interface PartialNextAppFlatStrategyConfig<PA extends AnyPathAtlas, LK ex
 }
 
 const defaultConfig: NextAppFlatStrategyConfig<
-  typeof NextAppStrategyCore.defaultConfig.pathAtlas,
+  InstanceType<typeof NextAppStrategyCore.defaultConfig.PathAtlas>,
   typeof NextAppStrategyCore.defaultConfig.localeKey
 > = {
   ...NextAppStrategyCore.defaultConfig,
@@ -35,5 +35,5 @@ export abstract class NextAppFlatStrategyCore<
 > extends NextAppStrategyCore<A, C> {
   static override readonly defaultConfig = defaultConfig;
 
-  abstract readonly PathHelper: PathHelper<C["pathAtlas"]>;
+  abstract readonly PathHelper: PathHelper<InstanceType<C["PathAtlas"]>>;
 }

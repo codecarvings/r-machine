@@ -1,7 +1,9 @@
-import { createPathAtlas } from "@r-machine/next";
+import { createPathDecl } from "@r-machine/next";
 
-export const pathAtlas = createPathAtlas({
-  "/start-now": {
-    it: "/inizia-ora",
-  },
-});
+export class PathAtlas {
+  decl = createPathDecl({
+    "/start-now": {
+      it: "/inizia-ora",
+    },
+  });
+}

@@ -26,7 +26,10 @@ export interface PartialNextAppStrategyConfig<PA extends AnyPathAtlas, LK extend
 }
 
 const defaultLocaleKey = "locale" as const;
-const defaultConfig: NextAppStrategyConfig<typeof NextStrategyCore.defaultConfig.pathAtlas, typeof defaultLocaleKey> = {
+const defaultConfig: NextAppStrategyConfig<
+  InstanceType<typeof NextStrategyCore.defaultConfig.PathAtlas>,
+  typeof defaultLocaleKey
+> = {
   ...NextStrategyCore.defaultConfig,
   localeKey: defaultLocaleKey,
   autoLocaleBinding: "off",
@@ -50,7 +53,7 @@ export abstract class NextAppStrategyCore<
 
   async createServerToolset(
     NextClientRMachine: NextClientRMachine
-  ): Promise<NextAppServerToolset<A, C["pathAtlas"], C["localeKey"]>> {
+  ): Promise<NextAppServerToolset<A, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     const impl = await this.serverImplFactory(this.rMachine, this.config);
     const module = await import("./next-app-server-toolset.js");
     return module.createNextAppServerToolset(this.rMachine, impl, NextClientRMachine);
