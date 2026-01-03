@@ -1,1 +1,1 @@
-export { createPathDecl } from "./path-decl-factory.js";
+export { createPathAtlasDecl } from "./path-atlas-decl-factory.js";

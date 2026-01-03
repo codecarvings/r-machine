@@ -35,5 +35,5 @@ export abstract class NextAppFlatStrategyCore<
 > extends NextAppStrategyCore<A, C> {
   static override readonly defaultConfig = defaultConfig;
 
-  abstract readonly PathHelper: PathHelper<InstanceType<C["PathAtlas"]>>;
+  abstract readonly pathHelper: PathHelper<InstanceType<C["PathAtlas"]>>;
 }

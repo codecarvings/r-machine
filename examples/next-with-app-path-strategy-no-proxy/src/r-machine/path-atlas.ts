@@ -1,7 +1,7 @@
-import { createPathDecl } from "@r-machine/next";
+import { createPathAtlasDecl } from "@r-machine/next";
 
 export class PathAtlas {
-  decl = createPathDecl({
+  decl = createPathAtlasDecl({
     "/start-now": {
       it: "/inizia-ora",
     },

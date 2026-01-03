@@ -32,7 +32,7 @@ export class NextAppOriginStrategy<
   }
 
   // TODO: Implement PathHelper
-  readonly HrefHelper: HrefHelper<PA> = undefined!;
+  readonly hrefHelper: HrefHelper<PA> = undefined!;
 }
 
 export function getOriginResolver(

@@ -32,5 +32,5 @@ export class NextAppFlatStrategy<
   }
 
   // TODO: Implement PathHelper
-  readonly PathHelper: PathHelper<PA> = undefined!;
+  readonly pathHelper: PathHelper<PA> = undefined!;
 }

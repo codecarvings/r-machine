@@ -13,15 +13,14 @@ export type {
   BoundPathComposer,
   HrefHelper,
   PathHelper,
+  PathParamMap,
+  PathParams,
+  PathSelector,
 } from "./path.js";
 export type {
   AnyPathAtlas,
   LocalizableSegmentDecl,
   NonLocalizableSegmentDecl,
   PathAtlasCtor,
-  PathDecl,
-  PathParamMap,
-  PathParams,
-  PathSelector,
 } from "./path-atlas.js";
 export type { RMachineProxy } from "./proxy.js";

@@ -1,14 +1,7 @@
 import type { AnyAtlas, RMachine } from "r-machine";
 import type { ImplFactory, SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
-import type {
-  AnyPathAtlas,
-  NextClientImpl,
-  NextClientRMachine,
-  PathParamMap,
-  PathParams,
-  PathSelector,
-} from "#r-machine/next/core";
+import type { AnyPathAtlas, NextClientImpl, NextClientRMachine, PathHelper } from "#r-machine/next/core";
 import type { NextAppPathServerImpl, NextAppPathServerToolset } from "./next-app-path-server-toolset.js";
 import {
   type NextAppStrategyConfig,
@@ -54,15 +47,6 @@ const defaultConfig: NextAppPathStrategyConfig<
   implicitDefaultLocale: "off",
 };
 
-type PathComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
-  locale: string,
-  path: P,
-  params?: PathParams<P, O>
-) => string;
-interface PathHelper<PA extends AnyPathAtlas> {
-  readonly getPath: PathComposer<PA>;
-}
-
 export abstract class NextAppPathStrategyCore<
   A extends AnyAtlas,
   C extends AnyNextAppPathStrategyConfig,
@@ -90,5 +74,5 @@ export abstract class NextAppPathStrategyCore<
     return module.createNextAppPathServerToolset(this.rMachine, impl, NextClientRMachine);
   }
 
-  abstract readonly PathHelper: PathHelper<InstanceType<C["PathAtlas"]>>;
+  abstract readonly pathHelper: PathHelper<InstanceType<C["PathAtlas"]>>;
 }

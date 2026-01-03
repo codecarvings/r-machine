@@ -38,5 +38,5 @@ export abstract class NextAppOriginStrategyCore<
 > extends NextAppStrategyCore<A, C> {
   static override readonly defaultConfig = defaultConfig;
 
-  abstract readonly HrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>>;
+  abstract readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>>;
 }
