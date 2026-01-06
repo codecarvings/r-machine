@@ -1,5 +1,6 @@
 import type { AnyAtlas } from "r-machine";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
+import { createReactStandardImpl } from "./react-standard.impl.js";
 import { ReactStrategyCore } from "./react-strategy-core.js";
 
 export interface ReactStandardStrategyConfig {
@@ -21,4 +22,8 @@ export abstract class ReactStandardStrategyCore<A extends AnyAtlas> extends Reac
   ReactStandardStrategyConfig
 > {
   static readonly defaultConfig = defaultConfig;
+
+  protected createImpl() {
+    return createReactStandardImpl(this.rMachine, this.config);
+  }
 }

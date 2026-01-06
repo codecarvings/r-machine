@@ -1,7 +1,6 @@
 import type { AnyAtlas, RMachine } from "r-machine";
-import type { AnyPathAtlas, HrefHelper } from "#r-machine/next/core";
+import type { AnyPathAtlas } from "#r-machine/next/core";
 import {
-  type LocaleOriginMap,
   type NextAppOriginStrategyConfig,
   NextAppOriginStrategyCore,
   type PartialNextAppOriginStrategyConfig,
@@ -14,39 +13,9 @@ export class NextAppOriginStrategy<
 > extends NextAppOriginStrategyCore<A, NextAppOriginStrategyConfig<PA, LK>> {
   // Config is required since localeOriginMap is required
   constructor(rMachine: RMachine<A>, config: PartialNextAppOriginStrategyConfig<PA, LK>) {
-    super(
-      rMachine,
-      {
-        ...NextAppOriginStrategyCore.defaultConfig,
-        ...config,
-      } as NextAppOriginStrategyConfig<PA, LK>,
-      async (rMachine, strategyConfig) => {
-        const module = await import("./next-app-origin.client-impl.js");
-        return module.createNextAppOriginClientImpl(rMachine, strategyConfig);
-      },
-      async (rMachine, strategyConfig) => {
-        const module = await import("./next-app-origin.server-impl.js");
-        return module.createNextAppOriginServerImpl(rMachine, strategyConfig);
-      }
-    );
+    super(rMachine, {
+      ...NextAppOriginStrategyCore.defaultConfig,
+      ...config,
+    } as NextAppOriginStrategyConfig<PA, LK>);
   }
-
-  // TODO: Implement PathHelper
-  readonly hrefHelper: HrefHelper<PA> = undefined!;
-}
-
-export function getOriginResolver(
-  localeOrigins: LocaleOriginMap,
-  rMachine: RMachine<AnyAtlas>
-): (locale: string) => string {
-  const map = new Map<string, string>();
-  rMachine.config.locales.forEach((locale) => {
-    const originOrOrigins = localeOrigins[locale];
-    if (Array.isArray(originOrOrigins)) {
-      map.set(locale, originOrOrigins[0]); // Use the first origin if multiple are provided
-    } else {
-      map.set(locale, originOrOrigins);
-    }
-  });
-  return (locale: string) => map.get(locale)!;
 }

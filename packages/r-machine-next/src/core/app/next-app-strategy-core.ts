@@ -1,8 +1,7 @@
-import type { AnyAtlas, RMachine } from "r-machine";
-import type { ImplFactory, SwitchableOption } from "r-machine/strategy";
+import type { AnyAtlas } from "r-machine";
+import type { SwitchableOption } from "r-machine/strategy";
 import {
   type AnyPathAtlas,
-  type NextClientImpl,
   type NextClientRMachine,
   type NextStrategyConfig,
   NextStrategyCore,
@@ -42,19 +41,12 @@ export abstract class NextAppStrategyCore<
 > extends NextStrategyCore<A, C> {
   static override readonly defaultConfig = defaultConfig;
 
-  constructor(
-    rMachine: RMachine<A>,
-    config: C,
-    clientImplFactory: ImplFactory<NextClientImpl, C>,
-    protected readonly serverImplFactory: ImplFactory<NextAppServerImpl, C>
-  ) {
-    super(rMachine, config, clientImplFactory);
-  }
+  protected abstract createServerImpl(): Promise<NextAppServerImpl>;
 
   async createServerToolset(
     NextClientRMachine: NextClientRMachine
   ): Promise<NextAppServerToolset<A, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
-    const impl = await this.serverImplFactory(this.rMachine, this.config);
+    const impl = await this.createServerImpl();
     const module = await import("./next-app-server-toolset.js");
     return module.createNextAppServerToolset(this.rMachine, impl, NextClientRMachine);
   }

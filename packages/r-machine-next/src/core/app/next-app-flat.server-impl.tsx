@@ -1,13 +1,15 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import type { ImplFactory } from "r-machine/strategy";
+import type { AnyAtlas, RMachine } from "r-machine";
+import type { HrefResolver } from "#r-machine/next/core";
 import { type AnyNextAppFlatStrategyConfig, localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
 import type { CookiesFn, NextProxyResult } from "#r-machine/next/internal";
 
-export const createNextAppFlatServerImpl: ImplFactory<NextAppServerImpl, AnyNextAppFlatStrategyConfig> = async (
-  rMachine,
-  strategyConfig
-) => {
+export async function createNextAppFlatServerImpl(
+  rMachine: RMachine<AnyAtlas>,
+  strategyConfig: AnyNextAppFlatStrategyConfig,
+  _resolveHref: HrefResolver
+) {
   const locales = rMachine.config.locales;
   const { localeKey, autoLocaleBinding, cookie, pathMatcher } = strategyConfig;
   const autoLBSw = autoLocaleBinding === "on";
@@ -94,5 +96,5 @@ export const createNextAppFlatServerImpl: ImplFactory<NextAppServerImpl, AnyNext
 
     // TODO: implement createBoundPathComposerSupplier
     createBoundPathComposerSupplier: undefined!,
-  };
-};
+  } as NextAppServerImpl;
+}

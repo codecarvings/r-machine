@@ -1,4 +1,9 @@
 export {
+  createHrefResolver,
+  type HrefResolver,
+  type HrefResolverLocaleAdapter,
+} from "./href-resolver.js";
+export {
   createNextClientToolset,
   type NextClientImpl,
   type NextClientRMachine,
@@ -11,8 +16,6 @@ export {
 } from "./next-strategy-core.js";
 export type {
   BoundPathComposer,
-  HrefHelper,
-  PathHelper,
   PathParamMap,
   PathParams,
   PathSelector,

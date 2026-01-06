@@ -1,5 +1,5 @@
 import type { AnyAtlas, RMachine } from "r-machine";
-import type { AnyPathAtlas, PathHelper } from "#r-machine/next/core";
+import type { AnyPathAtlas } from "#r-machine/next/core";
 import {
   type NextAppFlatStrategyConfig,
   NextAppFlatStrategyCore,
@@ -14,23 +14,9 @@ export class NextAppFlatStrategy<
   constructor(rMachine: RMachine<A>);
   constructor(rMachine: RMachine<A>, config: PartialNextAppFlatStrategyConfig<PA, LK>);
   constructor(rMachine: RMachine<A>, config: PartialNextAppFlatStrategyConfig<PA, LK> = {}) {
-    super(
-      rMachine,
-      {
-        ...NextAppFlatStrategyCore.defaultConfig,
-        ...config,
-      } as NextAppFlatStrategyConfig<PA, LK>,
-      async (rMachine, strategyConfig) => {
-        const module = await import("./next-app-flat.client-impl.js");
-        return module.createNextAppFlatClientImpl(rMachine, strategyConfig);
-      },
-      async (rMachine, strategyConfig) => {
-        const module = await import("./next-app-flat.server-impl.js");
-        return module.createNextAppFlatServerImpl(rMachine, strategyConfig);
-      }
-    );
+    super(rMachine, {
+      ...NextAppFlatStrategyCore.defaultConfig,
+      ...config,
+    } as NextAppFlatStrategyConfig<PA, LK>);
   }
-
-  // TODO: Implement PathHelper
-  readonly pathHelper: PathHelper<PA> = undefined!;
 }

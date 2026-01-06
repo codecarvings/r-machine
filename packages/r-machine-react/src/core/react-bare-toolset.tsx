@@ -19,15 +19,14 @@ export interface ReactBareToolset<A extends AnyAtlas> {
   readonly useRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
 }
 
+export interface ReactBareRMachine {
+  (props: ReactBareRMachineProps): ReactNode;
+  probe: (localeOption: string | undefined) => string | undefined;
+}
 interface ReactBareRMachineProps {
   readonly locale: string;
   readonly writeLocale?: WriteLocale | undefined;
   readonly children: ReactNode;
-}
-
-export interface ReactBareRMachine {
-  (props: ReactBareRMachineProps): ReactNode;
-  probe: (localeOption: string | undefined) => string | undefined;
 }
 
 interface ReactBareToolsetContext {

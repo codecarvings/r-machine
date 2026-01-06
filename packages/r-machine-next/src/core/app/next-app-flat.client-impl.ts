@@ -1,13 +1,14 @@
 import Cookies from "js-cookie";
-import type { ImplFactory } from "r-machine/strategy";
-import type { NextClientImpl } from "#r-machine/next/core";
+import type { AnyAtlas, RMachine } from "r-machine";
+import type { HrefResolver, NextClientImpl } from "#r-machine/next/core";
 import type { AnyNextAppFlatStrategyConfig } from "#r-machine/next/core/app";
 import { setCookie } from "#r-machine/next/internal";
 
-export const createNextAppFlatClientImpl: ImplFactory<NextClientImpl, AnyNextAppFlatStrategyConfig> = async (
-  _rMachine,
-  strategyConfig
-) => {
+export async function createNextAppFlatClientImpl(
+  _rMachine: RMachine<AnyAtlas>,
+  strategyConfig: AnyNextAppFlatStrategyConfig,
+  _resolveHref: HrefResolver
+) {
   const { cookie } = strategyConfig;
   const { name: cookieName, ...cookieConfig } = cookie;
 
@@ -26,5 +27,5 @@ export const createNextAppFlatClientImpl: ImplFactory<NextClientImpl, AnyNextApp
 
     // TODO: Implement createUsePathComposer
     createUsePathComposer: undefined!,
-  };
-};
+  } as NextClientImpl;
+}

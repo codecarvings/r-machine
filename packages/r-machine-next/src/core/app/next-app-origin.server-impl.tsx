@@ -1,23 +1,23 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import type { ImplFactory } from "r-machine/strategy";
+import type { AnyAtlas, RMachine } from "r-machine";
+import type { HrefResolver } from "#r-machine/next/core";
 import {
   type AnyNextAppOriginStrategyConfig,
   localeHeaderName,
   type NextAppServerImpl,
 } from "#r-machine/next/core/app";
 import type { CookiesFn, HeadersFn, NextProxyResult } from "#r-machine/next/internal";
-import { getOriginResolver } from "./next-app-origin-strategy.js";
 
-export const createNextAppOriginServerImpl: ImplFactory<NextAppServerImpl, AnyNextAppOriginStrategyConfig> = async (
-  rMachine,
-  strategyConfig
-) => {
+export async function createNextAppOriginServerImpl(
+  rMachine: RMachine<AnyAtlas>,
+  strategyConfig: AnyNextAppOriginStrategyConfig,
+  resolveOrigin: (locale: string) => string,
+  _resolveHref: HrefResolver
+) {
   const defaultLocale = rMachine.config.defaultLocale;
   const { localeKey, autoLocaleBinding, localeOriginMap, pathMatcher } = strategyConfig;
   const autoLBSw = autoLocaleBinding === "on";
-
-  const resolveOrigin = getOriginResolver(strategyConfig.localeOriginMap, rMachine);
 
   return {
     localeKey,
@@ -103,5 +103,5 @@ export const createNextAppOriginServerImpl: ImplFactory<NextAppServerImpl, AnyNe
 
     // TODO: implement createBoundPathComposerSupplier
     createBoundPathComposerSupplier: undefined!,
-  };
-};
+  } as NextAppServerImpl;
+}

@@ -1,18 +1,12 @@
-import type { AnyAtlas, RMachine } from "r-machine";
-import { type ImplFactory, Strategy } from "r-machine/strategy";
+import type { AnyAtlas } from "r-machine";
+import { Strategy } from "r-machine/strategy";
 import { createReactToolset, type ReactImpl, type ReactToolset } from "./react-toolset.js";
 
 export abstract class ReactStrategyCore<A extends AnyAtlas, C> extends Strategy<A, C> {
-  constructor(
-    rMachine: RMachine<A>,
-    config: C,
-    protected readonly implFactory: ImplFactory<ReactImpl, C>
-  ) {
-    super(rMachine, config);
-  }
+  protected abstract createImpl(): Promise<ReactImpl>;
 
   async createToolset(): Promise<ReactToolset<A>> {
-    const impl = await this.implFactory(this.rMachine, this.config);
+    const impl = await this.createImpl();
     return await createReactToolset(this.rMachine, impl);
   }
 }

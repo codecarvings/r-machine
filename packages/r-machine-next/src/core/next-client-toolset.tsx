@@ -8,12 +8,6 @@ import { type ReactNode, useEffect } from "react";
 import type { BoundPathComposer } from "./path.js";
 import type { AnyPathAtlas } from "./path-atlas.js";
 
-interface NextClientRMachineProps {
-  readonly locale: string;
-  readonly children: ReactNode;
-}
-export type NextClientRMachine = (props: NextClientRMachineProps) => ReactNode;
-
 export type NextClientToolset<A extends AnyAtlas, PA extends AnyPathAtlas> = Omit<
   ReactBareToolset<A>,
   "ReactRMachine"
@@ -21,6 +15,12 @@ export type NextClientToolset<A extends AnyAtlas, PA extends AnyPathAtlas> = Omi
   readonly NextClientRMachine: NextClientRMachine;
   readonly usePathComposer: () => BoundPathComposer<PA>;
 };
+
+export type NextClientRMachine = (props: NextClientRMachineProps) => ReactNode;
+interface NextClientRMachineProps {
+  readonly locale: string;
+  readonly children: ReactNode;
+}
 
 export interface NextClientImpl {
   // biome-ignore lint/suspicious/noConfusingVoidType: As per design

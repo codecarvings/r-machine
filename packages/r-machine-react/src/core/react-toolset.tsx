@@ -4,24 +4,27 @@ import { createContext, type ReactNode, use, useContext, useMemo, useState } fro
 import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils";
 import { createReactBareToolset, type ReactBareToolset } from "./react-bare-toolset.js";
 
+// THIS IS THE BASE TOOLSET USED ALSO BY THE REACT STANDARD STRATEGY
+// DO NOT RENAME
+
+export type ReactToolset<A extends AnyAtlas> = Omit<ReactBareToolset<A>, "ReactRMachine"> & {
+  readonly ReactRMachine: ReactRMachine;
+};
+
+export type ReactRMachine = (props: ReactRMachineProps) => ReactNode;
 interface ReactRMachineProps {
   // Only ReactRMachineProps requires fallback because of the async readLocale in ReactImpl
   readonly fallback?: ReactNode; // ReactNode already includes undefined
   readonly Suspense?: SuspenseComponent | null | undefined; // Null means no suspense
   readonly children: ReactNode;
 }
-export type ReactRMachine = (props: ReactRMachineProps) => ReactNode;
-
-export type ReactToolset<A extends AnyAtlas> = Omit<ReactBareToolset<A>, "ReactRMachine"> & {
-  readonly ReactRMachine: ReactRMachine;
-};
-
-type ReactToolsetContext = [string, (newLocale: string) => void];
 
 export interface ReactImpl {
   readonly readLocale: () => string | Promise<string>;
   readonly writeLocale: (newLocale: string) => void | Promise<void>;
 }
+
+type ReactToolsetContext = [string, (newLocale: string) => void];
 
 export async function createReactToolset<A extends AnyAtlas>(
   rMachine: RMachine<A>,

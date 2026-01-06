@@ -1,5 +1,6 @@
 import type { AnyAtlas, RMachine } from "r-machine";
-import { type ImplFactory, Strategy } from "r-machine/strategy";
+import { Strategy } from "r-machine/strategy";
+import type { HrefResolver } from "#r-machine/next/core";
 import type { NextClientImpl, NextClientToolset } from "./next-client-toolset.js";
 import type { AnyPathAtlas, PathAtlasCtor } from "./path-atlas.js";
 
@@ -22,16 +23,18 @@ const defaultConfig: NextStrategyConfig<DefaultPathAtlas> = {
 export abstract class NextStrategyCore<A extends AnyAtlas, C extends AnyNextStrategyConfig> extends Strategy<A, C> {
   static readonly defaultConfig = defaultConfig;
 
-  constructor(
-    rMachine: RMachine<A>,
-    config: C,
-    protected readonly clientImplFactory: ImplFactory<NextClientImpl, C>
-  ) {
+  constructor(rMachine: RMachine<A>, config: C) {
     super(rMachine, config as C);
+    this.pathAtlas = new this.config.PathAtlas();
   }
 
+  protected readonly pathAtlas: InstanceType<C["PathAtlas"]>;
+  protected abstract readonly resolveHref: HrefResolver;
+
+  protected abstract createClientImpl(): Promise<NextClientImpl>;
+
   async createClientToolset(): Promise<NextClientToolset<A, InstanceType<C["PathAtlas"]>>> {
-    const impl = await this.clientImplFactory(this.rMachine, this.config);
+    const impl = await this.createClientImpl();
     const module = await import("./next-client-toolset.js");
     return module.createNextClientToolset(this.rMachine, impl);
   }

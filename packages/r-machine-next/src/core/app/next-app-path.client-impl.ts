@@ -1,16 +1,17 @@
 import Cookies from "js-cookie";
-import type { ImplFactory } from "r-machine/strategy";
+import type { AnyAtlas, RMachine } from "r-machine";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
-import type { NextClientImpl } from "#r-machine/next/core";
+import type { HrefResolver, NextClientImpl } from "#r-machine/next/core";
 import type { AnyNextAppPathStrategyConfig } from "#r-machine/next/core/app";
 import { setCookie } from "#r-machine/next/internal";
 
 const pathComposerNormalizerRegExp = /^\//;
 
-export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, AnyNextAppPathStrategyConfig> = async (
-  rMachine,
-  strategyConfig
-) => {
+export async function createNextAppPathClientImpl(
+  rMachine: RMachine<AnyAtlas>,
+  strategyConfig: AnyNextAppPathStrategyConfig,
+  _resolveHref: HrefResolver
+) {
   const { cookie } = strategyConfig;
   const lowercaseLocale = strategyConfig.lowercaseLocale === "on";
   const implicitDefaultLocale = strategyConfig.implicitDefaultLocale !== "off";
@@ -67,5 +68,5 @@ export const createNextAppPathClientImpl: ImplFactory<NextClientImpl, AnyNextApp
 
       return getPathComposer;
     },
-  };
-};
+  } as NextClientImpl;
+}

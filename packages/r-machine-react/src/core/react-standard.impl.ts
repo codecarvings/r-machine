@@ -1,11 +1,11 @@
+import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
-import type { ImplFactory } from "r-machine/strategy";
 import type { ReactImpl, ReactStandardStrategyConfig } from "#r-machine/react/core";
 
-export const createReactStandardImpl: ImplFactory<ReactImpl, ReactStandardStrategyConfig> = async (
-  rMachine,
-  strategyConfig
-) => {
+export async function createReactStandardImpl(
+  rMachine: RMachine<AnyAtlas>,
+  strategyConfig: ReactStandardStrategyConfig
+): Promise<ReactImpl> {
   function returnValidLocale(locale: string): string {
     const error = rMachine.localeHelper.validateLocale(locale);
     if (error) {
@@ -78,4 +78,4 @@ export const createReactStandardImpl: ImplFactory<ReactImpl, ReactStandardStrate
       }
     },
   };
-};
+}

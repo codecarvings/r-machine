@@ -25,21 +25,9 @@ type RMachineParams<LK extends string> = {
   [P in LK]: string;
 };
 
+export type NextAppServerRMachine = (props: NextAppServerRMachineProps) => Promise<ReactNode>;
 interface NextAppServerRMachineProps {
   readonly children: ReactNode;
-}
-export type NextAppServerRMachine = (props: NextAppServerRMachineProps) => Promise<ReactNode>;
-
-type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
-
-interface BindLocale<LK extends string> {
-  (locale: string): string;
-  <P extends RMachineParams<LK>>(params: Promise<P>): Promise<P>;
-}
-
-interface NextAppServerRMachineContext {
-  value: string | null;
-  getLocalePromise: Promise<string> | null;
 }
 
 export interface NextAppServerImpl {
@@ -54,6 +42,18 @@ export interface NextAppServerImpl {
   readonly createBoundPathComposerSupplier: (
     getLocale: () => Promise<string>
   ) => BoundPathComposerSupplier<AnyPathAtlas> | Promise<BoundPathComposerSupplier<AnyPathAtlas>>;
+}
+
+type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
+
+interface BindLocale<LK extends string> {
+  (locale: string): string;
+  <P extends RMachineParams<LK>>(params: Promise<P>): Promise<P>;
+}
+
+interface NextAppServerRMachineContext {
+  value: string | null;
+  getLocalePromise: Promise<string> | null;
 }
 
 export async function createNextAppServerToolset<A extends AnyAtlas, PA extends AnyPathAtlas, LK extends string>(

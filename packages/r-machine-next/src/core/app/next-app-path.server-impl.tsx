@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
+import type { AnyAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
-import type { ImplFactory } from "r-machine/strategy";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
+import type { HrefResolver } from "#r-machine/next/core";
 import {
   type AnyNextAppPathStrategyConfig,
   localeHeaderName,
@@ -22,10 +23,11 @@ const default_implicit_matcher: RegExp | null = defaultPathMatcher; // Implicit 
 
 const pathComposerNormalizerRegExp = /^\//;
 
-export const createNextAppPathServerImpl: ImplFactory<NextAppPathServerImpl, AnyNextAppPathStrategyConfig> = async (
-  rMachine,
-  strategyConfig
-) => {
+export async function createNextAppPathServerImpl(
+  rMachine: RMachine<AnyAtlas>,
+  strategyConfig: AnyNextAppPathStrategyConfig,
+  _resolveHref: HrefResolver
+) {
   const locales = rMachine.config.locales;
   const defaultLocale = rMachine.config.defaultLocale;
   const { localeKey, autoLocaleBinding, basePath, cookie, lowercaseLocale, autoDetectLocale, implicitDefaultLocale } =
@@ -301,5 +303,5 @@ export const createNextAppPathServerImpl: ImplFactory<NextAppPathServerImpl, Any
 
       return getPathComposer;
     },
-  };
-};
+  } as NextAppPathServerImpl;
+}
