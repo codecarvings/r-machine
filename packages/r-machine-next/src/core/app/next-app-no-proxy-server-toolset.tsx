@@ -5,21 +5,17 @@ import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
 import {
   createNextAppServerToolset,
   type NextAppServerImpl,
-  type NextAppServerRMachine,
   type NextAppServerToolset,
 } from "./next-app-server-toolset.js";
 
-export interface NextAppPathServerToolset<A extends AnyAtlas, PA extends AnyPathAtlas, LK extends string>
-  extends NextAppServerToolset<A, PA, LK> {
-  readonly NextServerRMachine: NextAppPathServerRMachine;
-}
-
-export interface NextAppPathServerRMachine extends NextAppServerRMachine {
+export interface NextAppNoProxyServerToolset<A extends AnyAtlas, PA extends AnyPathAtlas, LK extends string>
+  extends Omit<NextAppServerToolset<A, PA, LK>, "rMachineProxy"> {
   readonly EntrancePage: EntrancePage;
 }
+
 type EntrancePage = () => Promise<ReactNode>;
 
-export interface NextAppPathServerImpl extends NextAppServerImpl {
+export interface NextAppNoProxyServerImpl extends NextAppServerImpl {
   readonly createEntrancePage: (
     cookies: CookiesFn,
     headers: HeadersFn,
@@ -27,26 +23,26 @@ export interface NextAppPathServerImpl extends NextAppServerImpl {
   ) => EntrancePage | Promise<EntrancePage>;
 }
 
-export async function createNextAppPathServerToolset<A extends AnyAtlas, PA extends AnyPathAtlas, LK extends string>(
+export async function createNextAppNoProxyServerToolset<A extends AnyAtlas, PA extends AnyPathAtlas, LK extends string>(
   rMachine: RMachine<A>,
-  impl: NextAppPathServerImpl,
+  impl: NextAppNoProxyServerImpl,
   NextClientRMachine: NextClientRMachine
-): Promise<NextAppPathServerToolset<A, PA, LK>> {
-  const { NextServerRMachine, setLocale, ...otherTools } = await createNextAppServerToolset<A, PA, LK>(
-    rMachine,
-    impl,
-    NextClientRMachine
-  );
+): Promise<NextAppNoProxyServerToolset<A, PA, LK>> {
+  const {
+    rMachineProxy: _rMachineProxy,
+    setLocale,
+    ...otherTools
+  } = await createNextAppServerToolset<A, PA, LK>(rMachine, impl, NextClientRMachine);
 
   // Use dynamic import to bypass the "next/headers" import issue in pages/ directory
   // You're importing a component that needs "next/headers". That only works in a Server Component which is not supported in the pages/ directory. Read more: https://nextjs.org/docs/app/building-your-application/rendering/server-components
   const { cookies, headers } = await import("next/headers");
 
-  (NextServerRMachine as any).EntrancePage = await impl.createEntrancePage(cookies, headers, setLocale);
+  const EntrancePage = await impl.createEntrancePage(cookies, headers, setLocale);
 
   return {
     ...otherTools,
-    NextServerRMachine: NextServerRMachine as NextAppPathServerRMachine,
     setLocale,
+    EntrancePage,
   };
 }

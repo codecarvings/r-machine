@@ -2,8 +2,8 @@ import { NextClientRMachine } from "./client-toolset";
 import { strategy } from "./r-machine";
 
 export const {
+  EntrancePage,
   NextServerRMachine,
-  rMachineProxy,
   generateLocaleStaticParams,
   bindLocale,
   getLocale,
@@ -11,4 +11,4 @@ export const {
   pickR,
   pickRKit,
   getPathComposer,
-} = await strategy.createServerToolset(NextClientRMachine);
+} = await strategy.createNoProxyServerToolset(NextClientRMachine);

@@ -10,7 +10,7 @@ import type {
   PathParams,
   PathSelector,
 } from "#r-machine/next/core";
-import type { NextAppPathServerToolset } from "./next-app-path-server-toolset.js";
+import type { NextAppNoProxyServerToolset } from "./next-app-no-proxy-server-toolset.js";
 import {
   type NextAppStrategyConfig,
   NextAppStrategyCore,
@@ -100,12 +100,32 @@ export abstract class NextAppPathStrategyCore<
     return module.createNextAppPathServerImpl(this.rMachine, this.config, this.resolveHref);
   }
 
-  override async createServerToolset(
+  protected validateNoProxyConfig(): void {
+    function raiseRequiredProxyError(optionName: string): never {
+      throw new RMachineError(
+        `NextAppPathStrategy configuration error: "${optionName}" option requires proxy server toolset.`
+      );
+    }
+
+    if (this.config.implicitDefaultLocale !== "off") {
+      raiseRequiredProxyError("implicitDefaultLocale");
+    }
+    if (this.config.autoLocaleBinding !== "off") {
+      raiseRequiredProxyError("autoLocaleBinding");
+    }
+    if (this.config.autoDetectLocale !== "off") {
+      raiseRequiredProxyError("autoDetectLocale");
+    }
+    // TODO: Check that PathAtlas does not contain translations)
+  }
+
+  async createNoProxyServerToolset(
     NextClientRMachine: NextClientRMachine
-  ): Promise<NextAppPathServerToolset<A, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
+  ): Promise<NextAppNoProxyServerToolset<A, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
+    this.validateNoProxyConfig();
     const impl = await this.createServerImpl();
-    const module = await import("./next-app-path-server-toolset.js");
-    return module.createNextAppPathServerToolset(this.rMachine, impl, NextClientRMachine);
+    const module = await import("./next-app-no-proxy-server-toolset.js");
+    return module.createNextAppNoProxyServerToolset(this.rMachine, impl, NextClientRMachine);
   }
 
   readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {

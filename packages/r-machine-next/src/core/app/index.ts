@@ -5,18 +5,17 @@ export {
   type PartialNextAppFlatStrategyConfig,
 } from "./next-app-flat-strategy-core.js";
 export {
+  createNextAppNoProxyServerToolset,
+  type NextAppNoProxyServerImpl,
+  type NextAppNoProxyServerToolset,
+} from "./next-app-no-proxy-server-toolset.js";
+export {
   type AnyNextAppOriginStrategyConfig,
   type LocaleOriginMap,
   type NextAppOriginStrategyConfig,
   NextAppOriginStrategyCore,
   type PartialNextAppOriginStrategyConfig,
 } from "./next-app-origin-strategy-core.js";
-export {
-  createNextAppPathServerToolset,
-  type NextAppPathServerImpl,
-  type NextAppPathServerRMachine,
-  type NextAppPathServerToolset,
-} from "./next-app-path-server-toolset.js";
 export {
   type AnyNextAppPathStrategyConfig,
   type NextAppPathStrategyConfig,

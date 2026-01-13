@@ -8,7 +8,7 @@ import type { HrefResolver } from "#r-machine/next/core";
 import {
   type AnyNextAppPathStrategyConfig,
   localeHeaderName,
-  type NextAppPathServerImpl,
+  type NextAppNoProxyServerImpl,
 } from "#r-machine/next/core/app";
 import {
   type CookiesFn,
@@ -303,5 +303,5 @@ export async function createNextAppPathServerImpl(
 
       return getPathComposer;
     },
-  } as NextAppPathServerImpl;
+  } as NextAppNoProxyServerImpl;
 }

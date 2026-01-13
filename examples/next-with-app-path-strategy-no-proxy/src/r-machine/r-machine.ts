@@ -11,5 +11,6 @@ export const rMachine = new RMachine<ResourceAtlas>({
 
 export const strategy = new NextAppPathStrategy(rMachine, {
   PathAtlas,
+  autoDetectLocale: "off",
   cookie: "on",
 });
