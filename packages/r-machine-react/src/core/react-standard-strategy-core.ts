@@ -1,4 +1,4 @@
-import type { AnyAtlas } from "r-machine";
+import type { AnyResourceAtlas } from "r-machine";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { createReactStandardImpl } from "./react-standard.impl.js";
 import { ReactStrategyCore } from "./react-strategy-core.js";
@@ -17,8 +17,8 @@ const defaultConfig: ReactStandardStrategyConfig = {
   localeStore: undefined,
 };
 
-export abstract class ReactStandardStrategyCore<A extends AnyAtlas> extends ReactStrategyCore<
-  A,
+export abstract class ReactStandardStrategyCore<RA extends AnyResourceAtlas> extends ReactStrategyCore<
+  RA,
   ReactStandardStrategyConfig
 > {
   static readonly defaultConfig = defaultConfig;

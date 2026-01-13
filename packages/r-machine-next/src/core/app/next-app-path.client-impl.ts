@@ -1,5 +1,5 @@
 import Cookies from "js-cookie";
-import type { AnyAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import type { HrefResolver, NextClientImpl } from "#r-machine/next/core";
 import type { AnyNextAppPathStrategyConfig } from "#r-machine/next/core/app";
@@ -8,7 +8,7 @@ import { setCookie } from "#r-machine/next/internal";
 const pathComposerNormalizerRegExp = /^\//;
 
 export async function createNextAppPathClientImpl(
-  rMachine: RMachine<AnyAtlas>,
+  rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppPathStrategyConfig,
   _resolveHref: HrefResolver
 ) {

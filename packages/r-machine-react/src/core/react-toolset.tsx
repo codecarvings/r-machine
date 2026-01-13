@@ -1,4 +1,4 @@
-import type { AnyAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { createContext, type ReactNode, use, useContext, useMemo, useState } from "react";
 import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils";
@@ -7,7 +7,7 @@ import { createReactBareToolset, type ReactBareToolset } from "./react-bare-tool
 // THIS IS THE BASE TOOLSET USED ALSO BY THE REACT STANDARD STRATEGY
 // DO NOT RENAME
 
-export type ReactToolset<A extends AnyAtlas> = Omit<ReactBareToolset<A>, "ReactRMachine"> & {
+export type ReactToolset<RA extends AnyResourceAtlas> = Omit<ReactBareToolset<RA>, "ReactRMachine"> & {
   readonly ReactRMachine: ReactRMachine;
 };
 
@@ -26,10 +26,10 @@ export interface ReactImpl {
 
 type ReactToolsetContext = [string, (newLocale: string) => void];
 
-export async function createReactToolset<A extends AnyAtlas>(
-  rMachine: RMachine<A>,
+export async function createReactToolset<RA extends AnyResourceAtlas>(
+  rMachine: RMachine<RA>,
   impl: ReactImpl
-): Promise<ReactToolset<A>> {
+): Promise<ReactToolset<RA>> {
   const { ReactRMachine: OriginalReactRMachine, ...otherTools } = await createReactBareToolset(rMachine);
 
   const Context = createContext<ReactToolsetContext | null>(null);
@@ -62,7 +62,7 @@ export async function createReactToolset<A extends AnyAtlas>(
     }
   }
 
-  function useSetLocale(): ReturnType<ReactBareToolset<A>["useSetLocale"]> {
+  function useSetLocale(): ReturnType<ReactBareToolset<RA>["useSetLocale"]> {
     const context = useReactToolsetContext();
 
     return (newLocale: string) => setLocale(newLocale, context);

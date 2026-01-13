@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
+import type { AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
@@ -7,15 +7,15 @@ import type { AnyPathAtlas, BoundPathComposer, NextClientRMachine, RMachineProxy
 import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
 import { localeHeaderName } from "./next-app-strategy-core.js";
 
-export interface NextAppServerToolset<A extends AnyAtlas, PA extends AnyPathAtlas, LK extends string> {
+export interface NextAppServerToolset<RA extends AnyResourceAtlas, PA extends AnyPathAtlas, LK extends string> {
   readonly rMachineProxy: RMachineProxy;
   readonly NextServerRMachine: NextAppServerRMachine;
   readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
   readonly bindLocale: BindLocale<LK>;
   readonly getLocale: () => Promise<string>;
   readonly setLocale: (newLocale: string) => Promise<void>;
-  readonly pickR: <N extends AtlasNamespace<A>>(namespace: N) => Promise<A[N]>;
-  readonly pickRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => Promise<RKit<A, NL>>;
+  readonly pickR: <N extends Namespace<RA>>(namespace: N) => Promise<RA[N]>;
+  readonly pickRKit: <NL extends NamespaceList<RA>>(...namespaces: NL) => Promise<RKit<RA, NL>>;
   readonly getPathComposer: BoundPathComposerSupplier<PA>;
 }
 
@@ -56,11 +56,15 @@ interface NextAppServerRMachineContext {
   getLocalePromise: Promise<string> | null;
 }
 
-export async function createNextAppServerToolset<A extends AnyAtlas, PA extends AnyPathAtlas, LK extends string>(
-  rMachine: RMachine<A>,
+export async function createNextAppServerToolset<
+  RA extends AnyResourceAtlas,
+  PA extends AnyPathAtlas,
+  LK extends string,
+>(
+  rMachine: RMachine<RA>,
   impl: NextAppServerImpl,
   NextClientRMachine: NextClientRMachine
-): Promise<NextAppServerToolset<A, PA, LK>> {
+): Promise<NextAppServerToolset<RA, PA, LK>> {
   const localeKey = impl.localeKey as LK;
   const { autoLocaleBinding } = impl;
 
@@ -181,7 +185,7 @@ export async function createNextAppServerToolset<A extends AnyAtlas, PA extends 
     await impl.writeLocale(newLocale, cookies, headers);
   }
 
-  function pickR<N extends AtlasNamespace<A>>(namespace: N): Promise<A[N]> {
+  function pickR<N extends Namespace<RA>>(namespace: N): Promise<RA[N]> {
     validateServerOnlyUsage("pickR");
 
     const localeOrPromise = internalGetLocale();
@@ -192,14 +196,14 @@ export async function createNextAppServerToolset<A extends AnyAtlas, PA extends 
     }
   }
 
-  function pickRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): Promise<RKit<A, NL>> {
+  function pickRKit<NL extends NamespaceList<RA>>(...namespaces: NL): Promise<RKit<RA, NL>> {
     validateServerOnlyUsage("pickRKit");
 
     const localeOrPromise = internalGetLocale();
     if (localeOrPromise instanceof Promise) {
-      return localeOrPromise.then((locale) => rMachine.pickRKit(locale, ...namespaces)) as Promise<RKit<A, NL>>;
+      return localeOrPromise.then((locale) => rMachine.pickRKit(locale, ...namespaces)) as Promise<RKit<RA, NL>>;
     } else {
-      return rMachine.pickRKit(localeOrPromise, ...namespaces) as Promise<RKit<A, NL>>;
+      return rMachine.pickRKit(localeOrPromise, ...namespaces) as Promise<RKit<RA, NL>>;
     }
   }
 

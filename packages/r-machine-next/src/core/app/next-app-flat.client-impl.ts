@@ -1,11 +1,11 @@
 import Cookies from "js-cookie";
-import type { AnyAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
 import type { HrefResolver, NextClientImpl } from "#r-machine/next/core";
 import type { AnyNextAppFlatStrategyConfig } from "#r-machine/next/core/app";
 import { setCookie } from "#r-machine/next/internal";
 
 export async function createNextAppFlatClientImpl(
-  _rMachine: RMachine<AnyAtlas>,
+  _rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppFlatStrategyConfig,
   _resolveHref: HrefResolver
 ) {

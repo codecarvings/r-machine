@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import type { AnyAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
 import type { HrefResolver } from "#r-machine/next/core";
 import {
   type AnyNextAppOriginStrategyConfig,
@@ -10,7 +10,7 @@ import {
 import type { CookiesFn, HeadersFn, NextProxyResult } from "#r-machine/next/internal";
 
 export async function createNextAppOriginServerImpl(
-  rMachine: RMachine<AnyAtlas>,
+  rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppOriginStrategyConfig,
   resolveOrigin: (locale: string) => string,
   _resolveHref: HrefResolver

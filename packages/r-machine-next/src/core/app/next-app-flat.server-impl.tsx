@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import type { AnyAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
 import type { HrefResolver } from "#r-machine/next/core";
 import { type AnyNextAppFlatStrategyConfig, localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
 import type { CookiesFn, NextProxyResult } from "#r-machine/next/internal";
 
 export async function createNextAppFlatServerImpl(
-  rMachine: RMachine<AnyAtlas>,
+  rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppFlatStrategyConfig,
   _resolveHref: HrefResolver
 ) {

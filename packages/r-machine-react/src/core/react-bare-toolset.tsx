@@ -1,6 +1,6 @@
 "use client";
 
-import type { AnyAtlas, AtlasNamespace, AtlasNamespaceList, RKit, RMachine } from "r-machine";
+import type { AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import type { ReactNode } from "react";
 import { createContext, use, useCallback, useContext, useMemo } from "react";
@@ -8,15 +8,15 @@ import { createContext, use, useCallback, useContext, useMemo } from "react";
 type SetLocale = (newLocale: string) => Promise<void>;
 type WriteLocale = (newLocale: string) => void | Promise<void>;
 
-export interface ReactBareToolset<A extends AnyAtlas> {
+export interface ReactBareToolset<RA extends AnyResourceAtlas> {
   readonly ReactRMachine: ReactBareRMachine;
   readonly useLocale: () => string;
   // Performance optimization: do not use the same approach as useState ([state, setState])
   // because with required hooks (e.g. useRouter)
   // the setter function should be recreated on every render to capture the latest context.
   readonly useSetLocale: () => SetLocale;
-  readonly useR: <N extends AtlasNamespace<A>>(namespace: N) => A[N];
-  readonly useRKit: <NL extends AtlasNamespaceList<A>>(...namespaces: NL) => RKit<A, NL>;
+  readonly useR: <N extends Namespace<RA>>(namespace: N) => RA[N];
+  readonly useRKit: <NL extends NamespaceList<RA>>(...namespaces: NL) => RKit<RA, NL>;
 }
 
 export interface ReactBareRMachine {
@@ -34,7 +34,9 @@ interface ReactBareToolsetContext {
   readonly writeLocale: WriteLocale | undefined;
 }
 
-export async function createReactBareToolset<A extends AnyAtlas>(rMachine: RMachine<A>): Promise<ReactBareToolset<A>> {
+export async function createReactBareToolset<RA extends AnyResourceAtlas>(
+  rMachine: RMachine<RA>
+): Promise<ReactBareToolset<RA>> {
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const Context = createContext<ReactBareToolsetContext | null>(null);
@@ -100,7 +102,7 @@ export async function createReactBareToolset<A extends AnyAtlas>(rMachine: RMach
   }
 
   const hybridPickR: (typeof rMachine)["hybridPickR"] = (rMachine as any).hybridPickR;
-  function useR<N extends AtlasNamespace<A>>(namespace: N): A[N] {
+  function useR<N extends Namespace<RA>>(namespace: N): RA[N] {
     const context = useReactToolsetContext();
     const r = hybridPickR(context.locale, namespace);
 
@@ -108,11 +110,11 @@ export async function createReactBareToolset<A extends AnyAtlas>(rMachine: RMach
   }
 
   const hybridPickRKit: (typeof rMachine)["hybridPickRKit"] = (rMachine as any).hybridPickRKit;
-  function useRKit<NL extends AtlasNamespaceList<A>>(...namespaces: NL): RKit<A, NL> {
+  function useRKit<NL extends NamespaceList<RA>>(...namespaces: NL): RKit<RA, NL> {
     const context = useReactToolsetContext();
     const rKit = hybridPickRKit(context.locale, ...namespaces);
 
-    return (rKit instanceof Promise ? use(rKit) : rKit) as RKit<A, NL>;
+    return (rKit instanceof Promise ? use(rKit) : rKit) as RKit<RA, NL>;
   }
 
   return {

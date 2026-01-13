@@ -1,9 +1,9 @@
-import type { AnyAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import type { ReactImpl, ReactStandardStrategyConfig } from "#r-machine/react/core";
 
 export async function createReactStandardImpl(
-  rMachine: RMachine<AnyAtlas>,
+  rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: ReactStandardStrategyConfig
 ): Promise<ReactImpl> {
   function returnValidLocale(locale: string): string {

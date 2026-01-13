@@ -1,4 +1,4 @@
-import type { AnyAtlas } from "r-machine";
+import type { AnyResourceAtlas } from "r-machine";
 import { type CookieDeclaration, defaultCookieDeclaration } from "r-machine/strategy/web";
 import type { AnyPathAtlas, HrefResolver, PathParamMap, PathParams, PathSelector } from "#r-machine/next/core";
 import {
@@ -39,9 +39,9 @@ const defaultConfig: NextAppFlatStrategyConfig<
 };
 
 export abstract class NextAppFlatStrategyCore<
-  A extends AnyAtlas,
+  RA extends AnyResourceAtlas,
   C extends AnyNextAppFlatStrategyConfig,
-> extends NextAppStrategyCore<A, C> {
+> extends NextAppStrategyCore<RA, C> {
   static override readonly defaultConfig = defaultConfig;
 
   protected async createClientImpl() {

@@ -1,4 +1,4 @@
-import type { AnyAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
 import type { AnyPathAtlas } from "#r-machine/next/core";
 import {
   type NextAppPathStrategyConfig,
@@ -7,13 +7,13 @@ import {
 } from "#r-machine/next/core/app";
 
 export class NextAppPathStrategy<
-  A extends AnyAtlas,
+  RA extends AnyResourceAtlas,
   PA extends AnyPathAtlas = InstanceType<typeof NextAppPathStrategyCore.defaultConfig.PathAtlas>,
   LK extends string = typeof NextAppPathStrategyCore.defaultConfig.localeKey,
-> extends NextAppPathStrategyCore<A, NextAppPathStrategyConfig<PA, LK>> {
-  constructor(rMachine: RMachine<A>);
-  constructor(rMachine: RMachine<A>, config: PartialNextAppPathStrategyConfig<PA, LK>);
-  constructor(rMachine: RMachine<A>, config: PartialNextAppPathStrategyConfig<PA, LK> = {}) {
+> extends NextAppPathStrategyCore<RA, NextAppPathStrategyConfig<PA, LK>> {
+  constructor(rMachine: RMachine<RA>);
+  constructor(rMachine: RMachine<RA>, config: PartialNextAppPathStrategyConfig<PA, LK>);
+  constructor(rMachine: RMachine<RA>, config: PartialNextAppPathStrategyConfig<PA, LK> = {}) {
     super(rMachine, {
       ...NextAppPathStrategyCore.defaultConfig,
       ...config,

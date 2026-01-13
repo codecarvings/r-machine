@@ -1,4 +1,4 @@
-import type { AnyAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
 import type { ReactNode } from "react";
 import type { AnyPathAtlas, NextClientRMachine } from "#r-machine/next/core";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
@@ -8,8 +8,8 @@ import {
   type NextAppServerToolset,
 } from "./next-app-server-toolset.js";
 
-export interface NextAppNoProxyServerToolset<A extends AnyAtlas, PA extends AnyPathAtlas, LK extends string>
-  extends Omit<NextAppServerToolset<A, PA, LK>, "rMachineProxy"> {
+export interface NextAppNoProxyServerToolset<RA extends AnyResourceAtlas, PA extends AnyPathAtlas, LK extends string>
+  extends Omit<NextAppServerToolset<RA, PA, LK>, "rMachineProxy"> {
   readonly EntrancePage: EntrancePage;
 }
 
@@ -23,16 +23,20 @@ export interface NextAppNoProxyServerImpl extends NextAppServerImpl {
   ) => EntrancePage | Promise<EntrancePage>;
 }
 
-export async function createNextAppNoProxyServerToolset<A extends AnyAtlas, PA extends AnyPathAtlas, LK extends string>(
-  rMachine: RMachine<A>,
+export async function createNextAppNoProxyServerToolset<
+  RA extends AnyResourceAtlas,
+  PA extends AnyPathAtlas,
+  LK extends string,
+>(
+  rMachine: RMachine<RA>,
   impl: NextAppNoProxyServerImpl,
   NextClientRMachine: NextClientRMachine
-): Promise<NextAppNoProxyServerToolset<A, PA, LK>> {
+): Promise<NextAppNoProxyServerToolset<RA, PA, LK>> {
   const {
     rMachineProxy: _rMachineProxy,
     setLocale,
     ...otherTools
-  } = await createNextAppServerToolset<A, PA, LK>(rMachine, impl, NextClientRMachine);
+  } = await createNextAppServerToolset<RA, PA, LK>(rMachine, impl, NextClientRMachine);
 
   // Use dynamic import to bypass the "next/headers" import issue in pages/ directory
   // You're importing a component that needs "next/headers". That only works in a Server Component which is not supported in the pages/ directory. Read more: https://nextjs.org/docs/app/building-your-application/rendering/server-components

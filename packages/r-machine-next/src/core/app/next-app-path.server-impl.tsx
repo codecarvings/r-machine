@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import type { AnyAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
@@ -24,7 +24,7 @@ const default_implicit_matcher: RegExp | null = defaultPathMatcher; // Implicit 
 const pathComposerNormalizerRegExp = /^\//;
 
 export async function createNextAppPathServerImpl(
-  rMachine: RMachine<AnyAtlas>,
+  rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppPathStrategyConfig,
   _resolveHref: HrefResolver
 ) {

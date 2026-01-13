@@ -1,4 +1,4 @@
-import type { AnyAtlas } from "r-machine";
+import type { AnyResourceAtlas } from "r-machine";
 import type { SwitchableOption } from "r-machine/strategy";
 import {
   type AnyPathAtlas,
@@ -36,16 +36,16 @@ const defaultConfig: NextAppStrategyConfig<
 };
 
 export abstract class NextAppStrategyCore<
-  A extends AnyAtlas,
+  RA extends AnyResourceAtlas,
   C extends AnyNextAppStrategyConfig,
-> extends NextStrategyCore<A, C> {
+> extends NextStrategyCore<RA, C> {
   static override readonly defaultConfig = defaultConfig;
 
   protected abstract createServerImpl(): Promise<NextAppServerImpl>;
 
   async createServerToolset(
     NextClientRMachine: NextClientRMachine
-  ): Promise<NextAppServerToolset<A, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
+  ): Promise<NextAppServerToolset<RA, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     const impl = await this.createServerImpl();
     const module = await import("./next-app-server-toolset.js");
     return module.createNextAppServerToolset(this.rMachine, impl, NextClientRMachine);

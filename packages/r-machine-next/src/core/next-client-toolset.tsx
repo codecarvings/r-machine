@@ -2,14 +2,14 @@
 
 import { createReactBareToolset, type ReactBareToolset } from "@r-machine/react/core";
 import { useRouter } from "next/navigation";
-import type { AnyAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { type ReactNode, useEffect } from "react";
 import type { BoundPathComposer } from "./path.js";
 import type { AnyPathAtlas } from "./path-atlas.js";
 
-export type NextClientToolset<A extends AnyAtlas, PA extends AnyPathAtlas> = Omit<
-  ReactBareToolset<A>,
+export type NextClientToolset<RA extends AnyResourceAtlas, PA extends AnyPathAtlas> = Omit<
+  ReactBareToolset<RA>,
   "ReactRMachine"
 > & {
   readonly NextClientRMachine: NextClientRMachine;
@@ -29,10 +29,10 @@ export interface NextClientImpl {
   createUsePathComposer: (useLocale: () => string) => () => BoundPathComposer<AnyPathAtlas>;
 }
 
-export async function createNextClientToolset<A extends AnyAtlas, PA extends AnyPathAtlas>(
-  rMachine: RMachine<A>,
+export async function createNextClientToolset<RA extends AnyResourceAtlas, PA extends AnyPathAtlas>(
+  rMachine: RMachine<RA>,
   impl: NextClientImpl
-): Promise<NextClientToolset<A, PA>> {
+): Promise<NextClientToolset<RA, PA>> {
   const { ReactRMachine, useLocale, ...otherTools } = await createReactBareToolset(rMachine);
 
   async function setLocale(newLocale: string, router: ReturnType<typeof useRouter>): Promise<void> {
@@ -50,7 +50,7 @@ export async function createNextClientToolset<A extends AnyAtlas, PA extends Any
     }
   }
 
-  function useSetLocale(): ReturnType<ReactBareToolset<A>["useSetLocale"]> {
+  function useSetLocale(): ReturnType<ReactBareToolset<RA>["useSetLocale"]> {
     const router = useRouter();
 
     return (newLocale: string) => setLocale(newLocale, router);

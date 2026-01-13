@@ -1,4 +1,4 @@
-import type { AnyAtlas } from "r-machine";
+import type { AnyResourceAtlas } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import type { SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
@@ -73,9 +73,9 @@ const defaultConfig: NextAppPathStrategyConfig<
 };
 
 export abstract class NextAppPathStrategyCore<
-  A extends AnyAtlas,
+  RA extends AnyResourceAtlas,
   C extends AnyNextAppPathStrategyConfig,
-> extends NextAppStrategyCore<A, C> {
+> extends NextAppStrategyCore<RA, C> {
   static override readonly defaultConfig = defaultConfig;
 
   protected override validateConfig(): void {
@@ -121,7 +121,7 @@ export abstract class NextAppPathStrategyCore<
 
   async createNoProxyServerToolset(
     NextClientRMachine: NextClientRMachine
-  ): Promise<NextAppNoProxyServerToolset<A, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
+  ): Promise<NextAppNoProxyServerToolset<RA, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     this.validateNoProxyConfig();
     const impl = await this.createServerImpl();
     const module = await import("./next-app-no-proxy-server-toolset.js");

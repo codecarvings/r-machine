@@ -1,8 +1,8 @@
-import type { AnyAtlas, RMachine } from "#r-machine";
+import type { AnyResourceAtlas, RMachine } from "#r-machine";
 
-export abstract class Strategy<A extends AnyAtlas, C> {
+export abstract class Strategy<RA extends AnyResourceAtlas, C> {
   constructor(
-    readonly rMachine: RMachine<A>,
+    readonly rMachine: RMachine<RA>,
     readonly config: C
   ) {
     this.validateConfig();
