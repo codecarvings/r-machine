@@ -9,7 +9,7 @@
     "url": "git+https://github.com/codecarvings/r-machine.git"
   },
   "bugs": "https://github.com/codecarvings/r-machine/issues",
-  "packageManager": "pnpm@10.25.0",
+  "packageManager": "pnpm@10.28.0",
   "scripts": {
     "check": "biome check --write .",
     "check:dry": "biome check .",
@@ -41,25 +41,25 @@
     ]
   },
   "devDependencies": {
-    "@biomejs/biome": "2.3.8",
+    "@biomejs/biome": "2.3.11",
     "@changesets/cli": "^2.29.8",
     "@r-machine/next": "workspace:*",
     "@r-machine/react": "workspace:*",
     "@types/js-cookie": "^3.0.6",
-    "@types/node": "^24.10.1",
-    "@types/react": "^19.2.7",
+    "@types/node": "^24.10.8",
+    "@types/react": "^19.2.8",
     "@types/semver": "^7.7.1",
-    "@vitest/ui": "^4.0.15",
+    "@vitest/ui": "^4.0.17",
     "husky": "9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
-    "next": "^16.0.7",
+    "next": "^16.1.1",
     "r-machine": "workspace:*",
-    "react": "^19.2.1",
+    "react": "^19.2.3",
     "semver": "^7.7.3",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
-    "vitest": "4.0.15",
-    "zshy": "0.6.0"
+    "vitest": "4.0.17",
+    "zshy": "0.7.0"
   }
 }
