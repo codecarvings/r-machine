@@ -6,15 +6,15 @@ import { setCookie } from "#r-machine/next/internal";
 import type { NextAppClientImpl } from "./next-app-client-toolset.js";
 import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
 
-const pathComposerNormalizerRegExp = /^\//;
+// const pathComposerNormalizerRegExp = /^\//;
 
 export async function createNextAppPathClientImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppPathStrategyConfig,
-  _resolveHref: HrefResolver
+  resolveHref: HrefResolver
 ) {
   const { cookie } = strategyConfig;
-  const lowercaseLocale = strategyConfig.lowercaseLocale === "on";
+  const lowercaseLocale = strategyConfig.localeLabel === "lowercase";
   const implicitDefaultLocale = strategyConfig.implicitDefaultLocale !== "off";
   const defaultLocale = rMachine.config.defaultLocale;
   const cookieSw = cookie !== "off";
@@ -50,6 +50,7 @@ export async function createNextAppPathClientImpl(
       router.push(path);
     },
 
+    /*
     createUsePathComposer(useLocale) {
       function getPathComposer() {
         const locale = useLocale();
@@ -68,6 +69,28 @@ export async function createNextAppPathClientImpl(
       }
 
       return getPathComposer;
+    },
+    */
+    createUsePathComposer: (useLocale) => {
+      return () => {
+        const locale = useLocale();
+
+        return (path, params) => {
+          let selectedLocale = locale;
+          let explicit = false;
+          if (params !== undefined) {
+            const { paramLocale, ...otherParams } = params;
+            if (paramLocale !== undefined) {
+              // Override locale from params
+              selectedLocale = paramLocale;
+              rMachine.localeHelper.validateLocale(selectedLocale);
+              explicit = true;
+            }
+            params = otherParams as any;
+          }
+          return resolveHref(explicit ? "bound-explicit" : "bound", selectedLocale, path, params);
+        };
+      };
     },
   } as NextAppClientImpl;
 }

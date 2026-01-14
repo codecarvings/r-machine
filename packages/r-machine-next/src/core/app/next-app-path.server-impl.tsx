@@ -19,19 +19,19 @@ const default_autoDL_matcher_implicit: RegExp | null = /^\/$/; // Auto detect on
 const default_autoDL_matcher_explicit: RegExp | null = defaultPathMatcher; // Auto detect all standard next paths
 const default_implicit_matcher: RegExp | null = defaultPathMatcher; // Implicit for all standard paths
 
-const pathComposerNormalizerRegExp = /^\//;
+// const pathComposerNormalizerRegExp = /^\//;
 
 export async function createNextAppPathServerImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppPathStrategyConfig,
-  _resolveHref: HrefResolver
+  resolveHref: HrefResolver
 ) {
   const locales = rMachine.config.locales;
   const defaultLocale = rMachine.config.defaultLocale;
-  const { localeKey, autoLocaleBinding, basePath, cookie, lowercaseLocale, autoDetectLocale, implicitDefaultLocale } =
+  const { localeKey, autoLocaleBinding, basePath, cookie, localeLabel, autoDetectLocale, implicitDefaultLocale } =
     strategyConfig;
   const autoLBSw = autoLocaleBinding === "on";
-  const lowercaseLocaleSw = lowercaseLocale === "on";
+  const lowercaseLocaleSw = localeLabel === "lowercase";
   const implicitSw = implicitDefaultLocale !== "off";
   const autoDLSw = autoDetectLocale !== "off";
   const cookieSw = cookie !== "off";
@@ -280,6 +280,7 @@ export async function createNextAppPathServerImpl(
       return EntrancePage;
     },
 
+    /*
     createBoundPathComposerSupplier(getLocale) {
       async function getPathComposer() {
         validateServerOnlyUsage("getPathComposer");
@@ -300,6 +301,30 @@ export async function createNextAppPathServerImpl(
       }
 
       return getPathComposer;
+    },
+    */
+
+    createBoundPathComposerSupplier: (getLocale) => {
+      return async () => {
+        validateServerOnlyUsage("getPathComposer");
+        const locale = await getLocale();
+
+        return (path, params) => {
+          let selectedLocale = locale;
+          let explicit = false;
+          if (params !== undefined) {
+            const { paramLocale, ...otherParams } = params;
+            if (paramLocale !== undefined) {
+              // Override locale from params
+              selectedLocale = paramLocale;
+              rMachine.localeHelper.validateLocale(selectedLocale);
+              explicit = true;
+            }
+            params = otherParams as any;
+          }
+          return resolveHref(explicit ? "bound-explicit" : "bound", selectedLocale, path, params);
+        };
+      };
     },
   } as NextAppNoProxyServerImpl;
 }

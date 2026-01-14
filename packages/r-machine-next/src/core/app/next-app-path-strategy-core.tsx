@@ -28,6 +28,8 @@ type PathComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O exte
   params?: PathParams<P, O>
 ) => string;
 
+type LocaleLabelOption = "strict" | "lowercase";
+
 interface CustomImplicitDefaultLocale {
   readonly pathMatcher: RegExp | null;
 }
@@ -42,7 +44,7 @@ type CookieOption = SwitchableOption | CookieDeclaration;
 export interface NextAppPathStrategyConfig<PA extends AnyPathAtlas, LK extends string>
   extends NextAppStrategyConfig<PA, LK> {
   readonly cookie: CookieOption;
-  readonly lowercaseLocale: SwitchableOption;
+  readonly localeLabel: LocaleLabelOption;
   readonly autoDetectLocale: AutoDetectLocaleOption;
   readonly implicitDefaultLocale: ImplicitDefaultLocaleOption;
 }
@@ -50,7 +52,7 @@ export type AnyNextAppPathStrategyConfig = NextAppPathStrategyConfig<any, any>;
 export interface PartialNextAppPathStrategyConfig<PA extends AnyPathAtlas, LK extends string>
   extends PartialNextAppStrategyConfig<PA, LK> {
   readonly cookie?: CookieOption;
-  readonly lowercaseLocale?: SwitchableOption;
+  readonly localeLabel?: LocaleLabelOption;
   readonly autoDetectLocale?: AutoDetectLocaleOption;
   readonly implicitDefaultLocale?: ImplicitDefaultLocaleOption;
 }
@@ -61,7 +63,7 @@ const defaultConfig: NextAppPathStrategyConfig<
 > = {
   ...NextAppStrategyCore.defaultConfig,
   cookie: "off",
-  lowercaseLocale: "on",
+  localeLabel: "lowercase",
   autoDetectLocale: "on",
   implicitDefaultLocale: "off",
 };
@@ -123,7 +125,7 @@ export abstract class NextAppPathStrategyCore<
   }
 
   readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
-    getPath: (locale, path, params) => this.resolveHref(true, locale, path, params),
+    getPath: (locale, path, params) => this.resolveHref("unbound", locale, path, params),
   };
 
   // TODO: Implement resolveHref

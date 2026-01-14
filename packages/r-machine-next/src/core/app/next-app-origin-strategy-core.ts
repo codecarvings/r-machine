@@ -73,8 +73,8 @@ export abstract class NextAppOriginStrategyCore<
   }
 
   readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
-    getHref: (locale, path, params) => this.resolveHref(true, locale, path, params),
-    getPath: (path, params) => this.resolveHref(true, undefined, path, params),
+    getHref: (locale, path, params) => this.resolveHref("unbound", locale, path, params),
+    getPath: (path, params) => this.resolveHref("unbound", undefined, path, params),
   };
 
   // TODO: Implement resolveHref

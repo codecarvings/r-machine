@@ -4,10 +4,10 @@ import type { NextAppClientImpl } from "./next-app-client-toolset.js";
 import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-core.js";
 
 export async function createNextAppOriginClientImpl(
-  _rMachine: RMachine<AnyResourceAtlas>,
+  rMachine: RMachine<AnyResourceAtlas>,
   _strategyConfig: AnyNextAppOriginStrategyConfig,
   resolveOrigin: (locale: string) => string,
-  _resolveHref: HrefResolver
+  resolveHref: HrefResolver
 ) {
   return {
     onLoad: undefined,
@@ -17,7 +17,26 @@ export async function createNextAppOriginClientImpl(
       router.push(href!);
     },
 
-    // TODO: Implement createUsePathComposer
-    createUsePathComposer: undefined!,
+    createUsePathComposer: (useLocale) => {
+      return () => {
+        const locale = useLocale();
+
+        return (path, params) => {
+          let selectedLocale = locale;
+          let explicit = false;
+          if (params !== undefined) {
+            const { paramLocale, ...otherParams } = params;
+            if (paramLocale !== undefined) {
+              // Override locale from params
+              selectedLocale = paramLocale;
+              rMachine.localeHelper.validateLocale(selectedLocale);
+              explicit = true;
+            }
+            params = otherParams as any;
+          }
+          return resolveHref(explicit ? "bound-explicit" : "bound", selectedLocale, path, params);
+        };
+      };
+    },
   } as NextAppClientImpl;
 }

@@ -35,7 +35,7 @@ export interface NextAppServerImpl {
   readonly localeKey: string;
   readonly autoLocaleBinding: boolean;
   readonly writeLocale: (newLocale: string, cookies: CookiesFn, headers: HeadersFn) => void | Promise<void>;
-  // must be dynamically generated because of strategy options (lowercaseLocale)
+  // must be dynamically generated because of strategy options (localeLabel)
   readonly createLocaleStaticParamsGenerator: () =>
     | LocaleStaticParamsGenerator<string>
     | Promise<LocaleStaticParamsGenerator<string>>;

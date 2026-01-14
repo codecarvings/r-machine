@@ -6,9 +6,9 @@ import type { NextAppClientImpl } from "./next-app-client-toolset.js";
 import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core.js";
 
 export async function createNextAppFlatClientImpl(
-  _rMachine: RMachine<AnyResourceAtlas>,
+  rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppFlatStrategyConfig,
-  _resolveHref: HrefResolver
+  resolveHref: HrefResolver
 ) {
   const { cookie } = strategyConfig;
   const { name: cookieName, ...cookieConfig } = cookie;
@@ -26,7 +26,26 @@ export async function createNextAppFlatClientImpl(
       router.refresh();
     },
 
-    // TODO: Implement createUsePathComposer
-    createUsePathComposer: undefined!,
+    createUsePathComposer: (useLocale) => {
+      return () => {
+        const locale = useLocale();
+
+        return (path, params) => {
+          let selectedLocale = locale;
+          let explicit = false;
+          if (params !== undefined) {
+            const { paramLocale, ...otherParams } = params;
+            if (paramLocale !== undefined) {
+              // Override locale from params
+              selectedLocale = paramLocale;
+              rMachine.localeHelper.validateLocale(selectedLocale);
+              explicit = true;
+            }
+            params = otherParams as any;
+          }
+          return resolveHref(explicit ? "bound-explicit" : "bound", selectedLocale, path, params);
+        };
+      };
+    },
   } as NextAppClientImpl;
 }

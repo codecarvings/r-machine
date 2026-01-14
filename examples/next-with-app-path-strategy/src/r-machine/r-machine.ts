@@ -16,6 +16,6 @@ export const strategy = new NextAppPathStrategy(rMachine, {
   },
 
   // autoLocaleBinding: "on",
-  // lowercaseLocale: "off",
+  // localeLabel: "strict",
   // basePath: "/subdir",
 });

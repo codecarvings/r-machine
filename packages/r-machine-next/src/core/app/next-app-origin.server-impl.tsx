@@ -2,7 +2,12 @@ import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import type { HrefResolver } from "#r-machine/next/core";
-import type { CookiesFn, HeadersFn, NextProxyResult } from "#r-machine/next/internal";
+import {
+  type CookiesFn,
+  type HeadersFn,
+  type NextProxyResult,
+  validateServerOnlyUsage,
+} from "#r-machine/next/internal";
 import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-core.js";
 import type { NextAppServerImpl } from "./next-app-server-toolset.js";
 import { localeHeaderName } from "./next-app-strategy-core.js";
@@ -11,7 +16,7 @@ export async function createNextAppOriginServerImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppOriginStrategyConfig,
   resolveOrigin: (locale: string) => string,
-  _resolveHref: HrefResolver
+  resolveHref: HrefResolver
 ) {
   const defaultLocale = rMachine.config.defaultLocale;
   const { localeKey, autoLocaleBinding, localeOriginMap, pathMatcher } = strategyConfig;
@@ -100,6 +105,27 @@ export async function createNextAppOriginServerImpl(
     },
 
     // TODO: implement createBoundPathComposerSupplier
-    createBoundPathComposerSupplier: undefined!,
+    createBoundPathComposerSupplier: (getLocale) => {
+      return async () => {
+        validateServerOnlyUsage("getPathComposer");
+        const locale = await getLocale();
+
+        return (path, params) => {
+          let selectedLocale = locale;
+          let explicit = false;
+          if (params !== undefined) {
+            const { paramLocale, ...otherParams } = params;
+            if (paramLocale !== undefined) {
+              // Override locale from params
+              selectedLocale = paramLocale;
+              rMachine.localeHelper.validateLocale(selectedLocale);
+              explicit = true;
+            }
+            params = otherParams as any;
+          }
+          return resolveHref(explicit ? "bound-explicit" : "bound", selectedLocale, path, params);
+        };
+      };
+    },
   } as NextAppServerImpl;
 }

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import type { HrefResolver } from "#r-machine/next/core";
-import type { CookiesFn, NextProxyResult } from "#r-machine/next/internal";
+import { type CookiesFn, type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core.js";
 import type { NextAppServerImpl } from "./next-app-server-toolset.js";
 import { localeHeaderName } from "./next-app-strategy-core.js";
@@ -10,7 +10,7 @@ import { localeHeaderName } from "./next-app-strategy-core.js";
 export async function createNextAppFlatServerImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppFlatStrategyConfig,
-  _resolveHref: HrefResolver
+  resolveHref: HrefResolver
 ) {
   const locales = rMachine.config.locales;
   const { localeKey, autoLocaleBinding, cookie, pathMatcher } = strategyConfig;
@@ -96,7 +96,27 @@ export async function createNextAppFlatServerImpl(
       return proxy;
     },
 
-    // TODO: implement createBoundPathComposerSupplier
-    createBoundPathComposerSupplier: undefined!,
+    createBoundPathComposerSupplier: (getLocale) => {
+      return async () => {
+        validateServerOnlyUsage("getPathComposer");
+        const locale = await getLocale();
+
+        return (path, params) => {
+          let selectedLocale = locale;
+          let explicit = false;
+          if (params !== undefined) {
+            const { paramLocale, ...otherParams } = params;
+            if (paramLocale !== undefined) {
+              // Override locale from params
+              selectedLocale = paramLocale;
+              rMachine.localeHelper.validateLocale(selectedLocale);
+              explicit = true;
+            }
+            params = otherParams as any;
+          }
+          return resolveHref(explicit ? "bound-explicit" : "bound", selectedLocale, path, params);
+        };
+      };
+    },
   } as NextAppServerImpl;
 }
