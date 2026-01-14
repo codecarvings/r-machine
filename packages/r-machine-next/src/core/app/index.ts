@@ -1,4 +1,10 @@
 export {
+  createNextAppClientToolset,
+  type NextAppClientImpl,
+  type NextAppClientRMachine,
+  type NextAppClientToolset,
+} from "./next-app-client-toolset.js";
+export {
   type AnyNextAppFlatStrategyConfig,
   type NextAppFlatStrategyConfig,
   NextAppFlatStrategyCore,

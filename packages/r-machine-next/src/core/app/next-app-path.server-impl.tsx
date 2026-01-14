@@ -6,16 +6,14 @@ import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import type { HrefResolver } from "#r-machine/next/core";
 import {
-  type AnyNextAppPathStrategyConfig,
-  localeHeaderName,
-  type NextAppNoProxyServerImpl,
-} from "#r-machine/next/core/app";
-import {
   type CookiesFn,
   defaultPathMatcher,
   type NextProxyResult,
   validateServerOnlyUsage,
 } from "#r-machine/next/internal";
+import type { NextAppNoProxyServerImpl } from "./next-app-no-proxy-server-toolset.js";
+import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
+import { localeHeaderName } from "./next-app-strategy-core.js";
 
 const default_autoDL_matcher_implicit: RegExp | null = /^\/$/; // Auto detect only root path
 const default_autoDL_matcher_explicit: RegExp | null = defaultPathMatcher; // Auto detect all standard next paths

@@ -1,9 +1,10 @@
 import Cookies from "js-cookie";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
-import type { HrefResolver, NextClientImpl } from "#r-machine/next/core";
-import type { AnyNextAppPathStrategyConfig } from "#r-machine/next/core/app";
+import type { HrefResolver } from "#r-machine/next/core";
 import { setCookie } from "#r-machine/next/internal";
+import type { NextAppClientImpl } from "./next-app-client-toolset.js";
+import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
 
 const pathComposerNormalizerRegExp = /^\//;
 
@@ -19,7 +20,7 @@ export async function createNextAppPathClientImpl(
   const cookieSw = cookie !== "off";
   const { name: cookieName, ...cookieConfig } = cookieSw ? (cookie === "on" ? defaultCookieDeclaration : cookie) : {};
 
-  let onLoad: NextClientImpl["onLoad"];
+  let onLoad: NextAppClientImpl["onLoad"];
   if (cookieSw) {
     onLoad = (locale) => {
       const cookieLocale = Cookies.get(cookieName!);
@@ -68,5 +69,5 @@ export async function createNextAppPathClientImpl(
 
       return getPathComposer;
     },
-  } as NextClientImpl;
+  } as NextAppClientImpl;
 }

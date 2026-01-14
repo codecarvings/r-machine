@@ -1,6 +1,7 @@
 import type { AnyResourceAtlas, RMachine } from "r-machine";
-import type { HrefResolver, NextClientImpl } from "#r-machine/next/core";
-import type { AnyNextAppOriginStrategyConfig } from "#r-machine/next/core/app";
+import type { HrefResolver } from "#r-machine/next/core";
+import type { NextAppClientImpl } from "./next-app-client-toolset.js";
+import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-core.js";
 
 export async function createNextAppOriginClientImpl(
   _rMachine: RMachine<AnyResourceAtlas>,
@@ -18,5 +19,5 @@ export async function createNextAppOriginClientImpl(
 
     // TODO: Implement createUsePathComposer
     createUsePathComposer: undefined!,
-  } as NextClientImpl;
+  } as NextAppClientImpl;
 }

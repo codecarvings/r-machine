@@ -49,13 +49,17 @@ export type PathParamMap<P extends string> = P extends `/${infer First}/${infer 
           : {}
     : {};
 
+// Need both P and O params to properly infer types
 export type PathParams<P extends string, O extends PathParamMap<P>> = [keyof O] extends [keyof PathParamMap<P>]
   ? [keyof PathParamMap<P>] extends [keyof O]
     ? Prettify<O>
     : Prettify<PathParamMap<P>>
   : never;
 
-export type BoundPathComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
+// Need only P param to infer types thanks to the presence of at least one known key (LK)
+type BoundPathParams<P extends string, LK extends string> = Prettify<PathParamMap<P> & { [K in LK]?: string }>;
+
+export type BoundPathComposer<PA extends AnyPathAtlas, LK extends string> = <P extends PathSelector<PA>>(
   path: P,
-  params?: PathParams<P, O>
+  params?: BoundPathParams<P, LK>
 ) => string;

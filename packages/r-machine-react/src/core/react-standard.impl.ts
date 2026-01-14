@@ -1,6 +1,7 @@
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
-import type { ReactImpl, ReactStandardStrategyConfig } from "#r-machine/react/core";
+import type { ReactStandardStrategyConfig } from "./react-standard-strategy-core.js";
+import type { ReactImpl } from "./react-toolset.js";
 
 export async function createReactStandardImpl(
   rMachine: RMachine<AnyResourceAtlas>,

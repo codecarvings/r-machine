@@ -1,11 +1,11 @@
 import type { AnyResourceAtlas } from "r-machine";
 import type { AnyPathAtlas, HrefResolver, PathParamMap, PathParams, PathSelector } from "#r-machine/next/core";
+import { defaultPathMatcher } from "#r-machine/next/internal";
 import {
   type NextAppStrategyConfig,
   NextAppStrategyCore,
   type PartialNextAppStrategyConfig,
-} from "#r-machine/next/core/app";
-import { defaultPathMatcher } from "#r-machine/next/internal";
+} from "./next-app-strategy-core.js";
 
 interface HrefHelper<PA extends AnyPathAtlas> {
   readonly getHref: HrefComposer<PA>;

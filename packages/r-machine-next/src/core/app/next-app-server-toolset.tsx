@@ -3,8 +3,9 @@ import type { AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from 
 import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
-import type { AnyPathAtlas, BoundPathComposer, NextClientRMachine, RMachineProxy } from "#r-machine/next/core";
+import type { AnyPathAtlas, BoundPathComposer, RMachineProxy } from "#r-machine/next/core";
 import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
+import type { NextAppClientRMachine } from "./next-app-client-toolset.js";
 import { localeHeaderName } from "./next-app-strategy-core.js";
 
 export interface NextAppServerToolset<RA extends AnyResourceAtlas, PA extends AnyPathAtlas, LK extends string> {
@@ -16,10 +17,10 @@ export interface NextAppServerToolset<RA extends AnyResourceAtlas, PA extends An
   readonly setLocale: (newLocale: string) => Promise<void>;
   readonly pickR: <N extends Namespace<RA>>(namespace: N) => Promise<RA[N]>;
   readonly pickRKit: <NL extends NamespaceList<RA>>(...namespaces: NL) => Promise<RKit<RA, NL>>;
-  readonly getPathComposer: BoundPathComposerSupplier<PA>;
+  readonly getPathComposer: BoundPathComposerSupplier<PA, LK>;
 }
 
-type BoundPathComposerSupplier<PA extends AnyPathAtlas> = () => Promise<BoundPathComposer<PA>>;
+type BoundPathComposerSupplier<PA extends AnyPathAtlas, LK extends string> = () => Promise<BoundPathComposer<PA, LK>>;
 
 type RMachineParams<LK extends string> = {
   [P in LK]: string;
@@ -41,7 +42,7 @@ export interface NextAppServerImpl {
   readonly createProxy: () => RMachineProxy | Promise<RMachineProxy>;
   readonly createBoundPathComposerSupplier: (
     getLocale: () => Promise<string>
-  ) => BoundPathComposerSupplier<AnyPathAtlas> | Promise<BoundPathComposerSupplier<AnyPathAtlas>>;
+  ) => BoundPathComposerSupplier<AnyPathAtlas, string> | Promise<BoundPathComposerSupplier<AnyPathAtlas, string>>;
 }
 
 type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
@@ -63,7 +64,7 @@ export async function createNextAppServerToolset<
 >(
   rMachine: RMachine<RA>,
   impl: NextAppServerImpl,
-  NextClientRMachine: NextClientRMachine
+  NextClientRMachine: NextAppClientRMachine
 ): Promise<NextAppServerToolset<RA, PA, LK>> {
   const localeKey = impl.localeKey as LK;
   const { autoLocaleBinding } = impl;

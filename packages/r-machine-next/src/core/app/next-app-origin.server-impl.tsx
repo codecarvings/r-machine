@@ -2,12 +2,10 @@ import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import type { HrefResolver } from "#r-machine/next/core";
-import {
-  type AnyNextAppOriginStrategyConfig,
-  localeHeaderName,
-  type NextAppServerImpl,
-} from "#r-machine/next/core/app";
 import type { CookiesFn, HeadersFn, NextProxyResult } from "#r-machine/next/internal";
+import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-core.js";
+import type { NextAppServerImpl } from "./next-app-server-toolset.js";
+import { localeHeaderName } from "./next-app-strategy-core.js";
 
 export async function createNextAppOriginServerImpl(
   rMachine: RMachine<AnyResourceAtlas>,

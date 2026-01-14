@@ -2,14 +2,8 @@ import type { AnyResourceAtlas } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import type { SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
-import type {
-  AnyPathAtlas,
-  HrefResolver,
-  NextClientRMachine,
-  PathParamMap,
-  PathParams,
-  PathSelector,
-} from "#r-machine/next/core";
+import type { AnyPathAtlas, HrefResolver, PathParamMap, PathParams, PathSelector } from "#r-machine/next/core";
+import type { NextAppClientRMachine } from "./next-app-client-toolset.js";
 import type { NextAppNoProxyServerToolset } from "./next-app-no-proxy-server-toolset.js";
 import {
   type NextAppStrategyConfig,
@@ -120,7 +114,7 @@ export abstract class NextAppPathStrategyCore<
   }
 
   async createNoProxyServerToolset(
-    NextClientRMachine: NextClientRMachine
+    NextClientRMachine: NextAppClientRMachine
   ): Promise<NextAppNoProxyServerToolset<RA, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     this.validateNoProxyConfig();
     const impl = await this.createServerImpl();

@@ -5,34 +5,34 @@ import { useRouter } from "next/navigation";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { type ReactNode, useEffect } from "react";
-import type { BoundPathComposer } from "./path.js";
-import type { AnyPathAtlas } from "./path-atlas.js";
+import type { AnyPathAtlas, BoundPathComposer } from "#r-machine/next/core";
 
-export type NextClientToolset<RA extends AnyResourceAtlas, PA extends AnyPathAtlas> = Omit<
+export type NextAppClientToolset<RA extends AnyResourceAtlas, PA extends AnyPathAtlas, LK extends string> = Omit<
   ReactBareToolset<RA>,
   "ReactRMachine"
 > & {
-  readonly NextClientRMachine: NextClientRMachine;
-  readonly usePathComposer: () => BoundPathComposer<PA>;
+  readonly NextClientRMachine: NextAppClientRMachine;
+  readonly usePathComposer: () => BoundPathComposer<PA, LK>;
 };
 
-export type NextClientRMachine = (props: NextClientRMachineProps) => ReactNode;
-interface NextClientRMachineProps {
+export type NextAppClientRMachine = (props: NextAppClientRMachineProps) => ReactNode;
+interface NextAppClientRMachineProps {
   readonly locale: string;
   readonly children: ReactNode;
 }
 
-export interface NextClientImpl {
+export interface NextAppClientImpl {
   // biome-ignore lint/suspicious/noConfusingVoidType: As per design
   readonly onLoad: ((locale: string) => void | (() => void)) | undefined;
   readonly writeLocale: (newLocale: string, router: ReturnType<typeof useRouter>) => void | Promise<void>;
-  createUsePathComposer: (useLocale: () => string) => () => BoundPathComposer<AnyPathAtlas>;
+  createUsePathComposer: (useLocale: () => string) => () => BoundPathComposer<AnyPathAtlas, string>;
 }
 
-export async function createNextClientToolset<RA extends AnyResourceAtlas, PA extends AnyPathAtlas>(
-  rMachine: RMachine<RA>,
-  impl: NextClientImpl
-): Promise<NextClientToolset<RA, PA>> {
+export async function createNextAppClientToolset<
+  RA extends AnyResourceAtlas,
+  PA extends AnyPathAtlas,
+  LK extends string,
+>(rMachine: RMachine<RA>, impl: NextAppClientImpl): Promise<NextAppClientToolset<RA, PA, LK>> {
   const { ReactRMachine, useLocale, ...otherTools } = await createReactBareToolset(rMachine);
 
   async function setLocale(newLocale: string, router: ReturnType<typeof useRouter>): Promise<void> {
@@ -56,7 +56,7 @@ export async function createNextClientToolset<RA extends AnyResourceAtlas, PA ex
     return (newLocale: string) => setLocale(newLocale, router);
   }
 
-  function NextClientRMachine({ locale, children }: NextClientRMachineProps) {
+  function NextClientRMachine({ locale, children }: NextAppClientRMachineProps) {
     useEffect(() => {
       if (impl.onLoad !== undefined) {
         return impl.onLoad(locale);

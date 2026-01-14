@@ -1,12 +1,12 @@
 import type { AnyResourceAtlas } from "r-machine";
 import { type CookieDeclaration, defaultCookieDeclaration } from "r-machine/strategy/web";
 import type { AnyPathAtlas, HrefResolver, PathParamMap, PathParams, PathSelector } from "#r-machine/next/core";
+import { defaultPathMatcher } from "#r-machine/next/internal";
 import {
   type NextAppStrategyConfig,
   NextAppStrategyCore,
   type PartialNextAppStrategyConfig,
-} from "#r-machine/next/core/app";
-import { defaultPathMatcher } from "#r-machine/next/internal";
+} from "./next-app-strategy-core.js";
 
 // Locale not available for flat strategy since locale is stored in the cookie
 interface HrefHelper<PA extends AnyPathAtlas> {

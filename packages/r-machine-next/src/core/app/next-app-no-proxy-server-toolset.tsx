@@ -1,7 +1,8 @@
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import type { ReactNode } from "react";
-import type { AnyPathAtlas, NextClientRMachine } from "#r-machine/next/core";
+import type { AnyPathAtlas } from "#r-machine/next/core";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
+import type { NextAppClientRMachine } from "./index.js";
 import {
   createNextAppServerToolset,
   type NextAppServerImpl,
@@ -30,7 +31,7 @@ export async function createNextAppNoProxyServerToolset<
 >(
   rMachine: RMachine<RA>,
   impl: NextAppNoProxyServerImpl,
-  NextClientRMachine: NextClientRMachine
+  NextClientRMachine: NextAppClientRMachine
 ): Promise<NextAppNoProxyServerToolset<RA, PA, LK>> {
   const {
     rMachineProxy: _rMachineProxy,
