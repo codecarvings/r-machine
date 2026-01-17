@@ -15,4 +15,5 @@ export type {
   NonLocalizableSegmentDecl,
   PathAtlasCtor,
 } from "./path-atlas.js";
+export { PathTranslator } from "./path-translator.js";
 export type { RMachineProxy } from "./proxy.js";

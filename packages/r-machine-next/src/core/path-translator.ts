@@ -1,23 +1,37 @@
+import { RMachineError } from "r-machine/errors";
 import type { AnyPathAtlas } from "#r-machine/next/core";
 
-type SegmentKind = "root" | "static" | "dynamic" | "catchAll" | "optionalCatchAll";
+type SegmentKind = "static" | "dynamic" | "catchAll" | "optionalCatchAll";
 
 interface SegmentData {
-  readonly kind: SegmentKind;
+  readonly kind: SegmentKind | undefined;
   readonly paramKey: string | undefined;
+}
+
+interface PathAtlasSegment extends SegmentData {
   readonly translations: {
     readonly [locale: string]: string;
   };
   readonly children: {
-    [key: string]: SegmentData;
+    [key: string]: PathAtlasSegment;
   };
 }
 
-function buildSegmentDataTree(segment: string, decl: object, locales: string[], defaultLocale: string): SegmentData {
-  let kind: SegmentKind;
+interface MappedSegment {
+  readonly decl: boolean;
+  readonly segment: string;
+  readonly kind: SegmentKind;
+}
+
+interface MappedPath {
+  readonly decl: boolean;
+  readonly segments: MappedSegment[];
+}
+
+export function getSegmentData(segment: string): SegmentData {
+  let kind: SegmentKind | undefined;
   let paramKey: string | undefined;
   if (segment === "") {
-    kind = "root";
   } else if (segment.startsWith("[[...") && segment.endsWith("]]")) {
     kind = "optionalCatchAll";
     paramKey = segment.slice(5, -2);
@@ -31,18 +45,29 @@ function buildSegmentDataTree(segment: string, decl: object, locales: string[], 
     kind = "static";
   }
 
+  return { kind, paramKey };
+}
+
+export function buildPathAtlasSegmentTree(
+  segment: string,
+  decl: object,
+  locales: string[],
+  defaultLocale: string
+): PathAtlasSegment {
+  const { kind, paramKey } = getSegmentData(segment);
+
   const translations: { [locale: string]: string } = {};
   for (const locale of locales) {
     translations[locale] = segment;
   }
 
-  const children: { [key: string]: SegmentData } = {};
+  const children: { [key: string]: PathAtlasSegment } = {};
   for (const key in decl) {
     if (key.startsWith("/")) {
       // Segment declaration
       const childDecl = (decl as any)[key];
       const segment = key.slice(1);
-      children[segment] = buildSegmentDataTree(segment, childDecl, locales, defaultLocale);
+      children[segment] = buildPathAtlasSegmentTree(segment, childDecl, locales, defaultLocale);
     } else {
       const translationDecl: string = (decl as any)[key];
       const translation = translationDecl.slice(1);
@@ -59,75 +84,127 @@ export class PathTranslator {
     protected readonly locales: string[],
     protected readonly defaultLocale: string
   ) {
-    this.segmentDataTree = buildSegmentDataTree("", this.atlas.decl, this.locales, this.defaultLocale);
+    this.segmentDataTree = buildPathAtlasSegmentTree("", this.atlas.decl, this.locales, this.defaultLocale);
     locales.forEach((locale) => {
-      this.caches[locale] = new Map<string, string[]>();
+      this.caches[locale] = new Map<string, MappedSegment[]>();
     });
   }
 
-  protected readonly segmentDataTree: SegmentData;
-  protected readonly caches: { [locale: string]: Map<string, string[]> } = {};
+  protected readonly segmentDataTree: PathAtlasSegment;
+  protected readonly caches: { [locale: string]: Map<string, MappedSegment[]> } = {};
 
   getTranslatedPath(locale: string, path: string, params?: object): string {
     const cache = this.caches[locale];
-    let segments = cache.get(path);
-    if (segments === undefined) {
-      segments = this.getTranslatedSegments(locale, path);
-      cache.set(path, segments);
+    let mappedSegments = cache.get(path);
+    if (mappedSegments === undefined) {
+      const mappedPath = this.getMappedPath(locale, path);
+      mappedSegments = mappedPath.segments;
+      if (mappedPath.decl) {
+        // Cache only fully declared paths
+        cache.set(path, mappedPath.segments);
+      }
     }
-
-    let result = segments;
-    if (params !== undefined) {
-      result = [...segments];
-      const paramKeys = Object.keys(params);
-      paramKeys.forEach((key) => {
-        const value = (params as any)[key];
-        let strValue: string;
-        if (Array.isArray(value)) {
-          strValue = value
-            .map((v) => encodeURIComponent(String(v)))
-            .join("/")
-            .replace(/\/+/g, "/");
-        } else {
-          strValue = encodeURIComponent(String(value));
-        }
-        if (strValue.length > 0) {
-          result = result.map((segment) => segment.replace(new RegExp(`^\\[${key}\\]$`), strValue));
-        }
-      });
-    }
-
-    return `/${result.join("/")}`;
+    return getTranslatedPath(locale, path, mappedSegments, params);
   }
 
-  protected getTranslatedSegments(locale: string, path: string): string[] {
-    const inSegments = path.split("/").filter((s) => s.length !== 0);
-    const outSegments: string[] = [];
+  protected getMappedPath(locale: string, path: string): MappedPath {
+    if (!path.startsWith("/")) {
+      throw new RMachineError(`Path must start with "/".`);
+    }
 
-    let curSegment: SegmentData | undefined = this.segmentDataTree;
+    const inSegments = path.split("/").filter((s) => s.length !== 0);
+    if (inSegments.length === 0) {
+      return { decl: true, segments: [] };
+    }
+
+    const outSegments: MappedSegment[] = [];
+    let pathDecl = true;
+
+    let curSegment: PathAtlasSegment | undefined = this.segmentDataTree;
     function populateOutSegments(deep: number) {
       const inSegment = inSegments[deep];
-      const childSegment: SegmentData | undefined = curSegment?.children[inSegment];
+      const childSegment: PathAtlasSegment | undefined = curSegment?.children[inSegment];
       if (childSegment !== undefined) {
         // Matching child segment found
         curSegment = childSegment;
-        if (curSegment.kind === "dynamic" || curSegment.kind === "catchAll" || curSegment.kind === "optionalCatchAll") {
-          // Dynamic segment, use input segment as-is
-          outSegments.push(`[${curSegment.paramKey}]`);
+        if (curSegment.paramKey !== undefined) {
+          // Dynamic segment
+          outSegments.push({ decl: true, segment: curSegment.paramKey, kind: curSegment.kind! });
         } else {
-          // Static segment, use translated segment
-          outSegments.push(curSegment.translations[locale]);
+          // Static segment
+          outSegments.push({ decl: true, segment: curSegment.translations[locale], kind: "static" });
         }
       } else {
         // No matching child segment, use input segment as-is
         curSegment = undefined;
-        outSegments.push(inSegment);
+        const { kind, paramKey } = getSegmentData(inSegment);
+        if (paramKey !== undefined) {
+          // Dynamic segment
+          outSegments.push({ decl: false, segment: paramKey, kind: kind! });
+        } else {
+          // Static segment
+          outSegments.push({ decl: false, segment: inSegment, kind: "static" });
+        }
+        pathDecl = false;
       }
       if (deep < inSegments.length - 1) {
         populateOutSegments(deep + 1);
       }
     }
     populateOutSegments(0);
-    return outSegments;
+
+    return {
+      decl: pathDecl,
+      segments: outSegments,
+    };
   }
+}
+
+export function getTranslatedPath(
+  locale: string,
+  path: string,
+  mappedSegments: MappedSegment[],
+  params?: object
+): string {
+  const result: string[] = [];
+  function addValue(value: any) {
+    const valueStr = encodeURIComponent(String(value));
+    if (valueStr.length > 0) {
+      result.push(valueStr);
+    } else {
+      throw new RMachineError(
+        `Cannot translate path "${path}" for locale "${locale}" because a parameter value results in an empty path segment.`
+      );
+    }
+  }
+
+  mappedSegments.forEach((mappedSegment) => {
+    if (mappedSegment.kind === "static") {
+      result.push(mappedSegment.segment);
+    } else {
+      // Dynamic segment, substitute param if available
+      const value = (params as any)?.[mappedSegment.segment];
+      if (value !== undefined) {
+        if (mappedSegment.kind === "dynamic") {
+          addValue(value);
+        } else {
+          // catchAll or optionalCatchAll
+          if (Array.isArray(value)) {
+            value.forEach((v) => {
+              addValue(v);
+            });
+          } else {
+            throw new RMachineError(
+              `Cannot translate path "${path}" for locale "${locale}" because parameter "${mappedSegment.segment}" is expected to be an array.`
+            );
+          }
+        }
+      } else
+        throw new RMachineError(
+          `Cannot translate path "${path}" for locale "${locale}" because parameter "${mappedSegment.segment}" is missing.`
+        );
+    }
+  });
+
+  return `/${result.join("/")}`;
 }
