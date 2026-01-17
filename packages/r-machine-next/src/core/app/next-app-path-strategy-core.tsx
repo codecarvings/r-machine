@@ -25,7 +25,7 @@ interface HrefHelper<PA extends AnyPathAtlas> {
 type PathComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
   locale: string,
   path: P,
-  params?: PathParams<P, O>
+  ...args: [keyof PathParamMap<P>] extends [never] ? [params?: PathParams<P, O>] : [params: PathParams<P, O>]
 ) => string;
 
 type LocaleLabelOption = "strict" | "lowercase";
@@ -125,7 +125,7 @@ export abstract class NextAppPathStrategyCore<
   }
 
   readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
-    getPath: (locale, path, params) => this.resolveHref("unbound", locale, path, params),
+    getPath: (locale, path, ...args) => this.resolveHref(false, locale, path, args[0]),
   };
 
   // TODO: Implement resolveHref

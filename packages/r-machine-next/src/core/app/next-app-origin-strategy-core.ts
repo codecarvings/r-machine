@@ -14,11 +14,11 @@ interface HrefHelper<PA extends AnyPathAtlas> {
 type HrefComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
   locale: string,
   path: P,
-  params?: PathParams<P, O>
+  ...args: [keyof PathParamMap<P>] extends [never] ? [params?: PathParams<P, O>] : [params: PathParams<P, O>]
 ) => string;
 type PathComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
   path: P,
-  params?: PathParams<P, O>
+  ...args: [keyof PathParamMap<P>] extends [never] ? [params?: PathParams<P, O>] : [params: PathParams<P, O>]
 ) => string;
 
 export type LocaleOriginMap = {
@@ -73,8 +73,8 @@ export abstract class NextAppOriginStrategyCore<
   }
 
   readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
-    getHref: (locale, path, params) => this.resolveHref("unbound", locale, path, params),
-    getPath: (path, params) => this.resolveHref("unbound", undefined, path, params),
+    getHref: (locale, path, ...args) => this.resolveHref(false, locale, path, args[0]),
+    getPath: (path, ...args) => this.resolveHref(false, undefined, path, args[0]),
   };
 
   // TODO: Implement resolveHref

@@ -76,19 +76,7 @@ export async function createNextAppPathClientImpl(
         const locale = useLocale();
 
         return (path, params) => {
-          let selectedLocale = locale;
-          let explicit = false;
-          if (params !== undefined) {
-            const { paramLocale, ...otherParams } = params;
-            if (paramLocale !== undefined) {
-              // Override locale from params
-              selectedLocale = paramLocale;
-              rMachine.localeHelper.validateLocale(selectedLocale);
-              explicit = true;
-            }
-            params = otherParams as any;
-          }
-          return resolveHref(explicit ? "bound-explicit" : "bound", selectedLocale, path, params);
+          return resolveHref(true, locale, path, params);
         };
       };
     },

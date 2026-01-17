@@ -17,10 +17,10 @@ export interface NextAppServerToolset<RA extends AnyResourceAtlas, PA extends An
   readonly setLocale: (newLocale: string) => Promise<void>;
   readonly pickR: <N extends Namespace<RA>>(namespace: N) => Promise<RA[N]>;
   readonly pickRKit: <NL extends NamespaceList<RA>>(...namespaces: NL) => Promise<RKit<RA, NL>>;
-  readonly getPathComposer: BoundPathComposerSupplier<PA, LK>;
+  readonly getPathComposer: BoundPathComposerSupplier<PA>;
 }
 
-type BoundPathComposerSupplier<PA extends AnyPathAtlas, LK extends string> = () => Promise<BoundPathComposer<PA, LK>>;
+type BoundPathComposerSupplier<PA extends AnyPathAtlas> = () => Promise<BoundPathComposer<PA>>;
 
 type RMachineParams<LK extends string> = {
   [P in LK]: string;
@@ -42,7 +42,7 @@ export interface NextAppServerImpl {
   readonly createProxy: () => RMachineProxy | Promise<RMachineProxy>;
   readonly createBoundPathComposerSupplier: (
     getLocale: () => Promise<string>
-  ) => BoundPathComposerSupplier<AnyPathAtlas, string> | Promise<BoundPathComposerSupplier<AnyPathAtlas, string>>;
+  ) => BoundPathComposerSupplier<AnyPathAtlas> | Promise<BoundPathComposerSupplier<AnyPathAtlas>>;
 }
 
 type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;

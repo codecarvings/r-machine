@@ -6,7 +6,7 @@ import type { NextAppClientImpl } from "./next-app-client-toolset.js";
 import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core.js";
 
 export async function createNextAppFlatClientImpl(
-  rMachine: RMachine<AnyResourceAtlas>,
+  _rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppFlatStrategyConfig,
   resolveHref: HrefResolver
 ) {
@@ -31,19 +31,7 @@ export async function createNextAppFlatClientImpl(
         const locale = useLocale();
 
         return (path, params) => {
-          let selectedLocale = locale;
-          let explicit = false;
-          if (params !== undefined) {
-            const { paramLocale, ...otherParams } = params;
-            if (paramLocale !== undefined) {
-              // Override locale from params
-              selectedLocale = paramLocale;
-              rMachine.localeHelper.validateLocale(selectedLocale);
-              explicit = true;
-            }
-            params = otherParams as any;
-          }
-          return resolveHref(explicit ? "bound-explicit" : "bound", selectedLocale, path, params);
+          return resolveHref(true, locale, path, params);
         };
       };
     },

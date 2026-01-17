@@ -49,7 +49,7 @@ export abstract class NextAppStrategyCore<
   protected abstract createClientImpl(): Promise<NextAppClientImpl>;
   protected abstract createServerImpl(): Promise<NextAppServerImpl>;
 
-  async createClientToolset(): Promise<NextAppClientToolset<RA, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
+  async createClientToolset(): Promise<NextAppClientToolset<RA, InstanceType<C["PathAtlas"]>>> {
     const impl = await this.createClientImpl();
     const module = await import("./next-app-client-toolset.js");
     return module.createNextAppClientToolset(this.rMachine, impl);
