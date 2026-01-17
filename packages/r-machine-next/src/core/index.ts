@@ -9,11 +9,12 @@ export type {
   PathParams,
   PathSelector,
 } from "./path.js";
-export type {
-  AnyPathAtlas,
-  LocalizableSegmentDecl,
-  NonLocalizableSegmentDecl,
-  PathAtlasCtor,
+export {
+  type AnyPathAtlas,
+  buildPathAtlas,
+  type LocalizableSegmentDecl,
+  type NonLocalizableSegmentDecl,
+  type PathAtlasCtor,
 } from "./path-atlas.js";
 export { PathTranslator } from "./path-translator.js";
 export type { RMachineProxy } from "./proxy.js";

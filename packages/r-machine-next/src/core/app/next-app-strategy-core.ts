@@ -1,6 +1,6 @@
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { Strategy, type SwitchableOption } from "r-machine/strategy";
-import type { AnyPathAtlas, HrefResolver, PathAtlasCtor } from "#r-machine/next/core";
+import { type AnyPathAtlas, buildPathAtlas, type HrefResolver, type PathAtlasCtor } from "#r-machine/next/core";
 import type { NextAppClientImpl, NextAppClientRMachine, NextAppClientToolset } from "./next-app-client-toolset.js";
 import type { NextAppServerImpl, NextAppServerToolset } from "./next-app-server-toolset.js";
 
@@ -40,7 +40,7 @@ export abstract class NextAppStrategyCore<
 
   constructor(rMachine: RMachine<RA>, config: C) {
     super(rMachine, config as C);
-    this.pathAtlas = new this.config.PathAtlas();
+    this.pathAtlas = buildPathAtlas(this.config.PathAtlas); // Build and validate PathAtlas
   }
 
   protected readonly pathAtlas: InstanceType<C["PathAtlas"]>;
