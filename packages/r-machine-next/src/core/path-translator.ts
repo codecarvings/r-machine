@@ -25,7 +25,13 @@ interface MappedSegment {
 
 interface MappedPath {
   readonly decl: boolean;
+  readonly dynamic: boolean;
   readonly segments: MappedSegment[];
+}
+
+interface TranslatePathResult {
+  readonly path: string;
+  readonly dynamic: boolean;
 }
 
 export function getSegmentData(segment: string): SegmentData {
@@ -51,7 +57,7 @@ export function getSegmentData(segment: string): SegmentData {
 export function buildPathAtlasSegmentTree(
   segment: string,
   decl: object,
-  locales: string[],
+  locales: readonly string[],
   defaultLocale: string
 ): PathAtlasSegment {
   const { kind, paramKey } = getSegmentData(segment);
@@ -81,30 +87,46 @@ export function buildPathAtlasSegmentTree(
 export class PathTranslator {
   constructor(
     protected readonly atlas: AnyPathAtlas,
-    protected readonly locales: string[],
+    protected readonly locales: readonly string[],
     protected readonly defaultLocale: string
   ) {
     this.segmentDataTree = buildPathAtlasSegmentTree("", this.atlas.decl, this.locales, this.defaultLocale);
     locales.forEach((locale) => {
-      this.caches[locale] = new Map<string, MappedSegment[]>();
+      this.caches[locale] = new Map<string, TranslatePathResult>();
+      this.mappedPathCaches[locale] = new Map<string, MappedPath>();
     });
   }
 
   protected readonly segmentDataTree: PathAtlasSegment;
-  protected readonly caches: { [locale: string]: Map<string, MappedSegment[]> } = {};
+  protected readonly caches: { [locale: string]: Map<string, TranslatePathResult> } = {};
+  protected readonly mappedPathCaches: { [locale: string]: Map<string, MappedPath> } = {};
 
-  getTranslatedPath(locale: string, path: string, params?: object): string {
+  getTranslatedPath(locale: string, path: string, params?: object): TranslatePathResult {
     const cache = this.caches[locale];
-    let mappedSegments = cache.get(path);
-    if (mappedSegments === undefined) {
-      const mappedPath = this.getMappedPath(locale, path);
-      mappedSegments = mappedPath.segments;
+    let result = cache.get(path);
+    if (result !== undefined) {
+      return result;
+    }
+
+    const mappedPathCache = this.mappedPathCaches[locale];
+    let mappedPath = mappedPathCache.get(path);
+    if (mappedPath === undefined) {
+      mappedPath = this.getMappedPath(locale, path);
       if (mappedPath.decl) {
         // Cache only fully declared paths
-        cache.set(path, mappedPath.segments);
+        mappedPathCache.set(path, mappedPath);
       }
     }
-    return getTranslatedPath(locale, path, mappedSegments, params);
+
+    result = {
+      path: getTranslatedPath(locale, path, mappedPath.segments, params),
+      dynamic: mappedPath.dynamic,
+    };
+    if (!mappedPath.dynamic) {
+      // Cache only non-dynamic paths
+      cache.set(path, result);
+    }
+    return result;
   }
 
   protected getMappedPath(locale: string, path: string): MappedPath {
@@ -114,11 +136,12 @@ export class PathTranslator {
 
     const inSegments = path.split("/").filter((s) => s.length !== 0);
     if (inSegments.length === 0) {
-      return { decl: true, segments: [] };
+      return { decl: true, dynamic: false, segments: [] };
     }
 
     const outSegments: MappedSegment[] = [];
     let pathDecl = true;
+    let dynamicFound = false;
 
     let curSegment: PathAtlasSegment | undefined = this.segmentDataTree;
     function populateOutSegments(deep: number) {
@@ -130,6 +153,7 @@ export class PathTranslator {
         if (curSegment.paramKey !== undefined) {
           // Dynamic segment
           outSegments.push({ decl: true, segment: curSegment.paramKey, kind: curSegment.kind! });
+          dynamicFound = true;
         } else {
           // Static segment
           outSegments.push({ decl: true, segment: curSegment.translations[locale], kind: "static" });
@@ -141,6 +165,7 @@ export class PathTranslator {
         if (paramKey !== undefined) {
           // Dynamic segment
           outSegments.push({ decl: false, segment: paramKey, kind: kind! });
+          dynamicFound = true;
         } else {
           // Static segment
           outSegments.push({ decl: false, segment: inSegment, kind: "static" });
@@ -155,6 +180,7 @@ export class PathTranslator {
 
     return {
       decl: pathDecl,
+      dynamic: dynamicFound,
       segments: outSegments,
     };
   }

@@ -496,8 +496,8 @@ describe("PathTranslator", () => {
     const atlas = createMockAtlas({});
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/", {})).toBe("/");
-    expect(translator.getTranslatedPath("it", "/", {})).toBe("/");
+    expect(translator.getTranslatedPath("en", "/", {})).toEqual({ path: "/", dynamic: false });
+    expect(translator.getTranslatedPath("it", "/", {})).toEqual({ path: "/", dynamic: false });
   });
 
   test("translates simple static path", () => {
@@ -508,8 +508,8 @@ describe("PathTranslator", () => {
     });
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/about", {})).toBe("/about");
-    expect(translator.getTranslatedPath("it", "/about", {})).toBe("/chi-siamo");
+    expect(translator.getTranslatedPath("en", "/about", {})).toEqual({ path: "/about", dynamic: false });
+    expect(translator.getTranslatedPath("it", "/about", {})).toEqual({ path: "/chi-siamo", dynamic: false });
   });
 
   test("translates nested static path", () => {
@@ -523,8 +523,8 @@ describe("PathTranslator", () => {
     });
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/about/team", {})).toBe("/about/team");
-    expect(translator.getTranslatedPath("it", "/about/team", {})).toBe("/chi-siamo/staff");
+    expect(translator.getTranslatedPath("en", "/about/team", {})).toEqual({ path: "/about/team", dynamic: false });
+    expect(translator.getTranslatedPath("it", "/about/team", {})).toEqual({ path: "/chi-siamo/staff", dynamic: false });
   });
 
   test("translates path with dynamic segment", () => {
@@ -536,8 +536,14 @@ describe("PathTranslator", () => {
     });
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/products/[id]", { id: "123" })).toBe("/products/123");
-    expect(translator.getTranslatedPath("it", "/products/[id]", { id: "456" })).toBe("/prodotti/456");
+    expect(translator.getTranslatedPath("en", "/products/[id]", { id: "123" })).toEqual({
+      path: "/products/123",
+      dynamic: true,
+    });
+    expect(translator.getTranslatedPath("it", "/products/[id]", { id: "456" })).toEqual({
+      path: "/prodotti/456",
+      dynamic: true,
+    });
   });
 
   test("translates path with catch-all segment", () => {
@@ -549,10 +555,14 @@ describe("PathTranslator", () => {
     });
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/docs/[...slug]", { slug: ["intro", "getting-started"] })).toBe(
-      "/docs/intro/getting-started"
-    );
-    expect(translator.getTranslatedPath("it", "/docs/[...slug]", { slug: ["guida"] })).toBe("/documenti/guida");
+    expect(translator.getTranslatedPath("en", "/docs/[...slug]", { slug: ["intro", "getting-started"] })).toEqual({
+      path: "/docs/intro/getting-started",
+      dynamic: true,
+    });
+    expect(translator.getTranslatedPath("it", "/docs/[...slug]", { slug: ["guida"] })).toEqual({
+      path: "/documenti/guida",
+      dynamic: true,
+    });
   });
 
   test("handles undeclared path segments as-is", () => {
@@ -563,25 +573,34 @@ describe("PathTranslator", () => {
     });
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/about/unknown", {})).toBe("/about/unknown");
-    expect(translator.getTranslatedPath("it", "/about/unknown", {})).toBe("/chi-siamo/unknown");
+    expect(translator.getTranslatedPath("en", "/about/unknown", {})).toEqual({
+      path: "/about/unknown",
+      dynamic: false,
+    });
+    expect(translator.getTranslatedPath("it", "/about/unknown", {})).toEqual({
+      path: "/chi-siamo/unknown",
+      dynamic: false,
+    });
   });
 
   test("handles completely undeclared path", () => {
     const atlas = createMockAtlas({});
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/unknown/path", {})).toBe("/unknown/path");
+    expect(translator.getTranslatedPath("en", "/unknown/path", {})).toEqual({ path: "/unknown/path", dynamic: false });
   });
 
   test("handles undeclared dynamic segment in path", () => {
     const atlas = createMockAtlas({});
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/users/[id]", { id: "42" })).toBe("/users/42");
+    expect(translator.getTranslatedPath("en", "/users/[id]", { id: "42" })).toEqual({
+      path: "/users/42",
+      dynamic: true,
+    });
   });
 
-  test("caches declared paths", () => {
+  test("caches mapped paths for declared paths", () => {
     const atlas = createMockAtlas({
       "/about": {},
     });
@@ -590,11 +609,38 @@ describe("PathTranslator", () => {
     translator.getTranslatedPath("en", "/about", {});
     translator.getTranslatedPath("en", "/about", {});
 
-    const cache = (translator as any).caches.en;
-    expect(cache.has("/about")).toBe(true);
+    const mappedPathCache = (translator as any).mappedPathCaches.en;
+    expect(mappedPathCache.has("/about")).toBe(true);
   });
 
-  test("does not cache undeclared paths", () => {
+  test("caches result for non-dynamic paths", () => {
+    const atlas = createMockAtlas({
+      "/about": {},
+    });
+    const translator = new PathTranslator(atlas, locales, defaultLocale);
+
+    translator.getTranslatedPath("en", "/about", {});
+
+    const resultCache = (translator as any).caches.en;
+    expect(resultCache.has("/about")).toBe(true);
+    expect(resultCache.get("/about")).toEqual({ path: "/about", dynamic: false });
+  });
+
+  test("does not cache result for dynamic paths", () => {
+    const atlas = createMockAtlas({
+      "/products": {
+        "/[id]": {},
+      },
+    });
+    const translator = new PathTranslator(atlas, locales, defaultLocale);
+
+    translator.getTranslatedPath("en", "/products/[id]", { id: "123" });
+
+    const resultCache = (translator as any).caches.en;
+    expect(resultCache.has("/products/[id]")).toBe(false);
+  });
+
+  test("does not cache mapped paths for undeclared paths", () => {
     const atlas = createMockAtlas({
       "/about": {},
     });
@@ -602,8 +648,8 @@ describe("PathTranslator", () => {
 
     translator.getTranslatedPath("en", "/about/unknown", {});
 
-    const cache = (translator as any).caches.en;
-    expect(cache.has("/about/unknown")).toBe(false);
+    const mappedPathCache = (translator as any).mappedPathCaches.en;
+    expect(mappedPathCache.has("/about/unknown")).toBe(false);
   });
 
   test("works with multiple locales", () => {
@@ -617,10 +663,10 @@ describe("PathTranslator", () => {
     });
     const translator = new PathTranslator(atlas, multiLocales, "en");
 
-    expect(translator.getTranslatedPath("en", "/about", {})).toBe("/about");
-    expect(translator.getTranslatedPath("it", "/about", {})).toBe("/chi-siamo");
-    expect(translator.getTranslatedPath("fr", "/about", {})).toBe("/a-propos");
-    expect(translator.getTranslatedPath("de", "/about", {})).toBe("/uber-uns");
+    expect(translator.getTranslatedPath("en", "/about", {})).toEqual({ path: "/about", dynamic: false });
+    expect(translator.getTranslatedPath("it", "/about", {})).toEqual({ path: "/chi-siamo", dynamic: false });
+    expect(translator.getTranslatedPath("fr", "/about", {})).toEqual({ path: "/a-propos", dynamic: false });
+    expect(translator.getTranslatedPath("de", "/about", {})).toEqual({ path: "/uber-uns", dynamic: false });
   });
 
   test("translates path with optional catch-all segment", () => {
@@ -632,13 +678,17 @@ describe("PathTranslator", () => {
     });
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/docs/[[...slug]]", { slug: ["guide"] })).toBe("/docs/guide");
-    expect(translator.getTranslatedPath("it", "/docs/[[...slug]]", { slug: ["guida", "intro"] })).toBe(
-      "/documenti/guida/intro"
-    );
+    expect(translator.getTranslatedPath("en", "/docs/[[...slug]]", { slug: ["guide"] })).toEqual({
+      path: "/docs/guide",
+      dynamic: true,
+    });
+    expect(translator.getTranslatedPath("it", "/docs/[[...slug]]", { slug: ["guida", "intro"] })).toEqual({
+      path: "/documenti/guida/intro",
+      dynamic: true,
+    });
   });
 
-  test("isolates cache between different locales", () => {
+  test("isolates caches between different locales", () => {
     const atlas = createMockAtlas({
       "/about": {
         it: "/chi-siamo",
@@ -649,12 +699,17 @@ describe("PathTranslator", () => {
     translator.getTranslatedPath("en", "/about", {});
     translator.getTranslatedPath("it", "/about", {});
 
-    const enCache = (translator as any).caches.en;
-    const itCache = (translator as any).caches.it;
+    const enMappedPathCache = (translator as any).mappedPathCaches.en;
+    const itMappedPathCache = (translator as any).mappedPathCaches.it;
+    expect(enMappedPathCache.has("/about")).toBe(true);
+    expect(itMappedPathCache.has("/about")).toBe(true);
+    expect(enMappedPathCache).not.toBe(itMappedPathCache);
 
-    expect(enCache.has("/about")).toBe(true);
-    expect(itCache.has("/about")).toBe(true);
-    expect(enCache).not.toBe(itCache);
+    const enResultCache = (translator as any).caches.en;
+    const itResultCache = (translator as any).caches.it;
+    expect(enResultCache.has("/about")).toBe(true);
+    expect(itResultCache.has("/about")).toBe(true);
+    expect(enResultCache).not.toBe(itResultCache);
   });
 
   test("translates deeply nested path (4 levels)", () => {
@@ -674,12 +729,14 @@ describe("PathTranslator", () => {
     });
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/api/v1/users/[id]/profile", { id: "123" })).toBe(
-      "/api/v1/users/123/profile"
-    );
-    expect(translator.getTranslatedPath("it", "/api/v1/users/[id]/profile", { id: "456" })).toBe(
-      "/api/v1/utenti/456/profilo"
-    );
+    expect(translator.getTranslatedPath("en", "/api/v1/users/[id]/profile", { id: "123" })).toEqual({
+      path: "/api/v1/users/123/profile",
+      dynamic: true,
+    });
+    expect(translator.getTranslatedPath("it", "/api/v1/users/[id]/profile", { id: "456" })).toEqual({
+      path: "/api/v1/utenti/456/profilo",
+      dynamic: true,
+    });
   });
 
   test("handles multiple dynamic segments in declared path", () => {
@@ -698,20 +755,23 @@ describe("PathTranslator", () => {
         category: "electronics",
         productId: "phone-1",
       })
-    ).toBe("/shop/electronics/phone-1");
+    ).toEqual({ path: "/shop/electronics/phone-1", dynamic: true });
     expect(
       translator.getTranslatedPath("it", "/shop/[category]/[productId]", {
         category: "elettronica",
         productId: "telefono-1",
       })
-    ).toBe("/negozio/elettronica/telefono-1");
+    ).toEqual({ path: "/negozio/elettronica/telefono-1", dynamic: true });
   });
 
   test("handles undeclared catch-all segment in path", () => {
     const atlas = createMockAtlas({});
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/docs/[...path]", { path: ["a", "b", "c"] })).toBe("/docs/a/b/c");
+    expect(translator.getTranslatedPath("en", "/docs/[...path]", { path: ["a", "b", "c"] })).toEqual({
+      path: "/docs/a/b/c",
+      dynamic: true,
+    });
   });
 
   test("cache hit returns consistent result", () => {
@@ -726,8 +786,8 @@ describe("PathTranslator", () => {
     const result1 = translator.getTranslatedPath("it", "/products/[id]", { id: "first" });
     const result2 = translator.getTranslatedPath("it", "/products/[id]", { id: "second" });
 
-    expect(result1).toBe("/prodotti/first");
-    expect(result2).toBe("/prodotti/second");
+    expect(result1).toEqual({ path: "/prodotti/first", dynamic: true });
+    expect(result2).toEqual({ path: "/prodotti/second", dynamic: true });
   });
 
   test("handles partial path match where later segments are undeclared", () => {
@@ -741,9 +801,10 @@ describe("PathTranslator", () => {
     });
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("it", "/blog/posts/undeclared/deep", {})).toBe(
-      "/articoli/post/undeclared/deep"
-    );
+    expect(translator.getTranslatedPath("it", "/blog/posts/undeclared/deep", {})).toEqual({
+      path: "/articoli/post/undeclared/deep",
+      dynamic: false,
+    });
   });
 
   test("works with single locale configuration", () => {
@@ -753,18 +814,23 @@ describe("PathTranslator", () => {
     });
     const translator = new PathTranslator(atlas, singleLocale, "en");
 
-    expect(translator.getTranslatedPath("en", "/about", {})).toBe("/about");
+    expect(translator.getTranslatedPath("en", "/about", {})).toEqual({ path: "/about", dynamic: false });
   });
 
-  test("initializes caches for all locales in constructor", () => {
+  test("initializes all caches for all locales in constructor", () => {
     const multiLocales = ["en", "it", "fr"];
     const atlas = createMockAtlas({});
     const translator = new PathTranslator(atlas, multiLocales, "en");
 
-    const caches = (translator as any).caches;
-    expect(caches.en).toBeInstanceOf(Map);
-    expect(caches.it).toBeInstanceOf(Map);
-    expect(caches.fr).toBeInstanceOf(Map);
+    const mappedPathCaches = (translator as any).mappedPathCaches;
+    expect(mappedPathCaches.en).toBeInstanceOf(Map);
+    expect(mappedPathCaches.it).toBeInstanceOf(Map);
+    expect(mappedPathCaches.fr).toBeInstanceOf(Map);
+
+    const resultCaches = (translator as any).caches;
+    expect(resultCaches.en).toBeInstanceOf(Map);
+    expect(resultCaches.it).toBeInstanceOf(Map);
+    expect(resultCaches.fr).toBeInstanceOf(Map);
   });
 
   test("handles path with mixed declared and undeclared dynamic segments", () => {
@@ -781,7 +847,7 @@ describe("PathTranslator", () => {
         userId: "u1",
         postId: "p1",
       })
-    ).toBe("/utenti/u1/posts/p1");
+    ).toEqual({ path: "/utenti/u1/posts/p1", dynamic: true });
   });
 
   test("handles same translation for default locale", () => {
@@ -790,8 +856,8 @@ describe("PathTranslator", () => {
     });
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/contact", {})).toBe("/contact");
-    expect(translator.getTranslatedPath("it", "/contact", {})).toBe("/contact");
+    expect(translator.getTranslatedPath("en", "/contact", {})).toEqual({ path: "/contact", dynamic: false });
+    expect(translator.getTranslatedPath("it", "/contact", {})).toEqual({ path: "/contact", dynamic: false });
   });
 
   test("translates path with static segment after dynamic", () => {
@@ -807,8 +873,14 @@ describe("PathTranslator", () => {
     });
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/users/[id]/settings", { id: "42" })).toBe("/users/42/settings");
-    expect(translator.getTranslatedPath("it", "/users/[id]/settings", { id: "42" })).toBe("/utenti/42/impostazioni");
+    expect(translator.getTranslatedPath("en", "/users/[id]/settings", { id: "42" })).toEqual({
+      path: "/users/42/settings",
+      dynamic: true,
+    });
+    expect(translator.getTranslatedPath("it", "/users/[id]/settings", { id: "42" })).toEqual({
+      path: "/utenti/42/impostazioni",
+      dynamic: true,
+    });
   });
 
   test("handles multiple translations calls efficiently with caching", () => {
@@ -823,11 +895,15 @@ describe("PathTranslator", () => {
       translator.getTranslatedPath("it", "/contact", {});
     }
 
-    const enCache = (translator as any).caches.en;
-    const itCache = (translator as any).caches.it;
+    const enMappedPathCache = (translator as any).mappedPathCaches.en;
+    const itMappedPathCache = (translator as any).mappedPathCaches.it;
+    expect(enMappedPathCache.size).toBe(1);
+    expect(itMappedPathCache.size).toBe(1);
 
-    expect(enCache.size).toBe(1);
-    expect(itCache.size).toBe(1);
+    const enResultCache = (translator as any).caches.en;
+    const itResultCache = (translator as any).caches.it;
+    expect(enResultCache.size).toBe(1);
+    expect(itResultCache.size).toBe(1);
   });
 
   test("handles path with only dynamic segments", () => {
@@ -838,14 +914,20 @@ describe("PathTranslator", () => {
     });
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/[category]/[id]", { category: "books", id: "123" })).toBe("/books/123");
+    expect(translator.getTranslatedPath("en", "/[category]/[id]", { category: "books", id: "123" })).toEqual({
+      path: "/books/123",
+      dynamic: true,
+    });
   });
 
   test("handles undeclared optional catch-all segment", () => {
     const atlas = createMockAtlas({});
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/docs/[[...path]]", { path: ["a", "b"] })).toBe("/docs/a/b");
+    expect(translator.getTranslatedPath("en", "/docs/[[...path]]", { path: ["a", "b"] })).toEqual({
+      path: "/docs/a/b",
+      dynamic: true,
+    });
   });
 
   test("preserves segment order in complex nested paths", () => {
@@ -862,8 +944,8 @@ describe("PathTranslator", () => {
     });
     const translator = new PathTranslator(atlas, locales, defaultLocale);
 
-    expect(translator.getTranslatedPath("en", "/a/b/c", {})).toBe("/a/b/c");
-    expect(translator.getTranslatedPath("it", "/a/b/c", {})).toBe("/uno/due/tre");
+    expect(translator.getTranslatedPath("en", "/a/b/c", {})).toEqual({ path: "/a/b/c", dynamic: false });
+    expect(translator.getTranslatedPath("it", "/a/b/c", {})).toEqual({ path: "/uno/due/tre", dynamic: false });
   });
 
   test("throws error when path does not start with /", () => {

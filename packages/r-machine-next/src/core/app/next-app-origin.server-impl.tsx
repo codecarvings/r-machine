@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
-import type { HrefResolver } from "#r-machine/next/core";
+import type { HrefResolverFn } from "#r-machine/next/core";
 import {
   type CookiesFn,
   type HeadersFn,
@@ -16,7 +16,7 @@ export async function createNextAppOriginServerImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppOriginStrategyConfig,
   resolveOrigin: (locale: string) => string,
-  resolveHref: HrefResolver
+  resolvePath: HrefResolverFn
 ) {
   const defaultLocale = rMachine.config.defaultLocale;
   const { localeKey, autoLocaleBinding, localeOriginMap, pathMatcher } = strategyConfig;
@@ -109,9 +109,7 @@ export async function createNextAppOriginServerImpl(
         validateServerOnlyUsage("getPathComposer");
         const locale = await getLocale();
 
-        return (path, params) => {
-          return resolveHref(true, locale, path, params);
-        };
+        return (path, params) => resolvePath(locale, path, params).href;
       };
     },
   } as NextAppServerImpl;

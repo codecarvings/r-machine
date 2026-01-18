@@ -1,6 +1,13 @@
 import type { AnyResourceAtlas } from "r-machine";
 import { type CookieDeclaration, defaultCookieDeclaration } from "r-machine/strategy/web";
-import type { AnyPathAtlas, HrefResolver, PathParamMap, PathParams, PathSelector } from "#r-machine/next/core";
+import {
+  type AnyPathAtlas,
+  buildPathAtlas,
+  HrefResolver,
+  type PathParamMap,
+  type PathParams,
+  type PathSelector,
+} from "#r-machine/next/core";
 import { defaultPathMatcher } from "#r-machine/next/internal";
 import {
   type NextAppStrategyConfig,
@@ -44,20 +51,27 @@ export abstract class NextAppFlatStrategyCore<
 > extends NextAppStrategyCore<RA, C> {
   static override readonly defaultConfig = defaultConfig;
 
+  protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, false);
+  private readonly locales = this.rMachine.config.locales;
+  private readonly defaultLocale = this.rMachine.config.defaultLocale;
+  protected readonly pathResolver: HrefResolver = new HrefResolver(
+    this.pathAtlas,
+    this.locales,
+    this.defaultLocale,
+    undefined
+  );
+
   protected async createClientImpl() {
     const module = await import("./next-app-flat.client-impl.js");
-    return module.createNextAppFlatClientImpl(this.rMachine, this.config, this.resolveHref);
+    return module.createNextAppFlatClientImpl(this.rMachine, this.config, this.pathResolver.getResolvedHref);
   }
 
   protected async createServerImpl() {
     const module = await import("./next-app-flat.server-impl.js");
-    return module.createNextAppFlatServerImpl(this.rMachine, this.config, this.resolveHref);
+    return module.createNextAppFlatServerImpl(this.rMachine, this.config, this.pathResolver.getResolvedHref);
   }
 
   readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
-    getPath: (path, ...args) => this.resolveHref(false, undefined, path, args[0]),
+    getPath: (path, ...args) => this.pathResolver.getResolvedHref(this.defaultLocale, path, args[0]).href,
   };
-
-  // TODO: Implement resolveHref
-  protected readonly resolveHref: HrefResolver = undefined!;
 }

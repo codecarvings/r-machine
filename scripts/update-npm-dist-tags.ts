@@ -51,7 +51,7 @@ function updateDistTag(packageName: string, version: string, tag: string): void 
       env: {
         ...process.env,
         // Ensure npm token is available from environment
-        NODE_AUTH_TOKEN: process.env.NPM_TOKEN || process.env.NODE_AUTH_TOKEN,
+        // NODE_AUTH_TOKEN: process.env.NPM_TOKEN || process.env.NODE_AUTH_TOKEN,
       },
     });
     console.log(`✓ Successfully tagged ${packageName}@${version} as ${tag}`);

@@ -4,7 +4,7 @@ import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
-import type { HrefResolver } from "#r-machine/next/core";
+import type { HrefResolverFn } from "#r-machine/next/core";
 import {
   type CookiesFn,
   defaultPathMatcher,
@@ -24,7 +24,7 @@ const default_implicit_matcher: RegExp | null = defaultPathMatcher; // Implicit 
 export async function createNextAppPathServerImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppPathStrategyConfig,
-  resolveHref: HrefResolver
+  resolvePath: HrefResolverFn
 ) {
   const locales = rMachine.config.locales;
   const defaultLocale = rMachine.config.defaultLocale;
@@ -280,38 +280,12 @@ export async function createNextAppPathServerImpl(
       return EntrancePage;
     },
 
-    /*
-    createBoundPathComposerSupplier(getLocale) {
-      async function getPathComposer() {
-        validateServerOnlyUsage("getPathComposer");
-
-        const locale = await getLocale();
-
-        function getPath(path: string): string {
-          let localeParam: string;
-          if (implicitSw && locale === defaultLocale) {
-            localeParam = "";
-          } else {
-            localeParam = `/${lowercaseLocaleSw ? locale.toLowerCase() : locale}`;
-          }
-          return `${localeParam}/${path.replace(pathComposerNormalizerRegExp, "")}`;
-        }
-
-        return getPath;
-      }
-
-      return getPathComposer;
-    },
-    */
-
     createBoundPathComposerSupplier: (getLocale) => {
       return async () => {
         validateServerOnlyUsage("getPathComposer");
         const locale = await getLocale();
 
-        return (path, params) => {
-          return resolveHref(true, locale, path, params);
-        };
+        return (path, params) => resolvePath(locale, path, params).href;
       };
     },
   } as NextAppNoProxyServerImpl;

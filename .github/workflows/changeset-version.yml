@@ -7,6 +7,10 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
+
 jobs:
   release:
     name: Release
@@ -34,12 +38,12 @@ jobs:
           publish: pnpm release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
+#          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+#          NPM_CONFIG_PROVENANCE: true
 
       - name: Update npm dist-tags
         if: steps.changesets.outputs.published == 'true'
         run: |
           npx tsx scripts/update-npm-dist-tags.ts '${{ steps.changesets.outputs.publishedPackages }}'
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+#        env:
+#          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,5 +1,5 @@
 import type { AnyResourceAtlas, RMachine } from "r-machine";
-import type { HrefResolver } from "#r-machine/next/core";
+import type { HrefResolverFn } from "#r-machine/next/core";
 import type { NextAppClientImpl } from "./next-app-client-toolset.js";
 import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-core.js";
 
@@ -7,7 +7,7 @@ export async function createNextAppOriginClientImpl(
   _rMachine: RMachine<AnyResourceAtlas>,
   _strategyConfig: AnyNextAppOriginStrategyConfig,
   resolveOrigin: (locale: string) => string,
-  resolveHref: HrefResolver
+  resolvePath: HrefResolverFn
 ) {
   return {
     onLoad: undefined,
@@ -21,9 +21,7 @@ export async function createNextAppOriginClientImpl(
       return () => {
         const locale = useLocale();
 
-        return (path, params) => {
-          return resolveHref(true, locale, path, params);
-        };
+        return (path, params) => resolvePath(locale, path, params).href;
       };
     },
   } as NextAppClientImpl;

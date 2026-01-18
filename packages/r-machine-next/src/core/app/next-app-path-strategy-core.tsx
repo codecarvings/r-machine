@@ -2,7 +2,15 @@ import type { AnyResourceAtlas } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import type { SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
-import type { AnyPathAtlas, HrefResolver, PathParamMap, PathParams, PathSelector } from "#r-machine/next/core";
+import {
+  type AnyPathAtlas,
+  buildPathAtlas,
+  HrefResolver,
+  type HrefResolverAdapter,
+  type PathParamMap,
+  type PathParams,
+  type PathSelector,
+} from "#r-machine/next/core";
 import type { NextAppClientRMachine } from "./next-app-client-toolset.js";
 import type { NextAppNoProxyServerToolset } from "./next-app-no-proxy-server-toolset.js";
 import {
@@ -74,6 +82,24 @@ export abstract class NextAppPathStrategyCore<
 > extends NextAppStrategyCore<RA, C> {
   static override readonly defaultConfig = defaultConfig;
 
+  protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, true);
+  private readonly locales = this.rMachine.config.locales;
+  private readonly defaultLocale = this.rMachine.config.defaultLocale;
+  private readonly implicitDefaultLocale = this.config.implicitDefaultLocale !== "off";
+  private readonly lowercaseLocale = this.config.localeLabel === "lowercase";
+  protected readonly pathResolverAdapter: HrefResolverAdapter = (locale: string, path: string): string => {
+    if (this.implicitDefaultLocale && locale === this.defaultLocale) {
+      return path;
+    }
+    return `/${this.lowercaseLocale ? locale.toLowerCase() : locale}${path}`;
+  };
+  protected readonly pathResolver: HrefResolver = new HrefResolver(
+    this.pathAtlas,
+    this.locales,
+    this.defaultLocale,
+    this.pathResolverAdapter
+  );
+
   protected override validateConfig(): void {
     super.validateConfig();
 
@@ -88,12 +114,12 @@ export abstract class NextAppPathStrategyCore<
 
   protected async createClientImpl() {
     const module = await import("./next-app-path.client-impl.js");
-    return module.createNextAppPathClientImpl(this.rMachine, this.config, this.resolveHref);
+    return module.createNextAppPathClientImpl(this.rMachine, this.config, this.pathResolver.getResolvedHref);
   }
 
   protected async createServerImpl() {
     const module = await import("./next-app-path.server-impl.js");
-    return module.createNextAppPathServerImpl(this.rMachine, this.config, this.resolveHref);
+    return module.createNextAppPathServerImpl(this.rMachine, this.config, this.pathResolver.getResolvedHref);
   }
 
   protected validateNoProxyConfig(): void {
@@ -112,7 +138,9 @@ export abstract class NextAppPathStrategyCore<
     if (this.config.autoDetectLocale !== "off") {
       raiseRequiredProxyError("autoDetectLocale");
     }
-    // TODO: Check that PathAtlas does not contain translations)
+    if (this.pathAtlas.containsTranslations) {
+      throw new RMachineError("NextAppPathStrategy error: PathAtlas with translations requires proxy server toolset.");
+    }
   }
 
   async createNoProxyServerToolset(
@@ -125,9 +153,6 @@ export abstract class NextAppPathStrategyCore<
   }
 
   readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
-    getPath: (locale, path, ...args) => this.resolveHref(false, locale, path, args[0]),
+    getPath: (locale, path, ...args) => this.pathResolver.getResolvedHref(locale, path, args[0]).href,
   };
-
-  // TODO: Implement resolveHref
-  protected readonly resolveHref: HrefResolver = undefined!;
 }

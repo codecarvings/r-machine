@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { AnyPathAtlas } from "./path-atlas.js";
+import type { AnyPathAtlas, ExtendedPathAtlas } from "./path-atlas.js";
 import { buildPathAtlas } from "./path-atlas.js";
 
 function createPathAtlasClass(decl: object): new () => AnyPathAtlas {
@@ -12,7 +12,7 @@ describe("buildPathAtlas", () => {
   describe("valid declarations", () => {
     test("accepts empty declaration", () => {
       const PA = createPathAtlasClass({});
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toEqual({});
     });
 
@@ -20,7 +20,7 @@ describe("buildPathAtlas", () => {
       const PA = createPathAtlasClass({
         "/about": {},
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toEqual({ "/about": {} });
     });
 
@@ -30,7 +30,7 @@ describe("buildPathAtlas", () => {
         "/contact": {},
         "/products": {},
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(Object.keys(atlas.decl)).toHaveLength(3);
     });
 
@@ -41,7 +41,7 @@ describe("buildPathAtlas", () => {
           "/history": {},
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toEqual({
         "/about": {
           "/team": {},
@@ -60,7 +60,7 @@ describe("buildPathAtlas", () => {
           },
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -70,7 +70,7 @@ describe("buildPathAtlas", () => {
           "/[id]": {},
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -80,7 +80,7 @@ describe("buildPathAtlas", () => {
           "/[...slug]": {},
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -90,7 +90,7 @@ describe("buildPathAtlas", () => {
           "/[[...slug]]": {},
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -102,7 +102,7 @@ describe("buildPathAtlas", () => {
           fr: "/a-propos",
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -115,7 +115,7 @@ describe("buildPathAtlas", () => {
           },
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -126,7 +126,7 @@ describe("buildPathAtlas", () => {
           "/[id]": {},
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -134,7 +134,7 @@ describe("buildPathAtlas", () => {
       const PA = createPathAtlasClass({
         "/[slug]": {},
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -146,7 +146,7 @@ describe("buildPathAtlas", () => {
           },
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -171,7 +171,7 @@ describe("buildPathAtlas", () => {
           "/[...slug]": {},
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -180,7 +180,7 @@ describe("buildPathAtlas", () => {
         "/about-us": {},
         "/contact-form": {},
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -190,7 +190,7 @@ describe("buildPathAtlas", () => {
           "/api2": {},
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
   });
@@ -200,7 +200,7 @@ describe("buildPathAtlas", () => {
       const PA = createPathAtlasClass({
         "/": {},
       });
-      expect(() => buildPathAtlas(PA)).toThrow('Invalid empty segment key at path "/"');
+      expect(() => buildPathAtlas(PA, true)).toThrow('Invalid empty segment key at path "/"');
     });
 
     test("throws on nested empty segment key", () => {
@@ -209,35 +209,35 @@ describe("buildPathAtlas", () => {
           "/": {},
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow('Invalid empty segment key at path "/about"');
+      expect(() => buildPathAtlas(PA, true)).toThrow('Invalid empty segment key at path "/about"');
     });
 
     test("throws when segment value is null", () => {
       const PA = createPathAtlasClass({
         "/about": null,
       });
-      expect(() => buildPathAtlas(PA)).toThrow('Segment declarations must be objects at path "/about"');
+      expect(() => buildPathAtlas(PA, true)).toThrow('Segment declarations must be objects at path "/about"');
     });
 
     test("throws when segment value is a string", () => {
       const PA = createPathAtlasClass({
         "/about": "invalid",
       });
-      expect(() => buildPathAtlas(PA)).toThrow('Segment declarations must be objects at path "/about"');
+      expect(() => buildPathAtlas(PA, true)).toThrow('Segment declarations must be objects at path "/about"');
     });
 
     test("throws when segment value is a number", () => {
       const PA = createPathAtlasClass({
         "/about": 123,
       });
-      expect(() => buildPathAtlas(PA)).toThrow('Segment declarations must be objects at path "/about"');
+      expect(() => buildPathAtlas(PA, true)).toThrow('Segment declarations must be objects at path "/about"');
     });
 
     test("throws when segment value is undefined", () => {
       const PA = createPathAtlasClass({
         "/about": undefined,
       });
-      expect(() => buildPathAtlas(PA)).toThrow('Segment declarations must be objects at path "/about"');
+      expect(() => buildPathAtlas(PA, true)).toThrow('Segment declarations must be objects at path "/about"');
     });
 
     test("throws when nested segment value is not an object", () => {
@@ -246,7 +246,7 @@ describe("buildPathAtlas", () => {
           "/team": "invalid",
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow('Segment declarations must be objects at path "/about/team"');
+      expect(() => buildPathAtlas(PA, true)).toThrow('Segment declarations must be objects at path "/about/team"');
     });
   });
 
@@ -259,7 +259,7 @@ describe("buildPathAtlas", () => {
           },
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
+      expect(() => buildPathAtlas(PA, true)).toThrow(
         'Catch-all segment declarations must not have child segments at path "/docs/[...slug]"'
       );
     });
@@ -272,7 +272,7 @@ describe("buildPathAtlas", () => {
           },
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
+      expect(() => buildPathAtlas(PA, true)).toThrow(
         'Catch-all segment declarations must not have child segments at path "/docs/[[...slug]]"'
       );
     });
@@ -283,7 +283,7 @@ describe("buildPathAtlas", () => {
           "/[id]": {},
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
+      expect(() => buildPathAtlas(PA, true)).toThrow(
         'Catch-all segment declarations must not have child segments at path "/[...path]"'
       );
     });
@@ -298,14 +298,14 @@ describe("buildPathAtlas", () => {
           },
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
+      expect(() => buildPathAtlas(PA, true)).toThrow(
         'Catch-all segment declarations must not have child segments at path "/docs/[...slug]"'
       );
     });
   });
 
-  describe("dynamic segment localization validation", () => {
-    test("throws when dynamic segment has localization", () => {
+  describe("dynamic segment translation validation", () => {
+    test("throws when dynamic segment has translation", () => {
       const PA = createPathAtlasClass({
         "/users": {
           "/[id]": {
@@ -313,12 +313,12 @@ describe("buildPathAtlas", () => {
           },
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
-        'Dynamic segments do not accept localizations at path "/users/[id]". Got "it"'
+      expect(() => buildPathAtlas(PA, true)).toThrow(
+        'Dynamic segments do not accept translations at path "/users/[id]". Got "it"'
       );
     });
 
-    test("throws when catch-all segment has localization", () => {
+    test("throws when catch-all segment has translation", () => {
       const PA = createPathAtlasClass({
         "/docs": {
           "/[...slug]": {
@@ -326,12 +326,12 @@ describe("buildPathAtlas", () => {
           },
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
-        'Dynamic segments do not accept localizations at path "/docs/[...slug]". Got "it"'
+      expect(() => buildPathAtlas(PA, true)).toThrow(
+        'Dynamic segments do not accept translations at path "/docs/[...slug]". Got "it"'
       );
     });
 
-    test("throws when optional catch-all segment has localization", () => {
+    test("throws when optional catch-all segment has translation", () => {
       const PA = createPathAtlasClass({
         "/docs": {
           "/[[...slug]]": {
@@ -339,12 +339,12 @@ describe("buildPathAtlas", () => {
           },
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
-        'Dynamic segments do not accept localizations at path "/docs/[[...slug]]". Got "it"'
+      expect(() => buildPathAtlas(PA, true)).toThrow(
+        'Dynamic segments do not accept translations at path "/docs/[[...slug]]". Got "it"'
       );
     });
 
-    test("throws when dynamic segment has multiple localizations", () => {
+    test("throws when dynamic segment has multiple translations", () => {
       const PA = createPathAtlasClass({
         "/[id]": {
           en: "/id",
@@ -352,12 +352,12 @@ describe("buildPathAtlas", () => {
           fr: "/identifiant",
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
-        'Dynamic segments do not accept localizations at path "/[id]". Got "en", "it", "fr"'
+      expect(() => buildPathAtlas(PA, true)).toThrow(
+        'Dynamic segments do not accept translations at path "/[id]". Got "en", "it", "fr"'
       );
     });
 
-    test("throws when nested dynamic segment has localization", () => {
+    test("throws when nested dynamic segment has translation", () => {
       const PA = createPathAtlasClass({
         "/products": {
           it: "/prodotti",
@@ -368,8 +368,8 @@ describe("buildPathAtlas", () => {
           },
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
-        'Dynamic segments do not accept localizations at path "/products/[category]/[id]". Got "it"'
+      expect(() => buildPathAtlas(PA, true)).toThrow(
+        'Dynamic segments do not accept translations at path "/products/[category]/[id]". Got "it"'
       );
     });
 
@@ -382,7 +382,7 @@ describe("buildPathAtlas", () => {
           },
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -390,7 +390,7 @@ describe("buildPathAtlas", () => {
       const PA = createPathAtlasClass({
         "/[id]": {},
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
   });
@@ -401,7 +401,7 @@ describe("buildPathAtlas", () => {
         "/[id]": {},
         "/[slug]": {},
       });
-      expect(() => buildPathAtlas(PA)).toThrow(/has multiple dynamic children.*\/\[id\].*\/\[slug\]/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/has multiple dynamic children.*\/\[id\].*\/\[slug\]/);
     });
 
     test("throws when nested level has multiple dynamic segments", () => {
@@ -411,7 +411,7 @@ describe("buildPathAtlas", () => {
           "/[sku]": {},
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(/has multiple dynamic children/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/has multiple dynamic children/);
     });
 
     test("throws when mixing dynamic and catch-all at same level", () => {
@@ -421,7 +421,7 @@ describe("buildPathAtlas", () => {
           "/[...slug]": {},
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(/has multiple dynamic children/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/has multiple dynamic children/);
     });
 
     test("throws when mixing dynamic and optional catch-all at same level", () => {
@@ -431,7 +431,7 @@ describe("buildPathAtlas", () => {
           "/[[...slug]]": {},
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(/has multiple dynamic children/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/has multiple dynamic children/);
     });
 
     test("throws when mixing catch-all and optional catch-all at same level", () => {
@@ -441,7 +441,7 @@ describe("buildPathAtlas", () => {
           "/[[...slug]]": {},
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(/has multiple dynamic children/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/has multiple dynamic children/);
     });
 
     test("throws when having three dynamic segments at same level", () => {
@@ -450,7 +450,7 @@ describe("buildPathAtlas", () => {
         "/[b]": {},
         "/[c]": {},
       });
-      expect(() => buildPathAtlas(PA)).toThrow(/has multiple dynamic children.*\/\[a\].*\/\[b\].*\/\[c\]/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/has multiple dynamic children.*\/\[a\].*\/\[b\].*\/\[c\]/);
     });
 
     test("error message includes path for nested violations", () => {
@@ -462,7 +462,7 @@ describe("buildPathAtlas", () => {
           },
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow('Segment at path "/api/v1" has multiple dynamic children');
+      expect(() => buildPathAtlas(PA, true)).toThrow('Segment at path "/api/v1" has multiple dynamic children');
     });
 
     test("allows single dynamic segment alongside static segments", () => {
@@ -473,73 +473,73 @@ describe("buildPathAtlas", () => {
           "/categories": {},
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
   });
 
-  describe("localization validation", () => {
-    test("throws when localization value is not a string", () => {
+  describe("translation validation", () => {
+    test("throws when translation value is not a string", () => {
       const PA = createPathAtlasClass({
         "/about": {
           en: 123,
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow('Segment localization "en" must be a string at path "/about"');
+      expect(() => buildPathAtlas(PA, true)).toThrow('Segment translation "en" must be a string at path "/about"');
     });
 
-    test("throws when localization value is an object", () => {
+    test("throws when translation value is an object", () => {
       const PA = createPathAtlasClass({
         "/about": {
           en: { nested: "value" },
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow('Segment localization "en" must be a string at path "/about"');
+      expect(() => buildPathAtlas(PA, true)).toThrow('Segment translation "en" must be a string at path "/about"');
     });
 
-    test("throws when localization value is an array", () => {
+    test("throws when translation value is an array", () => {
       const PA = createPathAtlasClass({
         "/about": {
           en: ["/about"],
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow('Segment localization "en" must be a string at path "/about"');
+      expect(() => buildPathAtlas(PA, true)).toThrow('Segment translation "en" must be a string at path "/about"');
     });
 
-    test("throws when localization value is null", () => {
+    test("throws when translation value is null", () => {
       const PA = createPathAtlasClass({
         "/about": {
           en: null,
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow('Segment localization "en" must be a string at path "/about"');
+      expect(() => buildPathAtlas(PA, true)).toThrow('Segment translation "en" must be a string at path "/about"');
     });
 
-    test("throws when localization value does not start with /", () => {
+    test("throws when translation value does not start with /", () => {
       const PA = createPathAtlasClass({
         "/about": {
           en: "about",
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
+      expect(() => buildPathAtlas(PA, true)).toThrow(
         // biome-ignore lint/suspicious/noTemplateCurlyInString: Expected
-        'Segment localization "en" must match pattern /${string} at path "/about". Got "about"'
+        'Segment translation "en" must match pattern /${string} at path "/about". Got "about"'
       );
     });
 
-    test("throws when localization value is empty string", () => {
+    test("throws when translation value is empty string", () => {
       const PA = createPathAtlasClass({
         "/about": {
           en: "",
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
+      expect(() => buildPathAtlas(PA, true)).toThrow(
         // biome-ignore lint/suspicious/noTemplateCurlyInString: Expected
-        'Segment localization "en" must match pattern /${string} at path "/about". Got ""'
+        'Segment translation "en" must match pattern /${string} at path "/about". Got ""'
       );
     });
 
-    test("throws for nested localization without leading slash", () => {
+    test("throws for nested translation without leading slash", () => {
       const PA = createPathAtlasClass({
         "/about": {
           "/team": {
@@ -547,30 +547,30 @@ describe("buildPathAtlas", () => {
           },
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
+      expect(() => buildPathAtlas(PA, true)).toThrow(
         // biome-ignore lint/suspicious/noTemplateCurlyInString: Expected
-        'Segment localization "it" must match pattern /${string} at path "/about/team". Got "staff"'
+        'Segment translation "it" must match pattern /${string} at path "/about/team". Got "staff"'
       );
     });
 
-    test("accepts valid localization with leading slash", () => {
+    test("accepts valid translation with leading slash", () => {
       const PA = createPathAtlasClass({
         "/about": {
           en: "/about",
           it: "/chi-siamo",
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
-    test("accepts localization with single segment value", () => {
+    test("accepts translation with single segment value", () => {
       const PA = createPathAtlasClass({
         "/about": {
           it: "/chi-siamo",
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
   });
@@ -580,7 +580,7 @@ describe("buildPathAtlas", () => {
       const PA = createPathAtlasClass({
         "/about/team": {},
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
+      expect(() => buildPathAtlas(PA, true)).toThrow(
         'Segment key must contain only one "/" at the beginning at path "/". Got "/about/team"'
       );
     });
@@ -591,7 +591,7 @@ describe("buildPathAtlas", () => {
           "/team/members": {},
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
+      expect(() => buildPathAtlas(PA, true)).toThrow(
         'Segment key must contain only one "/" at the beginning at path "/about". Got "/team/members"'
       );
     });
@@ -600,7 +600,7 @@ describe("buildPathAtlas", () => {
       const PA = createPathAtlasClass({
         "/about/": {},
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
+      expect(() => buildPathAtlas(PA, true)).toThrow(
         'Segment key must contain only one "/" at the beginning at path "/". Got "/about/"'
       );
     });
@@ -609,23 +609,23 @@ describe("buildPathAtlas", () => {
       const PA = createPathAtlasClass({
         "/about//team": {},
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
+      expect(() => buildPathAtlas(PA, true)).toThrow(
         'Segment key must contain only one "/" at the beginning at path "/". Got "/about//team"'
       );
     });
 
-    test("throws when localization value contains multiple slashes", () => {
+    test("throws when translation value contains multiple slashes", () => {
       const PA = createPathAtlasClass({
         "/about": {
           it: "/chi-siamo/info",
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
-        'Segment localization "it" must contain only one "/" at the beginning at path "/about". Got "/chi-siamo/info"'
+      expect(() => buildPathAtlas(PA, true)).toThrow(
+        'Segment translation "it" must contain only one "/" at the beginning at path "/about". Got "/chi-siamo/info"'
       );
     });
 
-    test("throws when nested localization value contains multiple slashes", () => {
+    test("throws when nested translation value contains multiple slashes", () => {
       const PA = createPathAtlasClass({
         "/about": {
           "/team": {
@@ -633,30 +633,30 @@ describe("buildPathAtlas", () => {
           },
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
-        'Segment localization "it" must contain only one "/" at the beginning at path "/about/team". Got "/staff/membri"'
+      expect(() => buildPathAtlas(PA, true)).toThrow(
+        'Segment translation "it" must contain only one "/" at the beginning at path "/about/team". Got "/staff/membri"'
       );
     });
 
-    test("throws when localization value has trailing slash", () => {
+    test("throws when translation value has trailing slash", () => {
       const PA = createPathAtlasClass({
         "/about": {
           it: "/chi-siamo/",
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
-        'Segment localization "it" must contain only one "/" at the beginning at path "/about". Got "/chi-siamo/"'
+      expect(() => buildPathAtlas(PA, true)).toThrow(
+        'Segment translation "it" must contain only one "/" at the beginning at path "/about". Got "/chi-siamo/"'
       );
     });
 
-    test("throws when localization value has multiple consecutive slashes", () => {
+    test("throws when translation value has multiple consecutive slashes", () => {
       const PA = createPathAtlasClass({
         "/about": {
           it: "/chi//siamo",
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
-        'Segment localization "it" must contain only one "/" at the beginning at path "/about". Got "/chi//siamo"'
+      expect(() => buildPathAtlas(PA, true)).toThrow(
+        'Segment translation "it" must contain only one "/" at the beginning at path "/about". Got "/chi//siamo"'
       );
     });
 
@@ -664,7 +664,7 @@ describe("buildPathAtlas", () => {
       const PA = createPathAtlasClass({
         "/users/[id]": {},
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
+      expect(() => buildPathAtlas(PA, true)).toThrow(
         'Segment key must contain only one "/" at the beginning at path "/". Got "/users/[id]"'
       );
     });
@@ -673,7 +673,7 @@ describe("buildPathAtlas", () => {
       const PA = createPathAtlasClass({
         "/docs/[...slug]": {},
       });
-      expect(() => buildPathAtlas(PA)).toThrow(
+      expect(() => buildPathAtlas(PA, true)).toThrow(
         'Segment key must contain only one "/" at the beginning at path "/". Got "/docs/[...slug]"'
       );
     });
@@ -683,26 +683,26 @@ describe("buildPathAtlas", () => {
         "/about": {},
         "/contact": {},
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
-    test("accepts localization value with single leading slash", () => {
+    test("accepts translation value with single leading slash", () => {
       const PA = createPathAtlasClass({
         "/about": {
           it: "/chi-siamo",
           fr: "/a-propos",
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
-    test("throws when root has localization", () => {
+    test("throws when root has translations", () => {
       const PA = createPathAtlasClass({
         en: "/",
       });
-      expect(() => buildPathAtlas(PA)).toThrow('Root level segment does not accept localizations. Got "en"');
+      expect(() => buildPathAtlas(PA, true)).toThrow('Root level segment does not accept translations. Got "en"');
     });
   });
 
@@ -715,7 +715,7 @@ describe("buildPathAtlas", () => {
           fr: "/a-propos",
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -727,7 +727,7 @@ describe("buildPathAtlas", () => {
           "pt-BR": "/sobre",
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -738,7 +738,7 @@ describe("buildPathAtlas", () => {
           "zh-Hant": "/about",
         },
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -748,8 +748,8 @@ describe("buildPathAtlas", () => {
           EN: "/about",
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(/Invalid localization key "EN" at path "\/about"/);
-      expect(() => buildPathAtlas(PA)).toThrow(/Did you mean: "en"/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/Invalid translation key "EN" at path "\/about"/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/Did you mean: "en"/);
     });
 
     test("throws on non-canonical locale id with underscore", () => {
@@ -758,8 +758,8 @@ describe("buildPathAtlas", () => {
           en_US: "/about",
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(/Invalid localization key "en_US" at path "\/about"/);
-      expect(() => buildPathAtlas(PA)).toThrow(/Did you mean: "en-US"/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/Invalid translation key "en_US" at path "\/about"/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/Did you mean: "en-US"/);
     });
 
     test("throws on non-canonical locale id with lowercase region", () => {
@@ -768,8 +768,8 @@ describe("buildPathAtlas", () => {
           "en-us": "/about",
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(/Invalid localization key "en-us" at path "\/about"/);
-      expect(() => buildPathAtlas(PA)).toThrow(/Did you mean: "en-US"/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/Invalid translation key "en-us" at path "\/about"/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/Did you mean: "en-US"/);
     });
 
     test("throws on locale id with wildcard", () => {
@@ -778,8 +778,8 @@ describe("buildPathAtlas", () => {
           "en-*": "/about",
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(/Invalid localization key "en-\*" at path "\/about"/);
-      expect(() => buildPathAtlas(PA)).toThrow(/Wildcards are not allowed/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/Invalid translation key "en-\*" at path "\/about"/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/Wildcards are not allowed/);
     });
 
     test("throws on nested non-canonical locale id", () => {
@@ -791,8 +791,8 @@ describe("buildPathAtlas", () => {
           },
         },
       });
-      expect(() => buildPathAtlas(PA)).toThrow(/Invalid localization key "IT" at path "\/about\/team"/);
-      expect(() => buildPathAtlas(PA)).toThrow(/Did you mean: "it"/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/Invalid translation key "IT" at path "\/about\/team"/);
+      expect(() => buildPathAtlas(PA, true)).toThrow(/Did you mean: "it"/);
     });
   });
 
@@ -802,7 +802,7 @@ describe("buildPathAtlas", () => {
         "/about_us": {},
         "/contact.html": {},
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -810,7 +810,7 @@ describe("buildPathAtlas", () => {
       const PA = createPathAtlasClass({
         "/[user_id]": {},
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -818,7 +818,7 @@ describe("buildPathAtlas", () => {
       const PA = createPathAtlasClass({
         "/[...path_segments]": {},
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -827,7 +827,7 @@ describe("buildPathAtlas", () => {
         "/[incomplete": {},
         "/incomplete]": {},
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
@@ -837,30 +837,267 @@ describe("buildPathAtlas", () => {
         "/b]": {},
         "/[c": {},
       });
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas.decl).toBeDefined();
     });
 
     test("returns the same instance that was created", () => {
       const decl = { "/about": {} };
       const PA = createPathAtlasClass(decl);
-      const atlas = buildPathAtlas(PA);
+      const atlas = buildPathAtlas(PA, true);
       expect(atlas).toBeInstanceOf(PA);
     });
 
-    test("throws on root-level localizations", () => {
+    test("throws on root-level translations", () => {
       const PA = createPathAtlasClass({
         en: "invalid",
       });
-      expect(() => buildPathAtlas(PA)).toThrow('Root level segment does not accept localizations. Got "en"');
+      expect(() => buildPathAtlas(PA, true)).toThrow('Root level segment does not accept translations. Got "en"');
     });
 
-    test("throws on root-level valid-looking localization", () => {
+    test("throws on root-level valid-looking translations", () => {
       const PA = createPathAtlasClass({
         en: "/",
         it: "/it",
       });
-      expect(() => buildPathAtlas(PA)).toThrow('Root level segment does not accept localizations. Got "en"');
+      expect(() => buildPathAtlas(PA, true)).toThrow('Root level segment does not accept translations. Got "en"');
+    });
+  });
+
+  describe("allowTranslation parameter", () => {
+    test("accepts declaration without translations when allowTranslation is false", () => {
+      const PA = createPathAtlasClass({
+        "/about": {},
+        "/contact": {},
+      });
+      const atlas = buildPathAtlas(PA, false);
+      expect(atlas.decl).toBeDefined();
+    });
+
+    test("accepts nested declarations without translations when allowTranslation is false", () => {
+      const PA = createPathAtlasClass({
+        "/about": {
+          "/team": {},
+          "/history": {},
+        },
+      });
+      const atlas = buildPathAtlas(PA, false);
+      expect(atlas.decl).toBeDefined();
+    });
+
+    test("accepts dynamic segments when allowTranslation is false", () => {
+      const PA = createPathAtlasClass({
+        "/users": {
+          "/[id]": {
+            "/profile": {},
+          },
+        },
+      });
+      const atlas = buildPathAtlas(PA, false);
+      expect(atlas.decl).toBeDefined();
+    });
+
+    test("accepts catch-all segments when allowTranslation is false", () => {
+      const PA = createPathAtlasClass({
+        "/docs": {
+          "/[...slug]": {},
+        },
+      });
+      const atlas = buildPathAtlas(PA, false);
+      expect(atlas.decl).toBeDefined();
+    });
+
+    test("throws when translation found and allowTranslation is false", () => {
+      const PA = createPathAtlasClass({
+        "/about": {
+          it: "/chi-siamo",
+        },
+      });
+      expect(() => buildPathAtlas(PA, false)).toThrow(
+        'Path translations are not supported by this strategy. Found translation "it" at path "/about"'
+      );
+    });
+
+    test("throws on nested translation when allowTranslation is false", () => {
+      const PA = createPathAtlasClass({
+        "/about": {
+          "/team": {
+            it: "/staff",
+          },
+        },
+      });
+      expect(() => buildPathAtlas(PA, false)).toThrow(
+        'Path translations are not supported by this strategy. Found translation "it" at path "/about/team"'
+      );
+    });
+
+    test("throws on multiple translations when allowTranslation is false", () => {
+      const PA = createPathAtlasClass({
+        "/about": {
+          en: "/about",
+          it: "/chi-siamo",
+          fr: "/a-propos",
+        },
+      });
+      expect(() => buildPathAtlas(PA, false)).toThrow(
+        'Path translations are not supported by this strategy. Found translation "en" at path "/about"'
+      );
+    });
+
+    test("accepts translations when allowTranslation is true", () => {
+      const PA = createPathAtlasClass({
+        "/about": {
+          it: "/chi-siamo",
+          fr: "/a-propos",
+        },
+      });
+      const atlas = buildPathAtlas(PA, true);
+      expect(atlas.decl).toBeDefined();
+    });
+  });
+
+  describe("containsTranslations property", () => {
+    test("returns false for empty declaration", () => {
+      const PA = createPathAtlasClass({});
+      const atlas = buildPathAtlas(PA, true);
+      expect(atlas.containsTranslations).toBe(false);
+    });
+
+    test("returns false for declaration with only static segments", () => {
+      const PA = createPathAtlasClass({
+        "/about": {},
+        "/contact": {},
+      });
+      const atlas = buildPathAtlas(PA, true);
+      expect(atlas.containsTranslations).toBe(false);
+    });
+
+    test("returns false for declaration with nested static segments", () => {
+      const PA = createPathAtlasClass({
+        "/about": {
+          "/team": {},
+          "/history": {},
+        },
+      });
+      const atlas = buildPathAtlas(PA, true);
+      expect(atlas.containsTranslations).toBe(false);
+    });
+
+    test("returns false for declaration with dynamic segments only", () => {
+      const PA = createPathAtlasClass({
+        "/users": {
+          "/[id]": {
+            "/profile": {},
+          },
+        },
+      });
+      const atlas = buildPathAtlas(PA, true);
+      expect(atlas.containsTranslations).toBe(false);
+    });
+
+    test("returns false for declaration with catch-all segments only", () => {
+      const PA = createPathAtlasClass({
+        "/docs": {
+          "/[...slug]": {},
+        },
+      });
+      const atlas = buildPathAtlas(PA, true);
+      expect(atlas.containsTranslations).toBe(false);
+    });
+
+    test("returns true for declaration with single translation", () => {
+      const PA = createPathAtlasClass({
+        "/about": {
+          it: "/chi-siamo",
+        },
+      });
+      const atlas = buildPathAtlas(PA, true);
+      expect(atlas.containsTranslations).toBe(true);
+    });
+
+    test("returns true for declaration with multiple translations", () => {
+      const PA = createPathAtlasClass({
+        "/about": {
+          en: "/about",
+          it: "/chi-siamo",
+          fr: "/a-propos",
+        },
+      });
+      const atlas = buildPathAtlas(PA, true);
+      expect(atlas.containsTranslations).toBe(true);
+    });
+
+    test("returns true for declaration with nested translation", () => {
+      const PA = createPathAtlasClass({
+        "/about": {
+          "/team": {
+            it: "/staff",
+          },
+        },
+      });
+      const atlas = buildPathAtlas(PA, true);
+      expect(atlas.containsTranslations).toBe(true);
+    });
+
+    test("returns true for declaration with deeply nested translation", () => {
+      const PA = createPathAtlasClass({
+        "/api": {
+          "/v1": {
+            "/users": {
+              "/profile": {
+                it: "/profilo",
+              },
+            },
+          },
+        },
+      });
+      const atlas = buildPathAtlas(PA, true);
+      expect(atlas.containsTranslations).toBe(true);
+    });
+
+    test("returns true for complex declaration with translations", () => {
+      const PA = createPathAtlasClass({
+        "/about": {
+          it: "/chi-siamo",
+          "/team": {
+            it: "/staff",
+          },
+        },
+        "/products": {
+          "/[id]": {},
+        },
+        "/docs": {
+          "/[...slug]": {},
+        },
+      });
+      const atlas = buildPathAtlas(PA, true);
+      expect(atlas.containsTranslations).toBe(true);
+    });
+
+    test("returns false when allowTranslation is false and no translations present", () => {
+      const PA = createPathAtlasClass({
+        "/about": {
+          "/team": {},
+        },
+      });
+      const atlas = buildPathAtlas(PA, false);
+      expect(atlas.containsTranslations).toBe(false);
+    });
+
+    test("returns ExtendedPathAtlas type with containsTranslations", () => {
+      const PA = createPathAtlasClass({ "/about": {} });
+      const atlas: ExtendedPathAtlas<AnyPathAtlas> = buildPathAtlas(PA, true);
+      expect(atlas).toHaveProperty("containsTranslations");
+      expect(atlas).toHaveProperty("decl");
+    });
+
+    test("preserves original PathAtlas instance properties", () => {
+      const decl = { "/about": { it: "/chi-siamo" } };
+      const PA = createPathAtlasClass(decl);
+      const atlas = buildPathAtlas(PA, true);
+      expect(atlas).toBeInstanceOf(PA);
+      expect(atlas.decl).toEqual(decl);
+      expect(atlas.containsTranslations).toBe(true);
     });
   });
 });

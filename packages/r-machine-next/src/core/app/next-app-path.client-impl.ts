@@ -1,7 +1,7 @@
 import Cookies from "js-cookie";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
-import type { HrefResolver } from "#r-machine/next/core";
+import type { HrefResolverFn } from "#r-machine/next/core";
 import { setCookie } from "#r-machine/next/internal";
 import type { NextAppClientImpl } from "./next-app-client-toolset.js";
 import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
@@ -11,7 +11,7 @@ import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core
 export async function createNextAppPathClientImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppPathStrategyConfig,
-  resolveHref: HrefResolver
+  resolvePath: HrefResolverFn
 ) {
   const { cookie } = strategyConfig;
   const lowercaseLocale = strategyConfig.localeLabel === "lowercase";
@@ -50,34 +50,11 @@ export async function createNextAppPathClientImpl(
       router.push(path);
     },
 
-    /*
-    createUsePathComposer(useLocale) {
-      function getPathComposer() {
-        const locale = useLocale();
-
-        function getPath(path: string): string {
-          let localeParam: string;
-          if (implicitDefaultLocale && locale === defaultLocale) {
-            localeParam = "";
-          } else {
-            localeParam = `/${lowercaseLocale ? locale.toLowerCase() : locale}`;
-          }
-          return `${localeParam}/${path.replace(pathComposerNormalizerRegExp, "")}`;
-        }
-
-        return getPath;
-      }
-
-      return getPathComposer;
-    },
-    */
     createUsePathComposer: (useLocale) => {
       return () => {
         const locale = useLocale();
 
-        return (path, params) => {
-          return resolveHref(true, locale, path, params);
-        };
+        return (path, params) => resolvePath(locale, path, params).href;
       };
     },
   } as NextAppClientImpl;

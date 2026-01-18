@@ -1,7 +1,7 @@
 export {
-  createHrefResolver,
-  type HrefResolver,
-  type HrefResolverLocaleAdapter,
+  HrefResolver,
+  type HrefResolverAdapter,
+  type HrefResolverFn,
 } from "./href-resolver.js";
 export type {
   BoundPathComposer,
@@ -12,9 +12,10 @@ export type {
 export {
   type AnyPathAtlas,
   buildPathAtlas,
-  type LocalizableSegmentDecl,
-  type NonLocalizableSegmentDecl,
+  type ExtendedPathAtlas,
+  type NonTranslatableSegmentDecl,
   type PathAtlasCtor,
+  type TranslatableSegmentDecl,
 } from "./path-atlas.js";
 export { PathTranslator } from "./path-translator.js";
 export type { RMachineProxy } from "./proxy.js";
