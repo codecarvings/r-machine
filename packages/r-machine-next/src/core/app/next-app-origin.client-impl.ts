@@ -6,15 +6,15 @@ import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-
 export async function createNextAppOriginClientImpl(
   _rMachine: RMachine<AnyResourceAtlas>,
   _strategyConfig: AnyNextAppOriginStrategyConfig,
-  resolveOrigin: (locale: string) => string,
-  resolvePath: HrefResolverFn
+  resolvePath: HrefResolverFn,
+  resolveUrl: HrefResolverFn
 ) {
   return {
     onLoad: undefined,
 
     writeLocale(newLocale, router) {
-      const href = resolveOrigin(newLocale);
-      router.push(href!);
+      const url = resolveUrl(newLocale, "/").href;
+      router.push(url!);
     },
 
     createUsePathComposer: (useLocale) => {

@@ -1,4 +1,4 @@
-import type { AnyResourceAtlas } from "r-machine";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
 import {
   type AnyPathAtlas,
   buildPathAtlas,
@@ -61,18 +61,30 @@ export abstract class NextAppOriginStrategyCore<
 > extends NextAppStrategyCore<RA, C> {
   static override readonly defaultConfig = defaultConfig;
 
+  constructor(rMachine: RMachine<RA>, config: C) {
+    super(rMachine, config);
+    rMachine.config.locales.forEach((locale) => {
+      const originOrOrigins = config.localeOriginMap[locale];
+      if (Array.isArray(originOrOrigins)) {
+        this.localeOriginMap.set(locale, originOrOrigins[0]); // Use the first origin if multiple are provided
+      } else {
+        this.localeOriginMap.set(locale, originOrOrigins);
+      }
+    });
+  }
+
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, true);
   private readonly locales = this.rMachine.config.locales;
   private readonly defaultLocale = this.rMachine.config.defaultLocale;
+  private readonly localeOriginMap = new Map<string, string>();
   protected readonly pathResolver: HrefResolver = new HrefResolver(
     this.pathAtlas,
     this.locales,
     this.defaultLocale,
     undefined
   );
-  protected readonly resolveOrigin = getOriginResolver(this.config.localeOriginMap, this.locales);
   protected readonly urlResolverAdapter: HrefResolverAdapter = (locale: string, path: string): string => {
-    return `${this.resolveOrigin(locale)}${path}`;
+    return `${this.localeOriginMap.get(locale)}${path}`;
   };
   protected readonly urlResolver: HrefResolver = new HrefResolver(
     this.pathAtlas,
@@ -86,8 +98,8 @@ export abstract class NextAppOriginStrategyCore<
     return module.createNextAppOriginClientImpl(
       this.rMachine,
       this.config,
-      this.resolveOrigin,
-      this.pathResolver.getResolvedHref
+      this.pathResolver.getResolvedHref,
+      this.urlResolver.getResolvedHref
     );
   }
 
@@ -96,8 +108,8 @@ export abstract class NextAppOriginStrategyCore<
     return module.createNextAppOriginServerImpl(
       this.rMachine,
       this.config,
-      this.resolveOrigin,
-      this.pathResolver.getResolvedHref
+      this.pathResolver.getResolvedHref,
+      this.urlResolver.getResolvedHref
     );
   }
 
@@ -105,17 +117,4 @@ export abstract class NextAppOriginStrategyCore<
     getPath: (locale, path, ...args) => this.pathResolver.getResolvedHref(locale, path, args[0]).href,
     getUrl: (locale, path, ...args) => this.urlResolver.getResolvedHref(locale, path, args[0]).href,
   };
-}
-
-function getOriginResolver(localeOrigins: LocaleOriginMap, locales: readonly string[]): (locale: string) => string {
-  const map = new Map<string, string>();
-  locales.forEach((locale) => {
-    const originOrOrigins = localeOrigins[locale];
-    if (Array.isArray(originOrOrigins)) {
-      map.set(locale, originOrOrigins[0]); // Use the first origin if multiple are provided
-    } else {
-      map.set(locale, originOrOrigins);
-    }
-  });
-  return map.get.bind(map) as (locale: string) => string;
 }

@@ -15,8 +15,8 @@ import { localeHeaderName } from "./next-app-strategy-core.js";
 export async function createNextAppOriginServerImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppOriginStrategyConfig,
-  resolveOrigin: (locale: string) => string,
-  resolvePath: HrefResolverFn
+  resolvePath: HrefResolverFn,
+  resolveUrl: HrefResolverFn
 ) {
   const defaultLocale = rMachine.config.defaultLocale;
   const { localeKey, autoLocaleBinding, localeOriginMap, pathMatcher } = strategyConfig;
@@ -29,11 +29,12 @@ export async function createNextAppOriginServerImpl(
     async writeLocale(newLocale, _cookies: CookiesFn, headers: HeadersFn) {
       const headerStore = await headers();
       const currentOrigin = headerStore.get("origin");
-      const newOrigin = resolveOrigin(newLocale);
+      const newUrl = resolveUrl(newLocale, "/").href;
+      const newOrigin = new URL(newUrl).origin;
       if (newOrigin !== currentOrigin) {
         // Redirect only if the origin for the new locale is different
         // (bug in Next.js when redirecting to the same origin)
-        redirect(newOrigin);
+        redirect(newUrl);
       }
     },
 
