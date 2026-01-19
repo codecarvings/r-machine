@@ -9,9 +9,10 @@ export const rMachine = new RMachine<ResourceAtlas>({
 });
 
 export const strategy = new NextAppOriginStrategy(rMachine, {
+  // Origins per locale - See also next.config.ts
   localeOriginMap: {
-    en: "http://english.local:3000",
-    "it-IT": ["http://italiano.local:3000"],
+    en: "http://english.test:3000",
+    "it-IT": ["http://italiano.test:3000"],
   },
   pathMatcher: /^(?!\/non-localized($|\/)).*/,
 });

@@ -10,5 +10,6 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "src"),
     },
+    dedupe: ["react", "react-dom"], // Ensure only one copy of React is used
   },
 });

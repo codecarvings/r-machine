@@ -3,7 +3,7 @@
 import type { AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import type { ReactNode } from "react";
-import { createContext, use, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useMemo } from "react";
 
 type SetLocale = (newLocale: string) => Promise<void>;
 type WriteLocale = (newLocale: string) => void | Promise<void>;
@@ -106,7 +106,10 @@ export async function createReactBareToolset<RA extends AnyResourceAtlas>(
     const context = useReactToolsetContext();
     const r = hybridPickR(context.locale, namespace);
 
-    return r instanceof Promise ? use(r) : r;
+    if (r instanceof Promise) {
+      throw r;
+    }
+    return r;
   }
 
   const hybridPickRKit: (typeof rMachine)["hybridPickRKit"] = (rMachine as any).hybridPickRKit;
@@ -114,7 +117,10 @@ export async function createReactBareToolset<RA extends AnyResourceAtlas>(
     const context = useReactToolsetContext();
     const rKit = hybridPickRKit(context.locale, ...namespaces);
 
-    return (rKit instanceof Promise ? use(rKit) : rKit) as RKit<RA, NL>;
+    if (rKit instanceof Promise) {
+      throw rKit;
+    }
+    return rKit as RKit<RA, NL>;
   }
 
   return {

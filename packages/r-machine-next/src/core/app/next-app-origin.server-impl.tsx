@@ -12,6 +12,8 @@ import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-
 import type { NextAppServerImpl } from "./next-app-server-toolset.js";
 import { localeHeaderName } from "./next-app-strategy-core.js";
 
+export const originHeaderName = "x-rm-origin";
+
 export async function createNextAppOriginServerImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppOriginStrategyConfig,
@@ -28,7 +30,7 @@ export async function createNextAppOriginServerImpl(
 
     async writeLocale(newLocale, _cookies: CookiesFn, headers: HeadersFn) {
       const headerStore = await headers();
-      const currentOrigin = headerStore.get("origin");
+      const currentOrigin = headerStore.get(originHeaderName);
       const newUrl = resolveUrl(newLocale, "/").href;
       const newOrigin = new URL(newUrl).origin;
       if (newOrigin !== currentOrigin) {
@@ -83,19 +85,18 @@ export async function createNextAppOriginServerImpl(
           const newUrl = request.nextUrl.clone();
           newUrl.pathname = `/${locale!}${pathname}`;
 
+          const requestHeaders = new Headers(request.headers);
+          // Ensure origin header is set
+          requestHeaders.set(originHeaderName, origin);
           if (autoLBSw) {
             // Bind locale to request headers
-            const requestHeaders = new Headers(request.headers);
             requestHeaders.set(localeHeaderName, locale!);
-            return NextResponse.rewrite(newUrl, {
-              request: {
-                headers: requestHeaders,
-              },
-            });
           }
-
-          // No locale binding needed
-          return NextResponse.rewrite(newUrl);
+          return NextResponse.rewrite(newUrl, {
+            request: {
+              headers: requestHeaders,
+            },
+          });
         }
 
         // Irrelevant URL, do not proxy
