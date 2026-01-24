@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
-import type { HrefResolverFn } from "#r-machine/next/core";
+import type { HrefTranslator } from "#r-machine/next/core";
 import {
   type CookiesFn,
   type HeadersFn,
@@ -17,8 +17,8 @@ export const originHeaderName = "x-rm-origin";
 export async function createNextAppOriginServerImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppOriginStrategyConfig,
-  resolvePath: HrefResolverFn,
-  resolveUrl: HrefResolverFn
+  pathTranslator: HrefTranslator,
+  urlTranslator: HrefTranslator
 ) {
   const defaultLocale = rMachine.config.defaultLocale;
   const { localeKey, autoLocaleBinding, localeOriginMap, pathMatcher } = strategyConfig;
@@ -31,7 +31,7 @@ export async function createNextAppOriginServerImpl(
     async writeLocale(newLocale, _cookies: CookiesFn, headers: HeadersFn) {
       const headerStore = await headers();
       const currentOrigin = headerStore.get(originHeaderName);
-      const newUrl = resolveUrl(newLocale, "/").href;
+      const newUrl = urlTranslator.get(newLocale, "/").value;
       const newOrigin = new URL(newUrl).origin;
       if (newOrigin !== currentOrigin) {
         // Redirect only if the origin for the new locale is different
@@ -111,7 +111,7 @@ export async function createNextAppOriginServerImpl(
         validateServerOnlyUsage("getPathComposer");
         const locale = await getLocale();
 
-        return (path, params) => resolvePath(locale, path, params).href;
+        return (path, params) => pathTranslator.get(locale, path, params).value;
       };
     },
   } as NextAppServerImpl;

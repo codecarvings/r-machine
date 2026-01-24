@@ -5,9 +5,7 @@ import type { CookieDeclaration } from "r-machine/strategy/web";
 import {
   type AnyPathAtlas,
   buildPathAtlas,
-  ContentPathTranslator,
-  HrefResolver,
-  type HrefResolverAdapter,
+  HrefTranslator,
   type PathParamMap,
   type PathParams,
   type PathSelector,
@@ -84,18 +82,13 @@ export abstract class NextAppPathStrategyCore<
   static override readonly defaultConfig = defaultConfig;
 
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, true);
-  private readonly locales = this.rMachine.config.locales;
-  private readonly defaultLocale = this.rMachine.config.defaultLocale;
-  private readonly implicitDefaultLocale = this.config.implicitDefaultLocale !== "off";
-  private readonly lowercaseLocale = this.config.localeLabel === "lowercase";
-  private readonly pathResolverAdapter: HrefResolverAdapter = (locale: string, path: string): string => {
-    if (this.implicitDefaultLocale && locale === this.defaultLocale) {
-      return path;
-    }
-    return `/${this.lowercaseLocale ? locale.toLowerCase() : locale}${path}`;
-  };
-  private readonly contentPathTranslator = new ContentPathTranslator(this.pathAtlas, this.locales, this.defaultLocale);
-  protected readonly pathResolver = new HrefResolver(this.contentPathTranslator, this.pathResolverAdapter);
+  protected readonly pathTranslator = new NextAppPathStrategyPathTranslator(
+    this.pathAtlas,
+    this.rMachine.config.locales,
+    this.rMachine.config.defaultLocale,
+    this.config.localeLabel === "lowercase",
+    this.config.implicitDefaultLocale !== "off"
+  );
 
   protected override validateConfig(): void {
     super.validateConfig();
@@ -111,12 +104,12 @@ export abstract class NextAppPathStrategyCore<
 
   protected async createClientImpl() {
     const module = await import("./next-app-path.client-impl.js");
-    return module.createNextAppPathClientImpl(this.rMachine, this.config, this.pathResolver.get);
+    return module.createNextAppPathClientImpl(this.rMachine, this.config, this.pathTranslator);
   }
 
   protected async createServerImpl() {
     const module = await import("./next-app-path.server-impl.js");
-    return module.createNextAppPathServerImpl(this.rMachine, this.config, this.pathResolver.get);
+    return module.createNextAppPathServerImpl(this.rMachine, this.config, this.pathTranslator);
   }
 
   protected validateNoProxyConfig(): void {
@@ -150,6 +143,28 @@ export abstract class NextAppPathStrategyCore<
   }
 
   readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
-    getPath: (locale, path, ...args) => this.pathResolver.get(locale, path, args[0]).value,
+    getPath: (locale, path, ...args) => this.pathTranslator.get(locale, path, args[0]).value,
+  };
+}
+
+export class NextAppPathStrategyPathTranslator extends HrefTranslator {
+  constructor(
+    atlas: AnyPathAtlas,
+    locales: readonly string[],
+    defaultLocale: string,
+    protected readonly lowercaseLocale: boolean,
+    protected readonly implicitDefaultLocale: boolean
+  ) {
+    super(atlas, locales, defaultLocale);
+  }
+
+  protected override readonly adapter = {
+    fn: (locale: string, path: string): string => {
+      if (this.implicitDefaultLocale && locale === this.defaultLocale) {
+        return path;
+      }
+      return `/${this.lowercaseLocale ? locale.toLowerCase() : locale}${path}`;
+    },
+    preApply: false,
   };
 }

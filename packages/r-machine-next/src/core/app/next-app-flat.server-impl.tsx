@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
-import type { PathTranslatorFn } from "#r-machine/next/core";
+import type { HrefTranslator } from "#r-machine/next/core";
 import { type CookiesFn, type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core.js";
 import type { NextAppServerImpl } from "./next-app-server-toolset.js";
@@ -10,7 +10,7 @@ import { localeHeaderName } from "./next-app-strategy-core.js";
 export async function createNextAppFlatServerImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppFlatStrategyConfig,
-  resolvePath: PathTranslatorFn
+  pathTranslator: HrefTranslator
 ) {
   const locales = rMachine.config.locales;
   const { localeKey, autoLocaleBinding, cookie, pathMatcher } = strategyConfig;
@@ -101,7 +101,7 @@ export async function createNextAppFlatServerImpl(
         validateServerOnlyUsage("getPathComposer");
         const locale = await getLocale();
 
-        return (path, params) => resolvePath(locale, path, params).href;
+        return (path, params) => pathTranslator.get(locale, path, params).value;
       };
     },
   } as NextAppServerImpl;

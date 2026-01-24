@@ -320,8 +320,8 @@ describe("HrefMapper", () => {
         dynamic: false,
       }));
 
-      expect(mapper.segmentDataTree.children.about).toBeDefined();
-      expect(mapper.segmentDataTree.children.about.translations.it).toBe("chi-siamo");
+      expect((mapper as any).segmentDataTree.children.about).toBeDefined();
+      expect((mapper as any).segmentDataTree.children.about.translations.it).toBe("chi-siamo");
     });
   });
 

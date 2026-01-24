@@ -4,7 +4,7 @@ import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
-import type { HrefResolverFn } from "#r-machine/next/core";
+import type { HrefTranslator } from "#r-machine/next/core";
 import {
   type CookiesFn,
   defaultPathMatcher,
@@ -24,7 +24,7 @@ const default_implicit_matcher: RegExp | null = defaultPathMatcher; // Implicit 
 export async function createNextAppPathServerImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppPathStrategyConfig,
-  resolvePath: HrefResolverFn
+  pathTranslator: HrefTranslator
 ) {
   const locales = rMachine.config.locales;
   const defaultLocale = rMachine.config.defaultLocale;
@@ -285,7 +285,7 @@ export async function createNextAppPathServerImpl(
         validateServerOnlyUsage("getPathComposer");
         const locale = await getLocale();
 
-        return (path, params) => resolvePath(locale, path, params).href;
+        return (path, params) => pathTranslator.get(locale, path, params).value;
       };
     },
   } as NextAppNoProxyServerImpl;

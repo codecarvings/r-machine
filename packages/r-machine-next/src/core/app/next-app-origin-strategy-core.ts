@@ -1,10 +1,8 @@
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas } from "r-machine";
 import {
   type AnyPathAtlas,
   buildPathAtlas,
-  ContentPathTranslator,
-  HrefResolver,
-  type HrefResolverAdapter,
+  HrefTranslator,
   type PathParamMap,
   type PathParams,
   type PathSelector,
@@ -62,51 +60,58 @@ export abstract class NextAppOriginStrategyCore<
 > extends NextAppStrategyCore<RA, C> {
   static override readonly defaultConfig = defaultConfig;
 
-  constructor(rMachine: RMachine<RA>, config: C) {
-    super(rMachine, config);
-    rMachine.config.locales.forEach((locale) => {
-      const originOrOrigins = config.localeOriginMap[locale];
-      if (Array.isArray(originOrOrigins)) {
-        this.localeOriginMap.set(locale, originOrOrigins[0]); // Use the first origin if multiple are provided
-      } else {
-        this.localeOriginMap.set(locale, originOrOrigins);
-      }
-    });
-  }
-
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, true);
-  private readonly locales = this.rMachine.config.locales;
-  private readonly defaultLocale = this.rMachine.config.defaultLocale;
-  private readonly localeOriginMap = new Map<string, string>();
-  private readonly contentPathTranslator = new ContentPathTranslator(this.pathAtlas, this.locales, this.defaultLocale);
-  protected readonly pathResolver = new HrefResolver(this.contentPathTranslator, undefined);
-  protected readonly urlResolverAdapter: HrefResolverAdapter = (locale: string, path: string): string => {
-    return `${this.localeOriginMap.get(locale)}${path}`;
-  };
-  protected readonly urlResolver = new HrefResolver(this.contentPathTranslator, this.urlResolverAdapter);
+  protected readonly pathTranslator = new HrefTranslator(
+    this.pathAtlas,
+    this.rMachine.config.locales,
+    this.rMachine.config.defaultLocale
+  );
+  protected readonly urlTranslator = new NextAppOriginStrategyUrlTranslator(
+    this.pathAtlas,
+    this.rMachine.config.locales,
+    this.rMachine.config.defaultLocale,
+    this.config.localeOriginMap
+  );
 
   protected async createClientImpl() {
     const module = await import("./next-app-origin.client-impl.js");
-    return module.createNextAppOriginClientImpl(
-      this.rMachine,
-      this.config,
-      this.pathResolver.get,
-      this.urlResolver.get
-    );
+    return module.createNextAppOriginClientImpl(this.rMachine, this.config, this.pathTranslator, this.urlTranslator);
   }
 
   protected async createServerImpl() {
     const module = await import("./next-app-origin.server-impl.js");
-    return module.createNextAppOriginServerImpl(
-      this.rMachine,
-      this.config,
-      this.pathResolver.get,
-      this.urlResolver.get
-    );
+    return module.createNextAppOriginServerImpl(this.rMachine, this.config, this.pathTranslator, this.urlTranslator);
   }
 
   readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
-    getPath: (locale, path, ...args) => this.pathResolver.get(locale, path, args[0]).value,
-    getUrl: (locale, path, ...args) => this.urlResolver.get(locale, path, args[0]).value,
+    getPath: (locale, path, ...args) => this.pathTranslator.get(locale, path, args[0]).value,
+    getUrl: (locale, path, ...args) => this.urlTranslator.get(locale, path, args[0]).value,
+  };
+}
+
+export class NextAppOriginStrategyUrlTranslator extends HrefTranslator {
+  constructor(
+    atlas: AnyPathAtlas,
+    locales: readonly string[],
+    defaultLocale: string,
+    protected readonly localeOriginMap: LocaleOriginMap
+  ) {
+    super(atlas, locales, defaultLocale);
+    locales.forEach((locale) => {
+      const originOrOrigins = localeOriginMap[locale];
+      if (Array.isArray(originOrOrigins)) {
+        this.localeOriginMapCache.set(locale, originOrOrigins[0]); // Use the first origin if multiple are provided
+      } else {
+        this.localeOriginMapCache.set(locale, originOrOrigins);
+      }
+    });
+  }
+  protected readonly localeOriginMapCache = new Map<string, string>();
+
+  protected override readonly adapter = {
+    fn: (locale: string, path: string): string => {
+      return `${this.localeOriginMapCache.get(locale)}${path}`;
+    },
+    preApply: false,
   };
 }

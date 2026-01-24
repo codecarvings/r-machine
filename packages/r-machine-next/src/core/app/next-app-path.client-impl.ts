@@ -1,7 +1,7 @@
 import Cookies from "js-cookie";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
-import type { HrefResolverFn } from "#r-machine/next/core";
+import type { HrefTranslator } from "#r-machine/next/core";
 import { setCookie } from "#r-machine/next/internal";
 import type { NextAppClientImpl } from "./next-app-client-toolset.js";
 import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
@@ -11,7 +11,7 @@ import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core
 export async function createNextAppPathClientImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppPathStrategyConfig,
-  resolvePath: HrefResolverFn
+  pathTranslator: HrefTranslator
 ) {
   const { cookie } = strategyConfig;
   const lowercaseLocale = strategyConfig.localeLabel === "lowercase";
@@ -54,7 +54,7 @@ export async function createNextAppPathClientImpl(
       return () => {
         const locale = useLocale();
 
-        return (path, params) => resolvePath(locale, path, params).href;
+        return (path, params) => pathTranslator.get(locale, path, params).value;
       };
     },
   } as NextAppClientImpl;
