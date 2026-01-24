@@ -5,6 +5,7 @@ import type { CookieDeclaration } from "r-machine/strategy/web";
 import {
   type AnyPathAtlas,
   buildPathAtlas,
+  ContentPathTranslator,
   HrefResolver,
   type HrefResolverAdapter,
   type PathParamMap,
@@ -87,18 +88,14 @@ export abstract class NextAppPathStrategyCore<
   private readonly defaultLocale = this.rMachine.config.defaultLocale;
   private readonly implicitDefaultLocale = this.config.implicitDefaultLocale !== "off";
   private readonly lowercaseLocale = this.config.localeLabel === "lowercase";
-  protected readonly pathResolverAdapter: HrefResolverAdapter = (locale: string, path: string): string => {
+  private readonly pathResolverAdapter: HrefResolverAdapter = (locale: string, path: string): string => {
     if (this.implicitDefaultLocale && locale === this.defaultLocale) {
       return path;
     }
     return `/${this.lowercaseLocale ? locale.toLowerCase() : locale}${path}`;
   };
-  protected readonly pathResolver: HrefResolver = new HrefResolver(
-    this.pathAtlas,
-    this.locales,
-    this.defaultLocale,
-    this.pathResolverAdapter
-  );
+  private readonly contentPathTranslator = new ContentPathTranslator(this.pathAtlas, this.locales, this.defaultLocale);
+  protected readonly pathResolver = new HrefResolver(this.contentPathTranslator, this.pathResolverAdapter);
 
   protected override validateConfig(): void {
     super.validateConfig();
@@ -114,12 +111,12 @@ export abstract class NextAppPathStrategyCore<
 
   protected async createClientImpl() {
     const module = await import("./next-app-path.client-impl.js");
-    return module.createNextAppPathClientImpl(this.rMachine, this.config, this.pathResolver.getResolvedHref);
+    return module.createNextAppPathClientImpl(this.rMachine, this.config, this.pathResolver.get);
   }
 
   protected async createServerImpl() {
     const module = await import("./next-app-path.server-impl.js");
-    return module.createNextAppPathServerImpl(this.rMachine, this.config, this.pathResolver.getResolvedHref);
+    return module.createNextAppPathServerImpl(this.rMachine, this.config, this.pathResolver.get);
   }
 
   protected validateNoProxyConfig(): void {
@@ -153,6 +150,6 @@ export abstract class NextAppPathStrategyCore<
   }
 
   readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
-    getPath: (locale, path, ...args) => this.pathResolver.getResolvedHref(locale, path, args[0]).href,
+    getPath: (locale, path, ...args) => this.pathResolver.get(locale, path, args[0]).value,
   };
 }

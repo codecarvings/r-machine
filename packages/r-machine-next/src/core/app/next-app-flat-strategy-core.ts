@@ -3,6 +3,7 @@ import { type CookieDeclaration, defaultCookieDeclaration } from "r-machine/stra
 import {
   type AnyPathAtlas,
   buildPathAtlas,
+  ContentPathTranslator,
   HrefResolver,
   type PathParamMap,
   type PathParams,
@@ -54,24 +55,20 @@ export abstract class NextAppFlatStrategyCore<
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, false);
   private readonly locales = this.rMachine.config.locales;
   private readonly defaultLocale = this.rMachine.config.defaultLocale;
-  protected readonly pathResolver: HrefResolver = new HrefResolver(
-    this.pathAtlas,
-    this.locales,
-    this.defaultLocale,
-    undefined
-  );
+  private readonly contentPathTranslator = new ContentPathTranslator(this.pathAtlas, this.locales, this.defaultLocale);
+  protected readonly pathResolver = new HrefResolver(this.contentPathTranslator, undefined);
 
   protected async createClientImpl() {
     const module = await import("./next-app-flat.client-impl.js");
-    return module.createNextAppFlatClientImpl(this.rMachine, this.config, this.pathResolver.getResolvedHref);
+    return module.createNextAppFlatClientImpl(this.rMachine, this.config, this.pathResolver.get);
   }
 
   protected async createServerImpl() {
     const module = await import("./next-app-flat.server-impl.js");
-    return module.createNextAppFlatServerImpl(this.rMachine, this.config, this.pathResolver.getResolvedHref);
+    return module.createNextAppFlatServerImpl(this.rMachine, this.config, this.pathResolver.get);
   }
 
   readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
-    getPath: (path, ...args) => this.pathResolver.getResolvedHref(this.defaultLocale, path, args[0]).href,
+    getPath: (path, ...args) => this.pathResolver.get(this.defaultLocale, path, args[0]).value,
   };
 }

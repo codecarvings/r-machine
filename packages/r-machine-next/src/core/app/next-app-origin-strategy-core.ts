@@ -2,6 +2,7 @@ import type { AnyResourceAtlas, RMachine } from "r-machine";
 import {
   type AnyPathAtlas,
   buildPathAtlas,
+  ContentPathTranslator,
   HrefResolver,
   type HrefResolverAdapter,
   type PathParamMap,
@@ -77,29 +78,20 @@ export abstract class NextAppOriginStrategyCore<
   private readonly locales = this.rMachine.config.locales;
   private readonly defaultLocale = this.rMachine.config.defaultLocale;
   private readonly localeOriginMap = new Map<string, string>();
-  protected readonly pathResolver: HrefResolver = new HrefResolver(
-    this.pathAtlas,
-    this.locales,
-    this.defaultLocale,
-    undefined
-  );
+  private readonly contentPathTranslator = new ContentPathTranslator(this.pathAtlas, this.locales, this.defaultLocale);
+  protected readonly pathResolver = new HrefResolver(this.contentPathTranslator, undefined);
   protected readonly urlResolverAdapter: HrefResolverAdapter = (locale: string, path: string): string => {
     return `${this.localeOriginMap.get(locale)}${path}`;
   };
-  protected readonly urlResolver: HrefResolver = new HrefResolver(
-    this.pathAtlas,
-    this.locales,
-    this.defaultLocale,
-    this.urlResolverAdapter
-  );
+  protected readonly urlResolver = new HrefResolver(this.contentPathTranslator, this.urlResolverAdapter);
 
   protected async createClientImpl() {
     const module = await import("./next-app-origin.client-impl.js");
     return module.createNextAppOriginClientImpl(
       this.rMachine,
       this.config,
-      this.pathResolver.getResolvedHref,
-      this.urlResolver.getResolvedHref
+      this.pathResolver.get,
+      this.urlResolver.get
     );
   }
 
@@ -108,13 +100,13 @@ export abstract class NextAppOriginStrategyCore<
     return module.createNextAppOriginServerImpl(
       this.rMachine,
       this.config,
-      this.pathResolver.getResolvedHref,
-      this.urlResolver.getResolvedHref
+      this.pathResolver.get,
+      this.urlResolver.get
     );
   }
 
   readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
-    getPath: (locale, path, ...args) => this.pathResolver.getResolvedHref(locale, path, args[0]).href,
-    getUrl: (locale, path, ...args) => this.urlResolver.getResolvedHref(locale, path, args[0]).href,
+    getPath: (locale, path, ...args) => this.pathResolver.get(locale, path, args[0]).value,
+    getUrl: (locale, path, ...args) => this.urlResolver.get(locale, path, args[0]).value,
   };
 }

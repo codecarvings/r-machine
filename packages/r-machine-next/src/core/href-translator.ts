@@ -1,135 +1,34 @@
 import { RMachineError } from "r-machine/errors";
-import type { AnyPathAtlas } from "#r-machine/next/core";
+import {
+  getSegmentData,
+  HrefMapper,
+  type MappedHrefResult,
+  type MappedPath,
+  type MappedSegment,
+  type PathAtlasSegment,
+} from "./href-mapper.js";
 
-type SegmentKind = "static" | "dynamic" | "catchAll" | "optionalCatchAll";
+type HrefTranslatorFn = (locale: string, path: string, params?: object) => MappedHrefResult;
 
-interface SegmentData {
-  readonly kind: SegmentKind | undefined;
-  readonly paramKey: string | undefined;
-}
-
-interface PathAtlasSegment extends SegmentData {
-  readonly translations: {
-    readonly [locale: string]: string;
-  };
-  readonly children: {
-    [key: string]: PathAtlasSegment;
-  };
-}
-
-interface MappedSegment {
-  readonly decl: boolean;
-  readonly segment: string;
-  readonly kind: SegmentKind;
-}
-
-interface MappedPath {
-  readonly decl: boolean;
-  readonly dynamic: boolean;
-  readonly segments: MappedSegment[];
-}
-
-interface TranslatePathResult {
-  readonly path: string;
-  readonly dynamic: boolean;
-}
-
-export function getSegmentData(segment: string): SegmentData {
-  let kind: SegmentKind | undefined;
-  let paramKey: string | undefined;
-  if (segment === "") {
-  } else if (segment.startsWith("[[...") && segment.endsWith("]]")) {
-    kind = "optionalCatchAll";
-    paramKey = segment.slice(5, -2);
-  } else if (segment.startsWith("[...") && segment.endsWith("]")) {
-    kind = "catchAll";
-    paramKey = segment.slice(4, -1);
-  } else if (segment.startsWith("[") && segment.endsWith("]")) {
-    kind = "dynamic";
-    paramKey = segment.slice(1, -1);
-  } else {
-    kind = "static";
-  }
-
-  return { kind, paramKey };
-}
-
-export function buildPathAtlasSegmentTree(
-  segment: string,
-  decl: object,
-  locales: readonly string[],
-  defaultLocale: string
-): PathAtlasSegment {
-  const { kind, paramKey } = getSegmentData(segment);
-
-  const translations: { [locale: string]: string } = {};
-  for (const locale of locales) {
-    translations[locale] = segment;
-  }
-
-  const children: { [key: string]: PathAtlasSegment } = {};
-  for (const key in decl) {
-    if (key.startsWith("/")) {
-      // Segment declaration
-      const childDecl = (decl as any)[key];
-      const segment = key.slice(1);
-      children[segment] = buildPathAtlasSegmentTree(segment, childDecl, locales, defaultLocale);
-    } else {
-      const translationDecl: string = (decl as any)[key];
-      const translation = translationDecl.slice(1);
-      translations[key] = translation;
-    }
-  }
-
-  return { kind, paramKey, translations, children };
-}
-
-export class PathTranslator {
-  constructor(
-    protected readonly atlas: AnyPathAtlas,
-    protected readonly locales: readonly string[],
-    protected readonly defaultLocale: string
-  ) {
-    this.segmentDataTree = buildPathAtlasSegmentTree("", this.atlas.decl, this.locales, this.defaultLocale);
-    locales.forEach((locale) => {
-      this.caches[locale] = new Map<string, TranslatePathResult>();
-      this.mappedPathCaches[locale] = new Map<string, MappedPath>();
-    });
-  }
-
-  protected readonly segmentDataTree: PathAtlasSegment;
-  protected readonly caches: { [locale: string]: Map<string, TranslatePathResult> } = {};
-  protected readonly mappedPathCaches: { [locale: string]: Map<string, MappedPath> } = {};
-
-  getTranslatedPath(locale: string, path: string, params?: object): TranslatePathResult {
-    const cache = this.caches[locale];
-    let result = cache.get(path);
-    if (result !== undefined) {
-      return result;
-    }
-
+export class HrefTranslator extends HrefMapper<HrefTranslatorFn> {
+  protected readonly compute: HrefTranslatorFn = (locale, path, params) => {
     const mappedPathCache = this.mappedPathCaches[locale];
     let mappedPath = mappedPathCache.get(path);
     if (mappedPath === undefined) {
-      mappedPath = this.getMappedPath(locale, path);
+      mappedPath = this.internalCompute(locale, path);
       if (mappedPath.decl) {
         // Cache only fully declared paths
         mappedPathCache.set(path, mappedPath);
       }
     }
 
-    result = {
-      path: getTranslatedPath(locale, path, mappedPath.segments, params),
+    return {
+      value: getTranslatedHref(locale, path, mappedPath.segments, params),
       dynamic: mappedPath.dynamic,
     };
-    if (!mappedPath.dynamic) {
-      // Cache only non-dynamic paths
-      cache.set(path, result);
-    }
-    return result;
-  }
+  };
 
-  protected getMappedPath(locale: string, path: string): MappedPath {
+  protected internalCompute(locale: string, path: string): MappedPath {
     if (!path.startsWith("/")) {
       throw new RMachineError(`Path must start with "/".`);
     }
@@ -186,7 +85,7 @@ export class PathTranslator {
   }
 }
 
-export function getTranslatedPath(
+export function getTranslatedHref(
   locale: string,
   path: string,
   mappedSegments: MappedSegment[],

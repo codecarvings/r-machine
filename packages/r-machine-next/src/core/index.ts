@@ -1,8 +1,6 @@
-export {
-  HrefResolver,
-  type HrefResolverAdapter,
-  type HrefResolverFn,
-} from "./href-resolver.js";
+export { HrefCanonicalizer } from "./href-canonicalizer.js";
+export { HrefMapper } from "./href-mapper.js";
+export { HrefTranslator } from "./href-translator.js";
 export type {
   BoundPathComposer,
   PathParamMap,
@@ -17,6 +15,4 @@ export {
   type PathAtlasCtor,
   type TranslatableSegmentDecl,
 } from "./path-atlas.js";
-export { PathCanonicalizer } from "./path-canonicalizer.js";
-export { PathTranslator } from "./path-translator.js";
 export type { RMachineProxy } from "./proxy.js";
