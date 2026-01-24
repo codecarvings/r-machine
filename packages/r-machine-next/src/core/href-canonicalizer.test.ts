@@ -1,5 +1,66 @@
 import { describe, expect, test } from "vitest";
-import { HrefCanonicalizer } from "./href-canonicalizer.js";
+import { getCanonicalizedHref, HrefCanonicalizer } from "./href-canonicalizer.js";
+
+describe("getCanonicalizedHref", () => {
+  test("returns root path for empty segments", () => {
+    const result = getCanonicalizedHref([]);
+    expect(result).toBe("/");
+  });
+
+  test("returns path with single static segment", () => {
+    const result = getCanonicalizedHref([{ decl: true, segment: "about", kind: "static" as const }]);
+    expect(result).toBe("/about");
+  });
+
+  test("returns path with multiple static segments", () => {
+    const result = getCanonicalizedHref([
+      { decl: true, segment: "about", kind: "static" as const },
+      { decl: true, segment: "team", kind: "static" as const },
+    ]);
+    expect(result).toBe("/about/team");
+  });
+
+  test("returns path with dynamic segment values", () => {
+    const result = getCanonicalizedHref([
+      { decl: true, segment: "products", kind: "static" as const },
+      { decl: true, segment: "123", kind: "dynamic" as const },
+    ]);
+    expect(result).toBe("/products/123");
+  });
+
+  test("returns path with catch-all segment values", () => {
+    const result = getCanonicalizedHref([
+      { decl: true, segment: "docs", kind: "static" as const },
+      { decl: true, segment: "intro", kind: "catchAll" as const },
+      { decl: true, segment: "getting-started", kind: "catchAll" as const },
+    ]);
+    expect(result).toBe("/docs/intro/getting-started");
+  });
+
+  test("preserves segment values as-is without encoding", () => {
+    const result = getCanonicalizedHref([{ decl: true, segment: "hello%20world", kind: "dynamic" as const }]);
+    expect(result).toBe("/hello%20world");
+  });
+
+  test("handles mixed declared and undeclared segments", () => {
+    const result = getCanonicalizedHref([
+      { decl: true, segment: "about", kind: "static" as const },
+      { decl: false, segment: "unknown", kind: "static" as const },
+    ]);
+    expect(result).toBe("/about/unknown");
+  });
+
+  test("handles deeply nested path", () => {
+    const result = getCanonicalizedHref([
+      { decl: true, segment: "api", kind: "static" as const },
+      { decl: true, segment: "v1", kind: "static" as const },
+      { decl: true, segment: "users", kind: "static" as const },
+      { decl: true, segment: "123", kind: "dynamic" as const },
+      { decl: true, segment: "profile", kind: "static" as const },
+    ]);
+    expect(result).toBe("/api/v1/users/123/profile");
+  });
+});
 
 describe("HrefCanonicalizer", () => {
   const locales = ["en", "it"];
@@ -609,5 +670,307 @@ describe("HrefCanonicalizer", () => {
       value: "/products/123/reviews",
       dynamic: true,
     });
+  });
+
+  test("handles path with trailing slash", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+      },
+    });
+    const canonicalizer = new HrefCanonicalizer(atlas, locales, defaultLocale);
+
+    expect(canonicalizer.get("en", "/about/")).toEqual({ value: "/about", dynamic: false });
+    expect(canonicalizer.get("it", "/chi-siamo/")).toEqual({ value: "/about", dynamic: false });
+  });
+
+  test("handles path with double slashes", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+        "/team": {
+          it: "/staff",
+        },
+      },
+    });
+    const canonicalizer = new HrefCanonicalizer(atlas, locales, defaultLocale);
+
+    expect(canonicalizer.get("en", "/about//team")).toEqual({ value: "/about/team", dynamic: false });
+    expect(canonicalizer.get("it", "/chi-siamo//staff")).toEqual({ value: "/about/team", dynamic: false });
+  });
+
+  test("handles path with multiple trailing slashes", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+      },
+    });
+    const canonicalizer = new HrefCanonicalizer(atlas, locales, defaultLocale);
+
+    expect(canonicalizer.get("en", "/about///")).toEqual({ value: "/about", dynamic: false });
+  });
+
+  test("handles path with leading double slashes", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+      },
+    });
+    const canonicalizer = new HrefCanonicalizer(atlas, locales, defaultLocale);
+
+    expect(canonicalizer.get("en", "//about")).toEqual({ value: "/about", dynamic: false });
+    expect(canonicalizer.get("it", "//chi-siamo")).toEqual({ value: "/about", dynamic: false });
+  });
+});
+
+class HrefCanonicalizerWithPreAdapter extends HrefCanonicalizer {
+  protected override readonly adapter = {
+    fn: (_locale: string, path: string) => {
+      const segments = path.split("/").filter((s) => s.length > 0);
+      return `/${segments.slice(1).join("/")}`;
+    },
+    preApply: true as const,
+  };
+}
+
+class HrefCanonicalizerWithPostAdapter extends HrefCanonicalizer {
+  protected override readonly adapter = {
+    fn: (locale: string, path: string) => `/${locale}${path}`,
+    preApply: false as const,
+  };
+}
+
+describe("HrefCanonicalizer with adapter (preApply: true)", () => {
+  const locales = ["en", "it"];
+  const defaultLocale = "en";
+
+  function createMockAtlas(decl: object) {
+    return { decl };
+  }
+
+  test("strips first segment before canonicalization", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+      },
+    });
+    const canonicalizer = new HrefCanonicalizerWithPreAdapter(atlas, locales, defaultLocale);
+
+    expect(canonicalizer.get("en", "/en/about")).toEqual({ value: "/about", dynamic: false });
+    expect(canonicalizer.get("it", "/it/chi-siamo")).toEqual({ value: "/about", dynamic: false });
+  });
+
+  test("strips first segment for dynamic paths", () => {
+    const atlas = createMockAtlas({
+      "/products": {
+        it: "/prodotti",
+        "/[id]": {},
+      },
+    });
+    const canonicalizer = new HrefCanonicalizerWithPreAdapter(atlas, locales, defaultLocale);
+
+    expect(canonicalizer.get("en", "/en/products/123")).toEqual({
+      value: "/products/123",
+      dynamic: true,
+    });
+    expect(canonicalizer.get("it", "/it/prodotti/456")).toEqual({
+      value: "/products/456",
+      dynamic: true,
+    });
+  });
+
+  test("caches results using original path as key", () => {
+    const atlas = createMockAtlas({
+      "/about": {},
+    });
+    const canonicalizer = new HrefCanonicalizerWithPreAdapter(atlas, locales, defaultLocale);
+
+    canonicalizer.get("en", "/en/about");
+    canonicalizer.get("en", "/en/about");
+
+    const resultCache = (canonicalizer as any).caches.en;
+    expect(resultCache.has("/en/about")).toBe(true);
+    expect(resultCache.get("/en/about")).toEqual({ value: "/about", dynamic: false });
+  });
+
+  test("handles single segment path (becomes root)", () => {
+    const atlas = createMockAtlas({});
+    const canonicalizer = new HrefCanonicalizerWithPreAdapter(atlas, locales, defaultLocale);
+
+    expect(canonicalizer.get("en", "/en")).toEqual({ value: "/", dynamic: false });
+  });
+
+  test("strips first segment from nested paths", () => {
+    const atlas = createMockAtlas({
+      "/api": {
+        "/v1": {
+          "/users": {
+            it: "/utenti",
+          },
+        },
+      },
+    });
+    const canonicalizer = new HrefCanonicalizerWithPreAdapter(atlas, locales, defaultLocale);
+
+    expect(canonicalizer.get("en", "/en/api/v1/users")).toEqual({
+      value: "/api/v1/users",
+      dynamic: false,
+    });
+    expect(canonicalizer.get("it", "/it/api/v1/utenti")).toEqual({
+      value: "/api/v1/users",
+      dynamic: false,
+    });
+  });
+
+  test("works with any first segment value", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+      },
+    });
+    const canonicalizer = new HrefCanonicalizerWithPreAdapter(atlas, locales, defaultLocale);
+
+    expect(canonicalizer.get("en", "/foo/about")).toEqual({ value: "/about", dynamic: false });
+    expect(canonicalizer.get("en", "/bar/about")).toEqual({ value: "/about", dynamic: false });
+    expect(canonicalizer.get("it", "/xyz/chi-siamo")).toEqual({ value: "/about", dynamic: false });
+  });
+});
+
+describe("HrefCanonicalizer with adapter (preApply: false)", () => {
+  const locales = ["en", "it"];
+  const defaultLocale = "en";
+
+  function createMockAtlas(decl: object) {
+    return { decl };
+  }
+
+  test("transforms result after canonicalization with locale prefix", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+      },
+    });
+    const canonicalizer = new HrefCanonicalizerWithPostAdapter(atlas, locales, defaultLocale);
+
+    expect(canonicalizer.get("en", "/about")).toEqual({ value: "/en/about", dynamic: false });
+    expect(canonicalizer.get("it", "/chi-siamo")).toEqual({ value: "/it/about", dynamic: false });
+  });
+
+  test("transforms result for dynamic paths", () => {
+    const atlas = createMockAtlas({
+      "/products": {
+        it: "/prodotti",
+        "/[id]": {},
+      },
+    });
+    const canonicalizer = new HrefCanonicalizerWithPostAdapter(atlas, locales, defaultLocale);
+
+    expect(canonicalizer.get("en", "/products/123")).toEqual({
+      value: "/en/products/123",
+      dynamic: true,
+    });
+    expect(canonicalizer.get("it", "/prodotti/456")).toEqual({
+      value: "/it/products/456",
+      dynamic: true,
+    });
+  });
+
+  test("caches non-dynamic results with transformed value", () => {
+    const atlas = createMockAtlas({
+      "/about": {},
+    });
+    const canonicalizer = new HrefCanonicalizerWithPostAdapter(atlas, locales, defaultLocale);
+
+    canonicalizer.get("en", "/about");
+
+    const resultCache = (canonicalizer as any).caches.en;
+    expect(resultCache.has("/about")).toBe(true);
+    expect(resultCache.get("/about")).toEqual({ value: "/en/about", dynamic: false });
+  });
+
+  test("does not cache dynamic results", () => {
+    const atlas = createMockAtlas({
+      "/products": {
+        "/[id]": {},
+      },
+    });
+    const canonicalizer = new HrefCanonicalizerWithPostAdapter(atlas, locales, defaultLocale);
+
+    canonicalizer.get("en", "/products/123");
+
+    const resultCache = (canonicalizer as any).caches.en;
+    expect(resultCache.has("/products/123")).toBe(false);
+  });
+
+  test("transforms root path result", () => {
+    const atlas = createMockAtlas({});
+    const canonicalizer = new HrefCanonicalizerWithPostAdapter(atlas, locales, defaultLocale);
+
+    expect(canonicalizer.get("en", "/")).toEqual({ value: "/en/", dynamic: false });
+    expect(canonicalizer.get("it", "/")).toEqual({ value: "/it/", dynamic: false });
+  });
+
+  test("transforms nested paths result", () => {
+    const atlas = createMockAtlas({
+      "/api": {
+        "/v1": {
+          "/users": {
+            it: "/utenti",
+            "/[id]": {
+              "/profile": {
+                it: "/profilo",
+              },
+            },
+          },
+        },
+      },
+    });
+    const canonicalizer = new HrefCanonicalizerWithPostAdapter(atlas, locales, defaultLocale);
+
+    expect(canonicalizer.get("en", "/api/v1/users/42/profile")).toEqual({
+      value: "/en/api/v1/users/42/profile",
+      dynamic: true,
+    });
+    expect(canonicalizer.get("it", "/api/v1/utenti/42/profilo")).toEqual({
+      value: "/it/api/v1/users/42/profile",
+      dynamic: true,
+    });
+  });
+
+  test("transforms catch-all result", () => {
+    const atlas = createMockAtlas({
+      "/docs": {
+        it: "/documenti",
+        "/[...slug]": {},
+      },
+    });
+    const canonicalizer = new HrefCanonicalizerWithPostAdapter(atlas, locales, defaultLocale);
+
+    expect(canonicalizer.get("en", "/docs/guide/intro")).toEqual({
+      value: "/en/docs/guide/intro",
+      dynamic: true,
+    });
+    expect(canonicalizer.get("it", "/documenti/guida")).toEqual({
+      value: "/it/docs/guida",
+      dynamic: true,
+    });
+  });
+
+  test("maintains separate caches per locale with transformed values", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+      },
+    });
+    const canonicalizer = new HrefCanonicalizerWithPostAdapter(atlas, locales, defaultLocale);
+
+    canonicalizer.get("en", "/about");
+    canonicalizer.get("it", "/chi-siamo");
+
+    const enCache = (canonicalizer as any).caches.en;
+    const itCache = (canonicalizer as any).caches.it;
+
+    expect(enCache.get("/about")).toEqual({ value: "/en/about", dynamic: false });
+    expect(itCache.get("/chi-siamo")).toEqual({ value: "/it/about", dynamic: false });
   });
 });

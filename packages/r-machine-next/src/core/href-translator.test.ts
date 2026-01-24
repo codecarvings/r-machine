@@ -217,6 +217,36 @@ describe("getTranslatedPath", () => {
     const result = getTranslatedHref("en", "/[name]", mappedSegments, { name: "CamelCase" });
     expect(result).toBe("/CamelCase");
   });
+
+  test("converts boolean param values to string", () => {
+    const mappedSegments = [{ decl: true, segment: "flag", kind: "dynamic" as const }];
+    expect(getTranslatedHref("en", "/[flag]", mappedSegments, { flag: true })).toBe("/true");
+    expect(getTranslatedHref("en", "/[flag]", mappedSegments, { flag: false })).toBe("/false");
+  });
+
+  test("converts object param values to string representation", () => {
+    const mappedSegments = [{ decl: true, segment: "data", kind: "dynamic" as const }];
+    const result = getTranslatedHref("en", "/[data]", mappedSegments, { data: { key: "value" } });
+    expect(result).toBe("/%5Bobject%20Object%5D");
+  });
+
+  test("handles empty catch-all array by producing empty segment", () => {
+    const mappedSegments = [
+      { decl: true, segment: "docs", kind: "static" as const },
+      { decl: true, segment: "path", kind: "catchAll" as const },
+    ];
+    const result = getTranslatedHref("en", "/docs/[...path]", mappedSegments, { path: [] });
+    expect(result).toBe("/docs");
+  });
+
+  test("handles empty optional catch-all array", () => {
+    const mappedSegments = [
+      { decl: true, segment: "docs", kind: "static" as const },
+      { decl: true, segment: "path", kind: "optionalCatchAll" as const },
+    ];
+    const result = getTranslatedHref("en", "/docs/[[...path]]", mappedSegments, { path: [] });
+    expect(result).toBe("/docs");
+  });
 });
 
 describe("HrefTranslator", () => {
@@ -690,5 +720,353 @@ describe("HrefTranslator", () => {
     expect(() => translator.get("en", "about", {})).toThrow('Path must start with "/"');
     expect(() => translator.get("en", "", {})).toThrow('Path must start with "/"');
     expect(() => translator.get("en", "users/profile", {})).toThrow('Path must start with "/"');
+  });
+
+  test("handles path with trailing slash", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+      },
+    });
+    const translator = new HrefTranslator(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/about/", {})).toEqual({ value: "/about", dynamic: false });
+    expect(translator.get("it", "/about/", {})).toEqual({ value: "/chi-siamo", dynamic: false });
+  });
+
+  test("handles path with double slashes", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+        "/team": {
+          it: "/staff",
+        },
+      },
+    });
+    const translator = new HrefTranslator(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/about//team", {})).toEqual({ value: "/about/team", dynamic: false });
+    expect(translator.get("it", "/about//team", {})).toEqual({ value: "/chi-siamo/staff", dynamic: false });
+  });
+
+  test("handles path with multiple trailing slashes", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+      },
+    });
+    const translator = new HrefTranslator(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/about///", {})).toEqual({ value: "/about", dynamic: false });
+  });
+
+  test("handles path with leading double slashes", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+      },
+    });
+    const translator = new HrefTranslator(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "//about", {})).toEqual({ value: "/about", dynamic: false });
+    expect(translator.get("it", "//about", {})).toEqual({ value: "/chi-siamo", dynamic: false });
+  });
+
+  test("handles catch-all with empty array in declared path", () => {
+    const atlas = createMockAtlas({
+      "/docs": {
+        it: "/documenti",
+        "/[...slug]": {},
+      },
+    });
+    const translator = new HrefTranslator(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/docs/[...slug]", { slug: [] })).toEqual({
+      value: "/docs",
+      dynamic: true,
+    });
+    expect(translator.get("it", "/docs/[...slug]", { slug: [] })).toEqual({
+      value: "/documenti",
+      dynamic: true,
+    });
+  });
+
+  test("handles optional catch-all with empty array in declared path", () => {
+    const atlas = createMockAtlas({
+      "/docs": {
+        it: "/documenti",
+        "/[[...slug]]": {},
+      },
+    });
+    const translator = new HrefTranslator(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/docs/[[...slug]]", { slug: [] })).toEqual({
+      value: "/docs",
+      dynamic: true,
+    });
+  });
+});
+
+class HrefTranslatorWithPreAdapter extends HrefTranslator {
+  protected override readonly adapter = {
+    fn: (_locale: string, path: string) => {
+      const segments = path.split("/").filter((s) => s.length > 0);
+      return `/${segments.slice(1).join("/")}`;
+    },
+    preApply: true as const,
+  };
+}
+
+class HrefTranslatorWithPostAdapter extends HrefTranslator {
+  protected override readonly adapter = {
+    fn: (locale: string, path: string) => `/${locale}${path}`,
+    preApply: false as const,
+  };
+}
+
+describe("HrefTranslator with adapter (preApply: true)", () => {
+  const locales = ["en", "it"];
+  const defaultLocale = "en";
+
+  function createMockAtlas(decl: object) {
+    return { decl };
+  }
+
+  test("strips first segment before translation", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+      },
+    });
+    const translator = new HrefTranslatorWithPreAdapter(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/en/about", {})).toEqual({ value: "/about", dynamic: false });
+    expect(translator.get("it", "/it/about", {})).toEqual({ value: "/chi-siamo", dynamic: false });
+  });
+
+  test("strips first segment for dynamic paths", () => {
+    const atlas = createMockAtlas({
+      "/products": {
+        it: "/prodotti",
+        "/[id]": {},
+      },
+    });
+    const translator = new HrefTranslatorWithPreAdapter(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/en/products/[id]", { id: "123" })).toEqual({
+      value: "/products/123",
+      dynamic: true,
+    });
+    expect(translator.get("it", "/it/products/[id]", { id: "456" })).toEqual({
+      value: "/prodotti/456",
+      dynamic: true,
+    });
+  });
+
+  test("caches results using original path as key", () => {
+    const atlas = createMockAtlas({
+      "/about": {},
+    });
+    const translator = new HrefTranslatorWithPreAdapter(atlas, locales, defaultLocale);
+
+    translator.get("en", "/en/about", {});
+    translator.get("en", "/en/about", {});
+
+    const resultCache = (translator as any).caches.en;
+    expect(resultCache.has("/en/about")).toBe(true);
+    expect(resultCache.get("/en/about")).toEqual({ value: "/about", dynamic: false });
+  });
+
+  test("handles single segment path (becomes root)", () => {
+    const atlas = createMockAtlas({});
+    const translator = new HrefTranslatorWithPreAdapter(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/en", {})).toEqual({ value: "/", dynamic: false });
+  });
+
+  test("strips first segment from nested paths", () => {
+    const atlas = createMockAtlas({
+      "/api": {
+        "/v1": {
+          "/users": {
+            it: "/utenti",
+          },
+        },
+      },
+    });
+    const translator = new HrefTranslatorWithPreAdapter(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/en/api/v1/users", {})).toEqual({
+      value: "/api/v1/users",
+      dynamic: false,
+    });
+    expect(translator.get("it", "/it/api/v1/users", {})).toEqual({
+      value: "/api/v1/utenti",
+      dynamic: false,
+    });
+  });
+
+  test("handles undeclared paths after stripping first segment", () => {
+    const atlas = createMockAtlas({
+      "/about": {},
+    });
+    const translator = new HrefTranslatorWithPreAdapter(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/prefix/about/unknown", {})).toEqual({
+      value: "/about/unknown",
+      dynamic: false,
+    });
+  });
+
+  test("works with any first segment value", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+      },
+    });
+    const translator = new HrefTranslatorWithPreAdapter(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/foo/about", {})).toEqual({ value: "/about", dynamic: false });
+    expect(translator.get("en", "/bar/about", {})).toEqual({ value: "/about", dynamic: false });
+    expect(translator.get("it", "/xyz/about", {})).toEqual({ value: "/chi-siamo", dynamic: false });
+  });
+});
+
+describe("HrefTranslator with adapter (preApply: false)", () => {
+  const locales = ["en", "it"];
+  const defaultLocale = "en";
+
+  function createMockAtlas(decl: object) {
+    return { decl };
+  }
+
+  test("transforms result after translation with locale prefix", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+      },
+    });
+    const translator = new HrefTranslatorWithPostAdapter(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/about", {})).toEqual({ value: "/en/about", dynamic: false });
+    expect(translator.get("it", "/about", {})).toEqual({ value: "/it/chi-siamo", dynamic: false });
+  });
+
+  test("transforms result for dynamic segments", () => {
+    const atlas = createMockAtlas({
+      "/products": {
+        it: "/prodotti",
+        "/[id]": {},
+      },
+    });
+    const translator = new HrefTranslatorWithPostAdapter(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/products/[id]", { id: "123" })).toEqual({
+      value: "/en/products/123",
+      dynamic: true,
+    });
+    expect(translator.get("it", "/products/[id]", { id: "456" })).toEqual({
+      value: "/it/prodotti/456",
+      dynamic: true,
+    });
+  });
+
+  test("caches non-dynamic results with transformed value", () => {
+    const atlas = createMockAtlas({
+      "/about": {},
+    });
+    const translator = new HrefTranslatorWithPostAdapter(atlas, locales, defaultLocale);
+
+    translator.get("en", "/about", {});
+
+    const resultCache = (translator as any).caches.en;
+    expect(resultCache.has("/about")).toBe(true);
+    expect(resultCache.get("/about")).toEqual({ value: "/en/about", dynamic: false });
+  });
+
+  test("does not cache dynamic results", () => {
+    const atlas = createMockAtlas({
+      "/products": {
+        "/[id]": {},
+      },
+    });
+    const translator = new HrefTranslatorWithPostAdapter(atlas, locales, defaultLocale);
+
+    translator.get("en", "/products/[id]", { id: "123" });
+
+    const resultCache = (translator as any).caches.en;
+    expect(resultCache.has("/products/[id]")).toBe(false);
+  });
+
+  test("transforms root path result", () => {
+    const atlas = createMockAtlas({});
+    const translator = new HrefTranslatorWithPostAdapter(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/", {})).toEqual({ value: "/en/", dynamic: false });
+    expect(translator.get("it", "/", {})).toEqual({ value: "/it/", dynamic: false });
+  });
+
+  test("transforms nested paths result", () => {
+    const atlas = createMockAtlas({
+      "/api": {
+        "/v1": {
+          "/users": {
+            it: "/utenti",
+            "/[id]": {
+              "/profile": {
+                it: "/profilo",
+              },
+            },
+          },
+        },
+      },
+    });
+    const translator = new HrefTranslatorWithPostAdapter(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/api/v1/users/[id]/profile", { id: "42" })).toEqual({
+      value: "/en/api/v1/users/42/profile",
+      dynamic: true,
+    });
+    expect(translator.get("it", "/api/v1/users/[id]/profile", { id: "42" })).toEqual({
+      value: "/it/api/v1/utenti/42/profilo",
+      dynamic: true,
+    });
+  });
+
+  test("transforms catch-all result", () => {
+    const atlas = createMockAtlas({
+      "/docs": {
+        it: "/documenti",
+        "/[...slug]": {},
+      },
+    });
+    const translator = new HrefTranslatorWithPostAdapter(atlas, locales, defaultLocale);
+
+    expect(translator.get("en", "/docs/[...slug]", { slug: ["guide", "intro"] })).toEqual({
+      value: "/en/docs/guide/intro",
+      dynamic: true,
+    });
+    expect(translator.get("it", "/docs/[...slug]", { slug: ["guida"] })).toEqual({
+      value: "/it/documenti/guida",
+      dynamic: true,
+    });
+  });
+
+  test("maintains separate caches per locale with transformed values", () => {
+    const atlas = createMockAtlas({
+      "/about": {
+        it: "/chi-siamo",
+      },
+    });
+    const translator = new HrefTranslatorWithPostAdapter(atlas, locales, defaultLocale);
+
+    translator.get("en", "/about", {});
+    translator.get("it", "/about", {});
+
+    const enCache = (translator as any).caches.en;
+    const itCache = (translator as any).caches.it;
+
+    expect(enCache.get("/about")).toEqual({ value: "/en/about", dynamic: false });
+    expect(itCache.get("/about")).toEqual({ value: "/it/chi-siamo", dynamic: false });
   });
 });

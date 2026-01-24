@@ -1,5 +1,6 @@
-import { describe, expect, test } from "vitest";
-import { buildPathAtlasSegmentTree, getSegmentData } from "./href-mapper.js";
+import { describe, expect, test, vi } from "vitest";
+import { buildPathAtlasSegmentTree, getSegmentData, HrefMapper, type MappedHrefResult } from "./href-mapper.js";
+import type { AnyPathAtlas } from "./path-atlas.js";
 
 describe("getSegmentData", () => {
   test("returns undefined kind for empty string", () => {
@@ -263,5 +264,227 @@ describe("buildPathAtlasSegmentTree", () => {
 
     expect(tree.children["[...path]"].kind).toBe("catchAll");
     expect(tree.children["[...path]"].children.end.translations.it).toBe("fine");
+  });
+});
+
+type TestHrefMapperFn = (locale: string, path: string) => MappedHrefResult;
+
+class TestHrefMapper extends HrefMapper<TestHrefMapperFn> {
+  public computeFn: (locale: string, path: string) => MappedHrefResult;
+
+  constructor(
+    atlas: AnyPathAtlas,
+    locales: readonly string[],
+    defaultLocale: string,
+    computeFn: (locale: string, path: string) => MappedHrefResult,
+    adapter?: { fn: (locale: string, path: string) => string; preApply: boolean }
+  ) {
+    super(atlas, locales, defaultLocale);
+    this.computeFn = computeFn;
+    if (adapter) {
+      (this as unknown as { adapter: typeof adapter }).adapter = adapter;
+    }
+  }
+
+  protected readonly compute: TestHrefMapperFn = (locale, path) => {
+    return this.computeFn(locale, path);
+  };
+}
+
+describe("HrefMapper", () => {
+  const locales = ["en", "it", "fr"] as const;
+  const defaultLocale = "en";
+
+  const createMockAtlas = (decl: object = {}): AnyPathAtlas => ({ decl });
+
+  describe("constructor", () => {
+    test("initializes caches for each locale", () => {
+      const atlas = createMockAtlas();
+      const mapper = new TestHrefMapper(atlas, locales, defaultLocale, () => ({
+        value: "/test",
+        dynamic: false,
+      }));
+
+      expect(mapper.locales).toEqual(locales);
+      expect(mapper.defaultLocale).toBe(defaultLocale);
+    });
+
+    test("builds segmentDataTree from atlas declaration", () => {
+      const atlas = createMockAtlas({
+        "/about": {
+          it: "/chi-siamo",
+        },
+      });
+      const mapper = new TestHrefMapper(atlas, locales, defaultLocale, () => ({
+        value: "/test",
+        dynamic: false,
+      }));
+
+      expect(mapper.segmentDataTree.children.about).toBeDefined();
+      expect(mapper.segmentDataTree.children.about.translations.it).toBe("chi-siamo");
+    });
+  });
+
+  describe("get method", () => {
+    test("calls compute with locale and path", () => {
+      const atlas = createMockAtlas();
+      const computeFn = vi.fn(() => ({ value: "/mapped", dynamic: false }));
+      const mapper = new TestHrefMapper(atlas, locales, defaultLocale, computeFn);
+
+      mapper.get("en", "/test");
+
+      expect(computeFn).toHaveBeenCalledWith("en", "/test");
+    });
+
+    test("caches non-dynamic results", () => {
+      const atlas = createMockAtlas();
+      const computeFn = vi.fn(() => ({ value: "/mapped", dynamic: false }));
+      const mapper = new TestHrefMapper(atlas, locales, defaultLocale, computeFn);
+
+      const result1 = mapper.get("en", "/test");
+      const result2 = mapper.get("en", "/test");
+
+      expect(result1).toBe(result2);
+      expect(computeFn).toHaveBeenCalledTimes(1);
+    });
+
+    test("does not cache dynamic results", () => {
+      const atlas = createMockAtlas();
+      const computeFn = vi.fn(() => ({ value: "/mapped", dynamic: true }));
+      const mapper = new TestHrefMapper(atlas, locales, defaultLocale, computeFn);
+
+      mapper.get("en", "/test");
+      mapper.get("en", "/test");
+
+      expect(computeFn).toHaveBeenCalledTimes(2);
+    });
+
+    test("maintains separate caches per locale", () => {
+      const atlas = createMockAtlas();
+      const computeFn = vi.fn((locale: string) => ({
+        value: `/${locale}/mapped`,
+        dynamic: false,
+      }));
+      const mapper = new TestHrefMapper(atlas, locales, defaultLocale, computeFn);
+
+      const enResult = mapper.get("en", "/test");
+      const itResult = mapper.get("it", "/test");
+
+      expect(enResult.value).toBe("/en/mapped");
+      expect(itResult.value).toBe("/it/mapped");
+      expect(computeFn).toHaveBeenCalledTimes(2);
+    });
+
+    test("returns cached result on subsequent calls for same locale/path", () => {
+      const atlas = createMockAtlas();
+      let callCount = 0;
+      const computeFn = vi.fn(() => {
+        callCount++;
+        return { value: `/result-${callCount}`, dynamic: false };
+      });
+      const mapper = new TestHrefMapper(atlas, locales, defaultLocale, computeFn);
+
+      const result1 = mapper.get("en", "/page");
+      const result2 = mapper.get("en", "/page");
+      const result3 = mapper.get("en", "/other");
+
+      expect(result1.value).toBe("/result-1");
+      expect(result2.value).toBe("/result-1");
+      expect(result3.value).toBe("/result-2");
+    });
+  });
+
+  describe("adapter with preApply: true", () => {
+    test("transforms input path before compute", () => {
+      const atlas = createMockAtlas();
+      const computeFn = vi.fn((_, path: string) => ({
+        value: path,
+        dynamic: false,
+      }));
+      const adapter = {
+        fn: (_locale: string, path: string) => `/prefixed${path}`,
+        preApply: true,
+      };
+      const mapper = new TestHrefMapper(atlas, locales, defaultLocale, computeFn, adapter);
+
+      const result = mapper.get("en", "/test");
+
+      expect(computeFn).toHaveBeenCalledWith("en", "/prefixed/test");
+      expect(result.value).toBe("/prefixed/test");
+    });
+
+    test("caches with original path as key", () => {
+      const atlas = createMockAtlas();
+      const computeFn = vi.fn((_, path: string) => ({
+        value: path,
+        dynamic: false,
+      }));
+      const adapter = {
+        fn: (_locale: string, path: string) => `/transformed${path}`,
+        preApply: true,
+      };
+      const mapper = new TestHrefMapper(atlas, locales, defaultLocale, computeFn, adapter);
+
+      mapper.get("en", "/test");
+      mapper.get("en", "/test");
+
+      expect(computeFn).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("adapter with preApply: false", () => {
+    test("transforms result after compute", () => {
+      const atlas = createMockAtlas();
+      const computeFn = vi.fn(() => ({
+        value: "/computed",
+        dynamic: false,
+      }));
+      const adapter = {
+        fn: (locale: string, path: string) => `/${locale}${path}`,
+        preApply: false,
+      };
+      const mapper = new TestHrefMapper(atlas, locales, defaultLocale, computeFn, adapter);
+
+      const result = mapper.get("en", "/test");
+
+      expect(computeFn).toHaveBeenCalledWith("en", "/test");
+      expect(result.value).toBe("/en/computed");
+    });
+
+    test("preserves dynamic flag from compute result", () => {
+      const atlas = createMockAtlas();
+      const computeFn = vi.fn(() => ({
+        value: "/computed",
+        dynamic: true,
+      }));
+      const adapter = {
+        fn: (locale: string, path: string) => `/${locale}${path}`,
+        preApply: false,
+      };
+      const mapper = new TestHrefMapper(atlas, locales, defaultLocale, computeFn, adapter);
+
+      const result = mapper.get("en", "/test");
+
+      expect(result.dynamic).toBe(true);
+      expect(result.value).toBe("/en/computed");
+    });
+
+    test("does not cache dynamic results with post-adapter", () => {
+      const atlas = createMockAtlas();
+      const computeFn = vi.fn(() => ({
+        value: "/computed",
+        dynamic: true,
+      }));
+      const adapter = {
+        fn: (locale: string, path: string) => `/${locale}${path}`,
+        preApply: false,
+      };
+      const mapper = new TestHrefMapper(atlas, locales, defaultLocale, computeFn, adapter);
+
+      mapper.get("en", "/test");
+      mapper.get("en", "/test");
+
+      expect(computeFn).toHaveBeenCalledTimes(2);
+    });
   });
 });
