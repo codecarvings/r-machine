@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { LocaleSwitcher } from "@/components/client/locale-switcher";
+import { MainNav } from "@/components/client/main-nav";
 import RMachineIcon from "@/gfx/r-machine.icon.svg";
 import { getPathComposer } from "@/r-machine/server-toolset";
 
@@ -20,6 +21,9 @@ export default async function Header() {
             </span>
           </div>
           <LocaleSwitcher />
+        </div>
+        <div className="max-w-6xl mx-auto flex h-14 items-center justify-center border-t-2 border-t-brand ">
+          <MainNav />
         </div>
       </div>
     </header>
