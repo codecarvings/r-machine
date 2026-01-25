@@ -60,7 +60,7 @@ export async function createNextAppClientToolset<RA extends AnyResourceAtlas, PA
       if (impl.onLoad !== undefined) {
         return impl.onLoad(locale);
       }
-    }, [locale, impl.onLoad]);
+    }, [locale]);
     return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
   }
 

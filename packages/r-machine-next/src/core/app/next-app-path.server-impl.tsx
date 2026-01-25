@@ -4,7 +4,7 @@ import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
-import type { HrefTranslator } from "#r-machine/next/core";
+import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import {
   type CookiesFn,
   defaultPathMatcher,
@@ -24,7 +24,8 @@ const default_implicit_matcher: RegExp | null = defaultPathMatcher; // Implicit 
 export async function createNextAppPathServerImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppPathStrategyConfig,
-  pathTranslator: HrefTranslator
+  pathTranslator: HrefTranslator,
+  contentPathCanonicalizer: HrefCanonicalizer
 ) {
   const locales = rMachine.config.locales;
   const defaultLocale = rMachine.config.defaultLocale;
@@ -130,20 +131,43 @@ export async function createNextAppPathServerImpl(
           }
 
           // Standard locale-prefixed URL
-          if (autoLBSw) {
-            // Bind locale to request headers
-            const requestHeaders = new Headers(request.headers);
-            requestHeaders.set(localeHeaderName, locale);
+          const contentPath = pathname.replace(localeRegex, "/");
+          const canonicalContentPath = contentPathCanonicalizer.get(locale, contentPath).value;
+          if (canonicalContentPath !== contentPath) {
+            // Non-canonical locale-prefixed URL
+            const newUrl = request.nextUrl.clone();
+            newUrl.pathname = `/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${canonicalContentPath}`;
 
-            return NextResponse.next({
-              request: {
-                headers: requestHeaders,
-              },
-            });
+            if (autoLBSw) {
+              // Bind locale to request headers
+              const requestHeaders = new Headers(request.headers);
+              requestHeaders.set(localeHeaderName, locale);
+              return NextResponse.rewrite(newUrl, {
+                request: {
+                  headers: requestHeaders,
+                },
+              });
+            }
+
+            // No locale binding needed
+            return NextResponse.rewrite(newUrl);
+          } else {
+            // Canonical locale-prefixed URL
+            if (autoLBSw) {
+              // Bind locale to request headers
+              const requestHeaders = new Headers(request.headers);
+              requestHeaders.set(localeHeaderName, locale);
+
+              return NextResponse.next({
+                request: {
+                  headers: requestHeaders,
+                },
+              });
+            }
+
+            // No locale binding needed
+            return NextResponse.next();
           }
-
-          // No locale binding needed
-          return NextResponse.next();
         }
 
         // Locale is not present in the URL
@@ -180,7 +204,9 @@ export async function createNextAppPathServerImpl(
 
             // Rewrite to locale-prefixed URL internally - basePath already included
             const newUrl = request.nextUrl.clone();
-            newUrl.pathname = `/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${pathname}`;
+            // Reconstruct canonical URL
+            const canonicalContentPath = contentPathCanonicalizer.get(locale, pathname).value;
+            newUrl.pathname = `/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${canonicalContentPath}`;
 
             if (autoLBSw) {
               // Bind locale to request headers

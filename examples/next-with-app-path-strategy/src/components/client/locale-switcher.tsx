@@ -13,7 +13,7 @@ import { useLocale, useSetLocale } from "@/r-machine/client-toolset";
 
 const localeItems = {
   en: { name: "English" },
-  "it-IT": { name: "Italiano" },
+  it: { name: "Italiano" },
 } as const;
 
 export function LocaleSwitcher() {

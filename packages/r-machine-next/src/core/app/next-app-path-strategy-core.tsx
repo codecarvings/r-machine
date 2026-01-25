@@ -5,6 +5,7 @@ import type { CookieDeclaration } from "r-machine/strategy/web";
 import {
   type AnyPathAtlas,
   buildPathAtlas,
+  HrefCanonicalizer,
   HrefTranslator,
   type PathParamMap,
   type PathParams,
@@ -89,6 +90,11 @@ export abstract class NextAppPathStrategyCore<
     this.config.localeLabel === "lowercase",
     this.config.implicitDefaultLocale !== "off"
   );
+  protected readonly contentPathCanonicalizer = new HrefCanonicalizer(
+    this.pathAtlas,
+    this.rMachine.config.locales,
+    this.rMachine.config.defaultLocale
+  );
 
   protected override validateConfig(): void {
     super.validateConfig();
@@ -109,7 +115,12 @@ export abstract class NextAppPathStrategyCore<
 
   protected async createServerImpl() {
     const module = await import("./next-app-path.server-impl.js");
-    return module.createNextAppPathServerImpl(this.rMachine, this.config, this.pathTranslator);
+    return module.createNextAppPathServerImpl(
+      this.rMachine,
+      this.config,
+      this.pathTranslator,
+      this.contentPathCanonicalizer
+    );
   }
 
   protected validateNoProxyConfig(): void {
