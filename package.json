@@ -9,7 +9,7 @@
     "url": "git+https://github.com/codecarvings/r-machine.git"
   },
   "bugs": "https://github.com/codecarvings/r-machine/issues",
-  "packageManager": "pnpm@10.28.0",
+  "packageManager": "pnpm@10.28.1",
   "scripts": {
     "check": "biome check --write .",
     "check:dry": "biome check .",
@@ -41,25 +41,25 @@
     ]
   },
   "devDependencies": {
-    "@biomejs/biome": "2.3.11",
+    "@biomejs/biome": "2.3.12",
     "@changesets/cli": "^2.29.8",
     "@r-machine/next": "workspace:*",
     "@r-machine/react": "workspace:*",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^24.10.9",
-    "@types/react": "^19.2.8",
+    "@types/react": "^19.2.9",
     "@types/semver": "^7.7.1",
-    "@vitest/ui": "^4.0.17",
+    "@vitest/ui": "^4.0.18",
     "husky": "9.1.7",
     "lint-staged": "^16.2.7",
-    "prettier": "^3.8.0",
-    "next": "^16.1.3",
+    "prettier": "^3.8.1",
+    "next": "^16.1.4",
     "r-machine": "workspace:*",
     "react": "^19.2.3",
     "semver": "^7.7.3",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
-    "vitest": "4.0.17",
+    "vitest": "4.0.18",
     "zshy": "0.7.0"
   }
 }
