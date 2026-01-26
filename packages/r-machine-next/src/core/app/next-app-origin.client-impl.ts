@@ -12,7 +12,7 @@ export async function createNextAppOriginClientImpl(
   return {
     onLoad: undefined,
 
-    writeLocale(newLocale, router) {
+    writeLocale(_locale, newLocale, _pathname, router) {
       const url = urlTranslator.get(newLocale, "/").value;
       router.push(url);
     },

@@ -90,10 +90,18 @@ export abstract class NextAppPathStrategyCore<
     this.config.localeLabel === "lowercase",
     this.config.implicitDefaultLocale !== "off"
   );
+  // Used by proxy to rewrite incoming requests
   protected readonly contentPathCanonicalizer = new HrefCanonicalizer(
     this.pathAtlas,
     this.rMachine.config.locales,
     this.rMachine.config.defaultLocale
+  );
+  // Used by setLocale to keep the content path when changing locale
+  protected readonly pathCanonicalizer = new NextAppPathStrategyPathCanonicalizer(
+    this.pathAtlas,
+    this.rMachine.config.locales,
+    this.rMachine.config.defaultLocale,
+    this.config.implicitDefaultLocale !== "off"
   );
 
   protected override validateConfig(): void {
@@ -110,7 +118,7 @@ export abstract class NextAppPathStrategyCore<
 
   protected async createClientImpl() {
     const module = await import("./next-app-path.client-impl.js");
-    return module.createNextAppPathClientImpl(this.rMachine, this.config, this.pathTranslator);
+    return module.createNextAppPathClientImpl(this.rMachine, this.config, this.pathTranslator, this.pathCanonicalizer);
   }
 
   protected async createServerImpl() {
@@ -177,5 +185,30 @@ export class NextAppPathStrategyPathTranslator extends HrefTranslator {
       return `/${this.lowercaseLocale ? locale.toLowerCase() : locale}${path}`;
     },
     preApply: false,
+  };
+}
+
+export class NextAppPathStrategyPathCanonicalizer extends HrefCanonicalizer {
+  constructor(
+    atlas: AnyPathAtlas,
+    locales: readonly string[],
+    defaultLocale: string,
+    protected readonly implicitDefaultLocale: boolean
+  ) {
+    super(atlas, locales, defaultLocale);
+  }
+
+  protected override readonly adapter = {
+    fn: (locale: string, path: string): string => {
+      if (this.implicitDefaultLocale && locale === this.defaultLocale) {
+        return path;
+      }
+      const secondSlashIndex = path.indexOf("/", 1);
+      if (secondSlashIndex === -1) {
+        return "/";
+      }
+      return path.slice(secondSlashIndex);
+    },
+    preApply: true,
   };
 }

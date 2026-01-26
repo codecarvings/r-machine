@@ -1,7 +1,7 @@
 import Cookies from "js-cookie";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
-import type { HrefTranslator } from "#r-machine/next/core";
+import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { setCookie } from "#r-machine/next/internal";
 import type { NextAppClientImpl } from "./next-app-client-toolset.js";
 import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
@@ -9,14 +9,12 @@ import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core
 // const pathComposerNormalizerRegExp = /^\//;
 
 export async function createNextAppPathClientImpl(
-  rMachine: RMachine<AnyResourceAtlas>,
+  _rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppPathStrategyConfig,
-  pathTranslator: HrefTranslator
+  pathTranslator: HrefTranslator,
+  pathCanonicalizer: HrefCanonicalizer
 ) {
   const { cookie } = strategyConfig;
-  const lowercaseLocale = strategyConfig.localeLabel === "lowercase";
-  const implicitDefaultLocale = strategyConfig.implicitDefaultLocale !== "off";
-  const defaultLocale = rMachine.config.defaultLocale;
   const cookieSw = cookie !== "off";
   const { name: cookieName, ...cookieConfig } = cookieSw ? (cookie === "on" ? defaultCookieDeclaration : cookie) : {};
 
@@ -34,20 +32,27 @@ export async function createNextAppPathClientImpl(
   return {
     onLoad,
 
-    writeLocale(newLocale, router) {
+    writeLocale(locale, newLocale, pathname, router) {
+      if (newLocale === locale) {
+        return;
+      }
+
       if (cookieSw) {
         // 2) Set cookie on write (required when implicitDefaultLocale is on - problem with double redirect on explicit path)
         setCookie(cookieName!, newLocale, cookieConfig);
       }
 
-      let localeParam: string;
-      if (implicitDefaultLocale && newLocale === defaultLocale) {
-        localeParam = "";
+      const contentPath = pathCanonicalizer.get(locale, pathname);
+      let newPath: string;
+      if (contentPath.dynamic) {
+        // If dynamic, translation of slugs is not available, redirect to root
+        newPath = pathTranslator.get(newLocale, "/").value;
       } else {
-        localeParam = lowercaseLocale ? newLocale.toLowerCase() : newLocale;
+        // Static path, surely no params
+        newPath = pathTranslator.get(newLocale, contentPath.value).value;
       }
-      const path = `/${localeParam}`;
-      router.push(path);
+      0;
+      router.push(newPath);
     },
 
     createUsePathComposer: (useLocale) => {

@@ -21,7 +21,7 @@ export async function createNextAppFlatClientImpl(
       }
     },
 
-    writeLocale(newLocale, router) {
+    writeLocale(_locale, newLocale, _pathname, router) {
       setCookie(cookieName, newLocale, cookieConfig);
       router.refresh();
     },

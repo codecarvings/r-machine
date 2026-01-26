@@ -1,7 +1,7 @@
 "use client";
 
 import { createReactBareToolset, type ReactBareToolset } from "@r-machine/react/core";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import { type ReactNode, useEffect } from "react";
@@ -24,7 +24,12 @@ interface NextAppClientRMachineProps {
 export interface NextAppClientImpl {
   // biome-ignore lint/suspicious/noConfusingVoidType: As per design
   readonly onLoad: ((locale: string) => void | (() => void)) | undefined;
-  readonly writeLocale: (newLocale: string, router: ReturnType<typeof useRouter>) => void | Promise<void>;
+  readonly writeLocale: (
+    locale: string,
+    newLocale: string,
+    pathname: ReturnType<typeof usePathname>,
+    router: ReturnType<typeof useRouter>
+  ) => void | Promise<void>;
   createUsePathComposer: (useLocale: () => string) => () => BoundPathComposer<AnyPathAtlas>;
 }
 
@@ -34,7 +39,12 @@ export async function createNextAppClientToolset<RA extends AnyResourceAtlas, PA
 ): Promise<NextAppClientToolset<RA, PA>> {
   const { ReactRMachine, useLocale, ...otherTools } = await createReactBareToolset(rMachine);
 
-  async function setLocale(newLocale: string, router: ReturnType<typeof useRouter>): Promise<void> {
+  async function setLocale(
+    locale: string,
+    newLocale: string,
+    pathname: ReturnType<typeof usePathname>,
+    router: ReturnType<typeof useRouter>
+  ): Promise<void> {
     // Do not check if the locale is different
     // The origin strategy allows same locale on multiple origins, so the navigation might still be necessary
 
@@ -43,16 +53,18 @@ export async function createNextAppClientToolset<RA extends AnyResourceAtlas, PA
       throw new RMachineError(`Cannot set invalid locale: ${newLocale}.`, error);
     }
 
-    const writeLocaleResult = impl.writeLocale(newLocale, router);
+    const writeLocaleResult = impl.writeLocale(locale, newLocale, pathname, router);
     if (writeLocaleResult instanceof Promise) {
       await writeLocaleResult;
     }
   }
 
   function useSetLocale(): ReturnType<ReactBareToolset<RA>["useSetLocale"]> {
+    const locale = useLocale();
     const router = useRouter();
+    const pathname = usePathname();
 
-    return (newLocale: string) => setLocale(newLocale, router);
+    return (newLocale: string) => setLocale(locale, newLocale, pathname, router);
   }
 
   function NextClientRMachine({ locale, children }: NextAppClientRMachineProps) {
