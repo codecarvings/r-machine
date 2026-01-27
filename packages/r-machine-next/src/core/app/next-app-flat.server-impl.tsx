@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import type { HrefTranslator } from "#r-machine/next/core";
-import { type CookiesFn, type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
+import { type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core.js";
 import type { NextAppServerImpl } from "./next-app-server-toolset.js";
 import { localeHeaderName } from "./next-app-strategy-core.js";
@@ -21,7 +21,7 @@ export async function createNextAppFlatServerImpl(
     localeKey,
     autoLocaleBinding: autoLBSw,
 
-    async writeLocale(newLocale, cookies: CookiesFn) {
+    async writeLocale(_locale, newLocale, cookies) {
       try {
         const cookieStore = await cookies();
         cookieStore.set(cookieName!, newLocale, cookieConfig);

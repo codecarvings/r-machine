@@ -34,7 +34,12 @@ interface NextAppServerRMachineProps {
 export interface NextAppServerImpl {
   readonly localeKey: string;
   readonly autoLocaleBinding: boolean;
-  readonly writeLocale: (newLocale: string, cookies: CookiesFn, headers: HeadersFn) => void | Promise<void>;
+  readonly writeLocale: (
+    locale: string | undefined,
+    newLocale: string,
+    cookies: CookiesFn,
+    headers: HeadersFn
+  ) => void | Promise<void>;
   // must be dynamically generated because of strategy options (localeLabel)
   readonly createLocaleStaticParamsGenerator: () =>
     | LocaleStaticParamsGenerator<string>
@@ -54,7 +59,8 @@ interface BindLocale<LK extends string> {
 
 interface NextAppServerRMachineContext {
   value: string | null;
-  getLocalePromise: Promise<string> | null;
+  getSafeLocalePromise: Promise<string> | null;
+  getUnsafeLocalePromise: Promise<string | undefined> | null;
 }
 
 export async function createNextAppServerToolset<
@@ -81,7 +87,8 @@ export async function createNextAppServerToolset<
   const getContext = cache((): NextAppServerRMachineContext => {
     return {
       value: null,
-      getLocalePromise: null,
+      getSafeLocalePromise: null,
+      getUnsafeLocalePromise: null,
     };
   });
 
@@ -133,19 +140,19 @@ export async function createNextAppServerToolset<
     }
   }
 
-  function internalGetLocale(): string | Promise<string> {
+  function getSafeLocale(): string | Promise<string> {
     const context = getContext();
     if (context.value !== null) {
       return context.value;
     }
 
     if (autoLocaleBinding) {
-      if (context.getLocalePromise !== null) {
-        return context.getLocalePromise;
+      if (context.getSafeLocalePromise !== null) {
+        return context.getSafeLocalePromise;
       }
 
-      context.getLocalePromise = headers().then((headersList) => {
-        context.getLocalePromise = null;
+      context.getSafeLocalePromise = headers().then((headersList) => {
+        context.getSafeLocalePromise = null;
 
         const locale = headersList.get(localeHeaderName);
         if (locale === null) {
@@ -156,7 +163,7 @@ export async function createNextAppServerToolset<
         context.value = locale;
         return locale;
       });
-      return context.getLocalePromise;
+      return context.getSafeLocalePromise;
     } else {
       throw new RMachineError(
         "Cannot determine locale. bindLocale function not invoked? (you must invoke bindLocale at the beginning of every page or layout component)."
@@ -164,10 +171,31 @@ export async function createNextAppServerToolset<
     }
   }
 
+  function getUnsafeLocale(): string | undefined | Promise<string | undefined> {
+    const context = getContext();
+    if (context.value !== null) {
+      return context.value;
+    }
+
+    if (autoLocaleBinding) {
+      if (context.getUnsafeLocalePromise !== null) {
+        return context.getUnsafeLocalePromise;
+      }
+
+      context.getUnsafeLocalePromise = headers().then((headersList) => {
+        context.getUnsafeLocalePromise = null;
+        return headersList.get(localeHeaderName) || undefined;
+      });
+      return context.getUnsafeLocalePromise;
+    } else {
+      return undefined;
+    }
+  }
+
   function getLocale(): Promise<string> {
     validateServerOnlyUsage("getLocale");
 
-    const localeOrPromise = internalGetLocale();
+    const localeOrPromise = getSafeLocale();
     if (localeOrPromise instanceof Promise) {
       return localeOrPromise;
     } else {
@@ -183,13 +211,14 @@ export async function createNextAppServerToolset<
       throw new RMachineError(`Cannot set locale to invalid locale: "${newLocale}".`, error);
     }
 
-    await impl.writeLocale(newLocale, cookies, headers);
+    const locale = await getUnsafeLocale();
+    await impl.writeLocale(locale, newLocale, cookies, headers);
   }
 
   function pickR<N extends Namespace<RA>>(namespace: N): Promise<RA[N]> {
     validateServerOnlyUsage("pickR");
 
-    const localeOrPromise = internalGetLocale();
+    const localeOrPromise = getSafeLocale();
     if (localeOrPromise instanceof Promise) {
       return localeOrPromise.then((locale) => rMachine.pickR(locale, namespace));
     } else {
@@ -200,7 +229,7 @@ export async function createNextAppServerToolset<
   function pickRKit<NL extends NamespaceList<RA>>(...namespaces: NL): Promise<RKit<RA, NL>> {
     validateServerOnlyUsage("pickRKit");
 
-    const localeOrPromise = internalGetLocale();
+    const localeOrPromise = getSafeLocale();
     if (localeOrPromise instanceof Promise) {
       return localeOrPromise.then((locale) => rMachine.pickRKit(locale, ...namespaces)) as Promise<RKit<RA, NL>>;
     } else {

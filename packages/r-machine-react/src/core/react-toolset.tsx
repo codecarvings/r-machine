@@ -88,7 +88,7 @@ export async function createReactToolset<RA extends AnyResourceAtlas>(
   }
 
   function ReactRMachine({ fallback, Suspense, children }: ReactRMachineProps) {
-    const initialLocaleOrPromise = useMemo(() => impl.readLocale(), [impl.readLocale]);
+    const initialLocaleOrPromise = useMemo(() => impl.readLocale(), []);
     const SuspenseComponent = useMemo(
       () => Suspense || (Suspense !== null ? DelayedSuspense.create() : null),
       [Suspense]

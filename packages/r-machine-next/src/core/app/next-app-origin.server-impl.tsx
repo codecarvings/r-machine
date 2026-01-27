@@ -2,12 +2,7 @@ import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import type { HrefTranslator } from "#r-machine/next/core";
-import {
-  type CookiesFn,
-  type HeadersFn,
-  type NextProxyResult,
-  validateServerOnlyUsage,
-} from "#r-machine/next/internal";
+import { type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-core.js";
 import type { NextAppServerImpl } from "./next-app-server-toolset.js";
 import { localeHeaderName } from "./next-app-strategy-core.js";
@@ -28,7 +23,7 @@ export async function createNextAppOriginServerImpl(
     localeKey,
     autoLocaleBinding: autoLBSw,
 
-    async writeLocale(newLocale, _cookies: CookiesFn, headers: HeadersFn) {
+    async writeLocale(_locale, newLocale, _cookies, headers) {
       const headerStore = await headers();
       const currentOrigin = headerStore.get(originHeaderName);
       const newUrl = urlTranslator.get(newLocale, "/").value;

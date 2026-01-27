@@ -51,7 +51,6 @@ export async function createNextAppPathClientImpl(
         // Static path, surely no params
         newPath = pathTranslator.get(newLocale, contentPath.value).value;
       }
-      0;
       router.push(newPath);
     },
 

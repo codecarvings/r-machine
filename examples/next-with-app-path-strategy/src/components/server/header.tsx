@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { LocaleSwitcher } from "@/components/client/locale-switcher";
 import { MainNav } from "@/components/client/main-nav";
-import RMachineIcon from "@/gfx/r-machine.icon.svg";
+import RMachineLogo from "@/gfx/r-machine.logo.svg";
 import { getPathComposer } from "@/r-machine/server-toolset";
 
 export default async function Header() {
@@ -14,7 +14,7 @@ export default async function Header() {
         <div className="max-w-6xl mx-auto flex h-18 items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href={getPath("/")}>
-              <Image src={RMachineIcon} alt="R-Machine Logo" className="size-8" />
+              <Image src={RMachineLogo} alt="R-Machine Logo" className="size-8" />
             </Link>
             <span className="text-md font-medium text-foreground">R-Machine ⧹ Examples ⧹ Next App ⧹ Path Strategy</span>
           </div>

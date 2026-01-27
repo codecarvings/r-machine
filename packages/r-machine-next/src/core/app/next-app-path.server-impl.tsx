@@ -5,15 +5,12 @@ import { RMachineError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
-import {
-  type CookiesFn,
-  defaultPathMatcher,
-  type NextProxyResult,
-  validateServerOnlyUsage,
-} from "#r-machine/next/internal";
+import { defaultPathMatcher, type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { NextAppNoProxyServerImpl } from "./next-app-no-proxy-server-toolset.js";
 import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
 import { localeHeaderName } from "./next-app-strategy-core.js";
+
+export const sccPathHeaderName = "x-rm-sccpath"; // Static Canonical Content Path
 
 const default_autoDL_matcher_implicit: RegExp | null = /^\/$/; // Auto detect only root path
 const default_autoDL_matcher_explicit: RegExp | null = defaultPathMatcher; // Auto detect all standard next paths
@@ -42,7 +39,11 @@ export async function createNextAppPathServerImpl(
     localeKey,
     autoLocaleBinding: autoLBSw,
 
-    async writeLocale(newLocale, cookies: CookiesFn) {
+    async writeLocale(locale, newLocale, cookies, headers) {
+      if (newLocale === locale) {
+        return;
+      }
+
       if (cookieSw) {
         try {
           const cookieStore = await cookies();
@@ -53,13 +54,16 @@ export async function createNextAppPathServerImpl(
         }
       }
 
-      let localeParam: string;
-      if (implicitSw && newLocale === defaultLocale) {
-        localeParam = "";
+      let path: string;
+      const headersStore = await headers();
+      const contentPath = headersStore.get(sccPathHeaderName);
+      if (contentPath !== null) {
+        // Use content path from header if available
+        path = pathTranslator.get(newLocale, contentPath).value;
       } else {
-        localeParam = lowercaseLocaleSw ? newLocale.toLowerCase() : newLocale;
+        // Fallback
+        path = pathTranslator.get(newLocale, "/").value;
       }
-      const path = `/${localeParam}`;
       redirect(path);
     },
 
@@ -107,6 +111,50 @@ export async function createNextAppPathServerImpl(
         return cookieLocale;
       }
 
+      function rewriteToCanonicalLocalePath(request: NextRequest, locale: string, contentPath: string): NextResponse {
+        // Rewrite to locale-prefixed URL internally - basePath already included
+        const newUrl = request.nextUrl.clone();
+        // Reconstruct canonical URL
+        const canonicalContentPath = contentPathCanonicalizer.get(locale, contentPath);
+        newUrl.pathname = `/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${canonicalContentPath.value}`;
+
+        const changeHeaders = autoLBSw || !canonicalContentPath.dynamic;
+        if (!changeHeaders) {
+          return NextResponse.rewrite(newUrl);
+        }
+
+        const requestHeaders = new Headers(request.headers);
+        if (!canonicalContentPath.dynamic) {
+          requestHeaders.set(sccPathHeaderName, canonicalContentPath.value);
+        }
+        if (autoLBSw) {
+          // Bind locale to request headers
+          requestHeaders.set(localeHeaderName, locale);
+        }
+        return NextResponse.rewrite(newUrl, {
+          request: {
+            headers: requestHeaders,
+          },
+        });
+      }
+
+      function redirectToCanonicalLocalePath(
+        request: NextRequest,
+        locale: string,
+        pathname: string,
+        implicitLocale: boolean
+      ): NextResponse {
+        let url: URL;
+        if (implicitLocale) {
+          // Implicit URL - no locale prefix
+          url = new URL(`${basePath}${pathname}`, request.url);
+        } else {
+          // Standard locale-prefixed URL
+          url = new URL(`${basePath}/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${pathname}`, request.url);
+        }
+        return NextResponse.redirect(url);
+      }
+
       function proxy(request: NextRequest): NextProxyResult {
         const pathname = request.nextUrl.pathname;
         const match = pathname.match(localeRegex);
@@ -118,8 +166,7 @@ export async function createNextAppPathServerImpl(
 
           if (implicitSw && locale === defaultLocale) {
             // Locale is present but canonical URL is implicit (no locale prefix)
-            const implicitPath = pathname.replace(localeRegex, `${basePath}/`);
-            const response = NextResponse.redirect(new URL(implicitPath, request.url));
+            const response = redirectToCanonicalLocalePath(request, locale, pathname.replace(localeRegex, "/"), true);
             if (cookieSw) {
               const cookieLocale = getLocaleFromCookie(request);
               if (cookieLocale !== locale) {
@@ -131,43 +178,7 @@ export async function createNextAppPathServerImpl(
           }
 
           // Standard locale-prefixed URL
-          const contentPath = pathname.replace(localeRegex, "/");
-          const canonicalContentPath = contentPathCanonicalizer.get(locale, contentPath).value;
-          if (canonicalContentPath !== contentPath) {
-            // Non-canonical locale-prefixed URL
-            const newUrl = request.nextUrl.clone();
-            newUrl.pathname = `/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${canonicalContentPath}`;
-
-            if (autoLBSw) {
-              // Bind locale to request headers
-              const requestHeaders = new Headers(request.headers);
-              requestHeaders.set(localeHeaderName, locale);
-              return NextResponse.rewrite(newUrl, {
-                request: {
-                  headers: requestHeaders,
-                },
-              });
-            }
-
-            // No locale binding needed
-            return NextResponse.rewrite(newUrl);
-          } else {
-            // Canonical locale-prefixed URL
-            if (autoLBSw) {
-              // Bind locale to request headers
-              const requestHeaders = new Headers(request.headers);
-              requestHeaders.set(localeHeaderName, locale);
-
-              return NextResponse.next({
-                request: {
-                  headers: requestHeaders,
-                },
-              });
-            }
-
-            // No locale binding needed
-            return NextResponse.next();
-          }
+          return rewriteToCanonicalLocalePath(request, locale, pathname.replace(localeRegex, "/"));
         }
 
         // Locale is not present in the URL
@@ -193,9 +204,7 @@ export async function createNextAppPathServerImpl(
 
               if (locale !== defaultLocale) {
                 // Redirect to the URL with the locale prefix
-                return NextResponse.redirect(
-                  new URL(`${basePath}/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${pathname}`, request.url)
-                );
+                return redirectToCanonicalLocalePath(request, locale, pathname, false);
               }
             } else {
               // Non auto-detect URL, always use default locale
@@ -203,24 +212,7 @@ export async function createNextAppPathServerImpl(
             }
 
             // Rewrite to locale-prefixed URL internally - basePath already included
-            const newUrl = request.nextUrl.clone();
-            // Reconstruct canonical URL
-            const canonicalContentPath = contentPathCanonicalizer.get(locale, pathname).value;
-            newUrl.pathname = `/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${canonicalContentPath}`;
-
-            if (autoLBSw) {
-              // Bind locale to request headers
-              const requestHeaders = new Headers(request.headers);
-              requestHeaders.set(localeHeaderName, locale);
-              return NextResponse.rewrite(newUrl, {
-                request: {
-                  headers: requestHeaders,
-                },
-              });
-            }
-
-            // No locale binding needed
-            return NextResponse.rewrite(newUrl);
+            return rewriteToCanonicalLocalePath(request, locale, pathname);
           }
 
           // Not an implicit URL, do not proxy - irrelevant for locale strategy
@@ -242,9 +234,7 @@ export async function createNextAppPathServerImpl(
           }
 
           // Redirect to the URL with the locale prefix
-          return NextResponse.redirect(
-            new URL(`${basePath}/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${pathname}`, request.url)
-          );
+          return redirectToCanonicalLocalePath(request, locale, pathname, false);
         }
 
         // Not an auto-detect URL
