@@ -3,9 +3,9 @@ import { type NextRequest, NextResponse } from "next/server";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import type { HrefTranslator } from "#r-machine/next/core";
 import { type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
+import type { NextAppServerImpl } from "../next-app-server-toolset.js";
+import { localeHeaderName } from "../next-app-strategy-core.js";
 import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-core.js";
-import type { NextAppServerImpl } from "./next-app-server-toolset.js";
-import { localeHeaderName } from "./next-app-strategy-core.js";
 
 export const originHeaderName = "x-rm-origin";
 

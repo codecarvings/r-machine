@@ -15,7 +15,17 @@ export default async function Hero() {
           <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
             {/* Logo on top for small screens, on right for large screens */}
             <div className="shrink-0 lg:order-2">
-              <Image src={RMachineLogo} alt="R-Machine Logo" className="size-32 sm:size-40 lg:size-64" />
+              <div className="relative">
+                <div className="absolute -inset-2 sm:-inset-3 lg:-inset-4 bg-linear-to-br from-red-500/20 via-red-500/20 to-red-500/20 rounded-3xl blur-2xl" />
+                <div className="absolute -inset-2 sm:-inset-3 lg:-inset-4 bg-linear-to-tr from-slate-200/80 to-white/80 rounded-3xl shadow-xl" />
+                <div className="relative p-4 sm:p-6 lg:p-8">
+                  <Image
+                    src={RMachineLogo}
+                    alt="R-Machine Logo"
+                    className="size-32 sm:size-40 lg:size-64 drop-shadow-lg"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Content on the left for large screens */}

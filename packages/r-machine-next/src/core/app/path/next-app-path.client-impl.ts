@@ -3,7 +3,7 @@ import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { setCookie } from "#r-machine/next/internal";
-import type { NextAppClientImpl } from "./next-app-client-toolset.js";
+import type { NextAppClientImpl } from "../next-app-client-toolset.js";
 import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
 
 // const pathComposerNormalizerRegExp = /^\//;

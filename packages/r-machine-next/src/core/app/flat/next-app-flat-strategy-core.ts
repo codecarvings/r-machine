@@ -13,7 +13,7 @@ import {
   type NextAppStrategyConfig,
   NextAppStrategyCore,
   type PartialNextAppStrategyConfig,
-} from "./next-app-strategy-core.js";
+} from "../next-app-strategy-core.js";
 
 // Locale not available for flat strategy since locale is stored in the cookie
 interface HrefHelper<PA extends AnyPathAtlas> {

@@ -11,13 +11,13 @@ import {
   type PathParams,
   type PathSelector,
 } from "#r-machine/next/core";
-import type { NextAppClientRMachine } from "./next-app-client-toolset.js";
-import type { NextAppNoProxyServerToolset } from "./next-app-no-proxy-server-toolset.js";
+import type { NextAppClientRMachine } from "../next-app-client-toolset.js";
+import type { NextAppNoProxyServerToolset } from "../next-app-no-proxy-server-toolset.js";
 import {
   type NextAppStrategyConfig,
   NextAppStrategyCore,
   type PartialNextAppStrategyConfig,
-} from "./next-app-strategy-core.js";
+} from "../next-app-strategy-core.js";
 
 /* NextAppPathStrategy - Cookies
  * If cookies are enabled, cookies can be set in 4 different ways:
@@ -157,7 +157,7 @@ export abstract class NextAppPathStrategyCore<
   ): Promise<NextAppNoProxyServerToolset<RA, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     this.validateNoProxyConfig();
     const impl = await this.createServerImpl();
-    const module = await import("./next-app-no-proxy-server-toolset.js");
+    const module = await import("../next-app-no-proxy-server-toolset.js");
     return module.createNextAppNoProxyServerToolset(this.rMachine, impl, NextClientRMachine);
   }
 

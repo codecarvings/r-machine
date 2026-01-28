@@ -6,9 +6,9 @@ import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { defaultPathMatcher, type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
-import type { NextAppNoProxyServerImpl } from "./next-app-no-proxy-server-toolset.js";
+import type { NextAppNoProxyServerImpl } from "../next-app-no-proxy-server-toolset.js";
+import { localeHeaderName } from "../next-app-strategy-core.js";
 import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
-import { localeHeaderName } from "./next-app-strategy-core.js";
 
 export const sccPathHeaderName = "x-rm-sccpath"; // Static Canonical Content Path
 

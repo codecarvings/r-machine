@@ -12,7 +12,7 @@ import {
   type NextAppStrategyConfig,
   NextAppStrategyCore,
   type PartialNextAppStrategyConfig,
-} from "./next-app-strategy-core.js";
+} from "../next-app-strategy-core.js";
 
 interface HrefHelper<PA extends AnyPathAtlas> {
   readonly getPath: PathComposer<PA>;
