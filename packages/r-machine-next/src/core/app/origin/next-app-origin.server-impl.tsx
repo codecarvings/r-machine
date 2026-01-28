@@ -1,19 +1,20 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
-import type { HrefTranslator } from "#r-machine/next/core";
+import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { NextAppServerImpl } from "../next-app-server-toolset.js";
 import { localeHeaderName } from "../next-app-strategy-core.js";
 import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-core.js";
 
-export const originHeaderName = "x-rm-origin";
+export const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
 
 export async function createNextAppOriginServerImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppOriginStrategyConfig,
   pathTranslator: HrefTranslator,
-  urlTranslator: HrefTranslator
+  urlTranslator: HrefTranslator,
+  pathCanonicalizer: HrefCanonicalizer
 ) {
   const defaultLocale = rMachine.config.defaultLocale;
   const { localeKey, autoLocaleBinding, localeOriginMap, pathMatcher } = strategyConfig;
@@ -23,16 +24,22 @@ export async function createNextAppOriginServerImpl(
     localeKey,
     autoLocaleBinding: autoLBSw,
 
-    async writeLocale(_locale, newLocale, _cookies, headers) {
-      const headerStore = await headers();
-      const currentOrigin = headerStore.get(originHeaderName);
-      const newUrl = urlTranslator.get(newLocale, "/").value;
-      const newOrigin = new URL(newUrl).origin;
-      if (newOrigin !== currentOrigin) {
-        // Redirect only if the origin for the new locale is different
-        // (bug in Next.js when redirecting to the same origin)
-        redirect(newUrl);
+    async writeLocale(locale, newLocale, _cookies, headers) {
+      if (newLocale === locale) {
+        return;
       }
+
+      let url: string;
+      const headersStore = await headers();
+      const path = headersStore.get(scPathHeaderName);
+      if (path !== null) {
+        // Use path from header if available
+        url = urlTranslator.get(newLocale, path).value;
+      } else {
+        // Fallback
+        url = urlTranslator.get(newLocale, "/").value;
+      }
+      redirect(url);
     },
 
     createLocaleStaticParamsGenerator() {
@@ -43,6 +50,33 @@ export async function createNextAppOriginServerImpl(
     },
 
     createProxy() {
+      function rewriteToCanonicalLocalePath(request: NextRequest, locale: string, path: string): NextResponse {
+        // Rewrite to locale-prefixed URL internally - basePath already included
+        const newUrl = request.nextUrl.clone();
+        // Reconstruct canonical URL
+        const canonicalPath = pathCanonicalizer.get(locale, path);
+        newUrl.pathname = `/${locale!}${canonicalPath.value}`;
+
+        const changeHeaders = autoLBSw || !canonicalPath.dynamic;
+        if (!changeHeaders) {
+          return NextResponse.rewrite(newUrl);
+        }
+
+        const requestHeaders = new Headers(request.headers);
+        if (!canonicalPath.dynamic) {
+          requestHeaders.set(scPathHeaderName, canonicalPath.value);
+        }
+        if (autoLBSw) {
+          // Bind locale to request headers
+          requestHeaders.set(localeHeaderName, locale);
+        }
+        return NextResponse.rewrite(newUrl, {
+          request: {
+            headers: requestHeaders,
+          },
+        });
+      }
+
       const originCacheMap = new Map<string, string>();
       function proxy(request: NextRequest): NextProxyResult {
         const { pathname } = request.nextUrl;
@@ -76,22 +110,7 @@ export async function createNextAppOriginServerImpl(
             originCacheMap.set(origin, locale!);
           }
 
-          // Rewrite to locale-prefixed URL internally - basePath already included
-          const newUrl = request.nextUrl.clone();
-          newUrl.pathname = `/${locale!}${pathname}`;
-
-          const requestHeaders = new Headers(request.headers);
-          // Ensure origin header is set
-          requestHeaders.set(originHeaderName, origin);
-          if (autoLBSw) {
-            // Bind locale to request headers
-            requestHeaders.set(localeHeaderName, locale!);
-          }
-          return NextResponse.rewrite(newUrl, {
-            request: {
-              headers: requestHeaders,
-            },
-          });
+          return rewriteToCanonicalLocalePath(request, locale, pathname);
         }
 
         // Irrelevant URL, do not proxy

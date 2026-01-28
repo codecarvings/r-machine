@@ -1,7 +1,9 @@
 import type { AnyResourceAtlas } from "r-machine";
+import { RMachineError } from "r-machine/errors";
 import {
   type AnyPathAtlas,
   buildPathAtlas,
+  HrefCanonicalizer,
   HrefTranslator,
   type PathParamMap,
   type PathParams,
@@ -72,15 +74,33 @@ export abstract class NextAppOriginStrategyCore<
     this.rMachine.config.defaultLocale,
     this.config.localeOriginMap
   );
+  // Used by proxy to rewrite incoming requests
+  protected readonly pathCanonicalizer = new HrefCanonicalizer(
+    this.pathAtlas,
+    this.rMachine.config.locales,
+    this.rMachine.config.defaultLocale
+  );
 
   protected async createClientImpl() {
     const module = await import("./next-app-origin.client-impl.js");
-    return module.createNextAppOriginClientImpl(this.rMachine, this.config, this.pathTranslator, this.urlTranslator);
+    return module.createNextAppOriginClientImpl(
+      this.rMachine,
+      this.config,
+      this.pathTranslator,
+      this.urlTranslator,
+      this.pathCanonicalizer
+    );
   }
 
   protected async createServerImpl() {
     const module = await import("./next-app-origin.server-impl.js");
-    return module.createNextAppOriginServerImpl(this.rMachine, this.config, this.pathTranslator, this.urlTranslator);
+    return module.createNextAppOriginServerImpl(
+      this.rMachine,
+      this.config,
+      this.pathTranslator,
+      this.urlTranslator,
+      this.pathCanonicalizer
+    );
   }
 
   readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
@@ -110,7 +130,11 @@ export class NextAppOriginStrategyUrlTranslator extends HrefTranslator {
 
   protected override readonly adapter = {
     fn: (locale: string, path: string): string => {
-      return `${this.localeOriginMapCache.get(locale)}${path}`;
+      const origin = this.localeOriginMapCache.get(locale);
+      if (!origin) {
+        throw new RMachineError(`No origin defined for locale '${locale}' in localeOriginMap.`);
+      }
+      return `${origin}${path}`;
     },
     preApply: false,
   };

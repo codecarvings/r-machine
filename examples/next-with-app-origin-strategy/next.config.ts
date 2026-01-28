@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  reactCompiler: true,
 
   /*
    *  --- For this example, during development ensure to configure domains in your hosts file:
