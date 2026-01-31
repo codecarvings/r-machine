@@ -12,7 +12,10 @@
     "@r-machine/react": "1.0.0-alpha.1"
   },
   "changesets": [
+    "chilly-bottles-show",
+    "common-news-bet",
     "cozy-dragons-pay",
+    "fine-dolls-decide",
     "hip-weeks-lose",
     "hot-pears-melt",
     "lovely-turkeys-poke",
