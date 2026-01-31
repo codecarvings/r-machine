@@ -1,1 +1,1 @@
-export * from "./web-options.js";
+export { type CookieDeclaration, defaultCookieDeclaration } from "./web-options.js";
