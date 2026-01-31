@@ -1,4 +1,5 @@
 name: Setup CI
+description: 'Setup CI environment with Node.js and pnpm'
 
 runs:
   using: composite
@@ -9,7 +10,7 @@ runs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 'latest'
+        node-version: '24'
         cache: 'pnpm'
 
     - name: Install Dependencies
