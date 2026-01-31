@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { rMachine } from "@/r-machine/r-machine";
@@ -11,7 +12,7 @@ export async function generateStaticParams({
 }: {
   params: Awaited<PageProps<"/[locale]/example-dynamic/[slug]">["params"]>;
 }) {
-  const r = await rMachine.pickR(locale, "example-dynamic");
+  const r = await rMachine.pickR(getCanonicalUnicodeLocaleId(locale), "example-dynamic");
   return r.items.map((item) => ({ slug: item.slug }));
 }
 

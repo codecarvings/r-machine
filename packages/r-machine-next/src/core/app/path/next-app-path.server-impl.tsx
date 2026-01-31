@@ -10,7 +10,7 @@ import type { NextAppNoProxyServerImpl } from "../next-app-no-proxy-server-tools
 import { localeHeaderName } from "../next-app-strategy-core.js";
 import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
 
-export const sccPathHeaderName = "x-rm-sccpath"; // Static Canonical Content Path
+const sccPathHeaderName = "x-rm-sccpath"; // Static Canonical Content Path
 
 const default_autoDL_matcher_implicit: RegExp | null = /^\/$/; // Auto detect only root path
 const default_autoDL_matcher_explicit: RegExp | null = defaultPathMatcher; // Auto detect all standard next paths
@@ -44,6 +44,17 @@ export async function createNextAppPathServerImpl(
         return;
       }
 
+      const headersStore = await headers();
+      const contentPath = headersStore.get(sccPathHeaderName);
+      let path: string;
+      if (contentPath !== null) {
+        // Use content path from header if available
+        path = pathTranslator.get(newLocale, contentPath).value;
+      } else {
+        // Fallback
+        path = pathTranslator.get(newLocale, "/").value;
+      }
+
       if (cookieSw) {
         try {
           const cookieStore = await cookies();
@@ -51,18 +62,10 @@ export async function createNextAppPathServerImpl(
           cookieStore.set(cookieName!, newLocale, cookieConfig);
         } catch {
           // SetLocale not invoked in a Server Action or Route Handler.
+          console.warn(
+            `[r-machine] Warning: Unable to set locale cookie '${cookieName}'. Make sure to call 'setLocale' from a Server Action or Route Handler.`
+          );
         }
-      }
-
-      let path: string;
-      const headersStore = await headers();
-      const contentPath = headersStore.get(sccPathHeaderName);
-      if (contentPath !== null) {
-        // Use content path from header if available
-        path = pathTranslator.get(newLocale, contentPath).value;
-      } else {
-        // Fallback
-        path = pathTranslator.get(newLocale, "/").value;
       }
       redirect(path);
     },
@@ -125,6 +128,7 @@ export async function createNextAppPathServerImpl(
 
         const requestHeaders = new Headers(request.headers);
         if (!canonicalContentPath.dynamic) {
+          // Set static canonical path header
           requestHeaders.set(sccPathHeaderName, canonicalContentPath.value);
         }
         if (autoLBSw) {
@@ -245,7 +249,20 @@ export async function createNextAppPathServerImpl(
       return proxy;
     },
 
-    createEntrancePage(cookies, headers, setLocale) {
+    createRouteHandlers(cookies, headers, setLocale) {
+      function throwRequiredProxyError(details: string): never {
+        throw new RMachineError(
+          `EntranceRouteHandler is not available when some option requires the use of the proxy (${details}).`
+        );
+      }
+
+      if (implicitSw) {
+        throwRequiredProxyError("implicitDefaultLocale is on");
+      }
+      if (autoLBSw) {
+        throwRequiredProxyError("autoLocaleBinding is on");
+      }
+
       async function getLocaleFromCookie(): Promise<string | undefined> {
         if (!cookieSw) {
           return undefined;
@@ -264,36 +281,19 @@ export async function createNextAppPathServerImpl(
         return cookieLocale;
       }
 
-      function throwRequiredProxyError(details: string): never {
-        throw new RMachineError(
-          `EntrancePage is not available when some option requires the use of the proxy (${details}).`
-        );
-      }
-
-      async function EntrancePage() {
-        validateServerOnlyUsage("EntrancePage");
-
-        if (implicitSw) {
-          throwRequiredProxyError("implicitDefaultLocale is on");
-        }
-        if (autoLBSw) {
-          throwRequiredProxyError("autoLocaleBinding is on");
-        }
-
+      async function entranceGet() {
         const cookieLocale = await getLocaleFromCookie();
         if (cookieLocale !== undefined) {
           await setLocale(cookieLocale);
-          return null;
         }
 
         const headerStore = await headers();
         const acceptLanguageHeader = headerStore.get("accept-language");
         const detectedLocale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
         await setLocale(detectedLocale);
-        return null;
       }
 
-      return EntrancePage;
+      return { entrance: { GET: entranceGet } };
     },
 
     createBoundPathComposerSupplier: (getLocale) => {

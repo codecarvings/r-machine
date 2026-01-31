@@ -7,7 +7,7 @@ import type { NextAppServerImpl } from "../next-app-server-toolset.js";
 import { localeHeaderName } from "../next-app-strategy-core.js";
 import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-core.js";
 
-export const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
+const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
 
 export async function createNextAppOriginServerImpl(
   rMachine: RMachine<AnyResourceAtlas>,
@@ -29,16 +29,17 @@ export async function createNextAppOriginServerImpl(
         return;
       }
 
-      let url: string;
       const headersStore = await headers();
-      const path = headersStore.get(scPathHeaderName);
-      if (path !== null) {
+      const contentPath = headersStore.get(scPathHeaderName);
+      let url: string;
+      if (contentPath !== null) {
         // Use path from header if available
-        url = urlTranslator.get(newLocale, path).value;
+        url = urlTranslator.get(newLocale, contentPath).value;
       } else {
         // Fallback
         url = urlTranslator.get(newLocale, "/").value;
       }
+
       redirect(url);
     },
 
@@ -64,6 +65,7 @@ export async function createNextAppOriginServerImpl(
 
         const requestHeaders = new Headers(request.headers);
         if (!canonicalPath.dynamic) {
+          // Set static canonical path header
           requestHeaders.set(scPathHeaderName, canonicalPath.value);
         }
         if (autoLBSw) {

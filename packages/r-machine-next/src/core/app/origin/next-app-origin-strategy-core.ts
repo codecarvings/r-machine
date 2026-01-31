@@ -74,7 +74,6 @@ export abstract class NextAppOriginStrategyCore<
     this.rMachine.config.defaultLocale,
     this.config.localeOriginMap
   );
-  // Used by proxy to rewrite incoming requests
   protected readonly pathCanonicalizer = new HrefCanonicalizer(
     this.pathAtlas,
     this.rMachine.config.locales,

@@ -2,7 +2,7 @@ import { NextClientRMachine } from "./client-toolset";
 import { strategy } from "./r-machine";
 
 export const {
-  EntrancePage,
+  routeHandlers,
   NextServerRMachine,
   generateLocaleStaticParams,
   bindLocale,

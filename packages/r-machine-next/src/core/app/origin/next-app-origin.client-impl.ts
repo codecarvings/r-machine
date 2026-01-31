@@ -27,6 +27,7 @@ export async function createNextAppOriginClientImpl(
         // Static path, surely no params
         url = urlTranslator.get(newLocale, canonicalPath.value).value;
       }
+
       router.push(url);
     },
 

@@ -1,5 +1,4 @@
 import type { AnyResourceAtlas, RMachine } from "r-machine";
-import type { ReactNode } from "react";
 import type { AnyPathAtlas } from "#r-machine/next/core";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
 import type { NextAppClientRMachine } from "./index.js";
@@ -11,17 +10,21 @@ import {
 
 export interface NextAppNoProxyServerToolset<RA extends AnyResourceAtlas, PA extends AnyPathAtlas, LK extends string>
   extends Omit<NextAppServerToolset<RA, PA, LK>, "rMachineProxy"> {
-  readonly EntrancePage: EntrancePage;
+  readonly routeHandlers: routeHandlers;
 }
 
-type EntrancePage = () => Promise<ReactNode>;
+interface routeHandlers {
+  readonly entrance: {
+    readonly GET: () => Promise<void>;
+  };
+}
 
 export interface NextAppNoProxyServerImpl extends NextAppServerImpl {
-  readonly createEntrancePage: (
+  readonly createRouteHandlers: (
     cookies: CookiesFn,
     headers: HeadersFn,
     setLocale: (newLocale: string) => Promise<void>
-  ) => EntrancePage | Promise<EntrancePage>;
+  ) => routeHandlers | Promise<routeHandlers>;
 }
 
 export async function createNextAppNoProxyServerToolset<
@@ -43,11 +46,11 @@ export async function createNextAppNoProxyServerToolset<
   // You're importing a component that needs "next/headers". That only works in a Server Component which is not supported in the pages/ directory. Read more: https://nextjs.org/docs/app/building-your-application/rendering/server-components
   const { cookies, headers } = await import("next/headers");
 
-  const EntrancePage = await impl.createEntrancePage(cookies, headers, setLocale);
+  const routeHandlers = await impl.createRouteHandlers(cookies, headers, setLocale);
 
   return {
     ...otherTools,
     setLocale,
-    EntrancePage,
+    routeHandlers,
   };
 }

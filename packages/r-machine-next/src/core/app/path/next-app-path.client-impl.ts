@@ -37,11 +37,6 @@ export async function createNextAppPathClientImpl(
         return;
       }
 
-      if (cookieSw) {
-        // 2) Set cookie on write (required when implicitDefaultLocale is on - problem with double redirect on explicit path)
-        setCookie(cookieName!, newLocale, cookieConfig);
-      }
-
       const contentPath = pathCanonicalizer.get(locale, pathname);
       let newPath: string;
       if (contentPath.dynamic) {
@@ -50,6 +45,11 @@ export async function createNextAppPathClientImpl(
       } else {
         // Static path, surely no params
         newPath = pathTranslator.get(newLocale, contentPath.value).value;
+      }
+
+      if (cookieSw) {
+        // 2) Set cookie on write (required when implicitDefaultLocale is on - problem with double redirect on explicit path)
+        setCookie(cookieName!, newLocale, cookieConfig);
       }
       router.push(newPath);
     },

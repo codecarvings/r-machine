@@ -3,6 +3,7 @@ import { type CookieDeclaration, defaultCookieDeclaration } from "r-machine/stra
 import {
   type AnyPathAtlas,
   buildPathAtlas,
+  HrefCanonicalizer,
   HrefTranslator,
   type PathParamMap,
   type PathParams,
@@ -57,16 +58,21 @@ export abstract class NextAppFlatStrategyCore<
     this.rMachine.config.locales,
     this.rMachine.config.defaultLocale
   );
+  protected readonly pathCanonicalizer = new HrefCanonicalizer(
+    this.pathAtlas,
+    this.rMachine.config.locales,
+    this.rMachine.config.defaultLocale
+  );
   private readonly defaultLocale = this.rMachine.config.defaultLocale;
 
   protected async createClientImpl() {
     const module = await import("./next-app-flat.client-impl.js");
-    return module.createNextAppFlatClientImpl(this.rMachine, this.config, this.pathTranslator);
+    return module.createNextAppFlatClientImpl(this.rMachine, this.config, this.pathTranslator, this.pathCanonicalizer);
   }
 
   protected async createServerImpl() {
     const module = await import("./next-app-flat.server-impl.js");
-    return module.createNextAppFlatServerImpl(this.rMachine, this.config, this.pathTranslator);
+    return module.createNextAppFlatServerImpl(this.rMachine, this.config, this.pathTranslator, this.pathCanonicalizer);
   }
 
   readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {

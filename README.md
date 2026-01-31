@@ -9,7 +9,7 @@
   <img src="r-machine.logo.svg" width="158px" align="center" alt="R-Machine logo" />
   <h1 align="center">R-Machine</h1>
   <p align="center">
-    A TypeScript library for internationalization (i18n) with a focus on developer experience
+    A Type-Safe internationalization (i18n) library
     <br/>
     by <a href="https://codecarvings.com">@turolla</a>
   </p>

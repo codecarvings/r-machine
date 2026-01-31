@@ -4,7 +4,7 @@ const r = {
   hero: {
     title: "Type-Safe i18n for Modern Applications",
     subtitle:
-      "R-Machine brings fully type-safe internationalization to your Next.js apps with minimal runtime overhead and exceptional developer experience.",
+      "R-Machine brings fully type-safe internationalization to your Next.js apps with minimal runtime overhead and superior developer experience.",
     cta: {
       primary: "Get Started",
       secondary: "GitHub Repository",

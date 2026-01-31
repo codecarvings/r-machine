@@ -1,16 +1,19 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
-import type { HrefTranslator } from "#r-machine/next/core";
+import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { NextAppServerImpl } from "../next-app-server-toolset.js";
 import { localeHeaderName } from "../next-app-strategy-core.js";
 import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core.js";
 
+const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
+
 export async function createNextAppFlatServerImpl(
   rMachine: RMachine<AnyResourceAtlas>,
   strategyConfig: AnyNextAppFlatStrategyConfig,
-  pathTranslator: HrefTranslator
+  pathTranslator: HrefTranslator,
+  pathCanonicalizer: HrefCanonicalizer
 ) {
   const locales = rMachine.config.locales;
   const { localeKey, autoLocaleBinding, cookie, pathMatcher } = strategyConfig;
@@ -21,16 +24,32 @@ export async function createNextAppFlatServerImpl(
     localeKey,
     autoLocaleBinding: autoLBSw,
 
-    async writeLocale(_locale, newLocale, cookies) {
+    async writeLocale(locale, newLocale, cookies, headers) {
+      if (newLocale === locale) {
+        return;
+      }
+
+      const headersStore = await headers();
+      const contentPath = headersStore.get(scPathHeaderName);
+      let path: string;
+      if (contentPath !== null) {
+        // Use path from header if available
+        path = pathTranslator.get(newLocale, contentPath).value;
+      } else {
+        // Fallback
+        path = pathTranslator.get(newLocale, "/").value;
+      }
+
       try {
         const cookieStore = await cookies();
         cookieStore.set(cookieName!, newLocale, cookieConfig);
       } catch {
         // SetLocale not invoked in a Server Action or Route Handler.
+        console.warn(
+          `[r-machine] Warning: Unable to set locale cookie '${cookieName}'. Make sure to call 'setLocale' from a Server Action or Route Handler.`
+        );
       }
-
-      // TODO: Find a way to force a reload
-      redirect("/");
+      redirect(path);
     },
 
     createLocaleStaticParamsGenerator() {
@@ -54,6 +73,34 @@ export async function createNextAppFlatServerImpl(
         return cookieLocale;
       }
 
+      function rewriteToCanonicalLocalePath(request: NextRequest, locale: string, path: string): NextResponse {
+        // Rewrite to locale-prefixed URL internally - basePath already included
+        const newUrl = request.nextUrl.clone();
+        // Reconstruct canonical URL
+        const canonicalPath = pathCanonicalizer.get(locale, path);
+        newUrl.pathname = `/${locale!}${canonicalPath.value}`;
+
+        const changeHeaders = autoLBSw || !canonicalPath.dynamic;
+        if (!changeHeaders) {
+          return NextResponse.rewrite(newUrl);
+        }
+
+        const requestHeaders = new Headers(request.headers);
+        if (!canonicalPath.dynamic) {
+          // Set static canonical path header
+          requestHeaders.set(scPathHeaderName, canonicalPath.value);
+        }
+        if (autoLBSw) {
+          // Bind locale to request headers
+          requestHeaders.set(localeHeaderName, locale);
+        }
+        return NextResponse.rewrite(newUrl, {
+          request: {
+            headers: requestHeaders,
+          },
+        });
+      }
+
       function proxy(request: NextRequest): NextProxyResult {
         const pathname = request.nextUrl.pathname;
 
@@ -70,23 +117,7 @@ export async function createNextAppFlatServerImpl(
             locale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
           }
 
-          // Rewrite to locale-prefixed URL internally - basePath already included
-          const newUrl = request.nextUrl.clone();
-          newUrl.pathname = `/${locale}${pathname}`;
-
-          if (autoLBSw) {
-            // Bind locale to request headers
-            const requestHeaders = new Headers(request.headers);
-            requestHeaders.set(localeHeaderName, locale);
-            return NextResponse.rewrite(newUrl, {
-              request: {
-                headers: requestHeaders,
-              },
-            });
-          }
-
-          // No locale binding needed
-          return NextResponse.rewrite(newUrl);
+          return rewriteToCanonicalLocalePath(request, locale, pathname);
         }
 
         // Irrelevant URL, do not proxy

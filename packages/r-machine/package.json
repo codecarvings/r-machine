@@ -1,7 +1,7 @@
 {
   "name": "r-machine",
   "version": "1.0.0-alpha.6",
-  "description": "A TypeScript library for internationalization (i18n) with a focus on developer experience",
+  "description": "A Type-Safe internationalization (i18n) library",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "MIT",
   "type": "module",
