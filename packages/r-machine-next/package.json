@@ -1,6 +1,6 @@
 {
   "name": "@r-machine/next",
-  "version": "1.0.0-alpha.7",
+  "version": "1.0.0-alpha.8",
   "description": "Official Next.js bindings for R-Machine - A Type-Safe internationalization (i18n) library",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "MIT",
