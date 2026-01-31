@@ -23,12 +23,15 @@ jobs:
       pull-requests: write # to create pull request (changesets/action)
       id-token: write # to use OpenID Connect token for provenance (changesets/action)    
 
+    env:
+      HUSKY: 0
+
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
       - name: Setup CI
-        uses: ./.github/actions/ci-setup        
+        uses: ./.github/actions/ci-setup
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
