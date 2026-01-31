@@ -1,4 +1,4 @@
-import RMachineIcon from "@/gfx/r-machine.icon.svg";
+import RMachineLogo from "@/gfx/r-machine.logo.svg";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 
 export default function Header() {
@@ -7,7 +7,7 @@ export default function Header() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto flex h-18 items-center justify-between">
           <div className="flex items-center gap-4">
-            <img src={RMachineIcon} alt="R-Machine Logo" className="size-8" />
+            <img src={RMachineLogo} alt="R-Machine Logo" className="size-8" />
             <span className="text-md font-medium text-foreground">R-Machine ⧹ Examples ⧹ React</span>
           </div>
           <LocaleSwitcher />

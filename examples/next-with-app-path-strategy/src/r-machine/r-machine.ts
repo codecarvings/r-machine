@@ -1,21 +1,24 @@
 import { NextAppPathStrategy } from "@r-machine/next/app";
 import { RMachine } from "r-machine";
-import type { Atlas } from "./atlas";
+import { PathAtlas } from "./path-atlas";
+import type { ResourceAtlas } from "./resource-atlas";
 
-export const rMachine = new RMachine<Atlas>({
-  locales: ["en", "it-IT"],
+export const rMachine = new RMachine<ResourceAtlas>({
+  locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: (namespace, locale) => import(`./resources/${namespace}/${locale}`),
 });
 
-export const strategy = new NextAppPathStrategy({
+export const strategy = new NextAppPathStrategy(rMachine, {
+  PathAtlas,
   cookie: "on",
   // implicitDefaultLocale: "on",
   implicitDefaultLocale: {
-    pathMatcher: /^(?!\/non-localized($|\/)).*/,
+    // Exclude non-localized paths from implicit default locale handling
+    pathMatcher: /^(?!\/(__|hello-world|set-italian)($|\/)).*/,
   },
 
   // autoLocaleBinding: "on",
-  // lowercaseLocale: "off",
+  // localeLabel: "strict",
   // basePath: "/subdir",
 });

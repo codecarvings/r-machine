@@ -1,1 +1,1 @@
-export { NextToolset } from "./next-toolset-builder.js";
+export { createPathAtlasDecl } from "./path-atlas-decl-factory.js";

@@ -1,7 +1,6 @@
 "use client";
 
-import { NextToolset } from "@r-machine/next";
-import { rMachine, strategy } from "./r-machine";
+import { strategy } from "./r-machine";
 
-export const { NextClientRMachine, useLocale, useSetLocale, usePathBuilder, useR, useRKit } =
-  await NextToolset.createForClient(rMachine, strategy);
+export const { NextClientRMachine, useLocale, useSetLocale, useR, useRKit, usePathComposer } =
+  await strategy.createClientToolset();

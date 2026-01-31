@@ -1,14 +1,18 @@
-export { NextClientImplProvider } from "./next-client-impl-provider.js";
+export { HrefCanonicalizer } from "./href-canonicalizer.js";
+export { HrefMapper } from "./href-mapper.js";
+export { HrefTranslator } from "./href-translator.js";
+export type {
+  BoundPathComposer,
+  PathParamMap,
+  PathParams,
+  PathSelector,
+} from "./path.js";
 export {
-  createNextClientToolset,
-  type NextClientImpl,
-  type NextClientPathToolset,
-  type NextClientPlainToolset,
-  type NextClientRMachine,
-  type NextClientToolset,
-} from "./next-client-toolset.js";
-export {
-  NextStrategy,
-  type NextStrategyKind,
-} from "./next-strategy.js";
+  type AnyPathAtlas,
+  buildPathAtlas,
+  type ExtendedPathAtlas,
+  type NonTranslatableSegmentDecl,
+  type PathAtlasCtor,
+  type TranslatableSegmentDecl,
+} from "./path-atlas.js";
 export type { RMachineProxy } from "./proxy.js";

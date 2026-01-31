@@ -34,6 +34,9 @@
     "github-actions.workflows.pinned.workflows": [
       "⚙️ R-Machine/.github/workflows/ci.yml",
       "⚙️ R-Machine/.github/workflows/changeset-version.yml"
+    ],
+    "cSpell.words": [
+      "scpath", "sccpath"
     ]
   }
 }

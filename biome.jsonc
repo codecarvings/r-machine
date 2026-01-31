@@ -53,6 +53,16 @@
   },
 
   "files": {
-    "includes": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts", "!**/*.d.ts", "!**/*.d.mts", "!**/*.d.cts"]
+    "includes": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.mts",
+      "**/*.cts",
+      "!**/*.d.ts",
+      "!**/*.d.mts",
+      "!**/*.d.cts",
+      "!**/node_modules",
+      "!**/.next"
+    ]
   }
 }

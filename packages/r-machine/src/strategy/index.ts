@@ -1,8 +1,2 @@
-export {
-  type AnyImpl,
-  getImplFactory,
-  type ImplFactory,
-  type ImplProvider,
-} from "./impl.js";
-export * from "./options.js";
+export type { CustomLocaleDetector, CustomLocaleStore, SwitchableOption } from "./options.js";
 export { Strategy } from "./strategy.js";

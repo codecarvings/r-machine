@@ -1,31 +1,13 @@
-import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
-import { ReactStandardImplProvider } from "#r-machine/react/core";
-import { createReactStandardImpl } from "./react-standard.impl.js";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
+import { type PartialReactStandardStrategyConfig, ReactStandardStrategyCore } from "#r-machine/react/core";
 
-export interface ReactStandardStrategyConfig {
-  readonly localeDetector: CustomLocaleDetector | undefined;
-  readonly localeStore: CustomLocaleStore | undefined;
-}
-export interface PartialReactStandardStrategyConfig {
-  readonly localeDetector?: CustomLocaleDetector | undefined;
-  readonly localeStore?: CustomLocaleStore | undefined;
-}
-
-const defaultConfig: ReactStandardStrategyConfig = {
-  localeDetector: undefined,
-  localeStore: undefined,
-};
-
-export class ReactStandardStrategy extends ReactStandardImplProvider<ReactStandardStrategyConfig> {
-  constructor();
-  constructor(config: PartialReactStandardStrategyConfig);
-  constructor(config: PartialReactStandardStrategyConfig = {}) {
-    super(
-      {
-        ...defaultConfig,
-        ...config,
-      },
-      createReactStandardImpl
-    );
+export class ReactStandardStrategy<RA extends AnyResourceAtlas> extends ReactStandardStrategyCore<RA> {
+  constructor(rMachine: RMachine<RA>);
+  constructor(rMachine: RMachine<RA>, config: PartialReactStandardStrategyConfig);
+  constructor(rMachine: RMachine<RA>, config: PartialReactStandardStrategyConfig = {}) {
+    super(rMachine, {
+      ...ReactStandardStrategyCore.defaultConfig,
+      ...config,
+    });
   }
 }
