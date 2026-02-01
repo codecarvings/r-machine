@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchLocales } from "./locale-matcher.js";
+import { defaultAlgorithm, matchLocales } from "./locale-matcher.js";
 
 describe("matchLocales", () => {
   describe("lookup algorithm", () => {
@@ -365,5 +365,16 @@ describe("matchLocales", () => {
         expect(result).toBe("en-US");
       });
     });
+  });
+});
+
+describe("defaultAlgorithm", () => {
+  it("should be 'best-fit'", () => {
+    expect(defaultAlgorithm).toBe("best-fit");
+  });
+
+  it("should be a valid MatchLocalesAlgorithm", () => {
+    const validAlgorithms = ["best-fit", "lookup"];
+    expect(validAlgorithms).toContain(defaultAlgorithm);
   });
 });
