@@ -33,11 +33,14 @@ export {
   type LocaleOriginMap,
   type NextAppOriginStrategyConfig,
   NextAppOriginStrategyCore,
+  NextAppOriginStrategyUrlTranslator,
   type PartialNextAppOriginStrategyConfig,
 } from "./origin/next-app-origin-strategy-core.js";
 export {
   type AnyNextAppPathStrategyConfig,
   type NextAppPathStrategyConfig,
   NextAppPathStrategyCore,
+  NextAppPathStrategyPathCanonicalizer,
+  NextAppPathStrategyPathTranslator,
   type PartialNextAppPathStrategyConfig,
 } from "./path/next-app-path-strategy-core.js";
