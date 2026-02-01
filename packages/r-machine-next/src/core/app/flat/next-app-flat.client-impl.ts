@@ -38,7 +38,6 @@ export async function createNextAppFlatClientImpl(
       }
 
       setCookie(cookieName, newLocale, cookieConfig);
-      console.log(path, pathname);
       if (path !== pathname) {
         router.push(path);
       }

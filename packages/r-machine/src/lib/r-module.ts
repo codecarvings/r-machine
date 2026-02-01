@@ -26,7 +26,6 @@ function getResolveRFromModuleError(
     `Unable to resolve resource "${namespace}" for locale "${locale}" - ${reason}.`,
     innerError
   );
-  console.error(error);
   return error;
 }
 
@@ -93,7 +92,6 @@ export function resolveR(rModuleResolver: RModuleResolver, namespace: AnyNamespa
           `Unable to resolve resource module "${namespace}" for locale "${locale}" - rModuleResolver failed.`,
           reason
         );
-        console.error(error);
         reject(error);
       }
     );
