@@ -5,6 +5,7 @@ export default defineConfig({
     projects: ["packages/*"],
     coverage: {
       reporter: ["text", "html"],
+      include: ["r-machine/src/**", "r-machine-react/src/**", "r-machine-next/src/**"], // No duplicates from coverage report, example "r-machine/src/locale" and "r-machine/locale"
     },
   },
 }) as ViteUserConfig;
