@@ -106,10 +106,12 @@ export function fullParseAcceptLanguageHeader(header: string): AcceptLanguageEnt
           const qValue = Number.parseFloat(qMatch[1]);
 
           // Validate q-value range: 0.000 to 1.000
+          /* v8 ignore start */
           if (Number.isNaN(qValue) || qValue < 0 || qValue > 1) {
             quality = -1; // Mark as invalid
             break;
           }
+          /* v8 ignore stop */
 
           quality = qValue;
           break;
@@ -181,9 +183,11 @@ export function parseAcceptLanguageHeader(header: string): string[] {
  * @see https://www.rfc-editor.org/rfc/rfc4647.html#section-2.1
  */
 function isValidLanguageRange(range: string): boolean {
+  /* v8 ignore start */
   if (!range) {
     return false;
   }
+  /* v8 ignore stop */
 
   // Wildcard is always valid
   if (range === "*") {

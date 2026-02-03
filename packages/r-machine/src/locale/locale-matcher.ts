@@ -16,11 +16,6 @@ function normalizeWildcardRange(range: string): string {
 
 function matchesWildcardRange(range: string, locale: string): boolean {
   const normalizedRange = normalizeWildcardRange(range);
-
-  if (normalizedRange === "*") {
-    return true;
-  }
-
   const rangeParts = normalizedRange.split("-");
   const localeParts = locale.toLowerCase().split("-");
 

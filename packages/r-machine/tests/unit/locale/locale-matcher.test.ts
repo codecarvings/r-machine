@@ -314,6 +314,11 @@ describe("matchLocales", () => {
         expect(result).toBe("it");
       });
 
+      it("should not match wildcard when prefix differs in best-fit", () => {
+        const result = matchLocales(["en-*"], ["it-IT", "de-DE"], "fr", { algorithm: "best-fit" });
+        expect(result).toBe("fr");
+      });
+
       it("should prioritize wildcard match over language-only fallback", () => {
         const result = matchLocales(["en-*", "it"], ["it-IT", "en-GB"], "de", { algorithm: "lookup" });
         expect(result).toBe("en-GB");

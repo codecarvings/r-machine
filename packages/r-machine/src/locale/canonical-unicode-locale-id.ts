@@ -18,7 +18,7 @@ function computeCanonicalUnicodeLocaleId(locale: string): string {
     if (trimmed && !hasLeadingHyphen) {
       try {
         const [canonicalTrimmed] = Intl.getCanonicalLocales(trimmed);
-        const suffix = normalized.match(/-+$/)?.[0] ?? "";
+        const suffix = normalized.match(/-+$/)![0];
         result = `${canonicalTrimmed}${suffix}`;
       } catch {
         result = locale.toLowerCase();

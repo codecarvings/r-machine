@@ -208,13 +208,13 @@ function validateTranslation(
 
   if (!value.startsWith("/")) {
     throw new RMachineError(
-      `Segment translation "${key}" must match pattern /\${string} at path "${path || "/"}". Got "${value}"`
+      `Segment translation "${key}" must match pattern /\${string} at path "${path}". Got "${value}"`
     );
   }
 
   if (value.indexOf("/", 1) !== -1) {
     throw new RMachineError(
-      `Segment translation "${key}" must contain only one "/" at the beginning at path "${path || "/"}". Got "${value}"`
+      `Segment translation "${key}" must contain only one "/" at the beginning at path "${path}". Got "${value}"`
     );
   }
 
