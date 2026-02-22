@@ -5,18 +5,18 @@ export default defineConfig({
     conditions: ["@r-machine/source"],
   },
   test: {
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.{ts,tsx}"],
     watch: false,
     isolate: true,
     typecheck: {
-      include: ["tests/**/*.test-d.ts"],
+      include: ["tests/**/*.test-d.{ts,tsx}"],
       enabled: true,
       ignoreSourceErrors: false,
       checker: "tsc",
       tsconfig: "./tsconfig.json",
     },
     coverage: {
-      include: ["src/**/*.ts"],
+      include: ["src/**/*.{ts,tsx}"],
     },
     silent: true,
   },
