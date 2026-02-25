@@ -79,10 +79,15 @@ describe("ReactBareToolset", () => {
     type UseRKit = ReactBareToolset<TestAtlas>["useRKit"];
     expectTypeOf<UseRKit>().toBeCallableWith("common");
     expectTypeOf<UseRKit>().toBeCallableWith("common", "nav");
+    expectTypeOf<UseRKit>().toExtend<(...args: ["common"]) => unknown>();
+    expectTypeOf<UseRKit>().toExtend<(...args: ["common", "nav"]) => unknown>();
   });
 
-  // TODO: implement this test
-  it.skip("useRKit rejects namespace arguments not in atlas keys", () => {});
+  it("useRKit rejects namespace arguments not in atlas keys", () => {
+    type UseRKit = ReactBareToolset<TestAtlas>["useRKit"];
+    expectTypeOf<UseRKit>().not.toExtend<(...args: ["invalid"]) => unknown>();
+    expectTypeOf<UseRKit>().not.toExtend<(...args: ["common", "invalid"]) => unknown>();
+  });
 
   it("all properties are readonly", () => {
     expectTypeOf<ReactBareToolset<TestAtlas>>().toHaveProperty("ReactRMachine");
