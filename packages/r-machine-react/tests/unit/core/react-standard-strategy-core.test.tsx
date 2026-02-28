@@ -1,7 +1,6 @@
 import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
 import type { RMachine } from "r-machine";
-import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "r-machine/errors";
-import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
+import type { CustomLocaleDetector } from "r-machine/strategy";
 import { Strategy } from "r-machine/strategy";
 import type { ReactNode } from "react";
 import React from "react";
@@ -11,7 +10,8 @@ import {
   ReactStandardStrategyCore,
 } from "../../../src/core/react-standard-strategy-core.js";
 import type { TestAtlas } from "../../helpers/mock-machine.js";
-import { VALID_LOCALES } from "../../helpers/mock-machine.js";
+import { createMockMachine } from "../../helpers/mock-machine.js";
+import { configWith, syncStore } from "../../helpers/mock-strategy-config.js";
 
 afterEach(cleanup);
 
@@ -19,49 +19,10 @@ afterEach(cleanup);
 // Test helpers
 // ---------------------------------------------------------------------------
 
-function createMockRMachine(
-  overrides: { defaultLocale?: string; hybridPickR?: (locale: string, namespace: string) => unknown } = {}
-) {
-  return {
-    config: { defaultLocale: overrides.defaultLocale ?? "en" },
-    localeHelper: {
-      validateLocale: vi.fn((locale: string) =>
-        VALID_LOCALES.has(locale)
-          ? null
-          : new RMachineConfigError(
-              ERR_UNKNOWN_LOCALE,
-              `Locale "${locale}" is invalid or is not in the list of locales.`
-            )
-      ),
-    },
-    hybridPickR: vi.fn(overrides.hybridPickR ?? (() => ({ greeting: "hello" }))),
-    hybridPickRKit: vi.fn(() => [{ greeting: "hello" }, { home: "Home" }]),
-  } as unknown as RMachine<TestAtlas>;
-}
-
 class ConcreteStandardStrategy extends ReactStandardStrategyCore<TestAtlas> {}
 
-function configWith(overrides: Partial<ReactStandardStrategyConfig> = {}): ReactStandardStrategyConfig {
-  return {
-    localeDetector: undefined,
-    localeStore: undefined,
-    ...overrides,
-  };
-}
-
-function syncStore(initial?: string): CustomLocaleStore & { value: string | undefined } {
-  const store = {
-    value: initial,
-    get: vi.fn(() => store.value),
-    set: vi.fn((locale: string) => {
-      store.value = locale;
-    }),
-  };
-  return store;
-}
-
 function createStrategy(options: { machine?: RMachine<TestAtlas>; config?: ReactStandardStrategyConfig } = {}) {
-  const machine = options.machine ?? createMockRMachine();
+  const machine = options.machine ?? createMockMachine();
   const config = options.config ?? configWith();
   return { strategy: new ConcreteStandardStrategy(machine, config), machine };
 }
@@ -82,7 +43,7 @@ describe("ReactStandardStrategyCore", () => {
     });
 
     it("exposes the rMachine property from the base class", () => {
-      const machine = createMockRMachine();
+      const machine = createMockMachine();
       const { strategy } = createStrategy({ machine });
       expect(strategy.rMachine).toBe(machine);
     });
@@ -118,7 +79,7 @@ describe("ReactStandardStrategyCore", () => {
 
   describe("createToolset — config wiring", () => {
     it("falls back to rMachine.config.defaultLocale when no detector or store is configured", async () => {
-      const machine = createMockRMachine({ defaultLocale: "it" });
+      const machine = createMockMachine({ defaultLocale: "it" });
       const { strategy } = createStrategy({ machine, config: configWith() });
       const toolset = await strategy.createToolset();
 
@@ -222,7 +183,7 @@ describe("ReactStandardStrategyCore", () => {
 
   describe("createToolset — rMachine forwarding", () => {
     it("forwards the strategy rMachine to the toolset for resource resolution", async () => {
-      const machine = createMockRMachine();
+      const machine = createMockMachine();
       const { strategy } = createStrategy({ machine });
       const toolset = await strategy.createToolset();
 
@@ -243,7 +204,7 @@ describe("ReactStandardStrategyCore", () => {
     });
 
     it("validates detected locale through rMachine.localeHelper", async () => {
-      const machine = createMockRMachine();
+      const machine = createMockMachine();
       const localeDetector: CustomLocaleDetector = () => "it";
       const { strategy } = createStrategy({
         machine,
@@ -313,7 +274,7 @@ describe("ReactStandardStrategyCore", () => {
     it("detector → store → render → setLocale → store.set", async () => {
       const store = syncStore(undefined);
       const localeDetector: CustomLocaleDetector = () => "en";
-      const machine = createMockRMachine({
+      const machine = createMockMachine({
         hybridPickR: (locale) => ({ greeting: locale === "en" ? "hello" : "ciao" }),
       });
       const { strategy } = createStrategy({
@@ -358,7 +319,7 @@ describe("ReactStandardStrategyCore", () => {
 
     it("store.get → render → setLocale → store.set", async () => {
       const store = syncStore("en");
-      const machine = createMockRMachine({
+      const machine = createMockMachine({
         hybridPickR: (locale) => ({ greeting: locale === "en" ? "hello" : "ciao" }),
       });
       const { strategy } = createStrategy({
@@ -398,14 +359,6 @@ describe("ReactStandardStrategyCore", () => {
       expect(screen.getByTestId("locale").textContent).toBe("it");
       expect(screen.getByTestId("greeting").textContent).toBe("ciao");
       expect(store.set).toHaveBeenCalledWith("it");
-    });
-
-    it("produces independent toolsets on repeated calls", async () => {
-      const { strategy } = createStrategy();
-      const toolset1 = await strategy.createToolset();
-      const toolset2 = await strategy.createToolset();
-
-      expect(toolset1).not.toBe(toolset2);
     });
   });
 });

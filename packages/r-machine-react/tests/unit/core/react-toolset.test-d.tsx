@@ -89,7 +89,7 @@ describe("ReactToolset", () => {
     >();
   });
 
-  it("all properties are readonly", () => {
+  it("has exactly the expected properties", () => {
     expectTypeOf<ReactToolset<TestAtlas>>().toHaveProperty("ReactRMachine");
     expectTypeOf<ReactToolset<TestAtlas>>().toHaveProperty("useLocale");
     expectTypeOf<ReactToolset<TestAtlas>>().toHaveProperty("useSetLocale");

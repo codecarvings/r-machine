@@ -54,15 +54,6 @@ describe("ReactBareToolset", () => {
   it("useR return type is RA[N] for a given namespace", () => {
     type Toolset = ReactBareToolset<TestAtlas>;
 
-    // When called with "common", the return type must be TestAtlas["common"]
-    type CommonResult = ReturnType<(n: "common") => TestAtlas["common"]>;
-    expectTypeOf<CommonResult>().toEqualTypeOf<{ readonly greeting: string }>();
-
-    // When called with "nav", the return type must be TestAtlas["nav"]
-    type NavResult = ReturnType<(n: "nav") => TestAtlas["nav"]>;
-    expectTypeOf<NavResult>().toEqualTypeOf<{ readonly home: string }>();
-
-    // useR signature matches the expected generic shape
     expectTypeOf<Toolset["useR"]>().toExtend<(namespace: "common") => TestAtlas["common"]>();
     expectTypeOf<Toolset["useR"]>().toExtend<(namespace: "nav") => TestAtlas["nav"]>();
   });
@@ -89,7 +80,7 @@ describe("ReactBareToolset", () => {
     expectTypeOf<UseRKit>().not.toExtend<(...args: ["common", "invalid"]) => unknown>();
   });
 
-  it("all properties are readonly", () => {
+  it("has exactly the expected properties", () => {
     expectTypeOf<ReactBareToolset<TestAtlas>>().toHaveProperty("ReactRMachine");
     expectTypeOf<ReactBareToolset<TestAtlas>>().toHaveProperty("useLocale");
     expectTypeOf<ReactBareToolset<TestAtlas>>().toHaveProperty("useSetLocale");

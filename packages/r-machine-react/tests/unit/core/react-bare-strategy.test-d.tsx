@@ -108,9 +108,5 @@ describe("ReactBareStrategy", () => {
     it("is not assignable to Strategy with a different atlas", () => {
       expectTypeOf<ReactBareStrategy<TestAtlas>>().not.toExtend<Strategy<OtherAtlas, undefined>>();
     });
-
-    it("instances are assignable to their own type", () => {
-      expectTypeOf<ReactBareStrategy<TestAtlas>>().toExtend<ReactBareStrategy<TestAtlas>>();
-    });
   });
 });

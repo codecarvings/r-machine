@@ -11,7 +11,7 @@ import type {
 } from "../../../src/errors/index.js";
 
 describe("errors barrel exports", () => {
-  it("should export error code constants as literal types", () => {
+  it("exports all expected symbols", () => {
     expectTypeOf<typeof ERR_FEATURE_REQUIRES_PROXY>().toEqualTypeOf<"ERR_FEATURE_REQUIRES_PROXY">();
     expectTypeOf<typeof ERR_INVALID_PATH>().toEqualTypeOf<"ERR_INVALID_PATH">();
     expectTypeOf<typeof ERR_INVALID_STRATEGY_CONFIG>().toEqualTypeOf<"ERR_INVALID_STRATEGY_CONFIG">();

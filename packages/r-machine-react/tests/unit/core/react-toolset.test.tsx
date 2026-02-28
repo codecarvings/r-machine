@@ -3,19 +3,12 @@ import { RMachineError } from "r-machine/errors";
 import type { ReactNode } from "react";
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ReactImpl } from "../../../src/core/react-toolset.js";
 import { createReactToolset } from "../../../src/core/react-toolset.js";
+import { ERR_CONTEXT_NOT_FOUND } from "../../../src/errors/error-codes.js";
+import { createMockImpl } from "../../helpers/mock-impl.js";
 import { createMockMachine } from "../../helpers/mock-machine.js";
-import { React19ErrorBoundary } from "../../helpers/react19-error-boundary.js";
 
 afterEach(cleanup);
-
-function createMockImpl(overrides: Partial<ReactImpl> = {}): ReactImpl {
-  return {
-    readLocale: overrides.readLocale ?? (() => "en"),
-    writeLocale: overrides.writeLocale ?? vi.fn(),
-  };
-}
 
 // ---------------------------------------------------------------------------
 // createReactToolset
@@ -294,6 +287,7 @@ describe("createReactToolset", () => {
         expect.unreachable("should have thrown");
       } catch (error) {
         expect(error).toBeInstanceOf(RMachineError);
+        expect(error).toHaveProperty("code", ERR_CONTEXT_NOT_FOUND);
         expect(error).toHaveProperty("message", expect.stringMatching(/ReactToolsetContext not found/));
       }
     });
@@ -414,79 +408,6 @@ describe("createReactToolset", () => {
         expect((error as RMachineError).innerError).toBeInstanceOf(RMachineError);
       }
     });
-
-    it("awaits an async writeLocale", async () => {
-      const order: string[] = [];
-      const asyncWriteLocale = vi.fn(async () => {
-        await new Promise<void>((r) => setTimeout(r, 10));
-        order.push("writeLocale-done");
-      });
-
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale: asyncWriteLocale });
-      const { ReactRMachine, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      await act(async () => {
-        await result.current("it");
-        order.push("setLocale-done");
-      });
-
-      expect(asyncWriteLocale).toHaveBeenCalledWith("it");
-      expect(order).toEqual(["writeLocale-done", "setLocale-done"]);
-    });
-
-    it("handles a synchronous writeLocale", async () => {
-      const syncWriteLocale = vi.fn();
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale: syncWriteLocale });
-      const { ReactRMachine, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      await act(async () => {
-        await result.current("it");
-      });
-
-      expect(syncWriteLocale).toHaveBeenCalledWith("it");
-    });
-
-    it("propagates a synchronous error thrown by writeLocale", async () => {
-      const writeLocale = vi.fn(() => {
-        throw new Error("storage failure");
-      });
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      await expect(
-        act(async () => {
-          await result.current("it");
-        })
-      ).rejects.toThrow("storage failure");
-    });
-
-    it("propagates a rejected promise from writeLocale", async () => {
-      const writeLocale = vi.fn(() => Promise.reject(new Error("network error")));
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      await expect(
-        act(async () => {
-          await result.current("it");
-        })
-      ).rejects.toThrow("network error");
-    });
   });
 
   // -----------------------------------------------------------------------
@@ -494,31 +415,6 @@ describe("createReactToolset", () => {
   // -----------------------------------------------------------------------
 
   describe("useR", () => {
-    it("returns the resource synchronously when cached", async () => {
-      const resource = { greeting: "hello" };
-      const mock = createMockMachine({ hybridPickR: () => resource });
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine, useR } = await createReactToolset(mock, impl);
-
-      const { result } = renderHook(() => useR("common"), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      expect(result.current).toBe(resource);
-    });
-
-    it("calls hybridPickR with the locale from readLocale", async () => {
-      const mock = createMockMachine();
-      const impl = createMockImpl({ readLocale: () => "it" });
-      const { ReactRMachine, useR } = await createReactToolset(mock, impl);
-
-      renderHook(() => useR("common"), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      expect((mock as any).hybridPickR).toHaveBeenCalledWith("it", "common");
-    });
-
     it("re-fetches resources after locale change", async () => {
       const mock = createMockMachine();
       const writeLocale = vi.fn();
@@ -550,35 +446,6 @@ describe("createReactToolset", () => {
 
       expect((mock as any).hybridPickR).toHaveBeenCalledWith("it", "common");
     });
-
-    it("throws the promise for Suspense when resource is not cached", async () => {
-      const pending = new Promise<{ greeting: string }>(() => {});
-      const mock = createMockMachine({ hybridPickR: () => pending });
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine, useR } = await createReactToolset(mock, impl);
-
-      let thrown: unknown;
-      function Thrower() {
-        try {
-          // biome-ignore lint/correctness/useHookAtTopLevel: intentional — capturing the thrown promise
-          useR("common");
-        } catch (e) {
-          thrown = e;
-          throw e;
-        }
-        return null;
-      }
-
-      render(
-        <ReactRMachine>
-          <React19ErrorBoundary>
-            <Thrower />
-          </React19ErrorBoundary>
-        </ReactRMachine>
-      );
-
-      expect(thrown).toBe(pending);
-    });
   });
 
   // -----------------------------------------------------------------------
@@ -586,31 +453,6 @@ describe("createReactToolset", () => {
   // -----------------------------------------------------------------------
 
   describe("useRKit", () => {
-    it("returns the resource kit synchronously when cached", async () => {
-      const kit = [{ greeting: "hello" }, { home: "Home" }] as const;
-      const mock = createMockMachine({ hybridPickRKit: () => kit });
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine, useRKit } = await createReactToolset(mock, impl);
-
-      const { result } = renderHook(() => useRKit("common", "nav"), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      expect(result.current).toBe(kit);
-    });
-
-    it("calls hybridPickRKit with the locale and namespaces", async () => {
-      const mock = createMockMachine();
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine, useRKit } = await createReactToolset(mock, impl);
-
-      renderHook(() => useRKit("common", "nav"), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      expect((mock as any).hybridPickRKit).toHaveBeenCalledWith("en", "common", "nav");
-    });
-
     it("re-fetches resources after locale change", async () => {
       const mock = createMockMachine();
       const writeLocale = vi.fn();
@@ -641,35 +483,6 @@ describe("createReactToolset", () => {
       });
 
       expect((mock as any).hybridPickRKit).toHaveBeenCalledWith("it", "common");
-    });
-
-    it("throws the promise for Suspense when resource kit is not cached", async () => {
-      const pending = new Promise<[{ greeting: string }, { home: string }]>(() => {});
-      const mock = createMockMachine({ hybridPickRKit: () => pending });
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine, useRKit } = await createReactToolset(mock, impl);
-
-      let thrown: unknown;
-      function Thrower() {
-        try {
-          // biome-ignore lint/correctness/useHookAtTopLevel: intentional — capturing the thrown promise
-          useRKit("common", "nav");
-        } catch (e) {
-          thrown = e;
-          throw e;
-        }
-        return null;
-      }
-
-      render(
-        <ReactRMachine>
-          <React19ErrorBoundary>
-            <Thrower />
-          </React19ErrorBoundary>
-        </ReactRMachine>
-      );
-
-      expect(thrown).toBe(pending);
     });
   });
 

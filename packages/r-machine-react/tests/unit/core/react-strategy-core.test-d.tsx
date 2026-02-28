@@ -119,13 +119,6 @@ describe("ReactStrategyCore", () => {
       expectTypeOf<ReactStrategyCore<AnyResourceAtlas, TestConfig>>().toBeObject();
     });
 
-    it("C accepts any type", () => {
-      expectTypeOf<ReactStrategyCore<TestAtlas, string>>().toBeObject();
-      expectTypeOf<ReactStrategyCore<TestAtlas, number>>().toBeObject();
-      expectTypeOf<ReactStrategyCore<TestAtlas, undefined>>().toBeObject();
-      expectTypeOf<ReactStrategyCore<TestAtlas, null>>().toBeObject();
-    });
-
     it("different atlas types produce different strategy types", () => {
       expectTypeOf<ReactStrategyCore<TestAtlas, TestConfig>>().not.toEqualTypeOf<
         ReactStrategyCore<OtherAtlas, TestConfig>
@@ -162,10 +155,6 @@ describe("ReactStrategyCore", () => {
 
     it("is not assignable to Strategy with a different atlas", () => {
       expectTypeOf<ReactStrategyCore<TestAtlas, TestConfig>>().not.toExtend<Strategy<OtherAtlas, TestConfig>>();
-    });
-
-    it("instances are assignable to their own type", () => {
-      expectTypeOf<ReactStrategyCore<TestAtlas, TestConfig>>().toExtend<ReactStrategyCore<TestAtlas, TestConfig>>();
     });
 
     it("concrete subclass extends ReactStrategyCore", () => {

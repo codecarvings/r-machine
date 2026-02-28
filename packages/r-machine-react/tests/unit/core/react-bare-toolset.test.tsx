@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createReactBareToolset } from "../../../src/core/react-bare-toolset.js";
+import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "../../../src/errors/error-codes.js";
 import { createMockMachine } from "../../helpers/mock-machine.js";
 import { React19ErrorBoundary } from "../../helpers/react19-error-boundary.js";
 
@@ -304,7 +305,7 @@ describe("createReactBareToolset", () => {
     it("throws when used outside ReactRMachine", async () => {
       const { useLocale } = await createReactBareToolset(createMockMachine());
 
-      expect(() => renderHook(() => useLocale())).toThrow(RMachineError);
+      expect(() => renderHook(() => useLocale())).toThrow(expect.objectContaining({ code: ERR_CONTEXT_NOT_FOUND }));
     });
 
     it("throws with a descriptive context-not-found message", async () => {
@@ -321,7 +322,7 @@ describe("createReactBareToolset", () => {
   describe("useSetLocale", () => {
     it("throws when used outside ReactRMachine", async () => {
       const { useSetLocale } = await createReactBareToolset(createMockMachine());
-      expect(() => renderHook(() => useSetLocale())).toThrow(RMachineError);
+      expect(() => renderHook(() => useSetLocale())).toThrow(expect.objectContaining({ code: ERR_CONTEXT_NOT_FOUND }));
     });
 
     it("is a no-op when the new locale equals the current locale", async () => {
@@ -394,7 +395,7 @@ describe("createReactBareToolset", () => {
         act(async () => {
           await result.current("it");
         })
-      ).rejects.toThrow(/No writeLocale function provided/);
+      ).rejects.toThrow(expect.objectContaining({ code: ERR_MISSING_WRITE_LOCALE }));
     });
 
     it("awaits an async writeLocale", async () => {
@@ -545,7 +546,7 @@ describe("createReactBareToolset", () => {
   describe("useR", () => {
     it("throws when used outside ReactRMachine", async () => {
       const { useR } = await createReactBareToolset(createMockMachine());
-      expect(() => renderHook(() => useR("common"))).toThrow(RMachineError);
+      expect(() => renderHook(() => useR("common"))).toThrow(expect.objectContaining({ code: ERR_CONTEXT_NOT_FOUND }));
     });
 
     it("returns the resource synchronously when cached", async () => {
@@ -702,7 +703,9 @@ describe("createReactBareToolset", () => {
   describe("useRKit", () => {
     it("throws when used outside ReactRMachine", async () => {
       const { useRKit } = await createReactBareToolset(createMockMachine());
-      expect(() => renderHook(() => useRKit("common", "nav"))).toThrow(RMachineError);
+      expect(() => renderHook(() => useRKit("common", "nav"))).toThrow(
+        expect.objectContaining({ code: ERR_CONTEXT_NOT_FOUND })
+      );
     });
 
     it("returns the resource kit synchronously when cached", async () => {

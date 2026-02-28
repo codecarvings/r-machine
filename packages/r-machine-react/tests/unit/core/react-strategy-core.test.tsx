@@ -6,6 +6,7 @@ import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ReactStrategyCore } from "../../../src/core/react-strategy-core.js";
 import type { ReactImpl } from "../../../src/core/react-toolset.js";
+import { createMockImpl } from "../../helpers/mock-impl.js";
 import type { TestAtlas } from "../../helpers/mock-machine.js";
 import { createMockMachine } from "../../helpers/mock-machine.js";
 
@@ -28,13 +29,6 @@ class ConcreteReactStrategy extends ReactStrategyCore<TestAtlas, TestConfig> {
   protected createImpl(): Promise<ReactImpl> {
     return this.implFactory();
   }
-}
-
-function createMockImpl(overrides: Partial<ReactImpl> = {}): ReactImpl {
-  return {
-    readLocale: overrides.readLocale ?? (() => "en"),
-    writeLocale: overrides.writeLocale ?? vi.fn(),
-  };
 }
 
 const defaultConfig: TestConfig = { label: "test" };
@@ -177,28 +171,30 @@ describe("ReactStrategyCore", () => {
       const toolset1 = await strategy.createToolset();
       const toolset2 = await strategy.createToolset();
 
-      function Locale1() {
-        return <span data-testid="l1">{toolset1.useLocale()}</span>;
+      function Resource1() {
+        toolset1.useR("common");
+        return null;
       }
-      function Locale2() {
-        return <span data-testid="l2">{toolset2.useLocale()}</span>;
+      function Resource2() {
+        toolset2.useR("common");
+        return null;
       }
 
       render(
         <toolset1.ReactRMachine>
-          <Locale1 />
+          <Resource1 />
         </toolset1.ReactRMachine>
       );
       cleanup();
 
       render(
         <toolset2.ReactRMachine>
-          <Locale2 />
+          <Resource2 />
         </toolset2.ReactRMachine>
       );
 
-      // Both toolsets call the same machine's hybridPickR
-      expect(machine.localeHelper.validateLocale).toBeDefined();
+      // Both toolsets invoked hybridPickR on the same shared machine instance
+      expect((machine as any).hybridPickR).toHaveBeenCalledTimes(2);
     });
   });
 

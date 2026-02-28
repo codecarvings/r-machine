@@ -9,27 +9,17 @@ import {
 } from "../../../src/locale/index.js";
 
 describe("locale barrel exports", () => {
-  it("should export getCanonicalUnicodeLocaleId as a function", () => {
+  it("exports all expected symbols", () => {
     expectTypeOf(getCanonicalUnicodeLocaleId).toBeFunction();
-  });
 
-  it("should export validateCanonicalUnicodeLocaleId as a function", () => {
     expectTypeOf(validateCanonicalUnicodeLocaleId).toBeFunction();
-  });
 
-  it("should export MatchLocalesAlgorithm as a string union", () => {
     expectTypeOf<MatchLocalesAlgorithm>().toExtend<string>();
-  });
 
-  it("should export matchLocales as a function", () => {
     expectTypeOf(matchLocales).toBeFunction();
-  });
 
-  it("should export fullParseAcceptLanguageHeader as a function", () => {
     expectTypeOf(fullParseAcceptLanguageHeader).toBeFunction();
-  });
 
-  it("should export parseAcceptLanguageHeader as a function", () => {
     expectTypeOf(parseAcceptLanguageHeader).toBeFunction();
   });
 });

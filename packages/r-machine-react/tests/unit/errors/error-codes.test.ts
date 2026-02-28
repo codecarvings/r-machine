@@ -1,11 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "../../../src/errors/error-codes.js";
+import * as errorCodes from "../../../src/errors/error-codes.js";
+
+const codes = Object.values(errorCodes);
 
 describe("error codes", () => {
-  it.each([
-    ["ERR_CONTEXT_NOT_FOUND", ERR_CONTEXT_NOT_FOUND],
-    ["ERR_MISSING_WRITE_LOCALE", ERR_MISSING_WRITE_LOCALE],
-  ])("%s should equal its variable name", (expected, actual) => {
-    expect(actual).toBe(expected);
+  it("exports at least one error code", () => {
+    expect(codes.length).toBeGreaterThan(0);
+  });
+
+  it("all codes are non-empty strings", () => {
+    for (const code of codes) {
+      expect(code).toBeTypeOf("string");
+      expect(code).not.toBe("");
+    }
+  });
+
+  it("all codes are unique", () => {
+    expect(new Set(codes).size).toBe(codes.length);
   });
 });

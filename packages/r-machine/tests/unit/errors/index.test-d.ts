@@ -13,25 +13,17 @@ import type {
 } from "../../../src/errors/index.js";
 
 describe("errors barrel exports", () => {
-  it("should export RMachineError as a class extending Error", () => {
+  it("exports all expected symbols", () => {
     expectTypeOf<RMachineError>().toExtend<Error>();
     expectTypeOf<RMachineError>().toHaveProperty("code");
     expectTypeOf<RMachineError>().toHaveProperty("innerError");
-  });
 
-  it("should export RMachineConfigError extending RMachineError", () => {
     expectTypeOf<RMachineConfigError>().toExtend<RMachineError>();
-  });
 
-  it("should export RMachineUsageError extending RMachineError", () => {
     expectTypeOf<RMachineUsageError>().toExtend<RMachineError>();
-  });
 
-  it("should export RMachineResolveError extending RMachineError", () => {
     expectTypeOf<RMachineResolveError>().toExtend<RMachineError>();
-  });
 
-  it("should export error code constants as literal types", () => {
     expectTypeOf<typeof ERR_NO_LOCALES>().toEqualTypeOf<"ERR_NO_LOCALES">();
     expectTypeOf<typeof ERR_DUPLICATE_LOCALES>().toEqualTypeOf<"ERR_DUPLICATE_LOCALES">();
     expectTypeOf<typeof ERR_INVALID_LOCALE_ID>().toEqualTypeOf<"ERR_INVALID_LOCALE_ID">();

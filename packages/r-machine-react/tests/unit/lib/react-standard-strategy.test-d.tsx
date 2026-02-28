@@ -169,10 +169,6 @@ describe("ReactStandardStrategy", () => {
       >();
     });
 
-    it("instances are assignable to their own type", () => {
-      expectTypeOf<ReactStandardStrategy<TestAtlas>>().toExtend<ReactStandardStrategy<TestAtlas>>();
-    });
-
     it("is assignable to ReactStandardStrategyCore<RA>", () => {
       expectTypeOf<ReactStandardStrategy<TestAtlas>>().toExtend<ReactStandardStrategyCore<TestAtlas>>();
     });

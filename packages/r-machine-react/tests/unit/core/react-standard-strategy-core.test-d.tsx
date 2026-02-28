@@ -237,7 +237,6 @@ describe("ReactStandardStrategyCore", () => {
 
   describe("generic type parameters", () => {
     it("RA must extend AnyResourceAtlas", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas>>().toExtend<Strategy<TestAtlas, ReactStandardStrategyConfig>>();
       expectTypeOf<ReactStandardStrategyCore<AnyResourceAtlas>>().toBeObject();
     });
 
@@ -269,10 +268,6 @@ describe("ReactStandardStrategyCore", () => {
       expectTypeOf<ReactStandardStrategyCore<TestAtlas>>().not.toExtend<
         Strategy<OtherAtlas, ReactStandardStrategyConfig>
       >();
-    });
-
-    it("instances are assignable to their own type", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas>>().toExtend<ReactStandardStrategyCore<TestAtlas>>();
     });
 
     it("concrete subclass extends ReactStandardStrategyCore", () => {
