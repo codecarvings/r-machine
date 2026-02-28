@@ -1,4 +1,5 @@
-import { RMachineError } from "r-machine/errors";
+import { RMachineUsageError } from "r-machine/errors";
+import { ERR_INVALID_PATH } from "#r-machine/next/errors";
 import {
   HrefMapper,
   type MappedHrefResult,
@@ -28,7 +29,7 @@ export class HrefCanonicalizer extends HrefMapper<HrefCanonicalizerFn> {
 
   protected internalCompute(locale: string, path: string): MappedPath {
     if (!path.startsWith("/")) {
-      throw new RMachineError(`Path must start with "/".`);
+      throw new RMachineUsageError(ERR_INVALID_PATH, `Path must start with "/".`);
     }
 
     const inSegments = path.split("/").filter((s) => s.length !== 0);

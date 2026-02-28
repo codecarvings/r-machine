@@ -1,9 +1,10 @@
 "use client";
 
 import type { AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
-import { RMachineError } from "r-machine/errors";
+import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
+import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "#r-machine/react/errors";
 
 type SetLocale = (newLocale: string) => Promise<void>;
 type WriteLocale = (newLocale: string) => void | Promise<void>;
@@ -44,7 +45,7 @@ export async function createReactBareToolset<RA extends AnyResourceAtlas>(
   function useReactToolsetContext(): ReactBareToolsetContext {
     const context = useContext(Context);
     if (context === null) {
-      throw new RMachineError("ReactBareToolsetContext not found.");
+      throw new RMachineUsageError(ERR_CONTEXT_NOT_FOUND, "ReactBareToolsetContext not found.");
     }
 
     return context;
@@ -54,7 +55,11 @@ export async function createReactBareToolset<RA extends AnyResourceAtlas>(
     const value = useMemo<ReactBareToolsetContext>(() => {
       const error = validateLocale(locale);
       if (error) {
-        throw new RMachineError(`Unable to render <ReactRMachine> - invalid locale provided "${locale}".`, error);
+        throw new RMachineUsageError(
+          ERR_UNKNOWN_LOCALE,
+          `Unable to render <ReactRMachine> - invalid locale provided "${locale}".`,
+          error
+        );
       }
 
       return { locale, writeLocale };
@@ -87,7 +92,7 @@ export async function createReactBareToolset<RA extends AnyResourceAtlas>(
     }
 
     if (writeLocale === undefined) {
-      throw new RMachineError("No writeLocale function provided to <ReactRMachine>.");
+      throw new RMachineUsageError(ERR_MISSING_WRITE_LOCALE, "No writeLocale function provided to <ReactRMachine>.");
     }
 
     const writeLocaleResult = writeLocale(newLocale);

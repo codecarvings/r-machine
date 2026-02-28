@@ -1,5 +1,5 @@
 import type { AnyResourceAtlas } from "r-machine";
-import { RMachineError } from "r-machine/errors";
+import { RMachineConfigError } from "r-machine/errors";
 import {
   type AnyPathAtlas,
   buildPathAtlas,
@@ -9,6 +9,7 @@ import {
   type PathParams,
   type PathSelector,
 } from "#r-machine/next/core";
+import { ERR_INVALID_STRATEGY_CONFIG } from "#r-machine/next/errors";
 import { defaultPathMatcher } from "#r-machine/next/internal";
 import {
   type NextAppStrategyConfig,
@@ -131,7 +132,10 @@ export class NextAppOriginStrategyUrlTranslator extends HrefTranslator {
     fn: (locale: string, path: string): string => {
       const origin = this.localeOriginMapCache.get(locale);
       if (!origin) {
-        throw new RMachineError(`No origin defined for locale '${locale}' in localeOriginMap.`);
+        throw new RMachineConfigError(
+          ERR_INVALID_STRATEGY_CONFIG,
+          `No origin defined for locale '${locale}' in localeOriginMap.`
+        );
       }
       return `${origin}${path}`;
     },

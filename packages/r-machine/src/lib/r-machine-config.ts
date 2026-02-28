@@ -1,4 +1,9 @@
-import { RMachineError } from "#r-machine/errors";
+import {
+  ERR_DEFAULT_LOCALE_NOT_IN_LIST,
+  ERR_DUPLICATE_LOCALES,
+  ERR_NO_LOCALES,
+  RMachineConfigError,
+} from "#r-machine/errors";
 import { validateCanonicalUnicodeLocaleId } from "#r-machine/locale";
 import type { RModuleResolver } from "./r-module.js";
 
@@ -8,9 +13,9 @@ export interface RMachineConfig {
   readonly rModuleResolver: RModuleResolver;
 }
 
-export function validateRMachineConfig(config: RMachineConfig): RMachineError | null {
+export function validateRMachineConfig(config: RMachineConfig): RMachineConfigError | null {
   if (!config.locales.length) {
-    return new RMachineError("No locales provided.");
+    return new RMachineConfigError(ERR_NO_LOCALES, "No locales provided.");
   }
 
   for (const locale of config.locales) {
@@ -21,7 +26,7 @@ export function validateRMachineConfig(config: RMachineConfig): RMachineError | 
   }
 
   if (new Set(config.locales).size !== config.locales.length) {
-    return new RMachineError("Duplicate locales provided. All locales must be unique.");
+    return new RMachineConfigError(ERR_DUPLICATE_LOCALES, "Duplicate locales provided. All locales must be unique.");
   }
 
   const fallbackLocaleError = validateCanonicalUnicodeLocaleId(config.defaultLocale);
@@ -30,7 +35,10 @@ export function validateRMachineConfig(config: RMachineConfig): RMachineError | 
   }
 
   if (!config.locales.includes(config.defaultLocale)) {
-    return new RMachineError(`Default locale "${config.defaultLocale}" is not in the list of locales.`);
+    return new RMachineConfigError(
+      ERR_DEFAULT_LOCALE_NOT_IN_LIST,
+      `Default locale "${config.defaultLocale}" is not in the list of locales.`
+    );
   }
 
   return null;

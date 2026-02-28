@@ -1,4 +1,5 @@
-import { RMachineError } from "r-machine/errors";
+import { RMachineUsageError } from "r-machine/errors";
+import { ERR_INVALID_PATH, ERR_PATH_TRANSLATION_FAILED } from "#r-machine/next/errors";
 import {
   getSegmentData,
   HrefMapper,
@@ -30,7 +31,7 @@ export class HrefTranslator extends HrefMapper<HrefTranslatorFn> {
 
   protected internalCompute(locale: string, path: string): MappedPath {
     if (!path.startsWith("/")) {
-      throw new RMachineError(`Path must start with "/".`);
+      throw new RMachineUsageError(ERR_INVALID_PATH, `Path must start with "/".`);
     }
 
     const inSegments = path.split("/").filter((s) => s.length !== 0);
@@ -97,7 +98,8 @@ export function getTranslatedHref(
     if (valueStr.length > 0) {
       result.push(valueStr);
     } else {
-      throw new RMachineError(
+      throw new RMachineUsageError(
+        ERR_PATH_TRANSLATION_FAILED,
         `Cannot translate path "${path}" for locale "${locale}" because a parameter value results in an empty path segment.`
       );
     }
@@ -119,13 +121,15 @@ export function getTranslatedHref(
               addValue(v);
             });
           } else {
-            throw new RMachineError(
+            throw new RMachineUsageError(
+              ERR_PATH_TRANSLATION_FAILED,
               `Cannot translate path "${path}" for locale "${locale}" because parameter "${mappedSegment.segment}" is expected to be an array.`
             );
           }
         }
       } else
-        throw new RMachineError(
+        throw new RMachineUsageError(
+          ERR_PATH_TRANSLATION_FAILED,
           `Cannot translate path "${path}" for locale "${locale}" because parameter "${mappedSegment.segment}" is missing.`
         );
     }

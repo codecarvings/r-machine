@@ -1,5 +1,5 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { RMachineError } from "#r-machine/errors";
+import type { RMachineConfigError } from "#r-machine/errors";
 import type { RMachineConfig } from "../../../src/lib/r-machine-config.js";
 import { cloneRMachineConfig, validateRMachineConfig } from "../../../src/lib/r-machine-config.js";
 import type { RModuleResolver } from "../../../src/lib/r-module.js";
@@ -66,16 +66,16 @@ describe("validateRMachineConfig", () => {
     expectTypeOf(validateRMachineConfig).parameter(0).toEqualTypeOf<RMachineConfig>();
   });
 
-  it("should return RMachineError or null", () => {
-    expectTypeOf(validateRMachineConfig).returns.toEqualTypeOf<RMachineError | null>();
+  it("should return RMachineConfigError or null", () => {
+    expectTypeOf(validateRMachineConfig).returns.toEqualTypeOf<RMachineConfigError | null>();
   });
 
   it("should have correct function signature", () => {
-    expectTypeOf(validateRMachineConfig).toEqualTypeOf<(config: RMachineConfig) => RMachineError | null>();
+    expectTypeOf(validateRMachineConfig).toEqualTypeOf<(config: RMachineConfig) => RMachineConfigError | null>();
   });
 
-  it("return type RMachineError should extend Error", () => {
-    expectTypeOf<RMachineError>().toExtend<Error>();
+  it("return type RMachineConfigError should extend Error", () => {
+    expectTypeOf<RMachineConfigError>().toExtend<Error>();
   });
 });
 

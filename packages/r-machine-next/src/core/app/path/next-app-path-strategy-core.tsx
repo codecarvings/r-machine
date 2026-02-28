@@ -1,5 +1,5 @@
 import type { AnyResourceAtlas } from "r-machine";
-import { RMachineError } from "r-machine/errors";
+import { RMachineConfigError } from "r-machine/errors";
 import type { SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import {
@@ -11,6 +11,7 @@ import {
   type PathParams,
   type PathSelector,
 } from "#r-machine/next/core";
+import { ERR_INVALID_STRATEGY_CONFIG } from "#r-machine/next/errors";
 import type { NextAppClientRMachine } from "../next-app-client-toolset.js";
 import type { NextAppNoProxyServerToolset } from "../next-app-no-proxy-server-toolset.js";
 import {
@@ -110,7 +111,8 @@ export abstract class NextAppPathStrategyCore<
     const implicitDefaultLocale = this.config.implicitDefaultLocale !== "off";
     const cookie = this.config.cookie !== "off";
     if (implicitDefaultLocale && !cookie) {
-      throw new RMachineError(
+      throw new RMachineConfigError(
+        ERR_INVALID_STRATEGY_CONFIG,
         'NextAppPathStrategy configuration error: "implicitDefaultLocale" option requires "cookie" to be enabled.'
       );
     }
@@ -133,7 +135,8 @@ export abstract class NextAppPathStrategyCore<
 
   protected validateNoProxyConfig(): void {
     function raiseRequiredProxyError(optionName: string): never {
-      throw new RMachineError(
+      throw new RMachineConfigError(
+        ERR_INVALID_STRATEGY_CONFIG,
         `NextAppPathStrategy configuration error: "${optionName}" option requires proxy server toolset.`
       );
     }
@@ -148,7 +151,10 @@ export abstract class NextAppPathStrategyCore<
       raiseRequiredProxyError("autoDetectLocale");
     }
     if (this.pathAtlas.containsTranslations) {
-      throw new RMachineError("NextAppPathStrategy error: PathAtlas with translations requires proxy server toolset.");
+      throw new RMachineConfigError(
+        ERR_INVALID_STRATEGY_CONFIG,
+        "NextAppPathStrategy error: PathAtlas with translations requires proxy server toolset."
+      );
     }
   }
 

@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
-import { RMachineError } from "r-machine/errors";
+import { RMachineConfigError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
+import { ERR_FEATURE_REQUIRES_PROXY } from "#r-machine/next/errors";
 import { defaultPathMatcher, type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { NextAppNoProxyServerImpl } from "../next-app-no-proxy-server-toolset.js";
 import { localeHeaderName } from "../next-app-strategy-core.js";
@@ -251,7 +252,8 @@ export async function createNextAppPathServerImpl(
 
     createRouteHandlers(cookies, headers, setLocale) {
       function throwRequiredProxyError(details: string): never {
-        throw new RMachineError(
+        throw new RMachineConfigError(
+          ERR_FEATURE_REQUIRES_PROXY,
           `EntranceRouteHandler is not available when some option requires the use of the proxy (${details}).`
         );
       }

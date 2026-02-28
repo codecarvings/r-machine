@@ -1,4 +1,4 @@
-import { RMachineError } from "#r-machine/errors";
+import { ERR_INVALID_LOCALE_ID, RMachineConfigError } from "#r-machine/errors";
 
 function computeCanonicalUnicodeLocaleId(locale: string): string {
   if (locale === "") {
@@ -41,16 +41,18 @@ export function getCanonicalUnicodeLocaleId(locale: string): string {
   return result;
 }
 
-export function validateCanonicalUnicodeLocaleId(locale: string): RMachineError | null {
+export function validateCanonicalUnicodeLocaleId(locale: string): RMachineConfigError | null {
   if (locale.includes("*")) {
-    return new RMachineError(
+    return new RMachineConfigError(
+      ERR_INVALID_LOCALE_ID,
       `Invalid locale identifier: "${locale}". Wildcards are not allowed in canonical Unicode locale identifiers.`
     );
   }
 
   const canonical = getCanonicalUnicodeLocaleId(locale);
   if (canonical !== locale) {
-    return new RMachineError(
+    return new RMachineConfigError(
+      ERR_INVALID_LOCALE_ID,
       `Invalid locale identifier: "${locale}". It was expected a canonical Unicode locale identifier (see https://unicode.org/reports/tr35/#Canonical_Unicode_Locale_Identifiers). Did you mean: "${canonical}"?`
     );
   } else {

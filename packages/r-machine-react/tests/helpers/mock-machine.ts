@@ -1,5 +1,5 @@
 import type { RMachine } from "r-machine";
-import { RMachineError } from "r-machine/errors";
+import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "r-machine/errors";
 import { vi } from "vitest";
 
 export type TestAtlas = {
@@ -20,7 +20,10 @@ export function createMockMachine(
       validateLocale: vi.fn((locale: string) =>
         VALID_LOCALES.has(locale)
           ? null
-          : new RMachineError(`Locale "${locale}" is invalid or is not in the list of locales.`)
+          : new RMachineConfigError(
+              ERR_UNKNOWN_LOCALE,
+              `Locale "${locale}" is invalid or is not in the list of locales.`
+            )
       ),
     },
     hybridPickR: vi.fn(overrides.hybridPickR ?? (() => ({ greeting: "hello" }))),

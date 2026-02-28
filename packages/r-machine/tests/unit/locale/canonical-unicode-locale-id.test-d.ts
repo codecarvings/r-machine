@@ -1,5 +1,5 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { RMachineError } from "#r-machine/errors";
+import type { RMachineConfigError } from "#r-machine/errors";
 import {
   getCanonicalUnicodeLocaleId,
   validateCanonicalUnicodeLocaleId,
@@ -24,15 +24,15 @@ describe("validateCanonicalUnicodeLocaleId", () => {
     expectTypeOf(validateCanonicalUnicodeLocaleId).parameter(0).toEqualTypeOf<string>();
   });
 
-  it("should return RMachineError or null", () => {
-    expectTypeOf(validateCanonicalUnicodeLocaleId).returns.toEqualTypeOf<RMachineError | null>();
+  it("should return RMachineConfigError or null", () => {
+    expectTypeOf(validateCanonicalUnicodeLocaleId).returns.toEqualTypeOf<RMachineConfigError | null>();
   });
 
   it("should have correct function signature", () => {
-    expectTypeOf(validateCanonicalUnicodeLocaleId).toEqualTypeOf<(locale: string) => RMachineError | null>();
+    expectTypeOf(validateCanonicalUnicodeLocaleId).toEqualTypeOf<(locale: string) => RMachineConfigError | null>();
   });
 
   it("return type should extend Error when not null", () => {
-    expectTypeOf<RMachineError>().toExtend<Error>();
+    expectTypeOf<RMachineConfigError>().toExtend<Error>();
   });
 });

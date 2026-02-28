@@ -5,6 +5,7 @@
     "outDir": ".",
     "customConditions": ["@r-machine/source"],
     "paths": {
+      "#r-machine/react/errors": ["./src/errors"],
       "#r-machine/react/core": ["./src/core"],
       "#r-machine/react": ["./src/lib"],
       "#r-machine/react/utils": ["./src/utils"],

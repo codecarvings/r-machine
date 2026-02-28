@@ -3,7 +3,7 @@
 import { createReactBareToolset, type ReactBareToolset } from "@r-machine/react/core";
 import { usePathname, useRouter } from "next/navigation";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
-import { RMachineError } from "r-machine/errors";
+import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import { type ReactNode, useEffect } from "react";
 import type { AnyPathAtlas, BoundPathComposer } from "#r-machine/next/core";
 
@@ -50,7 +50,7 @@ export async function createNextAppClientToolset<RA extends AnyResourceAtlas, PA
 
     const error = rMachine.localeHelper.validateLocale(newLocale);
     if (error) {
-      throw new RMachineError(`Cannot set invalid locale: ${newLocale}.`, error);
+      throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot set invalid locale: ${newLocale}.`, error);
     }
 
     const writeLocaleResult = impl.writeLocale(locale, newLocale, pathname, router);
