@@ -48,14 +48,15 @@ describe("createReactStandardImpl", () => {
       const localeDetector: CustomLocaleDetector = () => "xx";
       const impl = await createReactStandardImpl(createMockMachine(), configWith({ localeDetector }));
 
-      expect(() => impl.readLocale()).toThrow(
-        expect.objectContaining({
-          name: "RMachineUsageError",
-          code: ERR_UNKNOWN_LOCALE,
-          message: expect.stringContaining("xx"),
-          innerError: expect.any(RMachineConfigError),
-        })
-      );
+      try {
+        impl.readLocale();
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineUsageError);
+        expect(error).toHaveProperty("code", ERR_UNKNOWN_LOCALE);
+        expect(error).toHaveProperty("message", expect.stringContaining("xx"));
+        expect(error).toHaveProperty("innerError", expect.any(RMachineConfigError));
+      }
     });
   });
 
@@ -74,14 +75,15 @@ describe("createReactStandardImpl", () => {
       const localeDetector: CustomLocaleDetector = () => Promise.resolve("xx");
       const impl = await createReactStandardImpl(createMockMachine(), configWith({ localeDetector }));
 
-      await expect(impl.readLocale()).rejects.toThrow(
-        expect.objectContaining({
-          name: "RMachineUsageError",
-          code: ERR_UNKNOWN_LOCALE,
-          message: expect.stringContaining("xx"),
-          innerError: expect.any(RMachineConfigError),
-        })
-      );
+      try {
+        await impl.readLocale();
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineUsageError);
+        expect(error).toHaveProperty("code", ERR_UNKNOWN_LOCALE);
+        expect(error).toHaveProperty("message", expect.stringContaining("xx"));
+        expect(error).toHaveProperty("innerError", expect.any(RMachineConfigError));
+      }
     });
   });
 
@@ -289,7 +291,12 @@ describe("createReactStandardImpl", () => {
         configWith({ localeStore: store, localeDetector })
       );
 
-      expect(() => impl.readLocale()).toThrow(RMachineUsageError);
+      try {
+        impl.readLocale();
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineUsageError);
+      }
       expect(store.set).not.toHaveBeenCalled();
     });
 
@@ -301,7 +308,12 @@ describe("createReactStandardImpl", () => {
         configWith({ localeStore: store, localeDetector })
       );
 
-      await expect(impl.readLocale()).rejects.toThrow(RMachineUsageError);
+      try {
+        await impl.readLocale();
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineUsageError);
+      }
       expect(store.set).not.toHaveBeenCalled();
     });
   });

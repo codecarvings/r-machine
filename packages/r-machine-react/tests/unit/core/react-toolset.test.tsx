@@ -164,6 +164,8 @@ describe("createReactToolset", () => {
     });
 
     it("delays fallback when using default Suspense with async resource loading", async () => {
+      vi.useFakeTimers();
+
       const pending = new Promise<{ greeting: string }>(() => {});
       const mock = createMockMachine({ hybridPickR: () => pending });
       const impl = createMockImpl({ readLocale: () => "en" });
@@ -184,7 +186,13 @@ describe("createReactToolset", () => {
       expect(screen.queryByText("delayed-fallback")).toBeNull();
 
       // After delay (default 300ms), fallback appears
-      await screen.findByText("delayed-fallback", {}, { timeout: 1000 });
+      await act(async () => {
+        vi.advanceTimersByTime(300);
+      });
+
+      screen.getByText("delayed-fallback");
+
+      vi.useRealTimers();
     });
 
     it("uses the custom Suspense component when provided", async () => {
@@ -366,11 +374,14 @@ describe("createReactToolset", () => {
         wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
       });
 
-      await expect(
-        act(async () => {
+      try {
+        await act(async () => {
           await result.current("xx");
-        })
-      ).rejects.toThrow(RMachineError);
+        });
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineError);
+      }
 
       expect(writeLocale).not.toHaveBeenCalled();
     });
