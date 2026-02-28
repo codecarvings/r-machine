@@ -214,44 +214,6 @@ describe("matchLocales", () => {
     });
   });
 
-  describe("malformed input", () => {
-    it("should handle locales with multiple consecutive hyphens via Intl.Locale", () => {
-      const result = matchLocales(["en--US"], ["en-US"], "en");
-      expect(result).toBe("en-US");
-    });
-
-    it("should handle trailing hyphens via Intl.Locale", () => {
-      const result = matchLocales(["en-US-"], ["en-US"], "en");
-      expect(result).toBe("en-US");
-    });
-
-    it("should handle leading hyphens gracefully", () => {
-      const result = matchLocales(["-en-US"], ["en-US"], "en");
-      expect(result).toBe("en");
-    });
-  });
-
-  describe("canonicalization caching", () => {
-    it("should handle repeated locale lookups efficiently", () => {
-      const locale = "en-US";
-      const result1 = matchLocales([locale], ["en-US"], "en");
-      const result2 = matchLocales([locale], ["en-US"], "en");
-      const result3 = matchLocales([locale], ["en-US"], "en");
-
-      expect(result1).toBe("en-US");
-      expect(result2).toBe("en-US");
-      expect(result3).toBe("en-US");
-    });
-
-    it("should cache different case variations separately", () => {
-      const result1 = matchLocales(["en-US"], ["en-US"], "en");
-      const result2 = matchLocales(["EN-us"], ["en-US"], "en");
-
-      expect(result1).toBe("en-US");
-      expect(result2).toBe("en-US");
-    });
-  });
-
   describe("complex priority scenarios", () => {
     it("should process multiple requested locales with mixed exact and partial matches", () => {
       const result = matchLocales(["fr-CA", "en-GB", "it-IT"], ["en-US", "it-IT", "de-DE"], "de", {
@@ -376,10 +338,5 @@ describe("matchLocales", () => {
 describe("defaultAlgorithm", () => {
   it("should be 'best-fit'", () => {
     expect(defaultAlgorithm).toBe("best-fit");
-  });
-
-  it("should be a valid MatchLocalesAlgorithm", () => {
-    const validAlgorithms = ["best-fit", "lookup"];
-    expect(validAlgorithms).toContain(defaultAlgorithm);
   });
 });

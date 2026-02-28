@@ -12,14 +12,11 @@ function computeCanonicalUnicodeLocaleId(locale: string): string {
   try {
     [result] = Intl.getCanonicalLocales(normalized);
   } catch {
-    const hasLeadingHyphen = /^-/.test(normalized);
     const trimmed = normalized.replace(/^-+|-+$/g, "");
 
-    if (trimmed && !hasLeadingHyphen) {
+    if (trimmed) {
       try {
-        const [canonicalTrimmed] = Intl.getCanonicalLocales(trimmed);
-        const suffix = normalized.match(/-+$/)![0];
-        result = `${canonicalTrimmed}${suffix}`;
+        [result] = Intl.getCanonicalLocales(trimmed);
       } catch {
         result = locale.toLowerCase();
       }

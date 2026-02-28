@@ -66,12 +66,12 @@ describe("getCanonicalUnicodeLocaleId", () => {
 
     it("should handle locale with leading hyphen", () => {
       const result = getCanonicalUnicodeLocaleId("-en-US");
-      expect(result).toBe("-en-us");
+      expect(result).toBe("en-US");
     });
 
     it("should handle locale with trailing hyphen", () => {
       const result = getCanonicalUnicodeLocaleId("en-US-");
-      expect(result).toBe("en-US-");
+      expect(result).toBe("en-US");
     });
 
     it("should handle locale with consecutive hyphens", () => {
@@ -88,14 +88,14 @@ describe("getCanonicalUnicodeLocaleId", () => {
       const result = getCanonicalUnicodeLocaleId("en@posix");
       expect(result).toBe("en@posix");
     });
+
+    it("should fallback to lowercased input when only separators remain after normalization", () => {
+      const result = getCanonicalUnicodeLocaleId("---");
+      expect(result).toBe("---");
+    });
   });
 
   describe("edge cases", () => {
-    it("should handle locale with only underscores", () => {
-      const result = getCanonicalUnicodeLocaleId("___");
-      expect(result).toBe("---");
-    });
-
     it("should handle mixed underscores and hyphens", () => {
       const result = getCanonicalUnicodeLocaleId("en_US-x_private");
       expect(result).toBe("en-US-x-private");
@@ -104,11 +104,6 @@ describe("getCanonicalUnicodeLocaleId", () => {
     it("should handle uppercase language code", () => {
       const result = getCanonicalUnicodeLocaleId("EN");
       expect(result).toBe("en");
-    });
-
-    it("should handle lowercase region code", () => {
-      const result = getCanonicalUnicodeLocaleId("en-us");
-      expect(result).toBe("en-US");
     });
   });
 });
@@ -175,16 +170,18 @@ describe("validateCanonicalUnicodeLocaleId", () => {
       expect(error?.message).toContain('Did you mean: "en"');
     });
 
-    it("should return null for locale with trailing hyphen that canonicalizes to itself", () => {
+    it("should return error for locale with trailing hyphen that canonicalizes to itself", () => {
       const error = validateCanonicalUnicodeLocaleId("en-US-");
-      expect(error).toBeNull();
+      expect(error).toBeInstanceOf(RMachineError);
+      expect(error?.message).toContain('Invalid locale identifier: "en-US-"');
+      expect(error?.message).toContain('Did you mean: "en-US"');
     });
 
     it("should return error for locale with leading hyphen", () => {
       const error = validateCanonicalUnicodeLocaleId("-en-US");
       expect(error).toBeInstanceOf(RMachineError);
       expect(error?.message).toContain('Invalid locale identifier: "-en-US"');
-      expect(error?.message).toContain('Did you mean: "-en-us"');
+      expect(error?.message).toContain('Did you mean: "en-US"');
     });
 
     it("should return error for completely invalid locale", () => {

@@ -1,44 +1,44 @@
-import { describe, expectTypeOf, test } from "vitest";
+import { describe, expectTypeOf, it } from "vitest";
 import { RMachineError } from "../../../src/errors/r-machine-error.js";
 
 describe("RMachineError", () => {
-  test("should extend Error", () => {
+  it("should extend Error", () => {
     expectTypeOf<RMachineError>().toExtend<Error>();
   });
 
-  test("should be constructable with message only", () => {
+  it("should be constructable with message only", () => {
     expectTypeOf(RMachineError).constructorParameters.toEqualTypeOf<[message: string, innerError?: Error]>();
   });
 
-  test("constructor should accept string as first parameter", () => {
+  it("constructor should accept string as first parameter", () => {
     const error = new RMachineError("test");
     expectTypeOf(error).toEqualTypeOf<RMachineError>();
   });
 
-  test("constructor should accept optional Error as second parameter", () => {
+  it("constructor should accept optional Error as second parameter", () => {
     const innerError = new Error("inner");
     const error = new RMachineError("test", innerError);
     expectTypeOf(error).toEqualTypeOf<RMachineError>();
   });
 
-  test("should have message property of type string", () => {
+  it("should have message property of type string", () => {
     expectTypeOf<RMachineError>().toHaveProperty("message").toEqualTypeOf<string>();
   });
 
-  test("should have name property of type string", () => {
+  it("should have name property of type string", () => {
     expectTypeOf<RMachineError>().toHaveProperty("name").toEqualTypeOf<string>();
   });
 
-  test("should have readonly innerError property", () => {
+  it("should have readonly innerError property", () => {
     expectTypeOf<RMachineError>().toHaveProperty("innerError").toEqualTypeOf<Error | undefined>();
   });
 
-  test("should be assignable to Error", () => {
+  it("should be assignable to Error", () => {
     const rmError: Error = new RMachineError("test");
     expectTypeOf(rmError).toExtend<Error>();
   });
 
-  test("innerError should accept RMachineError for error chaining", () => {
+  it("innerError should accept RMachineError for error chaining", () => {
     const inner = new RMachineError("inner");
     const outer = new RMachineError("outer", inner);
     expectTypeOf(outer.innerError).toEqualTypeOf<Error | undefined>();

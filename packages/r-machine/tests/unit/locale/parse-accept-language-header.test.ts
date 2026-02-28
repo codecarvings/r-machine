@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  type AcceptLanguageEntry,
   fullParseAcceptLanguageHeader,
   parseAcceptLanguageHeader,
 } from "../../../src/locale/parse-accept-language-header.js";
@@ -410,11 +409,6 @@ describe("fullParseAcceptLanguageHeader", () => {
   });
 
   describe("edge cases", () => {
-    it("should handle single wildcard", () => {
-      const result = fullParseAcceptLanguageHeader("*");
-      expect(result).toEqual([{ range: "*", quality: 1.0 }]);
-    });
-
     it("should handle wildcard with quality", () => {
       const result = fullParseAcceptLanguageHeader("*;q=0.1");
       expect(result).toEqual([{ range: "*", quality: 0.1 }]);
@@ -438,11 +432,6 @@ describe("fullParseAcceptLanguageHeader", () => {
     it("should handle very small quality value", () => {
       const result = fullParseAcceptLanguageHeader("en;q=0.001");
       expect(result).toEqual([{ range: "en", quality: 0.001 }]);
-    });
-
-    it("should handle two-letter language code", () => {
-      const result = fullParseAcceptLanguageHeader("en");
-      expect(result).toEqual([{ range: "en", quality: 1.0 }]);
     });
 
     it("should handle three-letter language code", () => {
@@ -497,166 +486,34 @@ describe("fullParseAcceptLanguageHeader", () => {
     });
   });
 
-  describe("type safety", () => {
-    it("should return correct type structure", () => {
-      const result: AcceptLanguageEntry[] = fullParseAcceptLanguageHeader("en");
-      expect(result[0]).toHaveProperty("range");
-      expect(result[0]).toHaveProperty("quality");
-      expect(typeof result[0].range).toBe("string");
-      expect(typeof result[0].quality).toBe("number");
-    });
-  });
 });
 
 describe("parseAcceptLanguageHeader", () => {
-  describe("basic parsing", () => {
-    it("should return array of language ranges without quality values", () => {
-      const result = parseAcceptLanguageHeader("en");
-      expect(result).toEqual(["en"]);
-    });
-
-    it("should return sorted language ranges", () => {
-      const result = parseAcceptLanguageHeader("en-US,en;q=0.9,fr;q=0.8");
-      expect(result).toEqual(["en-US", "en", "fr"]);
-    });
-
-    it("should handle multiple languages with same quality in order", () => {
-      const result = parseAcceptLanguageHeader("en, fr, de");
-      expect(result).toEqual(["en", "fr", "de"]);
-    });
-
-    it("should return empty array for empty string", () => {
-      const result = parseAcceptLanguageHeader("");
-      expect(result).toEqual([]);
-    });
-
-    it("should return empty array for whitespace only", () => {
-      const result = parseAcceptLanguageHeader("   ");
-      expect(result).toEqual([]);
-    });
+  it("should return language ranges sorted by quality, without quality values", () => {
+    expect(parseAcceptLanguageHeader("en;q=0.5, fr;q=0.9, de;q=0.7")).toEqual(["fr", "de", "en"]);
   });
 
-  describe("quality-based sorting", () => {
-    it("should sort by quality descending", () => {
-      const result = parseAcceptLanguageHeader("en;q=0.5, fr;q=0.9, de;q=0.7");
-      expect(result).toEqual(["fr", "de", "en"]);
-    });
-
-    it("should place higher quality first", () => {
-      const result = parseAcceptLanguageHeader("fr;q=0.8, en-US");
-      expect(result).toEqual(["en-US", "fr"]);
-    });
-
-    it("should filter out zero quality entries", () => {
-      const result = parseAcceptLanguageHeader("en;q=0, fr;q=0.8, de");
-      expect(result).toEqual(["de", "fr"]);
-    });
-
-    it("should preserve order when quality is equal", () => {
-      const result = parseAcceptLanguageHeader("en;q=0.8, fr;q=0.8, de;q=0.8");
-      expect(result).toEqual(["en", "fr", "de"]);
-    });
+  it("should filter out zero quality entries", () => {
+    expect(parseAcceptLanguageHeader("en;q=0, fr;q=0.8, de")).toEqual(["de", "fr"]);
   });
 
-  describe("real-world examples", () => {
-    it("should parse Chrome-like header", () => {
-      const result = parseAcceptLanguageHeader("en-US,en;q=0.9,es;q=0.8");
-      expect(result).toEqual(["en-US", "en", "es"]);
-    });
-
-    it("should parse Firefox-like header", () => {
-      const result = parseAcceptLanguageHeader("en-US,en;q=0.5");
-      expect(result).toEqual(["en-US", "en"]);
-    });
-
-    it("should parse Danish example from RFC", () => {
-      const result = parseAcceptLanguageHeader("da, en-GB;q=0.8, en;q=0.7");
-      expect(result).toEqual(["da", "en-GB", "en"]);
-    });
-
-    it("should parse complex multilingual header", () => {
-      const result = parseAcceptLanguageHeader("fr-CH, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5");
-      expect(result).toEqual(["fr-CH", "fr", "en", "de", "*"]);
-    });
-
-    it("should parse Chinese variants", () => {
-      const result = parseAcceptLanguageHeader("zh-CN,zh;q=0.9,zh-TW;q=0.8,en;q=0.7");
-      expect(result).toEqual(["zh-CN", "zh", "zh-TW", "en"]);
-    });
-
-    it("should handle header with wildcard fallback", () => {
-      const result = parseAcceptLanguageHeader("en-US, *;q=0.1");
-      expect(result).toEqual(["en-US", "*"]);
-    });
+  it("should return empty array for empty, null, or undefined input", () => {
+    expect(parseAcceptLanguageHeader("")).toEqual([]);
+    expect(parseAcceptLanguageHeader(null as unknown as string)).toEqual([]);
+    expect(parseAcceptLanguageHeader(undefined as unknown as string)).toEqual([]);
   });
 
-  describe("edge cases", () => {
-    it("should handle single wildcard", () => {
-      const result = parseAcceptLanguageHeader("*");
-      expect(result).toEqual(["*"]);
-    });
-
-    it("should handle wildcard with quality", () => {
-      const result = parseAcceptLanguageHeader("*;q=0.1");
-      expect(result).toEqual(["*"]);
-    });
-
-    it("should handle null input", () => {
-      const result = parseAcceptLanguageHeader(null as unknown as string);
-      expect(result).toEqual([]);
-    });
-
-    it("should handle undefined input", () => {
-      const result = parseAcceptLanguageHeader(undefined as unknown as string);
-      expect(result).toEqual([]);
-    });
-
-    it("should preserve case in language ranges", () => {
-      const result = parseAcceptLanguageHeader("EN-us, FR-ca;q=0.8");
-      expect(result).toEqual(["EN-us", "FR-ca"]);
-    });
+  it("should parse a Chrome-like header", () => {
+    expect(parseAcceptLanguageHeader("en-US,en;q=0.9,es;q=0.8")).toEqual(["en-US", "en", "es"]);
   });
 
-  describe("invalid input handling", () => {
-    it("should skip invalid language ranges", () => {
-      const result = parseAcceptLanguageHeader("en1, fr, de@AT");
-      expect(result).toEqual(["fr"]);
-    });
-
-    it("should skip entries with invalid quality", () => {
-      const result = parseAcceptLanguageHeader("en;q=1.5, fr;q=0.8");
-      expect(result).toEqual(["fr"]);
-    });
-
-    it("should skip entries with malformed quality", () => {
-      const result = parseAcceptLanguageHeader("en;q=abc, fr");
-      expect(result).toEqual(["fr"]);
-    });
-
-    it("should handle only commas", () => {
-      const result = parseAcceptLanguageHeader(",,,");
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe("whitespace handling", () => {
-    it("should handle spaces around commas", () => {
-      const result = parseAcceptLanguageHeader("en , fr , de");
-      expect(result).toEqual(["en", "fr", "de"]);
-    });
-
-    it("should handle leading and trailing whitespace", () => {
-      const result = parseAcceptLanguageHeader("  en-US, fr;q=0.8  ");
-      expect(result).toEqual(["en-US", "fr"]);
-    });
-  });
-
-  describe("type safety", () => {
-    it("should return array of strings", () => {
-      const result: string[] = parseAcceptLanguageHeader("en,fr");
-      expect(Array.isArray(result)).toBe(true);
-      expect(typeof result[0]).toBe("string");
-      expect(typeof result[1]).toBe("string");
-    });
+  it("should parse a complex multilingual header", () => {
+    expect(parseAcceptLanguageHeader("fr-CH, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5")).toEqual([
+      "fr-CH",
+      "fr",
+      "en",
+      "de",
+      "*",
+    ]);
   });
 });

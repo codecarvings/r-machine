@@ -1,8 +1,8 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
 import { RMachineError } from "../../../src/errors/r-machine-error.js";
 
 describe("RMachineError", () => {
-  test("should create an error with the correct message", () => {
+  it("should create an error with the correct message and name", () => {
     const error = new RMachineError("Something went wrong.");
 
     expect(error).toBeInstanceOf(Error);
@@ -11,46 +11,24 @@ describe("RMachineError", () => {
     expect(error.name).toBe("RMachineError");
   });
 
-  test("should create an error without an inner error", () => {
+  it("should default innerError to undefined", () => {
     const error = new RMachineError("Test error.");
-
     expect(error.innerError).toBeUndefined();
   });
 
-  test("should create an error with an inner error", () => {
-    const innerError = new Error("Inner error message.");
-    const error = new RMachineError("Outer error message.", innerError);
+  it("should store innerError and support chaining", () => {
+    const root = new Error("Root cause.");
+    const middle = new RMachineError("Middle layer.", root);
+    const top = new RMachineError("Top layer.", middle);
 
-    expect(error.innerError).toBe(innerError);
-    expect(error.innerError?.message).toBe("Inner error message.");
-    expect(error.message).toBe("R-Machine Error: Outer error message.");
+    expect(middle.innerError).toBe(root);
+    expect(top.innerError).toBe(middle);
+    expect((top.innerError as RMachineError).innerError).toBe(root);
   });
 
-  test("should preserve the error stack trace", () => {
-    const error = new RMachineError("Stack trace test.");
-
-    expect(error.stack).toBeDefined();
-    expect(error.stack).toContain("RMachineError");
-  });
-
-  test("should be catchable as a generic Error", () => {
-    try {
-      throw new RMachineError("Catchable error.");
-    } catch (error) {
-      expect(error).toBeInstanceOf(Error);
-      expect(error).toBeInstanceOf(RMachineError);
-      if (error instanceof RMachineError) {
-        expect(error.message).toBe("R-Machine Error: Catchable error.");
-      }
-    }
-  });
-
-  test("should allow chaining of errors", () => {
-    const rootError = new Error("Root cause.");
-    const middleError = new RMachineError("Middle layer error.", rootError);
-    const topError = new RMachineError("Top layer error.", middleError);
-
-    expect(topError.innerError).toBe(middleError);
-    expect((topError.innerError as RMachineError).innerError).toBe(rootError);
+  it("should preserve special characters in the message", () => {
+    const msg = `quote "here" and newline\nand tab\t`;
+    const error = new RMachineError(msg);
+    expect(error.message).toBe(`R-Machine Error: ${msg}`);
   });
 });

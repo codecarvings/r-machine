@@ -1,4 +1,4 @@
-import { describe, expectTypeOf, test } from "vitest";
+import { describe, expectTypeOf, it } from "vitest";
 import type { LocaleHelper } from "../../../src/lib/locale-helper.js";
 import type { AnyResourceAtlas, Namespace } from "../../../src/lib/r.js";
 import type { NamespaceList, RKit } from "../../../src/lib/r-kit.js";
@@ -35,20 +35,20 @@ const mockConfig: RMachineConfig = {
 
 describe("RMachine", () => {
   describe("class definition", () => {
-    test("should be a class constructor", () => {
+    it("should be a class constructor", () => {
       expectTypeOf(RMachine).toBeConstructibleWith(mockConfig);
     });
 
-    test("should accept RMachineConfig as constructor parameter", () => {
+    it("should accept RMachineConfig as constructor parameter", () => {
       expectTypeOf(RMachine<TestResourceAtlas>).constructorParameters.toEqualTypeOf<[config: RMachineConfig]>();
     });
 
-    test("should be generic over AnyResourceAtlas", () => {
+    it("should be generic over AnyResourceAtlas", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       expectTypeOf(machine).toBeObject();
     });
 
-    test("should constrain generic parameter to AnyResourceAtlas", () => {
+    it("should constrain generic parameter to AnyResourceAtlas", () => {
       expectTypeOf<RMachine<TestResourceAtlas>>().toBeObject();
       expectTypeOf<RMachine<FactoryResourceAtlas>>().toBeObject();
       expectTypeOf<RMachine<MixedResourceAtlas>>().toBeObject();
@@ -56,52 +56,52 @@ describe("RMachine", () => {
   });
 
   describe("instance properties", () => {
-    test("should have readonly config property", () => {
+    it("should have readonly config property", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       expectTypeOf(machine).toHaveProperty("config");
       expectTypeOf(machine.config).toEqualTypeOf<RMachineConfig>();
     });
 
-    test("should have readonly localeHelper property", () => {
+    it("should have readonly localeHelper property", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       expectTypeOf(machine).toHaveProperty("localeHelper");
       expectTypeOf(machine.localeHelper).toEqualTypeOf<LocaleHelper>();
     });
 
-    test("config property should be readonly", () => {
+    it("config property should be readonly", () => {
       type ConfigProperty = RMachine<TestResourceAtlas>["config"];
       expectTypeOf<ConfigProperty>().toEqualTypeOf<RMachineConfig>();
     });
 
-    test("localeHelper property should be readonly", () => {
+    it("localeHelper property should be readonly", () => {
       type LocaleHelperProperty = RMachine<TestResourceAtlas>["localeHelper"];
       expectTypeOf<LocaleHelperProperty>().toEqualTypeOf<LocaleHelper>();
     });
   });
 
   describe("pickR method", () => {
-    test("should be a function property", () => {
+    it("should be a function property", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       expectTypeOf(machine.pickR).toBeFunction();
     });
 
-    test("should accept locale as first parameter", () => {
+    it("should accept locale as first parameter", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       expectTypeOf(machine.pickR).parameter(0).toEqualTypeOf<string>();
     });
 
-    test("should accept namespace as second parameter", () => {
+    it("should accept namespace as second parameter", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       expectTypeOf(machine.pickR).parameter(1).toEqualTypeOf<Namespace<TestResourceAtlas>>();
     });
 
-    test("should return Promise of the resource type for the namespace", async () => {
+    it("should return Promise of the resource type for the namespace", async () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const result = machine.pickR("en", "common");
       expectTypeOf(result).toEqualTypeOf<Promise<TestResourceAtlas["common"]>>();
     });
 
-    test("should return correct type for different namespaces", async () => {
+    it("should return correct type for different namespaces", async () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
 
       const common = machine.pickR("en", "common");
@@ -114,13 +114,13 @@ describe("RMachine", () => {
       expectTypeOf(about).toEqualTypeOf<Promise<{ heading: string }>>();
     });
 
-    test("should infer namespace type from literal argument", () => {
+    it("should infer namespace type from literal argument", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const result = machine.pickR("en", "common");
       expectTypeOf(result).toEqualTypeOf<Promise<TestResourceAtlas["common"]>>();
     });
 
-    test("should work with factory-based resource atlas", () => {
+    it("should work with factory-based resource atlas", () => {
       const machine = new RMachine<FactoryResourceAtlas>(mockConfig);
 
       const common = machine.pickR("en", "common");
@@ -130,7 +130,7 @@ describe("RMachine", () => {
       expectTypeOf(dynamic).toEqualTypeOf<Promise<($: R$) => Promise<{ value: number }>>>();
     });
 
-    test("should work with mixed resource atlas", () => {
+    it("should work with mixed resource atlas", () => {
       const machine = new RMachine<MixedResourceAtlas>(mockConfig);
 
       const staticR = machine.pickR("en", "static");
@@ -143,13 +143,13 @@ describe("RMachine", () => {
       expectTypeOf(asyncFactory).toEqualTypeOf<Promise<($: R$) => Promise<{ data: string[] }>>>();
     });
 
-    test("should work with single namespace atlas", () => {
+    it("should work with single namespace atlas", () => {
       const machine = new RMachine<SingleNamespaceAtlas>(mockConfig);
       const result = machine.pickR("en", "only");
       expectTypeOf(result).toEqualTypeOf<Promise<{ single: string }>>();
     });
 
-    test("should be bound correctly when destructured", () => {
+    it("should be bound correctly when destructured", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const { pickR } = machine;
       expectTypeOf(pickR).toBeFunction();
@@ -158,41 +158,41 @@ describe("RMachine", () => {
   });
 
   describe("pickRKit method", () => {
-    test("should be a function property", () => {
+    it("should be a function property", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       expectTypeOf(machine.pickRKit).toBeFunction();
     });
 
-    test("should accept locale as first parameter", () => {
+    it("should accept locale as first parameter", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       expectTypeOf(machine.pickRKit).parameter(0).toEqualTypeOf<string>();
     });
 
-    test("should accept rest namespaces parameter", () => {
+    it("should accept rest namespaces parameter", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       type Params = Parameters<typeof machine.pickRKit>;
       expectTypeOf<Params[0]>().toEqualTypeOf<string>();
     });
 
-    test("should return Promise of RKit type", () => {
+    it("should return Promise of RKit type", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const result = machine.pickRKit("en", "common", "home");
       expectTypeOf(result).toEqualTypeOf<Promise<RKit<TestResourceAtlas, readonly ["common", "home"]>>>();
     });
 
-    test("should return correct tuple type for single namespace", () => {
+    it("should return correct tuple type for single namespace", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const result = machine.pickRKit("en", "common");
       expectTypeOf(result).toEqualTypeOf<Promise<RKit<TestResourceAtlas, readonly ["common"]>>>();
     });
 
-    test("should return correct tuple type for multiple namespaces", () => {
+    it("should return correct tuple type for multiple namespaces", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const result = machine.pickRKit("en", "common", "home", "about");
       expectTypeOf(result).toEqualTypeOf<Promise<RKit<TestResourceAtlas, readonly ["common", "home", "about"]>>>();
     });
 
-    test("should preserve namespace order in result type", async () => {
+    it("should preserve namespace order in result type", async () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
 
       const kit1 = machine.pickRKit("en", "common", "home");
@@ -206,13 +206,13 @@ describe("RMachine", () => {
       expectTypeOf<Kit2Result[1]>().toEqualTypeOf<TestResourceAtlas["common"]>();
     });
 
-    test("should work with factory-based resource atlas", () => {
+    it("should work with factory-based resource atlas", () => {
       const machine = new RMachine<FactoryResourceAtlas>(mockConfig);
       const result = machine.pickRKit("en", "common", "dynamic");
       expectTypeOf(result).toEqualTypeOf<Promise<RKit<FactoryResourceAtlas, readonly ["common", "dynamic"]>>>();
     });
 
-    test("should work with mixed resource atlas", () => {
+    it("should work with mixed resource atlas", () => {
       const machine = new RMachine<MixedResourceAtlas>(mockConfig);
       const result = machine.pickRKit("en", "static", "factory", "asyncFactory");
       expectTypeOf(result).toEqualTypeOf<
@@ -220,7 +220,7 @@ describe("RMachine", () => {
       >();
     });
 
-    test("should be bound correctly when destructured", () => {
+    it("should be bound correctly when destructured", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const { pickRKit } = machine;
       expectTypeOf(pickRKit).toBeFunction();
@@ -229,7 +229,7 @@ describe("RMachine", () => {
       >();
     });
 
-    test("should allow duplicate namespaces in tuple", () => {
+    it("should allow duplicate namespaces in tuple", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const result = machine.pickRKit("en", "common", "common");
       expectTypeOf(result).toEqualTypeOf<Promise<RKit<TestResourceAtlas, readonly ["common", "common"]>>>();
@@ -237,26 +237,26 @@ describe("RMachine", () => {
   });
 
   describe("type inference", () => {
-    test("namespace parameter should be constrained to atlas keys", () => {
+    it("namespace parameter should be constrained to atlas keys", () => {
       type TestMachine = RMachine<TestResourceAtlas>;
       type PickRNamespace = Parameters<TestMachine["pickR"]>[1];
       expectTypeOf<PickRNamespace>().toEqualTypeOf<"common" | "home" | "about">();
     });
 
-    test("namespace parameter should work with single namespace atlas", () => {
+    it("namespace parameter should work with single namespace atlas", () => {
       type SingleMachine = RMachine<SingleNamespaceAtlas>;
       type PickRNamespace = Parameters<SingleMachine["pickR"]>[1];
       expectTypeOf<PickRNamespace>().toEqualTypeOf<"only">();
     });
 
-    test("should preserve resource property types through pickR", async () => {
+    it("should preserve resource property types through pickR", async () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const common = await machine.pickR("en", "common");
       expectTypeOf(common.greeting).toEqualTypeOf<string>();
       expectTypeOf(common.farewell).toEqualTypeOf<string>();
     });
 
-    test("should preserve resource property types through pickRKit", async () => {
+    it("should preserve resource property types through pickRKit", async () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const kit = await machine.pickRKit("en", "common", "home");
       expectTypeOf(kit[0].greeting).toEqualTypeOf<string>();
@@ -267,22 +267,22 @@ describe("RMachine", () => {
   });
 
   describe("protected members accessibility", () => {
-    test("hybridPickR should not be accessible on instance", () => {
+    it("hybridPickR should not be accessible on instance", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       expectTypeOf(machine).not.toHaveProperty("hybridPickR");
     });
 
-    test("hybridPickRKit should not be accessible on instance", () => {
+    it("hybridPickRKit should not be accessible on instance", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       expectTypeOf(machine).not.toHaveProperty("hybridPickRKit");
     });
 
-    test("domainManager should not be accessible on instance", () => {
+    it("domainManager should not be accessible on instance", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       expectTypeOf(machine).not.toHaveProperty("domainManager");
     });
 
-    test("validateLocaleForPick should not be accessible on instance", () => {
+    it("validateLocaleForPick should not be accessible on instance", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       expectTypeOf(machine).not.toHaveProperty("validateLocaleForPick");
     });
@@ -298,13 +298,13 @@ describe("RMachine", () => {
       }
     }
 
-    test("hybridPickR should return union of sync and async types", () => {
+    it("hybridPickR should return union of sync and async types", () => {
       const machine = new TestableRMachine<TestResourceAtlas>(mockConfig);
       const result = machine.exposeHybridPickR("en", "common");
       expectTypeOf(result).toEqualTypeOf<TestResourceAtlas["common"] | Promise<TestResourceAtlas["common"]>>();
     });
 
-    test("hybridPickRKit should return union of sync and async types", () => {
+    it("hybridPickRKit should return union of sync and async types", () => {
       const machine = new TestableRMachine<TestResourceAtlas>(mockConfig);
       const result = machine.exposeHybridPickRKit("en", "common", "home");
       type Expected =
@@ -313,7 +313,7 @@ describe("RMachine", () => {
       expectTypeOf(result).toEqualTypeOf<Expected>();
     });
 
-    test("hybridPickR should preserve namespace type in return", () => {
+    it("hybridPickR should preserve namespace type in return", () => {
       const machine = new TestableRMachine<TestResourceAtlas>(mockConfig);
 
       const common = machine.exposeHybridPickR("en", "common");
@@ -328,7 +328,7 @@ describe("RMachine", () => {
   });
 
   describe("RMachine with different atlas types", () => {
-    test("should work with deeply nested resource types", () => {
+    it("should work with deeply nested resource types", () => {
       type DeepAtlas = {
         readonly nested: {
           level1: {
@@ -345,7 +345,7 @@ describe("RMachine", () => {
       expectTypeOf(result).toEqualTypeOf<Promise<DeepAtlas["nested"]>>();
     });
 
-    test("should work with array-containing resource types", () => {
+    it("should work with array-containing resource types", () => {
       type ArrayAtlas = {
         readonly items: {
           list: string[];
@@ -357,7 +357,7 @@ describe("RMachine", () => {
       expectTypeOf(result).toEqualTypeOf<Promise<ArrayAtlas["items"]>>();
     });
 
-    test("should work with function-containing resource types", () => {
+    it("should work with function-containing resource types", () => {
       type FuncAtlas = {
         readonly utils: {
           format: (value: number) => string;
@@ -369,7 +369,7 @@ describe("RMachine", () => {
       expectTypeOf(result).toEqualTypeOf<Promise<FuncAtlas["utils"]>>();
     });
 
-    test("should work with optional property resource types", () => {
+    it("should work with optional property resource types", () => {
       type OptionalAtlas = {
         readonly partial: {
           required: string;
@@ -381,7 +381,7 @@ describe("RMachine", () => {
       expectTypeOf(result).toEqualTypeOf<Promise<OptionalAtlas["partial"]>>();
     });
 
-    test("should work with union type resource values", () => {
+    it("should work with union type resource values", () => {
       type UnionAtlas = {
         readonly mixed: {
           value: string | number | boolean;
@@ -392,7 +392,7 @@ describe("RMachine", () => {
       expectTypeOf(result).toEqualTypeOf<Promise<UnionAtlas["mixed"]>>();
     });
 
-    test("should work with readonly resource types", () => {
+    it("should work with readonly resource types", () => {
       type ReadonlyAtlas = {
         readonly immutable: {
           readonly value: string;
@@ -404,7 +404,7 @@ describe("RMachine", () => {
       expectTypeOf(result).toEqualTypeOf<Promise<ReadonlyAtlas["immutable"]>>();
     });
 
-    test("should work with generic resource types", () => {
+    it("should work with generic resource types", () => {
       type GenericAtlas<T> = {
         readonly generic: {
           data: T;
@@ -417,24 +417,24 @@ describe("RMachine", () => {
   });
 
   describe("type compatibility", () => {
-    test("RMachine should extend proper type constraints", () => {
+    it("RMachine should extend proper type constraints", () => {
       type Machine = RMachine<TestResourceAtlas>;
       expectTypeOf<Machine>().toBeObject();
     });
 
-    test("pickR return type should be assignable to Promise of AnyR", async () => {
+    it("pickR return type should be assignable to Promise of AnyR", async () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const result = machine.pickR("en", "common");
       expectTypeOf(result).toExtend<Promise<object>>();
     });
 
-    test("pickRKit return type should be assignable to Promise of readonly array", () => {
+    it("pickRKit return type should be assignable to Promise of readonly array", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const result = machine.pickRKit("en", "common", "home");
       expectTypeOf(result).toExtend<Promise<readonly object[]>>();
     });
 
-    test("narrower atlas should not be assignable to wider machine type", () => {
+    it("narrower atlas should not be assignable to wider machine type", () => {
       type NarrowAtlas = {
         readonly common: { greeting: string };
       };
@@ -448,13 +448,13 @@ describe("RMachine", () => {
   });
 
   describe("method chaining and composition", () => {
-    test("should allow storing pickR in a typed variable", () => {
+    it("should allow storing pickR in a typed variable", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const pickCommon: () => Promise<TestResourceAtlas["common"]> = () => machine.pickR("en", "common");
       expectTypeOf(pickCommon).toBeFunction();
     });
 
-    test("should allow mapping over pickRKit result", async () => {
+    it("should allow mapping over pickRKit result", async () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const kit = await machine.pickRKit("en", "common", "home");
       const mapped = [kit[0], kit[1]] as const;
@@ -462,7 +462,7 @@ describe("RMachine", () => {
       expectTypeOf(mapped[1]).toEqualTypeOf<TestResourceAtlas["home"]>();
     });
 
-    test("should work with Promise.all for multiple pickR calls", async () => {
+    it("should work with Promise.all for multiple pickR calls", async () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const results = await Promise.all([
         machine.pickR("en", "common"),
@@ -476,7 +476,7 @@ describe("RMachine", () => {
   });
 
   describe("edge cases", () => {
-    test("should handle atlas with many namespaces", () => {
+    it("should handle atlas with many namespaces", () => {
       type LargeAtlas = {
         readonly ns1: { v: 1 };
         readonly ns2: { v: 2 };
@@ -493,7 +493,7 @@ describe("RMachine", () => {
       expectTypeOf(machine.pickR("en", "ns5")).toEqualTypeOf<Promise<{ v: 5 }>>();
     });
 
-    test("should handle namespace names with special characters", () => {
+    it("should handle namespace names with special characters", () => {
       type SpecialAtlas = {
         readonly "my-namespace": { value: string };
         readonly "my.namespace": { value: number };
@@ -505,7 +505,7 @@ describe("RMachine", () => {
       expectTypeOf(machine.pickR("en", "my_namespace")).toEqualTypeOf<Promise<{ value: boolean }>>();
     });
 
-    test("should work with empty pickRKit call", () => {
+    it("should work with empty pickRKit call", () => {
       const machine = new RMachine<TestResourceAtlas>(mockConfig);
       const result = machine.pickRKit("en");
       expectTypeOf(result).toEqualTypeOf<Promise<RKit<TestResourceAtlas, readonly []>>>();

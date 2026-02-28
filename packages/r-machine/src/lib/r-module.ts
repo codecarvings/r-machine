@@ -46,7 +46,7 @@ export function resolveRFromModule(rModule: AnyRModule, $: R$): Promise<AnyR> {
         }
       } else {
         reject(
-          getResolveRFromModuleError($.namespace, $.namespace, `invalid resource type returned by factory (${rType})`)
+          getResolveRFromModuleError($.namespace, $.locale, `invalid resource type returned by factory (${rType})`)
         );
       }
     };
