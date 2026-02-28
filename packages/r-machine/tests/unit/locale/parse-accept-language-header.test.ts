@@ -485,7 +485,6 @@ describe("fullParseAcceptLanguageHeader", () => {
       expect(result).toEqual([{ range: "en", quality: 0.8 }]);
     });
   });
-
 });
 
 describe("parseAcceptLanguageHeader", () => {

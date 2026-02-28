@@ -54,14 +54,14 @@ describe("resolveRFromModule", () => {
     it("should reject when factory returns a string", async () => {
       const module: AnyRModule = { default: () => "not an object" as any };
       await expect(resolveRFromModule(module, make$())).rejects.toThrow(
-        "invalid resource type returned by factory (string)",
+        "invalid resource type returned by factory (string)"
       );
     });
 
     it("should reject when factory returns a number", async () => {
       const module: AnyRModule = { default: () => 42 as any };
       await expect(resolveRFromModule(module, make$())).rejects.toThrow(
-        "invalid resource type returned by factory (number)",
+        "invalid resource type returned by factory (number)"
       );
     });
   });
@@ -90,7 +90,7 @@ describe("resolveRFromModule", () => {
     it("should reject when async factory resolves to a primitive", async () => {
       const module: AnyRModule = { default: async () => "bad" as any };
       await expect(resolveRFromModule(module, make$())).rejects.toThrow(
-        "invalid resource type returned by factory (string)",
+        "invalid resource type returned by factory (string)"
       );
     });
 
@@ -131,25 +131,25 @@ describe("resolveRFromModule", () => {
 
     it("should reject when default export is a string", async () => {
       await expect(resolveRFromModule({ default: "not valid" } as any, make$())).rejects.toThrow(
-        "invalid export type (string)",
+        "invalid export type (string)"
       );
     });
 
     it("should reject when default export is a number", async () => {
       await expect(resolveRFromModule({ default: 123 } as any, make$())).rejects.toThrow(
-        "invalid export type (number)",
+        "invalid export type (number)"
       );
     });
 
     it("should reject when default export is a boolean", async () => {
       await expect(resolveRFromModule({ default: true } as any, make$())).rejects.toThrow(
-        "invalid export type (boolean)",
+        "invalid export type (boolean)"
       );
     });
 
     it("should reject when default export is undefined", async () => {
       await expect(resolveRFromModule({ default: undefined } as any, make$())).rejects.toThrow(
-        "invalid export type (undefined)",
+        "invalid export type (undefined)"
       );
     });
   });

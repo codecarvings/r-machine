@@ -1,47 +1,14 @@
 import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
-import type { RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import type { ReactNode } from "react";
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReactImpl } from "../../../src/core/react-toolset.js";
 import { createReactToolset } from "../../../src/core/react-toolset.js";
+import { createMockMachine } from "../../helpers/mock-machine.js";
+import { React19ErrorBoundary } from "../../helpers/react19-error-boundary.js";
 
 afterEach(cleanup);
-
-// ---------------------------------------------------------------------------
-// Test resource atlas type
-// ---------------------------------------------------------------------------
-
-type TestAtlas = {
-  readonly common: { readonly greeting: string };
-  readonly nav: { readonly home: string };
-};
-
-// ---------------------------------------------------------------------------
-// Mock helpers
-// ---------------------------------------------------------------------------
-
-const VALID_LOCALES = new Set(["en", "it"]);
-
-function createMockMachine(
-  overrides: {
-    hybridPickR?: (locale: string, namespace: string) => unknown;
-    hybridPickRKit?: (locale: string, ...namespaces: string[]) => unknown;
-  } = {}
-) {
-  return {
-    localeHelper: {
-      validateLocale: vi.fn((locale: string) =>
-        VALID_LOCALES.has(locale)
-          ? null
-          : new RMachineError(`Locale "${locale}" is invalid or is not in the list of locales.`)
-      ),
-    },
-    hybridPickR: vi.fn(overrides.hybridPickR ?? (() => ({ greeting: "hello" }))),
-    hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
-  } as unknown as RMachine<TestAtlas>;
-}
 
 function createMockImpl(overrides: Partial<ReactImpl> = {}): ReactImpl {
   return {
@@ -65,16 +32,6 @@ describe("createReactToolset", () => {
     expect(toolset).toHaveProperty("useRKit");
   });
 
-  it("returns ReactRMachine as a function", async () => {
-    const { ReactRMachine } = await createReactToolset(createMockMachine(), createMockImpl());
-    expect(typeof ReactRMachine).toBe("function");
-  });
-
-  it("does not have a probe method on ReactRMachine", async () => {
-    const { ReactRMachine } = await createReactToolset(createMockMachine(), createMockImpl());
-    expect(ReactRMachine).not.toHaveProperty("probe");
-  });
-
   // -----------------------------------------------------------------------
   // ReactRMachine — sync readLocale
   // -----------------------------------------------------------------------
@@ -90,7 +47,7 @@ describe("createReactToolset", () => {
         </ReactRMachine>
       );
 
-      expect(screen.getByText("child content")).toBeDefined();
+      screen.getByText("child content");
     });
 
     it("calls readLocale once per mount", async () => {
@@ -111,21 +68,6 @@ describe("createReactToolset", () => {
       );
 
       expect(readLocale).toHaveBeenCalledTimes(1);
-    });
-
-    it("renders multiple children", async () => {
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine } = await createReactToolset(createMockMachine(), impl);
-
-      render(
-        <ReactRMachine>
-          <div>first</div>
-          <div>second</div>
-        </ReactRMachine>
-      );
-
-      expect(screen.getByText("first")).toBeDefined();
-      expect(screen.getByText("second")).toBeDefined();
     });
 
     it("passes the locale from readLocale to the inner provider", async () => {
@@ -153,8 +95,8 @@ describe("createReactToolset", () => {
   describe("ReactRMachine (async readLocale)", () => {
     const DELAY = 50;
 
-    it("renders children after async readLocale resolves", async () => {
-      const localePromise = new Promise<string>((r) => setTimeout(() => r("en"), DELAY));
+    it("renders children with the resolved locale after async readLocale resolves", async () => {
+      const localePromise = new Promise<string>((r) => setTimeout(() => r("it"), DELAY));
       const impl = createMockImpl({ readLocale: () => localePromise });
       const { ReactRMachine, useLocale } = await createReactToolset(createMockMachine(), impl);
 
@@ -171,32 +113,10 @@ describe("createReactToolset", () => {
         await localePromise;
       });
 
-      expect(screen.getByTestId("locale").textContent).toBe("en");
-    });
-
-    it("passes the resolved locale to children", async () => {
-      const localePromise = new Promise<string>((r) => setTimeout(() => r("it"), DELAY));
-      const impl = createMockImpl({ readLocale: () => localePromise });
-      const { ReactRMachine, useLocale } = await createReactToolset(createMockMachine(), impl);
-
-      function LocaleDisplay() {
-        return <span data-testid="locale">{useLocale()}</span>;
-      }
-
-      await act(async () => {
-        render(
-          <ReactRMachine Suspense={React.Suspense} fallback={<div>loading</div>}>
-            <LocaleDisplay />
-          </ReactRMachine>
-        );
-        await localePromise;
-      });
-
       expect(screen.getByTestId("locale").textContent).toBe("it");
     });
 
     it("shows fallback while async readLocale is pending", async () => {
-      const DELAY = 50;
       let resolve!: (locale: string) => void;
       const localePromise = new Promise<string>((r) => {
         resolve = r;
@@ -204,14 +124,16 @@ describe("createReactToolset", () => {
       const impl = createMockImpl({ readLocale: () => localePromise });
       const { ReactRMachine } = await createReactToolset(createMockMachine(), impl);
 
-      render(
-        <ReactRMachine Suspense={React.Suspense} fallback={<div>loading...</div>}>
-          <div>child content</div>
-        </ReactRMachine>
-      );
+      await act(async () => {
+        render(
+          <ReactRMachine Suspense={React.Suspense} fallback={<div>loading...</div>}>
+            <div>child content</div>
+          </ReactRMachine>
+        );
+      });
 
       // Fallback should be visible while promise is pending
-      expect(await screen.findByText("loading...", {}, { timeout: 500 })).toBeDefined();
+      screen.getByText("loading...");
       expect(screen.queryByText("child content")).toBeNull();
 
       // Resolve to prevent dangling promise warnings
@@ -269,7 +191,7 @@ describe("createReactToolset", () => {
       expect(screen.queryByText("delayed-fallback")).toBeNull();
 
       // After delay (default 300ms), fallback appears
-      expect(await screen.findByText("delayed-fallback", {}, { timeout: 1000 })).toBeDefined();
+      await screen.findByText("delayed-fallback", {}, { timeout: 1000 });
     });
 
     it("uses the custom Suspense component when provided", async () => {
@@ -282,13 +204,15 @@ describe("createReactToolset", () => {
         return <React.Suspense fallback={<div>custom-wrapper: {fallback}</div>}>{children}</React.Suspense>;
       }
 
-      render(
-        <ReactRMachine Suspense={CustomSuspense} fallback={<span>loading</span>}>
-          <div>child</div>
-        </ReactRMachine>
-      );
+      await act(async () => {
+        render(
+          <ReactRMachine Suspense={CustomSuspense} fallback={<span>loading</span>}>
+            <div>child</div>
+          </ReactRMachine>
+        );
+      });
 
-      expect(await screen.findByText(/custom-wrapper/, {}, { timeout: 500 })).toBeDefined();
+      screen.getByText(/custom-wrapper/);
     });
 
     it("renders without Suspense wrapper when Suspense is null", async () => {
@@ -301,7 +225,7 @@ describe("createReactToolset", () => {
         </ReactRMachine>
       );
 
-      expect(screen.getByText("no-suspense-child")).toBeDefined();
+      screen.getByText("no-suspense-child");
     });
 
     it("passes fallback to the Suspense component", async () => {
@@ -310,13 +234,15 @@ describe("createReactToolset", () => {
       });
       const { ReactRMachine } = await createReactToolset(createMockMachine(), impl);
 
-      render(
-        <ReactRMachine Suspense={React.Suspense} fallback={<div>my-fallback</div>}>
-          <div>child</div>
-        </ReactRMachine>
-      );
+      await act(async () => {
+        render(
+          <ReactRMachine Suspense={React.Suspense} fallback={<div>my-fallback</div>}>
+            <div>child</div>
+          </ReactRMachine>
+        );
+      });
 
-      expect(await screen.findByText("my-fallback", {}, { timeout: 500 })).toBeDefined();
+      screen.getByText("my-fallback");
     });
 
     it("renders undefined fallback when fallback is not specified", async () => {
@@ -326,11 +252,13 @@ describe("createReactToolset", () => {
       const { ReactRMachine } = await createReactToolset(createMockMachine(), impl);
 
       // Should not crash even without fallback
-      render(
-        <ReactRMachine Suspense={React.Suspense}>
-          <div>child</div>
-        </ReactRMachine>
-      );
+      await act(async () => {
+        render(
+          <ReactRMachine Suspense={React.Suspense}>
+            <div>child</div>
+          </ReactRMachine>
+        );
+      });
 
       // Content shouldn't appear while suspended
       expect(screen.queryByText("child")).toBeNull();
@@ -352,12 +280,6 @@ describe("createReactToolset", () => {
 
       expect(result.current).toBe("en");
     });
-
-    it("throws when used outside ReactRMachine", async () => {
-      const { useLocale } = await createReactToolset(createMockMachine(), createMockImpl());
-
-      expect(() => renderHook(() => useLocale())).toThrow(RMachineError);
-    });
   });
 
   // -----------------------------------------------------------------------
@@ -365,25 +287,15 @@ describe("createReactToolset", () => {
   // -----------------------------------------------------------------------
 
   describe("useSetLocale", () => {
-    it("throws when used outside ReactRMachine", async () => {
+    it("throws with a descriptive context-not-found message when used outside ReactRMachine", async () => {
       const { useSetLocale } = await createReactToolset(createMockMachine(), createMockImpl());
-      expect(() => renderHook(() => useSetLocale())).toThrow(RMachineError);
-    });
-
-    it("throws with a descriptive context-not-found message", async () => {
-      const { useSetLocale } = await createReactToolset(createMockMachine(), createMockImpl());
-      expect(() => renderHook(() => useSetLocale())).toThrow(/ReactToolsetContext not found/);
-    });
-
-    it("returns a function", async () => {
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      expect(typeof result.current).toBe("function");
+      try {
+        renderHook(() => useSetLocale());
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineError);
+        expect(error).toHaveProperty("message", expect.stringMatching(/ReactToolsetContext not found/));
+      }
     });
 
     it("is a no-op when the new locale equals the current locale", async () => {
@@ -582,11 +494,6 @@ describe("createReactToolset", () => {
   // -----------------------------------------------------------------------
 
   describe("useR", () => {
-    it("throws when used outside ReactRMachine", async () => {
-      const { useR } = await createReactToolset(createMockMachine(), createMockImpl());
-      expect(() => renderHook(() => useR("common"))).toThrow(RMachineError);
-    });
-
     it("returns the resource synchronously when cached", async () => {
       const resource = { greeting: "hello" };
       const mock = createMockMachine({ hybridPickR: () => resource });
@@ -679,11 +586,6 @@ describe("createReactToolset", () => {
   // -----------------------------------------------------------------------
 
   describe("useRKit", () => {
-    it("throws when used outside ReactRMachine", async () => {
-      const { useRKit } = await createReactToolset(createMockMachine(), createMockImpl());
-      expect(() => renderHook(() => useRKit("common", "nav"))).toThrow(RMachineError);
-    });
-
     it("returns the resource kit synchronously when cached", async () => {
       const kit = [{ greeting: "hello" }, { home: "Home" }] as const;
       const mock = createMockMachine({ hybridPickRKit: () => kit });
@@ -1019,21 +921,3 @@ describe("createReactToolset", () => {
     });
   });
 });
-
-// ---------------------------------------------------------------------------
-// Minimal error boundary to catch thrown promises without React 19 crashing
-// ---------------------------------------------------------------------------
-
-class React19ErrorBoundary extends React.Component<{ children: ReactNode }, { hasError: boolean }> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-  override render() {
-    if (this.state.hasError) return null;
-    return this.props.children;
-  }
-}

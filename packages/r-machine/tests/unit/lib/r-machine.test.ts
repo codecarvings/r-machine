@@ -300,7 +300,7 @@ describe("RMachine", () => {
   describe("concurrent call deduplication", () => {
     it("deduplicates concurrent pickR calls to the same namespace", async () => {
       const resolver = vi.fn<RModuleResolver>(
-        () => new Promise((resolve) => setTimeout(() => resolve({ default: commonR }), 20)),
+        () => new Promise((resolve) => setTimeout(() => resolve({ default: commonR }), 20))
       );
       const machine = createMachine({ rModuleResolver: resolver });
 
@@ -323,8 +323,8 @@ describe("RMachine", () => {
             setTimeout(() => {
               const mod = enModules[namespace];
               if (mod) resolve(mod);
-            }, 20),
-          ),
+            }, 20)
+          )
       );
       const machine = createMachine({ rModuleResolver: resolver });
 

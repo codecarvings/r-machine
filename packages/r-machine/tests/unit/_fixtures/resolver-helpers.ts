@@ -16,7 +16,7 @@ export function createMockResolver(modules: Record<string, Record<string, AnyRMo
 
 export function createDelayedResolver(
   modules: Record<string, Record<string, AnyRModule>>,
-  delayMs = 10,
+  delayMs = 10
 ): RModuleResolver {
   return (namespace, locale) => {
     return new Promise((resolve, reject) => {

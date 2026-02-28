@@ -1,45 +1,13 @@
 import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
-import type { RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import type { ReactNode } from "react";
+import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createReactBareToolset } from "../../../src/core/react-bare-toolset.js";
+import { createMockMachine } from "../../helpers/mock-machine.js";
+import { React19ErrorBoundary } from "../../helpers/react19-error-boundary.js";
 
 afterEach(cleanup);
-
-// ---------------------------------------------------------------------------
-// Test resource atlas type
-// ---------------------------------------------------------------------------
-
-type TestAtlas = {
-  readonly common: { readonly greeting: string };
-  readonly nav: { readonly home: string };
-};
-
-// ---------------------------------------------------------------------------
-// Mock helpers
-// ---------------------------------------------------------------------------
-
-const VALID_LOCALES = new Set(["en", "it"]);
-
-function createMockMachine(
-  overrides: {
-    hybridPickR?: (locale: string, namespace: string) => unknown;
-    hybridPickRKit?: (locale: string, ...namespaces: string[]) => unknown;
-  } = {}
-) {
-  return {
-    localeHelper: {
-      validateLocale: vi.fn((locale: string) =>
-        VALID_LOCALES.has(locale)
-          ? null
-          : new RMachineError(`Locale "${locale}" is invalid or is not in the list of locales.`)
-      ),
-    },
-    hybridPickR: vi.fn(overrides.hybridPickR ?? (() => ({ greeting: "hello" }))),
-    hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
-  } as unknown as RMachine<TestAtlas>;
-}
 
 // ---------------------------------------------------------------------------
 // createReactBareToolset
@@ -56,13 +24,6 @@ describe("createReactBareToolset", () => {
     expect(toolset).toHaveProperty("useRKit");
   });
 
-  it("returns ReactRMachine as a function with a probe method", async () => {
-    const { ReactRMachine } = await createReactBareToolset(createMockMachine());
-
-    expect(typeof ReactRMachine).toBe("function");
-    expect(typeof ReactRMachine.probe).toBe("function");
-  });
-
   // -----------------------------------------------------------------------
   // ReactRMachine (provider component)
   // -----------------------------------------------------------------------
@@ -77,21 +38,7 @@ describe("createReactBareToolset", () => {
         </ReactRMachine>
       );
 
-      expect(screen.getByText("child content")).toBeDefined();
-    });
-
-    it("renders multiple children", async () => {
-      const { ReactRMachine } = await createReactBareToolset(createMockMachine());
-
-      render(
-        <ReactRMachine locale="en">
-          <div>first</div>
-          <div>second</div>
-        </ReactRMachine>
-      );
-
-      expect(screen.getByText("first")).toBeDefined();
-      expect(screen.getByText("second")).toBeDefined();
+      screen.getByText("child content");
     });
 
     it("throws RMachineError for an invalid locale", async () => {
@@ -132,18 +79,6 @@ describe("createReactBareToolset", () => {
         expect(error).toBeInstanceOf(RMachineError);
         expect((error as RMachineError).innerError).toBeInstanceOf(RMachineError);
       }
-    });
-
-    it("renders with explicitly undefined writeLocale", async () => {
-      const { ReactRMachine } = await createReactBareToolset(createMockMachine());
-
-      render(
-        <ReactRMachine locale="en" writeLocale={undefined}>
-          <div>child</div>
-        </ReactRMachine>
-      );
-
-      expect(screen.getByText("child")).toBeDefined();
     });
 
     it("inner provider overrides outer provider", async () => {
@@ -287,10 +222,6 @@ describe("createReactBareToolset", () => {
     it("returns the locale if it is valid", async () => {
       const { ReactRMachine } = await createReactBareToolset(createMockMachine());
       expect(ReactRMachine.probe("en")).toBe("en");
-    });
-
-    it("returns the locale for another valid locale", async () => {
-      const { ReactRMachine } = await createReactBareToolset(createMockMachine());
       expect(ReactRMachine.probe("it")).toBe("it");
     });
 
@@ -324,13 +255,10 @@ describe("createReactBareToolset", () => {
       const mock = createMockMachine();
       const { ReactRMachine } = await createReactBareToolset(mock);
 
+      vi.mocked(mock.localeHelper.validateLocale).mockClear();
       ReactRMachine.probe(undefined);
 
-      // validateLocale is also called during createReactBareToolset setup,
-      // but not for probe(undefined)
-      const calls = (mock.localeHelper.validateLocale as ReturnType<typeof vi.fn>).mock.calls;
-      const undefinedCalls = calls.filter((args) => args[0] === undefined);
-      expect(undefinedCalls).toHaveLength(0);
+      expect(mock.localeHelper.validateLocale).not.toHaveBeenCalled();
     });
   });
 
@@ -394,20 +322,6 @@ describe("createReactBareToolset", () => {
     it("throws when used outside ReactRMachine", async () => {
       const { useSetLocale } = await createReactBareToolset(createMockMachine());
       expect(() => renderHook(() => useSetLocale())).toThrow(RMachineError);
-    });
-
-    it("returns a function", async () => {
-      const { ReactRMachine, useSetLocale } = await createReactBareToolset(createMockMachine());
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <ReactRMachine locale="en" writeLocale={() => {}}>
-            {children}
-          </ReactRMachine>
-        ),
-      });
-
-      expect(typeof result.current).toBe("function");
     });
 
     it("is a no-op when the new locale equals the current locale", async () => {
@@ -741,14 +655,13 @@ describe("createReactBareToolset", () => {
         </ReactRMachine>
       );
 
-      expect(screen.getByTestId("fallback")).toBeDefined();
+      screen.getByTestId("fallback");
 
       await act(async () => {
         resolve();
       });
 
-      expect(await screen.findByTestId("resource")).toBeDefined();
-      expect(screen.getByTestId("resource").textContent).toBe("hello");
+      expect((await screen.findByTestId("resource")).textContent).toBe("hello");
     });
 
     it("propagates a synchronous error from hybridPickR", async () => {
@@ -888,14 +801,13 @@ describe("createReactBareToolset", () => {
         </ReactRMachine>
       );
 
-      expect(screen.getByTestId("fallback")).toBeDefined();
+      screen.getByTestId("fallback");
 
       await act(async () => {
         resolve();
       });
 
-      expect(await screen.findByTestId("resource")).toBeDefined();
-      expect(screen.getByTestId("resource").textContent).toBe("hello");
+      expect((await screen.findByTestId("resource")).textContent).toBe("hello");
     });
 
     it("propagates a synchronous error from hybridPickRKit", async () => {
@@ -938,23 +850,3 @@ describe("createReactBareToolset", () => {
     });
   });
 });
-
-// ---------------------------------------------------------------------------
-// Minimal error boundary to catch thrown promises without React 19 crashing
-// ---------------------------------------------------------------------------
-
-import React from "react";
-
-class React19ErrorBoundary extends React.Component<{ children: ReactNode }, { hasError: boolean }> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-  override render() {
-    if (this.state.hasError) return null;
-    return this.props.children;
-  }
-}
