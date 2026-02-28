@@ -4,18 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a monorepo for R-Machine, a TypeScript library for internationalization (i18n) and localization. The main package is located at `packages/r-machine/` and serves as an i18n/translation library.
+This is a monorepo for R-Machine, a TypeScript library for internationalization (i18n) and localization. It contains three packages:
+
+- **`packages/r-machine/`** — Core i18n library
+- **`packages/r-machine-react/`** — React bindings
+- **`packages/r-machine-next/`** — Next.js App Router integration
+
+All three packages are versioned together (linked) and currently in **alpha** prerelease.
 
 ## Package Manager
 
-This project uses **pnpm** as the package manager.
+This project uses **pnpm** (v10) as the package manager.
 
 ## Common Commands
 
 ### Development
 - `pnpm dev` - Run development mode using tsx with custom conditions
 - `pnpm dev:play` - Run play.tsx file for quick experimentation
-- `pnpm build` - Build all packages in the monorepo
+- `pnpm build` - Build all packages and examples
+- `pnpm build:packages` - Build only library packages
+- `pnpm build:examples` - Build only example apps
 - `pnpm clean` - Clean all packages
 
 ### Code Quality
@@ -26,20 +34,21 @@ This project uses **pnpm** as the package manager.
 - `pnpm test` - Run all tests using Vitest
 - `pnpm test:watch` - Run tests in watch mode
 - `pnpm test:ui` - Run tests with Vitest UI
+- `pnpm test:coverage` - Run tests with coverage report
 
-### Package-specific Commands
-Navigate to `packages/r-machine/` for package-specific operations:
-- `pnpm build` - Build the r-machine package using zshy
-- `pnpm clean` - Clean build artifacts
-- `pnpm verify:versions` - Check versioning consistency
+### Release
+- `pnpm release` - Build packages and publish with changesets
 
 ## Architecture
 
 ### Monorepo Structure
 - **Root**: Contains workspace configuration, shared tooling, and scripts
-- **`packages/r-machine/`**: Main i18n library package
-- **`configs/`**: Shared TypeScript configuration
-- **`scripts/`**: Utility scripts (e.g., semver checking)
+- **`packages/r-machine/`**: Core i18n library
+- **`packages/r-machine-react/`**: React bindings (peer dep: React 19, r-machine)
+- **`packages/r-machine-next/`**: Next.js integration (peer dep: Next.js 15–16, React 19, r-machine, @r-machine/react)
+- **`examples/`**: Example apps (1 React + Vite, 4 Next.js variants with different routing strategies)
+- **`configs/`**: Shared TypeScript and Vitest base configurations
+- **`scripts/`**: Utility scripts (e.g., `update-npm-dist-tags.ts`)
 
 ### Build System
 - **zshy**: Used for building packages (custom build tool)
@@ -61,7 +70,11 @@ The project uses custom export conditions:
 
 ## Testing Setup
 
-Tests are configured to run across all packages using Vitest with project discovery. Each package can have its own test configuration while sharing the root Vitest config.
+Tests are configured to run across all packages using Vitest with project discovery. Each package has its own test configuration extending the shared base at `configs/vitest.base.ts`. The `r-machine-react` and `r-machine-next` packages use `jsdom` as test environment. TypeScript type-checking is enabled in tests. Coverage includes `src/` directories of all three library packages.
+
+## Versioning & Release
+
+The project uses **changesets** for versioning and publishing. All three packages are linked and versioned together. The project is currently in **alpha** prerelease mode (see `.changeset/pre.json`).
 
 ## Rules
 
