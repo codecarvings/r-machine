@@ -1,6 +1,7 @@
 import { describe, expectTypeOf, it } from "vitest";
 import { getCanonicalizedHref, HrefCanonicalizer } from "../../src/core/href-canonicalizer.js";
 import type { HrefMapper, MappedHrefResult, MappedSegment } from "../../src/core/href-mapper.js";
+import type { HrefTranslator } from "../../src/core/href-translator.js";
 import type { AnyPathAtlas } from "../../src/core/path-atlas.js";
 
 describe("HrefCanonicalizer", () => {
@@ -22,6 +23,34 @@ describe("HrefCanonicalizer", () => {
 
   it("get returns MappedHrefResult", () => {
     expectTypeOf<HrefCanonicalizer["get"]>().returns.toEqualTypeOf<MappedHrefResult>();
+  });
+});
+
+describe("HrefCanonicalizer - negative constructor tests", () => {
+  it("rejects construction without arguments", () => {
+    // @ts-expect-error - all three arguments are required
+    new HrefCanonicalizer();
+  });
+
+  it("rejects construction with wrong atlas type", () => {
+    // @ts-expect-error - first argument must be AnyPathAtlas
+    new HrefCanonicalizer("not atlas", ["en"], "en");
+  });
+
+  it("rejects construction with non-array locales", () => {
+    // @ts-expect-error - second argument must be readonly string[]
+    new HrefCanonicalizer({} as AnyPathAtlas, "en", "en");
+  });
+
+  it("rejects construction with non-string defaultLocale", () => {
+    // @ts-expect-error - third argument must be string
+    new HrefCanonicalizer({} as AnyPathAtlas, ["en"], 42);
+  });
+});
+
+describe("HrefCanonicalizer - type discrimination", () => {
+  it("get signature differs from HrefTranslator get", () => {
+    expectTypeOf<HrefCanonicalizer["get"]>().not.toEqualTypeOf<HrefTranslator["get"]>();
   });
 });
 

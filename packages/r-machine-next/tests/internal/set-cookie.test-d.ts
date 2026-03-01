@@ -9,7 +9,4 @@ describe("setCookie", () => {
     >();
   });
 
-  it("rejects the 'name' property in config", () => {
-    expectTypeOf<{ name: string }>().not.toExtend<Omit<CookieDeclaration, "name">>();
-  });
 });

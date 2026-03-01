@@ -64,12 +64,13 @@ function createTestStrategy() {
     }
   }
 
+  const rMachine = createMockMachine() as unknown as RMachine<TestAtlas>;
   const strategy = new TestStrategy(
-    createMockMachine() as unknown as RMachine<TestAtlas>,
+    rMachine,
     NextAppStrategyCore.defaultConfig as TestConfig
   );
 
-  return { strategy, mockClientImpl, mockServerImpl };
+  return { strategy, rMachine, mockClientImpl, mockServerImpl };
 }
 
 // ---------------------------------------------------------------------------
@@ -122,9 +123,9 @@ describe("NextAppStrategyCore", () => {
   });
 
   it("stores rMachine and config from constructor", () => {
-    const { strategy } = createTestStrategy();
+    const { strategy, rMachine } = createTestStrategy();
 
-    expect(strategy.rMachine).toBeDefined();
+    expect(strategy.rMachine).toBe(rMachine);
     expect(strategy.config).toBe(NextAppStrategyCore.defaultConfig);
   });
 

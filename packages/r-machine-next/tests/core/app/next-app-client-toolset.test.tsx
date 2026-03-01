@@ -446,9 +446,26 @@ describe("createNextAppClientToolset", () => {
     });
   });
 
-  // -----------------------------------------------------------------------
-  // usePathComposer
-  // -----------------------------------------------------------------------
+  describe("useR", () => {
+    it("returns the resource for the given namespace via NextClientRMachine context", async () => {
+      const { NextClientRMachine, useR } = await createNextAppClientToolset(createMockMachine(), createMockImpl());
+
+      function ResourceDisplay() {
+        const common = useR("common");
+        return <span data-testid="resource">{common.greeting}</span>;
+      }
+
+      await act(async () => {
+        render(
+          <NextClientRMachine locale="en">
+            <ResourceDisplay />
+          </NextClientRMachine>
+        );
+      });
+
+      expect(screen.getByTestId("resource").textContent).toBe("hello");
+    });
+  });
 
   describe("usePathComposer", () => {
     it("delegates to impl.createUsePathComposer", async () => {

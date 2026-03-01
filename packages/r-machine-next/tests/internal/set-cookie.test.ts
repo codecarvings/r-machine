@@ -52,6 +52,21 @@ describe("setCookie", () => {
     expect(Cookies.set).toHaveBeenCalledWith("locale", "en", expect.objectContaining({ expires: undefined }));
   });
 
+  it("sets expires to now when maxAge is 0 (immediate expiry)", () => {
+    const now = new Date("2026-01-15T12:00:00Z");
+    vi.setSystemTime(now);
+
+    setCookie("locale", "en", { maxAge: 0 });
+
+    expect(Cookies.set).toHaveBeenCalledWith(
+      "locale",
+      "en",
+      expect.objectContaining({ expires: new Date("2026-01-15T12:00:00Z") })
+    );
+
+    vi.useRealTimers();
+  });
+
   it("forwards domain, secure, and sameSite", () => {
     const config: Config = {
       domain: ".example.com",
