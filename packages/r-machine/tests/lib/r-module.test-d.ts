@@ -1,0 +1,197 @@
+import { describe, expectTypeOf, it } from "vitest";
+import type { AnyNamespace, AnyR } from "../../src/lib/r.js";
+import type { AnyRFactory, AnyRForge, AnyRModule, R$, RModuleResolver } from "../../src/lib/r-module.js";
+import { resolveR, resolveRFromModule } from "../../src/lib/r-module.js";
+
+describe("R$", () => {
+  it("should be an object type", () => {
+    expectTypeOf<R$>().toBeObject();
+  });
+
+  it("should have readonly namespace property of type string", () => {
+    expectTypeOf<R$>().toHaveProperty("namespace").toEqualTypeOf<string>();
+  });
+
+  it("should have readonly locale property of type string", () => {
+    expectTypeOf<R$>().toHaveProperty("locale").toEqualTypeOf<string>();
+  });
+
+  it("valid R$ object should be assignable", () => {
+    const r$: R$ = { namespace: "common", locale: "en" };
+    expectTypeOf(r$).toExtend<R$>();
+  });
+
+  it("should have exactly two properties", () => {
+    type R$Keys = keyof R$;
+    expectTypeOf<R$Keys>().toEqualTypeOf<"namespace" | "locale">();
+  });
+});
+
+describe("AnyRFactory", () => {
+  it("should be a function type", () => {
+    expectTypeOf<AnyRFactory>().toBeFunction();
+  });
+
+  it("should accept R$ parameter", () => {
+    expectTypeOf<AnyRFactory>().parameter(0).toEqualTypeOf<R$>();
+  });
+
+  it("should return AnyR or Promise<AnyR>", () => {
+    expectTypeOf<AnyRFactory>().returns.toEqualTypeOf<AnyR | Promise<AnyR>>();
+  });
+
+  it("sync factory returning object should be assignable", () => {
+    const syncFactory: AnyRFactory = ($: R$) => ({ greeting: `Hello from ${$.locale}` });
+    expectTypeOf(syncFactory).toExtend<AnyRFactory>();
+  });
+
+  it("async factory returning object should be assignable", () => {
+    const asyncFactory: AnyRFactory = async ($: R$) => ({ greeting: `Hello from ${$.locale}` });
+    expectTypeOf(asyncFactory).toExtend<AnyRFactory>();
+  });
+
+  it("factory using namespace should be valid", () => {
+    const factory: AnyRFactory = ($: R$) => ({ ns: $.namespace, loc: $.locale });
+    expectTypeOf(factory).toExtend<AnyRFactory>();
+  });
+});
+
+describe("AnyRForge", () => {
+  it("should be union of AnyR and AnyRFactory", () => {
+    expectTypeOf<AnyRForge>().toEqualTypeOf<AnyR | AnyRFactory>();
+  });
+
+  it("object should be assignable to AnyRForge", () => {
+    const forge: AnyRForge = { greeting: "Hello" };
+    expectTypeOf(forge).toExtend<AnyRForge>();
+  });
+
+  it("sync factory should be assignable to AnyRForge", () => {
+    const forge: AnyRForge = ($: R$) => ({ greeting: $.locale });
+    expectTypeOf(forge).toExtend<AnyRForge>();
+  });
+
+  it("async factory should be assignable to AnyRForge", () => {
+    const forge: AnyRForge = async ($: R$) => ({ greeting: $.locale });
+    expectTypeOf(forge).toExtend<AnyRForge>();
+  });
+
+  it("AnyR should extend AnyRForge", () => {
+    expectTypeOf<AnyR>().toExtend<AnyRForge>();
+  });
+
+  it("AnyRFactory should extend AnyRForge", () => {
+    expectTypeOf<AnyRFactory>().toExtend<AnyRForge>();
+  });
+});
+
+describe("AnyRModule", () => {
+  it("should be an object type", () => {
+    expectTypeOf<AnyRModule>().toBeObject();
+  });
+
+  it("should have readonly default property", () => {
+    expectTypeOf<AnyRModule>().toHaveProperty("default");
+  });
+
+  it("default should be AnyRForge type", () => {
+    expectTypeOf<AnyRModule["default"]>().toEqualTypeOf<AnyRForge>();
+  });
+
+  it("module with object default should be assignable", () => {
+    const module: AnyRModule = { default: { greeting: "Hello" } };
+    expectTypeOf(module).toExtend<AnyRModule>();
+  });
+
+  it("module with sync factory default should be assignable", () => {
+    const module: AnyRModule = { default: ($: R$) => ({ greeting: $.locale }) };
+    expectTypeOf(module).toExtend<AnyRModule>();
+  });
+
+  it("module with async factory default should be assignable", () => {
+    const module: AnyRModule = { default: async ($: R$) => ({ greeting: $.locale }) };
+    expectTypeOf(module).toExtend<AnyRModule>();
+  });
+});
+
+describe("RModuleResolver", () => {
+  it("should be a function type", () => {
+    expectTypeOf<RModuleResolver>().toBeFunction();
+  });
+
+  it("should accept namespace as first parameter", () => {
+    expectTypeOf<RModuleResolver>().parameter(0).toEqualTypeOf<AnyNamespace>();
+  });
+
+  it("should accept locale string as second parameter", () => {
+    expectTypeOf<RModuleResolver>().parameter(1).toEqualTypeOf<string>();
+  });
+
+  it("should return Promise<AnyRModule>", () => {
+    expectTypeOf<RModuleResolver>().returns.toEqualTypeOf<Promise<AnyRModule>>();
+  });
+
+  it("valid resolver should be assignable", () => {
+    const resolver: RModuleResolver = async (namespace, locale) => ({
+      default: { key: `${namespace}-${locale}` },
+    });
+    expectTypeOf(resolver).toExtend<RModuleResolver>();
+  });
+
+  it("resolver returning factory module should be valid", () => {
+    const resolver: RModuleResolver = async (_namespace, _locale) => ({
+      default: ($: R$) => ({ greeting: $.locale }),
+    });
+    expectTypeOf(resolver).toExtend<RModuleResolver>();
+  });
+});
+
+describe("resolveRFromModule", () => {
+  it("should be a function", () => {
+    expectTypeOf(resolveRFromModule).toBeFunction();
+  });
+
+  it("should accept AnyRModule as first parameter", () => {
+    expectTypeOf(resolveRFromModule).parameter(0).toEqualTypeOf<AnyRModule>();
+  });
+
+  it("should accept R$ as second parameter", () => {
+    expectTypeOf(resolveRFromModule).parameter(1).toEqualTypeOf<R$>();
+  });
+
+  it("should return Promise<AnyR>", () => {
+    expectTypeOf(resolveRFromModule).returns.toEqualTypeOf<Promise<AnyR>>();
+  });
+
+  it("should have correct function signature", () => {
+    expectTypeOf(resolveRFromModule).toEqualTypeOf<(rModule: AnyRModule, $: R$) => Promise<AnyR>>();
+  });
+});
+
+describe("resolveR", () => {
+  it("should be a function", () => {
+    expectTypeOf(resolveR).toBeFunction();
+  });
+
+  it("should accept RModuleResolver as first parameter", () => {
+    expectTypeOf(resolveR).parameter(0).toEqualTypeOf<RModuleResolver>();
+  });
+
+  it("should accept AnyNamespace as second parameter", () => {
+    expectTypeOf(resolveR).parameter(1).toEqualTypeOf<AnyNamespace>();
+  });
+
+  it("should accept locale string as third parameter", () => {
+    expectTypeOf(resolveR).parameter(2).toEqualTypeOf<string>();
+  });
+
+  it("should return Promise<AnyR>", () => {
+    expectTypeOf(resolveR).returns.toEqualTypeOf<Promise<AnyR>>();
+  });
+
+  it("should have correct function signature", () => {
+    expectTypeOf(resolveR).toEqualTypeOf<
+      (rModuleResolver: RModuleResolver, namespace: AnyNamespace, locale: string) => Promise<AnyR>
+    >();
+  });
+});
