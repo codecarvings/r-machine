@@ -1,0 +1,15 @@
+import type { CookieDeclaration } from "r-machine/strategy/web";
+import { describe, expectTypeOf, it } from "vitest";
+import { setCookie } from "../../src/internal/index.js";
+
+describe("setCookie", () => {
+  it("accepts (name, value, config) and returns void", () => {
+    expectTypeOf(setCookie).toEqualTypeOf<
+      (name: string, value: string, config: Omit<CookieDeclaration, "name">) => void
+    >();
+  });
+
+  it("rejects the 'name' property in config", () => {
+    expectTypeOf<{ name: string }>().not.toExtend<Omit<CookieDeclaration, "name">>();
+  });
+});
