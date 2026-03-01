@@ -14,6 +14,8 @@ export function createMockMachine(
     defaultLocale?: string;
     hybridPickR?: (locale: string, namespace: string) => unknown;
     hybridPickRKit?: (locale: string, ...namespaces: string[]) => unknown;
+    pickR?: (locale: string, namespace: string) => Promise<unknown>;
+    pickRKit?: (locale: string, ...namespaces: string[]) => Promise<unknown>;
   } = {}
 ) {
   return {
@@ -30,5 +32,7 @@ export function createMockMachine(
     },
     hybridPickR: vi.fn(overrides.hybridPickR ?? (() => ({ greeting: "hello" }))),
     hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
+    pickR: vi.fn(overrides.pickR ?? (() => Promise.resolve({ greeting: "hello" }))),
+    pickRKit: vi.fn(overrides.pickRKit ?? (() => Promise.resolve([{ greeting: "hello" }, { home: "Home" }]))),
   } as unknown as RMachine<TestAtlas>;
 }

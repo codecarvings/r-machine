@@ -1,0 +1,593 @@
+import { ERR_UNKNOWN_LOCALE, RMachineConfigError, RMachineUsageError } from "r-machine/errors";
+import type { ReactNode } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { RMachineProxy } from "#r-machine/next/core";
+import { ERR_LOCALE_BIND_CONFLICT, ERR_LOCALE_UNDETERMINED } from "#r-machine/next/errors";
+import * as internal from "#r-machine/next/internal";
+import type { NextAppClientRMachine } from "../../../src/core/app/next-app-client-toolset.js";
+import type { NextAppServerImpl } from "../../../src/core/app/next-app-server-toolset.js";
+import { createNextAppServerToolset } from "../../../src/core/app/next-app-server-toolset.js";
+import { createMockMachine } from "../../_fixtures/mock-machine.js";
+
+// ---------------------------------------------------------------------------
+// Mocks
+// ---------------------------------------------------------------------------
+
+const mockNotFound = vi.fn((): never => {
+  throw new Error("NEXT_NOT_FOUND");
+});
+
+vi.mock("next/navigation", () => ({
+  notFound: () => mockNotFound(),
+}));
+
+const mockHeadersMap = new Map<string, string>();
+
+vi.mock("next/headers", () => ({
+  cookies: vi.fn(async () => ({})),
+  headers: vi.fn(async () => ({
+    get: (name: string) => mockHeadersMap.get(name) ?? null,
+  })),
+}));
+
+// Simplified mock: models cache() as a per-closure memoize-once.
+// This does not replicate React's per-request cache scope.
+// Each call to createNextAppServerToolset creates a fresh closure, preserving test isolation.
+vi.mock("react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react")>();
+  return {
+    ...actual,
+    cache: <T extends (...args: unknown[]) => unknown>(fn: T): T => {
+      let cached: unknown;
+      let hasCached = false;
+      return ((...args: unknown[]) => {
+        if (!hasCached) {
+          cached = fn(...args);
+          hasCached = true;
+        }
+        return cached;
+      }) as unknown as T;
+    },
+  };
+});
+
+vi.mock("#r-machine/next/internal", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("#r-machine/next/internal")>();
+  return {
+    ...actual,
+    validateServerOnlyUsage: vi.fn(),
+  };
+});
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function createMockImpl(overrides: Partial<NextAppServerImpl> = {}): NextAppServerImpl {
+  return {
+    localeKey: overrides.localeKey ?? "locale",
+    autoLocaleBinding: overrides.autoLocaleBinding ?? false,
+    writeLocale: overrides.writeLocale ?? vi.fn(),
+    createLocaleStaticParamsGenerator:
+      overrides.createLocaleStaticParamsGenerator ??
+      vi.fn(async () => async () => [{ locale: "en" }, { locale: "it" }]),
+    createProxy: overrides.createProxy ?? vi.fn(async (): Promise<RMachineProxy> => vi.fn() as RMachineProxy),
+    createBoundPathComposerSupplier:
+      overrides.createBoundPathComposerSupplier ?? vi.fn(async () => async () => vi.fn(() => "/")),
+  };
+}
+
+const MockNextClientRMachine = vi.fn(
+  ({ children }: { locale: string; children: ReactNode }): ReactNode => children
+) as unknown as NextAppClientRMachine;
+
+async function createToolset(
+  machineOverrides?: Parameters<typeof createMockMachine>[0],
+  implOverrides?: Partial<NextAppServerImpl>
+) {
+  return createNextAppServerToolset(
+    createMockMachine(machineOverrides),
+    createMockImpl(implOverrides),
+    MockNextClientRMachine
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Setup / Teardown
+// ---------------------------------------------------------------------------
+
+afterEach(() => {
+  mockHeadersMap.clear();
+  vi.clearAllMocks();
+});
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe("createNextAppServerToolset", () => {
+  it("returns a toolset with all expected members", async () => {
+    const toolset = await createToolset();
+
+    expect(toolset).toHaveProperty("rMachineProxy");
+    expect(toolset).toHaveProperty("NextServerRMachine");
+    expect(toolset).toHaveProperty("generateLocaleStaticParams");
+    expect(toolset).toHaveProperty("bindLocale");
+    expect(toolset).toHaveProperty("getLocale");
+    expect(toolset).toHaveProperty("setLocale");
+    expect(toolset).toHaveProperty("pickR");
+    expect(toolset).toHaveProperty("pickRKit");
+    expect(toolset).toHaveProperty("getPathComposer");
+  });
+
+  it("delegates rMachineProxy to impl.createProxy", async () => {
+    const proxy = vi.fn() as RMachineProxy;
+    const toolset = await createToolset(undefined, {
+      createProxy: vi.fn(async (): Promise<RMachineProxy> => proxy),
+    });
+
+    expect(toolset.rMachineProxy).toBe(proxy);
+  });
+
+  it("delegates generateLocaleStaticParams to impl", async () => {
+    const params = [{ locale: "en" }, { locale: "it" }];
+    const generator = vi.fn(async () => params);
+    const toolset = await createToolset(undefined, {
+      createLocaleStaticParamsGenerator: vi.fn(async () => generator),
+    });
+
+    const result = await toolset.generateLocaleStaticParams();
+
+    expect(result).toEqual(params);
+    expect(generator).toHaveBeenCalled();
+  });
+
+  it("delegates getPathComposer to impl.createBoundPathComposerSupplier", async () => {
+    const composer = vi.fn(() => "/composed");
+    const supplier = vi.fn(async () => composer);
+    const toolset = await createToolset(undefined, {
+      createBoundPathComposerSupplier: vi.fn(async () => supplier),
+    });
+
+    expect(toolset.getPathComposer).toBe(supplier);
+  });
+
+  // -----------------------------------------------------------------------
+  // bindLocale
+  // -----------------------------------------------------------------------
+
+  describe("bindLocale", () => {
+    it("returns the canonical locale for a valid locale string", async () => {
+      const toolset = await createToolset();
+
+      const result = toolset.bindLocale("en");
+
+      expect(result).toBe("en");
+    });
+
+    it("calls notFound for an invalid locale string", async () => {
+      const toolset = await createToolset();
+
+      expect(() => toolset.bindLocale("xx")).toThrow("NEXT_NOT_FOUND");
+      expect(mockNotFound).toHaveBeenCalled();
+    });
+
+    it("allows rebinding with the same value", async () => {
+      const toolset = await createToolset();
+
+      toolset.bindLocale("en");
+      const result = toolset.bindLocale("en");
+
+      expect(result).toBe("en");
+    });
+
+    it("throws ERR_LOCALE_BIND_CONFLICT when bound with different values", async () => {
+      const toolset = await createToolset();
+
+      toolset.bindLocale("en");
+
+      try {
+        toolset.bindLocale("it");
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineUsageError);
+        expect((error as RMachineUsageError).code).toBe(ERR_LOCALE_BIND_CONFLICT);
+      }
+    });
+
+    it("includes both locale values in the conflict error message", async () => {
+      const toolset = await createToolset();
+
+      toolset.bindLocale("en");
+
+      expect(() => toolset.bindLocale("it")).toThrow(/en.*it/);
+    });
+
+    it("skips validation on second call with a previously validated locale", async () => {
+      const machine = createMockMachine();
+      const toolset = await createNextAppServerToolset(machine, createMockImpl(), MockNextClientRMachine);
+
+      toolset.bindLocale("en");
+      toolset.bindLocale("en");
+
+      expect(machine.localeHelper.validateLocale).toHaveBeenCalledTimes(1);
+    });
+
+    it("resolves params promise and binds the locale key", async () => {
+      const toolset = await createToolset();
+      const params = Promise.resolve({ locale: "it" });
+
+      const result = await toolset.bindLocale(params);
+
+      expect(result).toEqual({ locale: "it" });
+    });
+
+    it("calls notFound for invalid locale in async params", async () => {
+      const toolset = await createToolset();
+      const params = Promise.resolve({ locale: "xx" });
+
+      await expect(toolset.bindLocale(params)).rejects.toThrow("NEXT_NOT_FOUND");
+      expect(mockNotFound).toHaveBeenCalled();
+    });
+
+    it("throws ERR_LOCALE_BIND_CONFLICT when async bind is followed by a conflicting sync bind", async () => {
+      const toolset = await createToolset();
+
+      await toolset.bindLocale(Promise.resolve({ locale: "en" }));
+
+      expect(() => toolset.bindLocale("it")).toThrow(RMachineUsageError);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // getLocale
+  // -----------------------------------------------------------------------
+
+  describe("getLocale", () => {
+    it("returns bound locale when bindLocale was called first", async () => {
+      const toolset = await createToolset();
+
+      toolset.bindLocale("en");
+      const locale = await toolset.getLocale();
+
+      expect(locale).toBe("en");
+    });
+
+    describe("with autoLocaleBinding", () => {
+      it("reads locale from the x-rm-locale header", async () => {
+        mockHeadersMap.set("x-rm-locale", "it");
+        const toolset = await createToolset(undefined, { autoLocaleBinding: true });
+
+        const locale = await toolset.getLocale();
+
+        expect(locale).toBe("it");
+      });
+
+      it("throws ERR_LOCALE_UNDETERMINED when header is missing", async () => {
+        const toolset = await createToolset(undefined, { autoLocaleBinding: true });
+
+        try {
+          await toolset.getLocale();
+          expect.unreachable("should have thrown");
+        } catch (error) {
+          expect(error).toBeInstanceOf(RMachineUsageError);
+          expect((error as RMachineUsageError).code).toBe(ERR_LOCALE_UNDETERMINED);
+        }
+      });
+
+      it("caches the header lookup promise within a request", async () => {
+        mockHeadersMap.set("x-rm-locale", "en");
+        const toolset = await createToolset(undefined, { autoLocaleBinding: true });
+
+        const [a, b] = await Promise.all([toolset.getLocale(), toolset.getLocale()]);
+
+        expect(a).toBe("en");
+        expect(b).toBe("en");
+
+        const headersMock = await import("next/headers");
+        expect(vi.mocked(headersMock.headers)).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe("without autoLocaleBinding", () => {
+      it("throws ERR_LOCALE_UNDETERMINED when bindLocale was not called", async () => {
+        const toolset = await createToolset(undefined, { autoLocaleBinding: false });
+
+        try {
+          await toolset.getLocale();
+          expect.unreachable("should have thrown");
+        } catch (error) {
+          expect(error).toBeInstanceOf(RMachineUsageError);
+          expect((error as RMachineUsageError).code).toBe(ERR_LOCALE_UNDETERMINED);
+        }
+      });
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // setLocale
+  // -----------------------------------------------------------------------
+
+  describe("setLocale", () => {
+    it("calls impl.writeLocale with the current and new locale", async () => {
+      const writeLocale = vi.fn();
+      const toolset = await createToolset(undefined, {
+        writeLocale,
+        autoLocaleBinding: false,
+      });
+
+      toolset.bindLocale("en");
+      await toolset.setLocale("it");
+
+      expect(writeLocale).toHaveBeenCalledTimes(1);
+      expect(writeLocale).toHaveBeenCalledWith("en", "it", expect.any(Function), expect.any(Function));
+    });
+
+    it("passes undefined as current locale when locale is not bound", async () => {
+      const writeLocale = vi.fn();
+      const toolset = await createToolset(undefined, {
+        writeLocale,
+        autoLocaleBinding: false,
+      });
+
+      await toolset.setLocale("en");
+
+      expect(writeLocale).toHaveBeenCalledWith(undefined, "en", expect.any(Function), expect.any(Function));
+    });
+
+    it("throws RMachineUsageError for an invalid locale", async () => {
+      const toolset = await createToolset();
+
+      try {
+        await toolset.setLocale("xx");
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineUsageError);
+        expect((error as RMachineUsageError).code).toBe(ERR_UNKNOWN_LOCALE);
+      }
+    });
+
+    it("includes the invalid locale in the error message", async () => {
+      const toolset = await createToolset();
+
+      await expect(toolset.setLocale("xx")).rejects.toThrow(/xx/);
+    });
+
+    it("wraps the validation error as innerError", async () => {
+      const toolset = await createToolset();
+
+      try {
+        await toolset.setLocale("xx");
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineUsageError);
+        expect((error as RMachineUsageError).innerError).toBeInstanceOf(RMachineConfigError);
+      }
+    });
+
+    it("does not call writeLocale when locale is invalid", async () => {
+      const writeLocale = vi.fn();
+      const toolset = await createToolset(undefined, { writeLocale });
+
+      try {
+        await toolset.setLocale("xx");
+      } catch {
+        // expected
+      }
+
+      expect(writeLocale).not.toHaveBeenCalled();
+    });
+
+    it("reads current locale from header when autoLocaleBinding is enabled and no binding exists", async () => {
+      mockHeadersMap.set("x-rm-locale", "en");
+      const writeLocale = vi.fn();
+      const toolset = await createToolset(undefined, {
+        writeLocale,
+        autoLocaleBinding: true,
+      });
+
+      await toolset.setLocale("it");
+
+      expect(writeLocale).toHaveBeenCalledWith("en", "it", expect.any(Function), expect.any(Function));
+    });
+
+    it("passes undefined as current locale when autoLocaleBinding is enabled but header is missing", async () => {
+      const writeLocale = vi.fn();
+      const toolset = await createToolset(undefined, {
+        writeLocale,
+        autoLocaleBinding: true,
+      });
+
+      await toolset.setLocale("en");
+
+      expect(writeLocale).toHaveBeenCalledWith(undefined, "en", expect.any(Function), expect.any(Function));
+    });
+
+    it("reuses the pending unsafe locale promise for concurrent calls", async () => {
+      mockHeadersMap.set("x-rm-locale", "en");
+      const writeLocale = vi.fn();
+      const toolset = await createToolset(undefined, {
+        writeLocale,
+        autoLocaleBinding: true,
+      });
+
+      await Promise.all([toolset.setLocale("it"), toolset.setLocale("it")]);
+
+      expect(writeLocale).toHaveBeenCalledTimes(2);
+      expect(writeLocale).toHaveBeenCalledWith("en", "it", expect.any(Function), expect.any(Function));
+
+      const headersMock = await import("next/headers");
+      expect(vi.mocked(headersMock.headers)).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // pickR
+  // -----------------------------------------------------------------------
+
+  describe("pickR", () => {
+    it("delegates to rMachine.pickR with bound locale", async () => {
+      const resources = { greeting: "ciao" };
+      const machine = createMockMachine({
+        pickR: () => Promise.resolve(resources),
+      });
+      const toolset = await createNextAppServerToolset(machine, createMockImpl(), MockNextClientRMachine);
+
+      toolset.bindLocale("it");
+      const result = await toolset.pickR("common");
+
+      expect(result).toBe(resources);
+      expect(machine.pickR).toHaveBeenCalledWith("it", "common");
+    });
+
+    it("delegates to rMachine.pickR when locale is resolved from header", async () => {
+      mockHeadersMap.set("x-rm-locale", "it");
+      const machine = createMockMachine();
+      const toolset = await createNextAppServerToolset(
+        machine,
+        createMockImpl({ autoLocaleBinding: true }),
+        MockNextClientRMachine
+      );
+
+      await toolset.pickR("common");
+
+      expect(machine.pickR).toHaveBeenCalledWith("it", "common");
+    });
+
+    it("throws ERR_LOCALE_UNDETERMINED when locale is not bound and autoLocaleBinding is false", async () => {
+      const toolset = await createToolset(undefined, { autoLocaleBinding: false });
+
+      try {
+        await toolset.pickR("common");
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineUsageError);
+        expect((error as RMachineUsageError).code).toBe(ERR_LOCALE_UNDETERMINED);
+      }
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // pickRKit
+  // -----------------------------------------------------------------------
+
+  describe("pickRKit", () => {
+    it("delegates to rMachine.pickRKit with bound locale", async () => {
+      const kit = [{ greeting: "hello" }, { home: "Home" }];
+      const machine = createMockMachine({
+        pickRKit: () => Promise.resolve(kit),
+      });
+      const toolset = await createNextAppServerToolset(machine, createMockImpl(), MockNextClientRMachine);
+
+      toolset.bindLocale("en");
+      const result = await toolset.pickRKit("common", "nav");
+
+      expect(result).toBe(kit);
+      expect(machine.pickRKit).toHaveBeenCalledWith("en", "common", "nav");
+    });
+
+    it("delegates to rMachine.pickRKit when locale is resolved from header", async () => {
+      mockHeadersMap.set("x-rm-locale", "en");
+      const machine = createMockMachine();
+      const toolset = await createNextAppServerToolset(
+        machine,
+        createMockImpl({ autoLocaleBinding: true }),
+        MockNextClientRMachine
+      );
+
+      await toolset.pickRKit("common", "nav");
+
+      expect(machine.pickRKit).toHaveBeenCalledWith("en", "common", "nav");
+    });
+
+    it("throws ERR_LOCALE_UNDETERMINED when locale is not bound and autoLocaleBinding is false", async () => {
+      const toolset = await createToolset(undefined, { autoLocaleBinding: false });
+
+      try {
+        await toolset.pickRKit("common", "nav");
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineUsageError);
+        expect((error as RMachineUsageError).code).toBe(ERR_LOCALE_UNDETERMINED);
+      }
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // NextServerRMachine
+  // -----------------------------------------------------------------------
+
+  describe("NextServerRMachine", () => {
+    it("renders NextClientRMachine with the resolved locale", async () => {
+      const toolset = await createToolset();
+
+      toolset.bindLocale("en");
+      const element = (await toolset.NextServerRMachine({ children: "hello" })) as {
+        type: unknown;
+        props: { locale: string; children: ReactNode };
+      };
+
+      expect(element.type).toBe(MockNextClientRMachine);
+      expect(element.props.locale).toBe("en");
+      expect(element.props.children).toBe("hello");
+    });
+
+    it("resolves locale from header when autoLocaleBinding is enabled", async () => {
+      mockHeadersMap.set("x-rm-locale", "it");
+      const toolset = await createToolset(undefined, { autoLocaleBinding: true });
+
+      const element = (await toolset.NextServerRMachine({ children: "ciao" })) as {
+        props: { locale: string };
+      };
+
+      expect(element.props.locale).toBe("it");
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // validateServerOnlyUsage
+  // -----------------------------------------------------------------------
+
+  describe("validateServerOnlyUsage", () => {
+    it("bindLocale calls validateServerOnlyUsage", async () => {
+      const toolset = await createToolset();
+      toolset.bindLocale("en");
+      expect(vi.mocked(internal.validateServerOnlyUsage)).toHaveBeenCalledWith("bindLocale");
+    });
+
+    it("getLocale calls validateServerOnlyUsage", async () => {
+      const toolset = await createToolset();
+      toolset.bindLocale("en");
+      await toolset.getLocale();
+      expect(vi.mocked(internal.validateServerOnlyUsage)).toHaveBeenCalledWith("getLocale");
+    });
+
+    it("setLocale calls validateServerOnlyUsage", async () => {
+      const toolset = await createToolset();
+      toolset.bindLocale("en");
+      await toolset.setLocale("it");
+      expect(vi.mocked(internal.validateServerOnlyUsage)).toHaveBeenCalledWith("setLocale");
+    });
+
+    it("pickR calls validateServerOnlyUsage", async () => {
+      const toolset = await createToolset();
+      toolset.bindLocale("en");
+      await toolset.pickR("common");
+      expect(vi.mocked(internal.validateServerOnlyUsage)).toHaveBeenCalledWith("pickR");
+    });
+
+    it("pickRKit calls validateServerOnlyUsage", async () => {
+      const toolset = await createToolset();
+      toolset.bindLocale("en");
+      await toolset.pickRKit("common");
+      expect(vi.mocked(internal.validateServerOnlyUsage)).toHaveBeenCalledWith("pickRKit");
+    });
+
+    it("NextServerRMachine calls validateServerOnlyUsage", async () => {
+      const toolset = await createToolset();
+      toolset.bindLocale("en");
+      await toolset.NextServerRMachine({ children: "test" });
+      expect(vi.mocked(internal.validateServerOnlyUsage)).toHaveBeenCalledWith("NextServerRMachine");
+    });
+  });
+});

@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/suspicious/noTemplateCurlyInString: This is intentional for the tests */
+
 import { describe, expectTypeOf, it } from "vitest";
 import type {
   AnyPathAtlas,
@@ -44,9 +46,7 @@ describe("PathAtlasCtor", () => {
 
 describe("ExtendedPathAtlas", () => {
   it("intersects PA with containsTranslations boolean", () => {
-    expectTypeOf<ExtendedPathAtlas<TestAtlas>>().toEqualTypeOf<
-      TestAtlas & { containsTranslations: boolean }
-    >();
+    expectTypeOf<ExtendedPathAtlas<TestAtlas>>().toEqualTypeOf<TestAtlas & { containsTranslations: boolean }>();
   });
 });
 
