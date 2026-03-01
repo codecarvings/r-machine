@@ -213,6 +213,16 @@ describe("createNextAppServerToolset", () => {
       expect(machine.localeHelper.validateLocale).toHaveBeenCalledTimes(1);
     });
 
+    it("reuses the locale cache across sync and async bindLocale calls", async () => {
+      const machine = createMockMachine();
+      const toolset = await createNextAppServerToolset(machine, createMockImpl(), MockNextClientRMachine);
+
+      toolset.bindLocale("en");
+      await toolset.bindLocale(Promise.resolve({ locale: "en" }));
+
+      expect(machine.localeHelper.validateLocale).toHaveBeenCalledTimes(1);
+    });
+
     it("resolves params promise and binds the locale key", async () => {
       const toolset = await createToolset();
       const params = Promise.resolve({ locale: "it" });
@@ -541,6 +551,30 @@ describe("createNextAppServerToolset", () => {
       };
 
       expect(element.props.locale).toBe("it");
+    });
+
+    it("throws ERR_LOCALE_UNDETERMINED when locale is not bound and autoLocaleBinding is false", async () => {
+      const toolset = await createToolset(undefined, { autoLocaleBinding: false });
+
+      try {
+        await toolset.NextServerRMachine({ children: "test" });
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineUsageError);
+        expect((error as RMachineUsageError).code).toBe(ERR_LOCALE_UNDETERMINED);
+      }
+    });
+
+    it("throws ERR_LOCALE_UNDETERMINED when autoLocaleBinding is enabled but header is missing", async () => {
+      const toolset = await createToolset(undefined, { autoLocaleBinding: true });
+
+      try {
+        await toolset.NextServerRMachine({ children: "test" });
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineUsageError);
+        expect((error as RMachineUsageError).code).toBe(ERR_LOCALE_UNDETERMINED);
+      }
     });
   });
 

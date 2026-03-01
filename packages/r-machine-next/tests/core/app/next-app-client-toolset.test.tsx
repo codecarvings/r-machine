@@ -472,5 +472,26 @@ describe("createNextAppClientToolset", () => {
 
       expect(result.current).toBe(composerFn);
     });
+
+    it("passes useLocale as argument to createUsePathComposer", async () => {
+      let capturedUseLocale: (() => string) | undefined;
+      const createUsePathComposer = vi.fn((useLocale: () => string) => {
+        capturedUseLocale = useLocale;
+        return () => vi.fn(() => "/") as any;
+      });
+
+      const { NextClientRMachine } = await createNextAppClientToolset(
+        createMockMachine(),
+        createMockImpl({ createUsePathComposer })
+      );
+
+      const { result } = renderHook(() => capturedUseLocale!(), {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <NextClientRMachine locale="it">{children}</NextClientRMachine>
+        ),
+      });
+
+      expect(result.current).toBe("it");
+    });
   });
 });
