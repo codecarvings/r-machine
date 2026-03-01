@@ -9,9 +9,9 @@ import {
   type ReactStandardStrategyConfig,
   ReactStandardStrategyCore,
 } from "../../../src/core/react-standard-strategy-core.js";
-import type { TestAtlas } from "../../helpers/mock-machine.js";
-import { createMockMachine } from "../../helpers/mock-machine.js";
-import { configWith, syncStore } from "../../helpers/mock-strategy-config.js";
+import type { TestAtlas } from "../_fixtures/mock-machine.js";
+import { createMockMachine } from "../_fixtures/mock-machine.js";
+import { configWith, syncStore } from "../_fixtures/mock-strategy-config.js";
 
 afterEach(cleanup);
 

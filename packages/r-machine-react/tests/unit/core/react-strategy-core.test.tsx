@@ -6,9 +6,9 @@ import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ReactStrategyCore } from "../../../src/core/react-strategy-core.js";
 import type { ReactImpl } from "../../../src/core/react-toolset.js";
-import { createMockImpl } from "../../helpers/mock-impl.js";
-import type { TestAtlas } from "../../helpers/mock-machine.js";
-import { createMockMachine } from "../../helpers/mock-machine.js";
+import { createMockImpl } from "../_fixtures/mock-impl.js";
+import type { TestAtlas } from "../_fixtures/mock-machine.js";
+import { createMockMachine } from "../_fixtures/mock-machine.js";
 
 afterEach(cleanup);
 

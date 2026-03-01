@@ -7,7 +7,7 @@ import {
   docsWithCatchAllAtlas,
   docsWithOptionalCatchAllAtlas,
   productsAtlas,
-} from "./_helpers.js";
+} from "../_fixtures/_helpers.js";
 
 describe("getCanonicalizedHref", () => {
   it("returns root path for empty segments", () => {

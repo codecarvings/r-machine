@@ -1,9 +1,9 @@
 import type { RMachine } from "r-machine";
 import type { ReactNode } from "react";
 import { describe, expectTypeOf, it } from "vitest";
+import type { SuspenseComponent } from "#r-machine/react/utils";
 import type { ReactImpl, ReactRMachine, ReactToolset } from "../../../src/core/react-toolset.js";
 import { createReactToolset } from "../../../src/core/react-toolset.js";
-import type { SuspenseComponent } from "../../../src/utils/delayed-suspense.js";
 
 type TestAtlas = {
   readonly common: { readonly greeting: string };

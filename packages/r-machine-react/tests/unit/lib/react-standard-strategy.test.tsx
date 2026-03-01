@@ -3,10 +3,10 @@ import type { CustomLocaleDetector } from "r-machine/strategy";
 import { Strategy } from "r-machine/strategy";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { ReactStandardStrategyCore } from "../../../src/core/react-standard-strategy-core.js";
+import { ReactStandardStrategyCore } from "#r-machine/react/core";
 import { ReactStandardStrategy } from "../../../src/lib/react-standard-strategy.js";
-import { createMockMachine } from "../../helpers/mock-machine.js";
-import { syncStore } from "../../helpers/mock-strategy-config.js";
+import { createMockMachine } from "../_fixtures/mock-machine.js";
+import { syncStore } from "../_fixtures/mock-strategy-config.js";
 
 afterEach(cleanup);
 

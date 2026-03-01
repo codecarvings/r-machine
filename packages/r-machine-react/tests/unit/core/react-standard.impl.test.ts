@@ -2,8 +2,8 @@ import { ERR_UNKNOWN_LOCALE, RMachineConfigError, RMachineUsageError } from "r-m
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { describe, expect, it, vi } from "vitest";
 import { createReactStandardImpl } from "../../../src/core/react-standard.impl.js";
-import { createMockMachine } from "../../helpers/mock-machine.js";
-import { asyncStore, configWith, syncStore } from "../../helpers/mock-strategy-config.js";
+import { createMockMachine } from "../_fixtures/mock-machine.js";
+import { asyncStore, configWith, syncStore } from "../_fixtures/mock-strategy-config.js";
 
 // ---------------------------------------------------------------------------
 // createReactStandardImpl

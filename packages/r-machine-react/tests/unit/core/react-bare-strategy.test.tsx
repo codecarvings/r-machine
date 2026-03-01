@@ -1,7 +1,7 @@
 import { Strategy } from "r-machine/strategy";
 import { describe, expect, it } from "vitest";
 import { ReactBareStrategy } from "../../../src/core/react-bare-strategy.js";
-import { createMockMachine } from "../../helpers/mock-machine.js";
+import { createMockMachine } from "../_fixtures/mock-machine.js";
 
 describe("ReactBareStrategy", () => {
   describe("construction", () => {

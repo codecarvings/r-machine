@@ -7,7 +7,7 @@ import {
   docsWithCatchAllAtlas,
   docsWithOptionalCatchAllAtlas,
   productsAtlas,
-} from "./_helpers.js";
+} from "../_fixtures/_helpers.js";
 
 describe("getTranslatedHref", () => {
   describe("static segments", () => {

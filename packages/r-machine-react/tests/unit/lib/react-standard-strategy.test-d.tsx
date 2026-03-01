@@ -5,9 +5,9 @@ import type {
   PartialReactStandardStrategyConfig,
   ReactStandardStrategyConfig,
   ReactStandardStrategyCore,
-} from "../../../src/core/react-standard-strategy-core.js";
-import type { ReactStrategyCore } from "../../../src/core/react-strategy-core.js";
-import type { ReactToolset } from "../../../src/core/react-toolset.js";
+  ReactStrategyCore,
+  ReactToolset,
+} from "#r-machine/react/core";
 import { ReactStandardStrategy } from "../../../src/lib/react-standard-strategy.js";
 
 // ---------------------------------------------------------------------------

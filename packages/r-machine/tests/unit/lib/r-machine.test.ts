@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { RMachineError } from "../../../src/errors/r-machine-error.js";
+import { RMachineError } from "#r-machine/errors";
 import { RMachine } from "../../../src/lib/r-machine.js";
 import type { RMachineConfig } from "../../../src/lib/r-machine-config.js";
 import type { AnyRModule, RModuleResolver } from "../../../src/lib/r-module.js";

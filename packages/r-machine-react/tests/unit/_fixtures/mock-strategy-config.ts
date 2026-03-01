@@ -1,6 +1,6 @@
 import type { CustomLocaleStore } from "r-machine/strategy";
 import { vi } from "vitest";
-import type { ReactStandardStrategyConfig } from "../../src/core/react-standard-strategy-core.js";
+import type { ReactStandardStrategyConfig } from "../../../src/core/react-standard-strategy-core.js";
 
 export function configWith(overrides: Partial<ReactStandardStrategyConfig> = {}): ReactStandardStrategyConfig {
   return {

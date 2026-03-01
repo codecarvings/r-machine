@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 
-import type { RMachineError } from "../../../src/errors/r-machine-error.js";
+import type { RMachineError } from "#r-machine/errors";
 import { LocaleHelper } from "../../../src/lib/locale-helper.js";
 import type { MatchLocalesAlgorithm } from "../../../src/locale/locale-matcher.js";
 

@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { ReactImpl } from "../../src/core/react-toolset.js";
+import type { ReactImpl } from "../../../src/core/react-toolset.js";
 
 export function createMockImpl(overrides: Partial<ReactImpl> = {}): ReactImpl {
   return {

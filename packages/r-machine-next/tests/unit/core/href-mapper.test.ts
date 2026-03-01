@@ -6,7 +6,7 @@ import {
   type MappedHrefResult,
 } from "../../../src/core/href-mapper.js";
 import type { AnyPathAtlas } from "../../../src/core/path-atlas.js";
-import { createMockAtlas } from "./_helpers.js";
+import { createMockAtlas } from "../_fixtures/_helpers.js";
 
 describe("getSegmentData", () => {
   it.each([

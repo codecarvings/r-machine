@@ -3,10 +3,10 @@ import { RMachineError } from "r-machine/errors";
 import type { ReactNode } from "react";
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "#r-machine/react/errors";
 import { createReactBareToolset } from "../../../src/core/react-bare-toolset.js";
-import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "../../../src/errors/error-codes.js";
-import { createMockMachine } from "../../helpers/mock-machine.js";
-import { React19ErrorBoundary } from "../../helpers/react19-error-boundary.js";
+import { createMockMachine } from "../_fixtures/mock-machine.js";
+import { React19ErrorBoundary } from "../_fixtures/react19-error-boundary.js";
 
 afterEach(cleanup);
 
