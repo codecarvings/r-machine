@@ -1,11 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyResourceAtlas } from "../../src/lib/index.js";
-import type {
-  CustomLocaleDetector,
-  CustomLocaleStore,
-  Strategy,
-  SwitchableOption,
-} from "../../src/strategy/index.js";
+import type { CustomLocaleDetector, CustomLocaleStore, Strategy, SwitchableOption } from "../../src/strategy/index.js";
 
 describe("strategy barrel exports", () => {
   it("exports all expected symbols", () => {

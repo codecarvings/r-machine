@@ -1,7 +1,7 @@
 import type { AnyResourceAtlas, RMachine } from "r-machine";
 import type { AnyPathAtlas } from "#r-machine/next/core";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
-import type { NextAppClientRMachine } from "./index.js";
+import type { NextAppClientRMachine } from "./next-app-client-toolset.js";
 import {
   createNextAppServerToolset,
   type NextAppServerImpl,
