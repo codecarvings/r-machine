@@ -8,5 +8,4 @@ describe("setCookie", () => {
       (name: string, value: string, config: Omit<CookieDeclaration, "name">) => void
     >();
   });
-
 });

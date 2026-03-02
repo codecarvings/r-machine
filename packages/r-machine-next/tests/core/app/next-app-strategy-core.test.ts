@@ -65,10 +65,7 @@ function createTestStrategy() {
   }
 
   const rMachine = createMockMachine() as unknown as RMachine<TestAtlas>;
-  const strategy = new TestStrategy(
-    rMachine,
-    NextAppStrategyCore.defaultConfig as TestConfig
-  );
+  const strategy = new TestStrategy(rMachine, NextAppStrategyCore.defaultConfig as TestConfig);
 
   return { strategy, rMachine, mockClientImpl, mockServerImpl };
 }
