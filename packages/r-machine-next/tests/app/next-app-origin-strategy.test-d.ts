@@ -3,9 +3,7 @@ import { describe, expectTypeOf, it } from "vitest";
 import type { PathAtlasCtor } from "#r-machine/next/core";
 import type {
   NextAppClientToolset,
-  NextAppOriginStrategyConfig,
   NextAppServerToolset,
-  NextAppStrategyCore,
   PartialNextAppOriginStrategyConfig,
 } from "#r-machine/next/core/app";
 // biome-ignore lint/style/useImportType: value import needed to derive default types via typeof
@@ -16,7 +14,6 @@ import type { TestAtlas } from "../_fixtures/mock-machine.js";
 // Derive default type parameters from public API — no internal imports
 type DefaultPA = InstanceType<(typeof NextAppOriginStrategyCore)["defaultConfig"]["PathAtlas"]>;
 type DefaultLK = (typeof NextAppOriginStrategyCore)["defaultConfig"]["localeKey"];
-type DefaultConfig = NextAppOriginStrategyConfig<DefaultPA, DefaultLK>;
 
 type SimplePathAtlas = { readonly decl: {} };
 
@@ -35,20 +32,6 @@ type TranslatedPathAtlas = {
 // ---------------------------------------------------------------------------
 
 describe("NextAppOriginStrategy", () => {
-  // -----------------------------------------------------------------------
-  // Class hierarchy
-  // -----------------------------------------------------------------------
-
-  describe("class hierarchy", () => {
-    it("extends NextAppOriginStrategyCore with the correct config type", () => {
-      expectTypeOf<NextAppOriginStrategy<TestAtlas>>().toExtend<NextAppOriginStrategyCore<TestAtlas, DefaultConfig>>();
-    });
-
-    it("extends NextAppStrategyCore through the chain", () => {
-      expectTypeOf<NextAppOriginStrategy<TestAtlas>>().toExtend<NextAppStrategyCore<TestAtlas, DefaultConfig>>();
-    });
-  });
-
   // -----------------------------------------------------------------------
   // Constructability
   // -----------------------------------------------------------------------

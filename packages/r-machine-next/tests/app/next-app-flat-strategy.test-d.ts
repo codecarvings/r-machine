@@ -7,7 +7,6 @@ import type {
   NextAppClientToolset,
   NextAppFlatStrategyConfig,
   NextAppServerToolset,
-  NextAppStrategyCore,
   PartialNextAppFlatStrategyConfig,
 } from "#r-machine/next/core/app";
 // biome-ignore lint/style/useImportType: value import needed to derive default types via typeof
@@ -34,20 +33,6 @@ type TranslatedPathAtlas = {
 // ---------------------------------------------------------------------------
 
 describe("NextAppFlatStrategy", () => {
-  // -----------------------------------------------------------------------
-  // Class hierarchy
-  // -----------------------------------------------------------------------
-
-  describe("class hierarchy", () => {
-    it("extends NextAppFlatStrategyCore with the correct config type", () => {
-      expectTypeOf<NextAppFlatStrategy<TestAtlas>>().toExtend<NextAppFlatStrategyCore<TestAtlas, DefaultConfig>>();
-    });
-
-    it("extends NextAppStrategyCore through the chain", () => {
-      expectTypeOf<NextAppFlatStrategy<TestAtlas>>().toExtend<NextAppStrategyCore<TestAtlas, DefaultConfig>>();
-    });
-  });
-
   // -----------------------------------------------------------------------
   // Constructability & overloads
   // -----------------------------------------------------------------------

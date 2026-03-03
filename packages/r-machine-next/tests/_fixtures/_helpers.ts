@@ -46,3 +46,10 @@ export class DynamicPathAtlas {
     "/products": { "/[id]": {} },
   };
 }
+
+export class TranslatedPathAtlas {
+  readonly decl = {
+    "/about": { it: "/chi-siamo" },
+    "/products": { it: "/prodotti", "/[id]": {} },
+  };
+}
