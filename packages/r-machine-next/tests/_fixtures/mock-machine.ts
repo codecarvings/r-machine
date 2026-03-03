@@ -12,14 +12,17 @@ export const VALID_LOCALES = new Set(["en", "it"]);
 export function createMockMachine(
   overrides: {
     defaultLocale?: string;
+    locales?: readonly string[];
     hybridPickR?: (locale: string, namespace: string) => unknown;
     hybridPickRKit?: (locale: string, ...namespaces: string[]) => unknown;
     pickR?: (locale: string, namespace: string) => Promise<unknown>;
     pickRKit?: (locale: string, ...namespaces: string[]) => Promise<unknown>;
   } = {}
 ) {
+  const locales = overrides.locales ?? (["en", "it"] as const);
+
   return {
-    config: { defaultLocale: overrides.defaultLocale ?? "en" },
+    config: { defaultLocale: overrides.defaultLocale ?? "en", locales },
     localeHelper: {
       validateLocale: vi.fn((locale: string) =>
         VALID_LOCALES.has(locale)

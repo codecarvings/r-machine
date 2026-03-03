@@ -7,6 +7,7 @@ import {
   type NextAppFlatStrategyConfig,
   NextAppFlatStrategyCore,
 } from "../../../../src/core/app/flat/next-app-flat-strategy-core.js";
+import { DynamicPathAtlas } from "../../../_fixtures/_helpers.js";
 import type { TestAtlas } from "../../../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
@@ -42,13 +43,6 @@ function createMockMachineWithLocales(overrides?: { defaultLocale?: string; loca
 
 class SimplePathAtlas {
   readonly decl = {};
-}
-
-class DynamicPathAtlas {
-  readonly decl = {
-    "/about": {},
-    "/products": { "/[id]": {} },
-  };
 }
 
 type SimpleConfig = NextAppFlatStrategyConfig<SimplePathAtlas, "locale">;
