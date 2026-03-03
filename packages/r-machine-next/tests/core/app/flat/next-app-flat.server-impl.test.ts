@@ -1,4 +1,3 @@
-import type { RMachine } from "r-machine";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { defaultPathMatcher, validateServerOnlyUsage } from "#r-machine/next/internal";
@@ -12,12 +11,10 @@ import {
   docsWithOptionalCatchAllAtlas,
   productsAtlas,
 } from "../../../_fixtures/_helpers.js";
-import type { TestAtlas } from "../../../_fixtures/mock-machine.js";
-
-type AnyPathComposer = (path: string, params?: object) => string;
-type AnyProxyFn = (request: unknown) => unknown;
-type AnySupplierFn = () => Promise<AnyPathComposer>;
-type MockRewriteArgs = [url: { pathname: string }, options?: { request: { headers: Headers } }];
+import { TEST_DEFAULT_LOCALE as defaultLocale, TEST_LOCALES as locales } from "../../../_fixtures/constants.js";
+import { createMockMachineForProxy } from "../../../_fixtures/mock-machine.js";
+import { createMockCookiesFn, createMockHeadersFn, createMockRequest } from "../../../_fixtures/mock-server-helpers.js";
+import type { AnyProxyFn, AnySupplierFn, MockRewriteArgs } from "../../../_fixtures/test-types.js";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -49,18 +46,6 @@ vi.mock("#r-machine/next/internal", async (importOriginal) => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const locales = ["en", "it"] as const;
-const defaultLocale = "en";
-
-function createMockRMachine() {
-  return {
-    config: { defaultLocale, locales },
-    localeHelper: {
-      matchLocalesForAcceptLanguageHeader: vi.fn(() => defaultLocale),
-    },
-  } as unknown as RMachine<TestAtlas>;
-}
-
 function createMockStrategyConfig(overrides: Partial<AnyNextAppFlatStrategyConfig> = {}) {
   return {
     localeKey: "locale",
@@ -85,12 +70,9 @@ interface CreateImplOptions {
 async function createImpl(options: CreateImplOptions = {}) {
   const atlas = options.atlas ?? createMockAtlas();
 
-  const rMachine = createMockRMachine();
-  if (options.matchLocaleReturn !== undefined) {
-    (rMachine.localeHelper.matchLocalesForAcceptLanguageHeader as ReturnType<typeof vi.fn>).mockReturnValue(
-      options.matchLocaleReturn
-    );
-  }
+  const rMachine = createMockMachineForProxy({
+    matchLocaleReturn: options.matchLocaleReturn,
+  });
 
   const strategyConfig = createMockStrategyConfig({
     autoLocaleBinding: options.autoLocaleBinding ?? "off",
@@ -106,57 +88,6 @@ async function createImpl(options: CreateImplOptions = {}) {
   const impl = await createNextAppFlatServerImpl(rMachine, strategyConfig, pathTranslator, pathCanonicalizer);
 
   return { impl, rMachine, strategyConfig, pathTranslator, pathCanonicalizer };
-}
-
-function createMockHeadersFn(entries: Record<string, string> = {}): any {
-  const map = new Map(Object.entries(entries));
-  return vi.fn(async () => ({
-    get: (name: string) => map.get(name) ?? null,
-  }));
-}
-
-function createMockCookiesFn(options: { succeedOnSet?: boolean } = {}): any {
-  const mockSet = vi.fn();
-  const cookiesFn = vi.fn(async () => ({
-    set:
-      options.succeedOnSet === false
-        ? () => {
-            throw new Error("Not in a Server Action");
-          }
-        : mockSet,
-  }));
-  return { cookiesFn, mockSet };
-}
-
-function createMockRequest(
-  pathname: string,
-  options: { cookie?: string; cookieName?: string; acceptLanguage?: string } = {}
-) {
-  const cookieName = options.cookieName ?? "NEXT_LOCALE";
-  const headers = new Headers();
-  if (options.acceptLanguage) {
-    headers.set("accept-language", options.acceptLanguage);
-  }
-
-  const cookies = {
-    get: vi.fn((name: string) => {
-      if (name === cookieName && options.cookie !== undefined) {
-        return { value: options.cookie };
-      }
-      return undefined;
-    }),
-  };
-
-  return {
-    nextUrl: {
-      pathname,
-      clone() {
-        return { pathname };
-      },
-    },
-    headers,
-    cookies,
-  };
 }
 
 // ---------------------------------------------------------------------------

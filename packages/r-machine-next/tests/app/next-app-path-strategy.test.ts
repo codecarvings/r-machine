@@ -118,9 +118,9 @@ describe("NextAppPathStrategy", () => {
     it("propagates validateConfig error when implicitDefaultLocale is on but cookie is off", () => {
       const rMachine = createMockMachine();
 
-      expect(
-        () => new NextAppPathStrategy(rMachine, { implicitDefaultLocale: "on", cookie: "off" })
-      ).toThrow(/implicitDefaultLocale.*cookie/);
+      expect(() => new NextAppPathStrategy(rMachine, { implicitDefaultLocale: "on", cookie: "off" })).toThrow(
+        /implicitDefaultLocale.*cookie/
+      );
     });
 
     it("propagates validateConfig error when implicitDefaultLocale is custom but cookie is off", () => {
@@ -138,9 +138,7 @@ describe("NextAppPathStrategy", () => {
     it("does not throw when implicitDefaultLocale is on and cookie is on", () => {
       const rMachine = createMockMachine();
 
-      expect(
-        () => new NextAppPathStrategy(rMachine, { implicitDefaultLocale: "on", cookie: "on" })
-      ).not.toThrow();
+      expect(() => new NextAppPathStrategy(rMachine, { implicitDefaultLocale: "on", cookie: "on" })).not.toThrow();
     });
   });
 

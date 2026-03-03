@@ -1,4 +1,3 @@
-import type { RMachine } from "r-machine";
 import { RMachineConfigError } from "r-machine/errors";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
@@ -9,8 +8,15 @@ import {
   NextAppPathStrategyPathCanonicalizer,
   NextAppPathStrategyPathTranslator,
 } from "../../../../src/core/app/path/next-app-path-strategy-core.js";
-import { aboutAtlas, createMockAtlas, productsAtlas } from "../../../_fixtures/_helpers.js";
-import type { TestAtlas } from "../../../_fixtures/mock-machine.js";
+import {
+  aboutAtlas,
+  createMockAtlas,
+  DynamicPathAtlas,
+  productsAtlas,
+  SimplePathAtlas,
+  TranslatedPathAtlas,
+} from "../../../_fixtures/_helpers.js";
+import { createMockMachine, type TestAtlas } from "../../../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
 // Mocks — external deps required by dynamically imported modules
@@ -37,41 +43,6 @@ vi.mock("../../../../src/core/app/next-app-no-proxy-server-toolset.js", () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-const locales = ["en", "it"] as const;
-const defaultLocale = "en";
-
-function createMockMachineWithLocales(overrides?: { defaultLocale?: string; locales?: readonly string[] }) {
-  return {
-    config: {
-      defaultLocale: overrides?.defaultLocale ?? defaultLocale,
-      locales: overrides?.locales ?? locales,
-    },
-    localeHelper: {
-      validateLocale: vi.fn((locale: string) => (locales.includes(locale as any) ? null : new Error("invalid"))),
-    },
-    hybridPickR: vi.fn(() => ({ greeting: "hello" })),
-    pickR: vi.fn(() => Promise.resolve({ greeting: "hello" })),
-  } as unknown as RMachine<TestAtlas>;
-}
-
-class SimplePathAtlas {
-  readonly decl = {};
-}
-
-class TranslatedPathAtlas {
-  readonly decl = {
-    "/about": { it: "/chi-siamo" },
-    "/products": { it: "/prodotti", "/[id]": {} },
-  };
-}
-
-class DynamicPathAtlas {
-  readonly decl = {
-    "/about": {},
-    "/products": { "/[id]": {} },
-  };
-}
-
 type SimpleConfig = NextAppPathStrategyConfig<SimplePathAtlas, "locale">;
 type TranslatedConfig = NextAppPathStrategyConfig<TranslatedPathAtlas, "locale">;
 type DynamicConfig = NextAppPathStrategyConfig<DynamicPathAtlas, "locale">;
@@ -89,7 +60,7 @@ function createTestStrategy(configOverrides?: Partial<SimpleConfig>) {
 
   class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, SimpleConfig> {}
 
-  const rMachine = createMockMachineWithLocales();
+  const rMachine = createMockMachine();
   const strategy = new TestPathStrategy(rMachine, config);
 
   return { strategy, rMachine, config };
@@ -104,7 +75,7 @@ function createTranslatedStrategy(configOverrides?: Partial<TranslatedConfig>) {
 
   class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, TranslatedConfig> {}
 
-  const rMachine = createMockMachineWithLocales();
+  const rMachine = createMockMachine();
   const strategy = new TestPathStrategy(rMachine, config);
 
   return { strategy, rMachine, config };
@@ -119,7 +90,7 @@ function createDynamicStrategy(configOverrides?: Partial<DynamicConfig>) {
 
   class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, DynamicConfig> {}
 
-  const rMachine = createMockMachineWithLocales();
+  const rMachine = createMockMachine();
   return new TestPathStrategy(rMachine, config);
 }
 
@@ -443,7 +414,7 @@ describe("NextAppPathStrategyCore", () => {
 
         class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, DynamicConfig> {}
 
-        const rMachine = createMockMachineWithLocales({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
+        const rMachine = createMockMachine({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
         const strategy = new TestPathStrategy(rMachine, config);
 
         expect(strategy.hrefHelper.getPath("en-US", "/about")).toBe("/en-us/about");
@@ -459,7 +430,7 @@ describe("NextAppPathStrategyCore", () => {
 
         class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, DynamicConfig> {}
 
-        const rMachine = createMockMachineWithLocales({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
+        const rMachine = createMockMachine({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
         const strategy = new TestPathStrategy(rMachine, config);
 
         expect(strategy.hrefHelper.getPath("en-US", "/about")).toBe("/en-US/about");

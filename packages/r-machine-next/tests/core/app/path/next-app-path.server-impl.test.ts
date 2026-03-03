@@ -1,4 +1,3 @@
-import type { RMachine } from "r-machine";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { validateServerOnlyUsage } from "#r-machine/next/internal";
@@ -12,13 +11,12 @@ import {
   docsWithOptionalCatchAllAtlas,
   productsAtlas,
 } from "../../../_fixtures/_helpers.js";
-import type { TestAtlas } from "../../../_fixtures/mock-machine.js";
+import { TEST_DEFAULT_LOCALE as defaultLocale, TEST_LOCALES as locales } from "../../../_fixtures/constants.js";
+import { createMockMachineForProxy } from "../../../_fixtures/mock-machine.js";
+import { createMockCookiesFn, createMockHeadersFn, createMockRequest } from "../../../_fixtures/mock-server-helpers.js";
+import type { AnyProxyFn, AnySupplierFn, MockRewriteArgs } from "../../../_fixtures/test-types.js";
 
-type AnyPathComposer = (path: string, params?: object) => string;
-type AnyProxyFn = (request: unknown) => unknown;
-type AnySupplierFn = () => Promise<AnyPathComposer>;
 type AnyRouteHandlers = { entrance: { GET: () => Promise<void> } };
-type MockRewriteArgs = [url: { pathname: string }, options?: { request: { headers: Headers } }];
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -55,20 +53,6 @@ vi.mock("#r-machine/next/internal", async (importOriginal) => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const locales = ["en", "it"] as const;
-const defaultLocale = "en";
-
-function createMockRMachine(overrides: { locales?: string[]; defaultLocale?: string } = {}) {
-  const l = overrides.locales ?? [...locales];
-  const dl = overrides.defaultLocale ?? defaultLocale;
-  return {
-    config: { defaultLocale: dl, locales: l },
-    localeHelper: {
-      matchLocalesForAcceptLanguageHeader: vi.fn(() => dl),
-    },
-  } as unknown as RMachine<TestAtlas>;
-}
-
 function createMockStrategyConfig(overrides: Partial<AnyNextAppPathStrategyConfig> = {}) {
   return {
     localeKey: "locale",
@@ -98,12 +82,9 @@ interface CreateImplOptions {
 async function createImpl(options: CreateImplOptions = {}) {
   const atlas = options.atlas ?? createMockAtlas();
 
-  const rMachine = createMockRMachine();
-  if (options.matchLocaleReturn !== undefined) {
-    (rMachine.localeHelper.matchLocalesForAcceptLanguageHeader as ReturnType<typeof vi.fn>).mockReturnValue(
-      options.matchLocaleReturn
-    );
-  }
+  const rMachine = createMockMachineForProxy({
+    matchLocaleReturn: options.matchLocaleReturn,
+  });
 
   const strategyConfig = createMockStrategyConfig({
     autoLocaleBinding: options.autoLocaleBinding ?? "off",
@@ -122,26 +103,6 @@ async function createImpl(options: CreateImplOptions = {}) {
   return { impl, rMachine, strategyConfig, pathTranslator, pathCanonicalizer };
 }
 
-function createMockHeadersFn(entries: Record<string, string> = {}): any {
-  const map = new Map(Object.entries(entries));
-  return vi.fn(async () => ({
-    get: (name: string) => map.get(name) ?? null,
-  }));
-}
-
-function createMockCookiesFn(options: { succeedOnSet?: boolean } = {}): any {
-  const mockSet = vi.fn();
-  const cookiesFn = vi.fn(async () => ({
-    set:
-      options.succeedOnSet === false
-        ? () => {
-            throw new Error("Not in a Server Action");
-          }
-        : mockSet,
-  }));
-  return { cookiesFn, mockSet };
-}
-
 function createMockCookiesGetFn(options: { cookie?: string; cookieName?: string } = {}): any {
   const cookieName = options.cookieName ?? "NEXT_LOCALE";
   return vi.fn(async () => ({
@@ -152,38 +113,6 @@ function createMockCookiesGetFn(options: { cookie?: string; cookieName?: string 
       return undefined;
     },
   }));
-}
-
-function createMockRequest(
-  pathname: string,
-  options: { cookie?: string; cookieName?: string; acceptLanguage?: string } = {}
-) {
-  const cookieName = options.cookieName ?? "NEXT_LOCALE";
-  const headers = new Headers();
-  if (options.acceptLanguage) {
-    headers.set("accept-language", options.acceptLanguage);
-  }
-
-  const cookies = {
-    get: vi.fn((name: string) => {
-      if (name === cookieName && options.cookie !== undefined) {
-        return { value: options.cookie };
-      }
-      return undefined;
-    }),
-  };
-
-  return {
-    nextUrl: {
-      pathname,
-      clone() {
-        return { pathname };
-      },
-    },
-    url: "https://example.com",
-    headers,
-    cookies,
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -372,7 +301,7 @@ describe("createNextAppPathServerImpl", () => {
     });
 
     it("lowercases locale values when localeLabel is 'lowercase'", async () => {
-      const rMachine = createMockRMachine({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
+      const rMachine = createMockMachineForProxy({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
       const config = createMockStrategyConfig({ localeLabel: "lowercase" });
       const pathTranslator = new HrefTranslator(createMockAtlas(), ["en-US", "it-IT"], "en-US");
       const pathCanonicalizer = new HrefCanonicalizer(createMockAtlas(), ["en-US", "it-IT"], "en-US");
@@ -385,7 +314,7 @@ describe("createNextAppPathServerImpl", () => {
     });
 
     it("preserves locale case when localeLabel is 'strict'", async () => {
-      const rMachine = createMockRMachine({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
+      const rMachine = createMockMachineForProxy({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
       const config = createMockStrategyConfig({ localeLabel: "strict" });
       const pathTranslator = new HrefTranslator(createMockAtlas(), ["en-US", "it-IT"], "en-US");
       const pathCanonicalizer = new HrefCanonicalizer(createMockAtlas(), ["en-US", "it-IT"], "en-US");
@@ -893,7 +822,7 @@ describe("createNextAppPathServerImpl", () => {
 
     describe("localeLabel effects", () => {
       it("lowercases locale in rewrite URL when localeLabel is 'lowercase'", async () => {
-        const rMachine = createMockRMachine({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
+        const rMachine = createMockMachineForProxy({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
         const config = createMockStrategyConfig({
           localeLabel: "lowercase",
           autoDetectLocale: "off",
@@ -913,7 +842,7 @@ describe("createNextAppPathServerImpl", () => {
       });
 
       it("preserves locale case in rewrite URL when localeLabel is 'strict'", async () => {
-        const rMachine = createMockRMachine({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
+        const rMachine = createMockMachineForProxy({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
         const config = createMockStrategyConfig({
           localeLabel: "strict",
           autoDetectLocale: "off",
@@ -933,7 +862,7 @@ describe("createNextAppPathServerImpl", () => {
       });
 
       it("lowercases locale in redirect URL", async () => {
-        const rMachine = createMockRMachine({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
+        const rMachine = createMockMachineForProxy({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
         (rMachine.localeHelper.matchLocalesForAcceptLanguageHeader as ReturnType<typeof vi.fn>).mockReturnValue(
           "it-IT"
         );
@@ -958,7 +887,7 @@ describe("createNextAppPathServerImpl", () => {
       });
 
       it("preserves locale case in redirect URL when localeLabel is 'strict'", async () => {
-        const rMachine = createMockRMachine({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
+        const rMachine = createMockMachineForProxy({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
         (rMachine.localeHelper.matchLocalesForAcceptLanguageHeader as ReturnType<typeof vi.fn>).mockReturnValue(
           "it-IT"
         );

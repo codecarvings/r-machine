@@ -1,34 +1,22 @@
-import type { RMachine } from "r-machine";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { createNextAppOriginClientImpl } from "../../../../src/core/app/origin/next-app-origin.client-impl.js";
 import type { AnyNextAppOriginStrategyConfig } from "../../../../src/core/app/origin/next-app-origin-strategy-core.js";
-import { aboutAtlas, aboutWithTeamAtlas, createMockAtlas, productsAtlas } from "../../../_fixtures/_helpers.js";
-import type { TestAtlas } from "../../../_fixtures/mock-machine.js";
-
-type AnyPathComposer = (path: string, params?: object) => string;
+import {
+  aboutAtlas,
+  aboutWithTeamAtlas,
+  createMockAtlas,
+  docsWithCatchAllAtlas,
+  productsAtlas,
+} from "../../../_fixtures/_helpers.js";
+import { TEST_DEFAULT_LOCALE as defaultLocale, TEST_LOCALES as locales } from "../../../_fixtures/constants.js";
+import { createMockMachine } from "../../../_fixtures/mock-machine.js";
+import { createMockRouter } from "../../../_fixtures/mock-router.js";
+import type { AnyPathComposer } from "../../../_fixtures/test-types.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-const locales = ["en", "it"] as const;
-const defaultLocale = "en";
-
-function createMockRMachine() {
-  return {
-    config: { defaultLocale, locales },
-    localeHelper: {
-      validateLocale: vi.fn((locale: string) => (locales.includes(locale as any) ? null : new Error("invalid"))),
-    },
-    hybridPickR: vi.fn(() => ({ greeting: "hello" })),
-    pickR: vi.fn(() => Promise.resolve({ greeting: "hello" })),
-  } as unknown as RMachine<TestAtlas>;
-}
-
-function createMockRouter() {
-  return { push: vi.fn(), refresh: vi.fn(), replace: vi.fn(), back: vi.fn(), forward: vi.fn(), prefetch: vi.fn() };
-}
 
 function createMockStrategyConfig(overrides: Partial<AnyNextAppOriginStrategyConfig> = {}) {
   return {
@@ -56,7 +44,7 @@ async function createImpl(options: CreateImplOptions = {}) {
     it: "https://it.example.com",
   };
 
-  const rMachine = createMockRMachine();
+  const rMachine = createMockMachine();
   const strategyConfig = createMockStrategyConfig({ localeOriginMap });
   const pathTranslator = new HrefTranslator(atlas, [...locales], defaultLocale);
   const urlTranslator = new HrefTranslator(atlas, [...locales], defaultLocale);
@@ -269,6 +257,20 @@ describe("createNextAppOriginClientImpl", () => {
 
       expect(composerIt("/about/team")).toBe("/chi-siamo/staff");
     });
+
+    it("composer handles catch-all paths with array params", async () => {
+      const { impl } = await createImpl({ atlas: docsWithCatchAllAtlas });
+
+      const composerEn = impl.createUsePathComposer(() => "en")() as AnyPathComposer;
+      const composerIt = impl.createUsePathComposer(() => "it")() as AnyPathComposer;
+
+      expect(composerEn("/docs/[...slug]", { slug: ["getting-started", "install"] })).toBe(
+        "/docs/getting-started/install"
+      );
+      expect(composerIt("/docs/[...slug]", { slug: ["getting-started", "install"] })).toBe(
+        "/documenti/getting-started/install"
+      );
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -278,7 +280,7 @@ describe("createNextAppOriginClientImpl", () => {
   describe("translator delegation", () => {
     it("writeLocale uses urlTranslator (4th arg) for navigation", async () => {
       const atlas = aboutAtlas;
-      const rMachine = createMockRMachine();
+      const rMachine = createMockMachine();
       const strategyConfig = createMockStrategyConfig();
       const pathTranslator = new HrefTranslator(atlas, [...locales], defaultLocale);
       const pathCanonicalizer = new HrefCanonicalizer(atlas, [...locales], defaultLocale);
@@ -303,7 +305,7 @@ describe("createNextAppOriginClientImpl", () => {
 
     it("createUsePathComposer uses pathTranslator (3rd arg) for composition", async () => {
       const atlas = aboutAtlas;
-      const rMachine = createMockRMachine();
+      const rMachine = createMockMachine();
       const strategyConfig = createMockStrategyConfig();
       const pathCanonicalizer = new HrefCanonicalizer(atlas, [...locales], defaultLocale);
       const urlTranslator = new HrefTranslator(atlas, [...locales], defaultLocale);
@@ -328,7 +330,7 @@ describe("createNextAppOriginClientImpl", () => {
 
     it("writeLocale uses pathCanonicalizer (5th arg) to canonicalize before translating", async () => {
       const atlas = aboutAtlas;
-      const rMachine = createMockRMachine();
+      const rMachine = createMockMachine();
       const strategyConfig = createMockStrategyConfig();
       const pathTranslator = new HrefTranslator(atlas, [...locales], defaultLocale);
       const urlTranslator = new HrefTranslator(atlas, [...locales], defaultLocale);
@@ -357,7 +359,7 @@ describe("createNextAppOriginClientImpl", () => {
 
   describe("edge cases", () => {
     it("writeLocale with dynamic canonical path redirects to urlTranslator root", async () => {
-      const rMachine = createMockRMachine();
+      const rMachine = createMockMachine();
       const strategyConfig = createMockStrategyConfig();
       const pathTranslator = new HrefTranslator(productsAtlas, [...locales], defaultLocale);
       const urlTranslator = new HrefTranslator(productsAtlas, [...locales], defaultLocale);
@@ -380,7 +382,7 @@ describe("createNextAppOriginClientImpl", () => {
     });
 
     it("writeLocale with static canonical path passes canonical value to urlTranslator", async () => {
-      const rMachine = createMockRMachine();
+      const rMachine = createMockMachine();
       const strategyConfig = createMockStrategyConfig();
       const pathTranslator = new HrefTranslator(aboutAtlas, [...locales], defaultLocale);
       const urlTranslator = new HrefTranslator(aboutAtlas, [...locales], defaultLocale);

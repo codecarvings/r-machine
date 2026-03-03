@@ -1,4 +1,3 @@
-import type { RMachine } from "r-machine";
 import { RMachineConfigError } from "r-machine/errors";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
@@ -9,8 +8,14 @@ import {
   NextAppOriginStrategyCore,
   NextAppOriginStrategyUrlTranslator,
 } from "../../../../src/core/app/origin/next-app-origin-strategy-core.js";
-import { aboutAtlas, createMockAtlas, productsAtlas } from "../../../_fixtures/_helpers.js";
-import type { TestAtlas } from "../../../_fixtures/mock-machine.js";
+import {
+  aboutAtlas,
+  createMockAtlas,
+  productsAtlas,
+  SimplePathAtlas,
+  TranslatedPathAtlas,
+} from "../../../_fixtures/_helpers.js";
+import { createMockMachine, type TestAtlas } from "../../../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -31,34 +36,6 @@ vi.mock("../../../../src/core/app/origin/next-app-origin.server-impl.js", () => 
 // Helpers
 // ---------------------------------------------------------------------------
 
-const locales = ["en", "it"] as const;
-const defaultLocale = "en";
-
-function createMockMachineWithLocales(overrides?: { defaultLocale?: string; locales?: readonly string[] }) {
-  return {
-    config: {
-      defaultLocale: overrides?.defaultLocale ?? defaultLocale,
-      locales: overrides?.locales ?? locales,
-    },
-    localeHelper: {
-      validateLocale: vi.fn((locale: string) => (locales.includes(locale as any) ? null : new Error("invalid"))),
-    },
-    hybridPickR: vi.fn(() => ({ greeting: "hello" })),
-    pickR: vi.fn(() => Promise.resolve({ greeting: "hello" })),
-  } as unknown as RMachine<TestAtlas>;
-}
-
-class SimplePathAtlas {
-  readonly decl = {};
-}
-
-class TranslatedPathAtlas {
-  readonly decl = {
-    "/about": { it: "/chi-siamo" },
-    "/products": { it: "/prodotti", "/[id]": {} },
-  };
-}
-
 type SimpleConfig = NextAppOriginStrategyConfig<SimplePathAtlas, "locale">;
 type TranslatedConfig = NextAppOriginStrategyConfig<TranslatedPathAtlas, "locale">;
 
@@ -76,7 +53,7 @@ function createTestStrategy(configOverrides?: Partial<SimpleConfig>) {
 
   class TestOriginStrategy extends NextAppOriginStrategyCore<TestAtlas, SimpleConfig> {}
 
-  const rMachine = createMockMachineWithLocales();
+  const rMachine = createMockMachine();
   const strategy = new TestOriginStrategy(rMachine, config);
 
   return { strategy, rMachine, config };
@@ -99,7 +76,7 @@ function createTranslatedStrategy(
 
   class TestOriginStrategy extends NextAppOriginStrategyCore<TestAtlas, TranslatedConfig> {}
 
-  const rMachine = createMockMachineWithLocales();
+  const rMachine = createMockMachine();
   return new TestOriginStrategy(rMachine, config);
 }
 

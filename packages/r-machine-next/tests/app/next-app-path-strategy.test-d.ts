@@ -89,9 +89,7 @@ describe("NextAppPathStrategy", () => {
     });
 
     it("config.localeLabel is LocaleLabelOption", () => {
-      expectTypeOf<NextAppPathStrategy<TestAtlas>["config"]["localeLabel"]>().toEqualTypeOf<
-        "strict" | "lowercase"
-      >();
+      expectTypeOf<NextAppPathStrategy<TestAtlas>["config"]["localeLabel"]>().toEqualTypeOf<"strict" | "lowercase">();
     });
 
     it("config.autoLocaleBinding is SwitchableOption", () => {
@@ -186,9 +184,9 @@ describe("NextAppPathStrategy", () => {
     });
 
     it("custom PA affects client toolset return type", () => {
-      expectTypeOf<
-        NextAppPathStrategy<TestAtlas, TranslatedPathAtlas>["createClientToolset"]
-      >().returns.toEqualTypeOf<Promise<NextAppClientToolset<TestAtlas, TranslatedPathAtlas>>>();
+      expectTypeOf<NextAppPathStrategy<TestAtlas, TranslatedPathAtlas>["createClientToolset"]>().returns.toEqualTypeOf<
+        Promise<NextAppClientToolset<TestAtlas, TranslatedPathAtlas>>
+      >();
     });
 
     it("custom LK affects server toolset return type", () => {

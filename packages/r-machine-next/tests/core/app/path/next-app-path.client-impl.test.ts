@@ -1,4 +1,3 @@
-import type { RMachine } from "r-machine";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { createNextAppPathClientImpl } from "../../../../src/core/app/path/next-app-path.client-impl.js";
@@ -10,9 +9,10 @@ import {
   docsWithCatchAllAtlas,
   productsAtlas,
 } from "../../../_fixtures/_helpers.js";
-import type { TestAtlas } from "../../../_fixtures/mock-machine.js";
-
-type AnyPathComposer = (path: string, params?: object) => string;
+import { TEST_DEFAULT_LOCALE as defaultLocale, TEST_LOCALES as locales } from "../../../_fixtures/constants.js";
+import { createMockMachine } from "../../../_fixtures/mock-machine.js";
+import { createMockRouter } from "../../../_fixtures/mock-router.js";
+import type { AnyPathComposer } from "../../../_fixtures/test-types.js";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -38,24 +38,6 @@ vi.mock("js-cookie", () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-const locales = ["en", "it"] as const;
-const defaultLocale = "en";
-
-function createMockRMachine() {
-  return {
-    config: { defaultLocale, locales },
-    localeHelper: {
-      validateLocale: vi.fn((locale: string) => (locales.includes(locale as any) ? null : new Error("invalid"))),
-    },
-    hybridPickR: vi.fn(() => ({ greeting: "hello" })),
-    pickR: vi.fn(() => Promise.resolve({ greeting: "hello" })),
-  } as unknown as RMachine<TestAtlas>;
-}
-
-function createMockRouter() {
-  return { push: vi.fn(), refresh: vi.fn(), replace: vi.fn(), back: vi.fn(), forward: vi.fn(), prefetch: vi.fn() };
-}
-
 function createMockStrategyConfig(overrides: Partial<AnyNextAppPathStrategyConfig> = {}) {
   return {
     localeKey: "locale",
@@ -77,7 +59,7 @@ interface CreateImplOptions {
 async function createImpl(options: CreateImplOptions = {}) {
   const atlas = options.atlas ?? createMockAtlas();
 
-  const rMachine = createMockRMachine();
+  const rMachine = createMockMachine();
   const strategyConfig = createMockStrategyConfig(options.configOverrides);
   const pathTranslator = new HrefTranslator(atlas, [...locales], defaultLocale);
   const pathCanonicalizer = new HrefCanonicalizer(atlas, [...locales], defaultLocale);
@@ -468,7 +450,7 @@ describe("createNextAppPathClientImpl", () => {
   describe("translator delegation", () => {
     it("writeLocale delegates to pathTranslator for target path resolution", async () => {
       const atlas = aboutAtlas;
-      const rMachine = createMockRMachine();
+      const rMachine = createMockMachine();
       const strategyConfig = createMockStrategyConfig();
       const pathCanonicalizer = new HrefCanonicalizer(atlas, [...locales], defaultLocale);
 
@@ -486,7 +468,7 @@ describe("createNextAppPathClientImpl", () => {
 
     it("path composer delegates to pathTranslator for path resolution", async () => {
       const atlas = aboutAtlas;
-      const rMachine = createMockRMachine();
+      const rMachine = createMockMachine();
       const strategyConfig = createMockStrategyConfig();
       const pathCanonicalizer = new HrefCanonicalizer(atlas, [...locales], defaultLocale);
 
@@ -504,7 +486,7 @@ describe("createNextAppPathClientImpl", () => {
 
     it("writeLocale canonicalizes the current path before translating", async () => {
       const atlas = aboutAtlas;
-      const rMachine = createMockRMachine();
+      const rMachine = createMockMachine();
       const strategyConfig = createMockStrategyConfig();
       const pathTranslator = new HrefTranslator(atlas, [...locales], defaultLocale);
 
@@ -526,7 +508,7 @@ describe("createNextAppPathClientImpl", () => {
 
   describe("edge cases", () => {
     it("writeLocale falls back to translated root for dynamic canonical paths", async () => {
-      const rMachine = createMockRMachine();
+      const rMachine = createMockMachine();
       const strategyConfig = createMockStrategyConfig();
       const pathTranslator = new HrefTranslator(productsAtlas, [...locales], defaultLocale);
       const pathCanonicalizer = new HrefCanonicalizer(productsAtlas, [...locales], defaultLocale);
@@ -542,7 +524,7 @@ describe("createNextAppPathClientImpl", () => {
     });
 
     it("writeLocale translates using the canonical path for static routes", async () => {
-      const rMachine = createMockRMachine();
+      const rMachine = createMockMachine();
       const strategyConfig = createMockStrategyConfig();
       const pathTranslator = new HrefTranslator(aboutAtlas, [...locales], defaultLocale);
       const pathCanonicalizer = new HrefCanonicalizer(aboutAtlas, [...locales], defaultLocale);

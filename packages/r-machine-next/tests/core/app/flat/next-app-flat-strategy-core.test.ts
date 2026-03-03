@@ -1,4 +1,3 @@
-import type { RMachine } from "r-machine";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
@@ -7,8 +6,9 @@ import {
   type NextAppFlatStrategyConfig,
   NextAppFlatStrategyCore,
 } from "../../../../src/core/app/flat/next-app-flat-strategy-core.js";
-import { DynamicPathAtlas } from "../../../_fixtures/_helpers.js";
-import type { TestAtlas } from "../../../_fixtures/mock-machine.js";
+import { DynamicPathAtlas, SimplePathAtlas } from "../../../_fixtures/_helpers.js";
+import { TEST_DEFAULT_LOCALE as defaultLocale } from "../../../_fixtures/constants.js";
+import { createMockMachine, type TestAtlas } from "../../../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
 // Mocks — external deps required by dynamically imported modules
@@ -23,27 +23,6 @@ vi.mock("next/server", () => ({
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-const locales = ["en", "it"] as const;
-const defaultLocale = "en";
-
-function createMockMachineWithLocales(overrides?: { defaultLocale?: string; locales?: readonly string[] }) {
-  return {
-    config: {
-      defaultLocale: overrides?.defaultLocale ?? defaultLocale,
-      locales: overrides?.locales ?? locales,
-    },
-    localeHelper: {
-      validateLocale: vi.fn((locale: string) => (locales.includes(locale as any) ? null : new Error("invalid"))),
-    },
-    hybridPickR: vi.fn(() => ({ greeting: "hello" })),
-    pickR: vi.fn(() => Promise.resolve({ greeting: "hello" })),
-  } as unknown as RMachine<TestAtlas>;
-}
-
-class SimplePathAtlas {
-  readonly decl = {};
-}
 
 type SimpleConfig = NextAppFlatStrategyConfig<SimplePathAtlas, "locale">;
 type DynamicConfig = NextAppFlatStrategyConfig<DynamicPathAtlas, "locale">;
@@ -61,7 +40,7 @@ function createTestStrategy(configOverrides?: Partial<SimpleConfig>) {
 
   class TestFlatStrategy extends NextAppFlatStrategyCore<TestAtlas, SimpleConfig> {}
 
-  const rMachine = createMockMachineWithLocales();
+  const rMachine = createMockMachine();
   const strategy = new TestFlatStrategy(rMachine, config);
 
   return { strategy, rMachine, config };
@@ -79,7 +58,7 @@ function createDynamicStrategy() {
 
   class TestFlatStrategy extends NextAppFlatStrategyCore<TestAtlas, DynamicConfig> {}
 
-  const rMachine = createMockMachineWithLocales();
+  const rMachine = createMockMachine();
   return new TestFlatStrategy(rMachine, config);
 }
 
@@ -95,7 +74,7 @@ function createDynamicStrategyWithLocale(overrideDefaultLocale: string) {
 
   class TestFlatStrategy extends NextAppFlatStrategyCore<TestAtlas, DynamicConfig> {}
 
-  const rMachine = createMockMachineWithLocales({ defaultLocale: overrideDefaultLocale });
+  const rMachine = createMockMachine({ defaultLocale: overrideDefaultLocale });
   return new TestFlatStrategy(rMachine, config);
 }
 

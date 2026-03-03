@@ -39,3 +39,17 @@ export function createMockMachine(
     pickRKit: vi.fn(overrides.pickRKit ?? (() => Promise.resolve([{ greeting: "hello" }, { home: "Home" }]))),
   } as unknown as RMachine<TestAtlas>;
 }
+
+export function createMockMachineForProxy(
+  overrides: { defaultLocale?: string; locales?: readonly string[]; matchLocaleReturn?: string | undefined } = {}
+) {
+  const dl = overrides.defaultLocale ?? "en";
+  const locales = overrides.locales ?? (["en", "it"] as const);
+
+  return {
+    config: { defaultLocale: dl, locales },
+    localeHelper: {
+      matchLocalesForAcceptLanguageHeader: vi.fn(() => overrides.matchLocaleReturn ?? dl),
+    },
+  } as unknown as RMachine<TestAtlas>;
+}

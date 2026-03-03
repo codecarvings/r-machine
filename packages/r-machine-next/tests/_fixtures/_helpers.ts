@@ -40,6 +40,10 @@ export const docsWithOptionalCatchAllAtlas = createMockAtlas({
   },
 });
 
+export class SimplePathAtlas {
+  readonly decl = {};
+}
+
 export class DynamicPathAtlas {
   readonly decl = {
     "/about": {},
