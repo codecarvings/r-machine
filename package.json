@@ -21,6 +21,8 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui --coverage --open",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test --config e2e/playwright.config.ts",
+    "test:e2e:ui": "playwright test --config e2e/playwright.config.ts --ui",
     "prepare": "husky",
     "dev": "tsx --conditions @r-machine/source",
     "dev:play": "pnpm dev play.tsx",
@@ -50,6 +52,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.4",
     "@changesets/cli": "^2.29.8",
+    "@playwright/test": "^1.58.2",
     "@r-machine/next": "workspace:*",
     "@r-machine/react": "workspace:*",
     "@testing-library/react": "^16.3.2",
