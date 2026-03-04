@@ -1,26 +1,19 @@
 import { describe, expect, it } from "vitest";
-import {
-  ERR_FEATURE_REQUIRES_PROXY,
-  ERR_INVALID_PATH,
-  ERR_INVALID_STRATEGY_CONFIG,
-  ERR_LOCALE_BIND_CONFLICT,
-  ERR_LOCALE_UNDETERMINED,
-  ERR_PATH_ATLAS_MALFORMED,
-  ERR_PATH_TRANSLATION_FAILED,
-  ERR_SERVER_ONLY,
-} from "../../src/errors/error-codes.js";
+import * as errorCodes from "../../src/errors/error-codes.js";
 
 describe("error codes", () => {
-  it.each([
-    ["ERR_INVALID_STRATEGY_CONFIG", ERR_INVALID_STRATEGY_CONFIG],
-    ["ERR_PATH_ATLAS_MALFORMED", ERR_PATH_ATLAS_MALFORMED],
-    ["ERR_SERVER_ONLY", ERR_SERVER_ONLY],
-    ["ERR_INVALID_PATH", ERR_INVALID_PATH],
-    ["ERR_FEATURE_REQUIRES_PROXY", ERR_FEATURE_REQUIRES_PROXY],
-    ["ERR_LOCALE_BIND_CONFLICT", ERR_LOCALE_BIND_CONFLICT],
-    ["ERR_LOCALE_UNDETERMINED", ERR_LOCALE_UNDETERMINED],
-    ["ERR_PATH_TRANSLATION_FAILED", ERR_PATH_TRANSLATION_FAILED],
-  ])("%s should equal its variable name", (expected, actual) => {
-    expect(actual).toBe(expected);
+  const entries = Object.entries(errorCodes);
+
+  it("exports at least one error code", () => {
+    expect(entries.length).toBeGreaterThan(0);
+  });
+
+  it.each(entries)("%s should equal its export name", (name, value) => {
+    expect(value).toBe(name);
+  });
+
+  it("all codes are unique", () => {
+    const values = entries.map(([, v]) => v);
+    expect(new Set(values).size).toBe(values.length);
   });
 });
