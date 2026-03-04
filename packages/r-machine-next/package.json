@@ -3,7 +3,7 @@
   "version": "1.0.0-alpha.8",
   "description": "Official Next.js bindings for R-Machine - A Type-Safe internationalization (i18n) library",
   "author": "Sergio Turolla <hello@codecarvings.com>",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "homepage": "https://r-machine.codecarvings.com",
   "repository": {
@@ -40,6 +40,7 @@
   "module": "./lib/index.js",
   "zshy": {
     "exports": {
+      "./errors": "./src/errors/index.ts",
       "./core": "./src/core/index.ts",
       "./core/app": "./src/core/app/index.ts",
       "./app": "./src/app/index.ts",
@@ -50,6 +51,12 @@
     }
   },
   "exports": {
+    "./errors": {
+      "@r-machine/source": "./src/errors/index.ts",
+      "types": "./errors/index.d.cts",
+      "import": "./errors/index.js",
+      "require": "./errors/index.cjs"
+    },
     "./core": {
       "@r-machine/source": "./src/core/index.ts",
       "types": "./core/index.d.cts",
@@ -87,6 +94,10 @@
     "#r-machine/next/core/app": {
       "@r-machine/source": "./src/core/app/index.ts",
       "default": "./core/app/index.js"
+    },
+    "#r-machine/next/errors": {
+      "@r-machine/source": "./src/errors/index.ts",
+      "default": "./errors/index.js"
     },
     "#r-machine/next/app": {
       "@r-machine/source": "./src/app/index.ts",

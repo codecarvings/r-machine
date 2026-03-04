@@ -1,5 +1,5 @@
 import type { AnyResourceAtlas, RMachine } from "r-machine";
-import { RMachineError } from "r-machine/errors";
+import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { ReactStandardStrategyConfig } from "./react-standard-strategy-core.js";
 import type { ReactImpl } from "./react-toolset.js";
 
@@ -10,7 +10,7 @@ export async function createReactStandardImpl(
   function returnValidLocale(locale: string): string {
     const error = rMachine.localeHelper.validateLocale(locale);
     if (error) {
-      throw new RMachineError(`Invalid locale detected: ${locale}.`, error);
+      throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Invalid locale detected: ${locale}.`, error);
     }
 
     return locale;

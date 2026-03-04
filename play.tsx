@@ -1,13 +1,12 @@
-import { ReactToolset } from "@r-machine/react";
 import { RMachine } from "r-machine";
 
-type Atlas = {
+type ResourceAtlas = {
   ns1: { message: string };
   ns2: { message: string };
   ns3: { message: string };
 };
 
-const rMachine = new RMachine<Atlas>({
+const rMachine = new RMachine<ResourceAtlas>({
   locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: async (namespace, locale) => {
@@ -27,7 +26,3 @@ console.log(r.message);
 const [r1, r2] = await rMachine.pickRKit("it", "ns1", "ns2");
 console.log(r1.message);
 console.log(r2.message);
-
-export const { ReactRMachine, useLocale, useR, useRKit } = await ReactToolset.create(rMachine);
-
-const _helloWorld = <ReactRMachine locale="em">Hello World</ReactRMachine>;

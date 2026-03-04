@@ -1,4 +1,4 @@
-⚠️ **WARNING: THIS LIBRARY IS STILL IN DEVELOPMENT (ALPHA STAGE)** ⚠️
+⚠️ **WARNING: THIS LIBRARY IS STILL IN DEVELOPMENT** ⚠️
 
 ---
 
@@ -15,9 +15,8 @@
 <br/>
 
 <p align="center">
+<a href="https://www.npmjs.com/package/@r-machine/react" rel="nofollow"><img alt="NPM Version" src="https://img.shields.io/npm/v/%40r-machine%2Freact?label=latest"></a>
 <a href="https://github.com/codecarvings/r-machine/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://github.com/codecarvings/r-machine/actions/workflows/ci.yml/badge.svg?event=push&branch=main" alt="R-Machine CI status" /></a>
-<a href="https://github.com/codecarvings/r-machine/blob/main/LICENSE" rel="nofollow"><img src="https://img.shields.io/github/license/codecarvings/r-machine" alt="License"></a>
-<a href="https://www.npmjs.com/package/@r-machine/react" rel="nofollow"><img src="https://img.shields.io/npm/dw/@r-machine/react.svg" alt="npm"></a>
 </p>
 <br/>
 

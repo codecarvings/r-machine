@@ -1,4 +1,18 @@
-import { RMachineError } from "r-machine/errors";
+/**
+ * Copyright (c) 2026 Sergio Turolla
+ *
+ * This file is part of @r-machine/next, licensed under the
+ * GNU Affero General Public License v3.0 (AGPL-3.0-only).
+ *
+ * You may use, modify, and distribute this file under the terms
+ * of the AGPL-3.0. See LICENSE in this package for details.
+ *
+ * If you need to use this software in a proprietary project,
+ * contact: licensing@codecarvings.com
+ */
+
+import { RMachineUsageError } from "r-machine/errors";
+import { ERR_INVALID_PATH, ERR_PATH_TRANSLATION_FAILED } from "#r-machine/next/errors";
 import {
   getSegmentData,
   HrefMapper,
@@ -30,7 +44,7 @@ export class HrefTranslator extends HrefMapper<HrefTranslatorFn> {
 
   protected internalCompute(locale: string, path: string): MappedPath {
     if (!path.startsWith("/")) {
-      throw new RMachineError(`Path must start with "/".`);
+      throw new RMachineUsageError(ERR_INVALID_PATH, `Path must start with "/".`);
     }
 
     const inSegments = path.split("/").filter((s) => s.length !== 0);
@@ -97,7 +111,8 @@ export function getTranslatedHref(
     if (valueStr.length > 0) {
       result.push(valueStr);
     } else {
-      throw new RMachineError(
+      throw new RMachineUsageError(
+        ERR_PATH_TRANSLATION_FAILED,
         `Cannot translate path "${path}" for locale "${locale}" because a parameter value results in an empty path segment.`
       );
     }
@@ -119,13 +134,15 @@ export function getTranslatedHref(
               addValue(v);
             });
           } else {
-            throw new RMachineError(
+            throw new RMachineUsageError(
+              ERR_PATH_TRANSLATION_FAILED,
               `Cannot translate path "${path}" for locale "${locale}" because parameter "${mappedSegment.segment}" is expected to be an array.`
             );
           }
         }
       } else
-        throw new RMachineError(
+        throw new RMachineUsageError(
+          ERR_PATH_TRANSLATION_FAILED,
           `Cannot translate path "${path}" for locale "${locale}" because parameter "${mappedSegment.segment}" is missing.`
         );
     }

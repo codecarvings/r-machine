@@ -1,5 +1,19 @@
-import { RMachineError } from "r-machine/errors";
+/**
+ * Copyright (c) 2026 Sergio Turolla
+ *
+ * This file is part of @r-machine/next, licensed under the
+ * GNU Affero General Public License v3.0 (AGPL-3.0-only).
+ *
+ * You may use, modify, and distribute this file under the terms
+ * of the AGPL-3.0. See LICENSE in this package for details.
+ *
+ * If you need to use this software in a proprietary project,
+ * contact: licensing@codecarvings.com
+ */
+
+import { RMachineConfigError } from "r-machine/errors";
 import { validateCanonicalUnicodeLocaleId } from "r-machine/locale";
+import { ERR_PATH_ATLAS_MALFORMED } from "#r-machine/next/errors";
 
 export type AnySegmentKey = `/${string}`;
 type AnyDynamicSegmentKey = `/[${string}]`;
@@ -130,7 +144,8 @@ function validatePathAtlasDecl(
   }
 
   if (dynamicChildKeys.length > 1) {
-    throw new RMachineError(
+    throw new RMachineConfigError(
+      ERR_PATH_ATLAS_MALFORMED,
       `Segment at path "${path || "/"}" has multiple dynamic children: ${dynamicChildKeys.join(", ")}. Only one dynamic segment is allowed per level.`
     );
   }
@@ -146,17 +161,21 @@ function validateSegmentDecl(
   const currentPath = `${parentPath}${key}`;
 
   if (key === "/") {
-    throw new RMachineError(`Invalid empty segment key at path "${parentPath || "/"}"`);
+    throw new RMachineConfigError(ERR_PATH_ATLAS_MALFORMED, `Invalid empty segment key at path "${parentPath || "/"}"`);
   }
 
   if (key.indexOf("/", 1) !== -1) {
-    throw new RMachineError(
+    throw new RMachineConfigError(
+      ERR_PATH_ATLAS_MALFORMED,
       `Segment key must contain only one "/" at the beginning at path "${parentPath || "/"}". Got "${key}"`
     );
   }
 
   if (typeof value !== "object" || value === null) {
-    throw new RMachineError(`Segment declarations must be objects at path "${currentPath}"`);
+    throw new RMachineConfigError(
+      ERR_PATH_ATLAS_MALFORMED,
+      `Segment declarations must be objects at path "${currentPath}"`
+    );
   }
 
   const segment = key.slice(1);
@@ -164,7 +183,8 @@ function validateSegmentDecl(
   if (isDynamicSegment(segment)) {
     const translationKeys = Object.keys(value).filter((k) => !isSegmentKey(k));
     if (translationKeys.length > 0) {
-      throw new RMachineError(
+      throw new RMachineConfigError(
+        ERR_PATH_ATLAS_MALFORMED,
         `Dynamic segments do not accept translations at path "${currentPath}". Got "${translationKeys.join('", "')}"`
       );
     }
@@ -173,7 +193,10 @@ function validateSegmentDecl(
   if (isCatchAllSegment(segment)) {
     const childSegmentKeys = Object.keys(value).filter(isSegmentKey);
     if (childSegmentKeys.length > 0) {
-      throw new RMachineError(`Catch-all segment declarations must not have child segments at path "${currentPath}"`);
+      throw new RMachineConfigError(
+        ERR_PATH_ATLAS_MALFORMED,
+        `Catch-all segment declarations must not have child segments at path "${currentPath}"`
+      );
     }
   }
 
@@ -188,33 +211,45 @@ function validateTranslation(
   context: ValidationContext
 ): void {
   if (!allowTranslation) {
-    throw new RMachineError(
+    throw new RMachineConfigError(
+      ERR_PATH_ATLAS_MALFORMED,
       `Path translations are not supported by this strategy. Found translation "${key}" at path "${path}"`
     );
   }
 
   if (path === "") {
-    throw new RMachineError(`Root level segment does not accept translations. Got "${key}"`);
+    throw new RMachineConfigError(
+      ERR_PATH_ATLAS_MALFORMED,
+      `Root level segment does not accept translations. Got "${key}"`
+    );
   }
 
   const localeError = validateCanonicalUnicodeLocaleId(key);
   if (localeError !== null) {
-    throw new RMachineError(`Invalid translation key "${key}" at path "${path}". ${localeError.message}`);
+    throw new RMachineConfigError(
+      ERR_PATH_ATLAS_MALFORMED,
+      `Invalid translation key "${key}" at path "${path}". ${localeError.message}`
+    );
   }
 
   if (typeof value !== "string") {
-    throw new RMachineError(`Segment translation "${key}" must be a string at path "${path}". Got ${typeof value}`);
+    throw new RMachineConfigError(
+      ERR_PATH_ATLAS_MALFORMED,
+      `Segment translation "${key}" must be a string at path "${path}". Got ${typeof value}`
+    );
   }
 
   if (!value.startsWith("/")) {
-    throw new RMachineError(
-      `Segment translation "${key}" must match pattern /\${string} at path "${path || "/"}". Got "${value}"`
+    throw new RMachineConfigError(
+      ERR_PATH_ATLAS_MALFORMED,
+      `Segment translation "${key}" must match pattern /\${string} at path "${path}". Got "${value}"`
     );
   }
 
   if (value.indexOf("/", 1) !== -1) {
-    throw new RMachineError(
-      `Segment translation "${key}" must contain only one "/" at the beginning at path "${path || "/"}". Got "${value}"`
+    throw new RMachineConfigError(
+      ERR_PATH_ATLAS_MALFORMED,
+      `Segment translation "${key}" must contain only one "/" at the beginning at path "${path}". Got "${value}"`
     );
   }
 

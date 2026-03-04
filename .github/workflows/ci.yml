@@ -19,11 +19,17 @@ jobs:
       - name: Setup CI
         uses: ./.github/actions/ci-setup
 
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Run Build
         run: pnpm build
 
       - name: Run Test
-        run: pnpm test        
+        run: pnpm test
+
+      - name: Run E2E
+        run: pnpm test:e2e
 
       - name: Run Check
         run: pnpm check

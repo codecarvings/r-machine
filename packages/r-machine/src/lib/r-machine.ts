@@ -1,4 +1,4 @@
-import { RMachineError } from "#r-machine/errors";
+import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import { DomainManager } from "./domain-manager.js";
 import { LocaleHelper } from "./locale-helper.js";
 import type { AnyResourceAtlas, Namespace } from "./r.js";
@@ -23,7 +23,7 @@ export class RMachine<RA extends AnyResourceAtlas> {
   protected validateLocaleForPick(locale: string) {
     const error = this.localeHelper.validateLocale(locale);
     if (error) {
-      throw new RMachineError(`Cannot use invalid locale: "${locale}".`, error);
+      throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot use invalid locale: "${locale}".`, error);
     }
   }
 

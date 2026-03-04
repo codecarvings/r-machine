@@ -1,6 +1,7 @@
 import type { AnyResourceAtlas, RMachine } from "r-machine";
-import { RMachineError } from "r-machine/errors";
+import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import { createContext, type ReactNode, use, useContext, useMemo, useState } from "react";
+import { ERR_CONTEXT_NOT_FOUND } from "#r-machine/react/errors";
 import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils";
 import { createReactBareToolset, type ReactBareToolset } from "./react-bare-toolset.js";
 
@@ -38,7 +39,7 @@ export async function createReactToolset<RA extends AnyResourceAtlas>(
   function useReactToolsetContext(): ReactToolsetContext {
     const context = useContext(Context);
     if (context === null) {
-      throw new RMachineError("ReactToolsetContext not found.");
+      throw new RMachineUsageError(ERR_CONTEXT_NOT_FOUND, "ReactToolsetContext not found.");
     }
 
     return context;
@@ -52,7 +53,7 @@ export async function createReactToolset<RA extends AnyResourceAtlas>(
 
     const error = rMachine.localeHelper.validateLocale(newLocale);
     if (error) {
-      throw new RMachineError(`Cannot set invalid locale: "${newLocale}".`, error);
+      throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot set invalid locale: "${newLocale}".`, error);
     }
 
     setLocaleContext(newLocale);

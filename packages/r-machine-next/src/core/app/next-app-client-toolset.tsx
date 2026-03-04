@@ -1,9 +1,22 @@
+/**
+ * Copyright (c) 2026 Sergio Turolla
+ *
+ * This file is part of @r-machine/next, licensed under the
+ * GNU Affero General Public License v3.0 (AGPL-3.0-only).
+ *
+ * You may use, modify, and distribute this file under the terms
+ * of the AGPL-3.0. See LICENSE in this package for details.
+ *
+ * If you need to use this software in a proprietary project,
+ * contact: licensing@codecarvings.com
+ */
+
 "use client";
 
 import { createReactBareToolset, type ReactBareToolset } from "@r-machine/react/core";
 import { usePathname, useRouter } from "next/navigation";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
-import { RMachineError } from "r-machine/errors";
+import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import { type ReactNode, useEffect } from "react";
 import type { AnyPathAtlas, BoundPathComposer } from "#r-machine/next/core";
 
@@ -50,7 +63,7 @@ export async function createNextAppClientToolset<RA extends AnyResourceAtlas, PA
 
     const error = rMachine.localeHelper.validateLocale(newLocale);
     if (error) {
-      throw new RMachineError(`Cannot set invalid locale: ${newLocale}.`, error);
+      throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot set invalid locale: ${newLocale}.`, error);
     }
 
     const writeLocaleResult = impl.writeLocale(locale, newLocale, pathname, router);

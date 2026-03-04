@@ -1,5 +1,18 @@
+/**
+ * Copyright (c) 2026 Sergio Turolla
+ *
+ * This file is part of @r-machine/next, licensed under the
+ * GNU Affero General Public License v3.0 (AGPL-3.0-only).
+ *
+ * You may use, modify, and distribute this file under the terms
+ * of the AGPL-3.0. See LICENSE in this package for details.
+ *
+ * If you need to use this software in a proprietary project,
+ * contact: licensing@codecarvings.com
+ */
+
 import type { AnyResourceAtlas } from "r-machine";
-import { RMachineError } from "r-machine/errors";
+import { RMachineConfigError } from "r-machine/errors";
 import type { SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import {
@@ -11,6 +24,7 @@ import {
   type PathParams,
   type PathSelector,
 } from "#r-machine/next/core";
+import { ERR_INVALID_STRATEGY_CONFIG } from "#r-machine/next/errors";
 import type { NextAppClientRMachine } from "../next-app-client-toolset.js";
 import type { NextAppNoProxyServerToolset } from "../next-app-no-proxy-server-toolset.js";
 import {
@@ -110,7 +124,8 @@ export abstract class NextAppPathStrategyCore<
     const implicitDefaultLocale = this.config.implicitDefaultLocale !== "off";
     const cookie = this.config.cookie !== "off";
     if (implicitDefaultLocale && !cookie) {
-      throw new RMachineError(
+      throw new RMachineConfigError(
+        ERR_INVALID_STRATEGY_CONFIG,
         'NextAppPathStrategy configuration error: "implicitDefaultLocale" option requires "cookie" to be enabled.'
       );
     }
@@ -133,7 +148,8 @@ export abstract class NextAppPathStrategyCore<
 
   protected validateNoProxyConfig(): void {
     function raiseRequiredProxyError(optionName: string): never {
-      throw new RMachineError(
+      throw new RMachineConfigError(
+        ERR_INVALID_STRATEGY_CONFIG,
         `NextAppPathStrategy configuration error: "${optionName}" option requires proxy server toolset.`
       );
     }
@@ -148,7 +164,10 @@ export abstract class NextAppPathStrategyCore<
       raiseRequiredProxyError("autoDetectLocale");
     }
     if (this.pathAtlas.containsTranslations) {
-      throw new RMachineError("NextAppPathStrategy error: PathAtlas with translations requires proxy server toolset.");
+      throw new RMachineConfigError(
+        ERR_INVALID_STRATEGY_CONFIG,
+        "NextAppPathStrategy error: PathAtlas with translations requires proxy server toolset."
+      );
     }
   }
 

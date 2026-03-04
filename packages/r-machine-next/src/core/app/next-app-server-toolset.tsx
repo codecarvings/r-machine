@@ -1,9 +1,23 @@
+/**
+ * Copyright (c) 2026 Sergio Turolla
+ *
+ * This file is part of @r-machine/next, licensed under the
+ * GNU Affero General Public License v3.0 (AGPL-3.0-only).
+ *
+ * You may use, modify, and distribute this file under the terms
+ * of the AGPL-3.0. See LICENSE in this package for details.
+ *
+ * If you need to use this software in a proprietary project,
+ * contact: licensing@codecarvings.com
+ */
+
 import { notFound } from "next/navigation";
 import type { AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
-import { RMachineError } from "r-machine/errors";
+import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
 import type { AnyPathAtlas, BoundPathComposer, RMachineProxy } from "#r-machine/next/core";
+import { ERR_LOCALE_BIND_CONFLICT, ERR_LOCALE_UNDETERMINED } from "#r-machine/next/errors";
 import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { NextAppClientRMachine } from "./next-app-client-toolset.js";
 import { localeHeaderName } from "./next-app-strategy-core.js";
@@ -117,7 +131,8 @@ export async function createNextAppServerToolset<
       const context = getContext();
       if (context.value !== null) {
         if (locale !== context.value) {
-          throw new RMachineError(
+          throw new RMachineUsageError(
+            ERR_LOCALE_BIND_CONFLICT,
             `Locale bound multiple times with different values in the same request. Previous: "${context.value}", New: "${locale}".`
           );
         }
@@ -156,7 +171,8 @@ export async function createNextAppServerToolset<
 
         const locale = headersList.get(localeHeaderName);
         if (locale === null) {
-          throw new RMachineError(
+          throw new RMachineUsageError(
+            ERR_LOCALE_UNDETERMINED,
             "Cannot determine locale. Ensure that the RMachine proxy is properly configured and applied."
           );
         }
@@ -165,7 +181,8 @@ export async function createNextAppServerToolset<
       });
       return context.getSafeLocalePromise;
     } else {
-      throw new RMachineError(
+      throw new RMachineUsageError(
+        ERR_LOCALE_UNDETERMINED,
         "Cannot determine locale. bindLocale function not invoked? (you must invoke bindLocale at the beginning of every page or layout component)."
       );
     }
@@ -208,7 +225,7 @@ export async function createNextAppServerToolset<
 
     const error = validateLocale(newLocale);
     if (error) {
-      throw new RMachineError(`Cannot set locale to invalid locale: "${newLocale}".`, error);
+      throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot set locale to invalid locale: "${newLocale}".`, error);
     }
 
     const locale = await getUnsafeLocale();

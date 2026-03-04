@@ -10,6 +10,7 @@ export default mergeConfig(
   baseConfig,
   defineProject({
     test: {
+      environment: "jsdom",
       typecheck: {
         tsconfig: "./tsconfig.test.json",
       },

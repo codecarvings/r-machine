@@ -1,4 +1,4 @@
-import { RMachineError } from "#r-machine/errors";
+import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyNamespace, AnyR } from "./r.js";
 
 export interface R$ {
@@ -22,12 +22,11 @@ function getResolveRFromModuleError(
   reason: string,
   innerError?: Error | undefined
 ) {
-  const error = new RMachineError(
+  return new RMachineResolveError(
+    ERR_RESOLVE_FAILED,
     `Unable to resolve resource "${namespace}" for locale "${locale}" - ${reason}.`,
     innerError
   );
-  console.error(error);
-  return error;
 }
 
 export function resolveRFromModule(rModule: AnyRModule, $: R$): Promise<AnyR> {
@@ -47,7 +46,7 @@ export function resolveRFromModule(rModule: AnyRModule, $: R$): Promise<AnyR> {
         }
       } else {
         reject(
-          getResolveRFromModuleError($.namespace, $.namespace, `invalid resource type returned by factory (${rType})`)
+          getResolveRFromModuleError($.namespace, $.locale, `invalid resource type returned by factory (${rType})`)
         );
       }
     };
@@ -89,11 +88,11 @@ export function resolveR(rModuleResolver: RModuleResolver, namespace: AnyNamespa
         resolveRFromModule(resolvedRModule, { namespace, locale }).then(resolve, reject);
       },
       (reason) => {
-        const error = new RMachineError(
+        const error = new RMachineResolveError(
+          ERR_RESOLVE_FAILED,
           `Unable to resolve resource module "${namespace}" for locale "${locale}" - rModuleResolver failed.`,
           reason
         );
-        console.error(error);
         reject(error);
       }
     );
