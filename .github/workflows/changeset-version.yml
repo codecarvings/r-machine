@@ -46,6 +46,7 @@ jobs:
       - name: Update npm dist-tags
         if: steps.changesets.outputs.published == 'true'
         run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
           npx tsx scripts/update-npm-dist-tags.ts '${{ steps.changesets.outputs.publishedPackages }}'
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -36,7 +36,9 @@
       "⚙️ R-Machine/.github/workflows/changeset-version.yml"
     ],
     "cSpell.words": [
-      "scpath", "sccpath"
+      "npmjs",
+      "sccpath",
+      "scpath"
     ]
   }
 }
