@@ -12,7 +12,9 @@
     "@r-machine/react": "1.0.0-alpha.1"
   },
   "changesets": [
+    "bright-errors-shine",
     "chilly-bottles-show",
+    "clear-errors-flow",
     "common-news-bet",
     "cozy-dragons-pay",
     "fine-dolls-decide",
@@ -28,6 +30,7 @@
     "thirty-friends-wave",
     "upset-plants-jog",
     "vast-spoons-win2",
+    "warm-errors-glow",
     "young-breads-give"
   ]
 }
