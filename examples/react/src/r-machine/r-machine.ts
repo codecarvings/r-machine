@@ -2,14 +2,11 @@ import { ReactStandardStrategy } from "@r-machine/react";
 import { RMachine } from "r-machine";
 import type { ResourceAtlas } from "./resource-atlas";
 
-const locales = ["en", "it"] as const;
-export type Locale = (typeof locales)[number];
-
 // Vite statically analyzes this at build time and creates chunk files for all matching modules
 const moduleLoaders = import.meta.glob<{ default: any }>("./resources/**/*.{tsx,ts}");
 
 export const rMachine = new RMachine<ResourceAtlas>({
-  locales,
+  locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: (namespace, locale) => {
     // Find the appropriate module loader for either .tsx or .ts files

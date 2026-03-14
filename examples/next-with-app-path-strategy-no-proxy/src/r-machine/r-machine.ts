@@ -3,11 +3,8 @@ import { RMachine } from "r-machine";
 import { PathAtlas } from "./path-atlas";
 import type { ResourceAtlas } from "./resource-atlas";
 
-const locales = ["en", "it-IT"] as const;
-export type Locale = (typeof locales)[number];
-
 export const rMachine = new RMachine<ResourceAtlas>({
-  locales,
+  locales: ["en", "it-IT"],
   defaultLocale: "en",
   rModuleResolver: (namespace, locale) => import(`./resources/${namespace}/${locale}`),
 });

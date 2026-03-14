@@ -107,11 +107,8 @@ export type ResourceAtlas = {
 import { RMachine } from "r-machine";
 import type { ResourceAtlas } from "./resource-atlas";
 
-const locales = ["en", "it"] as const;
-export type Locale = (typeof locales)[number];
-
 export const rMachine = new RMachine<ResourceAtlas>({
-  locales,
+  locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: (namespace, locale) =>
     import(`./resources/${namespace}/${locale}`),
@@ -128,11 +125,8 @@ import { RMachine } from "r-machine";
 import type { ResourceAtlas } from "./resource-atlas";
 import { ReactStandardStrategy } from "@r-machine/react";
 
-const locales = ["en", "it"] as const;
-export type Locale = (typeof locales)[number];
-
 export const rMachine = new RMachine<ResourceAtlas>({
-  locales,
+  locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: (namespace, locale) =>
     import(`./resources/${namespace}/${locale}`),
@@ -199,11 +193,8 @@ import { NextAppPathStrategy } from "@r-machine/next/app";
 import { RMachine } from "r-machine";
 import type { ResourceAtlas } from "./resource-atlas";
 
-const locales = ["en", "it"] as const;
-export type Locale = (typeof locales)[number];
-
 export const rMachine = new RMachine<ResourceAtlas>({
-  locales,
+  locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: (namespace, locale) =>
     import(`./resources/${namespace}/${locale}`),
