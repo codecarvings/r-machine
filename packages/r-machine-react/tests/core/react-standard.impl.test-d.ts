@@ -1,4 +1,4 @@
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyLocale, AnyResourceAtlas, RMachine } from "r-machine";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
 import { createReactStandardImpl } from "../../src/core/react-standard.impl.js";
@@ -15,22 +15,28 @@ describe("createReactStandardImpl", () => {
       expectTypeOf(createReactStandardImpl).toBeFunction();
     });
 
-    it("first parameter is RMachine<AnyResourceAtlas>", () => {
-      expectTypeOf(createReactStandardImpl).parameter(0).toEqualTypeOf<RMachine<AnyResourceAtlas>>();
+    it("first parameter accepts RMachine<AnyResourceAtlas, AnyLocale>", () => {
+      expectTypeOf(createReactStandardImpl<AnyResourceAtlas, AnyLocale>)
+        .parameter(0)
+        .toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale>>();
     });
 
     it("second parameter is ReactStandardStrategyConfig", () => {
-      expectTypeOf(createReactStandardImpl).parameter(1).toEqualTypeOf<ReactStandardStrategyConfig>();
+      expectTypeOf(createReactStandardImpl<AnyResourceAtlas, AnyLocale>)
+        .parameter(1)
+        .toEqualTypeOf<ReactStandardStrategyConfig>();
     });
 
     it("takes exactly two parameters", () => {
-      expectTypeOf(createReactStandardImpl).parameters.toEqualTypeOf<
-        [rMachine: RMachine<AnyResourceAtlas>, strategyConfig: ReactStandardStrategyConfig]
+      expectTypeOf(createReactStandardImpl<AnyResourceAtlas, AnyLocale>).parameters.toEqualTypeOf<
+        [rMachine: RMachine<AnyResourceAtlas, AnyLocale>, strategyConfig: ReactStandardStrategyConfig]
       >();
     });
 
-    it("returns Promise<ReactImpl>", () => {
-      expectTypeOf(createReactStandardImpl).returns.toEqualTypeOf<Promise<ReactImpl>>();
+    it("returns Promise<ReactImpl<L>>", () => {
+      expectTypeOf(createReactStandardImpl<AnyResourceAtlas, AnyLocale>).returns.toEqualTypeOf<
+        Promise<ReactImpl<AnyLocale>>
+      >();
     });
   });
 
@@ -41,7 +47,7 @@ describe("createReactStandardImpl", () => {
   describe("parameter assignability", () => {
     it("accepts a narrowly-typed RMachine", () => {
       type NarrowAtlas = { readonly common: { readonly greeting: string } };
-      expectTypeOf<RMachine<NarrowAtlas>>().toExtend<RMachine<AnyResourceAtlas>>();
+      expectTypeOf<RMachine<NarrowAtlas, AnyLocale>>().toExtend<RMachine<AnyResourceAtlas, AnyLocale>>();
     });
 
     it("accepts a config with both fields undefined", () => {
@@ -85,45 +91,69 @@ describe("createReactStandardImpl", () => {
   // -----------------------------------------------------------------------
 
   describe("resolved value", () => {
-    it("resolves to ReactImpl", () => {
-      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl>>;
-      expectTypeOf<Resolved>().toEqualTypeOf<ReactImpl>();
+    it("resolves to ReactImpl<AnyLocale>", () => {
+      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl<AnyResourceAtlas, AnyLocale>>>;
+      expectTypeOf<Resolved>().toEqualTypeOf<ReactImpl<AnyLocale>>();
     });
 
     it("resolved value has readLocale", () => {
-      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl>>;
+      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl<AnyResourceAtlas, AnyLocale>>>;
       expectTypeOf<Resolved>().toHaveProperty("readLocale");
     });
 
     it("resolved value has writeLocale", () => {
-      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl>>;
+      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl<AnyResourceAtlas, AnyLocale>>>;
       expectTypeOf<Resolved>().toHaveProperty("writeLocale");
     });
 
     it("readLocale returns string | Promise<string>", () => {
-      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl>>;
+      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl<AnyResourceAtlas, AnyLocale>>>;
       expectTypeOf<Resolved["readLocale"]>().returns.toEqualTypeOf<string | Promise<string>>();
     });
 
     it("readLocale takes no parameters", () => {
-      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl>>;
+      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl<AnyResourceAtlas, AnyLocale>>>;
       expectTypeOf<Resolved["readLocale"]>().parameters.toEqualTypeOf<[]>();
     });
 
     it("writeLocale takes a string parameter", () => {
-      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl>>;
+      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl<AnyResourceAtlas, AnyLocale>>>;
       expectTypeOf<Resolved["writeLocale"]>().parameter(0).toEqualTypeOf<string>();
     });
 
     it("writeLocale returns void | Promise<void>", () => {
-      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl>>;
+      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl<AnyResourceAtlas, AnyLocale>>>;
       expectTypeOf<Resolved["writeLocale"]>().returns.toEqualTypeOf<void | Promise<void>>();
     });
 
     it("resolved value has exactly two keys", () => {
-      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl>>;
+      type Resolved = Awaited<ReturnType<typeof createReactStandardImpl<AnyResourceAtlas, AnyLocale>>>;
       type Keys = keyof Resolved;
       expectTypeOf<Keys>().toEqualTypeOf<"readLocale" | "writeLocale">();
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Narrowed Locale type
+// ---------------------------------------------------------------------------
+
+describe("narrowed Locale type", () => {
+  type AppLocale = "en" | "it";
+  type AppAtlas = { readonly common: { readonly greeting: string } };
+
+  it("returns ReactImpl with narrowed locale", () => {
+    type Resolved = Awaited<ReturnType<typeof createReactStandardImpl<AppAtlas, AppLocale>>>;
+    expectTypeOf<Resolved>().toEqualTypeOf<ReactImpl<AppLocale>>();
+  });
+
+  it("readLocale returns narrowed locale type", () => {
+    type Resolved = Awaited<ReturnType<typeof createReactStandardImpl<AppAtlas, AppLocale>>>;
+    expectTypeOf<Resolved["readLocale"]>().returns.toEqualTypeOf<AppLocale | Promise<AppLocale>>();
+  });
+
+  it("writeLocale accepts narrowed locale type", () => {
+    type Resolved = Awaited<ReturnType<typeof createReactStandardImpl<AppAtlas, AppLocale>>>;
+    expectTypeOf<Resolved["writeLocale"]>().parameter(0).toEqualTypeOf<AppLocale>();
   });
 });

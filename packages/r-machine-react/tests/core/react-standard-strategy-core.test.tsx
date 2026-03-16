@@ -1,7 +1,6 @@
 import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
-import type { RMachine } from "r-machine";
+import type { AnyLocale, RMachine } from "r-machine";
 import type { CustomLocaleDetector } from "r-machine/strategy";
-import { Strategy } from "r-machine/strategy";
 import type { ReactNode } from "react";
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -19,9 +18,11 @@ afterEach(cleanup);
 // Test helpers
 // ---------------------------------------------------------------------------
 
-class ConcreteStandardStrategy extends ReactStandardStrategyCore<TestAtlas> {}
+class ConcreteStandardStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale> {}
 
-function createStrategy(options: { machine?: RMachine<TestAtlas>; config?: ReactStandardStrategyConfig } = {}) {
+function createStrategy(
+  options: { machine?: RMachine<TestAtlas, AnyLocale>; config?: ReactStandardStrategyConfig } = {}
+) {
   const machine = options.machine ?? createMockMachine();
   const config = options.config ?? configWith();
   return { strategy: new ConcreteStandardStrategy(machine, config), machine };
@@ -37,11 +38,6 @@ describe("ReactStandardStrategyCore", () => {
   // -----------------------------------------------------------------------
 
   describe("construction", () => {
-    it("extends Strategy", () => {
-      const { strategy } = createStrategy();
-      expect(strategy).toBeInstanceOf(Strategy);
-    });
-
     it("exposes the rMachine property from the base class", () => {
       const machine = createMockMachine();
       const { strategy } = createStrategy({ machine });

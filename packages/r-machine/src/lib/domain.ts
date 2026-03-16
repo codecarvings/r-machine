@@ -1,3 +1,4 @@
+import type { AnyLocale } from "#r-machine";
 import type { AnyNamespace, AnyR } from "./r.js";
 import type { AnyNamespaceList, AnyRKit } from "./r-kit.js";
 import { type RModuleResolver, resolveR } from "./r-module.js";
@@ -8,7 +9,7 @@ function getRKitKey(...namespaces: AnyNamespaceList): string {
 
 export class Domain {
   constructor(
-    readonly locale: string,
+    readonly locale: AnyLocale,
     protected readonly rModuleResolver: RModuleResolver
   ) {}
 

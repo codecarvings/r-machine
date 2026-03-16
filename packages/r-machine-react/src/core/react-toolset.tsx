@@ -1,14 +1,17 @@
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyLocale, AnyResourceAtlas, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import { createContext, type ReactNode, use, useContext, useMemo, useState } from "react";
 import { ERR_CONTEXT_NOT_FOUND } from "#r-machine/react/errors";
 import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils";
 import { createReactBareToolset, type ReactBareToolset } from "./react-bare-toolset.js";
 
-// THIS IS THE BASE TOOLSET USED ALSO BY THE REACT STANDARD STRATEGY
+// THIS IS THE BASE TOOLSET ALSO USED BY THE REACT STANDARD STRATEGY
 // DO NOT RENAME
 
-export type ReactToolset<RA extends AnyResourceAtlas> = Omit<ReactBareToolset<RA>, "ReactRMachine"> & {
+export type ReactToolset<RA extends AnyResourceAtlas, L extends AnyLocale> = Omit<
+  ReactBareToolset<RA, L>,
+  "ReactRMachine"
+> & {
   readonly ReactRMachine: ReactRMachine;
 };
 
@@ -20,23 +23,23 @@ interface ReactRMachineProps {
   readonly children: ReactNode;
 }
 
-export interface ReactImpl {
-  readonly readLocale: () => string | Promise<string>;
-  readonly writeLocale: (newLocale: string) => void | Promise<void>;
+export interface ReactImpl<L extends AnyLocale> {
+  readonly readLocale: () => L | Promise<L>;
+  readonly writeLocale: (newLocale: L) => void | Promise<void>;
 }
 
-type ReactToolsetContext = [string, (newLocale: string) => void];
+type ReactToolsetContext<L extends AnyLocale> = [L, (newLocale: L) => void];
 
-export async function createReactToolset<RA extends AnyResourceAtlas>(
-  rMachine: RMachine<RA>,
-  impl: ReactImpl
-): Promise<ReactToolset<RA>> {
+export async function createReactToolset<RA extends AnyResourceAtlas, L extends AnyLocale>(
+  rMachine: RMachine<RA, L>,
+  impl: ReactImpl<L>
+): Promise<ReactToolset<RA, L>> {
   const { ReactRMachine: OriginalReactRMachine, ...otherTools } = await createReactBareToolset(rMachine);
 
-  const Context = createContext<ReactToolsetContext | null>(null);
+  const Context = createContext<ReactToolsetContext<L> | null>(null);
   Context.displayName = "ReactToolsetContext";
 
-  function useReactToolsetContext(): ReactToolsetContext {
+  function useReactToolsetContext(): ReactToolsetContext<L> {
     const context = useContext(Context);
     if (context === null) {
       throw new RMachineUsageError(ERR_CONTEXT_NOT_FOUND, "ReactToolsetContext not found.");
@@ -45,7 +48,7 @@ export async function createReactToolset<RA extends AnyResourceAtlas>(
     return context;
   }
 
-  async function setLocale(newLocale: string, context: ReactToolsetContext) {
+  async function setLocale(newLocale: L, context: ReactToolsetContext<L>) {
     const [locale, setLocaleContext] = context;
     if (newLocale === locale) {
       return;
@@ -63,17 +66,17 @@ export async function createReactToolset<RA extends AnyResourceAtlas>(
     }
   }
 
-  function useSetLocale(): ReturnType<ReactBareToolset<RA>["useSetLocale"]> {
+  function useSetLocale(): ReturnType<ReactBareToolset<RA, L>["useSetLocale"]> {
     const context = useReactToolsetContext();
 
-    return (newLocale: string) => setLocale(newLocale, context);
+    return (newLocale: L) => setLocale(newLocale, context);
   }
 
   function InternalReactRMachine({
     initialLocaleOrPromise,
     children,
   }: {
-    readonly initialLocaleOrPromise: string | Promise<string>;
+    readonly initialLocaleOrPromise: L | Promise<L>;
     readonly children: ReactNode;
   }) {
     const initialLocale =

@@ -1,4 +1,4 @@
-import type { RMachine } from "r-machine";
+import type { AnyLocale, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "r-machine/errors";
 import { vi } from "vitest";
 
@@ -30,5 +30,5 @@ export function createMockMachine(
     },
     hybridPickR: vi.fn(overrides.hybridPickR ?? (() => ({ greeting: "hello" }))),
     hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
-  } as unknown as RMachine<TestAtlas>;
+  } as unknown as RMachine<TestAtlas, AnyLocale>;
 }

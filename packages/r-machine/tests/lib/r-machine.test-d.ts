@@ -103,10 +103,15 @@ describe("RMachine", () => {
     it("should have readonly localeHelper property", () => {
       const machine = createMachine<TestResourceAtlas>();
       expectTypeOf(machine).toHaveProperty("localeHelper");
-      expectTypeOf(machine.localeHelper).toEqualTypeOf<LocaleHelper>();
+      expectTypeOf(machine.localeHelper).toEqualTypeOf<LocaleHelper<string>>();
 
       // @ts-expect-error - localeHelper is readonly
-      machine.localeHelper = {} as LocaleHelper;
+      machine.localeHelper = {} as LocaleHelper<string>;
+    });
+
+    it("localeHelper should preserve narrow locale type", () => {
+      const machine = createNarrowMachine<TestResourceAtlas>();
+      expectTypeOf(machine.localeHelper).toEqualTypeOf<LocaleHelper<"en" | "it">>();
     });
 
     it("config should preserve narrow locale type", () => {

@@ -1,4 +1,4 @@
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyLocale, AnyResourceAtlas, RMachine } from "r-machine";
 import type { CustomLocaleDetector, CustomLocaleStore, Strategy } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
@@ -23,7 +23,7 @@ type OtherAtlas = {
 };
 
 // Concrete subclass for testing the abstract class
-class ConcreteStandardStrategy extends ReactStandardStrategyCore<TestAtlas> {
+class ConcreteStandardStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale> {
   // createImpl is already implemented by ReactStandardStrategyCore
 }
 
@@ -140,29 +140,29 @@ describe("PartialReactStandardStrategyConfig", () => {
 
 describe("ReactStandardStrategyCore", () => {
   describe("class shape", () => {
-    it("extends ReactStrategyCore<RA, ReactStandardStrategyConfig>", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas>>().toExtend<
-        ReactStrategyCore<TestAtlas, ReactStandardStrategyConfig>
+    it("extends ReactStrategyCore<RA, L, ReactStandardStrategyConfig>", () => {
+      expectTypeOf<ReactStandardStrategyCore<TestAtlas, AnyLocale>>().toExtend<
+        ReactStrategyCore<TestAtlas, AnyLocale, ReactStandardStrategyConfig>
       >();
-    });
-
-    it("extends Strategy<RA, ReactStandardStrategyConfig>", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas>>().toExtend<Strategy<TestAtlas, ReactStandardStrategyConfig>>();
     });
 
     it("is abstract — concrete subclass is constructible", () => {
       expectTypeOf(ConcreteStandardStrategy).toBeConstructibleWith(
-        {} as RMachine<TestAtlas>,
+        {} as RMachine<TestAtlas, AnyLocale>,
         {} as ReactStandardStrategyConfig
       );
     });
 
-    it("rMachine property is typed as RMachine<RA>", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas>["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas>>();
+    it("rMachine property is typed as RMachine<RA, L>", () => {
+      expectTypeOf<ReactStandardStrategyCore<TestAtlas, AnyLocale>["rMachine"]>().toEqualTypeOf<
+        RMachine<TestAtlas, AnyLocale>
+      >();
     });
 
     it("config property is typed as ReactStandardStrategyConfig", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas>["config"]>().toEqualTypeOf<ReactStandardStrategyConfig>();
+      expectTypeOf<
+        ReactStandardStrategyCore<TestAtlas, AnyLocale>["config"]
+      >().toEqualTypeOf<ReactStandardStrategyConfig>();
     });
   });
 
@@ -185,23 +185,19 @@ describe("ReactStandardStrategyCore", () => {
   // -----------------------------------------------------------------------
 
   describe("createToolset", () => {
-    it("returns Promise<ReactToolset<RA>>", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas>["createToolset"]>().returns.toEqualTypeOf<
-        Promise<ReactToolset<TestAtlas>>
+    it("returns Promise<ReactToolset<RA, L>>", () => {
+      expectTypeOf<ReactStandardStrategyCore<TestAtlas, AnyLocale>["createToolset"]>().returns.toEqualTypeOf<
+        Promise<ReactToolset<TestAtlas, AnyLocale>>
       >();
     });
 
     it("takes no parameters", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas>["createToolset"]>().parameters.toEqualTypeOf<[]>();
-    });
-
-    it("is a function", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas>["createToolset"]>().toBeFunction();
+      expectTypeOf<ReactStandardStrategyCore<TestAtlas, AnyLocale>["createToolset"]>().parameters.toEqualTypeOf<[]>();
     });
 
     it("preserves the atlas type parameter in the returned toolset", () => {
-      type Result = Awaited<ReturnType<ReactStandardStrategyCore<TestAtlas>["createToolset"]>>;
-      expectTypeOf<Result>().toEqualTypeOf<ReactToolset<TestAtlas>>();
+      type Result = Awaited<ReturnType<ReactStandardStrategyCore<TestAtlas, AnyLocale>["createToolset"]>>;
+      expectTypeOf<Result>().toEqualTypeOf<ReactToolset<TestAtlas, AnyLocale>>();
     });
   });
 
@@ -210,24 +206,24 @@ describe("ReactStandardStrategyCore", () => {
   // -----------------------------------------------------------------------
 
   describe("createImpl", () => {
-    it("can be overridden to return Promise<ReactImpl>", () => {
-      class OverriddenStrategy extends ReactStandardStrategyCore<TestAtlas> {
-        protected override createImpl(): Promise<ReactImpl> {
+    it("can be overridden to return Promise<ReactImpl<L>>", () => {
+      class OverriddenStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale> {
+        protected override createImpl(): Promise<ReactImpl<AnyLocale>> {
           return Promise.resolve({ readLocale: () => "en", writeLocale: () => {} });
         }
       }
-      expectTypeOf<OverriddenStrategy>().toExtend<ReactStandardStrategyCore<TestAtlas>>();
+      expectTypeOf<OverriddenStrategy>().toExtend<ReactStandardStrategyCore<TestAtlas, AnyLocale>>();
     });
 
     it("has access to rMachine and config from the base class", () => {
-      class AccessingStrategy extends ReactStandardStrategyCore<TestAtlas> {
-        protected override createImpl(): Promise<ReactImpl> {
-          const _machine: RMachine<TestAtlas> = this.rMachine;
+      class AccessingStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale> {
+        protected override createImpl(): Promise<ReactImpl<AnyLocale>> {
+          const _machine: RMachine<TestAtlas, AnyLocale> = this.rMachine;
           const _config: ReactStandardStrategyConfig = this.config;
           return Promise.resolve({ readLocale: () => "en", writeLocale: () => {} });
         }
       }
-      expectTypeOf<AccessingStrategy>().toExtend<ReactStandardStrategyCore<TestAtlas>>();
+      expectTypeOf<AccessingStrategy>().toExtend<ReactStandardStrategyCore<TestAtlas, AnyLocale>>();
     });
   });
 
@@ -237,21 +233,25 @@ describe("ReactStandardStrategyCore", () => {
 
   describe("generic type parameters", () => {
     it("RA must extend AnyResourceAtlas", () => {
-      expectTypeOf<ReactStandardStrategyCore<AnyResourceAtlas>>().toBeObject();
+      expectTypeOf<ReactStandardStrategyCore<AnyResourceAtlas, AnyLocale>>().toBeObject();
     });
 
     it("different atlas types produce different strategy types", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas>>().not.toEqualTypeOf<ReactStandardStrategyCore<OtherAtlas>>();
+      expectTypeOf<ReactStandardStrategyCore<TestAtlas, AnyLocale>>().not.toEqualTypeOf<
+        ReactStandardStrategyCore<OtherAtlas, AnyLocale>
+      >();
     });
 
     it("different atlas types produce different toolset return types", () => {
-      type ToolsetA = Awaited<ReturnType<ReactStandardStrategyCore<TestAtlas>["createToolset"]>>;
-      type ToolsetB = Awaited<ReturnType<ReactStandardStrategyCore<OtherAtlas>["createToolset"]>>;
+      type ToolsetA = Awaited<ReturnType<ReactStandardStrategyCore<TestAtlas, AnyLocale>["createToolset"]>>;
+      type ToolsetB = Awaited<ReturnType<ReactStandardStrategyCore<OtherAtlas, AnyLocale>["createToolset"]>>;
       expectTypeOf<ToolsetA>().not.toEqualTypeOf<ToolsetB>();
     });
 
     it("strategy with AnyResourceAtlas is a supertype", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas>>().toExtend<ReactStandardStrategyCore<AnyResourceAtlas>>();
+      expectTypeOf<ReactStandardStrategyCore<TestAtlas, AnyLocale>>().toExtend<
+        ReactStandardStrategyCore<AnyResourceAtlas, AnyLocale>
+      >();
     });
   });
 
@@ -261,25 +261,57 @@ describe("ReactStandardStrategyCore", () => {
 
   describe("structural compatibility", () => {
     it("is not assignable to Strategy with a different config", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas>>().not.toExtend<Strategy<TestAtlas, string>>();
+      expectTypeOf<ReactStandardStrategyCore<TestAtlas, AnyLocale>>().not.toExtend<
+        Strategy<TestAtlas, AnyLocale, string>
+      >();
     });
 
     it("is not assignable to Strategy with a different atlas", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas>>().not.toExtend<
-        Strategy<OtherAtlas, ReactStandardStrategyConfig>
+      expectTypeOf<ReactStandardStrategyCore<TestAtlas, AnyLocale>>().not.toExtend<
+        Strategy<OtherAtlas, AnyLocale, ReactStandardStrategyConfig>
       >();
     });
 
     it("concrete subclass extends ReactStandardStrategyCore", () => {
-      expectTypeOf<ConcreteStandardStrategy>().toExtend<ReactStandardStrategyCore<TestAtlas>>();
+      expectTypeOf<ConcreteStandardStrategy>().toExtend<ReactStandardStrategyCore<TestAtlas, AnyLocale>>();
     });
 
     it("concrete subclass extends ReactStrategyCore", () => {
-      expectTypeOf<ConcreteStandardStrategy>().toExtend<ReactStrategyCore<TestAtlas, ReactStandardStrategyConfig>>();
+      expectTypeOf<ConcreteStandardStrategy>().toExtend<
+        ReactStrategyCore<TestAtlas, AnyLocale, ReactStandardStrategyConfig>
+      >();
     });
+  });
+});
 
-    it("concrete subclass extends Strategy", () => {
-      expectTypeOf<ConcreteStandardStrategy>().toExtend<Strategy<TestAtlas, ReactStandardStrategyConfig>>();
-    });
+// ---------------------------------------------------------------------------
+// Narrowed Locale type
+// ---------------------------------------------------------------------------
+
+describe("narrowed Locale type", () => {
+  type AppLocale = "en" | "it";
+
+  it("strategy with narrowed locale produces a narrowed toolset", () => {
+    type Result = Awaited<ReturnType<ReactStandardStrategyCore<TestAtlas, AppLocale>["createToolset"]>>;
+    expectTypeOf<Result>().toEqualTypeOf<ReactToolset<TestAtlas, AppLocale>>();
+  });
+
+  it("rMachine property uses the narrowed locale", () => {
+    expectTypeOf<ReactStandardStrategyCore<TestAtlas, AppLocale>["rMachine"]>().toEqualTypeOf<
+      RMachine<TestAtlas, AppLocale>
+    >();
+  });
+
+  it("config property type is independent of locale narrowing", () => {
+    expectTypeOf<
+      ReactStandardStrategyCore<TestAtlas, AppLocale>["config"]
+    >().toEqualTypeOf<ReactStandardStrategyConfig>();
+  });
+
+  it("narrowed strategy is not assignable to differently-narrowed strategy", () => {
+    type OtherLocale = "fr" | "de";
+    expectTypeOf<ReactStandardStrategyCore<TestAtlas, AppLocale>>().not.toEqualTypeOf<
+      ReactStandardStrategyCore<TestAtlas, OtherLocale>
+    >();
   });
 });

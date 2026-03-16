@@ -84,5 +84,12 @@ describe("DomainManager", () => {
       await expect(domain.pickR("nonexistent")).rejects.toThrow();
       expect(manager.getDomain("en")).toBe(domain);
     });
+
+    it("failed namespace does not prevent resolving other namespaces in the same domain", async () => {
+      const manager = new DomainManager(createMockResolver(modules));
+      const domain = manager.getDomain("en");
+      await expect(domain.pickR("nonexistent")).rejects.toThrow();
+      expect(await domain.pickR("common")).toEqual(commonR);
+    });
   });
 });

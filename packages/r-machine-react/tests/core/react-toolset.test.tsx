@@ -15,16 +15,6 @@ afterEach(cleanup);
 // ---------------------------------------------------------------------------
 
 describe("createReactToolset", () => {
-  it("returns a toolset with all expected members", async () => {
-    const toolset = await createReactToolset(createMockMachine(), createMockImpl());
-
-    expect(toolset).toHaveProperty("ReactRMachine");
-    expect(toolset).toHaveProperty("useLocale");
-    expect(toolset).toHaveProperty("useSetLocale");
-    expect(toolset).toHaveProperty("useR");
-    expect(toolset).toHaveProperty("useRKit");
-  });
-
   // -----------------------------------------------------------------------
   // ReactRMachine — sync readLocale
   // -----------------------------------------------------------------------
@@ -61,6 +51,23 @@ describe("createReactToolset", () => {
       );
 
       expect(readLocale).toHaveBeenCalledTimes(1);
+    });
+
+    it("propagates a synchronous error thrown by readLocale", async () => {
+      const impl = createMockImpl({
+        readLocale: () => {
+          throw new Error("readLocale crashed");
+        },
+      });
+      const { ReactRMachine } = await createReactToolset(createMockMachine(), impl);
+
+      expect(() =>
+        render(
+          <ReactRMachine>
+            <div>child</div>
+          </ReactRMachine>
+        )
+      ).toThrow("readLocale crashed");
     });
 
     it("passes the locale from readLocale to the inner provider", async () => {
@@ -698,6 +705,58 @@ describe("createReactToolset", () => {
 
       expect(screen.getByTestId("l1").textContent).toBe("en");
       expect(screen.getByTestId("l2").textContent).toBe("it");
+    });
+
+    it("handles rapid successive setLocale calls correctly", async () => {
+      const callOrder: string[] = [];
+      const writeLocale = vi.fn(async (locale: string) => {
+        await new Promise<void>((r) => setTimeout(r, 10));
+        callOrder.push(`write-${locale}`);
+      });
+      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
+      const { ReactRMachine, useLocale, useSetLocale } = await createReactToolset(createMockMachine(), impl);
+
+      function App() {
+        const locale = useLocale();
+        const setLocale = useSetLocale();
+        return (
+          <>
+            <span data-testid="locale">{locale}</span>
+            <button type="button" data-testid="to-it" onClick={() => setLocale("it")}>
+              to it
+            </button>
+            <button type="button" data-testid="to-en" onClick={() => setLocale("en")}>
+              to en
+            </button>
+          </>
+        );
+      }
+
+      render(
+        <ReactRMachine>
+          <App />
+        </ReactRMachine>
+      );
+
+      // Rapid clicks without waiting for writeLocale to complete
+      await act(async () => {
+        screen.getByTestId("to-it").click();
+      });
+      await act(async () => {
+        screen.getByTestId("to-en").click();
+      });
+      await act(async () => {
+        screen.getByTestId("to-it").click();
+      });
+
+      // The final locale should reflect the last call
+      expect(screen.getByTestId("locale").textContent).toBe("it");
+
+      // writeLocale should have been called for each change
+      expect(writeLocale).toHaveBeenCalledTimes(3);
+      expect(writeLocale).toHaveBeenNthCalledWith(1, "it");
+      expect(writeLocale).toHaveBeenNthCalledWith(2, "en");
+      expect(writeLocale).toHaveBeenNthCalledWith(3, "it");
     });
 
     it("multiple setLocale calls update correctly", async () => {

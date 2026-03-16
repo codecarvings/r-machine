@@ -23,7 +23,7 @@ export class RMachine<const RA extends AnyResourceAtlas, const L extends AnyLoca
   }
 
   readonly config: RMachineConfig<L>;
-  readonly localeHelper: LocaleHelper;
+  readonly localeHelper: LocaleHelper<L>;
   protected readonly domainManager: DomainManager;
 
   protected validateLocaleForPick(locale: L) {

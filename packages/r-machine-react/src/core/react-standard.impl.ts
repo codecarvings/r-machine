@@ -1,22 +1,22 @@
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyLocale, AnyResourceAtlas, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { ReactStandardStrategyConfig } from "./react-standard-strategy-core.js";
 import type { ReactImpl } from "./react-toolset.js";
 
-export async function createReactStandardImpl(
-  rMachine: RMachine<AnyResourceAtlas>,
+export async function createReactStandardImpl<RA extends AnyResourceAtlas, L extends AnyLocale>(
+  rMachine: RMachine<RA, L>,
   strategyConfig: ReactStandardStrategyConfig
-): Promise<ReactImpl> {
-  function returnValidLocale(locale: string): string {
+): Promise<ReactImpl<L>> {
+  function returnValidLocale(locale: AnyLocale): L {
     const error = rMachine.localeHelper.validateLocale(locale);
     if (error) {
       throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Invalid locale detected: ${locale}.`, error);
     }
 
-    return locale;
+    return locale as L;
   }
 
-  function detectLocale(): string | Promise<string> {
+  function detectLocale(): L | Promise<L> {
     if (strategyConfig.localeDetector !== undefined) {
       const localeOrPromise = strategyConfig.localeDetector();
       if (localeOrPromise instanceof Promise) {
@@ -29,7 +29,7 @@ export async function createReactStandardImpl(
     return rMachine.config.defaultLocale;
   }
 
-  function storeLocale(locale: string): string | Promise<string> {
+  function storeLocale(locale: L): L | Promise<L> {
     if (strategyConfig.localeStore !== undefined) {
       const setResult = strategyConfig.localeStore.set(locale);
       if (setResult instanceof Promise) {
@@ -40,7 +40,7 @@ export async function createReactStandardImpl(
     return locale;
   }
 
-  function detectAndStoreLocale(): string | Promise<string> {
+  function detectAndStoreLocale(): L | Promise<L> {
     const localeOrPromise = detectLocale();
 
     if (localeOrPromise instanceof Promise) {
@@ -59,14 +59,14 @@ export async function createReactStandardImpl(
           return localeOrPromise.then((locale) => {
             if (locale !== undefined) {
               // Validation for returned locale is performed by the caller
-              return locale;
+              return locale as L;
             } else {
               return detectAndStoreLocale();
             }
           });
         } else if (localeOrPromise !== undefined) {
           // Validation for returned locale is performed by the caller
-          return localeOrPromise;
+          return localeOrPromise as L;
         }
       }
 

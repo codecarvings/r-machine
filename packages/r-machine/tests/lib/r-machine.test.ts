@@ -92,6 +92,13 @@ describe("RMachine", () => {
       expect(machine.config.locales).toEqual(["en", "it"]);
       expect(machine.config.defaultLocale).toBe("en");
     });
+
+    it("is not affected by mutations to the original config object", () => {
+      const config = makeConfig();
+      const machine = RMachine.for<TestRA>().create(config);
+      (config.locales as string[]).push("fr");
+      expect(machine.config.locales).toEqual(["en", "it"]);
+    });
   });
 
   describe("localeHelper", () => {
@@ -243,9 +250,30 @@ describe("RMachine", () => {
       const machine = createMachine({ rModuleResolver: resolver });
       expect(await machine.pickR("en", "common")).toBe(asyncR);
     });
+
+    it("passes the correct R$ context (namespace and locale) to the factory", async () => {
+      const factory = vi.fn(($: { namespace: string; locale: string }) => ({ ns: $.namespace, loc: $.locale }));
+      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
+      const machine = createMachine({ rModuleResolver: resolver });
+      const result = await machine.pickR("en", "common");
+      expect(factory).toHaveBeenCalledWith({ namespace: "common", locale: "en" });
+      expect(result).toEqual({ ns: "common", loc: "en" });
+    });
+
+    it("resolves factory-based resources through pickRKit", async () => {
+      const factoryA = () => ({ a: true });
+      const factoryB = () => Promise.resolve({ b: true });
+      const resolver: RModuleResolver = (ns) => Promise.resolve({ default: ns === "common" ? factoryA : factoryB });
+      const machine = createMachine({ rModuleResolver: resolver });
+      const kit = await machine.pickRKit("en", "common", "nav");
+      expect(kit).toEqual([{ a: true }, { b: true }]);
+    });
   });
 
   describe("resolver error handling", () => {
+    // Note: sync throws propagate the raw error (not wrapped in RMachineResolveError)
+    // because the throw escapes before the .then() rejection handler in resolveR().
+    // Async rejections instead go through the .then(_, reason) handler and get wrapped.
     it("handles resolver throwing synchronously", async () => {
       const resolver: RModuleResolver = () => {
         throw new Error("Sync error");
@@ -275,6 +303,8 @@ describe("RMachine", () => {
       expect(callCount).toBe(2);
     });
 
+    // Same asymmetry as resolver: sync factory throws propagate raw,
+    // async factory rejections are wrapped in RMachineResolveError.
     it("handles factory function throwing synchronously", async () => {
       const resolver: RModuleResolver = () =>
         Promise.resolve({
@@ -321,6 +351,29 @@ describe("RMachine", () => {
       expect(r2).toBe(commonR);
       expect(r3).toBe(commonR);
       expect(resolver).toHaveBeenCalledTimes(1);
+    });
+
+    it("deduplicates concurrent pickRKit calls for the same namespace set", async () => {
+      const resolver = vi.fn<RModuleResolver>(
+        (namespace) =>
+          new Promise((resolve) =>
+            setTimeout(() => {
+              const mod = enModules[namespace];
+              if (mod) resolve(mod);
+            }, 20)
+          )
+      );
+      const machine = createMachine({ rModuleResolver: resolver });
+
+      const [k1, k2] = await Promise.all([
+        machine.pickRKit("en", "common", "nav"),
+        machine.pickRKit("en", "common", "nav"),
+      ]);
+
+      expect(k1).toEqual([commonR, navR]);
+      expect(k2).toEqual([commonR, navR]);
+      // Each namespace resolved only once despite two concurrent pickRKit calls
+      expect(resolver).toHaveBeenCalledTimes(2);
     });
 
     it("does not deduplicate calls to different namespaces", async () => {
@@ -378,6 +431,20 @@ describe("RMachine", () => {
 
       expect(await machine1.pickR("en", "common")).toBe(commonR);
       expect(await machine2.pickR("en", "common")).toBe(commonR);
+    });
+
+    it("maintains independent caches across instances", async () => {
+      const resolver1 = vi.fn<RModuleResolver>(() => Promise.resolve({ default: commonR }));
+      const resolver2 = vi.fn<RModuleResolver>(() => Promise.resolve({ default: itCommonR }));
+      const m1 = createMachine({ rModuleResolver: resolver1 });
+      const m2 = createMachine({ rModuleResolver: resolver2 });
+
+      await m1.pickR("en", "common");
+      await m2.pickR("en", "common");
+      await m1.pickR("en", "common"); // should hit cache
+
+      expect(resolver1).toHaveBeenCalledTimes(1);
+      expect(resolver2).toHaveBeenCalledTimes(1);
     });
   });
 });

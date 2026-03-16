@@ -15,16 +15,6 @@ afterEach(cleanup);
 // ---------------------------------------------------------------------------
 
 describe("createReactBareToolset", () => {
-  it("returns a toolset with all expected members", async () => {
-    const toolset = await createReactBareToolset(createMockMachine());
-
-    expect(toolset).toHaveProperty("ReactRMachine");
-    expect(toolset).toHaveProperty("useLocale");
-    expect(toolset).toHaveProperty("useSetLocale");
-    expect(toolset).toHaveProperty("useR");
-    expect(toolset).toHaveProperty("useRKit");
-  });
-
   // -----------------------------------------------------------------------
   // ReactRMachine (provider component)
   // -----------------------------------------------------------------------

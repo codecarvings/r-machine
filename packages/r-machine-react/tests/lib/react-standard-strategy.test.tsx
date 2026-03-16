@@ -1,6 +1,5 @@
 import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
 import type { CustomLocaleDetector } from "r-machine/strategy";
-import { Strategy } from "r-machine/strategy";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ReactStandardStrategyCore } from "#r-machine/react/core";
@@ -25,11 +24,6 @@ describe("ReactStandardStrategy", () => {
       expect(strategy).toBeInstanceOf(ReactStandardStrategyCore);
     });
 
-    it("extends Strategy", () => {
-      const strategy = new ReactStandardStrategy(createMockMachine());
-      expect(strategy).toBeInstanceOf(Strategy);
-    });
-
     it("can be instantiated with only an RMachine (no config argument)", () => {
       const strategy = new ReactStandardStrategy(createMockMachine());
       expect(strategy).toBeInstanceOf(ReactStandardStrategy);
@@ -44,12 +38,6 @@ describe("ReactStandardStrategy", () => {
     it("can be instantiated with an RMachine and an empty config", () => {
       const strategy = new ReactStandardStrategy(createMockMachine(), {});
       expect(strategy).toBeInstanceOf(ReactStandardStrategy);
-    });
-
-    it("exposes the rMachine property from the base class", () => {
-      const machine = createMockMachine();
-      const strategy = new ReactStandardStrategy(machine);
-      expect(strategy.rMachine).toBe(machine);
     });
   });
 

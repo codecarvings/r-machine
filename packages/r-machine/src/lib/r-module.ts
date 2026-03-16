@@ -1,9 +1,10 @@
+import type { AnyLocale } from "#r-machine";
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyNamespace, AnyR } from "./r.js";
 
 export interface R$ {
-  readonly namespace: string;
-  readonly locale: string;
+  readonly namespace: AnyNamespace;
+  readonly locale: AnyLocale;
 }
 
 export type AnyRFactory = ($: R$) => AnyR | Promise<AnyR>;
@@ -14,11 +15,11 @@ export interface AnyRModule {
   readonly default: AnyRForge;
 }
 
-export type RModuleResolver = (namespace: AnyNamespace, locale: string) => Promise<AnyRModule>;
+export type RModuleResolver = (namespace: AnyNamespace, locale: AnyLocale) => Promise<AnyRModule>;
 
 function getResolveRFromModuleError(
   namespace: AnyNamespace,
-  locale: string,
+  locale: AnyLocale,
   reason: string,
   innerError?: Error | undefined
 ) {
@@ -81,7 +82,7 @@ export function resolveRFromModule(rModule: AnyRModule, $: R$): Promise<AnyR> {
   });
 }
 
-export function resolveR(rModuleResolver: RModuleResolver, namespace: AnyNamespace, locale: string): Promise<AnyR> {
+export function resolveR(rModuleResolver: RModuleResolver, namespace: AnyNamespace, locale: AnyLocale): Promise<AnyR> {
   return new Promise<AnyR>((resolve, reject) => {
     rModuleResolver(namespace, locale).then(
       (resolvedRModule) => {
