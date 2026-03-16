@@ -1,5 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyLocale, AnyResourceAtlas, RMachine } from "#r-machine";
+import type { AnyResourceAtlas, RMachine } from "#r-machine";
+import type { AnyLocale } from "#r-machine/locale";
 import { Strategy } from "../../src/strategy/strategy.js";
 
 // Test ResourceAtlas type for testing

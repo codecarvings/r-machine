@@ -4,8 +4,12 @@ import {
   ERR_NO_LOCALES,
   RMachineConfigError,
 } from "#r-machine/errors";
-import { validateCanonicalUnicodeLocaleId } from "#r-machine/locale";
-import type { AnyLocale, AnyLocaleList, LocaleList } from "./locale.js";
+import {
+  type AnyLocale,
+  type AnyLocaleList,
+  type LocaleList,
+  validateCanonicalUnicodeLocaleId,
+} from "#r-machine/locale";
 import type { RModuleResolver } from "./r-module.js";
 
 // The generic parameter LL is used to ensure that the defaultLocale is one of the locales in the list

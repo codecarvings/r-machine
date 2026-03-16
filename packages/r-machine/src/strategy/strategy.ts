@@ -1,4 +1,5 @@
-import type { AnyLocale, AnyResourceAtlas, RMachine } from "#r-machine";
+import type { AnyResourceAtlas, RMachine } from "#r-machine";
+import type { AnyLocale } from "#r-machine/locale";
 
 export abstract class Strategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> {
   constructor(

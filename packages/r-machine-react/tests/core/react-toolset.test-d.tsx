@@ -1,4 +1,5 @@
-import type { AnyLocale, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import { describe, expectTypeOf, it } from "vitest";
 import type { SuspenseComponent } from "#r-machine/react/utils";

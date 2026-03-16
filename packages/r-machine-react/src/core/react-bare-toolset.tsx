@@ -1,7 +1,8 @@
 "use client";
 
-import type { AnyLocale, AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
+import type { AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
+import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "#r-machine/react/errors";

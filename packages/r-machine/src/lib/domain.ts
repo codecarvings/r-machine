@@ -1,4 +1,4 @@
-import type { AnyLocale } from "#r-machine";
+import type { AnyLocale } from "#r-machine/locale";
 import type { AnyNamespace, AnyR } from "./r.js";
 import type { AnyNamespaceList, AnyRKit } from "./r-kit.js";
 import { type RModuleResolver, resolveR } from "./r-module.js";

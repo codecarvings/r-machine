@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas } from "r-machine";
+import type { AnyLocale, AnyResourceAtlas } from "r-machine";
 import { Strategy, type SwitchableOption } from "r-machine/strategy";
 import type { AnyPathAtlas, ExtendedPathAtlas, PathAtlasCtor } from "#r-machine/next/core";
 import type { NextAppClientImpl, NextAppClientRMachine, NextAppClientToolset } from "./next-app-client-toolset.js";
@@ -47,24 +47,25 @@ const defaultConfig: NextAppStrategyConfig<DefaultPathAtlas, typeof defaultLocal
 
 export abstract class NextAppStrategyCore<
   RA extends AnyResourceAtlas,
+  L extends AnyLocale,
   C extends AnyNextAppStrategyConfig,
-> extends Strategy<RA, C> {
+> extends Strategy<RA, L, C> {
   static readonly defaultConfig = defaultConfig;
 
   protected abstract readonly pathAtlas: ExtendedPathAtlas<InstanceType<C["PathAtlas"]>>;
 
-  protected abstract createClientImpl(): Promise<NextAppClientImpl>;
-  protected abstract createServerImpl(): Promise<NextAppServerImpl>;
+  protected abstract createClientImpl(): Promise<NextAppClientImpl<L>>;
+  protected abstract createServerImpl(): Promise<NextAppServerImpl<L>>;
 
-  async createClientToolset(): Promise<NextAppClientToolset<RA, InstanceType<C["PathAtlas"]>>> {
+  async createClientToolset(): Promise<NextAppClientToolset<RA, L, InstanceType<C["PathAtlas"]>>> {
     const impl = await this.createClientImpl();
     const module = await import("./next-app-client-toolset.js");
     return module.createNextAppClientToolset(this.rMachine, impl);
   }
 
   async createServerToolset(
-    NextClientRMachine: NextAppClientRMachine
-  ): Promise<NextAppServerToolset<RA, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
+    NextClientRMachine: NextAppClientRMachine<L>
+  ): Promise<NextAppServerToolset<RA, L, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     const impl = await this.createServerImpl();
     const module = await import("./next-app-server-toolset.js");
     return module.createNextAppServerToolset(this.rMachine, impl, NextClientRMachine);

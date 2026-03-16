@@ -1,4 +1,5 @@
-import type { AnyLocale, AnyResourceAtlas } from "r-machine";
+import type { AnyResourceAtlas } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { createReactStandardImpl } from "./react-standard.impl.js";
 import { ReactStrategyCore } from "./react-strategy-core.js";

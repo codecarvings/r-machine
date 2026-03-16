@@ -1,10 +1,10 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { LocaleHelper } from "../../src/lib/locale-helper.js";
 import type { AnyResourceAtlas, Namespace } from "../../src/lib/r.js";
 import type { RKit } from "../../src/lib/r-kit.js";
 import { RMachine, type RMachineLocale } from "../../src/lib/r-machine.js";
 import type { RMachineConfig } from "../../src/lib/r-machine-config.js";
 import type { R$ } from "../../src/lib/r-module.js";
+import type { LocaleHelper } from "../../src/locale/locale-helper.js";
 import { TestableRMachine } from "../_fixtures/testable-r-machine.js";
 
 type TestResourceAtlas = {

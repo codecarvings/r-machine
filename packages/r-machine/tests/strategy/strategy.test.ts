@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AnyLocale, AnyResourceAtlas, RMachineConfig } from "#r-machine";
+import type { AnyResourceAtlas, RMachineConfig } from "#r-machine";
+import type { AnyLocale } from "#r-machine/locale";
 import { RMachine } from "../../src/lib/r-machine.js";
 import { Strategy } from "../../src/strategy/strategy.js";
 

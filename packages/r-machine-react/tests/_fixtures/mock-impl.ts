@@ -1,4 +1,4 @@
-import type { AnyLocale } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import { vi } from "vitest";
 import type { ReactImpl } from "../../src/core/react-toolset.js";
 

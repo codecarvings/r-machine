@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { AnyLocale } from "r-machine";
 import { RMachineUsageError } from "r-machine/errors";
 import { ERR_INVALID_PATH } from "#r-machine/next/errors";
 import {
@@ -21,10 +22,10 @@ import {
   type PathAtlasSegment,
 } from "./href-mapper.js";
 
-type HrefCanonicalizerFn = (locale: string, path: string) => MappedHrefResult;
+type HrefCanonicalizerFn = (locale: AnyLocale, path: string) => MappedHrefResult;
 
 export class HrefCanonicalizer extends HrefMapper<HrefCanonicalizerFn> {
-  protected readonly compute: HrefCanonicalizerFn = (locale: string, path: string) => {
+  protected readonly compute: HrefCanonicalizerFn = (locale: AnyLocale, path: string) => {
     const mappedPathCache = this.mappedPathCaches[locale];
     let mappedPath = mappedPathCache.get(path);
     if (mappedPath === undefined) {
@@ -40,7 +41,7 @@ export class HrefCanonicalizer extends HrefMapper<HrefCanonicalizerFn> {
     };
   };
 
-  protected internalCompute(locale: string, path: string): MappedPath {
+  protected internalCompute(locale: AnyLocale, path: string): MappedPath {
     if (!path.startsWith("/")) {
       throw new RMachineUsageError(ERR_INVALID_PATH, `Path must start with "/".`);
     }

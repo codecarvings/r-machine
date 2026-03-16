@@ -1,4 +1,4 @@
-import type { AnyLocale } from "#r-machine";
+import type { AnyLocale } from "#r-machine/locale";
 import { Domain } from "./domain.js";
 import type { RModuleResolver } from "./r-module.js";
 

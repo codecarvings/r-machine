@@ -1,4 +1,3 @@
-export type { AnyLocale, AnyLocaleList, LocaleList } from "./locale.js";
 export type { AnyNamespace, AnyR, AnyResourceAtlas, Namespace, R } from "./r.js";
 export type { AnyNamespaceList, AnyRKit, NamespaceList, RKit } from "./r-kit.js";
 export { RMachine, type RMachineLocale } from "./r-machine.js";

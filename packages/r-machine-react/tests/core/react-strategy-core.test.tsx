@@ -1,5 +1,6 @@
 import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
-import type { AnyLocale, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import { Strategy } from "r-machine/strategy";
 import type { ReactNode } from "react";
 import React from "react";

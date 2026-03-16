@@ -1,5 +1,6 @@
-import type { AnyLocale, AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
+import type { AnyLocale } from "r-machine/locale";
 import type { ReactStandardStrategyConfig } from "./react-standard-strategy-core.js";
 import type { ReactImpl } from "./react-toolset.js";
 

@@ -1,8 +1,8 @@
 import { describe, expectTypeOf, it } from "vitest";
 
 import type { RMachineConfigError } from "#r-machine/errors";
-import type { MatchLocalesAlgorithm } from "#r-machine/locale";
-import { LocaleHelper } from "../../src/lib/locale-helper.js";
+import { LocaleHelper } from "../../src/locale/locale-helper.js";
+import type { MatchLocalesAlgorithm } from "../../src/locale/locale-matcher.js";
 
 describe("LocaleHelper", () => {
   it("should be a class", () => {

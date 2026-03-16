@@ -1,6 +1,7 @@
-import type { AnyLocale, LocaleList } from "#r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "#r-machine/errors";
-import { type MatchLocalesAlgorithm, matchLocales, parseAcceptLanguageHeader } from "#r-machine/locale";
+import type { AnyLocale, AnyLocaleList, LocaleList } from "./locale.js";
+import { type MatchLocalesAlgorithm, matchLocales } from "./locale-matcher.js";
+import { parseAcceptLanguageHeader } from "./parse-accept-language-header.js";
 
 export class LocaleHelper<L extends AnyLocale> {
   constructor(
@@ -12,7 +13,7 @@ export class LocaleHelper<L extends AnyLocale> {
 
   protected readonly localeSet: Set<L>;
 
-  readonly matchLocales = (requestedLocales: readonly string[], algorithm?: MatchLocalesAlgorithm): L => {
+  readonly matchLocales = (requestedLocales: AnyLocaleList, algorithm?: MatchLocalesAlgorithm): L => {
     return matchLocales(requestedLocales, this.locales, this.defaultLocale, { algorithm }) as L;
   };
 
@@ -24,7 +25,7 @@ export class LocaleHelper<L extends AnyLocale> {
     return matchLocales(requestedLocales, this.locales, this.defaultLocale, { algorithm }) as L;
   };
 
-  readonly validateLocale = (locale: string): RMachineConfigError | null => {
+  readonly validateLocale = (locale: AnyLocale): RMachineConfigError | null => {
     // No need to check for validateCanonicalUnicodeLocaleId since the list of locales is already validated
 
     if (!this.localeSet.has(locale as L)) {

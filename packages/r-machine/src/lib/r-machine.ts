@@ -1,7 +1,7 @@
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
+import type { AnyLocale, AnyLocaleList } from "#r-machine/locale";
+import { LocaleHelper } from "#r-machine/locale";
 import { DomainManager } from "./domain-manager.js";
-import type { AnyLocale, AnyLocaleList } from "./locale.js";
-import { LocaleHelper } from "./locale-helper.js";
 import type { AnyResourceAtlas, Namespace } from "./r.js";
 import type { NamespaceList, RKit } from "./r-kit.js";
 import {

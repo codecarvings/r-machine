@@ -1,5 +1,6 @@
-import type { AnyLocale, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "r-machine/errors";
+import type { AnyLocale } from "r-machine/locale";
 import { vi } from "vitest";
 
 export type TestAtlas = {

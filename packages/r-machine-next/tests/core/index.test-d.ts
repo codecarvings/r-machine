@@ -16,6 +16,7 @@ import type {
 } from "../../src/core/index.js";
 import { buildPathAtlas } from "../../src/core/index.js";
 
+// Barrel test: uses a single it() to verify export completeness only. Type shape tests belong in dedicated files.
 describe("core barrel exports", () => {
   it("exports all expected symbols", () => {
     expectTypeOf<HrefCanonicalizer>().toBeObject();

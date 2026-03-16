@@ -1,4 +1,5 @@
-import type { AnyLocale, AnyResourceAtlas, Namespace, NamespaceList, RMachineConfig } from "#r-machine";
+import type { AnyResourceAtlas, Namespace, NamespaceList, RMachineConfig } from "#r-machine";
+import type { AnyLocale } from "#r-machine/locale";
 import { RMachine } from "../../src/lib/r-machine.js";
 
 export class TestableRMachine<RA extends AnyResourceAtlas, L extends AnyLocale = string> extends RMachine<RA, L> {

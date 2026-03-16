@@ -1,4 +1,5 @@
-import type { AnyLocale, AnyResourceAtlas } from "r-machine";
+import type { AnyResourceAtlas } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import { Strategy } from "r-machine/strategy";
 import { createReactBareToolset, type ReactBareToolset } from "./react-bare-toolset.js";
 

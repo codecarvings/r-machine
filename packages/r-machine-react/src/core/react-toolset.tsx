@@ -1,5 +1,6 @@
-import type { AnyLocale, AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
+import type { AnyLocale } from "r-machine/locale";
 import { createContext, type ReactNode, use, useContext, useMemo, useState } from "react";
 import { ERR_CONTEXT_NOT_FOUND } from "#r-machine/react/errors";
 import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils";

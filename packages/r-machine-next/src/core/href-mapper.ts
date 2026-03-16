@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { AnyLocale, AnyLocaleList } from "r-machine";
 import type { AnyPathAtlas } from "#r-machine/next/core";
 
 type SegmentKind = "static" | "dynamic" | "catchAll" | "optionalCatchAll";
@@ -22,7 +23,7 @@ interface SegmentData {
 
 export interface PathAtlasSegment extends SegmentData {
   readonly translations: {
-    readonly [locale: string]: string;
+    readonly [locale: AnyLocale]: string;
   };
   readonly children: {
     [key: string]: PathAtlasSegment;
@@ -65,12 +66,12 @@ export function getSegmentData(segment: string): SegmentData {
 export function buildPathAtlasSegmentTree(
   segment: string,
   decl: object,
-  locales: readonly string[],
-  defaultLocale: string
+  locales: AnyLocaleList,
+  defaultLocale: AnyLocale
 ): PathAtlasSegment {
   const { kind, paramKey } = getSegmentData(segment);
 
-  const translations: { [locale: string]: string } = {};
+  const translations: { [locale: AnyLocale]: string } = {};
   for (const locale of locales) {
     translations[locale] = segment;
   }
@@ -93,7 +94,7 @@ export function buildPathAtlasSegmentTree(
 }
 
 interface HrefMapperAdapter {
-  readonly fn: (locale: string, path: string) => string;
+  readonly fn: (locale: AnyLocale, path: string) => string;
   readonly preApply: boolean;
 }
 
@@ -102,13 +103,13 @@ export interface MappedHrefResult {
   readonly dynamic: boolean;
 }
 
-export type HrefMapperFn = (locale: string, path: string, ...args: any[]) => MappedHrefResult;
+export type HrefMapperFn = (locale: AnyLocale, path: string, ...args: any[]) => MappedHrefResult;
 
 export abstract class HrefMapper<F extends HrefMapperFn> {
   constructor(
     protected readonly atlas: AnyPathAtlas,
-    readonly locales: readonly string[],
-    readonly defaultLocale: string
+    readonly locales: AnyLocaleList,
+    readonly defaultLocale: AnyLocale
   ) {
     this.segmentDataTree = buildPathAtlasSegmentTree("", this.atlas.decl, this.locales, this.defaultLocale);
     locales.forEach((locale) => {
@@ -119,8 +120,8 @@ export abstract class HrefMapper<F extends HrefMapperFn> {
 
   protected readonly segmentDataTree: PathAtlasSegment;
   protected readonly adapter: HrefMapperAdapter | undefined;
-  protected readonly caches: { [locale: string]: Map<string, MappedHrefResult> } = {};
-  protected readonly mappedPathCaches: { [locale: string]: Map<string, MappedPath> } = {};
+  protected readonly caches: { [locale: AnyLocale]: Map<string, MappedHrefResult> } = {};
+  protected readonly mappedPathCaches: { [locale: AnyLocale]: Map<string, MappedPath> } = {};
 
   readonly get: F = ((locale, path, ...args) => {
     const cache = this.caches[locale];

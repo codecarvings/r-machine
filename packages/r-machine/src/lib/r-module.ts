@@ -1,5 +1,5 @@
-import type { AnyLocale } from "#r-machine";
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
+import type { AnyLocale } from "#r-machine/locale";
 import type { AnyNamespace, AnyR } from "./r.js";
 
 export interface R$ {

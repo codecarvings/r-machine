@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { RMachineConfigError } from "#r-machine/errors";
-import { LocaleHelper } from "../../src/lib/locale-helper.js";
+import { LocaleHelper } from "../../src/locale/locale-helper.js";
 
 const locales = ["en", "fr", "de", "it", "es"] as const;
 const defaultLocale = "en";

@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { RMachineConfigError } from "#r-machine/errors";
-import type { AnyLocale } from "../../src/lib/locale.js";
+import type { AnyLocale } from "#r-machine/locale";
 import type { RMachineConfig, RMachineConfigParams } from "../../src/lib/r-machine-config.js";
 import { cloneRMachineConfig, validateRMachineConfig } from "../../src/lib/r-machine-config.js";
 import type { RModuleResolver } from "../../src/lib/r-module.js";

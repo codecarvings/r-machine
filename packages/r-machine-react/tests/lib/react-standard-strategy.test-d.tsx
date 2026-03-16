@@ -1,4 +1,5 @@
-import type { AnyLocale, AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector, CustomLocaleStore, Strategy } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
 import type {

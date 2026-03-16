@@ -12,6 +12,7 @@ import type {
   RMachineUsageError,
 } from "../../src/errors/index.js";
 
+// Barrel test: uses a single it() to verify export completeness only. Type shape tests belong in dedicated files.
 describe("errors barrel exports", () => {
   it("exports all expected symbols", () => {
     expectTypeOf<RMachineError>().toExtend<Error>();
