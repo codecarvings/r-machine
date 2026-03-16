@@ -6,7 +6,7 @@ type ResourceAtlas = {
   ns3: { message: string };
 };
 
-const rMachine = new RMachine<ResourceAtlas>({
+const rMachine = RMachine.for<ResourceAtlas>().create({
   locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: async (namespace, locale) => {
