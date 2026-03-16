@@ -5,6 +5,13 @@ import { RMachine } from "../../src/lib/r-machine.js";
 import type { RMachineConfig } from "../../src/lib/r-machine-config.js";
 import type { AnyRModule, RModuleResolver } from "../../src/lib/r-module.js";
 import { createDelayedResolver, createMockResolver } from "../_fixtures/resolver-helpers.js";
+import { TestableRMachine } from "../_fixtures/testable-r-machine.js";
+
+type TestRA = {
+  readonly common: { greeting: string };
+  readonly nav: { home: string; about: string };
+  readonly footer: { copyright: string };
+};
 
 const commonR = { greeting: "hello" };
 const navR = { home: "Home", about: "About" };
@@ -29,7 +36,7 @@ const allModules: Record<string, Record<string, AnyRModule>> = {
   it: itModules,
 };
 
-function makeConfig(overrides: Partial<RMachineConfig> = {}): RMachineConfig {
+function makeConfig(overrides: Partial<RMachineConfig<string>> = {}): RMachineConfig<string> {
   return {
     locales: ["en", "it"],
     defaultLocale: "en",
@@ -38,8 +45,8 @@ function makeConfig(overrides: Partial<RMachineConfig> = {}): RMachineConfig {
   };
 }
 
-function createMachine(overrides: Partial<RMachineConfig> = {}) {
-  return new RMachine(makeConfig(overrides));
+function createMachine(overrides: Partial<RMachineConfig<string>> = {}) {
+  return RMachine.for<TestRA>().create(makeConfig(overrides));
 }
 
 describe("RMachine", () => {
@@ -70,7 +77,7 @@ describe("RMachine", () => {
     });
 
     it("accepts a single locale configuration", () => {
-      const machine = new RMachine({
+      const machine = RMachine.for<TestRA>().create({
         locales: ["en"],
         defaultLocale: "en",
         rModuleResolver: createMockResolver({ en: { common: { default: commonR } } }),
@@ -144,7 +151,7 @@ describe("RMachine", () => {
 
     it("rejects when the resolver rejects", async () => {
       const machine = createMachine();
-      await expect(machine.pickR("en", "nonexistent")).rejects.toThrow();
+      await expect(machine.pickR("en", "nonexistent" as any)).rejects.toThrow();
     });
 
     it("calls the resolver with the correct arguments", async () => {
@@ -183,7 +190,7 @@ describe("RMachine", () => {
 
     it("rejects when the resolver rejects for any namespace", async () => {
       const machine = createMachine();
-      await expect(machine.pickRKit("en", "common", "nonexistent")).rejects.toThrow();
+      await expect(machine.pickRKit("en", "common", "nonexistent" as any)).rejects.toThrow();
     });
 
     it("can be destructured and called without losing context", async () => {
@@ -293,7 +300,7 @@ describe("RMachine", () => {
         return Promise.resolve({ default: commonR });
       };
       const machine = createMachine({ rModuleResolver: resolver });
-      await expect(machine.pickRKit("en", "common", "fail")).rejects.toThrow(RMachineError);
+      await expect(machine.pickRKit("en", "common", "fail" as any)).rejects.toThrow(RMachineError);
     });
   });
 
@@ -334,39 +341,30 @@ describe("RMachine", () => {
   });
 
   describe("hybridPickR / hybridPickRKit (protected, via subclass)", () => {
-    class TestableRMachine extends RMachine<Record<string, Record<string, unknown>>> {
-      testHybridPickR(locale: string, namespace: string) {
-        return this.hybridPickR(locale, namespace);
-      }
-      testHybridPickRKit(locale: string, ...namespaces: string[]) {
-        return this.hybridPickRKit(locale, ...namespaces);
-      }
-    }
-
     it("hybridPickR returns a promise when not cached, then the value when cached", async () => {
-      const machine = new TestableRMachine(makeConfig());
-      const first = machine.testHybridPickR("en", "common");
+      const machine = new TestableRMachine<TestRA>(makeConfig());
+      const first = machine.exposeHybridPickR("en", "common");
       expect(first).toBeInstanceOf(Promise);
       await first;
-      expect(machine.testHybridPickR("en", "common")).toBe(commonR);
+      expect(machine.exposeHybridPickR("en", "common")).toBe(commonR);
     });
 
     it("hybridPickRKit returns a promise when not cached, then the kit when cached", async () => {
-      const machine = new TestableRMachine(makeConfig());
-      const first = machine.testHybridPickRKit("en", "common", "nav");
+      const machine = new TestableRMachine<TestRA>(makeConfig());
+      const first = machine.exposeHybridPickRKit("en", "common", "nav");
       expect(first).toBeInstanceOf(Promise);
       await first;
-      expect(machine.testHybridPickRKit("en", "common", "nav")).toEqual([commonR, navR]);
+      expect(machine.exposeHybridPickRKit("en", "common", "nav")).toEqual([commonR, navR]);
     });
 
     it("hybridPickR throws for invalid locale", () => {
-      const machine = new TestableRMachine(makeConfig());
-      expect(() => machine.testHybridPickR("fr", "common")).toThrow(RMachineError);
+      const machine = new TestableRMachine<TestRA>(makeConfig());
+      expect(() => machine.exposeHybridPickR("fr", "common")).toThrow(RMachineError);
     });
 
     it("hybridPickRKit throws for invalid locale", () => {
-      const machine = new TestableRMachine(makeConfig());
-      expect(() => machine.testHybridPickRKit("fr", "common")).toThrow(RMachineError);
+      const machine = new TestableRMachine<TestRA>(makeConfig());
+      expect(() => machine.exposeHybridPickRKit("fr", "common")).toThrow(RMachineError);
     });
   });
 

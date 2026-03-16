@@ -104,15 +104,17 @@ export type ResourceAtlas = {
 
 ```ts
 // r-machine/r-machine.ts
-import { RMachine } from "r-machine";
+import { RMachine, type RMachineLocale } from "r-machine";
 import type { ResourceAtlas } from "./resource-atlas";
 
-export const rMachine = new RMachine<ResourceAtlas>({
+export const rMachine = RMachine.for<ResourceAtlas>().create({
   locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: (namespace, locale) =>
     import(`./resources/${namespace}/${locale}`),
 });
+
+export type Locale = RMachineLocale<typeof rMachine>;
 
 export const strategy = ... // R-Machine offers various strategies, see below...
 ```
@@ -121,16 +123,18 @@ export const strategy = ... // R-Machine offers various strategies, see below...
 
 ```ts
 // r-machine/r-machine.ts
-import { RMachine } from "r-machine";
+import { RMachine, type RMachineLocale } from "r-machine";
 import type { ResourceAtlas } from "./resource-atlas";
 import { ReactStandardStrategy } from "@r-machine/react";
 
-export const rMachine = new RMachine<ResourceAtlas>({
+export const rMachine = RMachine.for<ResourceAtlas>().create({
   locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: (namespace, locale) =>
     import(`./resources/${namespace}/${locale}`),
 });
+
+export type Locale = RMachineLocale<typeof rMachine>;
 
 export const strategy = new ReactStandardStrategy(rMachine, {
   localeDetector: () => rMachine.localeHelper.matchLocales(navigator.languages),
@@ -190,15 +194,17 @@ R-Machine provides three built-in strategies for Next. The most common is NextAp
 ```ts
 // r-machine/r-machine.ts
 import { NextAppPathStrategy } from "@r-machine/next/app";
-import { RMachine } from "r-machine";
+import { RMachine, type RMachineLocale } from "r-machine";
 import type { ResourceAtlas } from "./resource-atlas";
 
-export const rMachine = new RMachine<ResourceAtlas>({
+export const rMachine = RMachine.for<ResourceAtlas>().create({
   locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: (namespace, locale) =>
     import(`./resources/${namespace}/${locale}`),
 });
+
+export type Locale = RMachineLocale<typeof rMachine>;
 
 export const strategy = new NextAppPathStrategy(rMachine, {
   // Custom strategy configuration here...
@@ -354,7 +360,7 @@ type ResourceAtlas = {
 The central engine. It manages configuration, locale matching, and resource resolution with per-locale caching:
 
 ```ts
-const rMachine = new RMachine<ResourceAtlas>({
+export const rMachine = RMachine.for<ResourceAtlas>().create({
   locales: ["en", "it", "fr"],
   defaultLocale: "en",
   rModuleResolver: (namespace, locale) =>

@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { RMachineError } from "#r-machine/errors";
 import { cloneRMachineConfig, type RMachineConfig, validateRMachineConfig } from "../../src/lib/r-machine-config.js";
 
-const stubResolver: RMachineConfig["rModuleResolver"] = async (namespace, locale) => {
+const stubResolver: RMachineConfig<string>["rModuleResolver"] = async (namespace, locale) => {
   return { default: { message: `${namespace} in ${locale}` } };
 };
 
-function makeConfig(overrides: Partial<RMachineConfig> = {}): RMachineConfig {
+function makeConfig(overrides: Partial<RMachineConfig<string>> = {}): RMachineConfig<string> {
   return {
     locales: ["en", "it"],
     defaultLocale: "en",
