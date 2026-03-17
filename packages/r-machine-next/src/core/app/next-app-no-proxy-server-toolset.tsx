@@ -11,7 +11,8 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyLocale, AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import type { AnyPathAtlas } from "#r-machine/next/core";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
 import type { NextAppClientRMachine } from "./next-app-client-toolset.js";
@@ -36,7 +37,7 @@ interface routeHandlers {
   };
 }
 
-export interface NextAppNoProxyServerImpl<L extends AnyLocale> extends NextAppServerImpl<L> {
+export interface NextAppNoProxyServerImpl<L extends AnyLocale, LK extends string> extends NextAppServerImpl<L, LK> {
   readonly createRouteHandlers: (
     cookies: CookiesFn,
     headers: HeadersFn,
@@ -51,7 +52,7 @@ export async function createNextAppNoProxyServerToolset<
   LK extends string,
 >(
   rMachine: RMachine<RA, L>,
-  impl: NextAppNoProxyServerImpl<L>,
+  impl: NextAppNoProxyServerImpl<L, LK>,
   NextClientRMachine: NextAppClientRMachine<L>
 ): Promise<NextAppNoProxyServerToolset<RA, L, PA, LK>> {
   const {

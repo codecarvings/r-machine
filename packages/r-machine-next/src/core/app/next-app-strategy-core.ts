@@ -11,7 +11,8 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyLocale, AnyResourceAtlas } from "r-machine";
+import type { AnyResourceAtlas } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import { Strategy, type SwitchableOption } from "r-machine/strategy";
 import type { AnyPathAtlas, ExtendedPathAtlas, PathAtlasCtor } from "#r-machine/next/core";
 import type { NextAppClientImpl, NextAppClientRMachine, NextAppClientToolset } from "./next-app-client-toolset.js";
@@ -55,7 +56,7 @@ export abstract class NextAppStrategyCore<
   protected abstract readonly pathAtlas: ExtendedPathAtlas<InstanceType<C["PathAtlas"]>>;
 
   protected abstract createClientImpl(): Promise<NextAppClientImpl<L>>;
-  protected abstract createServerImpl(): Promise<NextAppServerImpl<L>>;
+  protected abstract createServerImpl(): Promise<NextAppServerImpl<L, C["localeKey"]>>;
 
   async createClientToolset(): Promise<NextAppClientToolset<RA, L, InstanceType<C["PathAtlas"]>>> {
     const impl = await this.createClientImpl();

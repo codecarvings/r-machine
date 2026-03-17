@@ -25,6 +25,6 @@ export abstract class ReactStandardStrategyCore<
   static readonly defaultConfig = defaultConfig;
 
   protected createImpl() {
-    return createReactStandardImpl<RA, L>(this.rMachine, this.config);
+    return createReactStandardImpl(this.rMachine, this.config);
   }
 }

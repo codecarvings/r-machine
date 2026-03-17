@@ -12,9 +12,9 @@
  */
 
 import { notFound } from "next/navigation";
-import type { AnyLocale, AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
+import type { AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
-import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
+import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
 import type { AnyPathAtlas, BoundPathComposer, RMachineProxy } from "#r-machine/next/core";
 import { ERR_LOCALE_BIND_CONFLICT, ERR_LOCALE_UNDETERMINED } from "#r-machine/next/errors";
@@ -50,8 +50,8 @@ interface NextAppServerRMachineProps {
   readonly children: ReactNode;
 }
 
-export interface NextAppServerImpl<L extends AnyLocale> {
-  readonly localeKey: string;
+export interface NextAppServerImpl<L extends AnyLocale, LK extends string> {
+  readonly localeKey: LK;
   readonly autoLocaleBinding: boolean;
   readonly writeLocale: (
     locale: L | undefined,
@@ -61,15 +61,15 @@ export interface NextAppServerImpl<L extends AnyLocale> {
   ) => void | Promise<void>;
   // must be dynamically generated because of strategy options (localeLabel)
   readonly createLocaleStaticParamsGenerator: () =>
-    | LocaleStaticParamsGenerator<string>
-    | Promise<LocaleStaticParamsGenerator<string>>;
+    | LocaleStaticParamsGenerator<LK>
+    | Promise<LocaleStaticParamsGenerator<LK>>;
   readonly createProxy: () => RMachineProxy | Promise<RMachineProxy>;
   readonly createBoundPathComposerSupplier: (
     getLocale: () => Promise<L>
   ) => BoundPathComposerSupplier<AnyPathAtlas> | Promise<BoundPathComposerSupplier<AnyPathAtlas>>;
 }
 
-type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>>;
+export type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
 
 interface BindLocale<L extends AnyLocale, LK extends string> {
   (locale: AnyLocale): L;
@@ -89,7 +89,7 @@ export async function createNextAppServerToolset<
   LK extends string,
 >(
   rMachine: RMachine<RA, L>,
-  impl: NextAppServerImpl<L>,
+  impl: NextAppServerImpl<L, LK>,
   NextClientRMachine: NextAppClientRMachine<L>
 ): Promise<NextAppServerToolset<RA, L, PA, LK>> {
   const localeKey = impl.localeKey as LK;
@@ -265,7 +265,7 @@ export async function createNextAppServerToolset<
   return {
     rMachineProxy,
     NextServerRMachine,
-    generateLocaleStaticParams: generateLocaleStaticParams as LocaleStaticParamsGenerator<LK>,
+    generateLocaleStaticParams: generateLocaleStaticParams,
     bindLocale: bindLocale as BindLocale<L, LK>,
     getLocale,
     setLocale,

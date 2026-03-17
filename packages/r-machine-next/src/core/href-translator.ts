@@ -11,8 +11,8 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyLocale } from "r-machine";
 import { RMachineUsageError } from "r-machine/errors";
+import type { AnyLocale } from "r-machine/locale";
 import { ERR_INVALID_PATH, ERR_PATH_TRANSLATION_FAILED } from "#r-machine/next/errors";
 import {
   getSegmentData,

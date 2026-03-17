@@ -14,6 +14,7 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { NextAppServerImpl } from "../next-app-server-toolset.js";
@@ -22,14 +23,14 @@ import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core
 
 const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
 
-export async function createNextAppFlatServerImpl(
-  rMachine: RMachine<AnyResourceAtlas>,
-  strategyConfig: AnyNextAppFlatStrategyConfig,
-  pathTranslator: HrefTranslator,
-  pathCanonicalizer: HrefCanonicalizer
-) {
+export async function createNextAppFlatServerImpl<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  C extends AnyNextAppFlatStrategyConfig,
+>(rMachine: RMachine<RA, L>, strategyConfig: C, pathTranslator: HrefTranslator, pathCanonicalizer: HrefCanonicalizer) {
   const locales = rMachine.config.locales;
-  const { localeKey, autoLocaleBinding, cookie, pathMatcher } = strategyConfig;
+  const { autoLocaleBinding, cookie, pathMatcher } = strategyConfig;
+  const localeKey = strategyConfig.localeKey as C["localeKey"]; // Type assertion needed to use localeKey in a typed way, since it's not a generic parameter of the strategy core class
   const autoLBSw = autoLocaleBinding === "on";
   const { name: cookieName, ...cookieConfig } = cookie;
 
@@ -67,26 +68,26 @@ export async function createNextAppFlatServerImpl(
 
     createLocaleStaticParamsGenerator() {
       return async () =>
-        rMachine.config.locales.map((locale: string) => ({
+        rMachine.config.locales.map((locale: L) => ({
           [localeKey]: locale,
         }));
     },
 
     createProxy() {
-      function getLocaleFromCookie(request: NextRequest): string | undefined {
+      function getLocaleFromCookie(request: NextRequest): L | undefined {
         const cookieLocale = request.cookies.get(cookieName!)?.value;
         if (cookieLocale === undefined) {
           return undefined;
         }
 
-        if (!locales.includes(cookieLocale)) {
+        if (!locales.includes(cookieLocale as L)) {
           return undefined;
         }
 
-        return cookieLocale;
+        return cookieLocale as L;
       }
 
-      function rewriteToCanonicalLocalePath(request: NextRequest, locale: string, path: string): NextResponse {
+      function rewriteToCanonicalLocalePath(request: NextRequest, locale: L, path: string): NextResponse {
         // Rewrite to locale-prefixed URL internally - basePath already included
         const newUrl = request.nextUrl.clone();
         // Reconstruct canonical URL
@@ -121,7 +122,7 @@ export async function createNextAppFlatServerImpl(
           // Is an handled path
           const cookieLocale = getLocaleFromCookie(request);
 
-          let locale: string;
+          let locale: L;
           if (cookieLocale !== undefined) {
             // Cookie available, use locale from cookie
             locale = cookieLocale;
@@ -148,5 +149,5 @@ export async function createNextAppFlatServerImpl(
         return (path, params) => pathTranslator.get(locale, path, params).value;
       };
     },
-  } as NextAppServerImpl;
+  } as NextAppServerImpl<L, C["localeKey"]>;
 }

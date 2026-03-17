@@ -13,17 +13,17 @@
 
 import Cookies from "js-cookie";
 import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { setCookie } from "#r-machine/next/internal";
 import type { NextAppClientImpl } from "../next-app-client-toolset.js";
 import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core.js";
 
-export async function createNextAppFlatClientImpl(
-  _rMachine: RMachine<AnyResourceAtlas>,
-  strategyConfig: AnyNextAppFlatStrategyConfig,
-  pathTranslator: HrefTranslator,
-  pathCanonicalizer: HrefCanonicalizer
-) {
+export async function createNextAppFlatClientImpl<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  C extends AnyNextAppFlatStrategyConfig,
+>(_rMachine: RMachine<RA, L>, strategyConfig: C, pathTranslator: HrefTranslator, pathCanonicalizer: HrefCanonicalizer) {
   const { cookie } = strategyConfig;
   const { name: cookieName, ...cookieConfig } = cookie;
 
@@ -65,5 +65,5 @@ export async function createNextAppFlatClientImpl(
         return (path, params) => pathTranslator.get(locale, path, params).value;
       };
     },
-  } as NextAppClientImpl;
+  } as NextAppClientImpl<L>;
 }

@@ -12,6 +12,7 @@
  */
 
 import type { AnyResourceAtlas } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import { type CookieDeclaration, defaultCookieDeclaration } from "r-machine/strategy/web";
 import {
   type AnyPathAtlas,
@@ -61,8 +62,9 @@ const defaultConfig: NextAppFlatStrategyConfig<
 
 export abstract class NextAppFlatStrategyCore<
   RA extends AnyResourceAtlas,
+  L extends AnyLocale,
   C extends AnyNextAppFlatStrategyConfig,
-> extends NextAppStrategyCore<RA, C> {
+> extends NextAppStrategyCore<RA, L, C> {
   static override readonly defaultConfig = defaultConfig;
 
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, false);

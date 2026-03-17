@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyLocale, AnyLocaleList } from "r-machine";
+import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
 import type { AnyPathAtlas } from "#r-machine/next/core";
 
 type SegmentKind = "static" | "dynamic" | "catchAll" | "optionalCatchAll";
