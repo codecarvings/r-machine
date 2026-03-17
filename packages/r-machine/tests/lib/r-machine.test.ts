@@ -56,6 +56,12 @@ describe("RMachine", () => {
       expect(machine).toBeInstanceOf(RMachine);
     });
 
+    it("can be constructed directly with new RMachine(config)", () => {
+      const machine = new RMachine<TestRA, string>(makeConfig());
+      expect(machine).toBeInstanceOf(RMachine);
+      expect(machine.config.locales).toEqual(["en", "it"]);
+    });
+
     it("throws for an empty locales array", () => {
       expect(() => createMachine({ locales: [] })).toThrow(RMachineError);
     });

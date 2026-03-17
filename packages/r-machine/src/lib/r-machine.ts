@@ -12,7 +12,10 @@ import {
 } from "./r-machine-config.js";
 
 export class RMachine<const RA extends AnyResourceAtlas, const L extends AnyLocale> {
-  protected constructor(config: RMachineConfig<L>) {
+  // The suggested way to create an RMachine is via the curried builder returned by
+  // RMachine.for(), which provides better type inference for locales. However,
+  // the constructor is still public and can be used directly if desired.
+  constructor(config: RMachineConfig<L>) {
     const configError = validateRMachineConfig(config);
     if (configError) {
       throw configError;
