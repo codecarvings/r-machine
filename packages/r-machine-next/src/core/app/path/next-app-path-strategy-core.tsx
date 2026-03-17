@@ -13,6 +13,7 @@
 
 import type { AnyResourceAtlas } from "r-machine";
 import { RMachineConfigError } from "r-machine/errors";
+import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
 import type { SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import {
@@ -26,7 +27,7 @@ import {
 } from "#r-machine/next/core";
 import { ERR_INVALID_STRATEGY_CONFIG } from "#r-machine/next/errors";
 import type { NextAppClientRMachine } from "../next-app-client-toolset.js";
-import type { NextAppNoProxyServerToolset } from "../next-app-no-proxy-server-toolset.js";
+import type { NextAppNoProxyServerImpl, NextAppNoProxyServerToolset } from "../next-app-no-proxy-server-toolset.js";
 import {
   type NextAppStrategyConfig,
   NextAppStrategyCore,
@@ -45,7 +46,7 @@ interface HrefHelper<PA extends AnyPathAtlas> {
   readonly getPath: PathComposer<PA>;
 }
 type PathComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
-  locale: string,
+  locale: AnyLocale,
   path: P,
   ...args: [keyof PathParamMap<P>] extends [never] ? [params?: PathParams<P, O>] : [params: PathParams<P, O>]
 ) => string;
@@ -92,8 +93,9 @@ const defaultConfig: NextAppPathStrategyConfig<
 
 export abstract class NextAppPathStrategyCore<
   RA extends AnyResourceAtlas,
+  L extends AnyLocale,
   C extends AnyNextAppPathStrategyConfig,
-> extends NextAppStrategyCore<RA, C> {
+> extends NextAppStrategyCore<RA, L, C> {
   static override readonly defaultConfig = defaultConfig;
 
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, true);
@@ -136,7 +138,7 @@ export abstract class NextAppPathStrategyCore<
     return module.createNextAppPathClientImpl(this.rMachine, this.config, this.pathTranslator, this.pathCanonicalizer);
   }
 
-  protected async createServerImpl() {
+  protected async createServerImpl(): Promise<NextAppNoProxyServerImpl<L, C["localeKey"]>> {
     const module = await import("./next-app-path.server-impl.js");
     return module.createNextAppPathServerImpl(
       this.rMachine,
@@ -172,8 +174,8 @@ export abstract class NextAppPathStrategyCore<
   }
 
   async createNoProxyServerToolset(
-    NextClientRMachine: NextAppClientRMachine
-  ): Promise<NextAppNoProxyServerToolset<RA, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
+    NextClientRMachine: NextAppClientRMachine<L>
+  ): Promise<NextAppNoProxyServerToolset<RA, L, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     this.validateNoProxyConfig();
     const impl = await this.createServerImpl();
     const module = await import("../next-app-no-proxy-server-toolset.js");
@@ -188,8 +190,8 @@ export abstract class NextAppPathStrategyCore<
 export class NextAppPathStrategyPathTranslator extends HrefTranslator {
   constructor(
     atlas: AnyPathAtlas,
-    locales: readonly string[],
-    defaultLocale: string,
+    locales: AnyLocaleList,
+    defaultLocale: AnyLocale,
     protected readonly lowercaseLocale: boolean,
     protected readonly implicitDefaultLocale: boolean
   ) {
@@ -197,7 +199,7 @@ export class NextAppPathStrategyPathTranslator extends HrefTranslator {
   }
 
   protected override readonly adapter = {
-    fn: (locale: string, path: string): string => {
+    fn: (locale: AnyLocale, path: string): string => {
       if (this.implicitDefaultLocale && locale === this.defaultLocale) {
         return path;
       }
@@ -210,15 +212,15 @@ export class NextAppPathStrategyPathTranslator extends HrefTranslator {
 export class NextAppPathStrategyPathCanonicalizer extends HrefCanonicalizer {
   constructor(
     atlas: AnyPathAtlas,
-    locales: readonly string[],
-    defaultLocale: string,
+    locales: AnyLocaleList,
+    defaultLocale: AnyLocale,
     protected readonly implicitDefaultLocale: boolean
   ) {
     super(atlas, locales, defaultLocale);
   }
 
   protected override readonly adapter = {
-    fn: (locale: string, path: string): string => {
+    fn: (locale: AnyLocale, path: string): string => {
       if (this.implicitDefaultLocale && locale === this.defaultLocale) {
         return path;
       }

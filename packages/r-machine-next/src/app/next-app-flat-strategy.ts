@@ -12,6 +12,7 @@
  */
 
 import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import type { AnyPathAtlas } from "#r-machine/next/core";
 import {
   type NextAppFlatStrategyConfig,
@@ -21,12 +22,13 @@ import {
 
 export class NextAppFlatStrategy<
   RA extends AnyResourceAtlas,
+  L extends AnyLocale,
   PA extends AnyPathAtlas = InstanceType<typeof NextAppFlatStrategyCore.defaultConfig.PathAtlas>,
   LK extends string = typeof NextAppFlatStrategyCore.defaultConfig.localeKey,
-> extends NextAppFlatStrategyCore<RA, NextAppFlatStrategyConfig<PA, LK>> {
-  constructor(rMachine: RMachine<RA>);
-  constructor(rMachine: RMachine<RA>, config: PartialNextAppFlatStrategyConfig<PA, LK>);
-  constructor(rMachine: RMachine<RA>, config: PartialNextAppFlatStrategyConfig<PA, LK> = {}) {
+> extends NextAppFlatStrategyCore<RA, L, NextAppFlatStrategyConfig<PA, LK>> {
+  constructor(rMachine: RMachine<RA, L>);
+  constructor(rMachine: RMachine<RA, L>, config: PartialNextAppFlatStrategyConfig<PA, LK>);
+  constructor(rMachine: RMachine<RA, L>, config: PartialNextAppFlatStrategyConfig<PA, LK> = {}) {
     super(rMachine, {
       ...NextAppFlatStrategyCore.defaultConfig,
       ...config,

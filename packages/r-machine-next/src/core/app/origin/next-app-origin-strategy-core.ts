@@ -13,6 +13,7 @@
 
 import type { AnyResourceAtlas } from "r-machine";
 import { RMachineConfigError } from "r-machine/errors";
+import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
 import {
   type AnyPathAtlas,
   buildPathAtlas,
@@ -35,18 +36,18 @@ interface HrefHelper<PA extends AnyPathAtlas> {
   readonly getUrl: UrlComposer<PA>;
 }
 type PathComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
-  locale: string,
+  locale: AnyLocale,
   path: P,
   ...args: [keyof PathParamMap<P>] extends [never] ? [params?: PathParams<P, O>] : [params: PathParams<P, O>]
 ) => string;
 type UrlComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
-  locale: string,
+  locale: AnyLocale,
   path: P,
   ...args: [keyof PathParamMap<P>] extends [never] ? [params?: PathParams<P, O>] : [params: PathParams<P, O>]
 ) => string;
 
 export type LocaleOriginMap = {
-  readonly [locale: string]: string | string[];
+  readonly [locale: AnyLocale]: string | string[];
 };
 
 export interface NextAppOriginStrategyConfig<PA extends AnyPathAtlas, LK extends string>
@@ -72,8 +73,9 @@ const defaultConfig: NextAppOriginStrategyConfig<
 
 export abstract class NextAppOriginStrategyCore<
   RA extends AnyResourceAtlas,
+  L extends AnyLocale,
   C extends AnyNextAppOriginStrategyConfig,
-> extends NextAppStrategyCore<RA, C> {
+> extends NextAppStrategyCore<RA, L, C> {
   static override readonly defaultConfig = defaultConfig;
 
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, true);
@@ -125,8 +127,8 @@ export abstract class NextAppOriginStrategyCore<
 export class NextAppOriginStrategyUrlTranslator extends HrefTranslator {
   constructor(
     atlas: AnyPathAtlas,
-    locales: readonly string[],
-    defaultLocale: string,
+    locales: AnyLocaleList,
+    defaultLocale: AnyLocale,
     protected readonly localeOriginMap: LocaleOriginMap
   ) {
     super(atlas, locales, defaultLocale);
@@ -139,10 +141,10 @@ export class NextAppOriginStrategyUrlTranslator extends HrefTranslator {
       }
     });
   }
-  protected readonly localeOriginMapCache = new Map<string, string>();
+  protected readonly localeOriginMapCache = new Map<AnyLocale, string>();
 
   protected override readonly adapter = {
-    fn: (locale: string, path: string): string => {
+    fn: (locale: AnyLocale, path: string): string => {
       const origin = this.localeOriginMapCache.get(locale);
       if (!origin) {
         throw new RMachineConfigError(

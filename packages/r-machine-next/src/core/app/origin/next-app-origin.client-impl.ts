@@ -12,13 +12,18 @@
  */
 
 import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import type { NextAppClientImpl } from "../next-app-client-toolset.js";
 import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-core.js";
 
-export async function createNextAppOriginClientImpl(
-  _rMachine: RMachine<AnyResourceAtlas>,
-  _strategyConfig: AnyNextAppOriginStrategyConfig,
+export async function createNextAppOriginClientImpl<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  C extends AnyNextAppOriginStrategyConfig,
+>(
+  _rMachine: RMachine<RA, L>,
+  _strategyConfig: C,
   pathTranslator: HrefTranslator,
   urlTranslator: HrefTranslator,
   pathCanonicalizer: HrefCanonicalizer
@@ -51,5 +56,5 @@ export async function createNextAppOriginClientImpl(
         return (path, params) => pathTranslator.get(locale, path, params).value;
       };
     },
-  } as NextAppClientImpl;
+  } as NextAppClientImpl<L>;
 }
