@@ -1,4 +1,5 @@
 import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
   AnyPathAtlas,
@@ -12,8 +13,8 @@ import { createNextAppFlatServerImpl } from "../../../../src/core/app/flat/next-
 import type { AnyNextAppFlatStrategyConfig } from "../../../../src/core/app/flat/next-app-flat-strategy-core.js";
 
 describe("createNextAppFlatServerImpl", () => {
-  it("requires RMachine<AnyResourceAtlas> as first parameter", () => {
-    expectTypeOf(createNextAppFlatServerImpl).parameter(0).toEqualTypeOf<RMachine<AnyResourceAtlas>>();
+  it("requires RMachine<AnyResourceAtlas, AnyLocale> as first parameter", () => {
+    expectTypeOf(createNextAppFlatServerImpl).parameter(0).toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale>>();
   });
 
   it("requires AnyNextAppFlatStrategyConfig as second parameter", () => {
@@ -29,7 +30,7 @@ describe("createNextAppFlatServerImpl", () => {
   });
 
   it("resolves to NextAppServerImpl", () => {
-    expectTypeOf(createNextAppFlatServerImpl).returns.toEqualTypeOf<Promise<NextAppServerImpl>>();
+    expectTypeOf(createNextAppFlatServerImpl).returns.toEqualTypeOf<Promise<NextAppServerImpl<AnyLocale, any>>>();
   });
 
   it("resolves to a concrete type, not any", () => {
@@ -60,40 +61,63 @@ describe("createNextAppFlatServerImpl", () => {
 });
 
 describe("NextAppServerImpl property types", () => {
-  it("writeLocale accepts correct parameter types and returns void | Promise<void>", () => {
-    expectTypeOf<NextAppServerImpl["writeLocale"]>().toBeFunction();
-    expectTypeOf<NextAppServerImpl["writeLocale"]>().parameter(0).toEqualTypeOf<string | undefined>();
-    expectTypeOf<NextAppServerImpl["writeLocale"]>().parameter(1).toBeString();
-    expectTypeOf<ReturnType<NextAppServerImpl["writeLocale"]>>().toEqualTypeOf<void | Promise<void>>();
+  it("writeLocale first parameter accepts L | undefined", () => {
+    expectTypeOf<NextAppServerImpl<AnyLocale, string>["writeLocale"]>().parameter(0).toEqualTypeOf<string | undefined>();
+    expectTypeOf<undefined>().toExtend<Parameters<NextAppServerImpl<AnyLocale, string>["writeLocale"]>[0]>();
+  });
+
+  it("writeLocale second parameter is strictly L", () => {
+    expectTypeOf<NextAppServerImpl<AnyLocale, string>["writeLocale"]>().parameter(1).toBeString();
+    expectTypeOf<undefined>().not.toExtend<Parameters<NextAppServerImpl<AnyLocale, string>["writeLocale"]>[1]>();
+  });
+
+  it("writeLocale returns void | Promise<void>", () => {
+    expectTypeOf<ReturnType<NextAppServerImpl<AnyLocale, string>["writeLocale"]>>().toEqualTypeOf<void | Promise<void>>();
+  });
+
+  it("writeLocale parameter types narrow when L is concrete", () => {
+    type Narrow = NextAppServerImpl<"en" | "it", string>;
+    expectTypeOf<Narrow["writeLocale"]>().parameter(0).toEqualTypeOf<"en" | "it" | undefined>();
+    expectTypeOf<Narrow["writeLocale"]>().parameter(1).toEqualTypeOf<"en" | "it">();
   });
 
   it("createProxy returns RMachineProxy or Promise<RMachineProxy>", () => {
-    expectTypeOf<NextAppServerImpl["createProxy"]>().toBeFunction();
-    expectTypeOf<ReturnType<NextAppServerImpl["createProxy"]>>().toEqualTypeOf<
+    expectTypeOf<ReturnType<NextAppServerImpl<AnyLocale, string>["createProxy"]>>().toEqualTypeOf<
       RMachineProxy | Promise<RMachineProxy>
     >();
   });
 
-  it("createBoundPathComposerSupplier accepts a locale getter and returns a path composer supplier", () => {
-    type Fn = NextAppServerImpl["createBoundPathComposerSupplier"];
-    expectTypeOf<Fn>().toBeFunction();
-    expectTypeOf<Fn>().parameter(0).toEqualTypeOf<() => Promise<string>>();
+  it("createBoundPathComposerSupplier locale getter parameter narrows with L", () => {
+    type FnWide = NextAppServerImpl<AnyLocale, string>["createBoundPathComposerSupplier"];
+    expectTypeOf<FnWide>().parameter(0).toEqualTypeOf<() => Promise<string>>();
+
+    type FnNarrow = NextAppServerImpl<"en" | "it", string>["createBoundPathComposerSupplier"];
+    expectTypeOf<FnNarrow>().parameter(0).toEqualTypeOf<() => Promise<"en" | "it">>();
 
     type Supplier = () => Promise<BoundPathComposer<AnyPathAtlas>>;
-    expectTypeOf<ReturnType<Fn>>().toEqualTypeOf<Supplier | Promise<Supplier>>();
+    expectTypeOf<ReturnType<FnWide>>().toEqualTypeOf<Supplier | Promise<Supplier>>();
   });
 
   it("createLocaleStaticParamsGenerator returns a generator function", () => {
-    type Fn = NextAppServerImpl["createLocaleStaticParamsGenerator"];
+    type Fn = NextAppServerImpl<AnyLocale, string>["createLocaleStaticParamsGenerator"];
     expectTypeOf<Fn>().toBeFunction();
     expectTypeOf<ReturnType<Fn>>().not.toBeAny();
   });
 
-  it("localeKey is string", () => {
-    expectTypeOf<NextAppServerImpl["localeKey"]>().toBeString();
+  it("localeKey preserves the LK literal type", () => {
+    expectTypeOf<NextAppServerImpl<AnyLocale, "locale">["localeKey"]>().toEqualTypeOf<"locale">();
+    expectTypeOf<NextAppServerImpl<AnyLocale, "lang">["localeKey"]>().toEqualTypeOf<"lang">();
   });
 
   it("autoLocaleBinding is boolean", () => {
-    expectTypeOf<NextAppServerImpl["autoLocaleBinding"]>().toBeBoolean();
+    expectTypeOf<NextAppServerImpl<AnyLocale, string>["autoLocaleBinding"]>().toBeBoolean();
+  });
+
+  it("different L produce different impl types", () => {
+    expectTypeOf<NextAppServerImpl<"en" | "it", "locale">>().not.toEqualTypeOf<NextAppServerImpl<"fr" | "de", "locale">>();
+  });
+
+  it("different LK produce different impl types", () => {
+    expectTypeOf<NextAppServerImpl<AnyLocale, "locale">>().not.toEqualTypeOf<NextAppServerImpl<AnyLocale, "lang">>();
   });
 });

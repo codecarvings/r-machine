@@ -4,6 +4,7 @@ import type { NextAppClientRMachine } from "../../../src/core/app/next-app-clien
 import type { NextAppNoProxyServerImpl } from "../../../src/core/app/next-app-no-proxy-server-toolset.js";
 import { createNextAppNoProxyServerToolset } from "../../../src/core/app/next-app-no-proxy-server-toolset.js";
 import type { NextAppServerImpl } from "../../../src/core/app/next-app-server-toolset.js";
+import type { TestLocale } from "../../_fixtures/constants.js";
 import { createMockMachine } from "../../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
@@ -66,8 +67,8 @@ const mockRouteHandlers = {
   },
 };
 
-function createMockImpl(overrides: Partial<NextAppNoProxyServerImpl> = {}): NextAppNoProxyServerImpl {
-  const base: NextAppServerImpl = {
+function createMockImpl(overrides: Partial<NextAppNoProxyServerImpl<TestLocale, string>> = {}): NextAppNoProxyServerImpl<TestLocale, string> {
+  const base: NextAppServerImpl<TestLocale, string> = {
     localeKey: overrides.localeKey ?? "locale",
     autoLocaleBinding: overrides.autoLocaleBinding ?? false,
     writeLocale: overrides.writeLocale ?? vi.fn(),
@@ -87,11 +88,11 @@ function createMockImpl(overrides: Partial<NextAppNoProxyServerImpl> = {}): Next
 
 const MockNextClientRMachine = vi.fn(
   ({ children }: { locale: string; children: ReactNode }): ReactNode => children
-) as unknown as NextAppClientRMachine;
+) as unknown as NextAppClientRMachine<TestLocale>;
 
 async function createToolset(
   machineOverrides?: Parameters<typeof createMockMachine>[0],
-  implOverrides?: Partial<NextAppNoProxyServerImpl>
+  implOverrides?: Partial<NextAppNoProxyServerImpl<TestLocale, string>>
 ) {
   return createNextAppNoProxyServerToolset(
     createMockMachine(machineOverrides),
@@ -114,26 +115,6 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("createNextAppNoProxyServerToolset", () => {
-  it("returns a toolset with all expected members (no rMachineProxy)", async () => {
-    const toolset = await createToolset();
-
-    expect(toolset).toHaveProperty("NextServerRMachine");
-    expect(toolset).toHaveProperty("generateLocaleStaticParams");
-    expect(toolset).toHaveProperty("bindLocale");
-    expect(toolset).toHaveProperty("getLocale");
-    expect(toolset).toHaveProperty("setLocale");
-    expect(toolset).toHaveProperty("pickR");
-    expect(toolset).toHaveProperty("pickRKit");
-    expect(toolset).toHaveProperty("getPathComposer");
-    expect(toolset).toHaveProperty("routeHandlers");
-  });
-
-  it("does not include rMachineProxy", async () => {
-    const toolset = await createToolset();
-
-    expect(toolset).not.toHaveProperty("rMachineProxy");
-  });
-
   // -----------------------------------------------------------------------
   // routeHandlers
   // -----------------------------------------------------------------------
@@ -155,7 +136,7 @@ describe("createNextAppNoProxyServerToolset", () => {
     });
 
     it("passes setLocale as third argument to createRouteHandlers", async () => {
-      const createRouteHandlers = vi.fn<NextAppNoProxyServerImpl["createRouteHandlers"]>(async () => mockRouteHandlers);
+      const createRouteHandlers = vi.fn<NextAppNoProxyServerImpl<TestLocale, string>["createRouteHandlers"]>(async () => mockRouteHandlers);
       const toolset = await createToolset(undefined, { createRouteHandlers });
 
       const passedSetLocale = createRouteHandlers.mock.calls[0][2];

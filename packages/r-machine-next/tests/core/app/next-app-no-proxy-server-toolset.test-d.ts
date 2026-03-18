@@ -1,6 +1,7 @@
 import type { RMachine } from "r-machine";
 import { describe, expectTypeOf, it } from "vitest";
 import type { BoundPathComposer } from "#r-machine/next/core";
+import type { AnyLocale } from "r-machine/locale";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
 import type { NextAppClientRMachine } from "../../../src/core/app/next-app-client-toolset.js";
 import type {
@@ -9,13 +10,8 @@ import type {
 } from "../../../src/core/app/next-app-no-proxy-server-toolset.js";
 import { createNextAppNoProxyServerToolset } from "../../../src/core/app/next-app-no-proxy-server-toolset.js";
 import type { NextAppServerImpl, NextAppServerRMachine } from "../../../src/core/app/next-app-server-toolset.js";
+import type { TestLocale, TranslatedPathAtlas } from "../../_fixtures/constants.js";
 import type { TestAtlas } from "../../_fixtures/mock-machine.js";
-
-type TestPathAtlas = {
-  readonly decl: {
-    readonly "/about": { readonly it: "/chi-siamo" };
-  };
-};
 
 // ---------------------------------------------------------------------------
 // createNextAppNoProxyServerToolset
@@ -23,20 +19,20 @@ type TestPathAtlas = {
 
 describe("createNextAppNoProxyServerToolset", () => {
   it("accepts RMachine, NextAppNoProxyServerImpl, and NextAppClientRMachine as parameters", () => {
-    expectTypeOf(createNextAppNoProxyServerToolset<TestAtlas, TestPathAtlas, "locale">)
+    expectTypeOf(createNextAppNoProxyServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">)
       .parameter(0)
-      .toEqualTypeOf<RMachine<TestAtlas>>();
-    expectTypeOf(createNextAppNoProxyServerToolset<TestAtlas, TestPathAtlas, "locale">)
+      .toEqualTypeOf<RMachine<TestAtlas, TestLocale>>();
+    expectTypeOf(createNextAppNoProxyServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">)
       .parameter(1)
-      .toEqualTypeOf<NextAppNoProxyServerImpl>();
-    expectTypeOf(createNextAppNoProxyServerToolset<TestAtlas, TestPathAtlas, "locale">)
+      .toEqualTypeOf<NextAppNoProxyServerImpl<TestLocale, "locale">>();
+    expectTypeOf(createNextAppNoProxyServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">)
       .parameter(2)
-      .toEqualTypeOf<NextAppClientRMachine>();
+      .toEqualTypeOf<NextAppClientRMachine<TestLocale>>();
   });
 
   it("returns a Promise of NextAppNoProxyServerToolset", () => {
-    expectTypeOf(createNextAppNoProxyServerToolset<TestAtlas, TestPathAtlas, "locale">).returns.toEqualTypeOf<
-      Promise<NextAppNoProxyServerToolset<TestAtlas, TestPathAtlas, "locale">>
+    expectTypeOf(createNextAppNoProxyServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">).returns.toEqualTypeOf<
+      Promise<NextAppNoProxyServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">>
     >();
   });
 });
@@ -46,19 +42,9 @@ describe("createNextAppNoProxyServerToolset", () => {
 // ---------------------------------------------------------------------------
 
 describe("NextAppNoProxyServerToolset", () => {
-  type Toolset = NextAppNoProxyServerToolset<TestAtlas, TestPathAtlas, "locale">;
+  type Toolset = NextAppNoProxyServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">;
 
   it("has exactly the expected properties", () => {
-    expectTypeOf<Toolset>().toHaveProperty("NextServerRMachine");
-    expectTypeOf<Toolset>().toHaveProperty("generateLocaleStaticParams");
-    expectTypeOf<Toolset>().toHaveProperty("bindLocale");
-    expectTypeOf<Toolset>().toHaveProperty("getLocale");
-    expectTypeOf<Toolset>().toHaveProperty("setLocale");
-    expectTypeOf<Toolset>().toHaveProperty("pickR");
-    expectTypeOf<Toolset>().toHaveProperty("pickRKit");
-    expectTypeOf<Toolset>().toHaveProperty("getPathComposer");
-    expectTypeOf<Toolset>().toHaveProperty("routeHandlers");
-
     type Keys = keyof Toolset;
     expectTypeOf<Keys>().toEqualTypeOf<
       | "NextServerRMachine"
@@ -85,16 +71,23 @@ describe("NextAppNoProxyServerToolset", () => {
     expectTypeOf<Toolset["generateLocaleStaticParams"]>().toEqualTypeOf<() => Promise<{ locale: string }[]>>();
   });
 
-  it("getLocale returns Promise<string>", () => {
-    expectTypeOf<Toolset["getLocale"]>().toEqualTypeOf<() => Promise<string>>();
+  it("getLocale return type is determined by the L parameter", () => {
+    type ToolsetEnIt = NextAppNoProxyServerToolset<TestAtlas, "en" | "it", TranslatedPathAtlas, "locale">;
+    type ToolsetFrDe = NextAppNoProxyServerToolset<TestAtlas, "fr" | "de", TranslatedPathAtlas, "locale">;
+    expectTypeOf<ReturnType<ToolsetEnIt["getLocale"]>>().toEqualTypeOf<Promise<"en" | "it">>();
+    expectTypeOf<ReturnType<ToolsetFrDe["getLocale"]>>().toEqualTypeOf<Promise<"fr" | "de">>();
+    expectTypeOf<ToolsetEnIt["getLocale"]>().not.toEqualTypeOf<ToolsetFrDe["getLocale"]>();
   });
 
-  it("setLocale accepts a string and returns Promise<void>", () => {
-    expectTypeOf<Toolset["setLocale"]>().toEqualTypeOf<(newLocale: string) => Promise<void>>();
+  it("setLocale parameter type is determined by the L parameter", () => {
+    type ToolsetEnIt = NextAppNoProxyServerToolset<TestAtlas, "en" | "it", TranslatedPathAtlas, "locale">;
+    type ToolsetFrDe = NextAppNoProxyServerToolset<TestAtlas, "fr" | "de", TranslatedPathAtlas, "locale">;
+    expectTypeOf<ToolsetEnIt["setLocale"]>().toEqualTypeOf<(newLocale: "en" | "it") => Promise<void>>();
+    expectTypeOf<ToolsetEnIt["setLocale"]>().not.toEqualTypeOf<ToolsetFrDe["setLocale"]>();
   });
 
   it("getPathComposer returns Promise<BoundPathComposer<PA>>", () => {
-    expectTypeOf<Toolset["getPathComposer"]>().toEqualTypeOf<() => Promise<BoundPathComposer<TestPathAtlas>>>();
+    expectTypeOf<Toolset["getPathComposer"]>().toEqualTypeOf<() => Promise<BoundPathComposer<TranslatedPathAtlas>>>();
   });
 
   // -----------------------------------------------------------------------
@@ -141,9 +134,9 @@ describe("NextAppNoProxyServerToolset", () => {
   // bindLocale
   // -----------------------------------------------------------------------
 
-  it("bindLocale accepts a string and returns string", () => {
+  it("bindLocale accepts AnyLocale and returns TestLocale", () => {
     expectTypeOf<Toolset["bindLocale"]>().toBeCallableWith("en");
-    expectTypeOf<Toolset["bindLocale"]>().toExtend<(locale: string) => string>();
+    expectTypeOf<Toolset["bindLocale"]>().toExtend<(locale: AnyLocale) => TestLocale>();
   });
 
   it("bindLocale accepts a Promise of params and returns a Promise of params", () => {
@@ -156,16 +149,23 @@ describe("NextAppNoProxyServerToolset", () => {
   // type discrimination
   // -----------------------------------------------------------------------
 
-  it("different atlas types produce different toolset types", () => {
+  it("different RA produce different toolset types", () => {
     type OtherAtlas = { readonly other: { readonly value: number } };
-    expectTypeOf<NextAppNoProxyServerToolset<TestAtlas, TestPathAtlas, "locale">>().not.toEqualTypeOf<
-      NextAppNoProxyServerToolset<OtherAtlas, TestPathAtlas, "locale">
+    expectTypeOf<NextAppNoProxyServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">>().not.toEqualTypeOf<
+      NextAppNoProxyServerToolset<OtherAtlas, TestLocale, TranslatedPathAtlas, "locale">
     >();
   });
 
-  it("different locale key types produce different toolset types", () => {
-    expectTypeOf<NextAppNoProxyServerToolset<TestAtlas, TestPathAtlas, "locale">>().not.toEqualTypeOf<
-      NextAppNoProxyServerToolset<TestAtlas, TestPathAtlas, "lang">
+  it("different L produce different toolset types", () => {
+    type OtherLocale = "fr" | "de";
+    expectTypeOf<NextAppNoProxyServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">>().not.toEqualTypeOf<
+      NextAppNoProxyServerToolset<TestAtlas, OtherLocale, TranslatedPathAtlas, "locale">
+    >();
+  });
+
+  it("different LK produce different toolset types", () => {
+    expectTypeOf<NextAppNoProxyServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">>().not.toEqualTypeOf<
+      NextAppNoProxyServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "lang">
     >();
   });
 });
@@ -176,11 +176,11 @@ describe("NextAppNoProxyServerToolset", () => {
 
 describe("NextAppNoProxyServerImpl", () => {
   it("extends NextAppServerImpl", () => {
-    expectTypeOf<NextAppNoProxyServerImpl>().toExtend<NextAppServerImpl>();
+    expectTypeOf<NextAppNoProxyServerImpl<TestLocale, "locale">>().toExtend<NextAppServerImpl<TestLocale, "locale">>();
   });
 
   it("has exactly the expected properties", () => {
-    type Keys = keyof NextAppNoProxyServerImpl;
+    type Keys = keyof NextAppNoProxyServerImpl<TestLocale, "locale">;
     expectTypeOf<Keys>().toEqualTypeOf<
       | "localeKey"
       | "autoLocaleBinding"
@@ -193,15 +193,15 @@ describe("NextAppNoProxyServerImpl", () => {
   });
 
   it("createRouteHandlers accepts cookies, headers, and setLocale", () => {
-    expectTypeOf<NextAppNoProxyServerImpl["createRouteHandlers"]>().parameter(0).toEqualTypeOf<CookiesFn>();
-    expectTypeOf<NextAppNoProxyServerImpl["createRouteHandlers"]>().parameter(1).toEqualTypeOf<HeadersFn>();
-    expectTypeOf<NextAppNoProxyServerImpl["createRouteHandlers"]>()
+    expectTypeOf<NextAppNoProxyServerImpl<TestLocale, "locale">["createRouteHandlers"]>().parameter(0).toEqualTypeOf<CookiesFn>();
+    expectTypeOf<NextAppNoProxyServerImpl<TestLocale, "locale">["createRouteHandlers"]>().parameter(1).toEqualTypeOf<HeadersFn>();
+    expectTypeOf<NextAppNoProxyServerImpl<TestLocale, "locale">["createRouteHandlers"]>()
       .parameter(2)
-      .toEqualTypeOf<(newLocale: string) => Promise<void>>();
+      .toEqualTypeOf<(newLocale: TestLocale) => Promise<void>>();
   });
 
   it("createRouteHandlers returns routeHandlers or Promise<routeHandlers>", () => {
-    type Result = ReturnType<NextAppNoProxyServerImpl["createRouteHandlers"]>;
+    type Result = ReturnType<NextAppNoProxyServerImpl<TestLocale, "locale">["createRouteHandlers"]>;
     type Expected = { readonly entrance: { readonly GET: () => Promise<void> } };
     expectTypeOf<Result>().toExtend<Expected | Promise<Expected>>();
   });

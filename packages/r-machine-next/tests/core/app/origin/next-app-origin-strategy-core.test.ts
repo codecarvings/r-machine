@@ -15,6 +15,7 @@ import {
   SimplePathAtlas,
   TranslatedPathAtlas,
 } from "../../../_fixtures/_helpers.js";
+import type { TestLocale } from "../../../_fixtures/constants.js";
 import { createMockMachine, type TestAtlas } from "../../../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
@@ -51,7 +52,7 @@ function createTestConfig(overrides?: Partial<SimpleConfig>): SimpleConfig {
 function createTestStrategy(configOverrides?: Partial<SimpleConfig>) {
   const config = createTestConfig(configOverrides);
 
-  class TestOriginStrategy extends NextAppOriginStrategyCore<TestAtlas, SimpleConfig> {}
+  class TestOriginStrategy extends NextAppOriginStrategyCore<TestAtlas, TestLocale, SimpleConfig> {}
 
   const rMachine = createMockMachine();
   const strategy = new TestOriginStrategy(rMachine, config);
@@ -74,7 +75,7 @@ function createTranslatedStrategy(
     pathMatcher: defaultPathMatcher,
   } as TranslatedConfig;
 
-  class TestOriginStrategy extends NextAppOriginStrategyCore<TestAtlas, TranslatedConfig> {}
+  class TestOriginStrategy extends NextAppOriginStrategyCore<TestAtlas, TestLocale, TranslatedConfig> {}
 
   const rMachine = createMockMachine();
   return new TestOriginStrategy(rMachine, config);

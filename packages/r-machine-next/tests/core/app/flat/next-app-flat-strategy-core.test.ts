@@ -7,7 +7,7 @@ import {
   NextAppFlatStrategyCore,
 } from "../../../../src/core/app/flat/next-app-flat-strategy-core.js";
 import { DynamicPathAtlas, SimplePathAtlas } from "../../../_fixtures/_helpers.js";
-import { TEST_DEFAULT_LOCALE as defaultLocale } from "../../../_fixtures/constants.js";
+import { TEST_DEFAULT_LOCALE as defaultLocale, type TestLocale } from "../../../_fixtures/constants.js";
 import { createMockMachine, type TestAtlas } from "../../../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
@@ -38,7 +38,7 @@ function createTestConfig(overrides?: Partial<SimpleConfig>): SimpleConfig {
 function createTestStrategy(configOverrides?: Partial<SimpleConfig>) {
   const config = createTestConfig(configOverrides);
 
-  class TestFlatStrategy extends NextAppFlatStrategyCore<TestAtlas, SimpleConfig> {}
+  class TestFlatStrategy extends NextAppFlatStrategyCore<TestAtlas, TestLocale, SimpleConfig> {}
 
   const rMachine = createMockMachine();
   const strategy = new TestFlatStrategy(rMachine, config);
@@ -56,7 +56,7 @@ function createDynamicStrategy() {
     pathMatcher: defaultPathMatcher,
   } as DynamicConfig;
 
-  class TestFlatStrategy extends NextAppFlatStrategyCore<TestAtlas, DynamicConfig> {}
+  class TestFlatStrategy extends NextAppFlatStrategyCore<TestAtlas, TestLocale, DynamicConfig> {}
 
   const rMachine = createMockMachine();
   return new TestFlatStrategy(rMachine, config);
@@ -72,7 +72,7 @@ function createDynamicStrategyWithLocale(overrideDefaultLocale: string) {
     pathMatcher: defaultPathMatcher,
   } as DynamicConfig;
 
-  class TestFlatStrategy extends NextAppFlatStrategyCore<TestAtlas, DynamicConfig> {}
+  class TestFlatStrategy extends NextAppFlatStrategyCore<TestAtlas, TestLocale, DynamicConfig> {}
 
   const rMachine = createMockMachine({ defaultLocale: overrideDefaultLocale });
   return new TestFlatStrategy(rMachine, config);

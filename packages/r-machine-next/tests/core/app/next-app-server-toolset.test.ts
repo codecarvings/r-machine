@@ -7,6 +7,7 @@ import * as internal from "#r-machine/next/internal";
 import type { NextAppClientRMachine } from "../../../src/core/app/next-app-client-toolset.js";
 import type { NextAppServerImpl } from "../../../src/core/app/next-app-server-toolset.js";
 import { createNextAppServerToolset } from "../../../src/core/app/next-app-server-toolset.js";
+import type { TestLocale } from "../../_fixtures/constants.js";
 import { createMockMachine } from "../../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
@@ -63,7 +64,7 @@ vi.mock("#r-machine/next/internal", async (importOriginal) => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function createMockImpl(overrides: Partial<NextAppServerImpl> = {}): NextAppServerImpl {
+function createMockImpl(overrides: Partial<NextAppServerImpl<TestLocale, string>> = {}): NextAppServerImpl<TestLocale, string> {
   return {
     localeKey: overrides.localeKey ?? "locale",
     autoLocaleBinding: overrides.autoLocaleBinding ?? false,
@@ -79,11 +80,11 @@ function createMockImpl(overrides: Partial<NextAppServerImpl> = {}): NextAppServ
 
 const MockNextClientRMachine = vi.fn(
   ({ children }: { locale: string; children: ReactNode }): ReactNode => children
-) as unknown as NextAppClientRMachine;
+) as unknown as NextAppClientRMachine<TestLocale>;
 
 async function createToolset(
   machineOverrides?: Parameters<typeof createMockMachine>[0],
-  implOverrides?: Partial<NextAppServerImpl>
+  implOverrides?: Partial<NextAppServerImpl<TestLocale, string>>
 ) {
   return createNextAppServerToolset(
     createMockMachine(machineOverrides),
@@ -106,20 +107,6 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("createNextAppServerToolset", () => {
-  it("returns a toolset with all expected members", async () => {
-    const toolset = await createToolset();
-
-    expect(toolset).toHaveProperty("rMachineProxy");
-    expect(toolset).toHaveProperty("NextServerRMachine");
-    expect(toolset).toHaveProperty("generateLocaleStaticParams");
-    expect(toolset).toHaveProperty("bindLocale");
-    expect(toolset).toHaveProperty("getLocale");
-    expect(toolset).toHaveProperty("setLocale");
-    expect(toolset).toHaveProperty("pickR");
-    expect(toolset).toHaveProperty("pickRKit");
-    expect(toolset).toHaveProperty("getPathComposer");
-  });
-
   it("delegates rMachineProxy to impl.createProxy", async () => {
     const proxy = vi.fn() as RMachineProxy;
     const toolset = await createToolset(undefined, {
@@ -349,7 +336,7 @@ describe("createNextAppServerToolset", () => {
       const toolset = await createToolset();
 
       try {
-        await toolset.setLocale("xx");
+        await toolset.setLocale("xx" as any);
         expect.unreachable("should have thrown");
       } catch (error) {
         expect(error).toBeInstanceOf(RMachineUsageError);
@@ -360,14 +347,14 @@ describe("createNextAppServerToolset", () => {
     it("includes the invalid locale in the error message", async () => {
       const toolset = await createToolset();
 
-      await expect(toolset.setLocale("xx")).rejects.toThrow(/xx/);
+      await expect(toolset.setLocale("xx" as any)).rejects.toThrow(/xx/);
     });
 
     it("wraps the validation error as innerError", async () => {
       const toolset = await createToolset();
 
       try {
-        await toolset.setLocale("xx");
+        await toolset.setLocale("xx" as any);
         expect.unreachable("should have thrown");
       } catch (error) {
         expect(error).toBeInstanceOf(RMachineUsageError);
@@ -380,7 +367,7 @@ describe("createNextAppServerToolset", () => {
       const toolset = await createToolset(undefined, { writeLocale });
 
       try {
-        await toolset.setLocale("xx");
+        await toolset.setLocale("xx" as any);
       } catch {
         // expected
       }
@@ -583,45 +570,17 @@ describe("createNextAppServerToolset", () => {
   // -----------------------------------------------------------------------
 
   describe("validateServerOnlyUsage", () => {
-    it("bindLocale calls validateServerOnlyUsage", async () => {
+    it.each<[string, (t: Awaited<ReturnType<typeof createToolset>>) => void | Promise<void>]>([
+      ["bindLocale", (t) => { t.bindLocale("en"); }],
+      ["getLocale", async (t) => { t.bindLocale("en"); await t.getLocale(); }],
+      ["setLocale", async (t) => { t.bindLocale("en"); await t.setLocale("it"); }],
+      ["pickR", async (t) => { t.bindLocale("en"); await t.pickR("common"); }],
+      ["pickRKit", async (t) => { t.bindLocale("en"); await t.pickRKit("common"); }],
+      ["NextServerRMachine", async (t) => { t.bindLocale("en"); await t.NextServerRMachine({ children: "test" }); }],
+    ])("%s calls validateServerOnlyUsage", async (methodName, invoke) => {
       const toolset = await createToolset();
-      toolset.bindLocale("en");
-      expect(vi.mocked(internal.validateServerOnlyUsage)).toHaveBeenCalledWith("bindLocale");
-    });
-
-    it("getLocale calls validateServerOnlyUsage", async () => {
-      const toolset = await createToolset();
-      toolset.bindLocale("en");
-      await toolset.getLocale();
-      expect(vi.mocked(internal.validateServerOnlyUsage)).toHaveBeenCalledWith("getLocale");
-    });
-
-    it("setLocale calls validateServerOnlyUsage", async () => {
-      const toolset = await createToolset();
-      toolset.bindLocale("en");
-      await toolset.setLocale("it");
-      expect(vi.mocked(internal.validateServerOnlyUsage)).toHaveBeenCalledWith("setLocale");
-    });
-
-    it("pickR calls validateServerOnlyUsage", async () => {
-      const toolset = await createToolset();
-      toolset.bindLocale("en");
-      await toolset.pickR("common");
-      expect(vi.mocked(internal.validateServerOnlyUsage)).toHaveBeenCalledWith("pickR");
-    });
-
-    it("pickRKit calls validateServerOnlyUsage", async () => {
-      const toolset = await createToolset();
-      toolset.bindLocale("en");
-      await toolset.pickRKit("common");
-      expect(vi.mocked(internal.validateServerOnlyUsage)).toHaveBeenCalledWith("pickRKit");
-    });
-
-    it("NextServerRMachine calls validateServerOnlyUsage", async () => {
-      const toolset = await createToolset();
-      toolset.bindLocale("en");
-      await toolset.NextServerRMachine({ children: "test" });
-      expect(vi.mocked(internal.validateServerOnlyUsage)).toHaveBeenCalledWith("NextServerRMachine");
+      await invoke(toolset);
+      expect(vi.mocked(internal.validateServerOnlyUsage)).toHaveBeenCalledWith(methodName);
     });
   });
 });

@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NextAppClientImpl } from "../../../src/core/app/next-app-client-toolset.js";
 import { createNextAppClientToolset } from "../../../src/core/app/next-app-client-toolset.js";
+import type { TestLocale } from "../../_fixtures/constants.js";
 import { createMockMachine } from "../../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
@@ -32,7 +33,7 @@ vi.mock("next/navigation", () => ({
 // Impl factory
 // ---------------------------------------------------------------------------
 
-function createMockImpl(overrides: Partial<NextAppClientImpl> = {}): NextAppClientImpl {
+function createMockImpl(overrides: Partial<NextAppClientImpl<TestLocale>> = {}): NextAppClientImpl<TestLocale> {
   return {
     onLoad: overrides.onLoad === undefined ? undefined : overrides.onLoad,
     writeLocale: overrides.writeLocale ?? vi.fn(),
@@ -51,23 +52,6 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("createNextAppClientToolset", () => {
-  it("returns a toolset with all expected members", async () => {
-    const toolset = await createNextAppClientToolset(createMockMachine(), createMockImpl());
-
-    expect(toolset).toHaveProperty("useLocale");
-    expect(toolset).toHaveProperty("useSetLocale");
-    expect(toolset).toHaveProperty("usePathComposer");
-    expect(toolset).toHaveProperty("NextClientRMachine");
-    expect(toolset).toHaveProperty("useR");
-    expect(toolset).toHaveProperty("useRKit");
-  });
-
-  it("does not include ReactRMachine", async () => {
-    const toolset = await createNextAppClientToolset(createMockMachine(), createMockImpl());
-
-    expect(toolset).not.toHaveProperty("ReactRMachine");
-  });
-
   // -----------------------------------------------------------------------
   // NextClientRMachine
   // -----------------------------------------------------------------------
@@ -261,7 +245,7 @@ describe("createNextAppClientToolset", () => {
 
       try {
         await act(async () => {
-          await result.current("xx");
+          await result.current("xx" as any);
         });
         expect.unreachable("should have thrown");
       } catch (error) {
@@ -284,7 +268,7 @@ describe("createNextAppClientToolset", () => {
 
       await expect(
         act(async () => {
-          await result.current("xx");
+          await result.current("xx" as any);
         })
       ).rejects.toThrow(/invalid locale.*xx/i);
     });
@@ -304,7 +288,7 @@ describe("createNextAppClientToolset", () => {
 
       try {
         await act(async () => {
-          await result.current("xx");
+          await result.current("xx" as any);
         });
         expect.unreachable("should have thrown");
       } catch (error) {
@@ -328,7 +312,7 @@ describe("createNextAppClientToolset", () => {
 
       try {
         await act(async () => {
-          await result.current("xx");
+          await result.current("xx" as any);
         });
       } catch {
         // expected

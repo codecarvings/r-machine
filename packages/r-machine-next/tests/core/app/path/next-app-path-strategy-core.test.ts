@@ -16,6 +16,7 @@ import {
   SimplePathAtlas,
   TranslatedPathAtlas,
 } from "../../../_fixtures/_helpers.js";
+import type { TestLocale } from "../../../_fixtures/constants.js";
 import { createMockMachine, type TestAtlas } from "../../../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
@@ -58,7 +59,7 @@ function createTestConfig(overrides?: Partial<SimpleConfig>): SimpleConfig {
 function createTestStrategy(configOverrides?: Partial<SimpleConfig>) {
   const config = createTestConfig(configOverrides);
 
-  class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, SimpleConfig> {}
+  class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, TestLocale, SimpleConfig> {}
 
   const rMachine = createMockMachine();
   const strategy = new TestPathStrategy(rMachine, config);
@@ -73,7 +74,7 @@ function createTranslatedStrategy(configOverrides?: Partial<TranslatedConfig>) {
     ...configOverrides,
   } as TranslatedConfig;
 
-  class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, TranslatedConfig> {}
+  class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, TestLocale, TranslatedConfig> {}
 
   const rMachine = createMockMachine();
   const strategy = new TestPathStrategy(rMachine, config);
@@ -88,7 +89,7 @@ function createDynamicStrategy(configOverrides?: Partial<DynamicConfig>) {
     ...configOverrides,
   } as DynamicConfig;
 
-  class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, DynamicConfig> {}
+  class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, TestLocale, DynamicConfig> {}
 
   const rMachine = createMockMachine();
   return new TestPathStrategy(rMachine, config);
@@ -412,13 +413,13 @@ describe("NextAppPathStrategyCore", () => {
           localeLabel: "lowercase",
         } as DynamicConfig;
 
-        class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, DynamicConfig> {}
+        class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, TestLocale, DynamicConfig> {}
 
         const rMachine = createMockMachine({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
         const strategy = new TestPathStrategy(rMachine, config);
 
-        expect(strategy.hrefHelper.getPath("en-US", "/about")).toBe("/en-us/about");
-        expect(strategy.hrefHelper.getPath("it-IT", "/about")).toBe("/it-it/about");
+        expect(strategy.hrefHelper.getPath("en-US" as any, "/about")).toBe("/en-us/about");
+        expect(strategy.hrefHelper.getPath("it-IT" as any, "/about")).toBe("/it-it/about");
       });
 
       it("preserves locale case with strict localeLabel", () => {
@@ -428,13 +429,13 @@ describe("NextAppPathStrategyCore", () => {
           localeLabel: "strict",
         } as DynamicConfig;
 
-        class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, DynamicConfig> {}
+        class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, TestLocale, DynamicConfig> {}
 
         const rMachine = createMockMachine({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
         const strategy = new TestPathStrategy(rMachine, config);
 
-        expect(strategy.hrefHelper.getPath("en-US", "/about")).toBe("/en-US/about");
-        expect(strategy.hrefHelper.getPath("it-IT", "/about")).toBe("/it-IT/about");
+        expect(strategy.hrefHelper.getPath("en-US" as any, "/about")).toBe("/en-US/about");
+        expect(strategy.hrefHelper.getPath("it-IT" as any, "/about")).toBe("/it-IT/about");
       });
 
       it("omits locale prefix for default locale when implicitDefaultLocale is on", () => {

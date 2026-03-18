@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { createNextAppOriginClientImpl } from "../../../../src/core/app/origin/next-app-origin.client-impl.js";
+import type { TestLocale } from "../../../_fixtures/constants.js";
 import type { AnyNextAppOriginStrategyConfig } from "../../../../src/core/app/origin/next-app-origin-strategy-core.js";
 import {
   aboutAtlas,
@@ -231,7 +232,7 @@ describe("createNextAppOriginClientImpl", () => {
       const { impl } = await createImpl({ atlas: aboutAtlas });
 
       let currentLocale = "en";
-      const useLocale = () => currentLocale;
+      const useLocale = () => currentLocale as TestLocale;
       const usePathComposer = impl.createUsePathComposer(useLocale);
 
       const composer1 = usePathComposer() as AnyPathComposer;

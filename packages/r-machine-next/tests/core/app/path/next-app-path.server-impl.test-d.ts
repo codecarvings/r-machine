@@ -1,4 +1,5 @@
 import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
   AnyPathAtlas,
@@ -13,8 +14,8 @@ import { createNextAppPathServerImpl } from "../../../../src/core/app/path/next-
 import type { AnyNextAppPathStrategyConfig } from "../../../../src/core/app/path/next-app-path-strategy-core.js";
 
 describe("createNextAppPathServerImpl", () => {
-  it("requires RMachine<AnyResourceAtlas> as first parameter", () => {
-    expectTypeOf(createNextAppPathServerImpl).parameter(0).toEqualTypeOf<RMachine<AnyResourceAtlas>>();
+  it("requires RMachine<AnyResourceAtlas, AnyLocale> as first parameter", () => {
+    expectTypeOf(createNextAppPathServerImpl).parameter(0).toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale>>();
   });
 
   it("requires AnyNextAppPathStrategyConfig as second parameter", () => {
@@ -30,7 +31,7 @@ describe("createNextAppPathServerImpl", () => {
   });
 
   it("resolves to NextAppNoProxyServerImpl", () => {
-    expectTypeOf(createNextAppPathServerImpl).returns.toEqualTypeOf<Promise<NextAppNoProxyServerImpl>>();
+    expectTypeOf(createNextAppPathServerImpl).returns.toEqualTypeOf<Promise<NextAppNoProxyServerImpl<AnyLocale, any>>>();
   });
 
   it("resolves to a concrete type, not any", () => {
@@ -61,61 +62,88 @@ describe("createNextAppPathServerImpl", () => {
 });
 
 describe("NextAppNoProxyServerImpl property types", () => {
-  it("localeKey is a string", () => {
-    expectTypeOf<NextAppNoProxyServerImpl["localeKey"]>().toBeString();
+  it("localeKey preserves the LK literal type", () => {
+    expectTypeOf<NextAppNoProxyServerImpl<AnyLocale, "locale">["localeKey"]>().toEqualTypeOf<"locale">();
+    expectTypeOf<NextAppNoProxyServerImpl<AnyLocale, "lang">["localeKey"]>().toEqualTypeOf<"lang">();
   });
 
   it("autoLocaleBinding is a boolean", () => {
-    expectTypeOf<NextAppNoProxyServerImpl["autoLocaleBinding"]>().toBeBoolean();
+    expectTypeOf<NextAppNoProxyServerImpl<AnyLocale, string>["autoLocaleBinding"]>().toBeBoolean();
   });
 
-  it("writeLocale accepts correct parameter types", () => {
-    expectTypeOf<NextAppNoProxyServerImpl["writeLocale"]>().toBeFunction();
-    expectTypeOf<NextAppNoProxyServerImpl["writeLocale"]>().parameter(0).toEqualTypeOf<string | undefined>();
-    expectTypeOf<NextAppNoProxyServerImpl["writeLocale"]>().parameter(1).toBeString();
-    expectTypeOf<NextAppNoProxyServerImpl["writeLocale"]>().parameter(2).toEqualTypeOf<CookiesFn>();
-    expectTypeOf<NextAppNoProxyServerImpl["writeLocale"]>().parameter(3).toEqualTypeOf<HeadersFn>();
-    expectTypeOf<ReturnType<NextAppNoProxyServerImpl["writeLocale"]>>().toEqualTypeOf<void | Promise<void>>();
+  it("writeLocale first parameter accepts L | undefined", () => {
+    expectTypeOf<NextAppNoProxyServerImpl<AnyLocale, string>["writeLocale"]>().parameter(0).toEqualTypeOf<string | undefined>();
+    expectTypeOf<undefined>().toExtend<Parameters<NextAppNoProxyServerImpl<AnyLocale, string>["writeLocale"]>[0]>();
+  });
+
+  it("writeLocale second parameter is strictly L", () => {
+    expectTypeOf<NextAppNoProxyServerImpl<AnyLocale, string>["writeLocale"]>().parameter(1).toBeString();
+    expectTypeOf<undefined>().not.toExtend<Parameters<NextAppNoProxyServerImpl<AnyLocale, string>["writeLocale"]>[1]>();
+  });
+
+  it("writeLocale parameter types narrow when L is concrete", () => {
+    type Narrow = NextAppNoProxyServerImpl<"en" | "it", string>;
+    expectTypeOf<Narrow["writeLocale"]>().parameter(0).toEqualTypeOf<"en" | "it" | undefined>();
+    expectTypeOf<Narrow["writeLocale"]>().parameter(1).toEqualTypeOf<"en" | "it">();
+  });
+
+  it("writeLocale remaining parameters are cookies and headers", () => {
+    expectTypeOf<NextAppNoProxyServerImpl<AnyLocale, string>["writeLocale"]>().parameter(2).toEqualTypeOf<CookiesFn>();
+    expectTypeOf<NextAppNoProxyServerImpl<AnyLocale, string>["writeLocale"]>().parameter(3).toEqualTypeOf<HeadersFn>();
+    expectTypeOf<ReturnType<NextAppNoProxyServerImpl<AnyLocale, string>["writeLocale"]>>().toEqualTypeOf<void | Promise<void>>();
   });
 
   it("createLocaleStaticParamsGenerator returns a generator or promise of one", () => {
-    type Fn = NextAppNoProxyServerImpl["createLocaleStaticParamsGenerator"];
+    type Fn = NextAppNoProxyServerImpl<AnyLocale, string>["createLocaleStaticParamsGenerator"];
     expectTypeOf<Fn>().toBeFunction();
     expectTypeOf<Fn>().parameters.toEqualTypeOf<[]>();
   });
 
   it("createProxy returns RMachineProxy or promise of one", () => {
-    type Fn = NextAppNoProxyServerImpl["createProxy"];
+    type Fn = NextAppNoProxyServerImpl<AnyLocale, string>["createProxy"];
     expectTypeOf<Fn>().toBeFunction();
     expectTypeOf<ReturnType<Fn>>().toEqualTypeOf<RMachineProxy | Promise<RMachineProxy>>();
   });
 
-  it("createBoundPathComposerSupplier accepts a getLocale function", () => {
-    type Fn = NextAppNoProxyServerImpl["createBoundPathComposerSupplier"];
-    expectTypeOf<Fn>().toBeFunction();
-    expectTypeOf<Fn>().parameter(0).toEqualTypeOf<() => Promise<string>>();
-  });
+  it("createBoundPathComposerSupplier locale getter parameter narrows with L", () => {
+    type FnWide = NextAppNoProxyServerImpl<AnyLocale, string>["createBoundPathComposerSupplier"];
+    expectTypeOf<FnWide>().parameter(0).toEqualTypeOf<() => Promise<string>>();
 
-  it("createBoundPathComposerSupplier returns a supplier producing BoundPathComposer", () => {
-    type Fn = NextAppNoProxyServerImpl["createBoundPathComposerSupplier"];
+    type FnNarrow = NextAppNoProxyServerImpl<"en" | "it", string>["createBoundPathComposerSupplier"];
+    expectTypeOf<FnNarrow>().parameter(0).toEqualTypeOf<() => Promise<"en" | "it">>();
+
     type Supplier = () => Promise<BoundPathComposer<AnyPathAtlas>>;
-    expectTypeOf<ReturnType<Fn>>().toEqualTypeOf<Supplier | Promise<Supplier>>();
+    expectTypeOf<ReturnType<FnWide>>().toEqualTypeOf<Supplier | Promise<Supplier>>();
   });
 
-  it("createRouteHandlers accepts cookies, headers, and setLocale", () => {
-    type Fn = NextAppNoProxyServerImpl["createRouteHandlers"];
-    expectTypeOf<Fn>().toBeFunction();
-    expectTypeOf<Fn>().parameter(0).toEqualTypeOf<CookiesFn>();
-    expectTypeOf<Fn>().parameter(1).toEqualTypeOf<HeadersFn>();
-    expectTypeOf<Fn>().parameter(2).toEqualTypeOf<(newLocale: string) => Promise<void>>();
+  it("createRouteHandlers setLocale parameter narrows with L", () => {
+    type FnWide = NextAppNoProxyServerImpl<AnyLocale, string>["createRouteHandlers"];
+    expectTypeOf<FnWide>().parameter(0).toEqualTypeOf<CookiesFn>();
+    expectTypeOf<FnWide>().parameter(1).toEqualTypeOf<HeadersFn>();
+    expectTypeOf<FnWide>().parameter(2).toEqualTypeOf<(newLocale: string) => Promise<void>>();
+
+    type FnNarrow = NextAppNoProxyServerImpl<"en" | "it", string>["createRouteHandlers"];
+    expectTypeOf<FnNarrow>().parameter(2).toEqualTypeOf<(newLocale: "en" | "it") => Promise<void>>();
   });
 
   it("createRouteHandlers return type includes entrance.GET handler", () => {
-    type Fn = NextAppNoProxyServerImpl["createRouteHandlers"];
+    type Fn = NextAppNoProxyServerImpl<AnyLocale, string>["createRouteHandlers"];
     type Result = Awaited<ReturnType<Fn>>;
     expectTypeOf<Result>().toHaveProperty("entrance");
     expectTypeOf<Result["entrance"]>().toHaveProperty("GET");
     expectTypeOf<Result["entrance"]["GET"]>().toBeFunction();
     expectTypeOf<ReturnType<Result["entrance"]["GET"]>>().toEqualTypeOf<Promise<void>>();
+  });
+
+  it("different L produce different impl types", () => {
+    expectTypeOf<NextAppNoProxyServerImpl<"en" | "it", "locale">>().not.toEqualTypeOf<
+      NextAppNoProxyServerImpl<"fr" | "de", "locale">
+    >();
+  });
+
+  it("different LK produce different impl types", () => {
+    expectTypeOf<NextAppNoProxyServerImpl<AnyLocale, "locale">>().not.toEqualTypeOf<
+      NextAppNoProxyServerImpl<AnyLocale, "lang">
+    >();
   });
 });
