@@ -210,7 +210,9 @@ describe("NextAppStrategyCore", () => {
   });
 
   it("L propagates from strategy to server toolset's getLocale and setLocale", () => {
-    type ServerEnIt = Awaited<ReturnType<NextAppStrategyCore<TestAtlas, "en" | "it", TestConfig>["createServerToolset"]>>;
+    type ServerEnIt = Awaited<
+      ReturnType<NextAppStrategyCore<TestAtlas, "en" | "it", TestConfig>["createServerToolset"]>
+    >;
     expectTypeOf<ReturnType<ServerEnIt["getLocale"]>>().toEqualTypeOf<Promise<"en" | "it">>();
     expectTypeOf<ServerEnIt["setLocale"]>().toEqualTypeOf<(newLocale: "en" | "it") => Promise<void>>();
   });

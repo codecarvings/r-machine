@@ -31,7 +31,9 @@ describe("createNextAppPathServerImpl", () => {
   });
 
   it("resolves to NextAppNoProxyServerImpl", () => {
-    expectTypeOf(createNextAppPathServerImpl).returns.toEqualTypeOf<Promise<NextAppNoProxyServerImpl<AnyLocale, any>>>();
+    expectTypeOf(createNextAppPathServerImpl).returns.toEqualTypeOf<
+      Promise<NextAppNoProxyServerImpl<AnyLocale, any>>
+    >();
   });
 
   it("resolves to a concrete type, not any", () => {
@@ -72,7 +74,9 @@ describe("NextAppNoProxyServerImpl property types", () => {
   });
 
   it("writeLocale first parameter accepts L | undefined", () => {
-    expectTypeOf<NextAppNoProxyServerImpl<AnyLocale, string>["writeLocale"]>().parameter(0).toEqualTypeOf<string | undefined>();
+    expectTypeOf<NextAppNoProxyServerImpl<AnyLocale, string>["writeLocale"]>()
+      .parameter(0)
+      .toEqualTypeOf<string | undefined>();
     expectTypeOf<undefined>().toExtend<Parameters<NextAppNoProxyServerImpl<AnyLocale, string>["writeLocale"]>[0]>();
   });
 
@@ -90,7 +94,9 @@ describe("NextAppNoProxyServerImpl property types", () => {
   it("writeLocale remaining parameters are cookies and headers", () => {
     expectTypeOf<NextAppNoProxyServerImpl<AnyLocale, string>["writeLocale"]>().parameter(2).toEqualTypeOf<CookiesFn>();
     expectTypeOf<NextAppNoProxyServerImpl<AnyLocale, string>["writeLocale"]>().parameter(3).toEqualTypeOf<HeadersFn>();
-    expectTypeOf<ReturnType<NextAppNoProxyServerImpl<AnyLocale, string>["writeLocale"]>>().toEqualTypeOf<void | Promise<void>>();
+    expectTypeOf<
+      ReturnType<NextAppNoProxyServerImpl<AnyLocale, string>["writeLocale"]>
+    >().toEqualTypeOf<void | Promise<void>>();
   });
 
   it("createLocaleStaticParamsGenerator returns a generator or promise of one", () => {

@@ -62,7 +62,9 @@ describe("NextAppOriginStrategy", () => {
 
   describe("default type parameters", () => {
     it("PA defaults to defaultConfig PathAtlas constructor", () => {
-      expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale>["config"]["PathAtlas"]>().toEqualTypeOf<PathAtlasCtor<DefaultPA>>();
+      expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale>["config"]["PathAtlas"]>().toEqualTypeOf<
+        PathAtlasCtor<DefaultPA>
+      >();
     });
 
     it("LK defaults to defaultConfig localeKey", () => {
@@ -76,9 +78,9 @@ describe("NextAppOriginStrategy", () => {
 
   describe("custom type parameters", () => {
     it("custom PA is wired through to config.PathAtlas", () => {
-      expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale, TranslatedPathAtlas>["config"]["PathAtlas"]>().toEqualTypeOf<
-        PathAtlasCtor<TranslatedPathAtlas>
-      >();
+      expectTypeOf<
+        NextAppOriginStrategy<TestAtlas, TestLocale, TranslatedPathAtlas>["config"]["PathAtlas"]
+      >().toEqualTypeOf<PathAtlasCtor<TranslatedPathAtlas>>();
     });
 
     it("custom LK is reflected in config.localeKey", () => {
@@ -101,12 +103,16 @@ describe("NextAppOriginStrategy", () => {
 
     it("different RA produce different types", () => {
       type OtherAtlas = { readonly other: { readonly value: number } };
-      expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale>>().not.toEqualTypeOf<NextAppOriginStrategy<OtherAtlas, TestLocale>>();
+      expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale>>().not.toEqualTypeOf<
+        NextAppOriginStrategy<OtherAtlas, TestLocale>
+      >();
     });
 
     it("different L produce different types", () => {
       type OtherLocale = "fr" | "de";
-      expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale>>().not.toEqualTypeOf<NextAppOriginStrategy<TestAtlas, OtherLocale>>();
+      expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale>>().not.toEqualTypeOf<
+        NextAppOriginStrategy<TestAtlas, OtherLocale>
+      >();
     });
 
     it("different PA produce different types", () => {

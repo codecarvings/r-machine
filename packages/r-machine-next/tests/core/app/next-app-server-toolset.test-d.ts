@@ -32,9 +32,9 @@ describe("createNextAppServerToolset", () => {
   });
 
   it("returns a Promise of NextAppServerToolset", () => {
-    expectTypeOf(createNextAppServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">).returns.toEqualTypeOf<
-      Promise<NextAppServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">>
-    >();
+    expectTypeOf(
+      createNextAppServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">
+    ).returns.toEqualTypeOf<Promise<NextAppServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">>>();
   });
 });
 
@@ -248,7 +248,9 @@ describe("NextAppServerImpl", () => {
   });
 
   it("writeLocale first parameter accepts L | undefined (current locale may be unknown)", () => {
-    expectTypeOf<NextAppServerImpl<TestLocale, "locale">["writeLocale"]>().parameter(0).toEqualTypeOf<TestLocale | undefined>();
+    expectTypeOf<NextAppServerImpl<TestLocale, "locale">["writeLocale"]>()
+      .parameter(0)
+      .toEqualTypeOf<TestLocale | undefined>();
     // undefined must be accepted
     expectTypeOf<undefined>().toExtend<Parameters<NextAppServerImpl<TestLocale, "locale">["writeLocale"]>[0]>();
   });
@@ -265,7 +267,9 @@ describe("NextAppServerImpl", () => {
   });
 
   it("writeLocale returns void or Promise<void>", () => {
-    expectTypeOf<NextAppServerImpl<TestLocale, "locale">["writeLocale"]>().returns.toEqualTypeOf<void | Promise<void>>();
+    expectTypeOf<
+      NextAppServerImpl<TestLocale, "locale">["writeLocale"]
+    >().returns.toEqualTypeOf<void | Promise<void>>();
   });
 
   it("writeLocale parameter types change with L", () => {
@@ -282,7 +286,9 @@ describe("NextAppServerImpl", () => {
   });
 
   it("createProxy returns RMachineProxy or Promise<RMachineProxy>", () => {
-    expectTypeOf<NextAppServerImpl<TestLocale, "locale">["createProxy"]>().returns.toEqualTypeOf<RMachineProxy | Promise<RMachineProxy>>();
+    expectTypeOf<NextAppServerImpl<TestLocale, "locale">["createProxy"]>().returns.toEqualTypeOf<
+      RMachineProxy | Promise<RMachineProxy>
+    >();
   });
 
   it("createBoundPathComposerSupplier accepts a getLocale function", () => {

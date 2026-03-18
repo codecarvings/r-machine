@@ -45,7 +45,9 @@ describe("NextAppClientToolset", () => {
   });
 
   it("does not have ReactRMachine", () => {
-    expectTypeOf<NextAppClientToolset<TestAtlas, TestLocale, TranslatedPathAtlas>>().not.toHaveProperty("ReactRMachine");
+    expectTypeOf<NextAppClientToolset<TestAtlas, TestLocale, TranslatedPathAtlas>>().not.toHaveProperty(
+      "ReactRMachine"
+    );
   });
 
   it("NextClientRMachine locale parameter tracks the toolset's L parameter", () => {
@@ -72,7 +74,9 @@ describe("NextAppClientToolset", () => {
   });
 
   it("useSetLocale setter rejects locale values not in L", () => {
-    const setLocale = {} as ReturnType<NextAppClientToolset<TestAtlas, TestLocale, TranslatedPathAtlas>["useSetLocale"]>;
+    const setLocale = {} as ReturnType<
+      NextAppClientToolset<TestAtlas, TestLocale, TranslatedPathAtlas>["useSetLocale"]
+    >;
     // @ts-expect-error - "fr" is not in TestLocale ("en" | "it")
     setLocale("fr");
   });
@@ -209,7 +213,9 @@ describe("NextAppClientImpl", () => {
   });
 
   it("createUsePathComposer accepts a useLocale function and returns a hook", () => {
-    expectTypeOf<NextAppClientImpl<TestLocale>["createUsePathComposer"]>().parameter(0).toEqualTypeOf<() => TestLocale>();
+    expectTypeOf<NextAppClientImpl<TestLocale>["createUsePathComposer"]>()
+      .parameter(0)
+      .toEqualTypeOf<() => TestLocale>();
     expectTypeOf<NextAppClientImpl<TestLocale>["createUsePathComposer"]>().returns.toEqualTypeOf<
       () => BoundPathComposer<AnyPathAtlas>
     >();

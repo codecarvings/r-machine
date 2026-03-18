@@ -6,8 +6,8 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NextAppClientImpl, NextAppClientRMachine } from "../../../src/core/app/next-app-client-toolset.js";
 import { createNextAppClientToolset } from "../../../src/core/app/next-app-client-toolset.js";
-import { expectAsyncError } from "../../_fixtures/expect-error.js";
 import type { TestLocale } from "../../_fixtures/constants.js";
+import { expectAsyncError } from "../../_fixtures/expect-error.js";
 import { createMockMachine } from "../../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
@@ -53,9 +53,7 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 function createHookWrapper(NextClientRMachine: NextAppClientRMachine<TestLocale>, locale: TestLocale = "en") {
-  return ({ children }: { children: ReactNode }) => (
-    <NextClientRMachine locale={locale}>{children}</NextClientRMachine>
-  );
+  return ({ children }: { children: ReactNode }) => <NextClientRMachine locale={locale}>{children}</NextClientRMachine>;
 }
 
 // ---------------------------------------------------------------------------
@@ -287,7 +285,10 @@ describe("createNextAppClientToolset", () => {
       });
 
       const error = await expectAsyncError(
-        () => act(async () => { await result.current("xx" as any); }),
+        () =>
+          act(async () => {
+            await result.current("xx" as any);
+          }),
         RMachineUsageError
       );
       expect(error.innerError).toBeInstanceOf(RMachineError);

@@ -121,11 +121,15 @@ describe("NextAppFlatStrategyCore", () => {
   });
 
   it("rMachine is RMachine<RA>", () => {
-    expectTypeOf<NextAppFlatStrategyCore<TestAtlas, TestLocale, SimpleConfig>["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, TestLocale>>();
+    expectTypeOf<NextAppFlatStrategyCore<TestAtlas, TestLocale, SimpleConfig>["rMachine"]>().toEqualTypeOf<
+      RMachine<TestAtlas, TestLocale>
+    >();
   });
 
   it("config preserves the concrete config type parameter", () => {
-    expectTypeOf<NextAppFlatStrategyCore<TestAtlas, TestLocale, SimpleConfig>["config"]>().toEqualTypeOf<SimpleConfig>();
+    expectTypeOf<
+      NextAppFlatStrategyCore<TestAtlas, TestLocale, SimpleConfig>["config"]
+    >().toEqualTypeOf<SimpleConfig>();
   });
 
   // -----------------------------------------------------------------------

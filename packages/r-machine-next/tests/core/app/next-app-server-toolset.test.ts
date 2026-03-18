@@ -77,7 +77,9 @@ vi.mock("#r-machine/next/internal", async (importOriginal) => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function createMockImpl(overrides: Partial<NextAppServerImpl<TestLocale, string>> = {}): NextAppServerImpl<TestLocale, string> {
+function createMockImpl(
+  overrides: Partial<NextAppServerImpl<TestLocale, string>> = {}
+): NextAppServerImpl<TestLocale, string> {
   return {
     localeKey: overrides.localeKey ?? "locale",
     autoLocaleBinding: overrides.autoLocaleBinding ?? false,
@@ -540,12 +542,47 @@ describe("createNextAppServerToolset", () => {
 
   describe("validateServerOnlyUsage", () => {
     it.each<[string, (t: Awaited<ReturnType<typeof createToolset>>) => void | Promise<void>]>([
-      ["bindLocale", (t) => { t.bindLocale("en"); }],
-      ["getLocale", async (t) => { t.bindLocale("en"); await t.getLocale(); }],
-      ["setLocale", async (t) => { t.bindLocale("en"); await t.setLocale("it"); }],
-      ["pickR", async (t) => { t.bindLocale("en"); await t.pickR("common"); }],
-      ["pickRKit", async (t) => { t.bindLocale("en"); await t.pickRKit("common"); }],
-      ["NextServerRMachine", async (t) => { t.bindLocale("en"); await t.NextServerRMachine({ children: "test" }); }],
+      [
+        "bindLocale",
+        (t) => {
+          t.bindLocale("en");
+        },
+      ],
+      [
+        "getLocale",
+        async (t) => {
+          t.bindLocale("en");
+          await t.getLocale();
+        },
+      ],
+      [
+        "setLocale",
+        async (t) => {
+          t.bindLocale("en");
+          await t.setLocale("it");
+        },
+      ],
+      [
+        "pickR",
+        async (t) => {
+          t.bindLocale("en");
+          await t.pickR("common");
+        },
+      ],
+      [
+        "pickRKit",
+        async (t) => {
+          t.bindLocale("en");
+          await t.pickRKit("common");
+        },
+      ],
+      [
+        "NextServerRMachine",
+        async (t) => {
+          t.bindLocale("en");
+          await t.NextServerRMachine({ children: "test" });
+        },
+      ],
     ])("%s calls validateServerOnlyUsage", async (methodName, invoke) => {
       const toolset = await createToolset();
       await invoke(toolset);

@@ -62,7 +62,9 @@ describe("createNextAppFlatServerImpl", () => {
 
 describe("NextAppServerImpl property types", () => {
   it("writeLocale first parameter accepts L | undefined", () => {
-    expectTypeOf<NextAppServerImpl<AnyLocale, string>["writeLocale"]>().parameter(0).toEqualTypeOf<string | undefined>();
+    expectTypeOf<NextAppServerImpl<AnyLocale, string>["writeLocale"]>()
+      .parameter(0)
+      .toEqualTypeOf<string | undefined>();
     expectTypeOf<undefined>().toExtend<Parameters<NextAppServerImpl<AnyLocale, string>["writeLocale"]>[0]>();
   });
 
@@ -72,7 +74,9 @@ describe("NextAppServerImpl property types", () => {
   });
 
   it("writeLocale returns void | Promise<void>", () => {
-    expectTypeOf<ReturnType<NextAppServerImpl<AnyLocale, string>["writeLocale"]>>().toEqualTypeOf<void | Promise<void>>();
+    expectTypeOf<
+      ReturnType<NextAppServerImpl<AnyLocale, string>["writeLocale"]>
+    >().toEqualTypeOf<void | Promise<void>>();
   });
 
   it("writeLocale parameter types narrow when L is concrete", () => {
@@ -114,7 +118,9 @@ describe("NextAppServerImpl property types", () => {
   });
 
   it("different L produce different impl types", () => {
-    expectTypeOf<NextAppServerImpl<"en" | "it", "locale">>().not.toEqualTypeOf<NextAppServerImpl<"fr" | "de", "locale">>();
+    expectTypeOf<NextAppServerImpl<"en" | "it", "locale">>().not.toEqualTypeOf<
+      NextAppServerImpl<"fr" | "de", "locale">
+    >();
   });
 
   it("different LK produce different impl types", () => {

@@ -19,9 +19,7 @@ export interface MockMachineOverrides<L extends string = TestLocale> {
   pickRKit?: (locale: string, ...namespaces: string[]) => Promise<unknown>;
 }
 
-export function createMockMachine<L extends string = TestLocale>(
-  overrides: MockMachineOverrides<L> = {}
-) {
+export function createMockMachine<L extends string = TestLocale>(overrides: MockMachineOverrides<L> = {}) {
   const locales = overrides.locales ?? (["en", "it"] as const);
 
   return {

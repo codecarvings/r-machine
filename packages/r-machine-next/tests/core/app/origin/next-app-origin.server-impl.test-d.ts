@@ -63,7 +63,9 @@ describe("createNextAppOriginServerImpl", () => {
 
 describe("NextAppServerImpl property types (origin)", () => {
   it("writeLocale first parameter accepts L | undefined", () => {
-    expectTypeOf<NextAppServerImpl<AnyLocale, string>["writeLocale"]>().parameter(0).toEqualTypeOf<string | undefined>();
+    expectTypeOf<NextAppServerImpl<AnyLocale, string>["writeLocale"]>()
+      .parameter(0)
+      .toEqualTypeOf<string | undefined>();
     expectTypeOf<undefined>().toExtend<Parameters<NextAppServerImpl<AnyLocale, string>["writeLocale"]>[0]>();
   });
 
@@ -83,7 +85,9 @@ describe("NextAppServerImpl property types (origin)", () => {
   });
 
   it("different L produce different impl types", () => {
-    expectTypeOf<NextAppServerImpl<"en" | "it", "locale">>().not.toEqualTypeOf<NextAppServerImpl<"fr" | "de", "locale">>();
+    expectTypeOf<NextAppServerImpl<"en" | "it", "locale">>().not.toEqualTypeOf<
+      NextAppServerImpl<"fr" | "de", "locale">
+    >();
   });
 
   it("different LK produce different impl types", () => {

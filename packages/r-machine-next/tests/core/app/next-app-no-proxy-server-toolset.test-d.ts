@@ -1,7 +1,7 @@
 import type { RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type { BoundPathComposer } from "#r-machine/next/core";
-import type { AnyLocale } from "r-machine/locale";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
 import type { NextAppClientRMachine } from "../../../src/core/app/next-app-client-toolset.js";
 import type {
@@ -31,7 +31,9 @@ describe("createNextAppNoProxyServerToolset", () => {
   });
 
   it("returns a Promise of NextAppNoProxyServerToolset", () => {
-    expectTypeOf(createNextAppNoProxyServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">).returns.toEqualTypeOf<
+    expectTypeOf(
+      createNextAppNoProxyServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">
+    ).returns.toEqualTypeOf<
       Promise<NextAppNoProxyServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">>
     >();
   });
@@ -193,8 +195,12 @@ describe("NextAppNoProxyServerImpl", () => {
   });
 
   it("createRouteHandlers accepts cookies, headers, and setLocale", () => {
-    expectTypeOf<NextAppNoProxyServerImpl<TestLocale, "locale">["createRouteHandlers"]>().parameter(0).toEqualTypeOf<CookiesFn>();
-    expectTypeOf<NextAppNoProxyServerImpl<TestLocale, "locale">["createRouteHandlers"]>().parameter(1).toEqualTypeOf<HeadersFn>();
+    expectTypeOf<NextAppNoProxyServerImpl<TestLocale, "locale">["createRouteHandlers"]>()
+      .parameter(0)
+      .toEqualTypeOf<CookiesFn>();
+    expectTypeOf<NextAppNoProxyServerImpl<TestLocale, "locale">["createRouteHandlers"]>()
+      .parameter(1)
+      .toEqualTypeOf<HeadersFn>();
     expectTypeOf<NextAppNoProxyServerImpl<TestLocale, "locale">["createRouteHandlers"]>()
       .parameter(2)
       .toEqualTypeOf<(newLocale: TestLocale) => Promise<void>>();

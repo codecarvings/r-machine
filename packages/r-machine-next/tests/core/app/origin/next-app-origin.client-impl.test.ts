@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { createNextAppOriginClientImpl } from "../../../../src/core/app/origin/next-app-origin.client-impl.js";
-import type { TestLocale } from "../../../_fixtures/constants.js";
 import type { AnyNextAppOriginStrategyConfig } from "../../../../src/core/app/origin/next-app-origin-strategy-core.js";
 import {
   aboutAtlas,
@@ -10,6 +9,7 @@ import {
   docsWithCatchAllAtlas,
   productsAtlas,
 } from "../../../_fixtures/_helpers.js";
+import type { TestLocale } from "../../../_fixtures/constants.js";
 import { TEST_DEFAULT_LOCALE as defaultLocale, TEST_LOCALES as locales } from "../../../_fixtures/constants.js";
 import { createMockMachine } from "../../../_fixtures/mock-machine.js";
 import { createMockRouter } from "../../../_fixtures/mock-router.js";

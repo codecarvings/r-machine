@@ -20,7 +20,10 @@ export function expectError<E extends Error>(fn: () => unknown, ErrorClass: Erro
  * Awaits `fn`, asserts it rejects with an instance of `ErrorClass`, and returns the typed error
  * so callers can make further assertions on its properties (code, innerError, etc.).
  */
-export async function expectAsyncError<E extends Error>(fn: () => Promise<unknown>, ErrorClass: ErrorConstructor<E>): Promise<E> {
+export async function expectAsyncError<E extends Error>(
+  fn: () => Promise<unknown>,
+  ErrorClass: ErrorConstructor<E>
+): Promise<E> {
   try {
     await fn();
     expect.unreachable("should have thrown");

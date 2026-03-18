@@ -58,7 +58,9 @@ describe("NextAppPathStrategy", () => {
 
   describe("default type parameters", () => {
     it("PA defaults to defaultConfig PathAtlas instance", () => {
-      expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale>["config"]["PathAtlas"]>().toEqualTypeOf<PathAtlasCtor<DefaultPA>>();
+      expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale>["config"]["PathAtlas"]>().toEqualTypeOf<
+        PathAtlasCtor<DefaultPA>
+      >();
     });
 
     it("LK defaults to defaultConfig localeKey", () => {
@@ -72,7 +74,9 @@ describe("NextAppPathStrategy", () => {
 
   describe("public properties", () => {
     it("rMachine is RMachine<RA, L>", () => {
-      expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale>["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, TestLocale>>();
+      expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale>["rMachine"]>().toEqualTypeOf<
+        RMachine<TestAtlas, TestLocale>
+      >();
     });
 
     it("config.cookie is CookieOption", () => {
@@ -81,11 +85,15 @@ describe("NextAppPathStrategy", () => {
     });
 
     it("config.localeLabel is LocaleLabelOption", () => {
-      expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale>["config"]["localeLabel"]>().toEqualTypeOf<"strict" | "lowercase">();
+      expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale>["config"]["localeLabel"]>().toEqualTypeOf<
+        "strict" | "lowercase"
+      >();
     });
 
     it("config.autoLocaleBinding is SwitchableOption", () => {
-      expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale>["config"]["autoLocaleBinding"]>().toEqualTypeOf<"on" | "off">();
+      expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale>["config"]["autoLocaleBinding"]>().toEqualTypeOf<
+        "on" | "off"
+      >();
     });
 
     it("config.basePath is string", () => {
@@ -97,7 +105,9 @@ describe("NextAppPathStrategy", () => {
       expectTypeOf<{ readonly pathMatcher: null }>().toExtend<
         NextAppPathStrategy<TestAtlas, TestLocale>["config"]["autoDetectLocale"]
       >();
-      expectTypeOf<CustomAutoDetectLocale>().toExtend<NextAppPathStrategy<TestAtlas, TestLocale>["config"]["autoDetectLocale"]>();
+      expectTypeOf<CustomAutoDetectLocale>().toExtend<
+        NextAppPathStrategy<TestAtlas, TestLocale>["config"]["autoDetectLocale"]
+      >();
     });
 
     it("config.autoDetectLocale accepts 'on' and 'off' string values", () => {
@@ -164,9 +174,9 @@ describe("NextAppPathStrategy", () => {
 
   describe("custom type parameters", () => {
     it("custom PA is wired through to config.PathAtlas", () => {
-      expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale, TranslatedPathAtlas>["config"]["PathAtlas"]>().toEqualTypeOf<
-        PathAtlasCtor<TranslatedPathAtlas>
-      >();
+      expectTypeOf<
+        NextAppPathStrategy<TestAtlas, TestLocale, TranslatedPathAtlas>["config"]["PathAtlas"]
+      >().toEqualTypeOf<PathAtlasCtor<TranslatedPathAtlas>>();
     });
 
     it("custom LK is reflected in config.localeKey", () => {
@@ -176,9 +186,9 @@ describe("NextAppPathStrategy", () => {
     });
 
     it("custom PA affects client toolset return type", () => {
-      expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale, TranslatedPathAtlas>["createClientToolset"]>().returns.toEqualTypeOf<
-        Promise<NextAppClientToolset<TestAtlas, TestLocale, TranslatedPathAtlas>>
-      >();
+      expectTypeOf<
+        NextAppPathStrategy<TestAtlas, TestLocale, TranslatedPathAtlas>["createClientToolset"]
+      >().returns.toEqualTypeOf<Promise<NextAppClientToolset<TestAtlas, TestLocale, TranslatedPathAtlas>>>();
     });
 
     it("custom LK affects server toolset return type", () => {
@@ -190,17 +200,23 @@ describe("NextAppPathStrategy", () => {
     it("custom PA+LK affects no-proxy server toolset return type", () => {
       expectTypeOf<
         NextAppPathStrategy<TestAtlas, TestLocale, TranslatedPathAtlas, "lang">["createNoProxyServerToolset"]
-      >().returns.toEqualTypeOf<Promise<NextAppNoProxyServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "lang">>>();
+      >().returns.toEqualTypeOf<
+        Promise<NextAppNoProxyServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "lang">>
+      >();
     });
 
     it("different RA produce different types", () => {
       type OtherAtlas = { readonly other: { readonly value: number } };
-      expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale>>().not.toEqualTypeOf<NextAppPathStrategy<OtherAtlas, TestLocale>>();
+      expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale>>().not.toEqualTypeOf<
+        NextAppPathStrategy<OtherAtlas, TestLocale>
+      >();
     });
 
     it("different L produce different types", () => {
       type OtherLocale = "fr" | "de";
-      expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale>>().not.toEqualTypeOf<NextAppPathStrategy<TestAtlas, OtherLocale>>();
+      expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale>>().not.toEqualTypeOf<
+        NextAppPathStrategy<TestAtlas, OtherLocale>
+      >();
     });
 
     it("different PA produce different types", () => {

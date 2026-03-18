@@ -277,15 +277,13 @@ describe("RMachine", () => {
   });
 
   describe("resolver error handling", () => {
-    // Note: sync throws propagate the raw error (not wrapped in RMachineResolveError)
-    // because the throw escapes before the .then() rejection handler in resolveR().
-    // Async rejections instead go through the .then(_, reason) handler and get wrapped.
     it("handles resolver throwing synchronously", async () => {
       const resolver: RModuleResolver = () => {
         throw new Error("Sync error");
       };
       const machine = createMachine({ rModuleResolver: resolver });
-      await expect(machine.pickR("en", "common")).rejects.toThrow("Sync error");
+      await expect(machine.pickR("en", "common")).rejects.toThrow(RMachineError);
+      await expect(machine.pickR("en", "common")).rejects.toThrow(/rModuleResolver failed/);
     });
 
     it("handles resolver returning a rejected promise", async () => {
@@ -309,8 +307,6 @@ describe("RMachine", () => {
       expect(callCount).toBe(2);
     });
 
-    // Same asymmetry as resolver: sync factory throws propagate raw,
-    // async factory rejections are wrapped in RMachineResolveError.
     it("handles factory function throwing synchronously", async () => {
       const resolver: RModuleResolver = () =>
         Promise.resolve({
@@ -319,7 +315,8 @@ describe("RMachine", () => {
           },
         });
       const machine = createMachine({ rModuleResolver: resolver });
-      await expect(machine.pickR("en", "common")).rejects.toThrow("Factory error");
+      await expect(machine.pickR("en", "common")).rejects.toThrow(RMachineError);
+      await expect(machine.pickR("en", "common")).rejects.toThrow(/factory promise rejected/);
     });
 
     it("handles async factory function rejecting", async () => {

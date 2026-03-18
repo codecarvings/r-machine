@@ -3,13 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ExtendedPathAtlas } from "#r-machine/next/core";
 import type { NextAppClientImpl, NextAppClientRMachine } from "../../../src/core/app/next-app-client-toolset.js";
 import type { NextAppServerImpl } from "../../../src/core/app/next-app-server-toolset.js";
-import type { TestLocale } from "../../_fixtures/constants.js";
 import {
   DefaultPathAtlas,
   localeHeaderName,
   type NextAppStrategyConfig,
   NextAppStrategyCore,
 } from "../../../src/core/app/next-app-strategy-core.js";
+import type { TestLocale } from "../../_fixtures/constants.js";
 import type { TestAtlas } from "../../_fixtures/mock-machine.js";
 import { createMockMachine } from "../../_fixtures/mock-machine.js";
 

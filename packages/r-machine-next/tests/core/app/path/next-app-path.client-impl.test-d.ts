@@ -74,7 +74,9 @@ describe("NextAppClientImpl property types", () => {
     expectTypeOf<NextAppClientImpl<AnyLocale>["writeLocale"]>().parameter(0).toBeString();
     expectTypeOf<NextAppClientImpl<AnyLocale>["writeLocale"]>().parameter(1).toBeString();
     expectTypeOf<NextAppClientImpl<AnyLocale>["writeLocale"]>().parameter(2).toBeString();
-    expectTypeOf<NextAppClientImpl<AnyLocale>["writeLocale"]>().parameter(3).toEqualTypeOf<ReturnType<typeof useRouter>>();
+    expectTypeOf<NextAppClientImpl<AnyLocale>["writeLocale"]>()
+      .parameter(3)
+      .toEqualTypeOf<ReturnType<typeof useRouter>>();
     expectTypeOf<ReturnType<NextAppClientImpl<AnyLocale>["writeLocale"]>>().toEqualTypeOf<void | Promise<void>>();
   });
 

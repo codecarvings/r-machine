@@ -189,11 +189,15 @@ describe("NextAppPathStrategyCore", () => {
   });
 
   it("rMachine is RMachine<RA>", () => {
-    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, SimpleConfig>["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, TestLocale>>();
+    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, SimpleConfig>["rMachine"]>().toEqualTypeOf<
+      RMachine<TestAtlas, TestLocale>
+    >();
   });
 
   it("config is C", () => {
-    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, SimpleConfig>["config"]>().toEqualTypeOf<SimpleConfig>();
+    expectTypeOf<
+      NextAppPathStrategyCore<TestAtlas, TestLocale, SimpleConfig>["config"]
+    >().toEqualTypeOf<SimpleConfig>();
   });
 
   // -----------------------------------------------------------------------
