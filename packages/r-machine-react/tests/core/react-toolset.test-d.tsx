@@ -202,4 +202,16 @@ describe("narrowed Locale type", () => {
     expectTypeOf<ReactImpl<AppLocale>["readLocale"]>().returns.toEqualTypeOf<AppLocale | Promise<AppLocale>>();
     expectTypeOf<ReactImpl<AppLocale>["writeLocale"]>().parameter(0).toEqualTypeOf<AppLocale>();
   });
+
+  it("useSetLocale setter rejects locale values not in L", () => {
+    const setLocale = {} as ReturnType<ReactToolset<TestAtlas, AppLocale>["useSetLocale"]>;
+    // @ts-expect-error - "fr" is not in AppLocale ("en" | "it")
+    setLocale("fr");
+  });
+
+  it("writeLocale rejects locale values not in L", () => {
+    const impl = {} as ReactImpl<AppLocale>;
+    // @ts-expect-error - "fr" is not in AppLocale ("en" | "it")
+    impl.writeLocale("fr");
+  });
 });

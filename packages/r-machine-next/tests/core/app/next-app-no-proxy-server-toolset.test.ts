@@ -5,7 +5,7 @@ import type { NextAppNoProxyServerImpl } from "../../../src/core/app/next-app-no
 import { createNextAppNoProxyServerToolset } from "../../../src/core/app/next-app-no-proxy-server-toolset.js";
 import type { NextAppServerImpl } from "../../../src/core/app/next-app-server-toolset.js";
 import type { TestLocale } from "../../_fixtures/constants.js";
-import { createMockMachine } from "../../_fixtures/mock-machine.js";
+import { createMockMachine, type MockMachineOverrides } from "../../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -31,6 +31,14 @@ vi.mock("next/headers", () => ({
   headers: mockHeadersFn,
 }));
 
+// Mock react.cache: each cached function memoizes its result until resetCacheScope()
+// is called, which simulates a new React server request boundary.
+const cacheRegistry: Array<{ reset: () => void }> = [];
+
+function resetCacheScope() {
+  for (const entry of cacheRegistry) entry.reset();
+}
+
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
   return {
@@ -38,6 +46,13 @@ vi.mock("react", async (importOriginal) => {
     cache: <T extends (...args: unknown[]) => unknown>(fn: T): T => {
       let cached: unknown;
       let hasCached = false;
+      const entry = {
+        reset: () => {
+          cached = undefined;
+          hasCached = false;
+        },
+      };
+      cacheRegistry.push(entry);
       return ((...args: unknown[]) => {
         if (!hasCached) {
           cached = fn(...args);
@@ -91,7 +106,7 @@ const MockNextClientRMachine = vi.fn(
 ) as unknown as NextAppClientRMachine<TestLocale>;
 
 async function createToolset(
-  machineOverrides?: Parameters<typeof createMockMachine>[0],
+  machineOverrides?: MockMachineOverrides,
   implOverrides?: Partial<NextAppNoProxyServerImpl<TestLocale, string>>
 ) {
   return createNextAppNoProxyServerToolset(
@@ -106,6 +121,7 @@ async function createToolset(
 // ---------------------------------------------------------------------------
 
 afterEach(() => {
+  resetCacheScope();
   mockHeadersMap.clear();
   vi.clearAllMocks();
 });

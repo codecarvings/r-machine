@@ -62,7 +62,7 @@ function createDynamicStrategy() {
   return new TestFlatStrategy(rMachine, config);
 }
 
-function createDynamicStrategyWithLocale(overrideDefaultLocale: string) {
+function createDynamicStrategyWithLocale(overrideDefaultLocale: TestLocale) {
   const config: DynamicConfig = {
     PathAtlas: DynamicPathAtlas,
     localeKey: "locale",

@@ -71,6 +71,12 @@ describe("NextAppClientToolset", () => {
     expectTypeOf<Setter>().not.toEqualTypeOf<OtherSetter>();
   });
 
+  it("useSetLocale setter rejects locale values not in L", () => {
+    const setLocale = {} as ReturnType<NextAppClientToolset<TestAtlas, TestLocale, TranslatedPathAtlas>["useSetLocale"]>;
+    // @ts-expect-error - "fr" is not in TestLocale ("en" | "it")
+    setLocale("fr");
+  });
+
   it("usePathComposer returns BoundPathComposer<PA>", () => {
     expectTypeOf<NextAppClientToolset<TestAtlas, TestLocale, TranslatedPathAtlas>["usePathComposer"]>().toEqualTypeOf<
       () => BoundPathComposer<TranslatedPathAtlas>
@@ -151,6 +157,12 @@ describe("NextAppClientRMachine", () => {
       locale: "en",
       children: null as unknown as ReactNode,
     });
+  });
+
+  it("rejects locale values not in L", () => {
+    const Component = {} as NextAppClientRMachine<TestLocale>;
+    // @ts-expect-error - "fr" is not in TestLocale ("en" | "it")
+    Component({ locale: "fr", children: null as unknown as ReactNode });
   });
 
   it("returns ReactNode", () => {

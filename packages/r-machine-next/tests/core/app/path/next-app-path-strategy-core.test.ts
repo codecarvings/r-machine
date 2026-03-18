@@ -407,15 +407,16 @@ describe("NextAppPathStrategyCore", () => {
       });
 
       it("lowercases mixed-case locale in prefix", () => {
+        type MixedLocale = "en-US" | "it-IT";
         const config: DynamicConfig = {
           ...NextAppPathStrategyCore.defaultConfig,
           PathAtlas: DynamicPathAtlas,
           localeLabel: "lowercase",
         } as DynamicConfig;
 
-        class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, TestLocale, DynamicConfig> {}
+        class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, MixedLocale, DynamicConfig> {}
 
-        const rMachine = createMockMachine({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
+        const rMachine = createMockMachine<MixedLocale>({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
         const strategy = new TestPathStrategy(rMachine, config);
 
         expect(strategy.hrefHelper.getPath("en-US" as any, "/about")).toBe("/en-us/about");
@@ -423,15 +424,16 @@ describe("NextAppPathStrategyCore", () => {
       });
 
       it("preserves locale case with strict localeLabel", () => {
+        type MixedLocale = "en-US" | "it-IT";
         const config: DynamicConfig = {
           ...NextAppPathStrategyCore.defaultConfig,
           PathAtlas: DynamicPathAtlas,
           localeLabel: "strict",
         } as DynamicConfig;
 
-        class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, TestLocale, DynamicConfig> {}
+        class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, MixedLocale, DynamicConfig> {}
 
-        const rMachine = createMockMachine({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
+        const rMachine = createMockMachine<MixedLocale>({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
         const strategy = new TestPathStrategy(rMachine, config);
 
         expect(strategy.hrefHelper.getPath("en-US" as any, "/about")).toBe("/en-US/about");

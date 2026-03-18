@@ -8,7 +8,8 @@ import type { NextAppClientRMachine } from "../../../src/core/app/next-app-clien
 import type { NextAppServerImpl } from "../../../src/core/app/next-app-server-toolset.js";
 import { createNextAppServerToolset } from "../../../src/core/app/next-app-server-toolset.js";
 import type { TestLocale } from "../../_fixtures/constants.js";
-import { createMockMachine } from "../../_fixtures/mock-machine.js";
+import { expectAsyncError, expectError } from "../../_fixtures/expect-error.js";
+import { createMockMachine, type MockMachineOverrides } from "../../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -31,9 +32,14 @@ vi.mock("next/headers", () => ({
   })),
 }));
 
-// Simplified mock: models cache() as a per-closure memoize-once.
-// This does not replicate React's per-request cache scope.
-// Each call to createNextAppServerToolset creates a fresh closure, preserving test isolation.
+// Mock react.cache: each cached function memoizes its result until resetCacheScope()
+// is called, which simulates a new React server request boundary.
+const cacheRegistry: Array<{ reset: () => void }> = [];
+
+function resetCacheScope() {
+  for (const entry of cacheRegistry) entry.reset();
+}
+
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
   return {
@@ -41,6 +47,13 @@ vi.mock("react", async (importOriginal) => {
     cache: <T extends (...args: unknown[]) => unknown>(fn: T): T => {
       let cached: unknown;
       let hasCached = false;
+      const entry = {
+        reset: () => {
+          cached = undefined;
+          hasCached = false;
+        },
+      };
+      cacheRegistry.push(entry);
       return ((...args: unknown[]) => {
         if (!hasCached) {
           cached = fn(...args);
@@ -83,7 +96,7 @@ const MockNextClientRMachine = vi.fn(
 ) as unknown as NextAppClientRMachine<TestLocale>;
 
 async function createToolset(
-  machineOverrides?: Parameters<typeof createMockMachine>[0],
+  machineOverrides?: MockMachineOverrides,
   implOverrides?: Partial<NextAppServerImpl<TestLocale, string>>
 ) {
   return createNextAppServerToolset(
@@ -98,6 +111,7 @@ async function createToolset(
 // ---------------------------------------------------------------------------
 
 afterEach(() => {
+  resetCacheScope();
   mockHeadersMap.clear();
   vi.clearAllMocks();
 });
@@ -173,13 +187,8 @@ describe("createNextAppServerToolset", () => {
 
       toolset.bindLocale("en");
 
-      try {
-        toolset.bindLocale("it");
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineUsageError);
-        expect((error as RMachineUsageError).code).toBe(ERR_LOCALE_BIND_CONFLICT);
-      }
+      const error = expectError(() => toolset.bindLocale("it"), RMachineUsageError);
+      expect(error.code).toBe(ERR_LOCALE_BIND_CONFLICT);
     });
 
     it("includes both locale values in the conflict error message", async () => {
@@ -263,13 +272,8 @@ describe("createNextAppServerToolset", () => {
       it("throws ERR_LOCALE_UNDETERMINED when header is missing", async () => {
         const toolset = await createToolset(undefined, { autoLocaleBinding: true });
 
-        try {
-          await toolset.getLocale();
-          expect.unreachable("should have thrown");
-        } catch (error) {
-          expect(error).toBeInstanceOf(RMachineUsageError);
-          expect((error as RMachineUsageError).code).toBe(ERR_LOCALE_UNDETERMINED);
-        }
+        const error = await expectAsyncError(() => toolset.getLocale(), RMachineUsageError);
+        expect(error.code).toBe(ERR_LOCALE_UNDETERMINED);
       });
 
       it("caches the header lookup promise within a request", async () => {
@@ -290,13 +294,8 @@ describe("createNextAppServerToolset", () => {
       it("throws ERR_LOCALE_UNDETERMINED when bindLocale was not called", async () => {
         const toolset = await createToolset(undefined, { autoLocaleBinding: false });
 
-        try {
-          await toolset.getLocale();
-          expect.unreachable("should have thrown");
-        } catch (error) {
-          expect(error).toBeInstanceOf(RMachineUsageError);
-          expect((error as RMachineUsageError).code).toBe(ERR_LOCALE_UNDETERMINED);
-        }
+        const error = await expectAsyncError(() => toolset.getLocale(), RMachineUsageError);
+        expect(error.code).toBe(ERR_LOCALE_UNDETERMINED);
       });
     });
   });
@@ -335,13 +334,8 @@ describe("createNextAppServerToolset", () => {
     it("throws RMachineUsageError for an invalid locale", async () => {
       const toolset = await createToolset();
 
-      try {
-        await toolset.setLocale("xx" as any);
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineUsageError);
-        expect((error as RMachineUsageError).code).toBe(ERR_UNKNOWN_LOCALE);
-      }
+      const error = await expectAsyncError(() => toolset.setLocale("xx" as any), RMachineUsageError);
+      expect(error.code).toBe(ERR_UNKNOWN_LOCALE);
     });
 
     it("includes the invalid locale in the error message", async () => {
@@ -353,13 +347,8 @@ describe("createNextAppServerToolset", () => {
     it("wraps the validation error as innerError", async () => {
       const toolset = await createToolset();
 
-      try {
-        await toolset.setLocale("xx" as any);
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineUsageError);
-        expect((error as RMachineUsageError).innerError).toBeInstanceOf(RMachineConfigError);
-      }
+      const error = await expectAsyncError(() => toolset.setLocale("xx" as any), RMachineUsageError);
+      expect(error.innerError).toBeInstanceOf(RMachineConfigError);
     });
 
     it("does not call writeLocale when locale is invalid", async () => {
@@ -454,13 +443,8 @@ describe("createNextAppServerToolset", () => {
     it("throws ERR_LOCALE_UNDETERMINED when locale is not bound and autoLocaleBinding is false", async () => {
       const toolset = await createToolset(undefined, { autoLocaleBinding: false });
 
-      try {
-        await toolset.pickR("common");
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineUsageError);
-        expect((error as RMachineUsageError).code).toBe(ERR_LOCALE_UNDETERMINED);
-      }
+      const error = await expectAsyncError(() => toolset.pickR("common"), RMachineUsageError);
+      expect(error.code).toBe(ERR_LOCALE_UNDETERMINED);
     });
   });
 
@@ -500,13 +484,8 @@ describe("createNextAppServerToolset", () => {
     it("throws ERR_LOCALE_UNDETERMINED when locale is not bound and autoLocaleBinding is false", async () => {
       const toolset = await createToolset(undefined, { autoLocaleBinding: false });
 
-      try {
-        await toolset.pickRKit("common", "nav");
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineUsageError);
-        expect((error as RMachineUsageError).code).toBe(ERR_LOCALE_UNDETERMINED);
-      }
+      const error = await expectAsyncError(() => toolset.pickRKit("common", "nav"), RMachineUsageError);
+      expect(error.code).toBe(ERR_LOCALE_UNDETERMINED);
     });
   });
 
@@ -543,25 +522,15 @@ describe("createNextAppServerToolset", () => {
     it("throws ERR_LOCALE_UNDETERMINED when locale is not bound and autoLocaleBinding is false", async () => {
       const toolset = await createToolset(undefined, { autoLocaleBinding: false });
 
-      try {
-        await toolset.NextServerRMachine({ children: "test" });
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineUsageError);
-        expect((error as RMachineUsageError).code).toBe(ERR_LOCALE_UNDETERMINED);
-      }
+      const error = await expectAsyncError(() => toolset.NextServerRMachine({ children: "test" }), RMachineUsageError);
+      expect(error.code).toBe(ERR_LOCALE_UNDETERMINED);
     });
 
     it("throws ERR_LOCALE_UNDETERMINED when autoLocaleBinding is enabled but header is missing", async () => {
       const toolset = await createToolset(undefined, { autoLocaleBinding: true });
 
-      try {
-        await toolset.NextServerRMachine({ children: "test" });
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineUsageError);
-        expect((error as RMachineUsageError).code).toBe(ERR_LOCALE_UNDETERMINED);
-      }
+      const error = await expectAsyncError(() => toolset.NextServerRMachine({ children: "test" }), RMachineUsageError);
+      expect(error.code).toBe(ERR_LOCALE_UNDETERMINED);
     });
   });
 

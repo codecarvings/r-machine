@@ -141,5 +141,10 @@ describe("LocaleHelper", () => {
         ReturnType<LocaleHelper<NarrowLocale>["matchLocalesForAcceptLanguageHeader"]>
       >();
     });
+
+    it("rejects non-AnyLocale as L", () => {
+      // @ts-expect-error - number does not satisfy AnyLocale (string)
+      type _Invalid = LocaleHelper<number>;
+    });
   });
 });

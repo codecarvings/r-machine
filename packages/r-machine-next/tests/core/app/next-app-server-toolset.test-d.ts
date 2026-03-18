@@ -95,6 +95,12 @@ describe("NextAppServerToolset", () => {
     expectTypeOf<ToolsetEnIt["setLocale"]>().not.toEqualTypeOf<ToolsetFrDe["setLocale"]>();
   });
 
+  it("setLocale rejects locale values not in L", () => {
+    const toolset = {} as NextAppServerToolset<TestAtlas, TestLocale, TranslatedPathAtlas, "locale">;
+    // @ts-expect-error - "fr" is not in TestLocale ("en" | "it")
+    toolset.setLocale("fr");
+  });
+
   it("getPathComposer returns Promise<BoundPathComposer<PA>>", () => {
     expectTypeOf<Toolset["getPathComposer"]>().toEqualTypeOf<() => Promise<BoundPathComposer<TranslatedPathAtlas>>>();
   });

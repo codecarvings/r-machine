@@ -175,5 +175,10 @@ describe("NextAppFlatStrategy", () => {
       // @ts-expect-error - number does not satisfy string constraint
       type _Invalid = NextAppFlatStrategy<TestAtlas, TestLocale, SimplePathAtlas, number>;
     });
+
+    it("rejects non-AnyLocale as L", () => {
+      // @ts-expect-error - number does not satisfy AnyLocale (string)
+      type _Invalid = NextAppFlatStrategy<TestAtlas, number>;
+    });
   });
 });

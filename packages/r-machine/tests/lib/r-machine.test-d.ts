@@ -201,6 +201,12 @@ describe("RMachine", () => {
       const machine = createNarrowMachine<TestResourceAtlas>();
       expectTypeOf(machine.pickR).parameter(0).toEqualTypeOf<"en" | "it">();
     });
+
+    it("should reject locale not in the narrow union", () => {
+      const machine = createNarrowMachine<TestResourceAtlas>();
+      // @ts-expect-error - "fr" is not in "en" | "it"
+      machine.pickR("fr", "common");
+    });
   });
 
   describe("pickRKit method", () => {
@@ -279,6 +285,12 @@ describe("RMachine", () => {
       const machine = createMachine<TestResourceAtlas>();
       const result = machine.pickRKit("en", "common", "common");
       expectTypeOf(result).toEqualTypeOf<Promise<RKit<TestResourceAtlas, readonly ["common", "common"]>>>();
+    });
+
+    it("should reject locale not in the narrow union", () => {
+      const machine = createNarrowMachine<TestResourceAtlas>();
+      // @ts-expect-error - "fr" is not in "en" | "it"
+      machine.pickRKit("fr", "common");
     });
   });
 

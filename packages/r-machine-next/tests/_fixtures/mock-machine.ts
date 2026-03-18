@@ -10,15 +10,17 @@ export type TestAtlas = {
 
 export const VALID_LOCALES = new Set(["en", "it"]);
 
-export function createMockMachine(
-  overrides: {
-    defaultLocale?: string;
-    locales?: readonly string[];
-    hybridPickR?: (locale: string, namespace: string) => unknown;
-    hybridPickRKit?: (locale: string, ...namespaces: string[]) => unknown;
-    pickR?: (locale: string, namespace: string) => Promise<unknown>;
-    pickRKit?: (locale: string, ...namespaces: string[]) => Promise<unknown>;
-  } = {}
+export interface MockMachineOverrides<L extends string = TestLocale> {
+  defaultLocale?: NoInfer<L>;
+  locales?: readonly L[];
+  hybridPickR?: (locale: string, namespace: string) => unknown;
+  hybridPickRKit?: (locale: string, ...namespaces: string[]) => unknown;
+  pickR?: (locale: string, namespace: string) => Promise<unknown>;
+  pickRKit?: (locale: string, ...namespaces: string[]) => Promise<unknown>;
+}
+
+export function createMockMachine<L extends string = TestLocale>(
+  overrides: MockMachineOverrides<L> = {}
 ) {
   const locales = overrides.locales ?? (["en", "it"] as const);
 
@@ -38,11 +40,11 @@ export function createMockMachine(
     hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
     pickR: vi.fn(overrides.pickR ?? (() => Promise.resolve({ greeting: "hello" }))),
     pickRKit: vi.fn(overrides.pickRKit ?? (() => Promise.resolve([{ greeting: "hello" }, { home: "Home" }]))),
-  } as unknown as RMachine<TestAtlas, TestLocale>;
+  } as unknown as RMachine<TestAtlas, L>;
 }
 
-export function createMockMachineForProxy(
-  overrides: { defaultLocale?: string; locales?: readonly string[]; matchLocaleReturn?: string | undefined } = {}
+export function createMockMachineForProxy<L extends string = TestLocale>(
+  overrides: { defaultLocale?: NoInfer<L>; locales?: readonly L[]; matchLocaleReturn?: NoInfer<L> | undefined } = {}
 ) {
   const dl = overrides.defaultLocale ?? "en";
   const locales = overrides.locales ?? (["en", "it"] as const);
@@ -52,5 +54,5 @@ export function createMockMachineForProxy(
     localeHelper: {
       matchLocalesForAcceptLanguageHeader: vi.fn(() => overrides.matchLocaleReturn ?? dl),
     },
-  } as unknown as RMachine<TestAtlas, TestLocale>;
+  } as unknown as RMachine<TestAtlas, L>;
 }

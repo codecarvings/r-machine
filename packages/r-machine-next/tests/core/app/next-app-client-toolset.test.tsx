@@ -4,8 +4,9 @@ import { act, cleanup, render, renderHook, screen } from "@testing-library/react
 import { RMachineError, RMachineUsageError } from "r-machine/errors";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { NextAppClientImpl } from "../../../src/core/app/next-app-client-toolset.js";
+import type { NextAppClientImpl, NextAppClientRMachine } from "../../../src/core/app/next-app-client-toolset.js";
 import { createNextAppClientToolset } from "../../../src/core/app/next-app-client-toolset.js";
+import { expectAsyncError } from "../../_fixtures/expect-error.js";
 import type { TestLocale } from "../../_fixtures/constants.js";
 import { createMockMachine } from "../../_fixtures/mock-machine.js";
 
@@ -46,6 +47,16 @@ afterEach(() => {
   currentPathname = "/";
   vi.clearAllMocks();
 });
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function createHookWrapper(NextClientRMachine: NextAppClientRMachine<TestLocale>, locale: TestLocale = "en") {
+  return ({ children }: { children: ReactNode }) => (
+    <NextClientRMachine locale={locale}>{children}</NextClientRMachine>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // createNextAppClientToolset
@@ -218,9 +229,7 @@ describe("createNextAppClientToolset", () => {
       );
 
       const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <NextClientRMachine locale="en">{children}</NextClientRMachine>
-        ),
+        wrapper: createHookWrapper(NextClientRMachine),
       });
 
       await act(async () => {
@@ -238,19 +247,14 @@ describe("createNextAppClientToolset", () => {
       );
 
       const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <NextClientRMachine locale="en">{children}</NextClientRMachine>
-        ),
+        wrapper: createHookWrapper(NextClientRMachine),
       });
 
-      try {
-        await act(async () => {
+      await expect(
+        act(async () => {
           await result.current("xx" as any);
-        });
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineUsageError);
-      }
+        })
+      ).rejects.toBeInstanceOf(RMachineUsageError);
     });
 
     it("includes the invalid locale in the error message", async () => {
@@ -261,9 +265,7 @@ describe("createNextAppClientToolset", () => {
       );
 
       const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <NextClientRMachine locale="en">{children}</NextClientRMachine>
-        ),
+        wrapper: createHookWrapper(NextClientRMachine),
       });
 
       await expect(
@@ -281,20 +283,14 @@ describe("createNextAppClientToolset", () => {
       );
 
       const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <NextClientRMachine locale="en">{children}</NextClientRMachine>
-        ),
+        wrapper: createHookWrapper(NextClientRMachine),
       });
 
-      try {
-        await act(async () => {
-          await result.current("xx" as any);
-        });
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineUsageError);
-        expect((error as RMachineUsageError).innerError).toBeInstanceOf(RMachineError);
-      }
+      const error = await expectAsyncError(
+        () => act(async () => { await result.current("xx" as any); }),
+        RMachineUsageError
+      );
+      expect(error.innerError).toBeInstanceOf(RMachineError);
     });
 
     it("does not call writeLocale when locale is invalid", async () => {
@@ -305,9 +301,7 @@ describe("createNextAppClientToolset", () => {
       );
 
       const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <NextClientRMachine locale="en">{children}</NextClientRMachine>
-        ),
+        wrapper: createHookWrapper(NextClientRMachine),
       });
 
       try {
@@ -329,9 +323,7 @@ describe("createNextAppClientToolset", () => {
       );
 
       const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <NextClientRMachine locale="en">{children}</NextClientRMachine>
-        ),
+        wrapper: createHookWrapper(NextClientRMachine),
       });
 
       await act(async () => {
@@ -349,9 +341,7 @@ describe("createNextAppClientToolset", () => {
       );
 
       const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <NextClientRMachine locale="en">{children}</NextClientRMachine>
-        ),
+        wrapper: createHookWrapper(NextClientRMachine),
       });
 
       await act(async () => {
@@ -373,9 +363,7 @@ describe("createNextAppClientToolset", () => {
       );
 
       const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <NextClientRMachine locale="en">{children}</NextClientRMachine>
-        ),
+        wrapper: createHookWrapper(NextClientRMachine),
       });
 
       await act(async () => {
@@ -397,9 +385,7 @@ describe("createNextAppClientToolset", () => {
       );
 
       const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <NextClientRMachine locale="en">{children}</NextClientRMachine>
-        ),
+        wrapper: createHookWrapper(NextClientRMachine),
       });
 
       await expect(
@@ -417,9 +403,7 @@ describe("createNextAppClientToolset", () => {
       );
 
       const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <NextClientRMachine locale="en">{children}</NextClientRMachine>
-        ),
+        wrapper: createHookWrapper(NextClientRMachine),
       });
 
       await expect(
@@ -466,9 +450,7 @@ describe("createNextAppClientToolset", () => {
       expect(createUsePathComposer).toHaveBeenCalledWith(expect.any(Function));
 
       const { result } = renderHook(() => usePathComposer(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <NextClientRMachine locale="en">{children}</NextClientRMachine>
-        ),
+        wrapper: createHookWrapper(NextClientRMachine),
       });
 
       expect(result.current).toBe(composerFn);
@@ -487,9 +469,7 @@ describe("createNextAppClientToolset", () => {
       );
 
       const { result } = renderHook(() => capturedUseLocale!(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <NextClientRMachine locale="it">{children}</NextClientRMachine>
-        ),
+        wrapper: createHookWrapper(NextClientRMachine, "it"),
       });
 
       expect(result.current).toBe("it");
