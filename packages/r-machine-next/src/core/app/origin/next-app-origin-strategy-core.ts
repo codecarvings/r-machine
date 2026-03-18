@@ -31,17 +31,23 @@ import {
   type PartialNextAppStrategyConfig,
 } from "../next-app-strategy-core.js";
 
-interface HrefHelper<PA extends AnyPathAtlas> {
-  readonly getPath: PathComposer<PA>;
-  readonly getUrl: UrlComposer<PA>;
+interface HrefHelper<L extends AnyLocale, PA extends AnyPathAtlas> {
+  readonly getPath: PathComposer<L, PA>;
+  readonly getUrl: UrlComposer<L, PA>;
 }
-type PathComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
-  locale: AnyLocale,
+type PathComposer<L extends AnyLocale, PA extends AnyPathAtlas> = <
+  P extends PathSelector<PA>,
+  O extends PathParamMap<P>,
+>(
+  locale: L,
   path: P,
   ...args: [keyof PathParamMap<P>] extends [never] ? [params?: PathParams<P, O>] : [params: PathParams<P, O>]
 ) => string;
-type UrlComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
-  locale: AnyLocale,
+type UrlComposer<L extends AnyLocale, PA extends AnyPathAtlas> = <
+  P extends PathSelector<PA>,
+  O extends PathParamMap<P>,
+>(
+  locale: L,
   path: P,
   ...args: [keyof PathParamMap<P>] extends [never] ? [params?: PathParams<P, O>] : [params: PathParams<P, O>]
 ) => string;
@@ -118,7 +124,7 @@ export abstract class NextAppOriginStrategyCore<
     );
   }
 
-  readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
+  readonly hrefHelper: HrefHelper<L, InstanceType<C["PathAtlas"]>> = {
     getPath: (locale, path, ...args) => this.pathTranslator.get(locale, path, args[0]).value,
     getUrl: (locale, path, ...args) => this.urlTranslator.get(locale, path, args[0]).value,
   };

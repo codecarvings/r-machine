@@ -42,11 +42,14 @@ import {
  * 4) In the proxy (in NextAppPathServerImplComplement.createProxy) - required when using the proxy and autoDetectLocale is enabled
  */
 
-interface HrefHelper<PA extends AnyPathAtlas> {
-  readonly getPath: PathComposer<PA>;
+interface HrefHelper<L extends AnyLocale, PA extends AnyPathAtlas> {
+  readonly getPath: PathComposer<L, PA>;
 }
-type PathComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
-  locale: AnyLocale,
+type PathComposer<L extends AnyLocale, PA extends AnyPathAtlas> = <
+  P extends PathSelector<PA>,
+  O extends PathParamMap<P>,
+>(
+  locale: L,
   path: P,
   ...args: [keyof PathParamMap<P>] extends [never] ? [params?: PathParams<P, O>] : [params: PathParams<P, O>]
 ) => string;
@@ -182,7 +185,7 @@ export abstract class NextAppPathStrategyCore<
     return module.createNextAppNoProxyServerToolset(this.rMachine, impl, NextClientRMachine);
   }
 
-  readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
+  readonly hrefHelper: HrefHelper<L, InstanceType<C["PathAtlas"]>> = {
     getPath: (locale, path, ...args) => this.pathTranslator.get(locale, path, args[0]).value,
   };
 }
