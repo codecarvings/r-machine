@@ -26,8 +26,12 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <FeatureBox feature={rBoxes.box1} />
-            <FeatureBox feature={rBoxes.box2} />
+            <FeatureBox badge={rBoxes.box1.badge} title={rBoxes.box1.title}>
+              {rBoxes.box1.description}
+            </FeatureBox>
+            <FeatureBox badge={rBoxes.box2.badge} title={rBoxes.box2.title}>
+              {rBoxes.box2.description}
+            </FeatureBox>
             <Suspense fallback={<FeatureBoxLoading />}>
               <Box3 />
             </Suspense>

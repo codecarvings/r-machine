@@ -1,13 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { byLocale } from "../../src/lib/by-locale.js";
+import { byLocale } from "../../src/locale/by-locale.js";
 
 describe("byLocale", () => {
-  it("should return the factory result for a given locale", () => {
-    const fn = byLocale((locale) => ({ greeting: `Hello from ${locale}` }));
-    const result = fn("en");
-    expect(result).toEqual({ greeting: "Hello from en" });
-  });
-
   it("should return different results for different locales", () => {
     const fn = byLocale((locale) => ({ locale }));
     expect(fn("en")).toEqual({ locale: "en" });
@@ -43,5 +37,17 @@ describe("byLocale", () => {
     fn("it");
 
     expect(factory).toHaveBeenCalledTimes(2);
+  });
+
+  it("should cache falsy return values without re-calling the factory", () => {
+    const factory = vi.fn(() => null);
+    const fn = byLocale(factory);
+
+    const first = fn("en");
+    const second = fn("en");
+
+    expect(first).toBeNull();
+    expect(second).toBeNull();
+    expect(factory).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,4 +1,4 @@
-import { byLocale } from "r-machine";
+import { byLocale } from "r-machine/locale";
 
 export const fmt = byLocale((locale) => {
   const dateLongFmt = new Intl.DateTimeFormat(locale, { dateStyle: "long" });

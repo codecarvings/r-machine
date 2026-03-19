@@ -1,3 +1,4 @@
+export { byLocale } from "./by-locale.js";
 export {
   getCanonicalUnicodeLocaleId,
   validateCanonicalUnicodeLocaleId,
