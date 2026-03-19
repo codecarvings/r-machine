@@ -1,4 +1,9 @@
-import { byLocale } from "r-machine/locale";
+import { type AnyLocale, byLocale } from "r-machine/locale";
+
+const currencyByLocale: Record<AnyLocale, string> = {
+  en: "USD",
+  it: "EUR",
+};
 
 // Place here any formatting functions that depend on the locale, such as date, time, number, or plural formatting.
 export const fmt = byLocale((locale) => {
@@ -8,7 +13,7 @@ export const fmt = byLocale((locale) => {
   const numberFmt = new Intl.NumberFormat(locale);
   const currencyFmt = new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: locale === "it" ? "EUR" : "USD",
+    currency: currencyByLocale[locale] ?? "USD",
   });
   const pluralRules = new Intl.PluralRules(locale);
 
