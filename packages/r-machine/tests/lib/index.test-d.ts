@@ -13,13 +13,14 @@ import type {
   RMachineConfig,
   RMachineConfigParams,
 } from "../../src/lib/index.js";
-import { RMachine, type RMachineLocale } from "../../src/lib/index.js";
+import { byLocale, RMachine, type RMachineLocale } from "../../src/lib/index.js";
 
 type TestAtlas = { readonly common: { greeting: string } };
 
 // Barrel test: uses a single it() to verify export completeness only. Type shape tests belong in dedicated files.
 describe("lib barrel exports", () => {
   it("exports all expected symbols", () => {
+    expectTypeOf(byLocale).toBeFunction();
     expectTypeOf(RMachine.for<AnyResourceAtlas>().create).toBeFunction();
 
     expectTypeOf<RMachineLocale<RMachine<TestAtlas, "en" | "it">>>().toEqualTypeOf<"en" | "it">();

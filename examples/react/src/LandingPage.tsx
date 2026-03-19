@@ -6,6 +6,7 @@ import FeatureBoxLoading from "./components/client/FeatureBoxLoading";
 import Footer from "./components/client/Footer";
 import Header from "./components/client/Header";
 import Hero from "./components/client/Hero";
+import IntlDemo from "./components/client/IntlDemo";
 
 export default function LandingPage() {
   // Load the required localized resources
@@ -33,6 +34,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <IntlDemo />
 
       <Footer r={rCommon.footer} />
     </div>
