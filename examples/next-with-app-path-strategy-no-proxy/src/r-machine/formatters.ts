@@ -8,7 +8,7 @@ export const fmt = byLocale((locale) => {
   const numberFmt = new Intl.NumberFormat(locale);
   const currencyFmt = new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: locale === "it" ? "EUR" : "USD",
+    currency: locale === "it-IT" ? "EUR" : "USD",
   });
   const pluralRules = new Intl.PluralRules(locale);
 
