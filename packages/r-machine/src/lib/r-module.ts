@@ -2,9 +2,12 @@ import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { AnyNamespace, AnyR } from "./r.js";
 
-export interface R$ {
+export type AnyFormatters = ((locale: AnyLocale) => object) | undefined;
+
+export interface R$<L extends AnyLocale = AnyLocale, F = undefined> {
   readonly namespace: AnyNamespace;
-  readonly locale: AnyLocale;
+  readonly locale: L;
+  readonly fmt: F;
 }
 
 export type AnyRFactory = ($: R$) => AnyR | Promise<AnyR>;
@@ -70,7 +73,8 @@ export async function resolveRFromModule(rModule: AnyRModule, $: R$): Promise<An
 export async function resolveR(
   rModuleResolver: RModuleResolver,
   namespace: AnyNamespace,
-  locale: AnyLocale
+  locale: AnyLocale,
+  formatters?: (locale: AnyLocale) => object
 ): Promise<AnyR> {
   let rModule: AnyRModule;
   try {
@@ -82,5 +86,5 @@ export async function resolveR(
       reason as Error
     );
   }
-  return resolveRFromModule(rModule, { namespace, locale });
+  return resolveRFromModule(rModule, { namespace, locale, fmt: formatters ? formatters(locale) : undefined } as R$);
 }

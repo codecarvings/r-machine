@@ -46,7 +46,7 @@ function makeConfig(overrides: Partial<RMachineConfig<string>> = {}): RMachineCo
 }
 
 function createMachine(overrides: Partial<RMachineConfig<string>> = {}) {
-  return RMachine.for<TestRA>().create(makeConfig(overrides));
+  return RMachine.builder(makeConfig(overrides)).create<TestRA>();
 }
 
 describe("RMachine", () => {
@@ -83,12 +83,73 @@ describe("RMachine", () => {
     });
 
     it("accepts a single locale configuration", () => {
-      const machine = RMachine.for<TestRA>().create({
+      const machine = RMachine.builder({
         locales: ["en"],
         defaultLocale: "en",
         rModuleResolver: createMockResolver({ en: { common: { default: commonR } } }),
-      });
+      }).create<TestRA>();
       expect(machine.config.locales).toEqual(["en"]);
+    });
+  });
+
+  describe("builder pattern", () => {
+    it("RMachine.builder(config) returns a builder object", () => {
+      const builder = RMachine.builder(makeConfig());
+      expect(builder).toBeDefined();
+      expect(typeof builder.create).toBe("function");
+      expect(typeof builder.with).toBe("function");
+    });
+
+    it("builder.create() produces a working RMachine", async () => {
+      const machine = RMachine.builder(makeConfig()).create<TestRA>();
+      expect(machine).toBeInstanceOf(RMachine);
+      expect(await machine.pickR("en", "common")).toBe(commonR);
+    });
+
+    it("builder.with({ formatters }).create() produces an RMachine with formatters injected in R$", async () => {
+      const formatters = (_locale: string) => ({ currency: (n: number) => `$${n}` });
+      const factory = vi.fn(($: { namespace: string; locale: string; fmt: any }) => ({
+        value: $.fmt.currency(42),
+      }));
+      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
+      const machine = RMachine.builder({
+        locales: ["en", "it"],
+        defaultLocale: "en",
+        rModuleResolver: resolver,
+      })
+        .with({ formatters })
+        .create<{ readonly test: { value: string } }>();
+
+      const result = await machine.pickR("en", "test");
+      expect(result).toEqual({ value: "$42" });
+      expect(factory).toHaveBeenCalledWith(
+        expect.objectContaining({
+          namespace: "test",
+          locale: "en",
+          fmt: expect.objectContaining({ currency: expect.any(Function) }),
+        })
+      );
+    });
+
+    it("factory function receives $.fmt resolved for the correct locale", async () => {
+      const formatters = vi.fn((locale: string) => ({ lang: locale }));
+      const factory = ($: { namespace: string; locale: string; fmt: any }) => ({
+        result: $.fmt.lang,
+      });
+      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
+      const machine = RMachine.builder({
+        locales: ["en", "it"],
+        defaultLocale: "en",
+        rModuleResolver: resolver,
+      })
+        .with({ formatters })
+        .create<{ readonly test: { result: string } }>();
+
+      const enResult = await machine.pickR("en", "test");
+      expect(enResult.result).toBe("en");
+
+      const itResult = await machine.pickR("it", "test");
+      expect(itResult.result).toBe("it");
     });
   });
 
@@ -101,7 +162,7 @@ describe("RMachine", () => {
 
     it("is not affected by mutations to the original config object", () => {
       const config = makeConfig();
-      const machine = RMachine.for<TestRA>().create(config);
+      const machine = RMachine.builder(config).create<TestRA>();
       (config.locales as string[]).push("fr");
       expect(machine.config.locales).toEqual(["en", "it"]);
     });
@@ -257,12 +318,15 @@ describe("RMachine", () => {
       expect(await machine.pickR("en", "common")).toBe(asyncR);
     });
 
-    it("passes the correct R$ context (namespace and locale) to the factory", async () => {
-      const factory = vi.fn(($: { namespace: string; locale: string }) => ({ ns: $.namespace, loc: $.locale }));
+    it("passes the correct R$ context (namespace, locale, fmt) to the factory", async () => {
+      const factory = vi.fn(($: { namespace: string; locale: string; fmt: unknown }) => ({
+        ns: $.namespace,
+        loc: $.locale,
+      }));
       const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
       const machine = createMachine({ rModuleResolver: resolver });
       const result = await machine.pickR("en", "common");
-      expect(factory).toHaveBeenCalledWith({ namespace: "common", locale: "en" });
+      expect(factory).toHaveBeenCalledWith({ namespace: "common", locale: "en", fmt: undefined });
       expect(result).toEqual({ ns: "common", loc: "en" });
     });
 

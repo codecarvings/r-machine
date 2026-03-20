@@ -10,7 +10,9 @@ describe("DomainManager", () => {
   });
 
   it("constructor should require an RModuleResolver parameter", () => {
-    expectTypeOf(DomainManager).constructorParameters.toEqualTypeOf<[rModuleResolver: RModuleResolver]>();
+    expectTypeOf(DomainManager).constructorParameters.toEqualTypeOf<
+      [rModuleResolver: RModuleResolver, formatters?: ((locale: string) => object) | undefined]
+    >();
   });
 
   describe("getDomain", () => {

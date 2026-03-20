@@ -1,7 +1,7 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyResourceAtlas, Namespace } from "../../src/lib/r.js";
 import type { RKit } from "../../src/lib/r-kit.js";
-import { RMachine, type RMachineLocale } from "../../src/lib/r-machine.js";
+import { RMachine, type RMachineLocale, type RMachineR$ } from "../../src/lib/r-machine.js";
 import type { RMachineConfig } from "../../src/lib/r-machine-config.js";
 import type { R$ } from "../../src/lib/r-module.js";
 import type { LocaleHelper } from "../../src/locale/locale-helper.js";
@@ -34,30 +34,32 @@ const mockConfig: RMachineConfig<string> = {
   rModuleResolver: async () => ({ default: {} }),
 };
 
-function createMachine<RA extends AnyResourceAtlas>() {
-  return RMachine.for<RA>().create(mockConfig);
-}
-
 const narrowConfig = {
   locales: ["en", "it"] as const,
   defaultLocale: "en" as const,
   rModuleResolver: async () => ({ default: {} }),
 };
 
+function createMachine<RA extends AnyResourceAtlas>() {
+  return RMachine.builder(mockConfig).create<RA>();
+}
+
 function createNarrowMachine<RA extends AnyResourceAtlas>() {
-  return RMachine.for<RA>().create(narrowConfig);
+  return RMachine.builder(narrowConfig).create<RA>();
 }
 
 describe("RMachine", () => {
   describe("static builder pattern", () => {
-    it("RMachine.for should return a curried builder", () => {
-      const builder = RMachine.for<TestResourceAtlas>();
+    it("RMachine.builder should return a builder with .with and .create", () => {
+      const builder = RMachine.builder(narrowConfig);
+      expectTypeOf(builder).toHaveProperty("with");
       expectTypeOf(builder).toHaveProperty("create");
+      expectTypeOf(builder.with).toBeFunction();
       expectTypeOf(builder.create).toBeFunction();
     });
 
-    it("builder.create should accept config and return an RMachine instance", () => {
-      const machine = RMachine.for<TestResourceAtlas>().create(mockConfig);
+    it("builder.create should return an RMachine instance", () => {
+      const machine = RMachine.builder(mockConfig).create<TestResourceAtlas>();
       expectTypeOf(machine).toBeObject();
     });
 
@@ -67,13 +69,31 @@ describe("RMachine", () => {
     });
 
     it("should infer string when locales are not const", () => {
-      const machine = RMachine.for<TestResourceAtlas>().create(mockConfig);
+      const machine = RMachine.builder(mockConfig).create<TestResourceAtlas>();
       expectTypeOf(machine).toEqualTypeOf<RMachine<TestResourceAtlas, string>>();
     });
 
     it("should constrain defaultLocale to locales list members", () => {
       // This compiles because "en" is in the const locales tuple
-      RMachine.for<TestResourceAtlas>().create(narrowConfig);
+      RMachine.builder(narrowConfig).create<TestResourceAtlas>();
+    });
+
+    it("builder.with should return a setup with .create", () => {
+      const fmt = (_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() });
+      const setup = RMachine.builder(narrowConfig).with({ formatters: fmt });
+      expectTypeOf(setup).toHaveProperty("create");
+      expectTypeOf(setup.create).toBeFunction();
+    });
+
+    it("setup.create should return an RMachine instance", () => {
+      const fmt = (_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() });
+      const machine = RMachine.builder(narrowConfig).with({ formatters: fmt }).create<TestResourceAtlas>();
+      expectTypeOf(machine).toEqualTypeOf<RMachine<TestResourceAtlas, "en" | "it">>();
+    });
+
+    it("builder without .with() should produce create() directly", () => {
+      const machine = RMachine.builder(narrowConfig).create<TestResourceAtlas>();
+      expectTypeOf(machine).toEqualTypeOf<RMachine<TestResourceAtlas, "en" | "it">>();
     });
   });
 
@@ -517,6 +537,31 @@ describe("RMachine", () => {
     it("should work with a concrete instance from the builder", () => {
       const machine = createNarrowMachine<TestResourceAtlas>();
       expectTypeOf<RMachineLocale<typeof machine>>().toEqualTypeOf<"en" | "it">();
+    });
+
+    it("should extract locale from RMachineBuilder", () => {
+      const builder = RMachine.builder(narrowConfig);
+      expectTypeOf<RMachineLocale<typeof builder>>().toEqualTypeOf<"en" | "it">();
+    });
+
+    it("should extract locale from RMachineSetup", () => {
+      const fmt = (_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() });
+      const setup = RMachine.builder(narrowConfig).with({ formatters: fmt });
+      expectTypeOf<RMachineLocale<typeof setup>>().toEqualTypeOf<"en" | "it">();
+    });
+  });
+
+  describe("RMachineR$ utility type", () => {
+    it("should extract R$ with undefined fmt from builder (no formatters)", () => {
+      const builder = RMachine.builder(narrowConfig);
+      expectTypeOf<RMachineR$<typeof builder>>().toEqualTypeOf<R$<"en" | "it", undefined>>();
+    });
+
+    it("should extract R$ with resolved fmt type from setup (with formatters)", () => {
+      const fmt = (_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() });
+      const setup = RMachine.builder(narrowConfig).with({ formatters: fmt });
+      type Expected = R$<"en" | "it", { date: (d: Date) => string }>;
+      expectTypeOf<RMachineR$<typeof setup>>().toEqualTypeOf<Expected>();
     });
   });
 });

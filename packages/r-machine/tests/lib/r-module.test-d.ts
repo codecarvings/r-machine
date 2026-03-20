@@ -16,14 +16,24 @@ describe("R$", () => {
     expectTypeOf<R$>().toHaveProperty("locale").toEqualTypeOf<string>();
   });
 
+  it("should have readonly fmt property defaulting to undefined", () => {
+    expectTypeOf<R$>().toHaveProperty("fmt").toEqualTypeOf<undefined>();
+  });
+
   it("valid R$ object should be assignable", () => {
-    const r$: R$ = { namespace: "common", locale: "en" };
+    const r$: R$ = { namespace: "common", locale: "en", fmt: undefined };
     expectTypeOf(r$).toExtend<R$>();
   });
 
-  it("should have exactly two properties", () => {
+  it("should have exactly three properties", () => {
     type R$Keys = keyof R$;
-    expectTypeOf<R$Keys>().toEqualTypeOf<"namespace" | "locale">();
+    expectTypeOf<R$Keys>().toEqualTypeOf<"namespace" | "locale" | "fmt">();
+  });
+
+  it("should accept generic parameters for locale and fmt", () => {
+    type Narrow = R$<"en" | "it", { date: (d: Date) => string }>;
+    expectTypeOf<Narrow>().toHaveProperty("locale").toEqualTypeOf<"en" | "it">();
+    expectTypeOf<Narrow>().toHaveProperty("fmt").toEqualTypeOf<{ date: (d: Date) => string }>();
   });
 });
 
@@ -187,11 +197,5 @@ describe("resolveR", () => {
 
   it("should return Promise<AnyR>", () => {
     expectTypeOf(resolveR).returns.toEqualTypeOf<Promise<AnyR>>();
-  });
-
-  it("should have correct function signature", () => {
-    expectTypeOf(resolveR).toEqualTypeOf<
-      (rModuleResolver: RModuleResolver, namespace: AnyNamespace, locale: string) => Promise<AnyR>
-    >();
   });
 });

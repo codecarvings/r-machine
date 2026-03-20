@@ -13,7 +13,14 @@ import type {
   RMachineConfig,
   RMachineConfigParams,
 } from "../../src/lib/index.js";
-import { byLocale, RMachine, type RMachineLocale } from "../../src/lib/index.js";
+import {
+  byLocale,
+  RMachine,
+  type RMachineBuilder,
+  type RMachineLocale,
+  type RMachineR$,
+  type RMachineSetup,
+} from "../../src/lib/index.js";
 
 type TestAtlas = { readonly common: { greeting: string } };
 
@@ -21,9 +28,13 @@ type TestAtlas = { readonly common: { greeting: string } };
 describe("lib barrel exports", () => {
   it("exports all expected symbols", () => {
     expectTypeOf(byLocale).toBeFunction();
-    expectTypeOf(RMachine.for<AnyResourceAtlas>().create).toBeFunction();
+    expectTypeOf(RMachine.builder).toBeFunction();
 
     expectTypeOf<RMachineLocale<RMachine<TestAtlas, "en" | "it">>>().toEqualTypeOf<"en" | "it">();
+
+    expectTypeOf<RMachineBuilder<readonly ["en", "it"]>>().toBeObject();
+    expectTypeOf<RMachineSetup<readonly ["en", "it"], (locale: "en" | "it") => object>>().toBeObject();
+    expectTypeOf<RMachineR$<RMachineBuilder<readonly ["en", "it"]>>>().toBeObject();
 
     expectTypeOf<RMachineConfig<string>>().toBeObject();
 

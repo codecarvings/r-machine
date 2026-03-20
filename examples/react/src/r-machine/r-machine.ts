@@ -1,11 +1,13 @@
 import { ReactStandardStrategy } from "@r-machine/react";
-import { RMachine, type RMachineLocale } from "r-machine";
+import { RMachine, type RMachineLocale, type RMachineR$ } from "r-machine";
+import { fmt } from "./formatters";
 import type { ResourceAtlas } from "./resource-atlas";
 
 // Vite statically analyzes this at build time and creates chunk files for all matching modules
 const moduleLoaders = import.meta.glob<{ default: any }>("./resources/**/*.{tsx,ts}");
 
-export const rMachine = RMachine.for<ResourceAtlas>().create({
+// Step 1: config → Locale
+const rMachineBuilder = RMachine.builder({
   locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: (namespace, locale) => {
@@ -22,7 +24,14 @@ export const rMachine = RMachine.for<ResourceAtlas>().create({
   },
 });
 
-export type Locale = RMachineLocale<typeof rMachine>;
+export type Locale = RMachineLocale<typeof rMachineBuilder>;
+
+// Step 2: formatters → R$
+const rMachineSetup = rMachineBuilder.with({ formatters: fmt });
+export type R$ = RMachineR$<typeof rMachineSetup>;
+
+// Step 3: ResourceAtlas → RMachine
+export const rMachine = rMachineSetup.create<ResourceAtlas>();
 
 export const strategy = new ReactStandardStrategy(rMachine, {
   localeDetector: () => rMachine.localeHelper.matchLocales(navigator.languages),

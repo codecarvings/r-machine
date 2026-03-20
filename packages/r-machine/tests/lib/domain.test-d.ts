@@ -11,7 +11,9 @@ describe("Domain", () => {
   });
 
   it("should not be constructible without arguments", () => {
-    expectTypeOf(Domain).constructorParameters.toEqualTypeOf<[locale: string, rModuleResolver: RModuleResolver]>();
+    expectTypeOf(Domain).constructorParameters.toEqualTypeOf<
+      [locale: string, rModuleResolver: RModuleResolver, formatters?: ((locale: string) => object) | undefined]
+    >();
   });
 
   describe("locale", () => {

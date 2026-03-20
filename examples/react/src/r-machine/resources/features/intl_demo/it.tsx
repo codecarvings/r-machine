@@ -1,15 +1,8 @@
-import type { R$ } from "r-machine";
-import { fmt } from "@/r-machine/formatters";
+import type { R$ } from "@/r-machine/r-machine";
 import type { R_Features_IntlDemo } from "./en";
 
-/*
-  If you prefer, you can also import the formatters directly in the resource file
-  and call them with the locale, instead of using the factory and the R$ parameter.
-*/
-// const { date, time, number, currency, plural } = fmt("it");
-
 const r = ($: R$): R_Features_IntlDemo => {
-  const { date, time, number, currency, plural } = fmt($.locale);
+  const { date, time, number, currency, plural } = $.fmt;
 
   return {
     sectionTitle: "Formattazione Locale-Aware",

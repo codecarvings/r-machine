@@ -6,7 +6,7 @@ type ResourceAtlas = {
   ns3: { message: string };
 };
 
-const rMachine = RMachine.for<ResourceAtlas>().create({
+const rMachine = RMachine.builder({
   locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: async (namespace, locale) => {
@@ -18,7 +18,7 @@ const rMachine = RMachine.for<ResourceAtlas>().create({
       },
     };
   },
-});
+}).create<ResourceAtlas>();
 
 const r = await rMachine.pickR("en", "ns1");
 console.log(r.message);

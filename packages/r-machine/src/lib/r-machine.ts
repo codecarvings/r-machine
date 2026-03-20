@@ -10,19 +10,17 @@ import {
   type RMachineConfigParams,
   validateRMachineConfig,
 } from "./r-machine-config.js";
+import type { R$ } from "./r-module.js";
 
 export class RMachine<const RA extends AnyResourceAtlas, const L extends AnyLocale> {
-  // The suggested way to create an RMachine is via the curried builder returned by
-  // RMachine.for(), which provides better type inference for locales. However,
-  // the constructor is still public and can be used directly if desired.
-  constructor(config: RMachineConfig<L>) {
+  constructor(config: RMachineConfig<L>, formatters?: (locale: AnyLocale) => object) {
     const configError = validateRMachineConfig(config);
     if (configError) {
       throw configError;
     }
     this.config = cloneRMachineConfig(config);
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
-    this.domainManager = new DomainManager(config.rModuleResolver);
+    this.domainManager = new DomainManager(config.rModuleResolver, formatters);
   }
 
   readonly config: RMachineConfig<L>;
@@ -66,17 +64,47 @@ export class RMachine<const RA extends AnyResourceAtlas, const L extends AnyLoca
     return domain.hybridPickRKit(namespaces) as RKit<RA, NL> | Promise<RKit<RA, NL>>;
   };
 
-  static for<RA extends AnyResourceAtlas>(): RMachineCurriedBuilder<RA> {
+  static builder<const LL extends AnyLocaleList>(config: RMachineConfigParams<LL>): RMachineBuilder<LL> {
     return {
-      create: <const LL extends AnyLocaleList>(config: RMachineConfigParams<LL>): RMachine<RA, LL[number]> => {
+      with<F extends (locale: LL[number]) => object>(options: { formatters: F }): RMachineSetup<LL, F> {
+        return {
+          create<RA extends AnyResourceAtlas>(): RMachine<RA, LL[number]> {
+            return new RMachine(
+              config as RMachineConfig<LL[number]>,
+              options.formatters as (locale: AnyLocale) => object
+            );
+          },
+        };
+      },
+      create<RA extends AnyResourceAtlas>(): RMachine<RA, LL[number]> {
         return new RMachine(config as RMachineConfig<LL[number]>);
       },
     };
   }
 }
 
-interface RMachineCurriedBuilder<RA extends AnyResourceAtlas> {
-  create: <const LL extends AnyLocaleList>(config: RMachineConfigParams<LL>) => RMachine<RA, LL[number]>;
+export interface RMachineBuilder<LL extends AnyLocaleList> {
+  with<F extends (locale: LL[number]) => object>(options: { formatters: F }): RMachineSetup<LL, F>;
+  create<RA extends AnyResourceAtlas>(): RMachine<RA, LL[number]>;
 }
 
-export type RMachineLocale<RM extends RMachine<any, any>> = RM extends RMachine<any, infer L> ? L : never;
+export interface RMachineSetup<LL extends AnyLocaleList, F extends (locale: LL[number]) => object> {
+  readonly _brand?: F;
+  create<RA extends AnyResourceAtlas>(): RMachine<RA, LL[number]>;
+}
+
+export type RMachineLocale<T> =
+  T extends RMachine<any, infer L>
+    ? L
+    : T extends RMachineBuilder<infer LL>
+      ? LL[number]
+      : T extends RMachineSetup<infer LL, any>
+        ? LL[number]
+        : never;
+
+export type RMachineR$<T> =
+  T extends RMachineSetup<infer LL, infer F>
+    ? R$<LL[number], ReturnType<F>>
+    : T extends RMachineBuilder<infer LL>
+      ? R$<LL[number], undefined>
+      : never;

@@ -4,7 +4,7 @@ import type { AnyRModule, R$, RModuleResolver } from "../../src/lib/r-module.js"
 import { resolveR, resolveRFromModule } from "../../src/lib/r-module.js";
 
 function make$(overrides: Partial<R$> = {}): R$ {
-  return { namespace: "common", locale: "en", ...overrides };
+  return { namespace: "common", locale: "en", fmt: undefined, ...overrides };
 }
 
 describe("resolveRFromModule", () => {
@@ -205,7 +205,7 @@ describe("resolveR", () => {
       const factory = vi.fn(($: R$) => ({ ns: $.namespace, loc: $.locale }));
       const resolver: RModuleResolver = async () => ({ default: factory });
       const result = await resolveR(resolver, "nav", "it");
-      expect(factory).toHaveBeenCalledWith({ namespace: "nav", locale: "it" });
+      expect(factory).toHaveBeenCalledWith({ namespace: "nav", locale: "it", fmt: undefined });
       expect(result).toEqual({ ns: "nav", loc: "it" });
     });
   });

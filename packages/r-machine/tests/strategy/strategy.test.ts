@@ -26,7 +26,7 @@ const testConfig: RMachineConfig<string> = {
 };
 
 function createTestRMachine() {
-  return RMachine.for<AnyResourceAtlas>().create(testConfig);
+  return RMachine.builder(testConfig).create<AnyResourceAtlas>();
 }
 
 describe("Strategy", () => {
