@@ -6,7 +6,7 @@ import { Strategy } from "../../src/strategy/strategy.js";
 
 function createSpyStrategyClass<RA extends AnyResourceAtlas, L extends AnyLocale, C>() {
   const validateConfigSpy = vi.fn();
-  class SpyStrategy extends Strategy<RA, AnyFmtProvider, L, C> {
+  class SpyStrategy extends Strategy<RA, L, AnyFmtProvider, C> {
     protected override validateConfig(): void {
       validateConfigSpy();
     }
@@ -14,13 +14,13 @@ function createSpyStrategyClass<RA extends AnyResourceAtlas, L extends AnyLocale
   return { SpyStrategy, validateConfigSpy };
 }
 
-class ThrowingStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, AnyFmtProvider, L, C> {
+class ThrowingStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, AnyFmtProvider, C> {
   protected override validateConfig(): void {
     throw new Error("Validation failed");
   }
 }
 
-class DefaultStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, AnyFmtProvider, L, C> {}
+class DefaultStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, AnyFmtProvider, C> {}
 
 const testConfig: RMachineConfig<string> = {
   locales: ["en", "it"],

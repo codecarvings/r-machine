@@ -29,10 +29,10 @@ class Formatters extends createFormatters((locale: Locale) => {
 }) {}
 
 const rMachineExtBuilder = rMachineBuilder.with({ Formatters });
-type R$ = RMachineRCtx<typeof rMachineExtBuilder>;
+export type R$ = RMachineRCtx<typeof rMachineExtBuilder>;
 
 const rMachine = rMachineExtBuilder.create<ResourceAtlas>();
-const { uppercase } = rMachine.fmt("en");
+export const { uppercase } = rMachine.fmt("en");
 
 const r = await rMachine.pickR("en", "ns1");
 console.log(r.message);

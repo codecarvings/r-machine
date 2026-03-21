@@ -15,7 +15,7 @@ interface TestConfig {
 }
 
 // Concrete implementation for type testing
-class TestStrategy extends Strategy<TestResourceAtlas, AnyFmtProvider, string, TestConfig> {}
+class TestStrategy extends Strategy<TestResourceAtlas, string, AnyFmtProvider, TestConfig> {}
 
 describe("Strategy", () => {
   it("should be abstract and not directly constructable", () => {
@@ -55,17 +55,17 @@ describe("Strategy", () => {
   });
 
   it("validateConfig should be a protected method overridable in subclasses", () => {
-    class ValidatingStrategy extends Strategy<TestResourceAtlas, AnyFmtProvider, string, TestConfig> {
+    class ValidatingStrategy extends Strategy<TestResourceAtlas, string, AnyFmtProvider, TestConfig> {
       protected override validateConfig(): void {
         expectTypeOf(this.config).toEqualTypeOf<TestConfig>();
         expectTypeOf(this.rMachine).toEqualTypeOf<RMachine<TestResourceAtlas, string, AnyFmtProvider>>();
       }
     }
-    expectTypeOf<ValidatingStrategy>().toExtend<Strategy<TestResourceAtlas, AnyFmtProvider, string, TestConfig>>();
+    expectTypeOf<ValidatingStrategy>().toExtend<Strategy<TestResourceAtlas, string, AnyFmtProvider, TestConfig>>();
   });
 
   it("should propagate locale type L between Strategy and RMachine", () => {
-    class NarrowLocaleStrategy extends Strategy<TestResourceAtlas, AnyFmtProvider, "en" | "it", TestConfig> {}
+    class NarrowLocaleStrategy extends Strategy<TestResourceAtlas, "en" | "it", AnyFmtProvider, TestConfig> {}
     expectTypeOf<NarrowLocaleStrategy["rMachine"]>().toEqualTypeOf<
       RMachine<TestResourceAtlas, "en" | "it", AnyFmtProvider>
     >();
@@ -74,11 +74,11 @@ describe("Strategy", () => {
 
 describe("Strategy with different config types", () => {
   it("should preserve config type for primitives, nullish, and union types", () => {
-    class StringConfig extends Strategy<AnyResourceAtlas, AnyFmtProvider, string, string> {}
-    class NumberConfig extends Strategy<AnyResourceAtlas, AnyFmtProvider, string, number> {}
-    class NullConfig extends Strategy<AnyResourceAtlas, AnyFmtProvider, string, null> {}
-    class UndefinedConfig extends Strategy<AnyResourceAtlas, AnyFmtProvider, string, undefined> {}
-    class UnionConfig extends Strategy<AnyResourceAtlas, AnyFmtProvider, string, string | number> {}
+    class StringConfig extends Strategy<AnyResourceAtlas, string, AnyFmtProvider, string> {}
+    class NumberConfig extends Strategy<AnyResourceAtlas, string, AnyFmtProvider, number> {}
+    class NullConfig extends Strategy<AnyResourceAtlas, string, AnyFmtProvider, null> {}
+    class UndefinedConfig extends Strategy<AnyResourceAtlas, string, AnyFmtProvider, undefined> {}
+    class UnionConfig extends Strategy<AnyResourceAtlas, string, AnyFmtProvider, string | number> {}
 
     expectTypeOf<StringConfig["config"]>().toEqualTypeOf<string>();
     expectTypeOf<NumberConfig["config"]>().toEqualTypeOf<number>();
@@ -91,42 +91,42 @@ describe("Strategy with different config types", () => {
 describe("Strategy type constraints", () => {
   it("RA should reject types that do not extend AnyResourceAtlas", () => {
     // @ts-expect-error - number does not extend AnyResourceAtlas
-    class _InvalidRA extends Strategy<number, AnyFmtProvider, string, TestConfig> {}
+    class _InvalidRA extends Strategy<number, string, AnyFmtProvider, TestConfig> {}
   });
 
   it("L should reject types that do not extend AnyLocale", () => {
     // @ts-expect-error - number does not extend AnyLocale (string)
-    class _InvalidL extends Strategy<TestResourceAtlas, AnyFmtProvider, number, TestConfig> {}
+    class _InvalidL extends Strategy<TestResourceAtlas, number, AnyFmtProvider, TestConfig> {}
   });
 
   it("L should accept AnyLocale and string literal unions", () => {
-    expectTypeOf<Strategy<TestResourceAtlas, AnyFmtProvider, AnyLocale, TestConfig>>().toBeObject();
-    expectTypeOf<Strategy<TestResourceAtlas, AnyFmtProvider, "en" | "it", TestConfig>>().toBeObject();
+    expectTypeOf<Strategy<TestResourceAtlas, AnyLocale, AnyFmtProvider, TestConfig>>().toBeObject();
+    expectTypeOf<Strategy<TestResourceAtlas, "en" | "it", AnyFmtProvider, TestConfig>>().toBeObject();
   });
 
   it("Strategy instances should extend Strategy base type", () => {
-    expectTypeOf<TestStrategy>().toExtend<Strategy<TestResourceAtlas, AnyFmtProvider, string, TestConfig>>();
+    expectTypeOf<TestStrategy>().toExtend<Strategy<TestResourceAtlas, string, AnyFmtProvider, TestConfig>>();
   });
 
   it("different ResourceAtlas types should produce different Strategy types", () => {
     type OtherResourceAtlas = {
       readonly other: { value: number };
     };
-    class OtherStrategy extends Strategy<OtherResourceAtlas, AnyFmtProvider, string, TestConfig> {}
+    class OtherStrategy extends Strategy<OtherResourceAtlas, string, AnyFmtProvider, TestConfig> {}
 
     expectTypeOf<TestStrategy>().not.toEqualTypeOf<OtherStrategy>();
   });
 
   it("different config types should produce different Strategy types", () => {
-    class StringStrategy extends Strategy<TestResourceAtlas, AnyFmtProvider, string, string> {}
-    class NumberStrategy extends Strategy<TestResourceAtlas, AnyFmtProvider, string, number> {}
+    class StringStrategy extends Strategy<TestResourceAtlas, string, AnyFmtProvider, string> {}
+    class NumberStrategy extends Strategy<TestResourceAtlas, string, AnyFmtProvider, number> {}
 
     expectTypeOf<StringStrategy>().not.toEqualTypeOf<NumberStrategy>();
   });
 
   it("different locale types should produce different Strategy types", () => {
-    class EnOnlyStrategy extends Strategy<TestResourceAtlas, AnyFmtProvider, "en", TestConfig> {}
-    class EnItStrategy extends Strategy<TestResourceAtlas, AnyFmtProvider, "en" | "it", TestConfig> {}
+    class EnOnlyStrategy extends Strategy<TestResourceAtlas, "en", AnyFmtProvider, TestConfig> {}
+    class EnItStrategy extends Strategy<TestResourceAtlas, "en" | "it", AnyFmtProvider, TestConfig> {}
 
     expectTypeOf<EnOnlyStrategy>().not.toEqualTypeOf<EnItStrategy>();
   });
