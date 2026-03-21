@@ -1,6 +1,14 @@
 import type { R } from "r-machine";
 import type { R$ } from "@/r-machine/r-machine";
 
+/*
+ * If you prefer, you can also import the formatters directly in your resource files and use
+ * them as regular functions, without the need to access them through the R$ parameter.
+ * This is useful if you don't want to use a factory function for your resources and prefer
+ * to export a plain object instead.
+ */
+// const { date, time, number, currency, plural } = Formatters.get("en");
+
 const r = ($: R$) => {
   const { date, time, number, currency, plural } = $.fmt;
 

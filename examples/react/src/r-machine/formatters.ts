@@ -1,12 +1,13 @@
-import { type AnyLocale, byLocale } from "r-machine/locale";
+import { createFormatters } from "r-machine";
+import type { Locale } from "./r-machine";
 
-const currencyByLocale: Record<AnyLocale, string> = {
+const currencyByLocale: Record<Locale, string> = {
   en: "USD",
   it: "EUR",
 };
 
 // Place here any formatting functions that depend on the locale, such as date, time, number, or plural formatting.
-export const fmt = byLocale((locale) => {
+export class Formatters extends createFormatters((locale: Locale) => {
   const dateLongFmt = new Intl.DateTimeFormat(locale, { dateStyle: "long" });
   const dateShortFmt = new Intl.DateTimeFormat(locale, { dateStyle: "short" });
   const timeFmt = new Intl.DateTimeFormat(locale, { timeStyle: "medium" });
@@ -30,4 +31,4 @@ export const fmt = byLocale((locale) => {
       return `${count} ${rule === "one" ? one : other}`;
     },
   };
-});
+}) {}

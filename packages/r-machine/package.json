@@ -82,22 +82,27 @@
   "imports": {
     "#r-machine/errors": {
       "@r-machine/source": "./src/errors/index.ts",
+      "types": "./errors/index.d.cts",
       "default": "./errors/index.js"
     },
     "#r-machine/locale": {
       "@r-machine/source": "./src/locale/index.ts",
+      "types": "./locale/index.d.cts",
       "default": "./locale/index.js"
     },
     "#r-machine": {
       "@r-machine/source": "./src/lib/index.ts",
+      "types": "./lib/index.d.cts",
       "default": "./lib/index.js"
     },
     "#r-machine/strategy": {
       "@r-machine/source": "./src/strategy/index.ts",
+      "types": "./strategy/index.d.cts",
       "default": "./strategy/index.js"
     },
     "#r-machine/strategy/web": {
       "@r-machine/source": "./src/strategy/web/index.ts",
+      "types": "./strategy/web/index.d.cts",
       "default": "./strategy/web/index.js"
     }
   },
