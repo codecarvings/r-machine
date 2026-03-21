@@ -1,5 +1,5 @@
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
-import type { AnyLocale, AnyLocaleList } from "#r-machine/locale";
+import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
 import { DomainManager } from "./domain-manager.js";
 import type {
@@ -34,6 +34,8 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, FP exten
       throw configError;
     }
     this.config = cloneRMachineConfig(config);
+    this.locales = this.config.locales;
+    this.defaultLocale = this.config.defaultLocale;
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
     this.domainManager = new DomainManager(config.rModuleResolver, extensions?.Formatters?.get as AnyFmtGetter);
     this.extensions = cloneRMachineExtensions(extensions);
@@ -48,8 +50,10 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, FP exten
     }
   }
 
-  readonly config: RMachineConfig<L>;
+  readonly locales: LocaleList<L>;
+  readonly defaultLocale: L;
   readonly localeHelper: LocaleHelper<L>;
+  protected readonly config: RMachineConfig<L>;
   protected readonly domainManager: DomainManager;
   protected readonly extensions: RMachineExtensions<ExtractFmtProviderCtor<FP>>;
 

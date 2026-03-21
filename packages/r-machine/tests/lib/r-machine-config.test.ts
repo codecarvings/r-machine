@@ -179,14 +179,15 @@ describe("cloneRMachineConfig", () => {
     expect(cloned.defaultLocale).toBe("it");
   });
 
-  it("should create an independent shallow copy of the locales array", () => {
+  it("should create an independent frozen copy of the locales array", () => {
     const original = makeConfig({ locales: ["en", "it"] });
     const cloned = cloneRMachineConfig(original);
 
-    (cloned.locales as string[]).push("fr");
-    expect(original.locales).toEqual(["en", "it"]);
+    expect(Object.isFrozen(cloned.locales)).toBe(true);
+    expect(() => (cloned.locales as string[]).push("fr")).toThrow(TypeError);
+    expect(cloned.locales).toEqual(["en", "it"]);
 
     (original.locales as string[]).push("de");
-    expect(cloned.locales).toEqual(["en", "it", "fr"]);
+    expect(cloned.locales).toEqual(["en", "it"]);
   });
 });

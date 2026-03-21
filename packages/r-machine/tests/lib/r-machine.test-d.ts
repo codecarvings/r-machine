@@ -108,13 +108,28 @@ describe("RMachine", () => {
   });
 
   describe("instance properties", () => {
-    it("should have readonly config property", () => {
+    it("should have readonly locales property", () => {
       const machine = createMachine<TestResourceAtlas>();
-      expectTypeOf(machine).toHaveProperty("config");
-      expectTypeOf(machine.config).toEqualTypeOf<RMachineConfig<string>>();
+      expectTypeOf(machine).toHaveProperty("locales");
+      expectTypeOf(machine.locales).toEqualTypeOf<readonly string[]>();
 
-      // @ts-expect-error - config is readonly
-      machine.config = {} as RMachineConfig<string>;
+      // @ts-expect-error - locales is readonly
+      machine.locales = ["en"];
+    });
+
+    it("should have readonly defaultLocale property", () => {
+      const machine = createMachine<TestResourceAtlas>();
+      expectTypeOf(machine).toHaveProperty("defaultLocale");
+      expectTypeOf(machine.defaultLocale).toEqualTypeOf<string>();
+
+      // @ts-expect-error - defaultLocale is readonly
+      machine.defaultLocale = "en";
+    });
+
+    it("should not expose config publicly", () => {
+      const machine = createMachine<TestResourceAtlas>();
+      // @ts-expect-error - config is protected
+      machine.config;
     });
 
     it("should have readonly localeHelper property", () => {
@@ -131,9 +146,10 @@ describe("RMachine", () => {
       expectTypeOf(machine.localeHelper).toEqualTypeOf<LocaleHelper<"en" | "it">>();
     });
 
-    it("config should preserve narrow locale type", () => {
+    it("locales and defaultLocale should preserve narrow locale type", () => {
       const machine = createNarrowMachine<TestResourceAtlas>();
-      expectTypeOf(machine.config).toEqualTypeOf<RMachineConfig<"en" | "it">>();
+      expectTypeOf(machine.locales).toEqualTypeOf<readonly ("en" | "it")[]>();
+      expectTypeOf(machine.defaultLocale).toEqualTypeOf<"en" | "it">();
     });
   });
 

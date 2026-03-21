@@ -69,7 +69,7 @@ describe("RMachine", () => {
     it("can be constructed directly with new RMachine(config, extensions)", () => {
       const machine = new RMachine<TestRA, string, undefined>(makeConfig(), {});
       expect(machine).toBeInstanceOf(RMachine);
-      expect(machine.config.locales).toEqual(["en", "it"]);
+      expect(machine.locales).toEqual(["en", "it"]);
     });
 
     it("throws for an empty locales array", () => {
@@ -98,7 +98,7 @@ describe("RMachine", () => {
         defaultLocale: "en",
         rModuleResolver: createMockResolver({ en: { common: { default: commonR } } }),
       }).create<TestRA>();
-      expect(machine.config.locales).toEqual(["en"]);
+      expect(machine.locales).toEqual(["en"]);
     });
   });
 
@@ -296,18 +296,23 @@ describe("RMachine", () => {
     });
   });
 
-  describe("config", () => {
-    it("exposes the config as a readonly property", () => {
+  describe("locales and defaultLocale", () => {
+    it("exposes locales and defaultLocale as readonly properties", () => {
       const machine = createMachine();
-      expect(machine.config.locales).toEqual(["en", "it"]);
-      expect(machine.config.defaultLocale).toBe("en");
+      expect(machine.locales).toEqual(["en", "it"]);
+      expect(machine.defaultLocale).toBe("en");
     });
 
     it("is not affected by mutations to the original config object", () => {
       const config = makeConfig();
       const machine = RMachine.builder(config).create<TestRA>();
       (config.locales as string[]).push("fr");
-      expect(machine.config.locales).toEqual(["en", "it"]);
+      expect(machine.locales).toEqual(["en", "it"]);
+    });
+
+    it("locales array is frozen at runtime", () => {
+      const machine = createMachine();
+      expect(Object.isFrozen(machine.locales)).toBe(true);
     });
   });
 
@@ -635,8 +640,8 @@ describe("RMachine", () => {
       const machine1 = createMachine();
       const machine2 = createMachine({ defaultLocale: "it" });
 
-      expect(machine1.config.defaultLocale).toBe("en");
-      expect(machine2.config.defaultLocale).toBe("it");
+      expect(machine1.defaultLocale).toBe("en");
+      expect(machine2.defaultLocale).toBe("it");
 
       expect(await machine1.pickR("en", "common")).toBe(commonR);
       expect(await machine2.pickR("en", "common")).toBe(commonR);

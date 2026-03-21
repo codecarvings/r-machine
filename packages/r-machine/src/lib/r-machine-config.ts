@@ -59,6 +59,6 @@ export function validateRMachineConfig<L extends AnyLocale>(config: RMachineConf
 export function cloneRMachineConfig<L extends AnyLocale>(config: RMachineConfig<L>): RMachineConfig<L> {
   return {
     ...config,
-    locales: [...config.locales] as LocaleList<L>,
+    locales: Object.freeze([...config.locales]) as LocaleList<L>,
   };
 }
