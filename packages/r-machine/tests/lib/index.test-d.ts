@@ -1,12 +1,11 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type {
-  AnyFormatterMap,
+  AnyFmtProvider,
   AnyNamespace,
   AnyNamespaceList,
   AnyR,
   AnyResourceAtlas,
   AnyRKit,
-  FormatterMapProvider,
   Namespace,
   NamespaceList,
   R,
@@ -24,7 +23,7 @@ describe("lib barrel exports", () => {
   it("exports all expected symbols", () => {
     expectTypeOf(RMachine.builder).toBeFunction();
 
-    expectTypeOf<RMachineLocale<RMachine<TestAtlas, "en" | "it">>>().toEqualTypeOf<"en" | "it">();
+    expectTypeOf<RMachineLocale<RMachine<TestAtlas, "en" | "it", undefined>>>().toEqualTypeOf<"en" | "it">();
 
     expectTypeOf<RMachineRCtx<ReturnType<typeof RMachine.builder>>>().toBeObject();
 
@@ -45,7 +44,6 @@ describe("lib barrel exports", () => {
 
     expectTypeOf<RCtx>().toBeObject();
 
-    expectTypeOf<AnyFormatterMap>().toEqualTypeOf<object | undefined>();
-    expectTypeOf<FormatterMapProvider<string, object>>().toBeObject();
+    expectTypeOf<AnyFmtProvider>().toBeNullable();
   });
 });

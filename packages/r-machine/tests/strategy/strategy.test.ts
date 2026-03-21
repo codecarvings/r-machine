@@ -1,23 +1,26 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AnyResourceAtlas, RMachineConfig } from "#r-machine";
+import { describe, expect, it, vi } from "vitest";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachineConfig } from "#r-machine";
 import type { AnyLocale } from "#r-machine/locale";
 import { RMachine } from "../../src/lib/r-machine.js";
 import { Strategy } from "../../src/strategy/strategy.js";
 
-class SpyStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, C> {
-  static validateConfigFn = vi.fn();
-  protected override validateConfig(): void {
-    SpyStrategy.validateConfigFn();
+function createSpyStrategyClass<RA extends AnyResourceAtlas, L extends AnyLocale, C>() {
+  const validateConfigSpy = vi.fn();
+  class SpyStrategy extends Strategy<RA, AnyFmtProvider, L, C> {
+    protected override validateConfig(): void {
+      validateConfigSpy();
+    }
   }
+  return { SpyStrategy, validateConfigSpy };
 }
 
-class ThrowingStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, C> {
+class ThrowingStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, AnyFmtProvider, L, C> {
   protected override validateConfig(): void {
     throw new Error("Validation failed");
   }
 }
 
-class DefaultStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, C> {}
+class DefaultStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, AnyFmtProvider, L, C> {}
 
 const testConfig: RMachineConfig<string> = {
   locales: ["en", "it"],
@@ -30,14 +33,11 @@ function createTestRMachine() {
 }
 
 describe("Strategy", () => {
-  beforeEach(() => {
-    SpyStrategy.validateConfigFn.mockClear();
-  });
-
   describe("construction", () => {
     it("should call validateConfig during construction", () => {
+      const { SpyStrategy, validateConfigSpy } = createSpyStrategyClass();
       new SpyStrategy(createTestRMachine(), { option: "value" });
-      expect(SpyStrategy.validateConfigFn).toHaveBeenCalledOnce();
+      expect(validateConfigSpy).toHaveBeenCalledOnce();
     });
 
     it("should propagate error if validateConfig throws", () => {

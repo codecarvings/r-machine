@@ -1,43 +1,21 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyNamespace, AnyR, AnyResourceAtlas, Namespace, R } from "../../src/lib/r.js";
-import type { AnyRForge, RCtx } from "../../src/lib/r-module.js";
+import type { RCtx } from "../../src/lib/r-module.js";
 
 describe("AnyNamespace", () => {
-  it("should be string type", () => {
+  it("should be string type and accept string literals", () => {
     expectTypeOf<AnyNamespace>().toEqualTypeOf<string>();
-  });
-
-  it("string should be assignable to AnyNamespace", () => {
-    expectTypeOf<string>().toExtend<AnyNamespace>();
-  });
-
-  it("string literal should be assignable to AnyNamespace", () => {
     expectTypeOf<"my-namespace">().toExtend<AnyNamespace>();
   });
 });
 
 describe("AnyR", () => {
-  it("should be object type", () => {
+  it("should accept objects and reject primitives and nullish values", () => {
     expectTypeOf<AnyR>().toEqualTypeOf<object>();
-  });
-
-  it("object should be assignable to AnyR", () => {
-    expectTypeOf<object>().toExtend<AnyR>();
-  });
-
-  it("record type should be assignable to AnyR", () => {
     expectTypeOf<{ key: string }>().toExtend<AnyR>();
-  });
 
-  it("null should not be assignable to AnyR", () => {
     expectTypeOf<null>().not.toExtend<AnyR>();
-  });
-
-  it("undefined should not be assignable to AnyR", () => {
     expectTypeOf<undefined>().not.toExtend<AnyR>();
-  });
-
-  it("primitive types should not be assignable to AnyR", () => {
     expectTypeOf<string>().not.toExtend<AnyR>();
     expectTypeOf<number>().not.toExtend<AnyR>();
     expectTypeOf<boolean>().not.toExtend<AnyR>();
@@ -51,7 +29,7 @@ describe("AnyResourceAtlas", () => {
 
   it("should have index signature with AnyNamespace keys", () => {
     type AtlasValue = AnyResourceAtlas[string];
-    expectTypeOf<AtlasValue>().toEqualTypeOf<AnyRForge>();
+    expectTypeOf<AtlasValue>().toEqualTypeOf<AnyR>();
   });
 
   it("valid resource atlas should be assignable", () => {

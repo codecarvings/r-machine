@@ -7,15 +7,24 @@ export interface RMachineBuilder<L extends AnyLocale> {
   with<FPC extends AnyFmtProviderCtor = undefined>(
     extensions: RMachineExtensions<FPC>
   ): RMachineExtendedBuilder<L, ExtractFmtProvider<FPC>>;
-  create<RA extends AnyResourceAtlas>(): RMachine<RA, L>;
+  create<RA extends AnyResourceAtlas>(): RMachine<RA, L, undefined>;
 }
 
 export interface RMachineExtensions<C extends AnyFmtProviderCtor = undefined> {
   readonly Formatters?: C;
 }
 
+/** Shallow clone — sufficient because extensions only hold constructor references. */
+export function cloneRMachineExtensions<C extends AnyFmtProviderCtor>(
+  extensions: RMachineExtensions<C>
+): RMachineExtensions<C> {
+  return {
+    ...extensions,
+  };
+}
+
 declare const _fmtProviderTag: unique symbol;
 export interface RMachineExtendedBuilder<L extends AnyLocale, FP extends AnyFmtProvider> {
   readonly [_fmtProviderTag]?: FP;
-  create<RA extends AnyResourceAtlas>(): RMachine<RA, L>;
+  create<RA extends AnyResourceAtlas>(): RMachine<RA, L, FP>;
 }

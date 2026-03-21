@@ -18,7 +18,14 @@ export interface FmtProviderCtor<L extends AnyLocale, F extends AnyFmt> {
 export type AnyFmtProviderCtor = FmtProviderCtor<any, any> | undefined;
 
 export type ExtractFmtProvider<FPC> = FPC extends FmtProviderCtor<any, any> ? InstanceType<FPC> : undefined;
-
+export type ExtractFmtProviderCtor<FP> =
+  FP extends FmtProvider<any, any>
+    ? {
+        new (): FP;
+        readonly get: FP["get"];
+      }
+    : undefined;
+export type ExtractFmtGetter<FP> = FP extends FmtProvider<any, any> ? FP["get"] : undefined;
 export type ExtractFmt<FP> = FP extends FmtProvider<any, infer F> ? F : undefined;
 
 export function createFormatters<L extends AnyLocale, const F extends AnyFmt>(

@@ -247,6 +247,23 @@ describe("resolveR", () => {
       expect(result).toEqual({ result: { lang: "en" } });
     });
 
+    it("should propagate error when fmtGetter throws", async () => {
+      const fmtGetter: AnyFmtGetter = () => {
+        throw new Error("formatter init failed");
+      };
+      const factory = vi.fn(($: RCtx) => ({ v: $.fmt }));
+      const resolver: RModuleResolver = async () => ({ default: factory });
+      await expect(resolveR(resolver, "common", "en", fmtGetter)).rejects.toThrow("formatter init failed");
+      expect(factory).not.toHaveBeenCalled();
+    });
+
+    it("should call fmtGetter exactly once per resolveR call", async () => {
+      const fmtGetter = vi.fn((_locale: string) => ({ v: 1 }));
+      const resolver: RModuleResolver = async () => ({ default: () => ({ ok: true }) });
+      await resolveR(resolver, "nav", "it", fmtGetter);
+      expect(fmtGetter).toHaveBeenCalledTimes(1);
+    });
+
     it("should call formatter getter with the correct locale", async () => {
       const fmtGetter = vi.fn((_locale: string) => ({ v: 1 }));
       const resolver: RModuleResolver = async () => ({ default: {} });

@@ -22,7 +22,7 @@ describe("RMachineBuilder", () => {
       rModuleResolver: async () => ({ default: {} }),
     });
     const machine = builder.create<TestAtlas>();
-    expectTypeOf(machine).toEqualTypeOf<RMachine<TestAtlas, "en" | "it">>();
+    expectTypeOf(machine).toEqualTypeOf<RMachine<TestAtlas, "en" | "it", undefined>>();
   });
 });
 
@@ -47,7 +47,7 @@ describe("RMachineExtendedBuilder", () => {
     extended.with;
   });
 
-  it("create should return an RMachine", () => {
+  it("create should return an RMachine with fmt", () => {
     const Formatters = createFormatters((_locale: "en" | "it") => ({ v: 1 }));
     const extended = RMachine.builder({
       locales: ["en", "it"] as const,
@@ -55,7 +55,9 @@ describe("RMachineExtendedBuilder", () => {
       rModuleResolver: async () => ({ default: {} }),
     }).with({ Formatters });
     const machine = extended.create<TestAtlas>();
-    expectTypeOf(machine).toEqualTypeOf<RMachine<TestAtlas, "en" | "it">>();
+    expectTypeOf(machine).toBeObject();
+    expectTypeOf(machine.fmt).toBeFunction();
+    expectTypeOf(machine.fmt("en")).toHaveProperty("v");
   });
 });
 
@@ -89,7 +91,9 @@ describe("builder flow type inference", () => {
       .with({ Formatters })
       .create<TestAtlas>();
 
-    expectTypeOf(machine).toEqualTypeOf<RMachine<TestAtlas, "en" | "it">>();
+    expectTypeOf(machine).toBeObject();
+    expectTypeOf(machine.fmt).toBeFunction();
+    expectTypeOf(machine.fmt("en")).toHaveProperty("currency");
   });
 
   it("create() without with() also produces valid RMachine", () => {
@@ -99,7 +103,7 @@ describe("builder flow type inference", () => {
       rModuleResolver: async () => ({ default: {} }),
     }).create<TestAtlas>();
 
-    expectTypeOf(machine).toEqualTypeOf<RMachine<TestAtlas, "en">>();
+    expectTypeOf(machine).toEqualTypeOf<RMachine<TestAtlas, "en", undefined>>();
   });
 
   it("ResourceAtlas generic flows through both builder paths", () => {

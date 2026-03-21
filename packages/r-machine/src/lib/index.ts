@@ -1,4 +1,4 @@
-export type { AnyFmt as AnyFormatterMap, FmtProvider as FormatterMapProvider } from "./fmt.js";
+export type { AnyFmtProvider } from "./fmt.js";
 export type { AnyNamespace, AnyR, AnyResourceAtlas, Namespace, R } from "./r.js";
 export type { AnyNamespaceList, AnyRKit, NamespaceList, RKit } from "./r-kit.js";
 export {
