@@ -13,8 +13,8 @@ const rMachineBuilder = RMachine.builder({
 
 export type Locale = RMachineLocale<typeof rMachineBuilder>;
 
-// Step 2: formatters → RCtx
-const rMachineSetup = rMachineBuilder.with({ formatters: fmt });
+// Step 2: Formatters → RCtx
+const rMachineSetup = rMachineBuilder.with({ Formatters: fmt });
 export type R$ = RMachineRCtx<typeof rMachineSetup>;
 
 // Step 3: ResourceAtlas → RMachine

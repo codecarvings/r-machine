@@ -36,9 +36,7 @@ describe("Domain", () => {
 
       const result = await domain.pickR("common");
       expect(result).toEqual({ greeting: "Hello in en" });
-      expect(factory).toHaveBeenCalledWith(
-        expect.objectContaining({ fmt: { lang: "en" } })
-      );
+      expect(factory).toHaveBeenCalledWith(expect.objectContaining({ fmt: { lang: "en" } }));
     });
 
     it("passes undefined fmt when formatter getter returns undefined", async () => {
@@ -47,9 +45,7 @@ describe("Domain", () => {
       const domain = new Domain("en", resolver, noFmt);
 
       await domain.pickR("common");
-      expect(factory).toHaveBeenCalledWith(
-        expect.objectContaining({ fmt: undefined })
-      );
+      expect(factory).toHaveBeenCalledWith(expect.objectContaining({ fmt: undefined }));
     });
   });
 

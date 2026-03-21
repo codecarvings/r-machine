@@ -1,13 +1,8 @@
 import { describe, expectTypeOf, it } from "vitest";
-import { createFormatters } from "../../src/lib/fmt.js";
 import type { FmtProviderCtor } from "../../src/lib/fmt.js";
-import type { AnyResourceAtlas } from "../../src/lib/r.js";
+import { createFormatters } from "../../src/lib/fmt.js";
 import { RMachine } from "../../src/lib/r-machine.js";
-import type {
-  RMachineBuilder,
-  RMachineExtendedBuilder,
-  RMachineExtensions,
-} from "../../src/lib/r-machine-builder.js";
+import type { RMachineBuilder, RMachineExtendedBuilder, RMachineExtensions } from "../../src/lib/r-machine-builder.js";
 
 type TestAtlas = { readonly common: { greeting: string } };
 
@@ -41,40 +36,40 @@ describe("RMachineExtendedBuilder", () => {
   });
 
   it("should not allow calling .with() a second time", () => {
-    const Fmt = createFormatters((_locale: "en" | "it") => ({ v: 1 }));
+    const Formatters = createFormatters((_locale: "en" | "it") => ({ v: 1 }));
     const extended = RMachine.builder({
       locales: ["en", "it"] as const,
       defaultLocale: "en" as const,
       rModuleResolver: async () => ({ default: {} }),
-    }).with({ formatters: Fmt });
+    }).with({ Formatters });
 
     // @ts-expect-error - .with() is not available on RMachineExtendedBuilder
     extended.with;
   });
 
   it("create should return an RMachine", () => {
-    const Fmt = createFormatters((_locale: "en" | "it") => ({ v: 1 }));
+    const Formatters = createFormatters((_locale: "en" | "it") => ({ v: 1 }));
     const extended = RMachine.builder({
       locales: ["en", "it"] as const,
       defaultLocale: "en" as const,
       rModuleResolver: async () => ({ default: {} }),
-    }).with({ formatters: Fmt });
+    }).with({ Formatters });
     const machine = extended.create<TestAtlas>();
     expectTypeOf(machine).toEqualTypeOf<RMachine<TestAtlas, "en" | "it">>();
   });
 });
 
 describe("RMachineExtensions", () => {
-  it("should have optional formatters property", () => {
-    expectTypeOf<RMachineExtensions>().toHaveProperty("formatters");
+  it("should have optional Formatters property", () => {
+    expectTypeOf<RMachineExtensions>().toHaveProperty("Formatters");
   });
 
-  it("should accept FmtProviderCtor as formatters", () => {
+  it("should accept FmtProviderCtor as Formatters", () => {
     type Ctor = FmtProviderCtor<string, { n: number }>;
-    expectTypeOf<RMachineExtensions<Ctor>>().toHaveProperty("formatters");
+    expectTypeOf<RMachineExtensions<Ctor>>().toHaveProperty("Formatters");
   });
 
-  it("should accept undefined formatters by default", () => {
+  it("should accept undefined Formatters by default", () => {
     const ext: RMachineExtensions = {};
     expectTypeOf(ext).toExtend<RMachineExtensions>();
   });
@@ -82,7 +77,7 @@ describe("RMachineExtensions", () => {
 
 describe("builder flow type inference", () => {
   it("with() narrows the formatter type through to create()", () => {
-    const Fmt = createFormatters((_locale: "en" | "it") => ({
+    const Formatters = createFormatters((_locale: "en" | "it") => ({
       currency: (n: number) => `$${n}`,
     }));
 
@@ -91,7 +86,7 @@ describe("builder flow type inference", () => {
       defaultLocale: "en" as const,
       rModuleResolver: async () => ({ default: {} }),
     })
-      .with({ formatters: Fmt })
+      .with({ Formatters })
       .create<TestAtlas>();
 
     expectTypeOf(machine).toEqualTypeOf<RMachine<TestAtlas, "en" | "it">>();
@@ -122,8 +117,8 @@ describe("builder flow type inference", () => {
     const direct = RMachine.builder(config).create<WideAtlas>();
     expectTypeOf(direct.pickR("en", "home")).toEqualTypeOf<Promise<{ title: string }>>();
 
-    const Fmt = createFormatters((_locale: "en") => ({ v: 1 }));
-    const withFmt = RMachine.builder(config).with({ formatters: Fmt }).create<WideAtlas>();
-    expectTypeOf(withFmt.pickR("en", "home")).toEqualTypeOf<Promise<{ title: string }>>();
+    const Formatters = createFormatters((_locale: "en") => ({ v: 1 }));
+    const withFormatters = RMachine.builder(config).with({ Formatters }).create<WideAtlas>();
+    expectTypeOf(withFormatters.pickR("en", "home")).toEqualTypeOf<Promise<{ title: string }>>();
   });
 });

@@ -46,5 +46,4 @@ describe("DomainManager", () => {
       expectTypeOf<DomainManager>().not.toHaveProperty("formatters");
     });
   });
-
 });

@@ -15,11 +15,7 @@ import type {
   RMachineConfig,
   RMachineConfigParams,
 } from "../../src/lib/index.js";
-import {
-  RMachine,
-  type RMachineLocale,
-  type RMachineRCtx,
-} from "../../src/lib/index.js";
+import { RMachine, type RMachineLocale, type RMachineRCtx } from "../../src/lib/index.js";
 
 type TestAtlas = { readonly common: { greeting: string } };
 

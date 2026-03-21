@@ -1,10 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "../../src/locale/index.js";
-import {
-  getCanonicalUnicodeLocaleId,
-  LocaleHelper,
-  validateCanonicalUnicodeLocaleId,
-} from "../../src/locale/index.js";
+import { getCanonicalUnicodeLocaleId, LocaleHelper, validateCanonicalUnicodeLocaleId } from "../../src/locale/index.js";
 
 // Barrel test: uses a single it() to verify export completeness only. Type shape tests belong in dedicated files.
 describe("locale barrel exports", () => {

@@ -116,7 +116,7 @@ describe("RMachine", () => {
       expect(await machine.pickR("en", "common")).toBe(commonR);
     });
 
-    it("builder.with({ formatters }).create() produces an RMachine with formatters injected in RCtx", async () => {
+    it("builder.with({ Formatters }).create() produces an RMachine with formatters injected in RCtx", async () => {
       const Formatters = createFormatters((_locale: string) => ({ currency: (n: number) => `$${n}` }));
       const factory = vi.fn(($: { namespace: string; locale: string; fmt: any }) => ({
         value: $.fmt.currency(42),
@@ -127,7 +127,7 @@ describe("RMachine", () => {
         defaultLocale: "en",
         rModuleResolver: resolver,
       })
-        .with({ formatters: Formatters })
+        .with({ Formatters })
         .create<{ readonly test: { value: string } }>();
 
       const result = await machine.pickR("en", "test");
@@ -153,7 +153,7 @@ describe("RMachine", () => {
         defaultLocale: "en",
         rModuleResolver: resolver,
       })
-        .with({ formatters: Formatters })
+        .with({ Formatters })
         .create<{ readonly test: { result: string } }>();
 
       const enResult = await machine.pickR("en", "test");
@@ -175,9 +175,7 @@ describe("RMachine", () => {
       }).create<{ readonly test: { value: number } }>();
 
       await machine.pickR("en", "test");
-      expect(factory).toHaveBeenCalledWith(
-        expect.objectContaining({ fmt: undefined })
-      );
+      expect(factory).toHaveBeenCalledWith(expect.objectContaining({ fmt: undefined }));
     });
 
     it("createFormatters caches formatter instances across resource resolutions", async () => {
@@ -190,7 +188,7 @@ describe("RMachine", () => {
         defaultLocale: "en",
         rModuleResolver: resolver,
       })
-        .with({ formatters: Formatters })
+        .with({ Formatters })
         .create<{ readonly a: { v: string }; readonly b: { v: string } }>();
 
       await machine.pickR("en", "a");

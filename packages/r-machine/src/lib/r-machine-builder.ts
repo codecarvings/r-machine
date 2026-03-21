@@ -11,7 +11,7 @@ export interface RMachineBuilder<L extends AnyLocale> {
 }
 
 export interface RMachineExtensions<C extends AnyFmtProviderCtor = undefined> {
-  readonly formatters?: C;
+  readonly Formatters?: C;
 }
 
 declare const _fmtProviderTag: unique symbol;

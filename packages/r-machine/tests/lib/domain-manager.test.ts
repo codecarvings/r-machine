@@ -75,9 +75,7 @@ describe("DomainManager", () => {
 
       const result = await manager.getDomain("it").pickR("common");
       expect(result).toEqual({ value: "it" });
-      expect(factory).toHaveBeenCalledWith(
-        expect.objectContaining({ locale: "it", fmt: { lang: "it" } })
-      );
+      expect(factory).toHaveBeenCalledWith(expect.objectContaining({ locale: "it", fmt: { lang: "it" } }));
     });
 
     it("provides locale-specific formatters to each domain", async () => {

@@ -22,7 +22,7 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale> {
     }
     this.config = cloneRMachineConfig(config);
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
-    this.domainManager = new DomainManager(config.rModuleResolver, extensions?.formatters?.get as AnyFmtGetter);
+    this.domainManager = new DomainManager(config.rModuleResolver, extensions?.Formatters?.get as AnyFmtGetter);
   }
 
   readonly config: RMachineConfig<L>;

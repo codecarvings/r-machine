@@ -20,7 +20,6 @@ const rMachineBuilder = RMachine.builder({
     };
   },
 });
-
 type Locale = RMachineLocale<typeof rMachineBuilder>;
 
 class Formatters extends createFormatters((locale: Locale) => {
@@ -29,9 +28,7 @@ class Formatters extends createFormatters((locale: Locale) => {
   };
 }) {}
 
-const rMachineExtBuilder = rMachineBuilder.with({
-  formatters: Formatters,
-});
+const rMachineExtBuilder = rMachineBuilder.with({ Formatters });
 type R$ = RMachineRCtx<typeof rMachineExtBuilder>;
 
 const rMachine = rMachineExtBuilder.create<ResourceAtlas>();

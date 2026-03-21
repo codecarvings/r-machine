@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyNamespace, AnyR } from "../../src/lib/r.js";
 import type { AnyFmtGetter, FmtProvider } from "../../src/lib/fmt.js";
+import type { AnyNamespace, AnyR } from "../../src/lib/r.js";
 import type { AnyRFactory, AnyRForge, AnyRModule, RCtx, RModuleResolver } from "../../src/lib/r-module.js";
 import { resolveR, resolveRFromModule } from "../../src/lib/r-module.js";
 
