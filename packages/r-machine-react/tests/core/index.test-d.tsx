@@ -1,4 +1,4 @@
-import type { AnyResourceAtlas } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
@@ -33,8 +33,8 @@ import { createReactToolset as originalCreateReactToolset } from "../../src/core
 
 describe("core barrel exports", () => {
   it("re-exports ReactBareStrategy identical to the original", () => {
-    expectTypeOf<ReactBareStrategy<AnyResourceAtlas, AnyLocale>>().toEqualTypeOf<
-      OriginalReactBareStrategy<AnyResourceAtlas, AnyLocale>
+    expectTypeOf<ReactBareStrategy<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>().toEqualTypeOf<
+      OriginalReactBareStrategy<AnyResourceAtlas, AnyLocale, AnyFmtProvider>
     >();
   });
 
@@ -61,14 +61,14 @@ describe("core barrel exports", () => {
   });
 
   it("re-exports ReactStandardStrategyCore identical to the original", () => {
-    expectTypeOf<ReactStandardStrategyCore<AnyResourceAtlas, AnyLocale>>().toEqualTypeOf<
-      OriginalStandardStrategyCore<AnyResourceAtlas, AnyLocale>
+    expectTypeOf<ReactStandardStrategyCore<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>().toEqualTypeOf<
+      OriginalStandardStrategyCore<AnyResourceAtlas, AnyLocale, AnyFmtProvider>
     >();
   });
 
   it("re-exports ReactStrategyCore identical to the original", () => {
-    expectTypeOf<ReactStrategyCore<AnyResourceAtlas, AnyLocale, unknown>>().toEqualTypeOf<
-      OriginalReactStrategyCore<AnyResourceAtlas, AnyLocale, unknown>
+    expectTypeOf<ReactStrategyCore<AnyResourceAtlas, AnyLocale, AnyFmtProvider, unknown>>().toEqualTypeOf<
+      OriginalReactStrategyCore<AnyResourceAtlas, AnyLocale, AnyFmtProvider, unknown>
     >();
   });
 

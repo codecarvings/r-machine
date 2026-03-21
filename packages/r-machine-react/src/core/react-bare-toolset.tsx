@@ -1,6 +1,6 @@
 "use client";
 
-import type { AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
@@ -36,9 +36,11 @@ interface ReactBareToolsetContext<L extends AnyLocale> {
   readonly writeLocale: WriteLocale<L> | undefined;
 }
 
-export async function createReactBareToolset<RA extends AnyResourceAtlas, L extends AnyLocale>(
-  rMachine: RMachine<RA, L>
-): Promise<ReactBareToolset<RA, L>> {
+export async function createReactBareToolset<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  FP extends AnyFmtProvider,
+>(rMachine: RMachine<RA, L, FP>): Promise<ReactBareToolset<RA, L>> {
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const Context = createContext<ReactBareToolsetContext<L> | null>(null);

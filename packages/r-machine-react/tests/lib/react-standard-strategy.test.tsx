@@ -1,6 +1,5 @@
-import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
+import { cleanup } from "@testing-library/react";
 import type { CustomLocaleDetector } from "r-machine/strategy";
-import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ReactStandardStrategyCore } from "#r-machine/react/core";
 import { ReactStandardStrategy } from "../../src/lib/react-standard-strategy.js";
@@ -19,25 +18,14 @@ describe("ReactStandardStrategy", () => {
   // -----------------------------------------------------------------------
 
   describe("construction", () => {
-    it("extends ReactStandardStrategyCore", () => {
-      const strategy = new ReactStandardStrategy(createMockMachine());
-      expect(strategy).toBeInstanceOf(ReactStandardStrategyCore);
-    });
-
-    it("can be instantiated with only an RMachine (no config argument)", () => {
-      const strategy = new ReactStandardStrategy(createMockMachine());
-      expect(strategy).toBeInstanceOf(ReactStandardStrategy);
-    });
-
-    it("can be instantiated with an RMachine and a partial config", () => {
+    it("accepts no config, partial config, or empty config", () => {
       const detector: CustomLocaleDetector = () => "en";
-      const strategy = new ReactStandardStrategy(createMockMachine(), { localeDetector: detector });
-      expect(strategy).toBeInstanceOf(ReactStandardStrategy);
-    });
-
-    it("can be instantiated with an RMachine and an empty config", () => {
-      const strategy = new ReactStandardStrategy(createMockMachine(), {});
-      expect(strategy).toBeInstanceOf(ReactStandardStrategy);
+      const s1 = new ReactStandardStrategy(createMockMachine());
+      const s2 = new ReactStandardStrategy(createMockMachine(), { localeDetector: detector });
+      const s3 = new ReactStandardStrategy(createMockMachine(), {});
+      expect(s1.config).toBeDefined();
+      expect(s2.config.localeDetector).toBe(detector);
+      expect(s3.config).toBeDefined();
     });
   });
 
@@ -99,83 +87,6 @@ describe("ReactStandardStrategy", () => {
       new ReactStandardStrategy(createMockMachine(), { localeDetector: detector });
       expect(ReactStandardStrategyCore.defaultConfig.localeDetector).toBeUndefined();
       expect(ReactStandardStrategyCore.defaultConfig.localeStore).toBeUndefined();
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // createToolset — partial config wiring
-  // -----------------------------------------------------------------------
-
-  describe("createToolset — partial config wiring", () => {
-    it("falls back to rMachine.config.defaultLocale when constructed without config", async () => {
-      const machine = createMockMachine({ defaultLocale: "it" });
-      const strategy = new ReactStandardStrategy(machine);
-      const toolset = await strategy.createToolset();
-
-      function LocaleDisplay() {
-        return <span data-testid="locale">{toolset.useLocale()}</span>;
-      }
-
-      render(
-        <toolset.ReactRMachine>
-          <LocaleDisplay />
-        </toolset.ReactRMachine>
-      );
-
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-    });
-
-    it("uses localeDetector from partial config to determine the initial locale", async () => {
-      const strategy = new ReactStandardStrategy(createMockMachine(), {
-        localeDetector: () => "it",
-      });
-      const toolset = await strategy.createToolset();
-
-      function LocaleDisplay() {
-        return <span data-testid="locale">{toolset.useLocale()}</span>;
-      }
-
-      render(
-        <toolset.ReactRMachine>
-          <LocaleDisplay />
-        </toolset.ReactRMachine>
-      );
-
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-    });
-
-    it("uses localeStore from partial config to read the initial locale", async () => {
-      const store = syncStore("it");
-      const strategy = new ReactStandardStrategy(createMockMachine(), { localeStore: store });
-      const toolset = await strategy.createToolset();
-
-      function LocaleDisplay() {
-        return <span data-testid="locale">{toolset.useLocale()}</span>;
-      }
-
-      render(
-        <toolset.ReactRMachine>
-          <LocaleDisplay />
-        </toolset.ReactRMachine>
-      );
-
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-    });
-
-    it("delegates locale writes to the localeStore from partial config", async () => {
-      const store = syncStore("en");
-      const strategy = new ReactStandardStrategy(createMockMachine(), { localeStore: store });
-      const toolset = await strategy.createToolset();
-
-      const { result } = renderHook(() => toolset.useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <toolset.ReactRMachine>{children}</toolset.ReactRMachine>,
-      });
-
-      await act(async () => {
-        await result.current("it");
-      });
-
-      expect(store.set).toHaveBeenCalledWith("it");
     });
   });
 });

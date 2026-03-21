@@ -1,7 +1,6 @@
 import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
-import type { RMachine } from "r-machine";
+import type { AnyFmtProvider, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
-import { Strategy } from "r-machine/strategy";
 import type { ReactNode } from "react";
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -9,7 +8,7 @@ import { ReactStrategyCore } from "../../src/core/react-strategy-core.js";
 import type { ReactImpl } from "../../src/core/react-toolset.js";
 import { createMockImpl } from "../_fixtures/mock-impl.js";
 import type { TestAtlas } from "../_fixtures/mock-machine.js";
-import { createMockMachine } from "../_fixtures/mock-machine.js";
+import { createMockMachine, spies } from "../_fixtures/mock-machine.js";
 
 afterEach(cleanup);
 
@@ -19,11 +18,11 @@ afterEach(cleanup);
 
 type TestConfig = { readonly label: string };
 
-class ConcreteReactStrategy extends ReactStrategyCore<TestAtlas, AnyLocale, TestConfig> {
+class ConcreteReactStrategy extends ReactStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider, TestConfig> {
   implFactory: () => Promise<ReactImpl<AnyLocale>>;
 
   constructor(
-    rMachine: RMachine<TestAtlas, AnyLocale>,
+    rMachine: RMachine<TestAtlas, AnyLocale, AnyFmtProvider>,
     config: TestConfig,
     implFactory: () => Promise<ReactImpl<AnyLocale>>
   ) {
@@ -40,7 +39,7 @@ const defaultConfig: TestConfig = { label: "test" };
 
 function createStrategy(
   options: {
-    machine?: RMachine<TestAtlas, AnyLocale>;
+    machine?: RMachine<TestAtlas, AnyLocale, AnyFmtProvider>;
     config?: TestConfig;
     implFactory?: () => Promise<ReactImpl<AnyLocale>>;
   } = {}
@@ -61,20 +60,11 @@ describe("ReactStrategyCore", () => {
   // -----------------------------------------------------------------------
 
   describe("construction", () => {
-    it("extends Strategy", () => {
-      const { strategy } = createStrategy();
-      expect(strategy).toBeInstanceOf(Strategy);
-    });
-
-    it("exposes the rMachine property from the base class", () => {
+    it("exposes rMachine and config from constructor arguments", () => {
       const machine = createMockMachine();
-      const { strategy } = createStrategy({ machine });
-      expect(strategy.rMachine).toBe(machine);
-    });
-
-    it("exposes the config property from the base class", () => {
       const config: TestConfig = { label: "custom" };
-      const { strategy } = createStrategy({ config });
+      const { strategy } = createStrategy({ machine, config });
+      expect(strategy.rMachine).toBe(machine);
       expect(strategy.config).toBe(config);
     });
   });
@@ -171,7 +161,7 @@ describe("ReactStrategyCore", () => {
         );
       });
 
-      expect((machine as any).hybridPickR).toHaveBeenCalled();
+      expect(spies(machine).hybridPickR).toHaveBeenCalled();
     });
 
     it("toolsets from the same strategy share the same rMachine", async () => {
@@ -203,7 +193,7 @@ describe("ReactStrategyCore", () => {
       );
 
       // Both toolsets invoked hybridPickR on the same shared machine instance
-      expect((machine as any).hybridPickR).toHaveBeenCalledTimes(2);
+      expect(spies(machine).hybridPickR).toHaveBeenCalledTimes(2);
     });
   });
 

@@ -1,4 +1,4 @@
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import { createContext, type ReactNode, use, useContext, useMemo, useState } from "react";
@@ -31,8 +31,8 @@ export interface ReactImpl<L extends AnyLocale> {
 
 type ReactToolsetContext<L extends AnyLocale> = [L, (newLocale: L) => void];
 
-export async function createReactToolset<RA extends AnyResourceAtlas, L extends AnyLocale>(
-  rMachine: RMachine<RA, L>,
+export async function createReactToolset<RA extends AnyResourceAtlas, L extends AnyLocale, FP extends AnyFmtProvider>(
+  rMachine: RMachine<RA, L, FP>,
   impl: ReactImpl<L>
 ): Promise<ReactToolset<RA, L>> {
   const { ReactRMachine: OriginalReactRMachine, ...otherTools } = await createReactBareToolset(rMachine);

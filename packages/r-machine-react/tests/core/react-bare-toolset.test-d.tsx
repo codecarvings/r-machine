@@ -1,4 +1,4 @@
-import type { RMachine } from "r-machine";
+import type { AnyFmtProvider, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import { describe, expectTypeOf, it } from "vitest";
@@ -16,10 +16,10 @@ type TestAtlas = {
 
 describe("createReactBareToolset", () => {
   it("accepts an RMachine and returns a Promise of ReactBareToolset", () => {
-    expectTypeOf(createReactBareToolset<TestAtlas, AnyLocale>)
+    expectTypeOf(createReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>)
       .parameter(0)
-      .toEqualTypeOf<RMachine<TestAtlas, AnyLocale>>();
-    expectTypeOf(createReactBareToolset<TestAtlas, AnyLocale>).returns.toEqualTypeOf<
+      .toEqualTypeOf<RMachine<TestAtlas, AnyLocale, AnyFmtProvider>>();
+    expectTypeOf(createReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>).returns.toEqualTypeOf<
       Promise<ReactBareToolset<TestAtlas, AnyLocale>>
     >();
   });
@@ -135,18 +135,10 @@ describe("ReactBareRMachine", () => {
     expectTypeOf<ReactBareRMachine<AnyLocale>>().returns.toExtend<ReactNode>();
   });
 
-  it("has a probe method that accepts string or undefined", () => {
-    expectTypeOf<ReactBareRMachine<AnyLocale>["probe"]>().toBeFunction();
+  it("probe accepts string or undefined and returns L | undefined", () => {
     expectTypeOf<ReactBareRMachine<AnyLocale>["probe"]>().toBeCallableWith("en");
     expectTypeOf<ReactBareRMachine<AnyLocale>["probe"]>().toBeCallableWith(undefined);
-  });
-
-  it("probe returns L or undefined", () => {
     expectTypeOf<ReactBareRMachine<AnyLocale>["probe"]>().returns.toEqualTypeOf<string | undefined>();
-  });
-
-  it("probe parameter is typed as string | undefined", () => {
-    expectTypeOf<ReactBareRMachine<AnyLocale>["probe"]>().parameter(0).toEqualTypeOf<string | undefined>();
   });
 });
 

@@ -1,13 +1,14 @@
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactStandardStrategyConfig } from "./react-standard-strategy-core.js";
 import type { ReactImpl } from "./react-toolset.js";
 
-export async function createReactStandardImpl<RA extends AnyResourceAtlas, L extends AnyLocale>(
-  rMachine: RMachine<RA, L>,
-  strategyConfig: ReactStandardStrategyConfig
-): Promise<ReactImpl<L>> {
+export async function createReactStandardImpl<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  FP extends AnyFmtProvider,
+>(rMachine: RMachine<RA, L, FP>, strategyConfig: ReactStandardStrategyConfig): Promise<ReactImpl<L>> {
   function returnValidLocale(locale: AnyLocale): L {
     const error = rMachine.localeHelper.validateLocale(locale);
     if (error) {
@@ -27,7 +28,7 @@ export async function createReactStandardImpl<RA extends AnyResourceAtlas, L ext
       }
     }
 
-    return rMachine.config.defaultLocale;
+    return rMachine.defaultLocale;
   }
 
   function storeLocale(locale: L): L | Promise<L> {
