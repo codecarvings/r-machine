@@ -6,7 +6,7 @@ import type { AnyFmtGetter } from "../../src/lib/fmt.js";
 import type { AnyRModule, RModuleResolver } from "../../src/lib/r-module.js";
 import { createMockResolver } from "../_fixtures/resolver-helpers.js";
 
-const noFmt: AnyFmtGetter = () => undefined;
+const noFmt: AnyFmtGetter = () => ({});
 
 const commonR = { greeting: "hello" };
 const navR = { home: "Home" };

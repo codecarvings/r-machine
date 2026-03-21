@@ -9,7 +9,7 @@ describe("DomainManager", () => {
   it("should be a class", () => {
     expectTypeOf(DomainManager).toBeConstructibleWith(
       (() => Promise.resolve({ default: {} })) as RModuleResolver,
-      (() => undefined) as AnyFmtGetter
+      (() => ({})) as AnyFmtGetter
     );
   });
 

@@ -4,10 +4,10 @@ import type { AnyFmtGetter } from "../../src/lib/fmt.js";
 import type { AnyRModule, RCtx, RModuleResolver } from "../../src/lib/r-module.js";
 import { resolveR, resolveRFromModule } from "../../src/lib/r-module.js";
 
-const noFmt: AnyFmtGetter = () => undefined;
+const noFmt: AnyFmtGetter = () => ({});
 
 function make$(overrides: Partial<RCtx> = {}): RCtx {
-  return { namespace: "common", locale: "en", fmt: undefined, ...overrides };
+  return { namespace: "common", locale: "en", fmt: {}, ...overrides };
 }
 
 describe("resolveRFromModule", () => {
@@ -218,7 +218,7 @@ describe("resolveR", () => {
       const factory = vi.fn(($: RCtx) => ({ ns: $.namespace, loc: $.locale }));
       const resolver: RModuleResolver = async () => ({ default: factory });
       const result = await resolveR(resolver, "nav", "it", noFmt);
-      expect(factory).toHaveBeenCalledWith({ namespace: "nav", locale: "it", fmt: undefined });
+      expect(factory).toHaveBeenCalledWith({ namespace: "nav", locale: "it", fmt: {} });
       expect(result).toEqual({ ns: "nav", loc: "it" });
     });
   });
@@ -247,13 +247,14 @@ describe("resolveR", () => {
       expect(result).toEqual({ result: { lang: "en" } });
     });
 
-    it("should propagate error when fmtGetter throws", async () => {
+    it("should propagate error when fmtGetter throws (error is NOT wrapped in RMachineError)", async () => {
       const fmtGetter: AnyFmtGetter = () => {
         throw new Error("formatter init failed");
       };
       const factory = vi.fn(($: RCtx) => ({ v: $.fmt }));
       const resolver: RModuleResolver = async () => ({ default: factory });
       await expect(resolveR(resolver, "common", "en", fmtGetter)).rejects.toThrow("formatter init failed");
+      await expect(resolveR(resolver, "common", "en", fmtGetter)).rejects.not.toThrow(RMachineError);
       expect(factory).not.toHaveBeenCalled();
     });
 

@@ -14,10 +14,6 @@ export function createMockResolver(modules: Record<string, Record<string, AnyRMo
   };
 }
 
-export function createFailingResolver(error: Error = new Error("Resolver failed")): RModuleResolver {
-  return () => Promise.reject(error);
-}
-
 export function createDelayedResolver(
   modules: Record<string, Record<string, AnyRModule>>,
   delayMs = 10

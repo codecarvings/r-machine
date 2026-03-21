@@ -1,5 +1,5 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyFmtGetter, FmtProvider } from "../../src/lib/fmt.js";
+import type { AnyFmtGetter, EmptyFmt, EmptyFmtProvider, FmtProvider } from "../../src/lib/fmt.js";
 import type { AnyNamespace, AnyR } from "../../src/lib/r.js";
 import type { AnyRFactory, AnyRForge, AnyRModule, RCtx, RModuleResolver } from "../../src/lib/r-module.js";
 import { resolveR, resolveRFromModule } from "../../src/lib/r-module.js";
@@ -22,7 +22,7 @@ describe("RCtx", () => {
   });
 
   it("valid RCtx object should be assignable", () => {
-    const r$: RCtx = { namespace: "common", locale: "en", fmt: undefined };
+    const r$: RCtx = { namespace: "common", locale: "en", fmt: {} };
     expectTypeOf(r$).toExtend<RCtx>();
   });
 
@@ -38,9 +38,9 @@ describe("RCtx", () => {
     expectTypeOf<Narrow>().toHaveProperty("fmt").toEqualTypeOf<FmtType>();
   });
 
-  it("should have fmt as undefined when FmtProvider is undefined", () => {
-    type NoFmt = RCtx<"en", undefined>;
-    expectTypeOf<NoFmt>().toHaveProperty("fmt").toEqualTypeOf<undefined>();
+  it("should have fmt as EmptyFmt when FmtProvider is EmptyFmtProvider", () => {
+    type NoFmt = RCtx<"en", EmptyFmtProvider>;
+    expectTypeOf<NoFmt>().toHaveProperty("fmt").toEqualTypeOf<EmptyFmt>();
   });
 });
 

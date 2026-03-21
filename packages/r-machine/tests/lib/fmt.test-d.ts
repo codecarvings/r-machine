@@ -3,18 +3,18 @@ import type {
   AnyFmt,
   AnyFmtGetter,
   AnyFmtProvider,
-  AnyFmtProviderCtor,
+  EmptyFmt,
+  EmptyFmtProvider,
   ExtractFmt,
-  ExtractFmtProvider,
   FmtGetter,
   FmtProvider,
   FmtProviderCtor,
 } from "../../src/lib/fmt.js";
-import { createFormatters } from "../../src/lib/fmt.js";
+import { createFormatters, EmptyFmtProviderCtor } from "../../src/lib/fmt.js";
 
 describe("AnyFmt", () => {
-  it("should be object | undefined", () => {
-    expectTypeOf<AnyFmt>().toEqualTypeOf<object | undefined>();
+  it("should be object", () => {
+    expectTypeOf<AnyFmt>().toEqualTypeOf<object>();
   });
 });
 
@@ -26,7 +26,7 @@ describe("FmtGetter", () => {
 
 describe("AnyFmtGetter", () => {
   it("should be a function from string to AnyFmt", () => {
-    expectTypeOf<AnyFmtGetter>().toEqualTypeOf<(locale: string) => object | undefined>();
+    expectTypeOf<AnyFmtGetter>().toEqualTypeOf<(locale: string) => object>();
   });
 });
 
@@ -42,45 +42,49 @@ describe("FmtProvider", () => {
 });
 
 describe("AnyFmtProvider", () => {
-  it("should accept FmtProvider or undefined", () => {
+  it("should accept FmtProvider", () => {
     expectTypeOf<FmtProvider<any, any>>().toExtend<AnyFmtProvider>();
-    expectTypeOf<undefined>().toExtend<AnyFmtProvider>();
+  });
+});
+
+describe("EmptyFmtProvider", () => {
+  it("should be a FmtProvider<string, EmptyFmt>", () => {
+    expectTypeOf<EmptyFmtProvider>().toExtend<FmtProvider<string, EmptyFmt>>();
+  });
+
+  it("should extend AnyFmtProvider", () => {
+    expectTypeOf<EmptyFmtProvider>().toExtend<AnyFmtProvider>();
+  });
+
+  it("EmptyFmt should be an empty object type", () => {
+    expectTypeOf<EmptyFmt>().toEqualTypeOf<{}>();
+  });
+});
+
+describe("EmptyFmtProviderCtor", () => {
+  it("should be a FmtProviderCtor<EmptyFmtProvider>", () => {
+    expectTypeOf(EmptyFmtProviderCtor).toExtend<FmtProviderCtor<EmptyFmtProvider>>();
+  });
+
+  it("static get should return EmptyFmt", () => {
+    expectTypeOf(EmptyFmtProviderCtor.get("en")).toEqualTypeOf<EmptyFmt>();
   });
 });
 
 describe("FmtProviderCtor", () => {
   it("should be constructible", () => {
-    type Ctor = FmtProviderCtor<string, { n: number }>;
+    type Ctor = FmtProviderCtor<FmtProvider<string, { n: number }>>;
     expectTypeOf<Ctor>().toBeConstructibleWith();
   });
 
   it("should have static get", () => {
-    type Ctor = FmtProviderCtor<"en", { n: number }>;
+    type Ctor = FmtProviderCtor<FmtProvider<"en", { n: number }>>;
     expectTypeOf<Ctor["get"]>().toEqualTypeOf<FmtGetter<"en", { n: number }>>();
   });
 
   it("instances should implement FmtProvider", () => {
-    type Ctor = FmtProviderCtor<string, { n: number }>;
+    type Ctor = FmtProviderCtor<FmtProvider<string, { n: number }>>;
     expectTypeOf<InstanceType<Ctor>>().toExtend<FmtProvider<string, { n: number }>>();
-  });
-});
-
-describe("AnyFmtProviderCtor", () => {
-  it("should accept FmtProviderCtor or undefined", () => {
-    expectTypeOf<FmtProviderCtor<any, any>>().toExtend<AnyFmtProviderCtor>();
-    expectTypeOf<undefined>().toExtend<AnyFmtProviderCtor>();
-  });
-});
-
-describe("ExtractFmtProvider", () => {
-  it("should extract instance type from FmtProviderCtor", () => {
-    type Ctor = FmtProviderCtor<string, { n: number }>;
-    expectTypeOf<ExtractFmtProvider<Ctor>>().toExtend<FmtProvider<string, { n: number }>>();
-  });
-
-  it("should return undefined for non-constructor types", () => {
-    expectTypeOf<ExtractFmtProvider<undefined>>().toEqualTypeOf<undefined>();
-    expectTypeOf<ExtractFmtProvider<string>>().toEqualTypeOf<undefined>();
   });
 });
 
@@ -90,9 +94,8 @@ describe("ExtractFmt", () => {
     expectTypeOf<ExtractFmt<P>>().toEqualTypeOf<{ date: (d: Date) => string }>();
   });
 
-  it("should return undefined for non-provider types", () => {
-    expectTypeOf<ExtractFmt<undefined>>().toEqualTypeOf<undefined>();
-    expectTypeOf<ExtractFmt<string>>().toEqualTypeOf<undefined>();
+  it("should extract EmptyFmt from EmptyFmtProvider", () => {
+    expectTypeOf<ExtractFmt<EmptyFmtProvider>>().toEqualTypeOf<EmptyFmt>();
   });
 });
 

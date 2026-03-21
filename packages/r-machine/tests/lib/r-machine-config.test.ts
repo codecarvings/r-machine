@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { RMachineError } from "#r-machine/errors";
+import {
+  ERR_DEFAULT_LOCALE_NOT_IN_LIST,
+  ERR_DUPLICATE_LOCALES,
+  ERR_NO_LOCALES,
+  RMachineConfigError,
+  RMachineError,
+} from "#r-machine/errors";
 import { cloneRMachineConfig, type RMachineConfig, validateRMachineConfig } from "../../src/lib/r-machine-config.js";
 
 const stubResolver: RMachineConfig<string>["rModuleResolver"] = async (namespace, locale) => {
@@ -26,27 +32,31 @@ describe("validateRMachineConfig", () => {
     expect(error).toBeNull();
   });
 
-  it("should return a RMachineError if no locales are provided", () => {
+  it("should return a RMachineConfigError with ERR_NO_LOCALES if no locales are provided", () => {
     const error = validateRMachineConfig(makeConfig({ locales: [], defaultLocale: "en" }));
-    expect(error).toBeInstanceOf(RMachineError);
+    expect(error).toBeInstanceOf(RMachineConfigError);
+    expect(error!.code).toBe(ERR_NO_LOCALES);
     expect(error?.message).toContain("No locales provided");
   });
 
-  it("should return a RMachineError if locales contains duplicates", () => {
+  it("should return a RMachineConfigError with ERR_DUPLICATE_LOCALES if locales contains duplicates", () => {
     const error = validateRMachineConfig(makeConfig({ locales: ["en", "it", "en"], defaultLocale: "en" }));
-    expect(error).toBeInstanceOf(RMachineError);
+    expect(error).toBeInstanceOf(RMachineConfigError);
+    expect(error!.code).toBe(ERR_DUPLICATE_LOCALES);
     expect(error?.message).toContain("Duplicate locales provided");
   });
 
-  it("should return a RMachineError if all locales are duplicates", () => {
+  it("should return a RMachineConfigError with ERR_DUPLICATE_LOCALES if all locales are duplicates", () => {
     const error = validateRMachineConfig(makeConfig({ locales: ["en", "en"], defaultLocale: "en" }));
-    expect(error).toBeInstanceOf(RMachineError);
+    expect(error).toBeInstanceOf(RMachineConfigError);
+    expect(error!.code).toBe(ERR_DUPLICATE_LOCALES);
     expect(error?.message).toContain("Duplicate locales provided");
   });
 
-  it("should return a RMachineError if default locale is not in the list of locales", () => {
+  it("should return a RMachineConfigError with ERR_DEFAULT_LOCALE_NOT_IN_LIST if default locale is missing", () => {
     const error = validateRMachineConfig(makeConfig({ locales: ["it"], defaultLocale: "en" }));
-    expect(error).toBeInstanceOf(RMachineError);
+    expect(error).toBeInstanceOf(RMachineConfigError);
+    expect(error!.code).toBe(ERR_DEFAULT_LOCALE_NOT_IN_LIST);
     expect(error?.message).toContain('Default locale "en" is not in the list of locales');
   });
 

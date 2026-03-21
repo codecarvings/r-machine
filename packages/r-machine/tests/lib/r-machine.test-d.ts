@@ -1,8 +1,10 @@
 import { describe, expectTypeOf, it } from "vitest";
+import type { EmptyFmt, EmptyFmtProvider } from "../../src/lib/fmt.js";
 import { createFormatters } from "../../src/lib/fmt.js";
 import type { AnyResourceAtlas, Namespace } from "../../src/lib/r.js";
 import type { RKit } from "../../src/lib/r-kit.js";
 import { RMachine, type RMachineLocale, type RMachineRCtx } from "../../src/lib/r-machine.js";
+import { defaultRMachineExtensions } from "../../src/lib/r-machine-builder.js";
 import type { RMachineConfig } from "../../src/lib/r-machine-config.js";
 import type { RCtx } from "../../src/lib/r-module.js";
 import type { LocaleHelper } from "../../src/locale/locale-helper.js";
@@ -66,12 +68,12 @@ describe("RMachine", () => {
 
     it("should infer narrow locale types from as const config", () => {
       const machine = createNarrowMachine<TestResourceAtlas>();
-      expectTypeOf(machine).toEqualTypeOf<RMachine<TestResourceAtlas, "en" | "it", undefined>>();
+      expectTypeOf(machine).toEqualTypeOf<RMachine<TestResourceAtlas, "en" | "it", EmptyFmtProvider>>();
     });
 
     it("should infer string when locales are not const", () => {
       const machine = RMachine.builder(mockConfig).create<TestResourceAtlas>();
-      expectTypeOf(machine).toEqualTypeOf<RMachine<TestResourceAtlas, string, undefined>>();
+      expectTypeOf(machine).toEqualTypeOf<RMachine<TestResourceAtlas, string, EmptyFmtProvider>>();
     });
 
     it("should constrain defaultLocale to locales list members", () => {
@@ -96,14 +98,14 @@ describe("RMachine", () => {
 
     it("builder without .with() should produce create() directly", () => {
       const machine = RMachine.builder(narrowConfig).create<TestResourceAtlas>();
-      expectTypeOf(machine).toEqualTypeOf<RMachine<TestResourceAtlas, "en" | "it", undefined>>();
+      expectTypeOf(machine).toEqualTypeOf<RMachine<TestResourceAtlas, "en" | "it", EmptyFmtProvider>>();
     });
   });
 
   describe("class definition", () => {
     it("should reject RA types that do not extend AnyResourceAtlas", () => {
       // @ts-expect-error - number does not extend AnyResourceAtlas
-      type _Invalid = RMachine<number, string, undefined>;
+      type _Invalid = RMachine<number, string, EmptyFmtProvider>;
     });
   });
 
@@ -244,6 +246,12 @@ describe("RMachine", () => {
       // @ts-expect-error - "fr" is not in "en" | "it"
       machine.pickR("fr", "common");
     });
+
+    it("should reject namespace not in the resource atlas", () => {
+      const machine = createNarrowMachine<TestResourceAtlas>();
+      // @ts-expect-error - "invalid" is not a key of TestResourceAtlas
+      machine.pickR("en", "invalid");
+    });
   });
 
   describe("pickRKit method", () => {
@@ -329,17 +337,23 @@ describe("RMachine", () => {
       // @ts-expect-error - "fr" is not in "en" | "it"
       machine.pickRKit("fr", "common");
     });
+
+    it("should reject namespace not in the resource atlas", () => {
+      const machine = createNarrowMachine<TestResourceAtlas>();
+      // @ts-expect-error - "invalid" is not a key of TestResourceAtlas
+      machine.pickRKit("en", "invalid");
+    });
   });
 
   describe("type inference", () => {
     it("namespace parameter should be constrained to atlas keys", () => {
-      type TestMachine = RMachine<TestResourceAtlas, string, undefined>;
+      type TestMachine = RMachine<TestResourceAtlas, string, EmptyFmtProvider>;
       type PickRNamespace = Parameters<TestMachine["pickR"]>[1];
       expectTypeOf<PickRNamespace>().toEqualTypeOf<"common" | "home" | "about">();
     });
 
     it("namespace parameter should work with single namespace atlas", () => {
-      type SingleMachine = RMachine<SingleNamespaceAtlas, string, undefined>;
+      type SingleMachine = RMachine<SingleNamespaceAtlas, string, EmptyFmtProvider>;
       type PickRNamespace = Parameters<SingleMachine["pickR"]>[1];
       expectTypeOf<PickRNamespace>().toEqualTypeOf<"only">();
     });
@@ -385,13 +399,13 @@ describe("RMachine", () => {
 
   describe("subclass access to protected members", () => {
     it("hybridPickR should return union of sync and async types", () => {
-      const machine = new TestableRMachine<TestResourceAtlas>(mockConfig, {});
+      const machine = new TestableRMachine<TestResourceAtlas>(mockConfig, defaultRMachineExtensions);
       const result = machine.exposeHybridPickR("en", "common");
       expectTypeOf(result).toEqualTypeOf<TestResourceAtlas["common"] | Promise<TestResourceAtlas["common"]>>();
     });
 
     it("hybridPickRKit should return union of sync and async types", () => {
-      const machine = new TestableRMachine<TestResourceAtlas>(mockConfig, {});
+      const machine = new TestableRMachine<TestResourceAtlas>(mockConfig, defaultRMachineExtensions);
       const result = machine.exposeHybridPickRKit("en", "common", "home");
       type Expected =
         | RKit<TestResourceAtlas, readonly ["common", "home"]>
@@ -400,7 +414,7 @@ describe("RMachine", () => {
     });
 
     it("hybridPickR should preserve namespace type in return", () => {
-      const machine = new TestableRMachine<TestResourceAtlas>(mockConfig, {});
+      const machine = new TestableRMachine<TestResourceAtlas>(mockConfig, defaultRMachineExtensions);
 
       const common = machine.exposeHybridPickR("en", "common");
       expectTypeOf(common).toEqualTypeOf<TestResourceAtlas["common"] | Promise<TestResourceAtlas["common"]>>();
@@ -466,7 +480,7 @@ describe("RMachine", () => {
         readonly home: { title: string };
       };
       const narrowMachine = createMachine<NarrowAtlas>();
-      expectTypeOf(narrowMachine).not.toExtend<RMachine<WideAtlas, string, undefined>>();
+      expectTypeOf(narrowMachine).not.toExtend<RMachine<WideAtlas, string, EmptyFmtProvider>>();
     });
   });
 
@@ -536,19 +550,9 @@ describe("RMachine", () => {
   });
 
   describe("RMachineLocale utility type", () => {
-    it("should extract the locale type from an RMachine instance type", () => {
-      type Machine = RMachine<TestResourceAtlas, "en" | "it", undefined>;
-      expectTypeOf<RMachineLocale<Machine>>().toEqualTypeOf<"en" | "it">();
-    });
-
-    it("should return string for RMachine with string locale", () => {
-      type Machine = RMachine<TestResourceAtlas, string, undefined>;
-      expectTypeOf<RMachineLocale<Machine>>().toEqualTypeOf<string>();
-    });
-
-    it("should work with a concrete instance from the builder", () => {
-      const machine = createNarrowMachine<TestResourceAtlas>();
-      expectTypeOf<RMachineLocale<typeof machine>>().toEqualTypeOf<"en" | "it">();
+    it("should resolve to never for RMachine instance (only supports builders)", () => {
+      type Machine = RMachine<TestResourceAtlas, "en" | "it", EmptyFmtProvider>;
+      expectTypeOf<RMachineLocale<Machine>>().toEqualTypeOf<never>();
     });
 
     it("should extract locale from RMachineBuilder", () => {
@@ -581,9 +585,10 @@ describe("RMachine", () => {
   });
 
   describe("fmt property types", () => {
-    it("fmt should be undefined when FP is undefined", () => {
+    it("fmt should return EmptyFmt when FP is EmptyFmtProvider", () => {
       const machine = createMachine<TestResourceAtlas>();
-      expectTypeOf(machine.fmt).toEqualTypeOf<undefined>();
+      expectTypeOf(machine.fmt).toBeFunction();
+      expectTypeOf(machine.fmt("en")).toEqualTypeOf<EmptyFmt>();
     });
 
     it("fmt should be a getter function when FP is a FmtProvider", () => {

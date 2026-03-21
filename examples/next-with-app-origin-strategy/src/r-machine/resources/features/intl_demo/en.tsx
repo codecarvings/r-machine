@@ -23,7 +23,8 @@ const r = ($: R$) => {
       badge: "Intl.NumberFormat",
       description: (amount: number) => (
         <>
-          The value <strong>{currency(amount)}</strong> is written as <strong>{number(amount)}</strong> without currency.
+          The value <strong>{currency(amount)}</strong> is written as <strong>{number(amount)}</strong> without
+          currency.
         </>
       ),
     },

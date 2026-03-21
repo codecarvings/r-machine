@@ -1,24 +1,38 @@
 import type { AnyLocale } from "#r-machine/locale";
 
-export type AnyFmt = object | undefined;
+// --- Fmt ---
+export type AnyFmt = object;
 
 export type FmtGetter<L extends AnyLocale, F extends AnyFmt> = (locale: L) => F;
 type FmtFactory<L extends AnyLocale, F extends AnyFmt> = FmtGetter<L, F>;
 export type AnyFmtGetter = FmtGetter<AnyLocale, AnyFmt>;
 
+// --- Provider ---
 export interface FmtProvider<L extends AnyLocale, F extends AnyFmt> {
   readonly get: FmtGetter<L, F>;
 }
 export type AnyFmtProvider = FmtProvider<any, any>;
-export type OptionalFmtProvider = AnyFmtProvider | undefined;
 
+// --- Provider Ctor ---
 export interface FmtProviderCtor<FP extends AnyFmtProvider> {
   new (): FP;
   readonly get: FP["get"];
 }
-export type ExtractFmtGetter<FP> = FP extends FmtProvider<any, any> ? FP["get"] : undefined;
-export type ExtractFmt<FP> = FP extends FmtProvider<any, infer F> ? F : undefined;
 
+export type AnyFmtProviderCtor = FmtProviderCtor<AnyFmtProvider>;
+export type ExtractFmt<FP extends AnyFmtProvider> = FP extends FmtProvider<any, infer F> ? F : never;
+
+// --- Empty ---
+export type EmptyFmt = {};
+export type EmptyFmtProvider = FmtProvider<AnyLocale, EmptyFmt>;
+
+const EMPTY_FMT: EmptyFmt = Object.freeze({} as EmptyFmt);
+export const EmptyFmtProviderCtor = class {
+  readonly get = () => EMPTY_FMT;
+  static get = () => EMPTY_FMT;
+} as FmtProviderCtor<EmptyFmtProvider>;
+
+// --- Factory ---
 export function createFormatters<L extends AnyLocale, const F extends AnyFmt>(
   factory: FmtFactory<L, F>
 ): FmtProviderCtor<FmtProvider<L, F>> {

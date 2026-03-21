@@ -11,7 +11,7 @@ describe("Domain", () => {
     expectTypeOf(Domain).toBeConstructibleWith(
       "en",
       (() => Promise.resolve({ default: {} })) as RModuleResolver,
-      (() => undefined) as AnyFmtGetter
+      (() => ({})) as AnyFmtGetter
     );
   });
 

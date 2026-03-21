@@ -14,7 +14,13 @@ import type {
   RMachineConfig,
   RMachineConfigParams,
 } from "../../src/lib/index.js";
-import { RMachine, type RMachineLocale, type RMachineRCtx } from "../../src/lib/index.js";
+import {
+  createFormatters,
+  EmptyFmtProviderCtor,
+  RMachine,
+  type RMachineLocale,
+  type RMachineRCtx,
+} from "../../src/lib/index.js";
 
 type TestAtlas = { readonly common: { greeting: string } };
 
@@ -23,7 +29,7 @@ describe("lib barrel exports", () => {
   it("exports all expected symbols", () => {
     expectTypeOf(RMachine.builder).toBeFunction();
 
-    expectTypeOf<RMachineLocale<RMachine<TestAtlas, "en" | "it", undefined>>>().toEqualTypeOf<"en" | "it">();
+    expectTypeOf<RMachineLocale<ReturnType<typeof RMachine.builder>>>().toBeString();
 
     expectTypeOf<RMachineRCtx<ReturnType<typeof RMachine.builder>>>().toBeObject();
 
@@ -44,6 +50,11 @@ describe("lib barrel exports", () => {
 
     expectTypeOf<RCtx>().toBeObject();
 
-    expectTypeOf<AnyFmtProvider>().toBeNullable();
+    expectTypeOf<AnyFmtProvider>().toBeObject();
+
+    expectTypeOf(createFormatters).toBeFunction();
+
+    expectTypeOf(EmptyFmtProviderCtor).toBeConstructibleWith();
+    expectTypeOf(EmptyFmtProviderCtor.get).toBeFunction();
   });
 });

@@ -5,7 +5,7 @@ import type { AnyFmtGetter } from "../../src/lib/fmt.js";
 import type { AnyRModule, RModuleResolver } from "../../src/lib/r-module.js";
 import { createDelayedResolver, createMockResolver } from "../_fixtures/resolver-helpers.js";
 
-const noFmt: AnyFmtGetter = () => undefined;
+const noFmt: AnyFmtGetter = () => ({});
 
 const commonR = { greeting: "hello" };
 const navR = { home: "Home", about: "About" };
@@ -39,13 +39,13 @@ describe("Domain", () => {
       expect(factory).toHaveBeenCalledWith(expect.objectContaining({ fmt: { lang: "en" } }));
     });
 
-    it("passes undefined fmt when formatter getter returns undefined", async () => {
+    it("passes empty fmt when formatter getter returns empty object", async () => {
       const factory = vi.fn(() => ({ value: 1 }));
       const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
       const domain = new Domain("en", resolver, noFmt);
 
       await domain.pickR("common");
-      expect(factory).toHaveBeenCalledWith(expect.objectContaining({ fmt: undefined }));
+      expect(factory).toHaveBeenCalledWith(expect.objectContaining({ fmt: {} }));
     });
   });
 
@@ -489,6 +489,35 @@ describe("Domain", () => {
       const domain2 = new Domain("en", resolver, noFmt);
       const kitMulti = await domain2.pickRKit(["a", "b"]);
       expect(kitMulti).toEqual([r2, { id: 3 }]);
+    });
+
+    it("pickRKit with duplicate namespaces returns duplicated entries", async () => {
+      const resolver = vi.fn<RModuleResolver>((namespace) => {
+        const mod = modules.en[namespace];
+        if (!mod) return Promise.reject(new Error("not found"));
+        return Promise.resolve(mod);
+      });
+      const domain = new Domain("en", resolver, noFmt);
+
+      const kit = await domain.pickRKit(["common", "common"]);
+      expect(kit).toEqual([commonR, commonR]);
+    });
+
+    it("pickRKit with pre-cached duplicate namespaces resolves only once", async () => {
+      const resolver = vi.fn<RModuleResolver>((namespace) => {
+        const mod = modules.en[namespace];
+        if (!mod) return Promise.reject(new Error("not found"));
+        return Promise.resolve(mod);
+      });
+      const domain = new Domain("en", resolver, noFmt);
+
+      await domain.pickR("common");
+      resolver.mockClear();
+
+      const kit = await domain.pickRKit(["common", "common"]);
+      expect(kit).toEqual([commonR, commonR]);
+      expect(kit[0]).toBe(kit[1]);
+      expect(resolver).not.toHaveBeenCalled();
     });
 
     it("each Domain instance has its own independent cache", async () => {

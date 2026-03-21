@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { RMachineError, RMachineUsageError } from "#r-machine/errors";
 import { createFormatters } from "../../src/lib/fmt.js";
 import { RMachine } from "../../src/lib/r-machine.js";
+import { defaultRMachineExtensions } from "../../src/lib/r-machine-builder.js";
 import type { RMachineConfig } from "../../src/lib/r-machine-config.js";
 import type { AnyRModule, RModuleResolver } from "../../src/lib/r-module.js";
 import { createDelayedResolver, createMockResolver } from "../_fixtures/resolver-helpers.js";
@@ -67,7 +68,7 @@ describe("RMachine", () => {
     });
 
     it("can be constructed directly with new RMachine(config, extensions)", () => {
-      const machine = new RMachine<TestRA, string, undefined>(makeConfig(), {});
+      const machine = new RMachine(makeConfig(), defaultRMachineExtensions);
       expect(machine).toBeInstanceOf(RMachine);
       expect(machine.locales).toEqual(["en", "it"]);
     });
@@ -114,6 +115,38 @@ describe("RMachine", () => {
       const machine = RMachine.builder(makeConfig()).create<TestRA>();
       expect(machine).toBeInstanceOf(RMachine);
       expect(await machine.pickR("en", "common")).toBe(commonR);
+    });
+
+    it("builder.with({}) (empty extensions) produces an RMachine with EmptyFmtProvider", async () => {
+      const factory = vi.fn(() => ({ value: 1 }));
+      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
+      const machine = RMachine.builder({
+        locales: ["en"],
+        defaultLocale: "en",
+        rModuleResolver: resolver,
+      })
+        .with({})
+        .create<{ readonly test: { value: number } }>();
+
+      await machine.pickR("en", "test");
+      expect(factory).toHaveBeenCalledWith(expect.objectContaining({ fmt: {} }));
+      expect(machine.fmt("en")).toEqual({});
+    });
+
+    it("builder.with({ Formatters: undefined }) falls back to EmptyFmtProvider", async () => {
+      const factory = vi.fn(() => ({ value: 1 }));
+      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
+      const machine = RMachine.builder({
+        locales: ["en"],
+        defaultLocale: "en",
+        rModuleResolver: resolver,
+      })
+        .with({ Formatters: undefined } as any)
+        .create<{ readonly test: { value: number } }>();
+
+      await machine.pickR("en", "test");
+      expect(factory).toHaveBeenCalledWith(expect.objectContaining({ fmt: {} }));
+      expect(machine.fmt("en")).toEqual({});
     });
 
     it("builder.with({ Formatters }).create() produces an RMachine with formatters injected in RCtx", async () => {
@@ -198,7 +231,7 @@ describe("RMachine", () => {
   });
 
   describe("formatter integration via createFormatters", () => {
-    it("$.fmt is undefined when builder does not use .with()", async () => {
+    it("$.fmt is an empty object when builder does not use .with()", async () => {
       const factory = vi.fn(() => ({ value: 1 }));
       const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
       const machine = RMachine.builder({
@@ -208,10 +241,10 @@ describe("RMachine", () => {
       }).create<{ readonly test: { value: number } }>();
 
       await machine.pickR("en", "test");
-      expect(factory).toHaveBeenCalledWith(expect.objectContaining({ fmt: undefined }));
+      expect(factory).toHaveBeenCalledWith(expect.objectContaining({ fmt: {} }));
     });
 
-    it("propagates error from Formatters.get during resource resolution", async () => {
+    it("does not cache formatter factory errors, allowing subsequent resolution to succeed", async () => {
       let callCount = 0;
       const Formatters = createFormatters((_locale: string) => {
         callCount++;
@@ -228,9 +261,9 @@ describe("RMachine", () => {
         .with({ Formatters })
         .create<{ readonly test: { v: number } }>();
 
-      // First call: Formatters.get throws → resolveR should reject
+      // First call: Formatters.get throws → resolveR rejects
       await expect(machine.pickR("en", "test")).rejects.toThrow();
-      // Second call: factory succeeds after createFormatters retries
+      // Second call: createFormatters does not cache errors, so the factory is called again and succeeds
       const result = await machine.pickR("en", "test");
       expect(result).toEqual({ v: 1 });
     });
@@ -258,9 +291,9 @@ describe("RMachine", () => {
   });
 
   describe("fmt getter", () => {
-    it("is undefined when machine is built without .with()", () => {
+    it("returns an empty object when machine is built without .with()", () => {
       const machine = RMachine.builder(makeConfig()).create<TestRA>();
-      expect(machine.fmt).toBeUndefined();
+      expect(machine.fmt("en")).toEqual({});
     });
 
     it("returns the formatter object for a valid locale", () => {
@@ -473,7 +506,7 @@ describe("RMachine", () => {
       const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
       const machine = createMachine({ rModuleResolver: resolver });
       const result = await machine.pickR("en", "common");
-      expect(factory).toHaveBeenCalledWith({ namespace: "common", locale: "en", fmt: undefined });
+      expect(factory).toHaveBeenCalledWith({ namespace: "common", locale: "en", fmt: {} });
       expect(result).toEqual({ ns: "common", loc: "en" });
     });
 
@@ -609,7 +642,7 @@ describe("RMachine", () => {
 
   describe("hybridPickR / hybridPickRKit (protected, via subclass)", () => {
     it("hybridPickR returns a promise when not cached, then the value when cached", async () => {
-      const machine = new TestableRMachine<TestRA>(makeConfig(), {});
+      const machine = new TestableRMachine<TestRA>(makeConfig(), defaultRMachineExtensions);
       const first = machine.exposeHybridPickR("en", "common");
       expect(first).toBeInstanceOf(Promise);
       await first;
@@ -617,7 +650,7 @@ describe("RMachine", () => {
     });
 
     it("hybridPickRKit returns a promise when not cached, then the kit when cached", async () => {
-      const machine = new TestableRMachine<TestRA>(makeConfig(), {});
+      const machine = new TestableRMachine<TestRA>(makeConfig(), defaultRMachineExtensions);
       const first = machine.exposeHybridPickRKit("en", "common", "nav");
       expect(first).toBeInstanceOf(Promise);
       await first;
@@ -625,12 +658,12 @@ describe("RMachine", () => {
     });
 
     it("hybridPickR throws for invalid locale", () => {
-      const machine = new TestableRMachine<TestRA>(makeConfig(), {});
+      const machine = new TestableRMachine<TestRA>(makeConfig(), defaultRMachineExtensions);
       expect(() => machine.exposeHybridPickR("fr", "common")).toThrow(RMachineError);
     });
 
     it("hybridPickRKit throws for invalid locale", () => {
-      const machine = new TestableRMachine<TestRA>(makeConfig(), {});
+      const machine = new TestableRMachine<TestRA>(makeConfig(), defaultRMachineExtensions);
       expect(() => machine.exposeHybridPickRKit("fr", "common")).toThrow(RMachineError);
     });
   });

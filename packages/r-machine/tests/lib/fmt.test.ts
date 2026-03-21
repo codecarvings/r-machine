@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createFormatters } from "../../src/lib/fmt.js";
+import { createFormatters, EmptyFmtProviderCtor } from "../../src/lib/fmt.js";
 
 describe("createFormatters", () => {
   describe("static .get", () => {
@@ -85,15 +85,6 @@ describe("createFormatters", () => {
   });
 
   describe("edge cases", () => {
-    it("handles factory returning undefined (valid AnyFmt)", () => {
-      const factory = vi.fn((_locale: string) => undefined);
-      const Fmt = createFormatters(factory);
-
-      expect(Fmt.get("en")).toBeUndefined();
-      expect(Fmt.get("en")).toBeUndefined();
-      expect(factory).toHaveBeenCalledTimes(1);
-    });
-
     it("propagates factory errors without caching them", () => {
       let callCount = 0;
       const Fmt = createFormatters((_locale: string) => {
@@ -127,5 +118,25 @@ describe("createFormatters", () => {
       Fmt.get("en-US");
       expect(factory).toHaveBeenCalledWith("en-US");
     });
+  });
+});
+
+describe("EmptyFmtProviderCtor", () => {
+  it("static .get() returns an empty object", () => {
+    expect(EmptyFmtProviderCtor.get("en")).toEqual({});
+  });
+
+  it("instance .get() returns the same object as static .get()", () => {
+    const instance = new EmptyFmtProviderCtor();
+    expect(instance.get("en")).toBe(EmptyFmtProviderCtor.get("en"));
+  });
+
+  it("returns the same frozen reference for any locale", () => {
+    const a = EmptyFmtProviderCtor.get("en");
+    const b = EmptyFmtProviderCtor.get("it");
+    const c = EmptyFmtProviderCtor.get("fr");
+    expect(a).toBe(b);
+    expect(b).toBe(c);
+    expect(Object.isFrozen(a)).toBe(true);
   });
 });

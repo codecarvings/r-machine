@@ -1,5 +1,5 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { FmtProviderCtor } from "../../src/lib/fmt.js";
+import type { EmptyFmtProvider, FmtProvider } from "../../src/lib/fmt.js";
 import { createFormatters } from "../../src/lib/fmt.js";
 import { RMachine } from "../../src/lib/r-machine.js";
 import type { RMachineBuilder, RMachineExtendedBuilder, RMachineExtensions } from "../../src/lib/r-machine-builder.js";
@@ -15,24 +15,24 @@ describe("RMachineBuilder", () => {
     expectTypeOf<RMachineBuilder<"en" | "it">>().toHaveProperty("create").toBeFunction();
   });
 
-  it("create should return an RMachine", () => {
+  it("create should return an RMachine with EmptyFmtProvider", () => {
     const builder = RMachine.builder({
       locales: ["en", "it"] as const,
       defaultLocale: "en" as const,
       rModuleResolver: async () => ({ default: {} }),
     });
     const machine = builder.create<TestAtlas>();
-    expectTypeOf(machine).toEqualTypeOf<RMachine<TestAtlas, "en" | "it", undefined>>();
+    expectTypeOf(machine).toEqualTypeOf<RMachine<TestAtlas, "en" | "it", EmptyFmtProvider>>();
   });
 });
 
 describe("RMachineExtendedBuilder", () => {
   it("should have .create method", () => {
-    expectTypeOf<RMachineExtendedBuilder<"en", undefined>>().toHaveProperty("create").toBeFunction();
+    expectTypeOf<RMachineExtendedBuilder<"en", EmptyFmtProvider>>().toHaveProperty("create").toBeFunction();
   });
 
   it("should not have .with method", () => {
-    expectTypeOf<RMachineExtendedBuilder<"en", undefined>>().not.toHaveProperty("with");
+    expectTypeOf<RMachineExtendedBuilder<"en", EmptyFmtProvider>>().not.toHaveProperty("with");
   });
 
   it("should not allow calling .with() a second time", () => {
@@ -62,18 +62,13 @@ describe("RMachineExtendedBuilder", () => {
 });
 
 describe("RMachineExtensions", () => {
-  it("should have optional Formatters property", () => {
-    expectTypeOf<RMachineExtensions>().toHaveProperty("Formatters");
+  it("should have Formatters property", () => {
+    expectTypeOf<RMachineExtensions<EmptyFmtProvider>>().toHaveProperty("Formatters");
   });
 
   it("should accept FmtProviderCtor as Formatters", () => {
-    type Ctor = FmtProviderCtor<string, { n: number }>;
-    expectTypeOf<RMachineExtensions<Ctor>>().toHaveProperty("Formatters");
-  });
-
-  it("should accept undefined Formatters by default", () => {
-    const ext: RMachineExtensions = {};
-    expectTypeOf(ext).toExtend<RMachineExtensions>();
+    type FP = FmtProvider<string, { n: number }>;
+    expectTypeOf<RMachineExtensions<FP>>().toHaveProperty("Formatters");
   });
 });
 
@@ -96,14 +91,14 @@ describe("builder flow type inference", () => {
     expectTypeOf(machine.fmt("en")).toHaveProperty("currency");
   });
 
-  it("create() without with() also produces valid RMachine", () => {
+  it("create() without with() produces valid RMachine with EmptyFmtProvider", () => {
     const machine = RMachine.builder({
       locales: ["en"] as const,
       defaultLocale: "en" as const,
       rModuleResolver: async () => ({ default: {} }),
     }).create<TestAtlas>();
 
-    expectTypeOf(machine).toEqualTypeOf<RMachine<TestAtlas, "en", undefined>>();
+    expectTypeOf(machine).toEqualTypeOf<RMachine<TestAtlas, "en", EmptyFmtProvider>>();
   });
 
   it("ResourceAtlas generic flows through both builder paths", () => {
