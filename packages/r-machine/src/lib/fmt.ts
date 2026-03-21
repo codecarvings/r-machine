@@ -9,28 +9,19 @@ export type AnyFmtGetter = FmtGetter<AnyLocale, AnyFmt>;
 export interface FmtProvider<L extends AnyLocale, F extends AnyFmt> {
   readonly get: FmtGetter<L, F>;
 }
-export type AnyFmtProvider = FmtProvider<any, any> | undefined;
+export type AnyFmtProvider = FmtProvider<any, any>;
+export type OptionalFmtProvider = AnyFmtProvider | undefined;
 
-export interface FmtProviderCtor<L extends AnyLocale, F extends AnyFmt> {
-  new (): FmtProvider<L, F>;
-  readonly get: FmtGetter<L, F>;
+export interface FmtProviderCtor<FP extends AnyFmtProvider> {
+  new (): FP;
+  readonly get: FP["get"];
 }
-export type AnyFmtProviderCtor = FmtProviderCtor<any, any> | undefined;
-
-export type ExtractFmtProvider<FPC> = FPC extends FmtProviderCtor<any, any> ? InstanceType<FPC> : undefined;
-export type ExtractFmtProviderCtor<FP> =
-  FP extends FmtProvider<any, any>
-    ? {
-        new (): FP;
-        readonly get: FP["get"];
-      }
-    : undefined;
 export type ExtractFmtGetter<FP> = FP extends FmtProvider<any, any> ? FP["get"] : undefined;
 export type ExtractFmt<FP> = FP extends FmtProvider<any, infer F> ? F : undefined;
 
 export function createFormatters<L extends AnyLocale, const F extends AnyFmt>(
   factory: FmtFactory<L, F>
-): FmtProviderCtor<L, F> {
+): FmtProviderCtor<FmtProvider<L, F>> {
   const cache = new Map<L, F>();
 
   const get = (locale: L): F => {
@@ -45,5 +36,5 @@ export function createFormatters<L extends AnyLocale, const F extends AnyFmt>(
   return class {
     readonly get = get;
     static get = get;
-  } as FmtProviderCtor<L, F>;
+  } as FmtProviderCtor<FmtProvider<L, F>>;
 }

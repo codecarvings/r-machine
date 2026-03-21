@@ -1,30 +1,28 @@
 import type { RMachine } from "#r-machine";
 import type { AnyLocale } from "#r-machine/locale";
-import type { AnyFmtProvider, AnyFmtProviderCtor, ExtractFmtProvider } from "./fmt.js";
+import type { AnyFmtProvider, FmtProviderCtor, OptionalFmtProvider } from "./fmt.js";
 import type { AnyResourceAtlas } from "./r.js";
 
 export interface RMachineBuilder<L extends AnyLocale> {
-  with<FPC extends AnyFmtProviderCtor = undefined>(
-    extensions: RMachineExtensions<FPC>
-  ): RMachineExtendedBuilder<L, ExtractFmtProvider<FPC>>;
+  with<FP extends OptionalFmtProvider = undefined>(extensions: RMachineExtensions<FP>): RMachineExtendedBuilder<L, FP>;
   create<RA extends AnyResourceAtlas>(): RMachine<RA, L, undefined>;
 }
 
-export interface RMachineExtensions<C extends AnyFmtProviderCtor = undefined> {
-  readonly Formatters?: C;
+export interface RMachineExtensions<FP extends OptionalFmtProvider = undefined> {
+  readonly Formatters?: FP extends AnyFmtProvider ? FmtProviderCtor<FP> : undefined;
 }
 
 /** Shallow clone — sufficient because extensions only hold constructor references. */
-export function cloneRMachineExtensions<C extends AnyFmtProviderCtor>(
-  extensions: RMachineExtensions<C>
-): RMachineExtensions<C> {
+export function cloneRMachineExtensions<FP extends OptionalFmtProvider>(
+  extensions: RMachineExtensions<FP>
+): RMachineExtensions<FP> {
   return {
     ...extensions,
   };
 }
 
 declare const _fmtProviderTag: unique symbol;
-export interface RMachineExtendedBuilder<L extends AnyLocale, FP extends AnyFmtProvider> {
+export interface RMachineExtendedBuilder<L extends AnyLocale, FP extends OptionalFmtProvider> {
   readonly [_fmtProviderTag]?: FP;
   create<RA extends AnyResourceAtlas>(): RMachine<RA, L, FP>;
 }

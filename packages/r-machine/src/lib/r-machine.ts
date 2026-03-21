@@ -2,15 +2,7 @@ import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
 import { DomainManager } from "./domain-manager.js";
-import type {
-  AnyFmtGetter,
-  AnyFmtProvider,
-  AnyFmtProviderCtor,
-  ExtractFmt,
-  ExtractFmtGetter,
-  ExtractFmtProvider,
-  ExtractFmtProviderCtor,
-} from "./fmt.js";
+import type { AnyFmtGetter, ExtractFmt, ExtractFmtGetter, OptionalFmtProvider } from "./fmt.js";
 import type { AnyResourceAtlas, Namespace } from "./r.js";
 import type { NamespaceList, RKit } from "./r-kit.js";
 import {
@@ -27,8 +19,8 @@ import {
 } from "./r-machine-config.js";
 import type { RCtx } from "./r-module.js";
 
-export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, FP extends AnyFmtProvider> {
-  constructor(config: RMachineConfig<L>, extensions: RMachineExtensions<ExtractFmtProviderCtor<FP>>) {
+export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, FP extends OptionalFmtProvider> {
+  constructor(config: RMachineConfig<L>, extensions: RMachineExtensions<FP>) {
     const configError = validateRMachineConfig(config);
     if (configError) {
       throw configError;
@@ -55,7 +47,7 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, FP exten
   readonly localeHelper: LocaleHelper<L>;
   protected readonly config: RMachineConfig<L>;
   protected readonly domainManager: DomainManager;
-  protected readonly extensions: RMachineExtensions<ExtractFmtProviderCtor<FP>>;
+  protected readonly extensions: RMachineExtensions<FP>;
 
   protected validateLocaleForPick(locale: L) {
     const error = this.localeHelper.validateLocale(locale);
@@ -98,18 +90,12 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, FP exten
 
   static builder<const LL extends AnyLocaleList>(config: RMachineConfigParams<LL>): RMachineBuilder<LL[number]> {
     return {
-      with<C extends AnyFmtProviderCtor>(
-        extensions: RMachineExtensions<C>
-      ): RMachineExtendedBuilder<LL[number], ExtractFmtProvider<C>> {
+      with<FP extends OptionalFmtProvider = undefined>(
+        extensions: RMachineExtensions<FP>
+      ): RMachineExtendedBuilder<LL[number], FP> {
         return {
-          create<RA extends AnyResourceAtlas>(): RMachine<RA, LL[number], ExtractFmtProvider<C>> {
-            return new RMachine(
-              config,
-              // Safe cast: TS cannot prove the round-trip identity
-              // ExtractFmtProviderCtor<ExtractFmtProvider<C>> ≡ C,
-              // but it holds for any C extends AnyFmtProviderCtor.
-              extensions as unknown as RMachineExtensions<ExtractFmtProviderCtor<ExtractFmtProvider<C>>>
-            );
+          create<RA extends AnyResourceAtlas>(): RMachine<RA, LL[number], FP> {
+            return new RMachine(config, extensions);
           },
         };
       },
@@ -121,13 +107,7 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, FP exten
 }
 
 export type RMachineLocale<T> =
-  T extends RMachine<any, infer L, any>
-    ? L
-    : T extends RMachineBuilder<infer L>
-      ? L
-      : T extends RMachineExtendedBuilder<infer L, any>
-        ? L
-        : never;
+  T extends RMachineBuilder<infer L> ? L : T extends RMachineExtendedBuilder<infer L, any> ? L : never;
 
 export type RMachineRCtx<T> =
   T extends RMachineExtendedBuilder<infer L, infer FP>

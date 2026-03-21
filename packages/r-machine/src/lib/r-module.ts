@@ -1,9 +1,9 @@
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
-import type { AnyFmtGetter, AnyFmtProvider, ExtractFmt } from "./fmt.js";
+import type { AnyFmtGetter, AnyFmtProvider, ExtractFmt, OptionalFmtProvider } from "./fmt.js";
 import type { AnyNamespace, AnyR } from "./r.js";
 
-export interface RCtx<L extends AnyLocale = AnyLocale, FP extends AnyFmtProvider = AnyFmtProvider> {
+export interface RCtx<L extends AnyLocale = AnyLocale, FP extends OptionalFmtProvider = AnyFmtProvider> {
   readonly namespace: AnyNamespace;
   readonly locale: L;
   readonly fmt: ExtractFmt<FP>;
