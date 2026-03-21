@@ -1,4 +1,4 @@
-import { RMachine, type RMachineLocale, type RMachineR$ } from "r-machine";
+import { RMachine, type RMachineLocale, type RMachineRCtx } from "r-machine";
 import { createFormatters } from "./packages/r-machine/src/lib/fmt.js";
 
 type ResourceAtlas = {
@@ -32,7 +32,7 @@ class Formatters extends createFormatters((locale: Locale) => {
 const rMachineExtBuilder = rMachineBuilder.with({
   formatters: Formatters,
 });
-type R$ = RMachineR$<typeof rMachineExtBuilder>;
+type R$ = RMachineRCtx<typeof rMachineExtBuilder>;
 
 const rMachine = rMachineExtBuilder.create<ResourceAtlas>();
 

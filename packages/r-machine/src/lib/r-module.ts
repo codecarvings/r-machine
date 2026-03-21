@@ -3,13 +3,13 @@ import type { AnyLocale } from "#r-machine/locale";
 import type { AnyFmtGetter, AnyFmtProvider, ExtractFmt } from "./fmt.js";
 import type { AnyNamespace, AnyR } from "./r.js";
 
-export interface R$<L extends AnyLocale = AnyLocale, FP extends AnyFmtProvider = AnyFmtProvider> {
+export interface RCtx<L extends AnyLocale = AnyLocale, FP extends AnyFmtProvider = AnyFmtProvider> {
   readonly namespace: AnyNamespace;
   readonly locale: L;
   readonly fmt: ExtractFmt<FP>;
 }
 
-export type AnyRFactory = ($: R$) => AnyR | Promise<AnyR>;
+export type AnyRFactory = ($: RCtx) => AnyR | Promise<AnyR>;
 
 export type AnyRForge = AnyR | AnyRFactory;
 
@@ -32,7 +32,7 @@ function getResolveRFromModuleError(
   );
 }
 
-export async function resolveRFromModule(rModule: AnyRModule, $: R$): Promise<AnyR> {
+export async function resolveRFromModule(rModule: AnyRModule, $: RCtx): Promise<AnyR> {
   if (!rModule || typeof rModule !== "object") {
     throw getResolveRFromModuleError($.namespace, $.locale, "module is not an object");
   }
@@ -85,5 +85,5 @@ export async function resolveR(
       reason as Error
     );
   }
-  return resolveRFromModule(rModule, { namespace, locale, fmt: formatters ? formatters(locale) : undefined } as R$);
+  return resolveRFromModule(rModule, { namespace, locale, fmt: formatters ? formatters(locale) : undefined } as RCtx);
 }

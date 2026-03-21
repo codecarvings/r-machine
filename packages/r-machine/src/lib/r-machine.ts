@@ -12,7 +12,7 @@ import {
   type RMachineConfigParams,
   validateRMachineConfig,
 } from "./r-machine-config.js";
-import type { R$ } from "./r-module.js";
+import type { RCtx } from "./r-module.js";
 
 export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale> {
   constructor(config: RMachineConfig<L>, extensions?: RMachineExtensions<AnyFmtProviderCtor>) {
@@ -93,9 +93,9 @@ export type RMachineLocale<T> =
         ? L
         : never;
 
-export type RMachineR$<T> =
+export type RMachineRCtx<T> =
   T extends RMachineExtendedBuilder<infer L, infer FP>
-    ? R$<L, FP>
+    ? RCtx<L, FP>
     : T extends RMachineBuilder<infer L>
-      ? R$<L, undefined>
+      ? RCtx<L, undefined>
       : never;

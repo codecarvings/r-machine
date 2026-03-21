@@ -106,7 +106,7 @@ describe("RMachine", () => {
       expect(await machine.pickR("en", "common")).toBe(commonR);
     });
 
-    it("builder.with({ formatters }).create() produces an RMachine with formatters injected in R$", async () => {
+    it("builder.with({ formatters }).create() produces an RMachine with formatters injected in RCtx", async () => {
       const formatters = (_locale: string) => ({ currency: (n: number) => `$${n}` });
       const factory = vi.fn(($: { namespace: string; locale: string; fmt: any }) => ({
         value: $.fmt.currency(42),
@@ -318,7 +318,7 @@ describe("RMachine", () => {
       expect(await machine.pickR("en", "common")).toBe(asyncR);
     });
 
-    it("passes the correct R$ context (namespace, locale, fmt) to the factory", async () => {
+    it("passes the correct RCtx context (namespace, locale, fmt) to the factory", async () => {
       const factory = vi.fn(($: { namespace: string; locale: string; fmt: unknown }) => ({
         ns: $.namespace,
         loc: $.locale,

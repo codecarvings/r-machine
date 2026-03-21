@@ -4,7 +4,7 @@ export type { AnyNamespaceList, AnyRKit, NamespaceList, RKit } from "./r-kit.js"
 export {
   RMachine,
   type RMachineLocale,
-  type RMachineR$,
+  type RMachineRCtx,
 } from "./r-machine.js";
 export type { RMachineConfig, RMachineConfigParams } from "./r-machine-config.js";
-export type { R$ } from "./r-module.js";
+export type { RCtx } from "./r-module.js";

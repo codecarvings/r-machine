@@ -1,9 +1,9 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyResourceAtlas, Namespace } from "../../src/lib/r.js";
 import type { RKit } from "../../src/lib/r-kit.js";
-import { RMachine, type RMachineLocale, type RMachineR$ } from "../../src/lib/r-machine.js";
+import { RMachine, type RMachineLocale, type RMachineRCtx } from "../../src/lib/r-machine.js";
 import type { RMachineConfig } from "../../src/lib/r-machine-config.js";
-import type { R$ } from "../../src/lib/r-module.js";
+import type { RCtx } from "../../src/lib/r-module.js";
 import type { LocaleHelper } from "../../src/locale/locale-helper.js";
 import { TestableRMachine } from "../_fixtures/testable-r-machine.js";
 
@@ -14,14 +14,14 @@ type TestResourceAtlas = {
 };
 
 type FactoryResourceAtlas = {
-  readonly common: ($: R$) => { greeting: string };
-  readonly dynamic: ($: R$) => Promise<{ value: number }>;
+  readonly common: ($: RCtx) => { greeting: string };
+  readonly dynamic: ($: RCtx) => Promise<{ value: number }>;
 };
 
 type MixedResourceAtlas = {
   readonly static: { message: string };
-  readonly factory: ($: R$) => { result: boolean };
-  readonly asyncFactory: ($: R$) => Promise<{ data: string[] }>;
+  readonly factory: ($: RCtx) => { result: boolean };
+  readonly asyncFactory: ($: RCtx) => Promise<{ data: string[] }>;
 };
 
 type SingleNamespaceAtlas = {
@@ -185,10 +185,10 @@ describe("RMachine", () => {
       const machine = createMachine<FactoryResourceAtlas>();
 
       const common = machine.pickR("en", "common");
-      expectTypeOf(common).toEqualTypeOf<Promise<($: R$) => { greeting: string }>>();
+      expectTypeOf(common).toEqualTypeOf<Promise<($: RCtx) => { greeting: string }>>();
 
       const dynamic = machine.pickR("en", "dynamic");
-      expectTypeOf(dynamic).toEqualTypeOf<Promise<($: R$) => Promise<{ value: number }>>>();
+      expectTypeOf(dynamic).toEqualTypeOf<Promise<($: RCtx) => Promise<{ value: number }>>>();
     });
 
     it("should work with mixed resource atlas", () => {
@@ -198,10 +198,10 @@ describe("RMachine", () => {
       expectTypeOf(staticR).toEqualTypeOf<Promise<{ message: string }>>();
 
       const factory = machine.pickR("en", "factory");
-      expectTypeOf(factory).toEqualTypeOf<Promise<($: R$) => { result: boolean }>>();
+      expectTypeOf(factory).toEqualTypeOf<Promise<($: RCtx) => { result: boolean }>>();
 
       const asyncFactory = machine.pickR("en", "asyncFactory");
-      expectTypeOf(asyncFactory).toEqualTypeOf<Promise<($: R$) => Promise<{ data: string[] }>>>();
+      expectTypeOf(asyncFactory).toEqualTypeOf<Promise<($: RCtx) => Promise<{ data: string[] }>>>();
     });
 
     it("should work with single namespace atlas", () => {
@@ -551,17 +551,17 @@ describe("RMachine", () => {
     });
   });
 
-  describe("RMachineR$ utility type", () => {
-    it("should extract R$ with undefined fmt from builder (no formatters)", () => {
+  describe("RMachineRCtx utility type", () => {
+    it("should extract RCtx with undefined fmt from builder (no formatters)", () => {
       const builder = RMachine.builder(narrowConfig);
-      expectTypeOf<RMachineR$<typeof builder>>().toEqualTypeOf<R$<"en" | "it", undefined>>();
+      expectTypeOf<RMachineRCtx<typeof builder>>().toEqualTypeOf<RCtx<"en" | "it", undefined>>();
     });
 
-    it("should extract R$ with resolved fmt type from setup (with formatters)", () => {
+    it("should extract RCtx with resolved fmt type from setup (with formatters)", () => {
       const fmt = (_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() });
       const setup = RMachine.builder(narrowConfig).with({ formatters: fmt });
-      type Expected = R$<"en" | "it", { date: (d: Date) => string }>;
-      expectTypeOf<RMachineR$<typeof setup>>().toEqualTypeOf<Expected>();
+      type Expected = RCtx<"en" | "it", { date: (d: Date) => string }>;
+      expectTypeOf<RMachineRCtx<typeof setup>>().toEqualTypeOf<Expected>();
     });
   });
 });

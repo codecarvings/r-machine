@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { RMachineError } from "#r-machine/errors";
-import type { AnyRModule, R$, RModuleResolver } from "../../src/lib/r-module.js";
+import type { AnyRModule, RCtx, RModuleResolver } from "../../src/lib/r-module.js";
 import { resolveR, resolveRFromModule } from "../../src/lib/r-module.js";
 
-function make$(overrides: Partial<R$> = {}): R$ {
+function make$(overrides: Partial<RCtx> = {}): RCtx {
   return { namespace: "common", locale: "en", fmt: undefined, ...overrides };
 }
 
@@ -24,7 +24,7 @@ describe("resolveRFromModule", () => {
       expect(result).toBe(r);
     });
 
-    it("should pass R$ to the factory", async () => {
+    it("should pass RCtx to the factory", async () => {
       const factory = vi.fn(() => ({ key: "value" }));
       const $ = make$({ namespace: "auth", locale: "it" });
       await resolveRFromModule({ default: factory }, $);
@@ -33,7 +33,7 @@ describe("resolveRFromModule", () => {
 
     it("should pass namespace and locale correctly", async () => {
       const module: AnyRModule = {
-        default: ($: R$) => ({ ns: $.namespace, loc: $.locale }),
+        default: ($: RCtx) => ({ ns: $.namespace, loc: $.locale }),
       };
       const result = await resolveRFromModule(module, make$({ namespace: "nav", locale: "de" }));
       expect(result).toEqual({ ns: "nav", loc: "de" });
@@ -74,7 +74,7 @@ describe("resolveRFromModule", () => {
       expect(result).toBe(r);
     });
 
-    it("should pass R$ to the async factory", async () => {
+    it("should pass RCtx to the async factory", async () => {
       const factory = vi.fn(async () => ({ key: "value" }));
       const $ = make$({ namespace: "footer", locale: "fr" });
       await resolveRFromModule({ default: factory }, $);
@@ -201,8 +201,8 @@ describe("resolveR", () => {
       expect(resolver).toHaveBeenCalledWith("auth", "de");
     });
 
-    it("should pass R$ with correct namespace and locale to factory", async () => {
-      const factory = vi.fn(($: R$) => ({ ns: $.namespace, loc: $.locale }));
+    it("should pass RCtx with correct namespace and locale to factory", async () => {
+      const factory = vi.fn(($: RCtx) => ({ ns: $.namespace, loc: $.locale }));
       const resolver: RModuleResolver = async () => ({ default: factory });
       const result = await resolveR(resolver, "nav", "it");
       expect(factory).toHaveBeenCalledWith({ namespace: "nav", locale: "it", fmt: undefined });

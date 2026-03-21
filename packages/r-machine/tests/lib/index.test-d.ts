@@ -8,7 +8,7 @@ import type {
   Namespace,
   NamespaceList,
   R,
-  R$,
+  RCtx,
   RKit,
   RMachineConfig,
   RMachineConfigParams,
@@ -18,7 +18,7 @@ import {
   RMachine,
   type RMachineBuilder,
   type RMachineLocale,
-  type RMachineR$,
+  type RMachineRCtx,
   type RMachineSetup,
 } from "../../src/lib/index.js";
 
@@ -34,7 +34,7 @@ describe("lib barrel exports", () => {
 
     expectTypeOf<RMachineBuilder<readonly ["en", "it"]>>().toBeObject();
     expectTypeOf<RMachineSetup<readonly ["en", "it"], (locale: "en" | "it") => object>>().toBeObject();
-    expectTypeOf<RMachineR$<RMachineBuilder<readonly ["en", "it"]>>>().toBeObject();
+    expectTypeOf<RMachineRCtx<RMachineBuilder<readonly ["en", "it"]>>>().toBeObject();
 
     expectTypeOf<RMachineConfig<string>>().toBeObject();
 
@@ -51,6 +51,6 @@ describe("lib barrel exports", () => {
     expectTypeOf<NamespaceList<TestAtlas>>().toExtend<readonly string[]>();
     expectTypeOf<RKit<TestAtlas, readonly ["common"]>>().toBeObject();
 
-    expectTypeOf<R$>().toBeObject();
+    expectTypeOf<RCtx>().toBeObject();
   });
 });

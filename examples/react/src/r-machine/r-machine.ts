@@ -1,5 +1,5 @@
 import { ReactStandardStrategy } from "@r-machine/react";
-import { RMachine, type RMachineLocale, type RMachineR$ } from "r-machine";
+import { RMachine, type RMachineLocale, type RMachineRCtx } from "r-machine";
 import { fmt } from "./formatters";
 import type { ResourceAtlas } from "./resource-atlas";
 
@@ -26,9 +26,9 @@ const rMachineBuilder = RMachine.builder({
 
 export type Locale = RMachineLocale<typeof rMachineBuilder>;
 
-// Step 2: formatters → R$
+// Step 2: formatters → RCtx
 const rMachineSetup = rMachineBuilder.with({ formatters: fmt });
-export type R$ = RMachineR$<typeof rMachineSetup>;
+export type R$ = RMachineRCtx<typeof rMachineSetup>;
 
 // Step 3: ResourceAtlas → RMachine
 export const rMachine = rMachineSetup.create<ResourceAtlas>();

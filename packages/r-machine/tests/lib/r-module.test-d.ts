@@ -1,37 +1,37 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyNamespace, AnyR } from "../../src/lib/r.js";
-import type { AnyRFactory, AnyRForge, AnyRModule, R$, RModuleResolver } from "../../src/lib/r-module.js";
+import type { AnyRFactory, AnyRForge, AnyRModule, RCtx, RModuleResolver } from "../../src/lib/r-module.js";
 import { resolveR, resolveRFromModule } from "../../src/lib/r-module.js";
 
-describe("R$", () => {
+describe("RCtx", () => {
   it("should be an object type", () => {
-    expectTypeOf<R$>().toBeObject();
+    expectTypeOf<RCtx>().toBeObject();
   });
 
   it("should have readonly namespace property of type string", () => {
-    expectTypeOf<R$>().toHaveProperty("namespace").toEqualTypeOf<string>();
+    expectTypeOf<RCtx>().toHaveProperty("namespace").toEqualTypeOf<string>();
   });
 
   it("should have readonly locale property of type string", () => {
-    expectTypeOf<R$>().toHaveProperty("locale").toEqualTypeOf<string>();
+    expectTypeOf<RCtx>().toHaveProperty("locale").toEqualTypeOf<string>();
   });
 
   it("should have readonly fmt property defaulting to undefined", () => {
-    expectTypeOf<R$>().toHaveProperty("fmt").toEqualTypeOf<undefined>();
+    expectTypeOf<RCtx>().toHaveProperty("fmt").toEqualTypeOf<undefined>();
   });
 
-  it("valid R$ object should be assignable", () => {
-    const r$: R$ = { namespace: "common", locale: "en", fmt: undefined };
-    expectTypeOf(r$).toExtend<R$>();
+  it("valid RCtx object should be assignable", () => {
+    const r$: RCtx = { namespace: "common", locale: "en", fmt: undefined };
+    expectTypeOf(r$).toExtend<RCtx>();
   });
 
   it("should have exactly three properties", () => {
-    type R$Keys = keyof R$;
-    expectTypeOf<R$Keys>().toEqualTypeOf<"namespace" | "locale" | "fmt">();
+    type RCtxKeys = keyof RCtx;
+    expectTypeOf<RCtxKeys>().toEqualTypeOf<"namespace" | "locale" | "fmt">();
   });
 
   it("should accept generic parameters for locale and fmt", () => {
-    type Narrow = R$<"en" | "it", { date: (d: Date) => string }>;
+    type Narrow = RCtx<"en" | "it", { date: (d: Date) => string }>;
     expectTypeOf<Narrow>().toHaveProperty("locale").toEqualTypeOf<"en" | "it">();
     expectTypeOf<Narrow>().toHaveProperty("fmt").toEqualTypeOf<{ date: (d: Date) => string }>();
   });
@@ -42,8 +42,8 @@ describe("AnyRFactory", () => {
     expectTypeOf<AnyRFactory>().toBeFunction();
   });
 
-  it("should accept R$ parameter", () => {
-    expectTypeOf<AnyRFactory>().parameter(0).toEqualTypeOf<R$>();
+  it("should accept RCtx parameter", () => {
+    expectTypeOf<AnyRFactory>().parameter(0).toEqualTypeOf<RCtx>();
   });
 
   it("should return AnyR or Promise<AnyR>", () => {
@@ -51,17 +51,17 @@ describe("AnyRFactory", () => {
   });
 
   it("sync factory returning object should be assignable", () => {
-    const syncFactory: AnyRFactory = ($: R$) => ({ greeting: `Hello from ${$.locale}` });
+    const syncFactory: AnyRFactory = ($: RCtx) => ({ greeting: `Hello from ${$.locale}` });
     expectTypeOf(syncFactory).toExtend<AnyRFactory>();
   });
 
   it("async factory returning object should be assignable", () => {
-    const asyncFactory: AnyRFactory = async ($: R$) => ({ greeting: `Hello from ${$.locale}` });
+    const asyncFactory: AnyRFactory = async ($: RCtx) => ({ greeting: `Hello from ${$.locale}` });
     expectTypeOf(asyncFactory).toExtend<AnyRFactory>();
   });
 
   it("factory using namespace should be valid", () => {
-    const factory: AnyRFactory = ($: R$) => ({ ns: $.namespace, loc: $.locale });
+    const factory: AnyRFactory = ($: RCtx) => ({ ns: $.namespace, loc: $.locale });
     expectTypeOf(factory).toExtend<AnyRFactory>();
   });
 });
@@ -77,12 +77,12 @@ describe("AnyRForge", () => {
   });
 
   it("sync factory should be assignable to AnyRForge", () => {
-    const forge: AnyRForge = ($: R$) => ({ greeting: $.locale });
+    const forge: AnyRForge = ($: RCtx) => ({ greeting: $.locale });
     expectTypeOf(forge).toExtend<AnyRForge>();
   });
 
   it("async factory should be assignable to AnyRForge", () => {
-    const forge: AnyRForge = async ($: R$) => ({ greeting: $.locale });
+    const forge: AnyRForge = async ($: RCtx) => ({ greeting: $.locale });
     expectTypeOf(forge).toExtend<AnyRForge>();
   });
 
@@ -114,12 +114,12 @@ describe("AnyRModule", () => {
   });
 
   it("module with sync factory default should be assignable", () => {
-    const module: AnyRModule = { default: ($: R$) => ({ greeting: $.locale }) };
+    const module: AnyRModule = { default: ($: RCtx) => ({ greeting: $.locale }) };
     expectTypeOf(module).toExtend<AnyRModule>();
   });
 
   it("module with async factory default should be assignable", () => {
-    const module: AnyRModule = { default: async ($: R$) => ({ greeting: $.locale }) };
+    const module: AnyRModule = { default: async ($: RCtx) => ({ greeting: $.locale }) };
     expectTypeOf(module).toExtend<AnyRModule>();
   });
 });
@@ -150,7 +150,7 @@ describe("RModuleResolver", () => {
 
   it("resolver returning factory module should be valid", () => {
     const resolver: RModuleResolver = async (_namespace, _locale) => ({
-      default: ($: R$) => ({ greeting: $.locale }),
+      default: ($: RCtx) => ({ greeting: $.locale }),
     });
     expectTypeOf(resolver).toExtend<RModuleResolver>();
   });
@@ -165,8 +165,8 @@ describe("resolveRFromModule", () => {
     expectTypeOf(resolveRFromModule).parameter(0).toEqualTypeOf<AnyRModule>();
   });
 
-  it("should accept R$ as second parameter", () => {
-    expectTypeOf(resolveRFromModule).parameter(1).toEqualTypeOf<R$>();
+  it("should accept RCtx as second parameter", () => {
+    expectTypeOf(resolveRFromModule).parameter(1).toEqualTypeOf<RCtx>();
   });
 
   it("should return Promise<AnyR>", () => {
@@ -174,7 +174,7 @@ describe("resolveRFromModule", () => {
   });
 
   it("should have correct function signature", () => {
-    expectTypeOf(resolveRFromModule).toEqualTypeOf<(rModule: AnyRModule, $: R$) => Promise<AnyR>>();
+    expectTypeOf(resolveRFromModule).toEqualTypeOf<(rModule: AnyRModule, $: RCtx) => Promise<AnyR>>();
   });
 });
 
