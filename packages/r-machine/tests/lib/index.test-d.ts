@@ -1,10 +1,12 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type {
+  AnyFormatterMap,
   AnyNamespace,
   AnyNamespaceList,
   AnyR,
   AnyResourceAtlas,
   AnyRKit,
+  FormatterMapProvider,
   Namespace,
   NamespaceList,
   R,
@@ -14,12 +16,9 @@ import type {
   RMachineConfigParams,
 } from "../../src/lib/index.js";
 import {
-  byLocale,
   RMachine,
-  type RMachineBuilder,
   type RMachineLocale,
   type RMachineRCtx,
-  type RMachineSetup,
 } from "../../src/lib/index.js";
 
 type TestAtlas = { readonly common: { greeting: string } };
@@ -27,14 +26,11 @@ type TestAtlas = { readonly common: { greeting: string } };
 // Barrel test: uses a single it() to verify export completeness only. Type shape tests belong in dedicated files.
 describe("lib barrel exports", () => {
   it("exports all expected symbols", () => {
-    expectTypeOf(byLocale).toBeFunction();
     expectTypeOf(RMachine.builder).toBeFunction();
 
     expectTypeOf<RMachineLocale<RMachine<TestAtlas, "en" | "it">>>().toEqualTypeOf<"en" | "it">();
 
-    expectTypeOf<RMachineBuilder<readonly ["en", "it"]>>().toBeObject();
-    expectTypeOf<RMachineSetup<readonly ["en", "it"], (locale: "en" | "it") => object>>().toBeObject();
-    expectTypeOf<RMachineRCtx<RMachineBuilder<readonly ["en", "it"]>>>().toBeObject();
+    expectTypeOf<RMachineRCtx<ReturnType<typeof RMachine.builder>>>().toBeObject();
 
     expectTypeOf<RMachineConfig<string>>().toBeObject();
 
@@ -52,5 +48,8 @@ describe("lib barrel exports", () => {
     expectTypeOf<RKit<TestAtlas, readonly ["common"]>>().toBeObject();
 
     expectTypeOf<RCtx>().toBeObject();
+
+    expectTypeOf<AnyFormatterMap>().toEqualTypeOf<object | undefined>();
+    expectTypeOf<FormatterMapProvider<string, object>>().toBeObject();
   });
 });

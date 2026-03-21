@@ -2,24 +2,24 @@ import { describe, expectTypeOf, it } from "vitest";
 
 import type { Domain } from "../../src/lib/domain.js";
 import { DomainManager } from "../../src/lib/domain-manager.js";
+import type { AnyFmtGetter } from "../../src/lib/fmt.js";
 import type { RModuleResolver } from "../../src/lib/r-module.js";
 
 describe("DomainManager", () => {
   it("should be a class", () => {
-    expectTypeOf(DomainManager).toBeConstructibleWith((() => Promise.resolve({ default: {} })) as RModuleResolver);
+    expectTypeOf(DomainManager).toBeConstructibleWith(
+      (() => Promise.resolve({ default: {} })) as RModuleResolver,
+      (() => undefined) as AnyFmtGetter
+    );
   });
 
-  it("constructor should require an RModuleResolver parameter", () => {
+  it("constructor should require an RModuleResolver and formatters parameters", () => {
     expectTypeOf(DomainManager).constructorParameters.toEqualTypeOf<
-      [rModuleResolver: RModuleResolver, formatters?: ((locale: string) => object) | undefined]
+      [rModuleResolver: RModuleResolver, formatters: AnyFmtGetter]
     >();
   });
 
   describe("getDomain", () => {
-    it("should be a method on DomainManager", () => {
-      expectTypeOf<DomainManager>().toHaveProperty("getDomain").toBeFunction();
-    });
-
     it("should accept a string locale parameter", () => {
       expectTypeOf<DomainManager["getDomain"]>().parameter(0).toBeString();
     });
@@ -41,11 +41,10 @@ describe("DomainManager", () => {
     it("should not expose cache", () => {
       expectTypeOf<DomainManager>().not.toHaveProperty("cache");
     });
-  });
 
-  describe("public API surface", () => {
-    it("should have getDomain method", () => {
-      expectTypeOf<DomainManager>().toHaveProperty("getDomain");
+    it("should not expose formatters", () => {
+      expectTypeOf<DomainManager>().not.toHaveProperty("formatters");
     });
   });
+
 });

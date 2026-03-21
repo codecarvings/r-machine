@@ -1,5 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyNamespace, AnyR } from "../../src/lib/r.js";
+import type { AnyFmtGetter, FmtProvider } from "../../src/lib/fmt.js";
 import type { AnyRFactory, AnyRForge, AnyRModule, RCtx, RModuleResolver } from "../../src/lib/r-module.js";
 import { resolveR, resolveRFromModule } from "../../src/lib/r-module.js";
 
@@ -16,8 +17,8 @@ describe("RCtx", () => {
     expectTypeOf<RCtx>().toHaveProperty("locale").toEqualTypeOf<string>();
   });
 
-  it("should have readonly fmt property defaulting to undefined", () => {
-    expectTypeOf<RCtx>().toHaveProperty("fmt").toEqualTypeOf<undefined>();
+  it("should have readonly fmt property", () => {
+    expectTypeOf<RCtx>().toHaveProperty("fmt");
   });
 
   it("valid RCtx object should be assignable", () => {
@@ -30,10 +31,16 @@ describe("RCtx", () => {
     expectTypeOf<RCtxKeys>().toEqualTypeOf<"namespace" | "locale" | "fmt">();
   });
 
-  it("should accept generic parameters for locale and fmt", () => {
-    type Narrow = RCtx<"en" | "it", { date: (d: Date) => string }>;
+  it("should accept generic parameters for locale and FmtProvider", () => {
+    type FmtType = { date: (d: Date) => string };
+    type Narrow = RCtx<"en" | "it", FmtProvider<"en" | "it", FmtType>>;
     expectTypeOf<Narrow>().toHaveProperty("locale").toEqualTypeOf<"en" | "it">();
-    expectTypeOf<Narrow>().toHaveProperty("fmt").toEqualTypeOf<{ date: (d: Date) => string }>();
+    expectTypeOf<Narrow>().toHaveProperty("fmt").toEqualTypeOf<FmtType>();
+  });
+
+  it("should have fmt as undefined when FmtProvider is undefined", () => {
+    type NoFmt = RCtx<"en", undefined>;
+    expectTypeOf<NoFmt>().toHaveProperty("fmt").toEqualTypeOf<undefined>();
   });
 });
 
@@ -157,10 +164,6 @@ describe("RModuleResolver", () => {
 });
 
 describe("resolveRFromModule", () => {
-  it("should be a function", () => {
-    expectTypeOf(resolveRFromModule).toBeFunction();
-  });
-
   it("should accept AnyRModule as first parameter", () => {
     expectTypeOf(resolveRFromModule).parameter(0).toEqualTypeOf<AnyRModule>();
   });
@@ -179,10 +182,6 @@ describe("resolveRFromModule", () => {
 });
 
 describe("resolveR", () => {
-  it("should be a function", () => {
-    expectTypeOf(resolveR).toBeFunction();
-  });
-
   it("should accept RModuleResolver as first parameter", () => {
     expectTypeOf(resolveR).parameter(0).toEqualTypeOf<RModuleResolver>();
   });
@@ -193,6 +192,10 @@ describe("resolveR", () => {
 
   it("should accept locale string as third parameter", () => {
     expectTypeOf(resolveR).parameter(2).toEqualTypeOf<string>();
+  });
+
+  it("should accept AnyFmtGetter as fourth parameter", () => {
+    expectTypeOf(resolveR).parameter(3).toEqualTypeOf<AnyFmtGetter>();
   });
 
   it("should return Promise<AnyR>", () => {

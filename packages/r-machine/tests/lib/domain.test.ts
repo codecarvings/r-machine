@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Domain } from "../../src/lib/domain.js";
+import type { AnyFmtGetter } from "../../src/lib/fmt.js";
 import type { AnyRModule, RModuleResolver } from "../../src/lib/r-module.js";
 import { createDelayedResolver, createMockResolver } from "../_fixtures/resolver-helpers.js";
+
+const noFmt: AnyFmtGetter = () => undefined;
 
 const commonR = { greeting: "hello" };
 const navR = { home: "Home", about: "About" };
@@ -18,8 +21,36 @@ const modules: Record<string, Record<string, AnyRModule>> = {
 
 describe("Domain", () => {
   it("stores the locale", () => {
-    const domain = new Domain("en", createMockResolver(modules));
+    const domain = new Domain("en", createMockResolver(modules), noFmt);
     expect(domain.locale).toBe("en");
+  });
+
+  describe("formatter integration", () => {
+    it("passes formatters to resource factories via $.fmt", async () => {
+      const fmtGetter: AnyFmtGetter = (locale) => ({ lang: locale });
+      const factory = vi.fn(($: { namespace: string; locale: string; fmt: any }) => ({
+        greeting: `Hello in ${$.fmt.lang}`,
+      }));
+      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
+      const domain = new Domain("en", resolver, fmtGetter);
+
+      const result = await domain.pickR("common");
+      expect(result).toEqual({ greeting: "Hello in en" });
+      expect(factory).toHaveBeenCalledWith(
+        expect.objectContaining({ fmt: { lang: "en" } })
+      );
+    });
+
+    it("passes undefined fmt when formatter getter returns undefined", async () => {
+      const factory = vi.fn(() => ({ value: 1 }));
+      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
+      const domain = new Domain("en", resolver, noFmt);
+
+      await domain.pickR("common");
+      expect(factory).toHaveBeenCalledWith(
+        expect.objectContaining({ fmt: undefined })
+      );
+    });
   });
 
   const singleMethods = [
@@ -29,33 +60,33 @@ describe("Domain", () => {
 
   describe.each(singleMethods)("$name — shared behavior", ({ pick }) => {
     it("resolves to the correct resource", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       expect(await pick(domain, "common")).toBe(commonR);
     });
 
     it("deduplicates in-flight requests for the same namespace", () => {
-      const domain = new Domain("en", createDelayedResolver(modules, 50));
+      const domain = new Domain("en", createDelayedResolver(modules, 50), noFmt);
       const first = pick(domain, "common");
       const second = pick(domain, "common");
       expect(second).toBe(first);
     });
 
     it("resolves different namespaces independently", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       const [r1, r2] = await Promise.all([pick(domain, "common"), pick(domain, "nav")]);
       expect(r1).toBe(commonR);
       expect(r2).toBe(navR);
     });
 
     it("rejects when the resolver fails", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       await expect(pick(domain, "nonexistent")).rejects.toThrow();
     });
   });
 
   describe("hybridPickR", () => {
     it("returns a promise on first call, then the value synchronously", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       const first = domain.hybridPickR("common");
       expect(first).toBeInstanceOf(Promise);
       await first;
@@ -75,7 +106,7 @@ describe("Domain", () => {
         return Promise.resolve({ default: commonR });
       };
 
-      const domain = new Domain("en", resolver);
+      const domain = new Domain("en", resolver, noFmt);
       await expect(domain.hybridPickR("common")).rejects.toThrow();
 
       const result = await domain.hybridPickR("common");
@@ -85,7 +116,7 @@ describe("Domain", () => {
 
   describe("pickR", () => {
     it("always returns a promise, even when cached", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       const result1 = domain.pickR("common");
       expect(result1).toBeInstanceOf(Promise);
       const r1 = await result1;
@@ -96,7 +127,7 @@ describe("Domain", () => {
 
     it("calls the resolver only once for the same namespace", async () => {
       const resolver = vi.fn<RModuleResolver>(() => Promise.resolve({ default: commonR }));
-      const domain = new Domain("en", resolver);
+      const domain = new Domain("en", resolver, noFmt);
 
       await domain.pickR("common");
       await domain.pickR("common");
@@ -112,24 +143,24 @@ describe("Domain", () => {
 
   describe.each(kitMethods)("$name — shared behavior", ({ pick }) => {
     it("resolves to the correct resource kit", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       expect(await pick(domain, ["common", "nav"])).toEqual([commonR, navR]);
     });
 
     it("rejects if any namespace fails to resolve", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       await expect(pick(domain, ["common", "nonexistent"])).rejects.toThrow();
     });
 
     it("deduplicates concurrent requests for the same kit", () => {
-      const domain = new Domain("en", createDelayedResolver(modules, 50));
+      const domain = new Domain("en", createDelayedResolver(modules, 50), noFmt);
       const first = pick(domain, ["common", "nav"]);
       const second = pick(domain, ["common", "nav"]);
       expect(first).toBe(second);
     });
 
     it("does not deduplicate kits with different namespace order", () => {
-      const domain = new Domain("en", createDelayedResolver(modules, 50));
+      const domain = new Domain("en", createDelayedResolver(modules, 50), noFmt);
       const first = pick(domain, ["common", "nav"]);
       const second = pick(domain, ["nav", "common"]);
       expect(first).not.toBe(second);
@@ -138,14 +169,14 @@ describe("Domain", () => {
 
   describe("hybridPickRKit", () => {
     it("returns an empty array synchronously for empty namespace list", () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       const result = domain.hybridPickRKit([]);
       expect(result).toEqual([]);
       expect(result).not.toBeInstanceOf(Promise);
     });
 
     it("returns an empty array synchronously even when cache is populated", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       await domain.pickR("common");
 
       const result = domain.hybridPickRKit([]);
@@ -154,13 +185,13 @@ describe("Domain", () => {
     });
 
     it("returns a promise when resources are not yet resolved", () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       const result = domain.hybridPickRKit(["common", "nav"]);
       expect(result).toBeInstanceOf(Promise);
     });
 
     it("returns resources synchronously when all are cached", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       await domain.hybridPickRKit(["common", "nav"]);
 
       const result = domain.hybridPickRKit(["common", "nav"]);
@@ -169,7 +200,7 @@ describe("Domain", () => {
     });
 
     it("returns a promise when some resources are cached and some are not", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       await domain.pickR("common");
 
       const result = domain.hybridPickRKit(["common", "nav"]);
@@ -178,7 +209,7 @@ describe("Domain", () => {
     });
 
     it("returns a promise when some resources are still pending", () => {
-      const domain = new Domain("en", createDelayedResolver(modules, 50));
+      const domain = new Domain("en", createDelayedResolver(modules, 50), noFmt);
       domain.pickR("common");
 
       const result = domain.hybridPickRKit(["common", "nav"]);
@@ -188,14 +219,14 @@ describe("Domain", () => {
 
   describe("pickRKit", () => {
     it("returns a resolved promise for empty namespace list", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       const result = domain.pickRKit([]);
       expect(result).toBeInstanceOf(Promise);
       expect(await result).toEqual([]);
     });
 
     it("returns a resolved promise when all resources are cached", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       await domain.pickRKit(["common", "nav"]);
 
       const result = domain.pickRKit(["common", "nav"]);
@@ -209,7 +240,7 @@ describe("Domain", () => {
         if (!mod) return Promise.reject(new Error("not found"));
         return Promise.resolve(mod);
       });
-      const domain = new Domain("en", resolver);
+      const domain = new Domain("en", resolver, noFmt);
 
       await domain.pickRKit(["common", "nav"]);
       await domain.pickRKit(["common", "nav"]);
@@ -220,7 +251,7 @@ describe("Domain", () => {
 
   describe("cross-method caching", () => {
     it("pickR resolves cache used by hybridPickR", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       await domain.pickR("common");
 
       const result = domain.hybridPickR("common");
@@ -229,7 +260,7 @@ describe("Domain", () => {
     });
 
     it("hybridPickR resolves cache used by pickR", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       await domain.hybridPickR("common");
 
       const result = await domain.pickR("common");
@@ -237,7 +268,7 @@ describe("Domain", () => {
     });
 
     it("pickR resolves cache used by hybridPickRKit", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       await domain.pickR("common");
       await domain.pickR("nav");
 
@@ -247,7 +278,7 @@ describe("Domain", () => {
     });
 
     it("pickRKit resolves cache used by hybridPickR", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
       await domain.pickRKit(["common", "nav"]);
 
       const r = domain.hybridPickR("common");
@@ -261,7 +292,7 @@ describe("Domain", () => {
         if (!mod) return Promise.reject(new Error("not found"));
         return Promise.resolve(mod);
       });
-      const domain = new Domain("en", resolver);
+      const domain = new Domain("en", resolver, noFmt);
       await domain.hybridPickRKit(["common", "nav"]);
 
       resolver.mockClear();
@@ -274,7 +305,7 @@ describe("Domain", () => {
   describe("concurrent resolution behavior", () => {
     it("deduplicates concurrent pickR calls for the same namespace", async () => {
       const resolver = vi.fn<RModuleResolver>(() => Promise.resolve({ default: commonR }));
-      const domain = new Domain("en", resolver);
+      const domain = new Domain("en", resolver, noFmt);
 
       const [r1, r2] = await Promise.all([domain.pickR("common"), domain.pickR("common")]);
 
@@ -285,7 +316,7 @@ describe("Domain", () => {
 
     it("deduplicates concurrent hybridPickR calls for the same namespace", async () => {
       const resolver = vi.fn<RModuleResolver>(() => Promise.resolve({ default: commonR }));
-      const domain = new Domain("en", resolver);
+      const domain = new Domain("en", resolver, noFmt);
 
       const [r1, r2] = await Promise.all([
         Promise.resolve(domain.hybridPickR("common")),
@@ -303,7 +334,7 @@ describe("Domain", () => {
         if (!mod) return Promise.reject(new Error("not found"));
         return Promise.resolve(mod);
       });
-      const domain = new Domain("en", resolver);
+      const domain = new Domain("en", resolver, noFmt);
 
       const [kit1, kit2] = await Promise.all([
         domain.pickRKit(["common", "nav"]),
@@ -316,7 +347,7 @@ describe("Domain", () => {
     });
 
     it("pending RKit promise is cleaned up after resolution", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
 
       const kit1 = domain.pickRKit(["common", "nav"]);
       const kit1Duplicate = domain.pickRKit(["common", "nav"]);
@@ -329,7 +360,7 @@ describe("Domain", () => {
     });
 
     it("pending RKit promise is cleaned up after rejection", async () => {
-      const domain = new Domain("en", createMockResolver(modules));
+      const domain = new Domain("en", createMockResolver(modules), noFmt);
 
       const kit1 = domain.pickRKit(["common", "nonexistent"]);
       await expect(kit1).rejects.toThrow();
@@ -354,7 +385,7 @@ describe("Domain", () => {
         return Promise.resolve({ default: commonR });
       };
 
-      const domain = new Domain("en", resolver);
+      const domain = new Domain("en", resolver, noFmt);
 
       const first = domain.hybridPickR("common");
       expect(first).toBeInstanceOf(Promise);
@@ -373,7 +404,7 @@ describe("Domain", () => {
   describe("error handling", () => {
     it("rejects with an error when the module resolver rejects", async () => {
       const resolver: RModuleResolver = () => Promise.reject(new Error("network error"));
-      const domain = new Domain("en", resolver);
+      const domain = new Domain("en", resolver, noFmt);
 
       await expect(domain.pickR("common")).rejects.toThrow();
     });
@@ -386,7 +417,7 @@ describe("Domain", () => {
         }
         return Promise.resolve({ default: commonR });
       };
-      const domain = new Domain("en", resolver);
+      const domain = new Domain("en", resolver, noFmt);
 
       await expect(domain.pickR("common")).rejects.toThrow();
 
@@ -399,7 +430,7 @@ describe("Domain", () => {
       const failingModules: Record<string, Record<string, AnyRModule>> = {
         en: { common: { default: commonR } },
       };
-      const domain = new Domain("en", createMockResolver(failingModules));
+      const domain = new Domain("en", createMockResolver(failingModules), noFmt);
 
       await expect(domain.pickRKit(["common", "nav"])).rejects.toThrow();
     });
@@ -411,7 +442,7 @@ describe("Domain", () => {
         }
         return Promise.resolve({ default: commonR });
       });
-      const domain = new Domain("en", resolver);
+      const domain = new Domain("en", resolver, noFmt);
 
       await expect(domain.pickRKit(["common", "fail"])).rejects.toThrow();
 
@@ -431,7 +462,7 @@ describe("Domain", () => {
         return Promise.resolve({ default: commonR });
       };
 
-      const domain = new Domain("en", resolver);
+      const domain = new Domain("en", resolver, noFmt);
       domain.pickR("slow-fail");
 
       const kitPromise = domain.hybridPickRKit(["common", "slow-fail"]);
@@ -454,20 +485,20 @@ describe("Domain", () => {
           b: { default: { id: 3 } },
         },
       });
-      const domain = new Domain("en", resolver);
+      const domain = new Domain("en", resolver, noFmt);
 
       const kitSingle = await domain.pickRKit(["a⨆b"]);
       expect(kitSingle).toEqual([r1]);
 
-      const domain2 = new Domain("en", resolver);
+      const domain2 = new Domain("en", resolver, noFmt);
       const kitMulti = await domain2.pickRKit(["a", "b"]);
       expect(kitMulti).toEqual([r2, { id: 3 }]);
     });
 
     it("each Domain instance has its own independent cache", async () => {
       const resolver = createMockResolver(modules);
-      const domain1 = new Domain("en", resolver);
-      const domain2 = new Domain("en", resolver);
+      const domain1 = new Domain("en", resolver, noFmt);
+      const domain2 = new Domain("en", resolver, noFmt);
 
       await domain1.pickR("common");
 
@@ -488,7 +519,7 @@ describe("Domain", () => {
         return Promise.resolve(mod);
       };
 
-      const domain = new Domain("en", resolver);
+      const domain = new Domain("en", resolver, noFmt);
 
       await domain.pickR("common");
       domain.pickR("slow");

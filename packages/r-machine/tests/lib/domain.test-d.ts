@@ -1,18 +1,23 @@
 import { describe, expectTypeOf, it } from "vitest";
 
 import { Domain } from "../../src/lib/domain.js";
+import type { AnyFmtGetter } from "../../src/lib/fmt.js";
 import type { AnyR } from "../../src/lib/r.js";
 import type { AnyNamespaceList, AnyRKit } from "../../src/lib/r-kit.js";
 import type { RModuleResolver } from "../../src/lib/r-module.js";
 
 describe("Domain", () => {
   it("should be a class", () => {
-    expectTypeOf(Domain).toBeConstructibleWith("en", (() => Promise.resolve({ default: {} })) as RModuleResolver);
+    expectTypeOf(Domain).toBeConstructibleWith(
+      "en",
+      (() => Promise.resolve({ default: {} })) as RModuleResolver,
+      (() => undefined) as AnyFmtGetter
+    );
   });
 
-  it("should not be constructible without arguments", () => {
+  it("constructor should require locale, rModuleResolver and formatters", () => {
     expectTypeOf(Domain).constructorParameters.toEqualTypeOf<
-      [locale: string, rModuleResolver: RModuleResolver, formatters?: ((locale: string) => object) | undefined]
+      [locale: string, rModuleResolver: RModuleResolver, formatters: AnyFmtGetter]
     >();
   });
 
@@ -122,27 +127,9 @@ describe("Domain", () => {
     it("should not expose resolveRKit", () => {
       expectTypeOf<Domain>().not.toHaveProperty("resolveRKit");
     });
-  });
 
-  describe("public API surface", () => {
-    it("should have locale property", () => {
-      expectTypeOf<Domain>().toHaveProperty("locale");
-    });
-
-    it("should have hybridPickR method", () => {
-      expectTypeOf<Domain>().toHaveProperty("hybridPickR");
-    });
-
-    it("should have pickR method", () => {
-      expectTypeOf<Domain>().toHaveProperty("pickR");
-    });
-
-    it("should have hybridPickRKit method", () => {
-      expectTypeOf<Domain>().toHaveProperty("hybridPickRKit");
-    });
-
-    it("should have pickRKit method", () => {
-      expectTypeOf<Domain>().toHaveProperty("pickRKit");
+    it("should not expose formatters", () => {
+      expectTypeOf<Domain>().not.toHaveProperty("formatters");
     });
   });
 
