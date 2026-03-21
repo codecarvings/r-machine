@@ -1,4 +1,5 @@
 import type { AnyLocale } from "#r-machine/locale";
+import type { AnyFmtGetter } from "./fmt.js";
 import type { AnyNamespace, AnyR } from "./r.js";
 import type { AnyNamespaceList, AnyRKit } from "./r-kit.js";
 import { type RModuleResolver, resolveR } from "./r-module.js";
@@ -11,7 +12,7 @@ export class Domain {
   constructor(
     readonly locale: AnyLocale,
     protected readonly rModuleResolver: RModuleResolver,
-    protected readonly formatters?: (locale: AnyLocale) => object
+    protected readonly formatters: AnyFmtGetter
   ) {}
 
   protected resources = new Map<AnyNamespace, AnyR | Promise<AnyR>>();

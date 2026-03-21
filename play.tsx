@@ -1,4 +1,5 @@
-import { RMachine } from "r-machine";
+import { RMachine, type RMachineLocale, type RMachineR$ } from "r-machine";
+import { createFormatters } from "./packages/r-machine/src/lib/fmt.js";
 
 type ResourceAtlas = {
   ns1: { message: string };
@@ -6,7 +7,7 @@ type ResourceAtlas = {
   ns3: { message: string };
 };
 
-const rMachine = RMachine.builder({
+const rMachineBuilder = RMachine.builder({
   locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: async (namespace, locale) => {
@@ -18,7 +19,22 @@ const rMachine = RMachine.builder({
       },
     };
   },
-}).create<ResourceAtlas>();
+});
+
+type Locale = RMachineLocale<typeof rMachineBuilder>;
+
+class Formatters extends createFormatters((locale: Locale) => {
+  return {
+    uppercase: (str: string) => str.toUpperCase() + locale,
+  };
+}) {}
+
+const rMachineExtBuilder = rMachineBuilder.with({
+  formatters: Formatters,
+});
+type R$ = RMachineR$<typeof rMachineExtBuilder>;
+
+const rMachine = rMachineExtBuilder.create<ResourceAtlas>();
 
 const r = await rMachine.pickR("en", "ns1");
 console.log(r.message);

@@ -1,13 +1,12 @@
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
+import type { AnyFmtGetter, AnyFmtProvider, ExtractFmt } from "./fmt.js";
 import type { AnyNamespace, AnyR } from "./r.js";
 
-export type AnyFormatters = ((locale: AnyLocale) => object) | undefined;
-
-export interface R$<L extends AnyLocale = AnyLocale, F = undefined> {
+export interface R$<L extends AnyLocale = AnyLocale, FP extends AnyFmtProvider = AnyFmtProvider> {
   readonly namespace: AnyNamespace;
   readonly locale: L;
-  readonly fmt: F;
+  readonly fmt: ExtractFmt<FP>;
 }
 
 export type AnyRFactory = ($: R$) => AnyR | Promise<AnyR>;
@@ -74,7 +73,7 @@ export async function resolveR(
   rModuleResolver: RModuleResolver,
   namespace: AnyNamespace,
   locale: AnyLocale,
-  formatters?: (locale: AnyLocale) => object
+  formatters: AnyFmtGetter
 ): Promise<AnyR> {
   let rModule: AnyRModule;
   try {
