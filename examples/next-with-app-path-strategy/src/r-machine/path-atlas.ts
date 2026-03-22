@@ -1,6 +1,9 @@
 import { PathAtlasSeed } from "@r-machine/next";
+import type { Locale } from "./setup";
 
-export class PathAtlas extends PathAtlasSeed.create({
+// Declaring the path atlas as a named class gives a readable type name (PathAtlas)
+// instead of the verbose generic type that PathAtlasSeed.create() would infer.
+export class PathAtlas extends PathAtlasSeed.for<Locale>().create({
   "/example-static": {
     it: "/esempio-statico",
 

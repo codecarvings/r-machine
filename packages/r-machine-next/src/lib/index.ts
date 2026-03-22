@@ -11,4 +11,4 @@
  * contact: licensing@codecarvings.com
  */
 
-export { PathAtlasSeed } from "./path-atlas-decl-factory.js";
+export { PathAtlasSeed } from "./path-atlas-seed.js";

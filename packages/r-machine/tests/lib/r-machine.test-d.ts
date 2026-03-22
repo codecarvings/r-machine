@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { EmptyFmt, EmptyFmtProvider } from "../../src/lib/fmt.js";
-import { FormattersSeed } from "../../src/lib/fmt.js";
+import { FormattersSeed } from "../../src/lib/formatters-seed.js";
 import type { AnyResourceAtlas, Namespace } from "../../src/lib/r.js";
 import type { RKit } from "../../src/lib/r-kit.js";
 import { RMachine, type RMachineLocale, type RMachineRCtx } from "../../src/lib/r-machine.js";

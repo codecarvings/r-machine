@@ -2,7 +2,7 @@
 
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyPathAtlasProvider, NonTranslatableSegmentDecl } from "../../src/core/index.js";
-import { PathAtlasSeed } from "../../src/lib/path-atlas-decl-factory.js";
+import { PathAtlasSeed } from "../../src/lib/path-atlas-seed.js";
 
 describe("PathAtlasSeed", () => {
   describe("create", () => {
@@ -260,6 +260,96 @@ describe("PathAtlasSeed", () => {
     it("rejects mixed valid and invalid keys at root", () => {
       type Decl = { "/valid": {}; invalid: {} };
       expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+    });
+  });
+
+  describe("for<L>().create — locale-constrained declarations", () => {
+    type Locale = "en" | "it";
+
+    describe("valid declarations", () => {
+      it("accepts translations with configured locales", () => {
+        PathAtlasSeed.for<Locale>().create({
+          "/about": { en: "/about-en", it: "/chi-siamo" },
+        });
+      });
+
+      it("accepts a subset of configured locales", () => {
+        PathAtlasSeed.for<Locale>().create({
+          "/about": { en: "/about-en" },
+        });
+      });
+
+      it("accepts segments without translations", () => {
+        PathAtlasSeed.for<Locale>().create({
+          "/about": {},
+          "/contact": {},
+        });
+      });
+
+      it("accepts translations at multiple nesting levels", () => {
+        PathAtlasSeed.for<Locale>().create({
+          "/about": {
+            en: "/about-en",
+            it: "/chi-siamo",
+            "/team": {
+              en: "/our-team",
+              it: "/il-nostro-team",
+            },
+          },
+        });
+      });
+
+      it("accepts dynamic segments alongside constrained translations", () => {
+        PathAtlasSeed.for<Locale>().create({
+          "/products": {
+            en: "/products-en",
+            it: "/prodotti",
+            "/[id]": {},
+          },
+        });
+      });
+    });
+
+    describe("invalid declarations", () => {
+      it("rejects translations with unconfigured locales", () => {
+        type Decl = { "/about": { en: "/about-en"; fr: "/a-propos" } };
+        expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl, Locale>>();
+      });
+
+      it("rejects unconfigured locales in nested segments", () => {
+        type Decl = { "/about": { "/team": { de: "/team-de" } } };
+        expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl, Locale>>();
+      });
+    });
+
+    describe("backward compatibility", () => {
+      it("without for<L>(), any locale is accepted (L defaults to string)", () => {
+        PathAtlasSeed.create({
+          "/about": { en: "/about-en", fr: "/a-propos", de: "/ueber-uns" },
+        });
+      });
+    });
+
+    describe("type inference", () => {
+      it("preserves the exact literal type of the declaration", () => {
+        const Ctor = PathAtlasSeed.for<Locale>().create({
+          "/about": { en: "/about-en", it: "/chi-siamo" },
+        });
+        expectTypeOf(new Ctor().decl).toEqualTypeOf<{
+          readonly "/about": { readonly en: "/about-en"; readonly it: "/chi-siamo" };
+        }>();
+      });
+
+      it("instance satisfies AnyPathAtlasProvider", () => {
+        const Ctor = PathAtlasSeed.for<Locale>().create({ "/about": {} });
+        expectTypeOf(new Ctor()).toExtend<AnyPathAtlasProvider>();
+      });
+
+      it("returned class is extensible", () => {
+        const Base = PathAtlasSeed.for<Locale>().create({ "/about": {} });
+        class MyAtlas extends Base {}
+        expectTypeOf(new MyAtlas().decl).toEqualTypeOf<{ readonly "/about": {} }>();
+      });
     });
   });
 });

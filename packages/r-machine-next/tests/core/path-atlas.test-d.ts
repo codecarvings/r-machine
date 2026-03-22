@@ -205,3 +205,56 @@ describe("TranslatableSegmentDecl", () => {
     expectTypeOf<PA>().not.toExtend<TranslatableSegmentDecl<PA>>();
   });
 });
+
+describe("TranslatableSegmentDecl with locale constraint L", () => {
+  type Locale = "en" | "it";
+
+  it("accepts translation keys that are in L", () => {
+    type PA = { en: "/about-en"; it: "/chi-siamo" };
+    expectTypeOf<PA>().toExtend<TranslatableSegmentDecl<PA, Locale>>();
+  });
+
+  it("accepts a subset of L", () => {
+    type PA = { en: "/about-en" };
+    expectTypeOf<PA>().toExtend<TranslatableSegmentDecl<PA, Locale>>();
+  });
+
+  it("rejects translation keys not in L", () => {
+    type PA = { en: "/about-en"; fr: "/a-propos" };
+    expectTypeOf<PA>().not.toExtend<TranslatableSegmentDecl<PA, Locale>>();
+  });
+
+  it("rejects unconfigured locales in nested segments", () => {
+    type PA = { "/about": { de: "/ueber-uns" } };
+    expectTypeOf<PA>().not.toExtend<TranslatableSegmentDecl<PA, Locale>>();
+  });
+
+  it("accepts segments with no translations (L has no effect)", () => {
+    type PA = { "/about": {}; "/contact": {} };
+    expectTypeOf<PA>().toExtend<TranslatableSegmentDecl<PA, Locale>>();
+  });
+
+  it("with L = string (default), any locale is accepted", () => {
+    type PA = { en: "/about-en"; fr: "/a-propos"; de: "/ueber-uns" };
+    expectTypeOf<PA>().toExtend<TranslatableSegmentDecl<PA>>();
+  });
+});
+
+describe("NonTranslatableSegmentDecl with locale constraint L", () => {
+  type Locale = "en" | "it";
+
+  it("accepts translations with configured locales in child segments", () => {
+    type PA = { "/about": { en: "/about-en"; it: "/chi-siamo" } };
+    expectTypeOf<PA>().toExtend<NonTranslatableSegmentDecl<PA, Locale>>();
+  });
+
+  it("rejects translations with unconfigured locales in child segments", () => {
+    type PA = { "/about": { en: "/about-en"; fr: "/a-propos" } };
+    expectTypeOf<PA>().not.toExtend<NonTranslatableSegmentDecl<PA, Locale>>();
+  });
+
+  it("still rejects translation keys at root level regardless of L", () => {
+    type PA = { en: "/about" };
+    expectTypeOf<PA>().not.toExtend<NonTranslatableSegmentDecl<PA, Locale>>();
+  });
+});

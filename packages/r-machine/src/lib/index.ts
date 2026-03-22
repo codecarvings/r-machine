@@ -3,8 +3,8 @@ export {
   type EmptyFmtProvider,
   EmptyFmtProviderCtor,
   type ExtractFmt,
-  FormattersSeed,
 } from "./fmt.js";
+export { FormattersSeed } from "./formatters-seed.js";
 export type { AnyNamespace, AnyR, AnyResourceAtlas, Namespace, R } from "./r.js";
 export type { AnyNamespaceList, AnyRKit, NamespaceList, RKit } from "./r-kit.js";
 export {

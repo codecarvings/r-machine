@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { EmptyFmtProvider, FmtProvider } from "../../src/lib/fmt.js";
-import { FormattersSeed } from "../../src/lib/fmt.js";
+import { FormattersSeed } from "../../src/lib/formatters-seed.js";
 import { RMachine } from "../../src/lib/r-machine.js";
 import type { RMachineBuilder, RMachineExtendedBuilder, RMachineExtensions } from "../../src/lib/r-machine-builder.js";
 

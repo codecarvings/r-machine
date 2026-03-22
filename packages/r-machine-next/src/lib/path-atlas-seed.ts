@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { AnyLocale } from "r-machine/locale";
 import type {
   AnyPathAtlas,
   NonTranslatableSegmentDecl,
@@ -18,10 +19,17 @@ import type {
   PathAtlasProviderCtor,
 } from "#r-machine/next/core";
 
+interface CurriedPathAtlasSeed<L extends AnyLocale> {
+  create<const PA extends AnyPathAtlas>(
+    decl: NonTranslatableSegmentDecl<PA, L>
+  ): PathAtlasProviderCtor<PathAtlasProvider<PA>>;
+}
+
 interface PathAtlasSeed {
   create<const PA extends AnyPathAtlas>(
     decl: NonTranslatableSegmentDecl<PA>
   ): PathAtlasProviderCtor<PathAtlasProvider<PA>>;
+  for<L extends AnyLocale>(): CurriedPathAtlasSeed<L>;
 }
 
 export const PathAtlasSeed: PathAtlasSeed = {
@@ -31,5 +39,16 @@ export const PathAtlasSeed: PathAtlasSeed = {
     return class {
       readonly decl = decl;
     } as PathAtlasProviderCtor<PathAtlasProvider<PA>>;
+  },
+  for<L extends AnyLocale>(): CurriedPathAtlasSeed<L> {
+    return {
+      create<const PA extends AnyPathAtlas>(
+        decl: NonTranslatableSegmentDecl<PA, L>
+      ): PathAtlasProviderCtor<PathAtlasProvider<PA>> {
+        return class {
+          readonly decl = decl;
+        } as PathAtlasProviderCtor<PathAtlasProvider<PA>>;
+      },
+    };
   },
 };

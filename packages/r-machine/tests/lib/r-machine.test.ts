@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { RMachineError, RMachineUsageError } from "#r-machine/errors";
-import { FormattersSeed } from "../../src/lib/fmt.js";
+import { FormattersSeed } from "../../src/lib/formatters-seed.js";
 import { RMachine } from "../../src/lib/r-machine.js";
 import { defaultRMachineExtensions } from "../../src/lib/r-machine-builder.js";
 import type { RMachineConfig } from "../../src/lib/r-machine-config.js";
