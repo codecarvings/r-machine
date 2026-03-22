@@ -1,5 +1,5 @@
 import type { R } from "r-machine";
-import type { R$ } from "@/r-machine/r-machine";
+import type { R$ } from "@/r-machine/setup";
 
 /*
  * If you prefer, you can also import the formatters directly in your resource files and use

@@ -36,9 +36,7 @@ export default function IntlDemo() {
             title={r.dateTime.label}
             icon={<Calendar className="size-5 text-stone-600 group-hover:text-red-600" />}
           >
-            <div className="text-2xl font-mono font-bold text-foreground mb-1.5">
-              {now ? time(now) : "\u00A0"}
-            </div>
+            <div className="text-2xl font-mono font-bold text-foreground mb-1.5">{now ? time(now) : "\u00A0"}</div>
             <div className="text-xs text-muted-foreground">{now ? r.dateTime.caption(now) : "---"}</div>
           </FeatureBox>
 

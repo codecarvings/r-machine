@@ -1,5 +1,5 @@
 import { createFormatters } from "r-machine";
-import type { Locale } from "./r-machine";
+import type { Locale } from "./setup";
 
 const currencyByLocale: Record<Locale, string> = {
   en: "USD",

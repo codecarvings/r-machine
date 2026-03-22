@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Locale } from "@/r-machine/r-machine";
+import type { Locale } from "@/r-machine/setup";
 import { useLocale, useSetLocale } from "@/r-machine/toolset";
 
 const localeItems = {

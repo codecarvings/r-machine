@@ -1,4 +1,4 @@
-import type { R$ } from "@/r-machine/r-machine";
+import type { R$ } from "@/r-machine/setup";
 import type { R_Features_IntlDemo } from "./en";
 
 const r = ($: R$): R_Features_IntlDemo => {

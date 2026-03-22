@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { type Locale, rMachine } from "@/r-machine/r-machine";
 import { bindLocale, getPathComposer, pickR } from "@/r-machine/server-toolset";
+import { type Locale, rMachine } from "@/r-machine/setup";
 
 // Generate static params for dynamic routes
 export async function generateStaticParams({

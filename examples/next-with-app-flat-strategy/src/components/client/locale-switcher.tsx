@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useLocale, useSetLocale } from "@/r-machine/client-toolset";
-import type { Locale } from "@/r-machine/r-machine";
+import type { Locale } from "@/r-machine/setup";
 
 const localeItems = {
   en: { name: "English" },

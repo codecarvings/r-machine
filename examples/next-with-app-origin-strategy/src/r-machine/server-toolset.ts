@@ -1,5 +1,5 @@
 import { NextClientRMachine } from "./client-toolset";
-import { strategy } from "./r-machine";
+import { strategy } from "./setup";
 
 export const {
   rMachineProxy,
