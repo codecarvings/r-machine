@@ -110,7 +110,9 @@ describe("NextAppFlatStrategy", () => {
     it("createServerToolset returns Promise<NextAppServerToolset<RA, L, DefaultPA, DefaultLK>>", () => {
       expectTypeOf<
         NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider>["createServerToolset"]
-      >().returns.toEqualTypeOf<Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, DefaultPA, DefaultLK>>>();
+      >().returns.toEqualTypeOf<
+        Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, DefaultPA, DefaultLK>>
+      >();
     });
   });
 
@@ -142,7 +144,9 @@ describe("NextAppFlatStrategy", () => {
     it("custom LK affects server toolset return type", () => {
       expectTypeOf<
         NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">["createServerToolset"]
-      >().returns.toEqualTypeOf<Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">>>();
+      >().returns.toEqualTypeOf<
+        Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">>
+      >();
     });
 
     it("different RA produce different types", () => {

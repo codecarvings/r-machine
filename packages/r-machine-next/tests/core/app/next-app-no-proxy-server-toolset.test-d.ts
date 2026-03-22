@@ -81,16 +81,40 @@ describe("NextAppNoProxyServerToolset", () => {
   });
 
   it("getLocale return type is determined by the L parameter", () => {
-    type ToolsetEnIt = NextAppNoProxyServerToolset<TestAtlas, "en" | "it", AnyFmtProvider, TranslatedPathAtlas, "locale">;
-    type ToolsetFrDe = NextAppNoProxyServerToolset<TestAtlas, "fr" | "de", AnyFmtProvider, TranslatedPathAtlas, "locale">;
+    type ToolsetEnIt = NextAppNoProxyServerToolset<
+      TestAtlas,
+      "en" | "it",
+      AnyFmtProvider,
+      TranslatedPathAtlas,
+      "locale"
+    >;
+    type ToolsetFrDe = NextAppNoProxyServerToolset<
+      TestAtlas,
+      "fr" | "de",
+      AnyFmtProvider,
+      TranslatedPathAtlas,
+      "locale"
+    >;
     expectTypeOf<ReturnType<ToolsetEnIt["getLocale"]>>().toEqualTypeOf<Promise<"en" | "it">>();
     expectTypeOf<ReturnType<ToolsetFrDe["getLocale"]>>().toEqualTypeOf<Promise<"fr" | "de">>();
     expectTypeOf<ToolsetEnIt["getLocale"]>().not.toEqualTypeOf<ToolsetFrDe["getLocale"]>();
   });
 
   it("setLocale parameter type is determined by the L parameter", () => {
-    type ToolsetEnIt = NextAppNoProxyServerToolset<TestAtlas, "en" | "it", AnyFmtProvider, TranslatedPathAtlas, "locale">;
-    type ToolsetFrDe = NextAppNoProxyServerToolset<TestAtlas, "fr" | "de", AnyFmtProvider, TranslatedPathAtlas, "locale">;
+    type ToolsetEnIt = NextAppNoProxyServerToolset<
+      TestAtlas,
+      "en" | "it",
+      AnyFmtProvider,
+      TranslatedPathAtlas,
+      "locale"
+    >;
+    type ToolsetFrDe = NextAppNoProxyServerToolset<
+      TestAtlas,
+      "fr" | "de",
+      AnyFmtProvider,
+      TranslatedPathAtlas,
+      "locale"
+    >;
     expectTypeOf<ToolsetEnIt["setLocale"]>().toEqualTypeOf<(newLocale: "en" | "it") => Promise<void>>();
     expectTypeOf<ToolsetEnIt["setLocale"]>().not.toEqualTypeOf<ToolsetFrDe["setLocale"]>();
   });
@@ -108,13 +132,31 @@ describe("NextAppNoProxyServerToolset", () => {
   });
 
   it("getFmt return type narrows with a concrete FP", () => {
-    type ToolsetEmpty = NextAppNoProxyServerToolset<TestAtlas, TestLocale, EmptyFmtProvider, TranslatedPathAtlas, "locale">;
+    type ToolsetEmpty = NextAppNoProxyServerToolset<
+      TestAtlas,
+      TestLocale,
+      EmptyFmtProvider,
+      TranslatedPathAtlas,
+      "locale"
+    >;
     expectTypeOf<ReturnType<ToolsetEmpty["getFmt"]>>().toEqualTypeOf<Promise<{}>>();
   });
 
   it("different FP produce different getFmt return types", () => {
-    type GetFmtAny = NextAppNoProxyServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">["getFmt"];
-    type GetFmtEmpty = NextAppNoProxyServerToolset<TestAtlas, TestLocale, EmptyFmtProvider, TranslatedPathAtlas, "locale">["getFmt"];
+    type GetFmtAny = NextAppNoProxyServerToolset<
+      TestAtlas,
+      TestLocale,
+      AnyFmtProvider,
+      TranslatedPathAtlas,
+      "locale"
+    >["getFmt"];
+    type GetFmtEmpty = NextAppNoProxyServerToolset<
+      TestAtlas,
+      TestLocale,
+      EmptyFmtProvider,
+      TranslatedPathAtlas,
+      "locale"
+    >["getFmt"];
     expectTypeOf<GetFmtAny>().not.toEqualTypeOf<GetFmtEmpty>();
   });
 
@@ -179,26 +221,34 @@ describe("NextAppNoProxyServerToolset", () => {
 
   it("different RA produce different toolset types", () => {
     type OtherAtlas = { readonly other: { readonly value: number } };
-    expectTypeOf<NextAppNoProxyServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">>().not.toEqualTypeOf<
+    expectTypeOf<
+      NextAppNoProxyServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">
+    >().not.toEqualTypeOf<
       NextAppNoProxyServerToolset<OtherAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">
     >();
   });
 
   it("different L produce different toolset types", () => {
     type OtherLocale = "fr" | "de";
-    expectTypeOf<NextAppNoProxyServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">>().not.toEqualTypeOf<
+    expectTypeOf<
+      NextAppNoProxyServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">
+    >().not.toEqualTypeOf<
       NextAppNoProxyServerToolset<TestAtlas, OtherLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">
     >();
   });
 
   it("different FP produce different toolset types", () => {
-    expectTypeOf<NextAppNoProxyServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">>().not.toEqualTypeOf<
+    expectTypeOf<
+      NextAppNoProxyServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">
+    >().not.toEqualTypeOf<
       NextAppNoProxyServerToolset<TestAtlas, TestLocale, EmptyFmtProvider, TranslatedPathAtlas, "locale">
     >();
   });
 
   it("different LK produce different toolset types", () => {
-    expectTypeOf<NextAppNoProxyServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">>().not.toEqualTypeOf<
+    expectTypeOf<
+      NextAppNoProxyServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">
+    >().not.toEqualTypeOf<
       NextAppNoProxyServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "lang">
     >();
   });

@@ -34,7 +34,9 @@ describe("createNextAppServerToolset", () => {
   it("returns a Promise of NextAppServerToolset", () => {
     expectTypeOf(
       createNextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">
-    ).returns.toEqualTypeOf<Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">>>();
+    ).returns.toEqualTypeOf<
+      Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">>
+    >();
   });
 });
 
@@ -164,8 +166,20 @@ describe("NextAppServerToolset", () => {
   });
 
   it("different FP produce different getFmt return types", () => {
-    type GetFmtAny = NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">["getFmt"];
-    type GetFmtEmpty = NextAppServerToolset<TestAtlas, TestLocale, EmptyFmtProvider, TranslatedPathAtlas, "locale">["getFmt"];
+    type GetFmtAny = NextAppServerToolset<
+      TestAtlas,
+      TestLocale,
+      AnyFmtProvider,
+      TranslatedPathAtlas,
+      "locale"
+    >["getFmt"];
+    type GetFmtEmpty = NextAppServerToolset<
+      TestAtlas,
+      TestLocale,
+      EmptyFmtProvider,
+      TranslatedPathAtlas,
+      "locale"
+    >["getFmt"];
     expectTypeOf<GetFmtAny>().not.toEqualTypeOf<GetFmtEmpty>();
   });
 
@@ -190,14 +204,18 @@ describe("NextAppServerToolset", () => {
 
   it("different RA produce different toolset types", () => {
     type OtherAtlas = { readonly other: { readonly value: number } };
-    expectTypeOf<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">>().not.toEqualTypeOf<
+    expectTypeOf<
+      NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">
+    >().not.toEqualTypeOf<
       NextAppServerToolset<OtherAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">
     >();
   });
 
   it("different L produce different toolset types", () => {
     type OtherLocale = "fr" | "de";
-    expectTypeOf<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">>().not.toEqualTypeOf<
+    expectTypeOf<
+      NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">
+    >().not.toEqualTypeOf<
       NextAppServerToolset<TestAtlas, OtherLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">
     >();
   });
@@ -220,15 +238,17 @@ describe("NextAppServerToolset", () => {
   });
 
   it("different FP produce different toolset types", () => {
-    expectTypeOf<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">>().not.toEqualTypeOf<
+    expectTypeOf<
+      NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">
+    >().not.toEqualTypeOf<
       NextAppServerToolset<TestAtlas, TestLocale, EmptyFmtProvider, TranslatedPathAtlas, "locale">
     >();
   });
 
   it("different LK produce different toolset types", () => {
-    expectTypeOf<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">>().not.toEqualTypeOf<
-      NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "lang">
-    >();
+    expectTypeOf<
+      NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">
+    >().not.toEqualTypeOf<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "lang">>();
   });
 });
 

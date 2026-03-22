@@ -14,7 +14,7 @@ export default async function Header() {
         <div className="max-w-6xl mx-auto flex h-18 items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href={getPath("/")}>
-              <Image src={RMachineLogo} alt="R-Machine Logo" className="size-8" />
+              <Image src={RMachineLogo} alt="R-Machine Logo" className="size-8" priority />
             </Link>
             <span className="text-md font-medium text-foreground">R-Machine ⧹ Examples ⧹ Next App ⧹ Flat Strategy</span>
           </div>

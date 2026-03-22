@@ -168,7 +168,9 @@ describe("NextAppPathStrategy", () => {
     it("createServerToolset returns Promise<NextAppServerToolset<RA, L, DefaultPA, DefaultLK>>", () => {
       expectTypeOf<
         NextAppPathStrategy<TestAtlas, TestLocale, AnyFmtProvider>["createServerToolset"]
-      >().returns.toEqualTypeOf<Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, DefaultPA, DefaultLK>>>();
+      >().returns.toEqualTypeOf<
+        Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, DefaultPA, DefaultLK>>
+      >();
     });
 
     it("createNoProxyServerToolset accepts NextAppClientRMachine<L>", () => {
@@ -180,7 +182,9 @@ describe("NextAppPathStrategy", () => {
     it("createNoProxyServerToolset returns Promise<NextAppNoProxyServerToolset<RA, L, DefaultPA, DefaultLK>>", () => {
       expectTypeOf<
         NextAppPathStrategy<TestAtlas, TestLocale, AnyFmtProvider>["createNoProxyServerToolset"]
-      >().returns.toEqualTypeOf<Promise<NextAppNoProxyServerToolset<TestAtlas, TestLocale, AnyFmtProvider, DefaultPA, DefaultLK>>>();
+      >().returns.toEqualTypeOf<
+        Promise<NextAppNoProxyServerToolset<TestAtlas, TestLocale, AnyFmtProvider, DefaultPA, DefaultLK>>
+      >();
     });
   });
 
@@ -212,7 +216,9 @@ describe("NextAppPathStrategy", () => {
     it("custom LK affects server toolset return type", () => {
       expectTypeOf<
         NextAppPathStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">["createServerToolset"]
-      >().returns.toEqualTypeOf<Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">>>();
+      >().returns.toEqualTypeOf<
+        Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">>
+      >();
     });
 
     it("custom PA+LK affects no-proxy server toolset return type", () => {

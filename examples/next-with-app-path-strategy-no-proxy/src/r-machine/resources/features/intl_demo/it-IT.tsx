@@ -2,7 +2,7 @@ import type { R$ } from "@/r-machine/r-machine";
 import type { R_Features_IntlDemo } from "./en";
 
 const r = ($: R$): R_Features_IntlDemo => {
-  const { date, time, number, currency, plural } = $.fmt;
+  const { date, number, currency, plural } = $.fmt;
 
   return {
     sectionTitle: "Formattazione Locale-Aware",
@@ -12,7 +12,6 @@ const r = ($: R$): R_Features_IntlDemo => {
     dateTime: {
       label: "Formattazione Date e Orari",
       badge: "Intl.DateTimeFormat",
-      time: time,
       caption: (d: Date) => `Data odierna: ${date.long(d)}`,
     },
 

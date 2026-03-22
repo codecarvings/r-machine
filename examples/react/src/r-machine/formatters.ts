@@ -7,6 +7,9 @@ const currencyByLocale: Record<Locale, string> = {
 };
 
 // Place here any formatting functions that depend on the locale, such as date, time, number, or plural formatting.
+// ---
+// Declaring formatters as a named class gives a readable type name (Formatters)
+// instead of the verbose generic type that createFormatters() would infer.
 export class Formatters extends createFormatters((locale: Locale) => {
   const dateLongFmt = new Intl.DateTimeFormat(locale, { dateStyle: "long" });
   const dateShortFmt = new Intl.DateTimeFormat(locale, { dateStyle: "short" });

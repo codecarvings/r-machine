@@ -3,11 +3,12 @@
 import { Calendar, Hash, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useR } from "@/r-machine/client-toolset";
+import { useFmt, useR } from "@/r-machine/client-toolset";
 import FeatureBox from "../server/feature-box";
 
 export default function IntlDemo() {
   const r = useR("features/intl_demo");
+  const { time } = useFmt();
 
   // Live clock — start null to avoid hydration mismatch (server vs client time)
   const [now, setNow] = useState<Date | null>(null);
@@ -36,7 +37,7 @@ export default function IntlDemo() {
             icon={<Calendar className="size-5 text-stone-600 group-hover:text-red-600" />}
           >
             <div className="text-2xl font-mono font-bold text-foreground mb-1.5">
-              {now ? r.dateTime.time(now) : "\u00A0"}
+              {now ? time(now) : "\u00A0"}
             </div>
             <div className="text-xs text-muted-foreground">{now ? r.dateTime.caption(now) : "---"}</div>
           </FeatureBox>

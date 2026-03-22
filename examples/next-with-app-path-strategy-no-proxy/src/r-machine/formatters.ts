@@ -1,12 +1,16 @@
-import { type AnyLocale, byLocale } from "r-machine/locale";
+import { createFormatters } from "r-machine";
+import type { Locale } from "./r-machine";
 
-const currencyByLocale: Record<AnyLocale, string> = {
+const currencyByLocale: Record<Locale, string> = {
   en: "USD",
   "it-IT": "EUR",
 };
 
 // Place here any formatting functions that depend on the locale, such as date, time, number, or plural formatting.
-export const fmt = byLocale((locale) => {
+// ---
+// Declaring formatters as a named class gives a readable type name (Formatters)
+// instead of the verbose generic type that createFormatters() would infer.
+export class Formatters extends createFormatters((locale: Locale) => {
   const dateLongFmt = new Intl.DateTimeFormat(locale, { dateStyle: "long" });
   const dateShortFmt = new Intl.DateTimeFormat(locale, { dateStyle: "short" });
   const timeFmt = new Intl.DateTimeFormat(locale, { timeStyle: "medium" });
@@ -29,5 +33,8 @@ export const fmt = byLocale((locale) => {
       const rule = pluralRules.select(count);
       return `${count} ${rule === "one" ? one : other}`;
     },
+
+    // You can also add here any other locale-dependent values that you want to share across your resources
+    appName: "🚀 R-Machine 😊",
   };
-});
+}) {}

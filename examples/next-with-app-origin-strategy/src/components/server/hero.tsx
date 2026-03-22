@@ -23,6 +23,7 @@ export default async function Hero() {
                     src={RMachineLogo}
                     alt="R-Machine Logo"
                     className="size-32 sm:size-40 lg:size-64 drop-shadow-lg"
+                    priority
                   />
                 </div>
               </div>

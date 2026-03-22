@@ -102,7 +102,9 @@ describe("NextAppOriginStrategy", () => {
     it("custom LK affects server toolset return type", () => {
       expectTypeOf<
         NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">["createServerToolset"]
-      >().returns.toEqualTypeOf<Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">>>();
+      >().returns.toEqualTypeOf<
+        Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">>
+      >();
     });
 
     it("different RA produce different types", () => {
