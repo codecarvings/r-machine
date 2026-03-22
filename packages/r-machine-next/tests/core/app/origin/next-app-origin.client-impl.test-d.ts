@@ -1,4 +1,4 @@
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
@@ -7,8 +7,10 @@ import { createNextAppOriginClientImpl } from "../../../../src/core/app/origin/n
 import type { AnyNextAppOriginStrategyConfig } from "../../../../src/core/app/origin/next-app-origin-strategy-core.js";
 
 describe("createNextAppOriginClientImpl", () => {
-  it("first parameter is RMachine<AnyResourceAtlas, AnyLocale>", () => {
-    expectTypeOf(createNextAppOriginClientImpl).parameter(0).toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale>>();
+  it("first parameter is RMachine<AnyResourceAtlas, AnyLocale, AnyFmtProvider>", () => {
+    expectTypeOf(createNextAppOriginClientImpl)
+      .parameter(0)
+      .toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>();
   });
 
   it("second parameter is AnyNextAppOriginStrategyConfig", () => {

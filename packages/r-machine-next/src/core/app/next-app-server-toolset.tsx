@@ -12,7 +12,7 @@
  */
 
 import { notFound } from "next/navigation";
-import type { AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, ExtractFmt, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
@@ -25,6 +25,7 @@ import { localeHeaderName } from "./next-app-strategy-core.js";
 export interface NextAppServerToolset<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
+  FP extends AnyFmtProvider,
   PA extends AnyPathAtlas,
   LK extends string,
 > {
@@ -36,6 +37,7 @@ export interface NextAppServerToolset<
   readonly setLocale: (newLocale: L) => Promise<void>;
   readonly pickR: <N extends Namespace<RA>>(namespace: N) => Promise<RA[N]>;
   readonly pickRKit: <NL extends NamespaceList<RA>>(...namespaces: NL) => Promise<RKit<RA, NL>>;
+  readonly getFmt: () => Promise<ExtractFmt<FP>>;
   readonly getPathComposer: BoundPathComposerSupplier<PA>;
 }
 
@@ -85,13 +87,14 @@ interface NextAppServerRMachineContext<L extends AnyLocale> {
 export async function createNextAppServerToolset<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
+  FP extends AnyFmtProvider,
   PA extends AnyPathAtlas,
   LK extends string,
 >(
-  rMachine: RMachine<RA, L>,
+  rMachine: RMachine<RA, L, FP>,
   impl: NextAppServerImpl<L, LK>,
   NextClientRMachine: NextAppClientRMachine<L>
-): Promise<NextAppServerToolset<RA, L, PA, LK>> {
+): Promise<NextAppServerToolset<RA, L, FP, PA, LK>> {
   const localeKey = impl.localeKey as LK;
   const { autoLocaleBinding } = impl;
 
@@ -260,6 +263,17 @@ export async function createNextAppServerToolset<
     }
   }
 
+  function getFmt(): Promise<ExtractFmt<FP>> {
+    validateServerOnlyUsage("getFmt");
+
+    const localeOrPromise = getSafeLocale();
+    if (localeOrPromise instanceof Promise) {
+      return localeOrPromise.then((locale) => rMachine.fmt(locale)) as Promise<ExtractFmt<FP>>;
+    } else {
+      return rMachine.fmt(localeOrPromise) as Promise<ExtractFmt<FP>>;
+    }
+  }
+
   const getPathComposer = await impl.createBoundPathComposerSupplier(getLocale);
 
   return {
@@ -271,6 +285,7 @@ export async function createNextAppServerToolset<
     setLocale,
     pickR,
     pickRKit,
+    getFmt,
     getPathComposer,
   };
 }

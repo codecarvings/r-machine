@@ -13,7 +13,7 @@
 
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
@@ -26,15 +26,16 @@ const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
 export async function createNextAppOriginServerImpl<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
+  FP extends AnyFmtProvider,
   C extends AnyNextAppOriginStrategyConfig,
 >(
-  rMachine: RMachine<RA, L>,
+  rMachine: RMachine<RA, L, FP>,
   strategyConfig: C,
   pathTranslator: HrefTranslator,
   urlTranslator: HrefTranslator,
   pathCanonicalizer: HrefCanonicalizer
 ) {
-  const defaultLocale = rMachine.config.defaultLocale;
+  const { locales, defaultLocale } = rMachine;
   const { autoLocaleBinding, localeOriginMap, pathMatcher } = strategyConfig;
   const localeKey = strategyConfig.localeKey as C["localeKey"]; // Type assertion needed to use localeKey in a typed way, since it's not a generic parameter of the strategy core class
   const autoLBSw = autoLocaleBinding === "on";
@@ -64,7 +65,7 @@ export async function createNextAppOriginServerImpl<
 
     createLocaleStaticParamsGenerator() {
       return async () =>
-        rMachine.config.locales.map((locale: L) => ({
+        locales.map((locale: L) => ({
           [localeKey]: locale,
         }));
     },

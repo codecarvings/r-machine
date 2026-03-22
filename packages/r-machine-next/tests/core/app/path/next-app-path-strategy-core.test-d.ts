@@ -1,4 +1,4 @@
-import type { RMachine } from "r-machine";
+import type { AnyFmtProvider, EmptyFmtProvider, RMachine } from "r-machine";
 import type { SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import { describe, expectTypeOf, it } from "vitest";
@@ -189,14 +189,14 @@ describe("NextAppPathStrategyCore", () => {
   });
 
   it("rMachine is RMachine<RA>", () => {
-    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, SimpleConfig>["rMachine"]>().toEqualTypeOf<
-      RMachine<TestAtlas, TestLocale>
-    >();
+    expectTypeOf<
+      NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["rMachine"]
+    >().toEqualTypeOf<RMachine<TestAtlas, TestLocale, AnyFmtProvider>>();
   });
 
   it("config is C", () => {
     expectTypeOf<
-      NextAppPathStrategyCore<TestAtlas, TestLocale, SimpleConfig>["config"]
+      NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["config"]
     >().toEqualTypeOf<SimpleConfig>();
   });
 
@@ -206,17 +206,22 @@ describe("NextAppPathStrategyCore", () => {
 
   describe("hrefHelper", () => {
     it("has readonly getPath property", () => {
-      type Helper = NextAppPathStrategyCore<TestAtlas, TestLocale, SimpleConfig>["hrefHelper"];
+      type Helper = NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["hrefHelper"];
       expectTypeOf<Helper>().toHaveProperty("getPath");
     });
 
     it("does not have getUrl property", () => {
-      type Helper = NextAppPathStrategyCore<TestAtlas, TestLocale, SimpleConfig>["hrefHelper"];
+      type Helper = NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["hrefHelper"];
       expectTypeOf<Helper>().not.toHaveProperty("getUrl");
     });
 
     it("getPath is a function", () => {
-      type GetPath = NextAppPathStrategyCore<TestAtlas, TestLocale, SimpleConfig>["hrefHelper"]["getPath"];
+      type GetPath = NextAppPathStrategyCore<
+        TestAtlas,
+        TestLocale,
+        AnyFmtProvider,
+        SimpleConfig
+      >["hrefHelper"]["getPath"];
       expectTypeOf<GetPath>().toBeFunction();
     });
 
@@ -257,22 +262,28 @@ describe("NextAppPathStrategyCore", () => {
 
   it("different RA produce different core types", () => {
     type OtherAtlas = { readonly other: { readonly value: number } };
-    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppPathStrategyCore<OtherAtlas, TestLocale, SimpleConfig>
+    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
+      NextAppPathStrategyCore<OtherAtlas, TestLocale, AnyFmtProvider, SimpleConfig>
     >();
   });
 
   it("different L produce different core types", () => {
     type OtherLocale = "fr" | "de";
-    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppPathStrategyCore<TestAtlas, OtherLocale, SimpleConfig>
+    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
+      NextAppPathStrategyCore<TestAtlas, OtherLocale, AnyFmtProvider, SimpleConfig>
     >();
   });
 
   it("different config types produce different core types", () => {
     type OtherConfig = NextAppPathStrategyConfig<SimplePathAtlas, "lang">;
-    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppPathStrategyCore<TestAtlas, TestLocale, OtherConfig>
+    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
+      NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, OtherConfig>
+    >();
+  });
+
+  it("different FP produce different core types", () => {
+    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
+      NextAppPathStrategyCore<TestAtlas, TestLocale, EmptyFmtProvider, SimpleConfig>
     >();
   });
 });

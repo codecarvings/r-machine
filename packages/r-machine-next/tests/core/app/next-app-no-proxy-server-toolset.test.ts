@@ -245,6 +245,20 @@ describe("createNextAppNoProxyServerToolset", () => {
       expect(machine.pickRKit).toHaveBeenCalledWith("en", "common", "nav");
     });
 
+    it("getFmt delegates to rMachine.fmt with bound locale", async () => {
+      const formatters = { formatDate: () => "2026-01-01" };
+      const machine = createMockMachine({
+        fmt: () => formatters,
+      });
+      const toolset = await createNextAppNoProxyServerToolset(machine, createMockImpl(), MockNextClientRMachine);
+
+      toolset.bindLocale("it");
+      const result = await toolset.getFmt();
+
+      expect(result).toBe(formatters);
+      expect(machine.fmt).toHaveBeenCalledWith("it");
+    });
+
     it("NextServerRMachine renders NextClientRMachine with the resolved locale", async () => {
       const toolset = await createToolset();
 

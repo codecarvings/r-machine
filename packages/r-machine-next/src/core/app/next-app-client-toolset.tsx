@@ -15,16 +15,18 @@
 
 import { createReactBareToolset, type ReactBareToolset } from "@r-machine/react/core";
 import { usePathname, useRouter } from "next/navigation";
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import { type ReactNode, useEffect } from "react";
 import type { AnyPathAtlas, BoundPathComposer } from "#r-machine/next/core";
 
-export type NextAppClientToolset<RA extends AnyResourceAtlas, L extends AnyLocale, PA extends AnyPathAtlas> = Omit<
-  ReactBareToolset<RA, L>,
-  "ReactRMachine"
-> & {
+export type NextAppClientToolset<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  FP extends AnyFmtProvider,
+  PA extends AnyPathAtlas,
+> = Omit<ReactBareToolset<RA, L, FP>, "ReactRMachine"> & {
   readonly NextClientRMachine: NextAppClientRMachine<L>;
   readonly usePathComposer: () => BoundPathComposer<PA>;
 };
@@ -50,8 +52,9 @@ export interface NextAppClientImpl<L extends AnyLocale> {
 export async function createNextAppClientToolset<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
+  FP extends AnyFmtProvider,
   PA extends AnyPathAtlas,
->(rMachine: RMachine<RA, L>, impl: NextAppClientImpl<L>): Promise<NextAppClientToolset<RA, L, PA>> {
+>(rMachine: RMachine<RA, L, FP>, impl: NextAppClientImpl<L>): Promise<NextAppClientToolset<RA, L, FP, PA>> {
   const { ReactRMachine, useLocale, ...otherTools } = await createReactBareToolset(rMachine);
 
   async function setLocale(
@@ -74,7 +77,7 @@ export async function createNextAppClientToolset<
     }
   }
 
-  function useSetLocale(): ReturnType<ReactBareToolset<RA, L>["useSetLocale"]> {
+  function useSetLocale(): ReturnType<ReactBareToolset<RA, L, FP>["useSetLocale"]> {
     const locale = useLocale();
     const router = useRouter();
     const pathname = usePathname();

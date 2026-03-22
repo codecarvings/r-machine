@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import type { NextAppClientImpl } from "../next-app-client-toolset.js";
@@ -20,9 +20,10 @@ import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-
 export async function createNextAppOriginClientImpl<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
+  FP extends AnyFmtProvider,
   C extends AnyNextAppOriginStrategyConfig,
 >(
-  _rMachine: RMachine<RA, L>,
+  _rMachine: RMachine<RA, L, FP>,
   _strategyConfig: C,
   pathTranslator: HrefTranslator,
   urlTranslator: HrefTranslator,

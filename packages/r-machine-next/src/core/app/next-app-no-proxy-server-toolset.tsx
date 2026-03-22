@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { AnyPathAtlas } from "#r-machine/next/core";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
@@ -25,9 +25,10 @@ import {
 export interface NextAppNoProxyServerToolset<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
+  FP extends AnyFmtProvider,
   PA extends AnyPathAtlas,
   LK extends string,
-> extends Omit<NextAppServerToolset<RA, L, PA, LK>, "rMachineProxy"> {
+> extends Omit<NextAppServerToolset<RA, L, FP, PA, LK>, "rMachineProxy"> {
   readonly routeHandlers: routeHandlers;
 }
 
@@ -48,18 +49,19 @@ export interface NextAppNoProxyServerImpl<L extends AnyLocale, LK extends string
 export async function createNextAppNoProxyServerToolset<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
+  FP extends AnyFmtProvider,
   PA extends AnyPathAtlas,
   LK extends string,
 >(
-  rMachine: RMachine<RA, L>,
+  rMachine: RMachine<RA, L, FP>,
   impl: NextAppNoProxyServerImpl<L, LK>,
   NextClientRMachine: NextAppClientRMachine<L>
-): Promise<NextAppNoProxyServerToolset<RA, L, PA, LK>> {
+): Promise<NextAppNoProxyServerToolset<RA, L, FP, PA, LK>> {
   const {
     rMachineProxy: _rMachineProxy,
     setLocale,
     ...otherTools
-  } = await createNextAppServerToolset<RA, L, PA, LK>(rMachine, impl, NextClientRMachine);
+  } = await createNextAppServerToolset<RA, L, FP, PA, LK>(rMachine, impl, NextClientRMachine);
 
   // Use dynamic import to bypass the "next/headers" import issue in pages/ directory
   // You're importing a component that needs "next/headers". That only works in a Server Component which is not supported in the pages/ directory. Read more: https://nextjs.org/docs/app/building-your-application/rendering/server-components

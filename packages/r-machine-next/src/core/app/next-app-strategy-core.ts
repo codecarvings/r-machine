@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { Strategy, type SwitchableOption } from "r-machine/strategy";
 import type { AnyPathAtlas, ExtendedPathAtlas, PathAtlasCtor } from "#r-machine/next/core";
@@ -49,8 +49,9 @@ const defaultConfig: NextAppStrategyConfig<DefaultPathAtlas, typeof defaultLocal
 export abstract class NextAppStrategyCore<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
+  FP extends AnyFmtProvider,
   C extends AnyNextAppStrategyConfig,
-> extends Strategy<RA, L, C> {
+> extends Strategy<RA, L, FP, C> {
   static readonly defaultConfig = defaultConfig;
 
   protected abstract readonly pathAtlas: ExtendedPathAtlas<InstanceType<C["PathAtlas"]>>;
@@ -58,7 +59,7 @@ export abstract class NextAppStrategyCore<
   protected abstract createClientImpl(): Promise<NextAppClientImpl<L>>;
   protected abstract createServerImpl(): Promise<NextAppServerImpl<L, C["localeKey"]>>;
 
-  async createClientToolset(): Promise<NextAppClientToolset<RA, L, InstanceType<C["PathAtlas"]>>> {
+  async createClientToolset(): Promise<NextAppClientToolset<RA, L, FP, InstanceType<C["PathAtlas"]>>> {
     const impl = await this.createClientImpl();
     const module = await import("./next-app-client-toolset.js");
     return module.createNextAppClientToolset(this.rMachine, impl);
@@ -66,7 +67,7 @@ export abstract class NextAppStrategyCore<
 
   async createServerToolset(
     NextClientRMachine: NextAppClientRMachine<L>
-  ): Promise<NextAppServerToolset<RA, L, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
+  ): Promise<NextAppServerToolset<RA, L, FP, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     const impl = await this.createServerImpl();
     const module = await import("./next-app-server-toolset.js");
     return module.createNextAppServerToolset(this.rMachine, impl, NextClientRMachine);

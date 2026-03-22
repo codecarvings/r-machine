@@ -1,4 +1,4 @@
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
@@ -14,8 +14,10 @@ import { createNextAppPathServerImpl } from "../../../../src/core/app/path/next-
 import type { AnyNextAppPathStrategyConfig } from "../../../../src/core/app/path/next-app-path-strategy-core.js";
 
 describe("createNextAppPathServerImpl", () => {
-  it("requires RMachine<AnyResourceAtlas, AnyLocale> as first parameter", () => {
-    expectTypeOf(createNextAppPathServerImpl).parameter(0).toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale>>();
+  it("requires RMachine<AnyResourceAtlas, AnyLocale, AnyFmtProvider> as first parameter", () => {
+    expectTypeOf(createNextAppPathServerImpl)
+      .parameter(0)
+      .toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>();
   });
 
   it("requires AnyNextAppPathStrategyConfig as second parameter", () => {

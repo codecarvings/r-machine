@@ -1,4 +1,4 @@
-import type { RMachine } from "r-machine";
+import type { AnyFmtProvider, EmptyFmtProvider, RMachine } from "r-machine";
 import type { SwitchableOption } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyPathAtlas, PathAtlasCtor } from "#r-machine/next/core";
@@ -136,14 +136,14 @@ describe("PartialNextAppStrategyConfig", () => {
 
 describe("NextAppStrategyCore", () => {
   type TestConfig = NextAppStrategyConfig<DefaultPathAtlas, "locale">;
-  type Core = NextAppStrategyCore<TestAtlas, TestLocale, TestConfig>;
+  type Core = NextAppStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, TestConfig>;
 
   it("defaultConfig is NextAppStrategyConfig<DefaultPathAtlas, 'locale'>", () => {
     expectTypeOf(NextAppStrategyCore.defaultConfig).toEqualTypeOf<NextAppStrategyConfig<DefaultPathAtlas, "locale">>();
   });
 
   it("rMachine is RMachine<RA, L>", () => {
-    expectTypeOf<Core["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, TestLocale>>();
+    expectTypeOf<Core["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, TestLocale, AnyFmtProvider>>();
   });
 
   it("config is C", () => {
@@ -152,16 +152,16 @@ describe("NextAppStrategyCore", () => {
 
   it("createClientToolset returns Promise<NextAppClientToolset<RA, L, InstanceType<C['PathAtlas']>>>", () => {
     expectTypeOf<Core["createClientToolset"]>().returns.toEqualTypeOf<
-      Promise<NextAppClientToolset<TestAtlas, TestLocale, DefaultPathAtlas>>
+      Promise<NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, DefaultPathAtlas>>
     >();
   });
 
   it("createClientToolset return type reflects a custom PathAtlas", () => {
     type CustomConfig = NextAppStrategyConfig<TranslatedPathAtlas, "locale">;
-    type CustomCore = NextAppStrategyCore<TestAtlas, TestLocale, CustomConfig>;
+    type CustomCore = NextAppStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, CustomConfig>;
 
     expectTypeOf<CustomCore["createClientToolset"]>().returns.toEqualTypeOf<
-      Promise<NextAppClientToolset<TestAtlas, TestLocale, TranslatedPathAtlas>>
+      Promise<NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>>
     >();
   });
 
@@ -171,28 +171,34 @@ describe("NextAppStrategyCore", () => {
 
   it("createServerToolset returns Promise<NextAppServerToolset<RA, L, PA, LK>>", () => {
     expectTypeOf<Core["createServerToolset"]>().returns.toEqualTypeOf<
-      Promise<NextAppServerToolset<TestAtlas, TestLocale, DefaultPathAtlas, "locale">>
+      Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, DefaultPathAtlas, "locale">>
     >();
   });
 
   it("different RA produce different core types", () => {
     type OtherAtlas = { readonly other: { readonly value: number } };
-    expectTypeOf<NextAppStrategyCore<TestAtlas, TestLocale, TestConfig>>().not.toEqualTypeOf<
-      NextAppStrategyCore<OtherAtlas, TestLocale, TestConfig>
+    expectTypeOf<NextAppStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, TestConfig>>().not.toEqualTypeOf<
+      NextAppStrategyCore<OtherAtlas, TestLocale, AnyFmtProvider, TestConfig>
     >();
   });
 
   it("different L produce different core types", () => {
     type OtherLocale = "fr" | "de";
-    expectTypeOf<NextAppStrategyCore<TestAtlas, TestLocale, TestConfig>>().not.toEqualTypeOf<
-      NextAppStrategyCore<TestAtlas, OtherLocale, TestConfig>
+    expectTypeOf<NextAppStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, TestConfig>>().not.toEqualTypeOf<
+      NextAppStrategyCore<TestAtlas, OtherLocale, AnyFmtProvider, TestConfig>
     >();
   });
 
   it("different config types produce different core types", () => {
     type OtherConfig = NextAppStrategyConfig<DefaultPathAtlas, "lang">;
-    expectTypeOf<NextAppStrategyCore<TestAtlas, TestLocale, TestConfig>>().not.toEqualTypeOf<
-      NextAppStrategyCore<TestAtlas, TestLocale, OtherConfig>
+    expectTypeOf<NextAppStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, TestConfig>>().not.toEqualTypeOf<
+      NextAppStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, OtherConfig>
+    >();
+  });
+
+  it("different FP produce different core types", () => {
+    expectTypeOf<NextAppStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, TestConfig>>().not.toEqualTypeOf<
+      NextAppStrategyCore<TestAtlas, TestLocale, EmptyFmtProvider, TestConfig>
     >();
   });
 
@@ -201,8 +207,8 @@ describe("NextAppStrategyCore", () => {
   // -----------------------------------------------------------------------
 
   it("L propagates from strategy to client toolset's useLocale", () => {
-    type CoreEnIt = NextAppStrategyCore<TestAtlas, "en" | "it", TestConfig>;
-    type CoreFrDe = NextAppStrategyCore<TestAtlas, "fr" | "de", TestConfig>;
+    type CoreEnIt = NextAppStrategyCore<TestAtlas, "en" | "it", AnyFmtProvider, TestConfig>;
+    type CoreFrDe = NextAppStrategyCore<TestAtlas, "fr" | "de", AnyFmtProvider, TestConfig>;
     type ClientEnIt = Awaited<ReturnType<CoreEnIt["createClientToolset"]>>;
     type ClientFrDe = Awaited<ReturnType<CoreFrDe["createClientToolset"]>>;
     expectTypeOf<ReturnType<ClientEnIt["useLocale"]>>().toEqualTypeOf<"en" | "it">();
@@ -211,15 +217,15 @@ describe("NextAppStrategyCore", () => {
 
   it("L propagates from strategy to server toolset's getLocale and setLocale", () => {
     type ServerEnIt = Awaited<
-      ReturnType<NextAppStrategyCore<TestAtlas, "en" | "it", TestConfig>["createServerToolset"]>
+      ReturnType<NextAppStrategyCore<TestAtlas, "en" | "it", AnyFmtProvider, TestConfig>["createServerToolset"]>
     >;
     expectTypeOf<ReturnType<ServerEnIt["getLocale"]>>().toEqualTypeOf<Promise<"en" | "it">>();
     expectTypeOf<ServerEnIt["setLocale"]>().toEqualTypeOf<(newLocale: "en" | "it") => Promise<void>>();
   });
 
   it("L propagates from strategy to createServerToolset's NextAppClientRMachine parameter", () => {
-    type CoreEnIt = NextAppStrategyCore<TestAtlas, "en" | "it", TestConfig>;
-    type CoreFrDe = NextAppStrategyCore<TestAtlas, "fr" | "de", TestConfig>;
+    type CoreEnIt = NextAppStrategyCore<TestAtlas, "en" | "it", AnyFmtProvider, TestConfig>;
+    type CoreFrDe = NextAppStrategyCore<TestAtlas, "fr" | "de", AnyFmtProvider, TestConfig>;
     expectTypeOf<CoreEnIt["createServerToolset"]>().parameter(0).toEqualTypeOf<NextAppClientRMachine<"en" | "it">>();
     expectTypeOf<CoreFrDe["createServerToolset"]>().parameter(0).toEqualTypeOf<NextAppClientRMachine<"fr" | "de">>();
   });

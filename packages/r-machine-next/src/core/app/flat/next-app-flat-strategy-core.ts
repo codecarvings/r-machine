@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { type CookieDeclaration, defaultCookieDeclaration } from "r-machine/strategy/web";
 import {
@@ -63,22 +63,23 @@ const defaultConfig: NextAppFlatStrategyConfig<
 export abstract class NextAppFlatStrategyCore<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
+  FP extends AnyFmtProvider,
   C extends AnyNextAppFlatStrategyConfig,
-> extends NextAppStrategyCore<RA, L, C> {
+> extends NextAppStrategyCore<RA, L, FP, C> {
   static override readonly defaultConfig = defaultConfig;
 
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, false);
   protected readonly pathTranslator = new HrefTranslator(
     this.pathAtlas,
-    this.rMachine.config.locales,
-    this.rMachine.config.defaultLocale
+    this.rMachine.locales,
+    this.rMachine.defaultLocale
   );
   protected readonly pathCanonicalizer = new HrefCanonicalizer(
     this.pathAtlas,
-    this.rMachine.config.locales,
-    this.rMachine.config.defaultLocale
+    this.rMachine.locales,
+    this.rMachine.defaultLocale
   );
-  private readonly defaultLocale = this.rMachine.config.defaultLocale;
+  private readonly defaultLocale = this.rMachine.defaultLocale;
 
   protected async createClientImpl() {
     const module = await import("./next-app-flat.client-impl.js");

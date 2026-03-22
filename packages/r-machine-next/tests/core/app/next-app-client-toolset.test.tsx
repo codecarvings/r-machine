@@ -476,4 +476,65 @@ describe("createNextAppClientToolset", () => {
       expect(result.current).toBe("it");
     });
   });
+
+  // -----------------------------------------------------------------------
+  // useFmt
+  // -----------------------------------------------------------------------
+
+  describe("useFmt", () => {
+    it("returns the formatter object for the current locale via NextClientRMachine context", async () => {
+      const mockFmt = { formatDate: () => "2026-01-01" };
+      const mock = createMockMachine({ fmt: () => mockFmt });
+      const { NextClientRMachine, useFmt } = await createNextAppClientToolset(mock, createMockImpl());
+
+      function FmtDisplay() {
+        const fmt = useFmt();
+        return <span data-testid="fmt">{fmt.formatDate()}</span>;
+      }
+
+      await act(async () => {
+        render(
+          <NextClientRMachine locale="en">
+            <FmtDisplay />
+          </NextClientRMachine>
+        );
+      });
+
+      expect(screen.getByTestId("fmt").textContent).toBe("2026-01-01");
+      expect(mock.fmt).toHaveBeenCalledWith("en");
+    });
+
+    it("returns updated formatter when locale changes", async () => {
+      const mock = createMockMachine({
+        fmt: (locale: string) => ({ greeting: locale === "en" ? "Hello" : "Ciao" }),
+      });
+      const { NextClientRMachine, useFmt } = await createNextAppClientToolset(mock, createMockImpl());
+
+      function FmtDisplay() {
+        const fmt = useFmt();
+        return <span data-testid="fmt">{(fmt as any).greeting}</span>;
+      }
+
+      let rerender: (ui: ReactNode) => void;
+      await act(async () => {
+        ({ rerender } = render(
+          <NextClientRMachine locale="en">
+            <FmtDisplay />
+          </NextClientRMachine>
+        ));
+      });
+
+      expect(screen.getByTestId("fmt").textContent).toBe("Hello");
+
+      await act(async () => {
+        rerender!(
+          <NextClientRMachine locale="it">
+            <FmtDisplay />
+          </NextClientRMachine>
+        );
+      });
+
+      expect(screen.getByTestId("fmt").textContent).toBe("Ciao");
+    });
+  });
 });

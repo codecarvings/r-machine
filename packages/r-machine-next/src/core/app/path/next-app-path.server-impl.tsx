@@ -13,7 +13,7 @@
 
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import { RMachineConfigError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
@@ -30,20 +30,18 @@ const default_autoDL_matcher_implicit: RegExp | null = /^\/$/; // Auto detect on
 const default_autoDL_matcher_explicit: RegExp | null = defaultPathMatcher; // Auto detect all standard next paths
 const default_implicit_matcher: RegExp | null = defaultPathMatcher; // Implicit for all standard paths
 
-// const pathComposerNormalizerRegExp = /^\//;
-
 export async function createNextAppPathServerImpl<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
+  FP extends AnyFmtProvider,
   C extends AnyNextAppPathStrategyConfig,
 >(
-  rMachine: RMachine<RA, L>,
+  rMachine: RMachine<RA, L, FP>,
   strategyConfig: C,
   pathTranslator: HrefTranslator,
   contentPathCanonicalizer: HrefCanonicalizer
 ) {
-  const locales = rMachine.config.locales;
-  const defaultLocale = rMachine.config.defaultLocale;
+  const { locales, defaultLocale, localeHelper } = rMachine;
   const { autoLocaleBinding, basePath, cookie, localeLabel, autoDetectLocale, implicitDefaultLocale } = strategyConfig;
   const localeKey = strategyConfig.localeKey as C["localeKey"]; // Type assertion needed to use localeKey in a typed way, since it's not a generic parameter of the strategy core class
 
@@ -91,7 +89,7 @@ export async function createNextAppPathServerImpl<
 
     createLocaleStaticParamsGenerator() {
       return async () =>
-        rMachine.config.locales.map((locale: L) => ({
+        locales.map((locale: L) => ({
           [localeKey]: lowercaseLocaleSw ? locale.toLowerCase() : locale,
         }));
     },
@@ -220,9 +218,7 @@ export async function createNextAppPathServerImpl<
                 locale = cookieLocale;
               } else {
                 // Cookie disabled - OR - First time visiting, auto-detect from Accept-Language header
-                locale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(
-                  request.headers.get("accept-language")
-                );
+                locale = localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
               }
 
               if (locale !== defaultLocale) {
@@ -253,7 +249,7 @@ export async function createNextAppPathServerImpl<
             locale = cookieLocale;
           } else {
             // Cookie disabled - OR - First time visiting, auto-detect from Accept-Language header
-            locale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
+            locale = localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
           }
 
           // Redirect to the URL with the locale prefix
@@ -309,7 +305,7 @@ export async function createNextAppPathServerImpl<
 
         const headerStore = await headers();
         const acceptLanguageHeader = headerStore.get("accept-language");
-        const detectedLocale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
+        const detectedLocale = localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
         await setLocale(detectedLocale);
       }
 

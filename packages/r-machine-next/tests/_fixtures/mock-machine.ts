@@ -1,4 +1,4 @@
-import type { RMachine } from "r-machine";
+import type { AnyFmtProvider, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "r-machine/errors";
 import { vi } from "vitest";
 import type { TestLocale } from "./constants.js";
@@ -17,13 +17,17 @@ export interface MockMachineOverrides<L extends string = TestLocale> {
   hybridPickRKit?: (locale: string, ...namespaces: string[]) => unknown;
   pickR?: (locale: string, namespace: string) => Promise<unknown>;
   pickRKit?: (locale: string, ...namespaces: string[]) => Promise<unknown>;
+  fmt?: (locale: string) => unknown;
 }
 
 export function createMockMachine<L extends string = TestLocale>(overrides: MockMachineOverrides<L> = {}) {
   const locales = overrides.locales ?? (["en", "it"] as const);
+  const defaultLocale = overrides.defaultLocale ?? "en";
 
   return {
-    config: { defaultLocale: overrides.defaultLocale ?? "en", locales },
+    locales,
+    defaultLocale,
+    config: { defaultLocale, locales },
     localeHelper: {
       validateLocale: vi.fn((locale: string) =>
         VALID_LOCALES.has(locale)
@@ -38,7 +42,8 @@ export function createMockMachine<L extends string = TestLocale>(overrides: Mock
     hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
     pickR: vi.fn(overrides.pickR ?? (() => Promise.resolve({ greeting: "hello" }))),
     pickRKit: vi.fn(overrides.pickRKit ?? (() => Promise.resolve([{ greeting: "hello" }, { home: "Home" }]))),
-  } as unknown as RMachine<TestAtlas, L>;
+    fmt: vi.fn(overrides.fmt ?? (() => ({}))),
+  } as unknown as RMachine<TestAtlas, L, AnyFmtProvider>;
 }
 
 export function createMockMachineForProxy<L extends string = TestLocale>(
@@ -48,9 +53,11 @@ export function createMockMachineForProxy<L extends string = TestLocale>(
   const locales = overrides.locales ?? (["en", "it"] as const);
 
   return {
+    locales,
+    defaultLocale: dl,
     config: { defaultLocale: dl, locales },
     localeHelper: {
       matchLocalesForAcceptLanguageHeader: vi.fn(() => overrides.matchLocaleReturn ?? dl),
     },
-  } as unknown as RMachine<TestAtlas, L>;
+  } as unknown as RMachine<TestAtlas, L, AnyFmtProvider>;
 }

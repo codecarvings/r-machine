@@ -1,6 +1,6 @@
 // biome-ignore lint/style/useImportType: typeof requires a value import
 import { useRouter } from "next/navigation";
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyPathAtlas, BoundPathComposer, HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
@@ -9,8 +9,10 @@ import { createNextAppPathClientImpl } from "../../../../src/core/app/path/next-
 import type { AnyNextAppPathStrategyConfig } from "../../../../src/core/app/path/next-app-path-strategy-core.js";
 
 describe("createNextAppPathClientImpl", () => {
-  it("requires RMachine<AnyResourceAtlas, AnyLocale> as first parameter", () => {
-    expectTypeOf(createNextAppPathClientImpl).parameter(0).toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale>>();
+  it("requires RMachine<AnyResourceAtlas, AnyLocale, AnyFmtProvider> as first parameter", () => {
+    expectTypeOf(createNextAppPathClientImpl)
+      .parameter(0)
+      .toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>();
   });
 
   it("requires AnyNextAppPathStrategyConfig as second parameter", () => {

@@ -1,4 +1,4 @@
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
@@ -13,8 +13,10 @@ import { createNextAppFlatServerImpl } from "../../../../src/core/app/flat/next-
 import type { AnyNextAppFlatStrategyConfig } from "../../../../src/core/app/flat/next-app-flat-strategy-core.js";
 
 describe("createNextAppFlatServerImpl", () => {
-  it("requires RMachine<AnyResourceAtlas, AnyLocale> as first parameter", () => {
-    expectTypeOf(createNextAppFlatServerImpl).parameter(0).toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale>>();
+  it("requires RMachine<AnyResourceAtlas, AnyLocale, AnyFmtProvider> as first parameter", () => {
+    expectTypeOf(createNextAppFlatServerImpl)
+      .parameter(0)
+      .toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>();
   });
 
   it("requires AnyNextAppFlatStrategyConfig as second parameter", () => {

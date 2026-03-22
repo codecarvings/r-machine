@@ -492,6 +492,47 @@ describe("createNextAppServerToolset", () => {
   });
 
   // -----------------------------------------------------------------------
+  // getFmt
+  // -----------------------------------------------------------------------
+
+  describe("getFmt", () => {
+    it("delegates to rMachine.fmt with bound locale", async () => {
+      const formatters = { formatDate: () => "2026-01-01" };
+      const machine = createMockMachine({
+        fmt: () => formatters,
+      });
+      const toolset = await createNextAppServerToolset(machine, createMockImpl(), MockNextClientRMachine);
+
+      toolset.bindLocale("it");
+      const result = await toolset.getFmt();
+
+      expect(result).toBe(formatters);
+      expect(machine.fmt).toHaveBeenCalledWith("it");
+    });
+
+    it("delegates to rMachine.fmt when locale is resolved from header", async () => {
+      mockHeadersMap.set("x-rm-locale", "it");
+      const machine = createMockMachine();
+      const toolset = await createNextAppServerToolset(
+        machine,
+        createMockImpl({ autoLocaleBinding: true }),
+        MockNextClientRMachine
+      );
+
+      await toolset.getFmt();
+
+      expect(machine.fmt).toHaveBeenCalledWith("it");
+    });
+
+    it("throws ERR_LOCALE_UNDETERMINED when locale is not bound and autoLocaleBinding is false", async () => {
+      const toolset = await createToolset(undefined, { autoLocaleBinding: false });
+
+      const error = await expectAsyncError(() => toolset.getFmt(), RMachineUsageError);
+      expect(error.code).toBe(ERR_LOCALE_UNDETERMINED);
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // NextServerRMachine
   // -----------------------------------------------------------------------
 
@@ -574,6 +615,13 @@ describe("createNextAppServerToolset", () => {
         async (t) => {
           t.bindLocale("en");
           await t.pickRKit("common");
+        },
+      ],
+      [
+        "getFmt",
+        async (t) => {
+          t.bindLocale("en");
+          await t.getFmt();
         },
       ],
       [

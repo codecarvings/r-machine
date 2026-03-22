@@ -13,7 +13,7 @@
 
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
@@ -26,9 +26,15 @@ const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
 export async function createNextAppFlatServerImpl<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
+  FP extends AnyFmtProvider,
   C extends AnyNextAppFlatStrategyConfig,
->(rMachine: RMachine<RA, L>, strategyConfig: C, pathTranslator: HrefTranslator, pathCanonicalizer: HrefCanonicalizer) {
-  const locales = rMachine.config.locales;
+>(
+  rMachine: RMachine<RA, L, FP>,
+  strategyConfig: C,
+  pathTranslator: HrefTranslator,
+  pathCanonicalizer: HrefCanonicalizer
+) {
+  const { locales, localeHelper } = rMachine;
   const { autoLocaleBinding, cookie, pathMatcher } = strategyConfig;
   const localeKey = strategyConfig.localeKey as C["localeKey"]; // Type assertion needed to use localeKey in a typed way, since it's not a generic parameter of the strategy core class
   const autoLBSw = autoLocaleBinding === "on";
@@ -68,7 +74,7 @@ export async function createNextAppFlatServerImpl<
 
     createLocaleStaticParamsGenerator() {
       return async () =>
-        rMachine.config.locales.map((locale: L) => ({
+        locales.map((locale: L) => ({
           [localeKey]: locale,
         }));
     },
@@ -128,7 +134,7 @@ export async function createNextAppFlatServerImpl<
             locale = cookieLocale;
           } else {
             // First time visiting, auto-detect from Accept-Language header
-            locale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
+            locale = localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
           }
 
           return rewriteToCanonicalLocalePath(request, locale, pathname);

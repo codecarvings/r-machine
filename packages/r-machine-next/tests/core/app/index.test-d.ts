@@ -37,15 +37,15 @@ describe("core/app barrel exports", () => {
   it("exports all expected symbols", () => {
     expectTypeOf(localeHeaderName).toBeString();
 
-    expectTypeOf<NextAppStrategyCore<any, any, any>>().toBeObject();
+    expectTypeOf<NextAppStrategyCore<any, any, any, any>>().toBeObject();
 
-    expectTypeOf<NextAppFlatStrategyCore<any, any, any>>().toBeObject();
+    expectTypeOf<NextAppFlatStrategyCore<any, any, any, any>>().toBeObject();
 
-    expectTypeOf<NextAppOriginStrategyCore<any, any, any>>().toBeObject();
+    expectTypeOf<NextAppOriginStrategyCore<any, any, any, any>>().toBeObject();
 
     expectTypeOf<NextAppOriginStrategyUrlTranslator>().toBeObject();
 
-    expectTypeOf<NextAppPathStrategyCore<any, any, any>>().toBeObject();
+    expectTypeOf<NextAppPathStrategyCore<any, any, any, any>>().toBeObject();
 
     expectTypeOf<NextAppPathStrategyPathTranslator>().toBeObject();
 
@@ -65,17 +65,17 @@ describe("core/app barrel exports", () => {
 
     expectTypeOf<NextAppClientRMachine<any>>().toBeFunction();
 
-    expectTypeOf<NextAppClientToolset<any, any, any>>().toBeObject();
+    expectTypeOf<NextAppClientToolset<any, any, any, any>>().toBeObject();
 
     expectTypeOf<NextAppServerImpl<any, any>>().toBeObject();
 
     expectTypeOf<NextAppServerRMachine>().toBeFunction();
 
-    expectTypeOf<NextAppServerToolset<any, any, any, any>>().toBeObject();
+    expectTypeOf<NextAppServerToolset<any, any, any, any, any>>().toBeObject();
 
     expectTypeOf<NextAppNoProxyServerImpl<any, any>>().toBeObject();
 
-    expectTypeOf<NextAppNoProxyServerToolset<any, any, any, any>>().toBeObject();
+    expectTypeOf<NextAppNoProxyServerToolset<any, any, any, any, any>>().toBeObject();
 
     expectTypeOf<AnyNextAppFlatStrategyConfig>().toBeObject();
 

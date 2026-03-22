@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
 import { RMachineConfigError } from "r-machine/errors";
 import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
 import {
@@ -80,26 +80,27 @@ const defaultConfig: NextAppOriginStrategyConfig<
 export abstract class NextAppOriginStrategyCore<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
+  FP extends AnyFmtProvider,
   C extends AnyNextAppOriginStrategyConfig,
-> extends NextAppStrategyCore<RA, L, C> {
+> extends NextAppStrategyCore<RA, L, FP, C> {
   static override readonly defaultConfig = defaultConfig;
 
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, true);
   protected readonly pathTranslator = new HrefTranslator(
     this.pathAtlas,
-    this.rMachine.config.locales,
-    this.rMachine.config.defaultLocale
+    this.rMachine.locales,
+    this.rMachine.defaultLocale
   );
   protected readonly urlTranslator = new NextAppOriginStrategyUrlTranslator(
     this.pathAtlas,
-    this.rMachine.config.locales,
-    this.rMachine.config.defaultLocale,
+    this.rMachine.locales,
+    this.rMachine.defaultLocale,
     this.config.localeOriginMap
   );
   protected readonly pathCanonicalizer = new HrefCanonicalizer(
     this.pathAtlas,
-    this.rMachine.config.locales,
-    this.rMachine.config.defaultLocale
+    this.rMachine.locales,
+    this.rMachine.defaultLocale
   );
 
   protected async createClientImpl() {

@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
 import { RMachineConfigError } from "r-machine/errors";
 import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
 import type { SwitchableOption } from "r-machine/strategy";
@@ -97,29 +97,30 @@ const defaultConfig: NextAppPathStrategyConfig<
 export abstract class NextAppPathStrategyCore<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
+  FP extends AnyFmtProvider,
   C extends AnyNextAppPathStrategyConfig,
-> extends NextAppStrategyCore<RA, L, C> {
+> extends NextAppStrategyCore<RA, L, FP, C> {
   static override readonly defaultConfig = defaultConfig;
 
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, true);
   protected readonly pathTranslator = new NextAppPathStrategyPathTranslator(
     this.pathAtlas,
-    this.rMachine.config.locales,
-    this.rMachine.config.defaultLocale,
+    this.rMachine.locales,
+    this.rMachine.defaultLocale,
     this.config.localeLabel === "lowercase",
     this.config.implicitDefaultLocale !== "off"
   );
   // Used by proxy to rewrite incoming requests
   protected readonly contentPathCanonicalizer = new HrefCanonicalizer(
     this.pathAtlas,
-    this.rMachine.config.locales,
-    this.rMachine.config.defaultLocale
+    this.rMachine.locales,
+    this.rMachine.defaultLocale
   );
   // Used by setLocale to keep the content path when changing locale
   protected readonly pathCanonicalizer = new NextAppPathStrategyPathCanonicalizer(
     this.pathAtlas,
-    this.rMachine.config.locales,
-    this.rMachine.config.defaultLocale,
+    this.rMachine.locales,
+    this.rMachine.defaultLocale,
     this.config.implicitDefaultLocale !== "off"
   );
 
@@ -178,7 +179,7 @@ export abstract class NextAppPathStrategyCore<
 
   async createNoProxyServerToolset(
     NextClientRMachine: NextAppClientRMachine<L>
-  ): Promise<NextAppNoProxyServerToolset<RA, L, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
+  ): Promise<NextAppNoProxyServerToolset<RA, L, FP, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     this.validateNoProxyConfig();
     const impl = await this.createServerImpl();
     const module = await import("../next-app-no-proxy-server-toolset.js");
