@@ -1,6 +1,6 @@
 {
   "name": "r-machine",
-  "version": "1.0.0-alpha.9",
+  "version": "1.0.0-alpha.10",
   "description": "A Type-Safe internationalization (i18n) library",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "MIT",
