@@ -17,8 +17,8 @@ import type {
   RMachineConfigParams,
 } from "../../src/lib/index.js";
 import {
-  createFormatters,
   EmptyFmtProviderCtor,
+  FormattersSeed,
   RMachine,
   type RMachineLocale,
   type RMachineRCtx,
@@ -58,7 +58,7 @@ describe("lib barrel exports", () => {
 
     expectTypeOf<ExtractFmt<EmptyFmtProvider>>().toEqualTypeOf<{}>();
 
-    expectTypeOf(createFormatters).toBeFunction();
+    expectTypeOf(FormattersSeed.create).toBeFunction();
 
     expectTypeOf(EmptyFmtProviderCtor).toBeConstructibleWith();
     expectTypeOf(EmptyFmtProviderCtor.get).toBeFunction();

@@ -1,5 +1,5 @@
 import { RMachine, type RMachineLocale, type RMachineRCtx } from "r-machine";
-import { createFormatters } from "./packages/r-machine/src/lib/fmt.js";
+import { FormattersSeed } from "./packages/r-machine/src/lib/fmt.js";
 
 type ResourceAtlas = {
   ns1: { message: string };
@@ -22,7 +22,7 @@ const rMachineBuilder = RMachine.builder({
 });
 type Locale = RMachineLocale<typeof rMachineBuilder>;
 
-class Formatters extends createFormatters((locale: Locale) => {
+class Formatters extends FormattersSeed.create((locale: Locale) => {
   return {
     uppercase: (str: string) => str.toUpperCase() + locale,
   };

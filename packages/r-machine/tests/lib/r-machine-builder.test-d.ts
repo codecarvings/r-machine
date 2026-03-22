@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { EmptyFmtProvider, FmtProvider } from "../../src/lib/fmt.js";
-import { createFormatters } from "../../src/lib/fmt.js";
+import { FormattersSeed } from "../../src/lib/fmt.js";
 import { RMachine } from "../../src/lib/r-machine.js";
 import type { RMachineBuilder, RMachineExtendedBuilder, RMachineExtensions } from "../../src/lib/r-machine-builder.js";
 
@@ -36,7 +36,7 @@ describe("RMachineExtendedBuilder", () => {
   });
 
   it("should not allow calling .with() a second time", () => {
-    const Formatters = createFormatters((_locale: "en" | "it") => ({ v: 1 }));
+    const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({ v: 1 }));
     const extended = RMachine.builder({
       locales: ["en", "it"] as const,
       defaultLocale: "en" as const,
@@ -48,7 +48,7 @@ describe("RMachineExtendedBuilder", () => {
   });
 
   it("create should return an RMachine with fmt", () => {
-    const Formatters = createFormatters((_locale: "en" | "it") => ({ v: 1 }));
+    const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({ v: 1 }));
     const extended = RMachine.builder({
       locales: ["en", "it"] as const,
       defaultLocale: "en" as const,
@@ -74,7 +74,7 @@ describe("RMachineExtensions", () => {
 
 describe("builder flow type inference", () => {
   it("with() narrows the formatter type through to create()", () => {
-    const Formatters = createFormatters((_locale: "en" | "it") => ({
+    const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({
       currency: (n: number) => `$${n}`,
     }));
 
@@ -116,7 +116,7 @@ describe("builder flow type inference", () => {
     const direct = RMachine.builder(config).create<WideAtlas>();
     expectTypeOf(direct.pickR("en", "home")).toEqualTypeOf<Promise<{ title: string }>>();
 
-    const Formatters = createFormatters((_locale: "en") => ({ v: 1 }));
+    const Formatters = FormattersSeed.create((_locale: "en") => ({ v: 1 }));
     const withFormatters = RMachine.builder(config).with({ Formatters }).create<WideAtlas>();
     expectTypeOf(withFormatters.pickR("en", "home")).toEqualTypeOf<Promise<{ title: string }>>();
   });

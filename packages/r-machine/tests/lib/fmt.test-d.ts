@@ -10,7 +10,7 @@ import type {
   FmtProvider,
   FmtProviderCtor,
 } from "../../src/lib/fmt.js";
-import { createFormatters, EmptyFmtProviderCtor } from "../../src/lib/fmt.js";
+import { EmptyFmtProviderCtor, FormattersSeed } from "../../src/lib/fmt.js";
 
 describe("AnyFmt", () => {
   it("should be object", () => {
@@ -99,15 +99,15 @@ describe("ExtractFmt", () => {
   });
 });
 
-describe("createFormatters", () => {
+describe("FormattersSeed.create", () => {
   it("should return a FmtProviderCtor", () => {
-    const Fmt = createFormatters((_locale: string) => ({ n: 42 }));
+    const Fmt = FormattersSeed.create((_locale: string) => ({ n: 42 }));
     expectTypeOf(Fmt).toBeConstructibleWith();
     expectTypeOf(Fmt.get).toBeFunction();
   });
 
   it("should infer the formatter type from the factory return", () => {
-    const Fmt = createFormatters((_locale: string) => ({
+    const Fmt = FormattersSeed.create((_locale: string) => ({
       date: (d: Date) => d.toISOString(),
       number: (n: number) => String(n),
     }));
@@ -118,7 +118,7 @@ describe("createFormatters", () => {
   });
 
   it("should preserve const inference on the formatter object", () => {
-    const Fmt = createFormatters((_locale: string) => ({
+    const Fmt = FormattersSeed.create((_locale: string) => ({
       format: (d: Date) => d.toISOString(),
     }));
 
@@ -129,13 +129,13 @@ describe("createFormatters", () => {
   });
 
   it("instance .get should have the same type as static .get", () => {
-    const Fmt = createFormatters((_locale: string) => ({ n: 42 }));
+    const Fmt = FormattersSeed.create((_locale: string) => ({ n: 42 }));
     const instance = new Fmt();
     expectTypeOf(instance.get).toEqualTypeOf(Fmt.get);
   });
 
   it("should infer locale type from the factory parameter", () => {
-    const Fmt = createFormatters((_locale: "en" | "it") => ({ v: 1 }));
+    const Fmt = FormattersSeed.create((_locale: "en" | "it") => ({ v: 1 }));
     expectTypeOf(Fmt.get).parameter(0).toEqualTypeOf<"en" | "it">();
   });
 });

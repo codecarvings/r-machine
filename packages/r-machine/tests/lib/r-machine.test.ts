@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { RMachineError, RMachineUsageError } from "#r-machine/errors";
-import { createFormatters } from "../../src/lib/fmt.js";
+import { FormattersSeed } from "../../src/lib/fmt.js";
 import { RMachine } from "../../src/lib/r-machine.js";
 import { defaultRMachineExtensions } from "../../src/lib/r-machine-builder.js";
 import type { RMachineConfig } from "../../src/lib/r-machine-config.js";
@@ -150,7 +150,7 @@ describe("RMachine", () => {
     });
 
     it("builder.with({ Formatters }).create() produces an RMachine with formatters injected in RCtx", async () => {
-      const Formatters = createFormatters((_locale: string) => ({ currency: (n: number) => `$${n}` }));
+      const Formatters = FormattersSeed.create((_locale: string) => ({ currency: (n: number) => `$${n}` }));
       const factory = vi.fn(($: { namespace: string; locale: string; fmt: any }) => ({
         value: $.fmt.currency(42),
       }));
@@ -175,7 +175,7 @@ describe("RMachine", () => {
     });
 
     it("async factory function receives $.fmt and uses it correctly", async () => {
-      const Formatters = createFormatters((locale: string) => ({
+      const Formatters = FormattersSeed.create((locale: string) => ({
         currency: (n: number) => `${locale === "en" ? "$" : "€"}${n}`,
       }));
       const factory = async ($: { namespace: string; locale: string; fmt: any }) => {
@@ -197,7 +197,7 @@ describe("RMachine", () => {
     });
 
     it("is not affected by mutations to the extensions object after construction", () => {
-      const extensions = { Formatters: createFormatters((locale: string) => ({ tag: locale })) };
+      const extensions = { Formatters: FormattersSeed.create((locale: string) => ({ tag: locale })) };
       const machine = RMachine.builder(makeConfig()).with(extensions).create<TestRA>();
 
       // Mutate the original extensions object
@@ -209,7 +209,7 @@ describe("RMachine", () => {
 
     it("factory function receives $.fmt resolved for the correct locale", async () => {
       const fmtFactory = vi.fn((locale: string) => ({ lang: locale }));
-      const Formatters = createFormatters(fmtFactory);
+      const Formatters = FormattersSeed.create(fmtFactory);
       const factory = ($: { namespace: string; locale: string; fmt: any }) => ({
         result: $.fmt.lang,
       });
@@ -230,7 +230,7 @@ describe("RMachine", () => {
     });
   });
 
-  describe("formatter integration via createFormatters", () => {
+  describe("formatter integration via FormattersSeed.create", () => {
     it("$.fmt is an empty object when builder does not use .with()", async () => {
       const factory = vi.fn(() => ({ value: 1 }));
       const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
@@ -246,7 +246,7 @@ describe("RMachine", () => {
 
     it("does not cache formatter factory errors, allowing subsequent resolution to succeed", async () => {
       let callCount = 0;
-      const Formatters = createFormatters((_locale: string) => {
+      const Formatters = FormattersSeed.create((_locale: string) => {
         callCount++;
         if (callCount === 1) throw new Error("Formatter init failed");
         return { v: 1 };
@@ -263,14 +263,14 @@ describe("RMachine", () => {
 
       // First call: Formatters.get throws → resolveR rejects
       await expect(machine.pickR("en", "test")).rejects.toThrow();
-      // Second call: createFormatters does not cache errors, so the factory is called again and succeeds
+      // Second call: FormattersSeed.create does not cache errors, so the factory is called again and succeeds
       const result = await machine.pickR("en", "test");
       expect(result).toEqual({ v: 1 });
     });
 
-    it("createFormatters caches formatter instances across resource resolutions", async () => {
+    it("FormattersSeed.create caches formatter instances across resource resolutions", async () => {
       const fmtFactory = vi.fn((locale: string) => ({ lang: locale }));
-      const Formatters = createFormatters(fmtFactory);
+      const Formatters = FormattersSeed.create(fmtFactory);
       const factory = ($: { namespace: string; locale: string; fmt: any }) => ({ v: $.fmt.lang });
       const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
       const machine = RMachine.builder({
@@ -297,14 +297,14 @@ describe("RMachine", () => {
     });
 
     it("returns the formatter object for a valid locale", () => {
-      const Formatters = createFormatters((locale: string) => ({ greeting: `hello-${locale}` }));
+      const Formatters = FormattersSeed.create((locale: string) => ({ greeting: `hello-${locale}` }));
       const machine = RMachine.builder(makeConfig()).with({ Formatters }).create<TestRA>();
       expect(machine.fmt("en")).toEqual({ greeting: "hello-en" });
       expect(machine.fmt("it")).toEqual({ greeting: "hello-it" });
     });
 
     it("throws RMachineUsageError for an invalid locale", () => {
-      const Formatters = createFormatters((locale: string) => ({ greeting: `hello-${locale}` }));
+      const Formatters = FormattersSeed.create((locale: string) => ({ greeting: `hello-${locale}` }));
       const machine = RMachine.builder(makeConfig()).with({ Formatters }).create<TestRA>();
       expect(() => machine.fmt("fr")).toThrow(RMachineUsageError);
       expect(() => machine.fmt("fr")).toThrow(/Cannot use invalid locale/);
@@ -312,7 +312,7 @@ describe("RMachine", () => {
 
     it("validates locale before calling Formatters.get — factory is never called for invalid locale", () => {
       const factory = vi.fn((locale: string) => ({ greeting: `hello-${locale}` }));
-      const Formatters = createFormatters(factory);
+      const Formatters = FormattersSeed.create(factory);
       const machine = RMachine.builder(makeConfig()).with({ Formatters }).create<TestRA>();
 
       expect(() => machine.fmt("fr")).toThrow(RMachineUsageError);
@@ -320,7 +320,7 @@ describe("RMachine", () => {
     });
 
     it("propagates errors thrown by Formatters.get for a valid locale", () => {
-      const Formatters = createFormatters((_locale: string) => {
+      const Formatters = FormattersSeed.create((_locale: string) => {
         throw new Error("formatter explosion");
       });
       const machine = RMachine.builder(makeConfig()).with({ Formatters }).create<TestRA>();

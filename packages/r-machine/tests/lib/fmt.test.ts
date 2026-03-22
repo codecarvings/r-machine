@@ -1,22 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
-import { createFormatters, EmptyFmtProviderCtor } from "../../src/lib/fmt.js";
+import { EmptyFmtProviderCtor, FormattersSeed } from "../../src/lib/fmt.js";
 
-describe("createFormatters", () => {
+describe("FormattersSeed.create", () => {
   describe("static .get", () => {
     it("invokes the factory and returns its result", () => {
-      const Fmt = createFormatters((locale: string) => ({ lang: locale }));
+      const Fmt = FormattersSeed.create((locale: string) => ({ lang: locale }));
       expect(Fmt.get("en")).toEqual({ lang: "en" });
     });
 
     it("returns different results for different locales", () => {
-      const Fmt = createFormatters((locale: string) => ({ lang: locale }));
+      const Fmt = FormattersSeed.create((locale: string) => ({ lang: locale }));
       expect(Fmt.get("en")).toEqual({ lang: "en" });
       expect(Fmt.get("it")).toEqual({ lang: "it" });
     });
 
     it("calls the factory only once per locale", () => {
       const factory = vi.fn((locale: string) => ({ lang: locale }));
-      const Fmt = createFormatters(factory);
+      const Fmt = FormattersSeed.create(factory);
 
       Fmt.get("en");
       Fmt.get("en");
@@ -27,7 +27,7 @@ describe("createFormatters", () => {
     });
 
     it("returns the same reference for repeated calls with the same locale", () => {
-      const Fmt = createFormatters((locale: string) => ({ lang: locale }));
+      const Fmt = FormattersSeed.create((locale: string) => ({ lang: locale }));
       const first = Fmt.get("en");
       const second = Fmt.get("en");
       expect(first).toBe(second);
@@ -35,7 +35,7 @@ describe("createFormatters", () => {
 
     it("calls the factory once per distinct locale", () => {
       const factory = vi.fn((locale: string) => ({ lang: locale }));
-      const Fmt = createFormatters(factory);
+      const Fmt = FormattersSeed.create(factory);
 
       Fmt.get("en");
       Fmt.get("it");
@@ -48,7 +48,7 @@ describe("createFormatters", () => {
 
   describe("instance .get", () => {
     it("returns the same result as the static .get", () => {
-      const Fmt = createFormatters((locale: string) => ({ lang: locale }));
+      const Fmt = FormattersSeed.create((locale: string) => ({ lang: locale }));
       const instance = new Fmt();
 
       expect(instance.get("en")).toEqual({ lang: "en" });
@@ -57,7 +57,7 @@ describe("createFormatters", () => {
 
     it("shares the cache with the static .get", () => {
       const factory = vi.fn((locale: string) => ({ lang: locale }));
-      const Fmt = createFormatters(factory);
+      const Fmt = FormattersSeed.create(factory);
 
       Fmt.get("en");
       const instance = new Fmt();
@@ -68,12 +68,12 @@ describe("createFormatters", () => {
   });
 
   describe("multiple provider classes", () => {
-    it("each createFormatters call produces an independent cache", () => {
+    it("each FormattersSeed.create call produces an independent cache", () => {
       const factory1 = vi.fn((locale: string) => ({ source: "first", lang: locale }));
       const factory2 = vi.fn((locale: string) => ({ source: "second", lang: locale }));
 
-      const Fmt1 = createFormatters(factory1);
-      const Fmt2 = createFormatters(factory2);
+      const Fmt1 = FormattersSeed.create(factory1);
+      const Fmt2 = FormattersSeed.create(factory2);
 
       Fmt1.get("en");
       Fmt2.get("en");
@@ -87,7 +87,7 @@ describe("createFormatters", () => {
   describe("edge cases", () => {
     it("propagates factory errors without caching them", () => {
       let callCount = 0;
-      const Fmt = createFormatters((_locale: string) => {
+      const Fmt = FormattersSeed.create((_locale: string) => {
         callCount++;
         if (callCount === 1) throw new Error("boom");
         return { recovered: true };
@@ -101,7 +101,7 @@ describe("createFormatters", () => {
 
   describe("formatter object shape", () => {
     it("preserves complex formatter objects with Intl-like members", () => {
-      const Fmt = createFormatters((locale: string) => ({
+      const Fmt = FormattersSeed.create((locale: string) => ({
         number: new Intl.NumberFormat(locale),
         date: new Intl.DateTimeFormat(locale),
       }));
@@ -113,7 +113,7 @@ describe("createFormatters", () => {
 
     it("factory receives the locale string unmodified", () => {
       const factory = vi.fn((_locale: string) => ({}));
-      const Fmt = createFormatters(factory);
+      const Fmt = FormattersSeed.create(factory);
 
       Fmt.get("en-US");
       expect(factory).toHaveBeenCalledWith("en-US");

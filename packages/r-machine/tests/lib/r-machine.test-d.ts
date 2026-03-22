@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { EmptyFmt, EmptyFmtProvider } from "../../src/lib/fmt.js";
-import { createFormatters } from "../../src/lib/fmt.js";
+import { FormattersSeed } from "../../src/lib/fmt.js";
 import type { AnyResourceAtlas, Namespace } from "../../src/lib/r.js";
 import type { RKit } from "../../src/lib/r-kit.js";
 import { RMachine, type RMachineLocale, type RMachineRCtx } from "../../src/lib/r-machine.js";
@@ -82,14 +82,14 @@ describe("RMachine", () => {
     });
 
     it("builder.with should return an extended builder with .create", () => {
-      const Formatters = createFormatters((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
+      const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
       const extended = RMachine.builder(narrowConfig).with({ Formatters });
       expectTypeOf(extended).toHaveProperty("create");
       expectTypeOf(extended.create).toBeFunction();
     });
 
     it("extended builder .create should return an RMachine with fmt getter", () => {
-      const Formatters = createFormatters((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
+      const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
       const machine = RMachine.builder(narrowConfig).with({ Formatters }).create<TestResourceAtlas>();
       expectTypeOf(machine).toBeObject();
       expectTypeOf(machine.fmt).toBeFunction();
@@ -561,7 +561,7 @@ describe("RMachine", () => {
     });
 
     it("should extract locale from RMachineExtendedBuilder", () => {
-      const Formatters = createFormatters((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
+      const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
       const extended = RMachine.builder(narrowConfig).with({ Formatters });
       expectTypeOf<RMachineLocale<typeof extended>>().toEqualTypeOf<"en" | "it">();
     });
@@ -576,7 +576,7 @@ describe("RMachine", () => {
     });
 
     it("should extract RCtx with resolved fmt type from extended builder (with formatters)", () => {
-      const Formatters = createFormatters((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
+      const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
       const extended = RMachine.builder(narrowConfig).with({ Formatters });
       type Ctx = RMachineRCtx<typeof extended>;
       expectTypeOf<Ctx>().toHaveProperty("locale").toEqualTypeOf<"en" | "it">();
@@ -592,20 +592,20 @@ describe("RMachine", () => {
     });
 
     it("fmt should be a getter function when FP is a FmtProvider", () => {
-      const Formatters = createFormatters((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
+      const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
       const machine = RMachine.builder(narrowConfig).with({ Formatters }).create<TestResourceAtlas>();
       expectTypeOf(machine.fmt).toBeFunction();
     });
 
     it("fmt should reject locale not in the narrow union", () => {
-      const Formatters = createFormatters((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
+      const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
       const machine = RMachine.builder(narrowConfig).with({ Formatters }).create<TestResourceAtlas>();
       // @ts-expect-error - "fr" is not in "en" | "it"
       machine.fmt("fr");
     });
 
     it("fmt return type should match the formatter object shape", () => {
-      const Formatters = createFormatters((_locale: "en" | "it") => ({
+      const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({
         currency: (n: number) => `$${n}`,
         date: (d: Date) => d.toISOString(),
       }));

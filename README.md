@@ -112,14 +112,14 @@ export type R_IntlDemo = R<typeof r>;
 
 ### 2. Define Formatters
 
-Define locale-aware formatting functions using `createFormatters`. These formatters are shared across all your resource files via the `R$` context parameter.
+Define locale-aware formatting functions using `FormattersSeed.create`. These formatters are shared across all your resource files via the `R$` context parameter.
 
 ```ts
 // r-machine/formatters.ts
-import { createFormatters } from "r-machine";
+import { FormattersSeed } from "r-machine";
 import type { Locale } from "./setup";
 
-export class Formatters extends createFormatters((locale: Locale) => {
+export class Formatters extends FormattersSeed.create((locale: Locale) => {
   const dateLongFmt = new Intl.DateTimeFormat(locale, { dateStyle: "long" });
   const dateShortFmt = new Intl.DateTimeFormat(locale, { dateStyle: "short" });
   const numberFmt = new Intl.NumberFormat(locale);
@@ -470,7 +470,7 @@ const [common, landingPage] = await rMachine.pickRKit("en", "common", "landing-p
 
 ### Formatters
 
-Locale-aware formatting functions that can be shared across all resource files. Define them once with `createFormatters` and access them in resource factory functions via `$.fmt`:
+Locale-aware formatting functions that can be shared across all resource files. Define them once with `FormattersSeed.create` and access them in resource factory functions via `$.fmt`:
 
 ```ts
 // In resource files:
