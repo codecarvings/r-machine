@@ -11,8 +11,25 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { NonTranslatableSegmentDecl } from "#r-machine/next/core";
+import type {
+  AnyPathAtlas,
+  NonTranslatableSegmentDecl,
+  PathAtlasProvider,
+  PathAtlasProviderCtor,
+} from "#r-machine/next/core";
 
-export function createPathAtlasDecl<const D>(decl: NonTranslatableSegmentDecl<D>): unknown extends D ? {} : D {
-  return decl as any;
+interface PathAtlasSeed {
+  create<const PA extends AnyPathAtlas>(
+    decl: NonTranslatableSegmentDecl<PA>
+  ): PathAtlasProviderCtor<PathAtlasProvider<PA>>;
 }
+
+export const PathAtlasSeed: PathAtlasSeed = {
+  create<const PA extends AnyPathAtlas>(
+    decl: NonTranslatableSegmentDecl<PA>
+  ): PathAtlasProviderCtor<PathAtlasProvider<PA>> {
+    return class {
+      readonly decl = decl;
+    } as PathAtlasProviderCtor<PathAtlasProvider<PA>>;
+  },
+};

@@ -1,13 +1,16 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type {
   AnyPathAtlas,
+  AnyPathAtlasProvider,
+  AnyPathAtlasProviderCtor,
   BoundPathComposer,
-  ExtendedPathAtlas,
+  ExtendedPathAtlasProvider,
   HrefCanonicalizer,
   HrefMapper,
   HrefTranslator,
   NonTranslatableSegmentDecl,
-  PathAtlasCtor,
+  PathAtlasProvider,
+  PathAtlasProviderCtor,
   PathParamMap,
   PathParams,
   PathSelector,
@@ -28,19 +31,25 @@ describe("core barrel exports", () => {
     expectTypeOf(buildPathAtlas).toBeFunction();
 
     expectTypeOf<AnyPathAtlas>().toBeObject();
-    expectTypeOf<AnyPathAtlas>().toHaveProperty("decl");
 
-    expectTypeOf<BoundPathComposer<AnyPathAtlas>>().toBeFunction();
+    expectTypeOf<AnyPathAtlasProvider>().toBeObject();
+    expectTypeOf<AnyPathAtlasProvider>().toHaveProperty("decl");
 
-    expectTypeOf<ExtendedPathAtlas<AnyPathAtlas>>().toBeObject();
+    expectTypeOf<BoundPathComposer<AnyPathAtlasProvider>>().toBeFunction();
 
-    expectTypeOf<PathAtlasCtor<AnyPathAtlas>>().toBeConstructibleWith();
+    expectTypeOf<ExtendedPathAtlasProvider<AnyPathAtlasProvider>>().toBeObject();
+
+    expectTypeOf<AnyPathAtlasProviderCtor>().toBeConstructibleWith();
+
+    expectTypeOf<PathAtlasProvider<AnyPathAtlas>>().toBeObject();
+
+    expectTypeOf<PathAtlasProviderCtor<AnyPathAtlasProvider>>().toBeConstructibleWith();
 
     expectTypeOf<PathParamMap<"/">>().toBeObject();
 
     expectTypeOf<PathParams<"/", PathParamMap<"/">>>().toBeObject();
 
-    expectTypeOf<PathSelector<AnyPathAtlas>>().toExtend<string>();
+    expectTypeOf<PathSelector<AnyPathAtlasProvider>>().toExtend<string>();
 
     expectTypeOf<NonTranslatableSegmentDecl<{}>>().toBeObject();
 

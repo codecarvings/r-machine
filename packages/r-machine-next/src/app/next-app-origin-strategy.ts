@@ -13,7 +13,7 @@
 
 import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
-import type { AnyPathAtlas } from "#r-machine/next/core";
+import type { AnyPathAtlasProvider } from "#r-machine/next/core";
 import {
   type NextAppOriginStrategyConfig,
   NextAppOriginStrategyCore,
@@ -24,14 +24,14 @@ export class NextAppOriginStrategy<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   FP extends AnyFmtProvider,
-  PA extends AnyPathAtlas = InstanceType<typeof NextAppOriginStrategyCore.defaultConfig.PathAtlas>,
+  PAP extends AnyPathAtlasProvider = InstanceType<typeof NextAppOriginStrategyCore.defaultConfig.PathAtlas>,
   LK extends string = typeof NextAppOriginStrategyCore.defaultConfig.localeKey,
-> extends NextAppOriginStrategyCore<RA, L, FP, NextAppOriginStrategyConfig<PA, LK>> {
+> extends NextAppOriginStrategyCore<RA, L, FP, NextAppOriginStrategyConfig<PAP, LK>> {
   // Config is required since localeOriginMap is required
-  constructor(rMachine: RMachine<RA, L, FP>, config: PartialNextAppOriginStrategyConfig<PA, LK>) {
+  constructor(rMachine: RMachine<RA, L, FP>, config: PartialNextAppOriginStrategyConfig<PAP, LK>) {
     super(rMachine, {
       ...NextAppOriginStrategyCore.defaultConfig,
       ...config,
-    } as NextAppOriginStrategyConfig<PA, LK>);
+    } as NextAppOriginStrategyConfig<PAP, LK>);
   }
 }

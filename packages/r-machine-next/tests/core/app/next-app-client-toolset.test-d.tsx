@@ -1,7 +1,7 @@
 import type { AnyFmtProvider, EmptyFmtProvider, RMachine } from "r-machine";
 import type { ReactNode } from "react";
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyPathAtlas, BoundPathComposer } from "#r-machine/next/core";
+import type { AnyPathAtlasProvider, BoundPathComposer } from "#r-machine/next/core";
 import type {
   NextAppClientImpl,
   NextAppClientRMachine,
@@ -87,7 +87,7 @@ describe("NextAppClientToolset", () => {
     setLocale("fr");
   });
 
-  it("usePathComposer returns BoundPathComposer<PA>", () => {
+  it("usePathComposer returns BoundPathComposer<PAP>", () => {
     expectTypeOf<
       NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["usePathComposer"]
     >().toEqualTypeOf<() => BoundPathComposer<TranslatedPathAtlas>>();
@@ -157,7 +157,7 @@ describe("NextAppClientToolset", () => {
     >();
   });
 
-  it("different PA produce different path selectors", () => {
+  it("different PAP produce different path selectors", () => {
     type OtherPathAtlas = { readonly decl: { readonly "/contact": {} } };
     type PathSelector = NextAppClientToolset<
       TestAtlas,
@@ -251,7 +251,7 @@ describe("NextAppClientImpl", () => {
       .parameter(0)
       .toEqualTypeOf<() => TestLocale>();
     expectTypeOf<NextAppClientImpl<TestLocale>["createUsePathComposer"]>().returns.toEqualTypeOf<
-      () => BoundPathComposer<AnyPathAtlas>
+      () => BoundPathComposer<AnyPathAtlasProvider>
     >();
   });
 });

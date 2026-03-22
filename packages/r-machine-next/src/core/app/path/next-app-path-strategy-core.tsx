@@ -17,7 +17,7 @@ import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
 import type { SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import {
-  type AnyPathAtlas,
+  type AnyPathAtlasProvider,
   buildPathAtlas,
   HrefCanonicalizer,
   HrefTranslator,
@@ -42,11 +42,11 @@ import {
  * 4) In the proxy (in NextAppPathServerImplComplement.createProxy) - required when using the proxy and autoDetectLocale is enabled
  */
 
-interface HrefHelper<L extends AnyLocale, PA extends AnyPathAtlas> {
-  readonly getPath: PathComposer<L, PA>;
+interface HrefHelper<L extends AnyLocale, PAP extends AnyPathAtlasProvider> {
+  readonly getPath: PathComposer<L, PAP>;
 }
-type PathComposer<L extends AnyLocale, PA extends AnyPathAtlas> = <
-  P extends PathSelector<PA>,
+type PathComposer<L extends AnyLocale, PAP extends AnyPathAtlasProvider> = <
+  P extends PathSelector<PAP>,
   O extends PathParamMap<P>,
 >(
   locale: L,
@@ -67,16 +67,16 @@ interface CustomAutoDetectLocale {
 type AutoDetectLocaleOption = SwitchableOption | CustomAutoDetectLocale;
 type CookieOption = SwitchableOption | CookieDeclaration;
 
-export interface NextAppPathStrategyConfig<PA extends AnyPathAtlas, LK extends string>
-  extends NextAppStrategyConfig<PA, LK> {
+export interface NextAppPathStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string>
+  extends NextAppStrategyConfig<PAP, LK> {
   readonly cookie: CookieOption;
   readonly localeLabel: LocaleLabelOption;
   readonly autoDetectLocale: AutoDetectLocaleOption;
   readonly implicitDefaultLocale: ImplicitDefaultLocaleOption;
 }
 export type AnyNextAppPathStrategyConfig = NextAppPathStrategyConfig<any, any>;
-export interface PartialNextAppPathStrategyConfig<PA extends AnyPathAtlas, LK extends string>
-  extends PartialNextAppStrategyConfig<PA, LK> {
+export interface PartialNextAppPathStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string>
+  extends PartialNextAppStrategyConfig<PAP, LK> {
   readonly cookie?: CookieOption;
   readonly localeLabel?: LocaleLabelOption;
   readonly autoDetectLocale?: AutoDetectLocaleOption;
@@ -193,7 +193,7 @@ export abstract class NextAppPathStrategyCore<
 
 export class NextAppPathStrategyPathTranslator extends HrefTranslator {
   constructor(
-    atlas: AnyPathAtlas,
+    atlas: AnyPathAtlasProvider,
     locales: AnyLocaleList,
     defaultLocale: AnyLocale,
     protected readonly lowercaseLocale: boolean,
@@ -215,7 +215,7 @@ export class NextAppPathStrategyPathTranslator extends HrefTranslator {
 
 export class NextAppPathStrategyPathCanonicalizer extends HrefCanonicalizer {
   constructor(
-    atlas: AnyPathAtlas,
+    atlas: AnyPathAtlasProvider,
     locales: AnyLocaleList,
     defaultLocale: AnyLocale,
     protected readonly implicitDefaultLocale: boolean

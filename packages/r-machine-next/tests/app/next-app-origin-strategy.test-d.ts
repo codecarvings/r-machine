@@ -1,6 +1,6 @@
 import type { AnyFmtProvider, EmptyFmtProvider, RMachine } from "r-machine";
 import { describe, expectTypeOf, it } from "vitest";
-import type { PathAtlasCtor } from "#r-machine/next/core";
+import type { PathAtlasProviderCtor } from "#r-machine/next/core";
 import type {
   NextAppClientToolset,
   NextAppServerToolset,
@@ -61,9 +61,9 @@ describe("NextAppOriginStrategy", () => {
   // -----------------------------------------------------------------------
 
   describe("default type parameters", () => {
-    it("PA defaults to defaultConfig PathAtlas constructor", () => {
+    it("PAP defaults to defaultConfig PathAtlas constructor", () => {
       expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider>["config"]["PathAtlas"]>().toEqualTypeOf<
-        PathAtlasCtor<DefaultPA>
+        PathAtlasProviderCtor<DefaultPA>
       >();
     });
 
@@ -79,10 +79,10 @@ describe("NextAppOriginStrategy", () => {
   // -----------------------------------------------------------------------
 
   describe("custom type parameters", () => {
-    it("custom PA is wired through to config.PathAtlas", () => {
+    it("custom PAP is wired through to config.PathAtlas", () => {
       expectTypeOf<
         NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["config"]["PathAtlas"]
-      >().toEqualTypeOf<PathAtlasCtor<TranslatedPathAtlas>>();
+      >().toEqualTypeOf<PathAtlasProviderCtor<TranslatedPathAtlas>>();
     });
 
     it("custom LK is reflected in config.localeKey", () => {
@@ -91,7 +91,7 @@ describe("NextAppOriginStrategy", () => {
       >().toEqualTypeOf<"lang">();
     });
 
-    it("custom PA affects client toolset return type", () => {
+    it("custom PAP affects client toolset return type", () => {
       expectTypeOf<
         NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["createClientToolset"]
       >().returns.toEqualTypeOf<
@@ -121,7 +121,7 @@ describe("NextAppOriginStrategy", () => {
       >();
     });
 
-    it("different PA produce different types", () => {
+    it("different PAP produce different types", () => {
       expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas>>().not.toEqualTypeOf<
         NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>
       >();
@@ -199,8 +199,8 @@ describe("NextAppOriginStrategy", () => {
       type _Invalid = NextAppOriginStrategy<string, TestLocale>;
     });
 
-    it("rejects non-AnyPathAtlas as PA", () => {
-      // @ts-expect-error - string does not satisfy AnyPathAtlas
+    it("rejects non-AnyPathAtlasProvider as PAP", () => {
+      // @ts-expect-error - string does not satisfy AnyPathAtlasProvider
       type _Invalid = NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, string>;
     });
 

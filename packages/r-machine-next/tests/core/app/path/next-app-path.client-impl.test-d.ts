@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyPathAtlas, BoundPathComposer, HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
+import type { AnyPathAtlasProvider, BoundPathComposer, HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import type { NextAppClientImpl } from "#r-machine/next/core/app";
 import { createNextAppPathClientImpl } from "../../../../src/core/app/path/next-app-path.client-impl.js";
 import type { AnyNextAppPathStrategyConfig } from "../../../../src/core/app/path/next-app-path-strategy-core.js";
@@ -86,6 +86,6 @@ describe("NextAppClientImpl property types", () => {
     type Fn = NextAppClientImpl<AnyLocale>["createUsePathComposer"];
     expectTypeOf<Fn>().toBeFunction();
     expectTypeOf<Fn>().parameter(0).toEqualTypeOf<() => string>();
-    expectTypeOf<ReturnType<Fn>>().toEqualTypeOf<() => BoundPathComposer<AnyPathAtlas>>();
+    expectTypeOf<ReturnType<Fn>>().toEqualTypeOf<() => BoundPathComposer<AnyPathAtlasProvider>>();
   });
 });

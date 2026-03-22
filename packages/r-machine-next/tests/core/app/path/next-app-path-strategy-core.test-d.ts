@@ -3,10 +3,10 @@ import type { SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
-  AnyPathAtlas,
+  AnyPathAtlasProvider,
   HrefCanonicalizer,
   HrefTranslator,
-  PathAtlasCtor,
+  PathAtlasProviderCtor,
   PathParamMap,
   PathSelector,
 } from "#r-machine/next/core";
@@ -49,8 +49,8 @@ describe("NextAppPathStrategyConfig", () => {
     >();
   });
 
-  it("PathAtlas is PathAtlasCtor<PA>", () => {
-    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasCtor<SimplePathAtlas>>();
+  it("PathAtlas is PathAtlasProviderCtor<PAP>", () => {
+    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasProviderCtor<SimplePathAtlas>>();
   });
 
   it("localeKey is the literal string type", () => {
@@ -111,7 +111,7 @@ describe("AnyNextAppPathStrategyConfig", () => {
   });
 
   it("generic-dependent properties widen to any", () => {
-    expectTypeOf<AnyNextAppPathStrategyConfig["PathAtlas"]>().toEqualTypeOf<PathAtlasCtor<any>>();
+    expectTypeOf<AnyNextAppPathStrategyConfig["PathAtlas"]>().toEqualTypeOf<PathAtlasProviderCtor<any>>();
     expectTypeOf<AnyNextAppPathStrategyConfig["localeKey"]>().toBeAny();
   });
 });
@@ -293,9 +293,9 @@ describe("NextAppPathStrategyCore", () => {
 // ---------------------------------------------------------------------------
 
 describe("NextAppPathStrategyPathTranslator", () => {
-  it("is constructible with (AnyPathAtlas, readonly string[], string, boolean, boolean)", () => {
+  it("is constructible with (AnyPathAtlasProvider, readonly string[], string, boolean, boolean)", () => {
     expectTypeOf(NextAppPathStrategyPathTranslator).toBeConstructibleWith(
-      {} as AnyPathAtlas,
+      {} as AnyPathAtlasProvider,
       ["en", "it"] as const,
       "en",
       true,
@@ -313,9 +313,9 @@ describe("NextAppPathStrategyPathTranslator", () => {
 // ---------------------------------------------------------------------------
 
 describe("NextAppPathStrategyPathCanonicalizer", () => {
-  it("is constructible with (AnyPathAtlas, readonly string[], string, boolean)", () => {
+  it("is constructible with (AnyPathAtlasProvider, readonly string[], string, boolean)", () => {
     expectTypeOf(NextAppPathStrategyPathCanonicalizer).toBeConstructibleWith(
-      {} as AnyPathAtlas,
+      {} as AnyPathAtlasProvider,
       ["en", "it"] as const,
       "en",
       false

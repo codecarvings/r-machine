@@ -81,18 +81,28 @@ export type TranslatableSegmentDecl<T> = {
               };
 };
 
-export interface AnyPathAtlas {
-  readonly decl: object;
-}
-export type PathAtlasCtor<PA extends AnyPathAtlas> = new () => PA;
+// --- Provider ---
+export type AnyPathAtlas = object;
 
-export type ExtendedPathAtlas<PA extends AnyPathAtlas> = PA & { containsTranslations: boolean };
+export interface PathAtlasProvider<PA extends AnyPathAtlas> {
+  readonly decl: PA;
+}
+export type AnyPathAtlasProvider = PathAtlasProvider<AnyPathAtlas>;
+
+// --- Provider Ctor ---
+export interface PathAtlasProviderCtor<PAP extends AnyPathAtlasProvider> {
+  new (): PAP;
+}
+export type AnyPathAtlasProviderCtor = PathAtlasProviderCtor<AnyPathAtlasProvider>;
+
+// --- Extended ---
+export type ExtendedPathAtlasProvider<PAP extends AnyPathAtlasProvider> = PAP & { containsTranslations: boolean };
 
 // Build and validate PathAtlas
-export function buildPathAtlas<PA extends AnyPathAtlas>(
-  ctor: PathAtlasCtor<PA>,
+export function buildPathAtlas<PAP extends AnyPathAtlasProvider>(
+  ctor: PathAtlasProviderCtor<PAP>,
   allowTranslation: boolean
-): ExtendedPathAtlas<PA> {
+): ExtendedPathAtlasProvider<PAP> {
   const instance = new ctor();
   const context: ValidationContext = { foundTranslation: false };
   validatePathAtlasDecl(instance.decl, "", allowTranslation, context);

@@ -1,7 +1,7 @@
 import type { AnyFmtProvider, EmptyFmtProvider, RMachine } from "r-machine";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import { describe, expectTypeOf, it } from "vitest";
-import type { PathAtlasCtor } from "#r-machine/next/core";
+import type { PathAtlasProviderCtor } from "#r-machine/next/core";
 import type {
   NextAppClientRMachine,
   NextAppClientToolset,
@@ -57,9 +57,9 @@ describe("NextAppPathStrategy", () => {
   // -----------------------------------------------------------------------
 
   describe("default type parameters", () => {
-    it("PA defaults to defaultConfig PathAtlas instance", () => {
+    it("PAP defaults to defaultConfig PathAtlas instance", () => {
       expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale, AnyFmtProvider>["config"]["PathAtlas"]>().toEqualTypeOf<
-        PathAtlasCtor<DefaultPA>
+        PathAtlasProviderCtor<DefaultPA>
       >();
     });
 
@@ -193,10 +193,10 @@ describe("NextAppPathStrategy", () => {
   // -----------------------------------------------------------------------
 
   describe("custom type parameters", () => {
-    it("custom PA is wired through to config.PathAtlas", () => {
+    it("custom PAP is wired through to config.PathAtlas", () => {
       expectTypeOf<
         NextAppPathStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["config"]["PathAtlas"]
-      >().toEqualTypeOf<PathAtlasCtor<TranslatedPathAtlas>>();
+      >().toEqualTypeOf<PathAtlasProviderCtor<TranslatedPathAtlas>>();
     });
 
     it("custom LK is reflected in config.localeKey", () => {
@@ -205,7 +205,7 @@ describe("NextAppPathStrategy", () => {
       >().toEqualTypeOf<"lang">();
     });
 
-    it("custom PA affects client toolset return type", () => {
+    it("custom PAP affects client toolset return type", () => {
       expectTypeOf<
         NextAppPathStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["createClientToolset"]
       >().returns.toEqualTypeOf<
@@ -221,7 +221,7 @@ describe("NextAppPathStrategy", () => {
       >();
     });
 
-    it("custom PA+LK affects no-proxy server toolset return type", () => {
+    it("custom PAP+LK affects no-proxy server toolset return type", () => {
       expectTypeOf<
         NextAppPathStrategy<
           TestAtlas,
@@ -249,7 +249,7 @@ describe("NextAppPathStrategy", () => {
       >();
     });
 
-    it("different PA produce different types", () => {
+    it("different PAP produce different types", () => {
       expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas>>().not.toEqualTypeOf<
         NextAppPathStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>
       >();
@@ -287,7 +287,7 @@ describe("NextAppPathStrategy", () => {
       strategy.hrefHelper.getPath(123, "/about");
     });
 
-    it("getPath rejects paths not in PathSelector<PA>", () => {
+    it("getPath rejects paths not in PathSelector<PAP>", () => {
       const strategy = null! as NextAppPathStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>;
       // @ts-expect-error - "/nonexistent" is not a valid path in TranslatedPathAtlas
       strategy.hrefHelper.getPath("en", "/nonexistent");
@@ -332,8 +332,8 @@ describe("NextAppPathStrategy", () => {
       type _Invalid = NextAppPathStrategy<string, TestLocale>;
     });
 
-    it("rejects non-AnyPathAtlas as PA", () => {
-      // @ts-expect-error - string does not satisfy AnyPathAtlas
+    it("rejects non-AnyPathAtlasProvider as PAP", () => {
+      // @ts-expect-error - string does not satisfy AnyPathAtlasProvider
       type _Invalid = NextAppPathStrategy<TestAtlas, TestLocale, AnyFmtProvider, string>;
     });
 

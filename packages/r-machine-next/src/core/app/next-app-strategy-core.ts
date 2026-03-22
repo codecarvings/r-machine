@@ -14,21 +14,21 @@
 import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { Strategy, type SwitchableOption } from "r-machine/strategy";
-import type { AnyPathAtlas, ExtendedPathAtlas, PathAtlasCtor } from "#r-machine/next/core";
+import type { AnyPathAtlasProvider, ExtendedPathAtlasProvider, PathAtlasProviderCtor } from "#r-machine/next/core";
 import type { NextAppClientImpl, NextAppClientRMachine, NextAppClientToolset } from "./next-app-client-toolset.js";
 import type { NextAppServerImpl, NextAppServerToolset } from "./next-app-server-toolset.js";
 
 export const localeHeaderName = "x-rm-locale";
 
-export interface NextAppStrategyConfig<PA extends AnyPathAtlas, LK extends string> {
-  readonly PathAtlas: PathAtlasCtor<PA>;
+export interface NextAppStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string> {
+  readonly PathAtlas: PathAtlasProviderCtor<PAP>;
   readonly localeKey: LK;
   readonly autoLocaleBinding: SwitchableOption;
   readonly basePath: string;
 }
 export type AnyNextAppStrategyConfig = NextAppStrategyConfig<any, any>;
-export interface PartialNextAppStrategyConfig<PA extends AnyPathAtlas, LK extends string> {
-  readonly PathAtlas?: PathAtlasCtor<PA>;
+export interface PartialNextAppStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string> {
+  readonly PathAtlas?: PathAtlasProviderCtor<PAP>;
   readonly localeKey?: LK;
   readonly autoLocaleBinding?: SwitchableOption;
   readonly basePath?: string;
@@ -54,7 +54,7 @@ export abstract class NextAppStrategyCore<
 > extends Strategy<RA, L, FP, C> {
   static readonly defaultConfig = defaultConfig;
 
-  protected abstract readonly pathAtlas: ExtendedPathAtlas<InstanceType<C["PathAtlas"]>>;
+  protected abstract readonly pathAtlas: ExtendedPathAtlasProvider<InstanceType<C["PathAtlas"]>>;
 
   protected abstract createClientImpl(): Promise<NextAppClientImpl<L>>;
   protected abstract createServerImpl(): Promise<NextAppServerImpl<L, C["localeKey"]>>;

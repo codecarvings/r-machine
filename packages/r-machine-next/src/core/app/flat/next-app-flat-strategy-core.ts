@@ -15,7 +15,7 @@ import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { type CookieDeclaration, defaultCookieDeclaration } from "r-machine/strategy/web";
 import {
-  type AnyPathAtlas,
+  type AnyPathAtlasProvider,
   buildPathAtlas,
   HrefCanonicalizer,
   HrefTranslator,
@@ -31,22 +31,22 @@ import {
 } from "../next-app-strategy-core.js";
 
 // Locale not available for flat strategy since locale is stored in the cookie
-interface HrefHelper<PA extends AnyPathAtlas> {
-  readonly getPath: PathComposer<PA>;
+interface HrefHelper<PAP extends AnyPathAtlasProvider> {
+  readonly getPath: PathComposer<PAP>;
 }
-type PathComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
+type PathComposer<PAP extends AnyPathAtlasProvider> = <P extends PathSelector<PAP>, O extends PathParamMap<P>>(
   path: P,
   ...args: [keyof PathParamMap<P>] extends [never] ? [params?: PathParams<P, O>] : [params: PathParams<P, O>]
 ) => string;
 
-export interface NextAppFlatStrategyConfig<PA extends AnyPathAtlas, LK extends string>
-  extends NextAppStrategyConfig<PA, LK> {
+export interface NextAppFlatStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string>
+  extends NextAppStrategyConfig<PAP, LK> {
   readonly cookie: CookieDeclaration;
   readonly pathMatcher: RegExp | null;
 }
 export type AnyNextAppFlatStrategyConfig = NextAppFlatStrategyConfig<any, any>;
-export interface PartialNextAppFlatStrategyConfig<PA extends AnyPathAtlas, LK extends string>
-  extends PartialNextAppStrategyConfig<PA, LK> {
+export interface PartialNextAppFlatStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string>
+  extends PartialNextAppStrategyConfig<PAP, LK> {
   readonly cookie?: CookieDeclaration;
   readonly pathMatcher?: RegExp | null;
 }

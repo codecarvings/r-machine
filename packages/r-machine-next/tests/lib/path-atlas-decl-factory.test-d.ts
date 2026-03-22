@@ -1,100 +1,118 @@
 /** biome-ignore-all lint/suspicious/noTemplateCurlyInString: This is intentional for the tests */
 
 import { describe, expectTypeOf, it } from "vitest";
-import type { NonTranslatableSegmentDecl } from "../../src/core/index.js";
-import { createPathAtlasDecl } from "../../src/lib/path-atlas-decl-factory.js";
+import type { AnyPathAtlasProvider, NonTranslatableSegmentDecl } from "../../src/core/index.js";
+import { PathAtlasSeed } from "../../src/lib/path-atlas-decl-factory.js";
 
-describe("createPathAtlasDecl", () => {
-  describe("return type", () => {
-    it("returns {} for an empty declaration", () => {
-      expectTypeOf(createPathAtlasDecl({})).toEqualTypeOf<{}>();
-    });
-
-    it("returns the const-inferred type for a typed declaration", () => {
-      const decl = {
-        "/about": {},
-        "/contact": {},
-        "/users": { "/[id]": {} },
-        "/docs": { "/[...slug]": {} },
-        "/help": { "/[[...slug]]": {} },
-        "/api": { "/v1": { "/users": { "/profile": {} } } },
-      } as const;
-      expectTypeOf(createPathAtlasDecl(decl)).toEqualTypeOf(decl);
-    });
-
-    it("infers the exact literal type of the argument", () => {
-      const result = createPathAtlasDecl({ "/about": {}, "/contact": {} });
-      expectTypeOf(result).toEqualTypeOf<{ readonly "/about": {}; readonly "/contact": {} }>();
-    });
-
-    it("preserves nested structure in the return type", () => {
-      const result = createPathAtlasDecl({ "/about": { "/team": { "/leads": {} } } });
-      expectTypeOf(result).toEqualTypeOf<{
-        readonly "/about": { readonly "/team": { readonly "/leads": {} } };
-      }>();
-    });
-
-    it("preserves translation values in the return type", () => {
-      const result = createPathAtlasDecl({
-        "/about": { en: "/about-en", it: "/chi-siamo" },
+describe("PathAtlasSeed", () => {
+  describe("create", () => {
+    describe("instance decl type", () => {
+      it("returns {} for an empty declaration", () => {
+        const Ctor = PathAtlasSeed.create({});
+        expectTypeOf(new Ctor().decl).toBeObject();
       });
-      expectTypeOf(result).toEqualTypeOf<{
-        readonly "/about": { readonly en: "/about-en"; readonly it: "/chi-siamo" };
-      }>();
+
+      it("returns the const-inferred type for a typed declaration", () => {
+        const decl = {
+          "/about": {},
+          "/contact": {},
+          "/users": { "/[id]": {} },
+          "/docs": { "/[...slug]": {} },
+          "/help": { "/[[...slug]]": {} },
+          "/api": { "/v1": { "/users": { "/profile": {} } } },
+        } as const;
+        expectTypeOf(new (PathAtlasSeed.create(decl))().decl).toEqualTypeOf(decl);
+      });
+
+      it("infers the exact literal type of the argument", () => {
+        const Ctor = PathAtlasSeed.create({ "/about": {}, "/contact": {} });
+        expectTypeOf(new Ctor().decl).toEqualTypeOf<{ readonly "/about": {}; readonly "/contact": {} }>();
+      });
+
+      it("preserves nested structure in the return type", () => {
+        const Ctor = PathAtlasSeed.create({ "/about": { "/team": { "/leads": {} } } });
+        expectTypeOf(new Ctor().decl).toEqualTypeOf<{
+          readonly "/about": { readonly "/team": { readonly "/leads": {} } };
+        }>();
+      });
+
+      it("preserves translation values in the return type", () => {
+        const Ctor = PathAtlasSeed.create({
+          "/about": { en: "/about-en", it: "/chi-siamo" },
+        });
+        expectTypeOf(new Ctor().decl).toEqualTypeOf<{
+          readonly "/about": { readonly en: "/about-en"; readonly it: "/chi-siamo" };
+        }>();
+      });
+    });
+
+    describe("satisfies AnyPathAtlasProvider", () => {
+      it("instance satisfies AnyPathAtlasProvider", () => {
+        const Ctor = PathAtlasSeed.create({ "/about": {} });
+        expectTypeOf(new Ctor()).toExtend<AnyPathAtlasProvider>();
+      });
+    });
+
+    describe("extensibility", () => {
+      it("returned class is extensible", () => {
+        const Base = PathAtlasSeed.create({ "/about": {} });
+        class MyAtlas extends Base {}
+        expectTypeOf(new MyAtlas().decl).toEqualTypeOf<{ readonly "/about": {} }>();
+      });
     });
   });
 
   describe("valid declarations", () => {
     it("accepts deeply nested segments", () => {
-      createPathAtlasDecl({
+      PathAtlasSeed.create({
         "/api": { "/v1": { "/users": { "/profile": { "/settings": {} } } } },
       });
     });
 
     it("accepts a dynamic segment", () => {
-      createPathAtlasDecl({ "/[id]": {} });
+      PathAtlasSeed.create({ "/[id]": {} });
     });
 
     it("accepts a dynamic segment with child segments", () => {
-      createPathAtlasDecl({
+      PathAtlasSeed.create({
         "/[id]": { "/posts": {}, "/comments": {} },
       });
     });
 
     it("accepts nested dynamic segments", () => {
-      createPathAtlasDecl({
+      PathAtlasSeed.create({
         "/users": { "/[userId]": { "/posts": { "/[postId]": {} } } },
       });
     });
 
     it("accepts a catch-all segment with an empty object", () => {
-      createPathAtlasDecl({ "/[...slug]": {} });
+      PathAtlasSeed.create({ "/[...slug]": {} });
     });
 
     it("accepts an optional catch-all segment with an empty object", () => {
-      createPathAtlasDecl({ "/[[...slug]]": {} });
+      PathAtlasSeed.create({ "/[[...slug]]": {} });
     });
 
     it("accepts catch-all nested inside a static segment", () => {
-      createPathAtlasDecl({
+      PathAtlasSeed.create({
         "/docs": { "/[...slug]": {} },
       });
     });
 
     it("accepts optional catch-all nested inside a static segment", () => {
-      createPathAtlasDecl({
+      PathAtlasSeed.create({
         "/help": { "/[[...slug]]": {} },
       });
     });
 
     it("accepts translations inside static child segments (via TranslatableSegmentDecl)", () => {
-      createPathAtlasDecl({
+      PathAtlasSeed.create({
         "/about": { en: "/about-en", it: "/chi-siamo" },
       });
     });
 
     it("accepts translations alongside child segments inside static segments", () => {
-      createPathAtlasDecl({
+      PathAtlasSeed.create({
         "/about": {
           en: "/about-en",
           it: "/chi-siamo",
@@ -104,7 +122,7 @@ describe("createPathAtlasDecl", () => {
     });
 
     it("accepts translations at multiple nesting levels", () => {
-      createPathAtlasDecl({
+      PathAtlasSeed.create({
         "/about": {
           en: "/about-en",
           it: "/chi-siamo",
@@ -118,7 +136,7 @@ describe("createPathAtlasDecl", () => {
     });
 
     it("accepts a dynamic segment inside a translated static segment", () => {
-      createPathAtlasDecl({
+      PathAtlasSeed.create({
         "/products": {
           en: "/products-en",
           it: "/prodotti",
@@ -128,7 +146,7 @@ describe("createPathAtlasDecl", () => {
     });
 
     it("accepts a catch-all inside a translated static segment", () => {
-      createPathAtlasDecl({
+      PathAtlasSeed.create({
         "/docs": {
           en: "/documentation",
           it: "/documentazione",

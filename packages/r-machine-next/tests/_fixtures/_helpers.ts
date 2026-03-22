@@ -1,6 +1,6 @@
-import type { AnyPathAtlas } from "../../src/core/path-atlas.js";
+import type { AnyPathAtlasProvider } from "../../src/core/path-atlas.js";
 
-export function createMockAtlas(decl: object = {}): AnyPathAtlas {
+export function createMockAtlas(decl: object = {}): AnyPathAtlasProvider {
   return { decl };
 }
 

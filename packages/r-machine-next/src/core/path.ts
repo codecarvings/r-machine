@@ -12,7 +12,7 @@
  */
 
 import type { Prettify } from "#r-machine/next/internal";
-import type { AnyPathAtlas, AnySegmentKey } from "./path-atlas.js";
+import type { AnyPathAtlasProvider, AnySegmentKey } from "./path-atlas.js";
 
 type PathAtlasDeclPaths<T> = {
   -readonly [K in keyof T as K extends AnySegmentKey ? K : never]: T[K] extends object
@@ -30,12 +30,12 @@ type ChildPathSelector<T> = T extends object
     }[keyof T]
   : never;
 
-// Check if PA or PA["decl"] are any, if so, allow any /${string} path
-export type PathSelector<PA extends AnyPathAtlas> = 0 extends 1 & PA
+// Check if PAP or PAP["decl"] are any, if so, allow any /${string} path
+export type PathSelector<PAP extends AnyPathAtlasProvider> = 0 extends 1 & PAP
   ? `/${string}`
-  : null extends PA["decl"]
+  : null extends PAP["decl"]
     ? `/${string}`
-    : "/" | ChildPathSelector<PathAtlasDeclPaths<PA["decl"]>>;
+    : "/" | ChildPathSelector<PathAtlasDeclPaths<PAP["decl"]>>;
 
 /**
  * Recursively parses a path string and extracts parameter types from dynamic segments.
@@ -69,7 +69,10 @@ export type PathParams<P extends string, O extends PathParamMap<P>> = [keyof O] 
     : Prettify<PathParamMap<P>>
   : never;
 
-export type BoundPathComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
+export type BoundPathComposer<PAP extends AnyPathAtlasProvider> = <
+  P extends PathSelector<PAP>,
+  O extends PathParamMap<P>,
+>(
   path: P,
   ...args: [keyof PathParamMap<P>] extends [never] ? [params?: PathParams<P, O>] : [params: PathParams<P, O>]
 ) => string;

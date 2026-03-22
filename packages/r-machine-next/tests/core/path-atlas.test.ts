@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { AnyPathAtlas } from "../../src/core/path-atlas.js";
+import type { AnyPathAtlasProvider } from "../../src/core/path-atlas.js";
 import { buildPathAtlas } from "../../src/core/path-atlas.js";
 
-function createPathAtlasClass(decl: object): new () => AnyPathAtlas {
+function createPathAtlasClass(decl: object): new () => AnyPathAtlasProvider {
   return class {
     readonly decl = decl;
   };
@@ -263,9 +263,9 @@ describe("buildPathAtlas", () => {
     });
 
     it("returns the same instance that was created", () => {
-      const PA = createPathAtlasClass({ "/about": {} });
-      const atlas = buildPathAtlas(PA, true);
-      expect(atlas).toBeInstanceOf(PA);
+      const PAP = createPathAtlasClass({ "/about": {} });
+      const atlas = buildPathAtlas(PAP, true);
+      expect(atlas).toBeInstanceOf(PAP);
     });
   });
 
@@ -331,9 +331,9 @@ describe("buildPathAtlas", () => {
 
     it("preserves original PathAtlas instance properties", () => {
       const decl = { "/about": { it: "/chi-siamo" } };
-      const PA = createPathAtlasClass(decl);
-      const atlas = buildPathAtlas(PA, true);
-      expect(atlas).toBeInstanceOf(PA);
+      const PAP = createPathAtlasClass(decl);
+      const atlas = buildPathAtlas(PAP, true);
+      expect(atlas).toBeInstanceOf(PAP);
       expect(atlas.decl).toEqual(decl);
       expect(atlas.containsTranslations).toBe(true);
     });

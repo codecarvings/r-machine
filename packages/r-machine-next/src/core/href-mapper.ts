@@ -12,7 +12,7 @@
  */
 
 import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
-import type { AnyPathAtlas } from "#r-machine/next/core";
+import type { AnyPathAtlasProvider } from "#r-machine/next/core";
 
 type SegmentKind = "static" | "dynamic" | "catchAll" | "optionalCatchAll";
 
@@ -107,7 +107,7 @@ export type HrefMapperFn = (locale: AnyLocale, path: string, ...args: any[]) => 
 
 export abstract class HrefMapper<F extends HrefMapperFn> {
   constructor(
-    protected readonly atlas: AnyPathAtlas,
+    protected readonly atlas: AnyPathAtlasProvider,
     readonly locales: AnyLocaleList,
     readonly defaultLocale: AnyLocale
   ) {

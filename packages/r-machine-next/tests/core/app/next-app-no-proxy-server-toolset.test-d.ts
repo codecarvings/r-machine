@@ -119,7 +119,7 @@ describe("NextAppNoProxyServerToolset", () => {
     expectTypeOf<ToolsetEnIt["setLocale"]>().not.toEqualTypeOf<ToolsetFrDe["setLocale"]>();
   });
 
-  it("getPathComposer returns Promise<BoundPathComposer<PA>>", () => {
+  it("getPathComposer returns Promise<BoundPathComposer<PAP>>", () => {
     expectTypeOf<Toolset["getPathComposer"]>().toEqualTypeOf<() => Promise<BoundPathComposer<TranslatedPathAtlas>>>();
   });
 

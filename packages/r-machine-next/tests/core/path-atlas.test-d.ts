@@ -2,16 +2,16 @@
 
 import { describe, expectTypeOf, it } from "vitest";
 import type {
-  AnyPathAtlas,
+  AnyPathAtlasProvider,
   AnySegmentKey,
-  ExtendedPathAtlas,
+  ExtendedPathAtlasProvider,
   NonTranslatableSegmentDecl,
-  PathAtlasCtor,
+  PathAtlasProviderCtor,
   TranslatableSegmentDecl,
 } from "../../src/core/path-atlas.js";
 import { buildPathAtlas } from "../../src/core/path-atlas.js";
 
-type TestAtlas = AnyPathAtlas & { readonly decl: { "/about": {} } };
+type TestAtlas = AnyPathAtlasProvider & { readonly decl: { "/about": {} } };
 
 describe("AnySegmentKey", () => {
   it("is the template literal type `/${string}`", () => {
@@ -32,176 +32,176 @@ describe("AnySegmentKey", () => {
   });
 });
 
-describe("AnyPathAtlas", () => {
+describe("AnyPathAtlasProvider", () => {
   it("has a readonly decl property of type object", () => {
-    expectTypeOf<AnyPathAtlas["decl"]>().toEqualTypeOf<object>();
+    expectTypeOf<AnyPathAtlasProvider["decl"]>().toEqualTypeOf<object>();
   });
 });
 
-describe("PathAtlasCtor", () => {
-  it("is a constructor that returns PA", () => {
-    expectTypeOf<PathAtlasCtor<TestAtlas>>().toEqualTypeOf<new () => TestAtlas>();
+describe("PathAtlasProviderCtor", () => {
+  it("is a constructor that returns PAP", () => {
+    expectTypeOf<PathAtlasProviderCtor<TestAtlas>>().toEqualTypeOf<new () => TestAtlas>();
   });
 });
 
-describe("ExtendedPathAtlas", () => {
-  it("intersects PA with containsTranslations boolean", () => {
-    expectTypeOf<ExtendedPathAtlas<TestAtlas>>().toEqualTypeOf<TestAtlas & { containsTranslations: boolean }>();
+describe("ExtendedPathAtlasProvider", () => {
+  it("intersects PAP with containsTranslations boolean", () => {
+    expectTypeOf<ExtendedPathAtlasProvider<TestAtlas>>().toEqualTypeOf<TestAtlas & { containsTranslations: boolean }>();
   });
 });
 
 describe("buildPathAtlas", () => {
-  it("returns ExtendedPathAtlas for a given PathAtlas type", () => {
+  it("returns ExtendedPathAtlasProvider for a given PathAtlas type", () => {
     const ctor = class {
       decl = {};
-    } as unknown as PathAtlasCtor<AnyPathAtlas>;
-    expectTypeOf(buildPathAtlas(ctor, true)).toEqualTypeOf<ExtendedPathAtlas<AnyPathAtlas>>();
+    } as unknown as PathAtlasProviderCtor<AnyPathAtlasProvider>;
+    expectTypeOf(buildPathAtlas(ctor, true)).toEqualTypeOf<ExtendedPathAtlasProvider<AnyPathAtlasProvider>>();
   });
 
   it("preserves the specific PathAtlas type in the result", () => {
-    interface SpecificAtlas extends AnyPathAtlas {
+    interface SpecificAtlas extends AnyPathAtlasProvider {
       readonly decl: { "/about": {} };
     }
-    const ctor = {} as PathAtlasCtor<SpecificAtlas>;
-    expectTypeOf(buildPathAtlas(ctor, false)).toEqualTypeOf<ExtendedPathAtlas<SpecificAtlas>>();
+    const ctor = {} as PathAtlasProviderCtor<SpecificAtlas>;
+    expectTypeOf(buildPathAtlas(ctor, false)).toEqualTypeOf<ExtendedPathAtlasProvider<SpecificAtlas>>();
   });
 });
 
 describe("NonTranslatableSegmentDecl", () => {
   it("accepts an empty declaration", () => {
-    type D = {};
-    expectTypeOf<D>().toExtend<NonTranslatableSegmentDecl<D>>();
+    type PA = {};
+    expectTypeOf<PA>().toExtend<NonTranslatableSegmentDecl<PA>>();
   });
 
   it("accepts simple segment declarations", () => {
-    type D = { "/about": {}; "/contact": {} };
-    expectTypeOf<D>().toExtend<NonTranslatableSegmentDecl<D>>();
+    type PA = { "/about": {}; "/contact": {} };
+    expectTypeOf<PA>().toExtend<NonTranslatableSegmentDecl<PA>>();
   });
 
   it("accepts nested segment declarations", () => {
-    type D = { "/about": { "/team": { "/leads": {} } } };
-    expectTypeOf<D>().toExtend<NonTranslatableSegmentDecl<D>>();
+    type PA = { "/about": { "/team": { "/leads": {} } } };
+    expectTypeOf<PA>().toExtend<NonTranslatableSegmentDecl<PA>>();
   });
 
   it("accepts dynamic segment declarations", () => {
-    type D = { "/[id]": {} };
-    expectTypeOf<D>().toExtend<NonTranslatableSegmentDecl<D>>();
+    type PA = { "/[id]": {} };
+    expectTypeOf<PA>().toExtend<NonTranslatableSegmentDecl<PA>>();
   });
 
   it("accepts catch-all segment declarations with empty objects", () => {
-    type D = { "/[...slug]": {} };
-    expectTypeOf<D>().toExtend<NonTranslatableSegmentDecl<D>>();
+    type PA = { "/[...slug]": {} };
+    expectTypeOf<PA>().toExtend<NonTranslatableSegmentDecl<PA>>();
   });
 
   it("accepts optional catch-all segment declarations with empty objects", () => {
-    type D = { "/[[...slug]]": {} };
-    expectTypeOf<D>().toExtend<NonTranslatableSegmentDecl<D>>();
+    type PA = { "/[[...slug]]": {} };
+    expectTypeOf<PA>().toExtend<NonTranslatableSegmentDecl<PA>>();
   });
 
   it("accepts translations inside child segments via TranslatableSegmentDecl", () => {
-    type D = { "/about": { en: "/about-en"; it: "/chi-siamo" } };
-    expectTypeOf<D>().toExtend<NonTranslatableSegmentDecl<D>>();
+    type PA = { "/about": { en: "/about-en"; it: "/chi-siamo" } };
+    expectTypeOf<PA>().toExtend<NonTranslatableSegmentDecl<PA>>();
   });
 
   it("rejects non-object segment values", () => {
-    type D = { "/about": "hello" };
-    expectTypeOf<D>().not.toExtend<NonTranslatableSegmentDecl<D>>();
+    type PA = { "/about": "hello" };
+    expectTypeOf<PA>().not.toExtend<NonTranslatableSegmentDecl<PA>>();
   });
 
   it("rejects keys not matching /${string} at root level", () => {
-    type D = { about: {} };
-    expectTypeOf<D>().not.toExtend<NonTranslatableSegmentDecl<D>>();
+    type PA = { about: {} };
+    expectTypeOf<PA>().not.toExtend<NonTranslatableSegmentDecl<PA>>();
   });
 
   it("rejects translation keys at root level", () => {
-    type D = { en: "/about" };
-    expectTypeOf<D>().not.toExtend<NonTranslatableSegmentDecl<D>>();
+    type PA = { en: "/about" };
+    expectTypeOf<PA>().not.toExtend<NonTranslatableSegmentDecl<PA>>();
   });
 
   it("rejects empty segment key /", () => {
-    type D = { "/": {} };
-    expectTypeOf<D>().not.toExtend<NonTranslatableSegmentDecl<D>>();
+    type PA = { "/": {} };
+    expectTypeOf<PA>().not.toExtend<NonTranslatableSegmentDecl<PA>>();
   });
 
   it("rejects catch-all segments with child segments", () => {
-    type D = { "/[...slug]": { "/child": {} } };
-    expectTypeOf<D>().not.toExtend<NonTranslatableSegmentDecl<D>>();
+    type PA = { "/[...slug]": { "/child": {} } };
+    expectTypeOf<PA>().not.toExtend<NonTranslatableSegmentDecl<PA>>();
   });
 
   it("rejects optional catch-all segments with child segments", () => {
-    type D = { "/[[...slug]]": { "/child": {} } };
-    expectTypeOf<D>().not.toExtend<NonTranslatableSegmentDecl<D>>();
+    type PA = { "/[[...slug]]": { "/child": {} } };
+    expectTypeOf<PA>().not.toExtend<NonTranslatableSegmentDecl<PA>>();
   });
 
   it("rejects translations inside dynamic segments", () => {
-    type D = { "/[id]": { en: "/id-en" } };
-    expectTypeOf<D>().not.toExtend<NonTranslatableSegmentDecl<D>>();
+    type PA = { "/[id]": { en: "/id-en" } };
+    expectTypeOf<PA>().not.toExtend<NonTranslatableSegmentDecl<PA>>();
   });
 });
 
 describe("TranslatableSegmentDecl", () => {
   it("accepts an empty declaration", () => {
-    type D = {};
-    expectTypeOf<D>().toExtend<TranslatableSegmentDecl<D>>();
+    type PA = {};
+    expectTypeOf<PA>().toExtend<TranslatableSegmentDecl<PA>>();
   });
 
   it("accepts simple segment declarations", () => {
-    type D = { "/about": {} };
-    expectTypeOf<D>().toExtend<TranslatableSegmentDecl<D>>();
+    type PA = { "/about": {} };
+    expectTypeOf<PA>().toExtend<TranslatableSegmentDecl<PA>>();
   });
 
   it("accepts translation keys with /${string} values", () => {
-    type D = { en: "/about-en"; it: "/chi-siamo" };
-    expectTypeOf<D>().toExtend<TranslatableSegmentDecl<D>>();
+    type PA = { en: "/about-en"; it: "/chi-siamo" };
+    expectTypeOf<PA>().toExtend<TranslatableSegmentDecl<PA>>();
   });
 
   it("accepts segments with nested translations", () => {
-    type D = { "/about": { en: "/about-en"; it: "/chi-siamo"; "/team": {} } };
-    expectTypeOf<D>().toExtend<TranslatableSegmentDecl<D>>();
+    type PA = { "/about": { en: "/about-en"; it: "/chi-siamo"; "/team": {} } };
+    expectTypeOf<PA>().toExtend<TranslatableSegmentDecl<PA>>();
   });
 
   it("accepts dynamic segment declarations", () => {
-    type D = { "/[id]": {} };
-    expectTypeOf<D>().toExtend<TranslatableSegmentDecl<D>>();
+    type PA = { "/[id]": {} };
+    expectTypeOf<PA>().toExtend<TranslatableSegmentDecl<PA>>();
   });
 
   it("accepts catch-all segment declarations with empty objects", () => {
-    type D = { "/[...slug]": {} };
-    expectTypeOf<D>().toExtend<TranslatableSegmentDecl<D>>();
+    type PA = { "/[...slug]": {} };
+    expectTypeOf<PA>().toExtend<TranslatableSegmentDecl<PA>>();
   });
 
   it("accepts optional catch-all segment declarations with empty objects", () => {
-    type D = { "/[[...slug]]": {} };
-    expectTypeOf<D>().toExtend<TranslatableSegmentDecl<D>>();
+    type PA = { "/[[...slug]]": {} };
+    expectTypeOf<PA>().toExtend<TranslatableSegmentDecl<PA>>();
   });
 
   it("rejects translation values not matching /${string}", () => {
-    type D = { en: "about" };
-    expectTypeOf<D>().not.toExtend<TranslatableSegmentDecl<D>>();
+    type PA = { en: "about" };
+    expectTypeOf<PA>().not.toExtend<TranslatableSegmentDecl<PA>>();
   });
 
   it("rejects non-object segment values", () => {
-    type D = { "/about": "hello" };
-    expectTypeOf<D>().not.toExtend<TranslatableSegmentDecl<D>>();
+    type PA = { "/about": "hello" };
+    expectTypeOf<PA>().not.toExtend<TranslatableSegmentDecl<PA>>();
   });
 
   it("rejects empty segment key /", () => {
-    type D = { "/": {} };
-    expectTypeOf<D>().not.toExtend<TranslatableSegmentDecl<D>>();
+    type PA = { "/": {} };
+    expectTypeOf<PA>().not.toExtend<TranslatableSegmentDecl<PA>>();
   });
 
   it("rejects catch-all segments with child segments", () => {
-    type D = { "/[...slug]": { "/child": {} } };
-    expectTypeOf<D>().not.toExtend<TranslatableSegmentDecl<D>>();
+    type PA = { "/[...slug]": { "/child": {} } };
+    expectTypeOf<PA>().not.toExtend<TranslatableSegmentDecl<PA>>();
   });
 
   it("rejects optional catch-all segments with child segments", () => {
-    type D = { "/[[...slug]]": { "/child": {} } };
-    expectTypeOf<D>().not.toExtend<TranslatableSegmentDecl<D>>();
+    type PA = { "/[[...slug]]": { "/child": {} } };
+    expectTypeOf<PA>().not.toExtend<TranslatableSegmentDecl<PA>>();
   });
 
   it("rejects translations inside dynamic segments", () => {
-    type D = { "/[id]": { en: "/id-en" } };
-    expectTypeOf<D>().not.toExtend<TranslatableSegmentDecl<D>>();
+    type PA = { "/[id]": { en: "/id-en" } };
+    expectTypeOf<PA>().not.toExtend<TranslatableSegmentDecl<PA>>();
   });
 });

@@ -2,7 +2,7 @@ import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
-  AnyPathAtlas,
+  AnyPathAtlasProvider,
   BoundPathComposer,
   HrefCanonicalizer,
   HrefTranslator,
@@ -100,7 +100,7 @@ describe("NextAppServerImpl property types", () => {
     type FnNarrow = NextAppServerImpl<"en" | "it", string>["createBoundPathComposerSupplier"];
     expectTypeOf<FnNarrow>().parameter(0).toEqualTypeOf<() => Promise<"en" | "it">>();
 
-    type Supplier = () => Promise<BoundPathComposer<AnyPathAtlas>>;
+    type Supplier = () => Promise<BoundPathComposer<AnyPathAtlasProvider>>;
     expectTypeOf<ReturnType<FnWide>>().toEqualTypeOf<Supplier | Promise<Supplier>>();
   });
 

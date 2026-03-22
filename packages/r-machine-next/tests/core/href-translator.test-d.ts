@@ -2,11 +2,11 @@ import { describe, expectTypeOf, it } from "vitest";
 import type { HrefCanonicalizer } from "../../src/core/href-canonicalizer.js";
 import type { HrefMapper, MappedHrefResult, MappedSegment } from "../../src/core/href-mapper.js";
 import { getTranslatedHref, HrefTranslator } from "../../src/core/href-translator.js";
-import type { AnyPathAtlas } from "../../src/core/path-atlas.js";
+import type { AnyPathAtlasProvider } from "../../src/core/path-atlas.js";
 
 describe("HrefTranslator", () => {
-  it("is constructible with (AnyPathAtlas, readonly string[], string)", () => {
-    expectTypeOf(HrefTranslator).toBeConstructibleWith({} as AnyPathAtlas, ["en", "it"] as const, "en");
+  it("is constructible with (AnyPathAtlasProvider, readonly string[], string)", () => {
+    expectTypeOf(HrefTranslator).toBeConstructibleWith({} as AnyPathAtlasProvider, ["en", "it"] as const, "en");
   });
 
   it("extends HrefMapper", () => {
@@ -39,18 +39,18 @@ describe("HrefTranslator - negative constructor tests", () => {
   });
 
   it("rejects construction with wrong atlas type", () => {
-    // @ts-expect-error - first argument must be AnyPathAtlas
+    // @ts-expect-error - first argument must be AnyPathAtlasProvider
     new HrefTranslator("not atlas", ["en"], "en");
   });
 
   it("rejects construction with non-array locales", () => {
     // @ts-expect-error - second argument must be readonly string[]
-    new HrefTranslator({} as AnyPathAtlas, "en", "en");
+    new HrefTranslator({} as AnyPathAtlasProvider, "en", "en");
   });
 
   it("rejects construction with non-string defaultLocale", () => {
     // @ts-expect-error - third argument must be string
-    new HrefTranslator({} as AnyPathAtlas, ["en"], 42);
+    new HrefTranslator({} as AnyPathAtlasProvider, ["en"], 42);
   });
 });
 

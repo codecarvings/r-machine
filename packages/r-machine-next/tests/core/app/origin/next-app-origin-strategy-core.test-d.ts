@@ -1,7 +1,13 @@
 import type { AnyFmtProvider, EmptyFmtProvider, RMachine } from "r-machine";
 import type { SwitchableOption } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyPathAtlas, HrefTranslator, PathAtlasCtor, PathParamMap, PathSelector } from "#r-machine/next/core";
+import type {
+  AnyPathAtlasProvider,
+  HrefTranslator,
+  PathAtlasProviderCtor,
+  PathParamMap,
+  PathSelector,
+} from "#r-machine/next/core";
 import type {
   AnyNextAppOriginStrategyConfig,
   LocaleOriginMap,
@@ -54,8 +60,8 @@ describe("NextAppOriginStrategyConfig", () => {
     >();
   });
 
-  it("PathAtlas is PathAtlasCtor<PA>", () => {
-    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasCtor<SimplePathAtlas>>();
+  it("PathAtlas is PathAtlasProviderCtor<PAP>", () => {
+    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasProviderCtor<SimplePathAtlas>>();
   });
 
   it("localeKey is the literal string type", () => {
@@ -259,9 +265,9 @@ describe("NextAppOriginStrategyCore", () => {
 // ---------------------------------------------------------------------------
 
 describe("NextAppOriginStrategyUrlTranslator", () => {
-  it("is constructible with (AnyPathAtlas, readonly string[], string, LocaleOriginMap)", () => {
+  it("is constructible with (AnyPathAtlasProvider, readonly string[], string, LocaleOriginMap)", () => {
     expectTypeOf(NextAppOriginStrategyUrlTranslator).toBeConstructibleWith(
-      {} as AnyPathAtlas,
+      {} as AnyPathAtlasProvider,
       ["en", "it"] as const,
       "en",
       { en: "https://en.example.com", it: "https://it.example.com" }
