@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { Locale } from "@/r-machine/setup";
 import { useLocale, useSetLocale } from "@/r-machine/toolset";
 
 const localeItems = {
@@ -21,7 +22,7 @@ export function LocaleSwitcher() {
 
   const currentLocaleItem = localeItems[locale as keyof typeof localeItems];
   const setLocaleAfterMenuClose = useCallback(
-    (newLocale: string) => {
+    (newLocale: Locale) => {
       setTimeout(() => {
         // Delay setting the locale to allow the dropdown to close smoothly
         setLocale(newLocale);
@@ -42,7 +43,7 @@ export function LocaleSwitcher() {
         {Object.entries(localeItems).map(([key, { name }]) => (
           <DropdownMenuItem
             key={key}
-            onClick={() => setLocaleAfterMenuClose(key)}
+            onClick={() => setLocaleAfterMenuClose(key as Locale)}
             className="cursor-pointer gap-2 text-base py-2"
           >
             <span>{name}</span>

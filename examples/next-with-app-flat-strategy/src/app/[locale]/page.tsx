@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Box3 from "@/components/client/box3";
 import FeaturesTitle from "@/components/client/features-title";
+import IntlDemo from "@/components/client/intl-demo";
 import FeatureBox from "@/components/server/feature-box";
 import FeatureBoxLoading from "@/components/server/feature-box-loading";
 import Hero from "@/components/server/hero";
@@ -24,14 +25,20 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <FeatureBox feature={r.box1} />
-            <FeatureBox feature={r.box2} />
+            <FeatureBox badge={r.box1.badge} title={r.box1.title}>
+              {r.box1.description}
+            </FeatureBox>
+            <FeatureBox badge={r.box2.badge} title={r.box2.title}>
+              {r.box2.description}
+            </FeatureBox>
             <Suspense fallback={<FeatureBoxLoading />}>
               <Box3 />
             </Suspense>
           </div>
         </div>
       </section>
+
+      <IntlDemo />
     </>
   );
 }

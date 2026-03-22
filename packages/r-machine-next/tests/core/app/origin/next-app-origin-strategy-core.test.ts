@@ -1,3 +1,4 @@
+import type { AnyFmtProvider } from "r-machine";
 import { RMachineConfigError } from "r-machine/errors";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
@@ -15,6 +16,7 @@ import {
   SimplePathAtlas,
   TranslatedPathAtlas,
 } from "../../../_fixtures/_helpers.js";
+import type { TestLocale } from "../../../_fixtures/constants.js";
 import { createMockMachine, type TestAtlas } from "../../../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
@@ -51,7 +53,7 @@ function createTestConfig(overrides?: Partial<SimpleConfig>): SimpleConfig {
 function createTestStrategy(configOverrides?: Partial<SimpleConfig>) {
   const config = createTestConfig(configOverrides);
 
-  class TestOriginStrategy extends NextAppOriginStrategyCore<TestAtlas, SimpleConfig> {}
+  class TestOriginStrategy extends NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig> {}
 
   const rMachine = createMockMachine();
   const strategy = new TestOriginStrategy(rMachine, config);
@@ -74,7 +76,7 @@ function createTranslatedStrategy(
     pathMatcher: defaultPathMatcher,
   } as TranslatedConfig;
 
-  class TestOriginStrategy extends NextAppOriginStrategyCore<TestAtlas, TranslatedConfig> {}
+  class TestOriginStrategy extends NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, TranslatedConfig> {}
 
   const rMachine = createMockMachine();
   return new TestOriginStrategy(rMachine, config);

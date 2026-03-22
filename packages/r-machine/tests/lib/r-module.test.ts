@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { RMachineError } from "#r-machine/errors";
-import type { AnyRModule, R$, RModuleResolver } from "../../src/lib/r-module.js";
+import type { AnyFmtGetter } from "../../src/lib/fmt.js";
+import type { AnyRModule, RCtx, RModuleResolver } from "../../src/lib/r-module.js";
 import { resolveR, resolveRFromModule } from "../../src/lib/r-module.js";
 
-function make$(overrides: Partial<R$> = {}): R$ {
-  return { namespace: "common", locale: "en", ...overrides };
+const noFmt: AnyFmtGetter = () => ({});
+
+function make$(overrides: Partial<RCtx> = {}): RCtx {
+  return { namespace: "common", locale: "en", fmt: {}, ...overrides };
 }
 
 describe("resolveRFromModule", () => {
@@ -24,7 +27,7 @@ describe("resolveRFromModule", () => {
       expect(result).toBe(r);
     });
 
-    it("should pass R$ to the factory", async () => {
+    it("should pass RCtx to the factory", async () => {
       const factory = vi.fn(() => ({ key: "value" }));
       const $ = make$({ namespace: "auth", locale: "it" });
       await resolveRFromModule({ default: factory }, $);
@@ -33,7 +36,7 @@ describe("resolveRFromModule", () => {
 
     it("should pass namespace and locale correctly", async () => {
       const module: AnyRModule = {
-        default: ($: R$) => ({ ns: $.namespace, loc: $.locale }),
+        default: ($: RCtx) => ({ ns: $.namespace, loc: $.locale }),
       };
       const result = await resolveRFromModule(module, make$({ namespace: "nav", locale: "de" }));
       expect(result).toEqual({ ns: "nav", loc: "de" });
@@ -64,6 +67,16 @@ describe("resolveRFromModule", () => {
         "invalid resource type returned by factory (number)"
       );
     });
+
+    it("should wrap sync factory throw in RMachineError", async () => {
+      const module: AnyRModule = {
+        default: () => {
+          throw new Error("sync boom");
+        },
+      };
+      await expect(resolveRFromModule(module, make$())).rejects.toThrow(RMachineError);
+      await expect(resolveRFromModule(module, make$())).rejects.toThrow("factory promise rejected");
+    });
   });
 
   describe("with an async factory default export", () => {
@@ -74,7 +87,7 @@ describe("resolveRFromModule", () => {
       expect(result).toBe(r);
     });
 
-    it("should pass R$ to the async factory", async () => {
+    it("should pass RCtx to the async factory", async () => {
       const factory = vi.fn(async () => ({ key: "value" }));
       const $ = make$({ namespace: "footer", locale: "fr" });
       await resolveRFromModule({ default: factory }, $);
@@ -175,21 +188,21 @@ describe("resolveR", () => {
     it("should resolve the resource from a static default export", async () => {
       const r = { hello: "world" };
       const resolver = makeResolver({ default: r });
-      const result = await resolveR(resolver, "common", "en");
+      const result = await resolveR(resolver, "common", "en", noFmt);
       expect(result).toBe(r);
     });
 
     it("should resolve the resource from a factory default export", async () => {
       const r = { greeting: "Hi" };
       const resolver = makeResolver({ default: () => r });
-      const result = await resolveR(resolver, "common", "en");
+      const result = await resolveR(resolver, "common", "en", noFmt);
       expect(result).toBe(r);
     });
 
     it("should resolve the resource from an async factory default export", async () => {
       const r = { greeting: "Bonjour" };
       const resolver = makeResolver({ default: async () => r });
-      const result = await resolveR(resolver, "common", "fr");
+      const result = await resolveR(resolver, "common", "fr", noFmt);
       expect(result).toBe(r);
     });
   });
@@ -197,15 +210,15 @@ describe("resolveR", () => {
   describe("passes correct arguments", () => {
     it("should pass namespace and locale to the resolver", async () => {
       const resolver = vi.fn(async () => ({ default: { key: "val" } }));
-      await resolveR(resolver, "auth", "de");
+      await resolveR(resolver, "auth", "de", noFmt);
       expect(resolver).toHaveBeenCalledWith("auth", "de");
     });
 
-    it("should pass R$ with correct namespace and locale to factory", async () => {
-      const factory = vi.fn(($: R$) => ({ ns: $.namespace, loc: $.locale }));
+    it("should pass RCtx with correct namespace and locale to factory", async () => {
+      const factory = vi.fn(($: RCtx) => ({ ns: $.namespace, loc: $.locale }));
       const resolver: RModuleResolver = async () => ({ default: factory });
-      const result = await resolveR(resolver, "nav", "it");
-      expect(factory).toHaveBeenCalledWith({ namespace: "nav", locale: "it" });
+      const result = await resolveR(resolver, "nav", "it", noFmt);
+      expect(factory).toHaveBeenCalledWith({ namespace: "nav", locale: "it", fmt: {} });
       expect(result).toEqual({ ns: "nav", loc: "it" });
     });
   });
@@ -215,27 +228,65 @@ describe("resolveR", () => {
       const resolver: RModuleResolver = async () => {
         throw new Error("import failed");
       };
-      await expect(resolveR(resolver, "dashboard", "zh")).rejects.toThrow(RMachineError);
-      await expect(resolveR(resolver, "dashboard", "zh")).rejects.toThrow("rModuleResolver failed");
-      await expect(resolveR(resolver, "dashboard", "zh")).rejects.toThrow('"dashboard"');
-      await expect(resolveR(resolver, "dashboard", "zh")).rejects.toThrow('"zh"');
+      await expect(resolveR(resolver, "dashboard", "zh", noFmt)).rejects.toThrow(RMachineError);
+      await expect(resolveR(resolver, "dashboard", "zh", noFmt)).rejects.toThrow("rModuleResolver failed");
+      await expect(resolveR(resolver, "dashboard", "zh", noFmt)).rejects.toThrow('"dashboard"');
+      await expect(resolveR(resolver, "dashboard", "zh", noFmt)).rejects.toThrow('"zh"');
+    });
+  });
+
+  describe("formatter integration", () => {
+    it("should pass formatter result to factory via RCtx.fmt", async () => {
+      const fmtGetter: AnyFmtGetter = (locale) => ({ lang: locale });
+      const factory = vi.fn(($: RCtx) => ({ result: $.fmt }));
+      const resolver: RModuleResolver = async () => ({ default: factory });
+      const result = await resolveR(resolver, "common", "en", fmtGetter);
+      expect(factory).toHaveBeenCalledWith(
+        expect.objectContaining({ namespace: "common", locale: "en", fmt: { lang: "en" } })
+      );
+      expect(result).toEqual({ result: { lang: "en" } });
+    });
+
+    it("should propagate error when fmtGetter throws (error is NOT wrapped in RMachineError)", async () => {
+      const fmtGetter: AnyFmtGetter = () => {
+        throw new Error("formatter init failed");
+      };
+      const factory = vi.fn(($: RCtx) => ({ v: $.fmt }));
+      const resolver: RModuleResolver = async () => ({ default: factory });
+      await expect(resolveR(resolver, "common", "en", fmtGetter)).rejects.toThrow("formatter init failed");
+      await expect(resolveR(resolver, "common", "en", fmtGetter)).rejects.not.toThrow(RMachineError);
+      expect(factory).not.toHaveBeenCalled();
+    });
+
+    it("should call fmtGetter exactly once per resolveR call", async () => {
+      const fmtGetter = vi.fn((_locale: string) => ({ v: 1 }));
+      const resolver: RModuleResolver = async () => ({ default: () => ({ ok: true }) });
+      await resolveR(resolver, "nav", "it", fmtGetter);
+      expect(fmtGetter).toHaveBeenCalledTimes(1);
+    });
+
+    it("should call formatter getter with the correct locale", async () => {
+      const fmtGetter = vi.fn((_locale: string) => ({ v: 1 }));
+      const resolver: RModuleResolver = async () => ({ default: {} });
+      await resolveR(resolver, "nav", "it", fmtGetter);
+      expect(fmtGetter).toHaveBeenCalledWith("it");
     });
   });
 
   describe("module resolution failure (propagated from resolveRFromModule)", () => {
     it("should reject when resolved module has null default", async () => {
       const resolver = makeResolver({ default: null } as any);
-      await expect(resolveR(resolver, "common", "en")).rejects.toThrow("exported resource is null");
+      await expect(resolveR(resolver, "common", "en", noFmt)).rejects.toThrow("exported resource is null");
     });
 
     it("should reject when resolved module has invalid default type", async () => {
       const resolver = makeResolver({ default: "bad" } as any);
-      await expect(resolveR(resolver, "common", "en")).rejects.toThrow("invalid export type (string)");
+      await expect(resolveR(resolver, "common", "en", noFmt)).rejects.toThrow("invalid export type (string)");
     });
 
     it("should reject when factory in resolved module returns null", async () => {
       const resolver = makeResolver({ default: () => null as any });
-      await expect(resolveR(resolver, "common", "en")).rejects.toThrow("resource returned by factory is null");
+      await expect(resolveR(resolver, "common", "en", noFmt)).rejects.toThrow("resource returned by factory is null");
     });
 
     it("should reject when async factory in resolved module rejects", async () => {
@@ -244,7 +295,7 @@ describe("resolveR", () => {
           throw new Error("async fail");
         },
       });
-      await expect(resolveR(resolver, "common", "en")).rejects.toThrow("factory promise rejected");
+      await expect(resolveR(resolver, "common", "en", noFmt)).rejects.toThrow("factory promise rejected");
     });
   });
 });

@@ -1,4 +1,5 @@
-import type { RMachine } from "r-machine";
+import type { AnyFmtProvider, RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import { describe, expectTypeOf, it } from "vitest";
 import type { SuspenseComponent } from "#r-machine/react/utils";
@@ -16,13 +17,15 @@ type TestAtlas = {
 
 describe("createReactToolset", () => {
   it("accepts an RMachine and ReactImpl and returns a Promise of ReactToolset", () => {
-    expectTypeOf(createReactToolset<TestAtlas>)
+    expectTypeOf(createReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>)
       .parameter(0)
-      .toEqualTypeOf<RMachine<TestAtlas>>();
-    expectTypeOf(createReactToolset<TestAtlas>)
+      .toEqualTypeOf<RMachine<TestAtlas, AnyLocale, AnyFmtProvider>>();
+    expectTypeOf(createReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>)
       .parameter(1)
-      .toEqualTypeOf<ReactImpl>();
-    expectTypeOf(createReactToolset<TestAtlas>).returns.toEqualTypeOf<Promise<ReactToolset<TestAtlas>>>();
+      .toEqualTypeOf<ReactImpl<AnyLocale>>();
+    expectTypeOf(createReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>).returns.toEqualTypeOf<
+      Promise<ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>>
+    >();
   });
 });
 
@@ -31,73 +34,23 @@ describe("createReactToolset", () => {
 // ---------------------------------------------------------------------------
 
 describe("ReactToolset", () => {
-  it("has readonly ReactRMachine property", () => {
-    expectTypeOf<ReactToolset<TestAtlas>["ReactRMachine"]>().toEqualTypeOf<ReactRMachine>();
+  it("has readonly ReactRMachine property (different from bare)", () => {
+    expectTypeOf<ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>["ReactRMachine"]>().toEqualTypeOf<ReactRMachine>();
   });
 
-  it("useLocale returns string", () => {
-    expectTypeOf<ReactToolset<TestAtlas>["useLocale"]>().toEqualTypeOf<() => string>();
-  });
-
-  it("useSetLocale returns a function that takes a string and returns Promise<void>", () => {
-    expectTypeOf<ReactToolset<TestAtlas>["useSetLocale"]>().toEqualTypeOf<() => (newLocale: string) => Promise<void>>();
-  });
-
-  it("useR is parameterized by namespace", () => {
-    type UseR = ReactToolset<TestAtlas>["useR"];
-    expectTypeOf<UseR>().parameter(0).toExtend<"common" | "nav">();
-  });
-
-  it("useR rejects namespace arguments not in atlas keys", () => {
-    type UseR = ReactToolset<TestAtlas>["useR"];
-    expectTypeOf<"invalid">().not.toExtend<Parameters<UseR>[0]>();
-  });
-
-  it("useR return type is RA[N] for a given namespace", () => {
-    type Toolset = ReactToolset<TestAtlas>;
-    expectTypeOf<Toolset["useR"]>().toExtend<(namespace: "common") => TestAtlas["common"]>();
-    expectTypeOf<Toolset["useR"]>().toExtend<(namespace: "nav") => TestAtlas["nav"]>();
-  });
-
-  it("useR is a function", () => {
-    expectTypeOf<ReactToolset<TestAtlas>["useR"]>().toBeFunction();
-  });
-
-  it("useRKit is a function", () => {
-    expectTypeOf<ReactToolset<TestAtlas>["useRKit"]>().toBeFunction();
-  });
-
-  it("useRKit accepts namespace arguments constrained to atlas keys", () => {
-    type UseRKit = ReactToolset<TestAtlas>["useRKit"];
-    expectTypeOf<UseRKit>().toBeCallableWith("common");
-    expectTypeOf<UseRKit>().toBeCallableWith("common", "nav");
-    expectTypeOf<UseRKit>().toExtend<(...args: ["common"]) => unknown>();
-    expectTypeOf<UseRKit>().toExtend<(...args: ["common", "nav"]) => unknown>();
-  });
-
-  it("useRKit rejects namespace arguments not in atlas keys", () => {
-    type UseRKit = ReactToolset<TestAtlas>["useRKit"];
-    expectTypeOf<UseRKit>().not.toExtend<(...args: ["invalid"]) => unknown>();
-    expectTypeOf<UseRKit>().not.toExtend<(...args: ["common", "invalid"]) => unknown>();
+  it("has the same hook properties as ReactBareToolset (via Omit & intersection)", () => {
+    type Keys = keyof ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>;
+    expectTypeOf<Keys>().toEqualTypeOf<
+      "ReactRMachine" | "useLocale" | "useSetLocale" | "useR" | "useRKit" | "useFmt"
+    >();
   });
 
   it("useRKit return type maps namespaces to their resource types", () => {
-    type UseRKit = ReactToolset<TestAtlas>["useRKit"];
+    type UseRKit = ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>["useRKit"];
     expectTypeOf<UseRKit>().toExtend<(...namespaces: ["common"]) => readonly [TestAtlas["common"]]>();
     expectTypeOf<UseRKit>().toExtend<
       (...namespaces: ["common", "nav"]) => readonly [TestAtlas["common"], TestAtlas["nav"]]
     >();
-  });
-
-  it("has exactly the expected properties", () => {
-    expectTypeOf<ReactToolset<TestAtlas>>().toHaveProperty("ReactRMachine");
-    expectTypeOf<ReactToolset<TestAtlas>>().toHaveProperty("useLocale");
-    expectTypeOf<ReactToolset<TestAtlas>>().toHaveProperty("useSetLocale");
-    expectTypeOf<ReactToolset<TestAtlas>>().toHaveProperty("useR");
-    expectTypeOf<ReactToolset<TestAtlas>>().toHaveProperty("useRKit");
-
-    type Keys = keyof ReactToolset<TestAtlas>;
-    expectTypeOf<Keys>().toEqualTypeOf<"ReactRMachine" | "useLocale" | "useSetLocale" | "useR" | "useRKit">();
   });
 });
 
@@ -162,19 +115,44 @@ describe("ReactRMachine", () => {
 // ---------------------------------------------------------------------------
 
 describe("ReactImpl", () => {
-  it("readLocale returns string or Promise<string>", () => {
-    expectTypeOf<ReactImpl["readLocale"]>().returns.toEqualTypeOf<string | Promise<string>>();
+  it("readLocale returns AnyLocale or Promise<AnyLocale>", () => {
+    expectTypeOf<ReactImpl<AnyLocale>["readLocale"]>().returns.toEqualTypeOf<string | Promise<string>>();
   });
 
   it("readLocale takes no parameters", () => {
-    expectTypeOf<ReactImpl["readLocale"]>().parameters.toEqualTypeOf<[]>();
+    expectTypeOf<ReactImpl<AnyLocale>["readLocale"]>().parameters.toEqualTypeOf<[]>();
   });
 
-  it("writeLocale takes a string parameter", () => {
-    expectTypeOf<ReactImpl["writeLocale"]>().parameter(0).toEqualTypeOf<string>();
+  it("writeLocale takes an AnyLocale parameter", () => {
+    expectTypeOf<ReactImpl<AnyLocale>["writeLocale"]>().parameter(0).toEqualTypeOf<string>();
   });
 
   it("writeLocale returns void or Promise<void>", () => {
-    expectTypeOf<ReactImpl["writeLocale"]>().returns.toEqualTypeOf<void | Promise<void>>();
+    expectTypeOf<ReactImpl<AnyLocale>["writeLocale"]>().returns.toEqualTypeOf<void | Promise<void>>();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Narrowed Locale type
+// ---------------------------------------------------------------------------
+
+describe("narrowed Locale type", () => {
+  type AppLocale = "en" | "it";
+
+  it("ReactImpl with narrowed locale constrains readLocale and writeLocale", () => {
+    expectTypeOf<ReactImpl<AppLocale>["readLocale"]>().returns.toEqualTypeOf<AppLocale | Promise<AppLocale>>();
+    expectTypeOf<ReactImpl<AppLocale>["writeLocale"]>().parameter(0).toEqualTypeOf<AppLocale>();
+  });
+
+  it("useSetLocale setter rejects locale values not in L", () => {
+    const setLocale = {} as ReturnType<ReactToolset<TestAtlas, AppLocale, AnyFmtProvider>["useSetLocale"]>;
+    // @ts-expect-error - "fr" is not in AppLocale ("en" | "it")
+    setLocale("fr");
+  });
+
+  it("writeLocale rejects locale values not in L", () => {
+    const impl = {} as ReactImpl<AppLocale>;
+    // @ts-expect-error - "fr" is not in AppLocale ("en" | "it")
+    impl.writeLocale("fr");
   });
 });

@@ -7,5 +7,9 @@ export default function Box3() {
   // Load the required localized resource
   const r = useR("features/box_3");
 
-  return <FeatureBox feature={r} />;
+  return (
+    <FeatureBox badge={r.badge} title={r.title}>
+      {r.description}
+    </FeatureBox>
+  );
 }

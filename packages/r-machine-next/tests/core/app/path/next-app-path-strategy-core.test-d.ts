@@ -1,12 +1,12 @@
-import type { RMachine } from "r-machine";
+import type { AnyFmtProvider, EmptyFmtProvider, RMachine } from "r-machine";
 import type { SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
-  AnyPathAtlas,
+  AnyPathAtlasProvider,
   HrefCanonicalizer,
   HrefTranslator,
-  PathAtlasCtor,
+  PathAtlasProviderCtor,
   PathParamMap,
   PathSelector,
 } from "#r-machine/next/core";
@@ -20,16 +20,8 @@ import {
   NextAppPathStrategyPathCanonicalizer,
   NextAppPathStrategyPathTranslator,
 } from "../../../../src/core/app/path/next-app-path-strategy-core.js";
+import type { SimplePathAtlas, TestLocale, TranslatedPathAtlas } from "../../../_fixtures/constants.js";
 import type { TestAtlas } from "../../../_fixtures/mock-machine.js";
-
-type SimplePathAtlas = { readonly decl: {} };
-
-type TranslatedPathAtlas = {
-  readonly decl: {
-    readonly "/about": { readonly it: "/chi-siamo" };
-    readonly "/products": { readonly it: "/prodotti"; readonly "/[id]": {} };
-  };
-};
 
 type CookieOption = SwitchableOption | CookieDeclaration;
 type LocaleLabelOption = "strict" | "lowercase";
@@ -57,8 +49,8 @@ describe("NextAppPathStrategyConfig", () => {
     >();
   });
 
-  it("PathAtlas is PathAtlasCtor<PA>", () => {
-    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasCtor<SimplePathAtlas>>();
+  it("PathAtlas is PathAtlasProviderCtor<PAP>", () => {
+    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasProviderCtor<SimplePathAtlas>>();
   });
 
   it("localeKey is the literal string type", () => {
@@ -119,7 +111,7 @@ describe("AnyNextAppPathStrategyConfig", () => {
   });
 
   it("generic-dependent properties widen to any", () => {
-    expectTypeOf<AnyNextAppPathStrategyConfig["PathAtlas"]>().toEqualTypeOf<PathAtlasCtor<any>>();
+    expectTypeOf<AnyNextAppPathStrategyConfig["PathAtlas"]>().toEqualTypeOf<PathAtlasProviderCtor<any>>();
     expectTypeOf<AnyNextAppPathStrategyConfig["localeKey"]>().toBeAny();
   });
 });
@@ -197,11 +189,15 @@ describe("NextAppPathStrategyCore", () => {
   });
 
   it("rMachine is RMachine<RA>", () => {
-    expectTypeOf<NextAppPathStrategyCore<TestAtlas, SimpleConfig>["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas>>();
+    expectTypeOf<
+      NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["rMachine"]
+    >().toEqualTypeOf<RMachine<TestAtlas, TestLocale, AnyFmtProvider>>();
   });
 
   it("config is C", () => {
-    expectTypeOf<NextAppPathStrategyCore<TestAtlas, SimpleConfig>["config"]>().toEqualTypeOf<SimpleConfig>();
+    expectTypeOf<
+      NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["config"]
+    >().toEqualTypeOf<SimpleConfig>();
   });
 
   // -----------------------------------------------------------------------
@@ -210,17 +206,22 @@ describe("NextAppPathStrategyCore", () => {
 
   describe("hrefHelper", () => {
     it("has readonly getPath property", () => {
-      type Helper = NextAppPathStrategyCore<TestAtlas, SimpleConfig>["hrefHelper"];
+      type Helper = NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["hrefHelper"];
       expectTypeOf<Helper>().toHaveProperty("getPath");
     });
 
     it("does not have getUrl property", () => {
-      type Helper = NextAppPathStrategyCore<TestAtlas, SimpleConfig>["hrefHelper"];
+      type Helper = NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["hrefHelper"];
       expectTypeOf<Helper>().not.toHaveProperty("getUrl");
     });
 
     it("getPath is a function", () => {
-      type GetPath = NextAppPathStrategyCore<TestAtlas, SimpleConfig>["hrefHelper"]["getPath"];
+      type GetPath = NextAppPathStrategyCore<
+        TestAtlas,
+        TestLocale,
+        AnyFmtProvider,
+        SimpleConfig
+      >["hrefHelper"]["getPath"];
       expectTypeOf<GetPath>().toBeFunction();
     });
 
@@ -259,17 +260,30 @@ describe("NextAppPathStrategyCore", () => {
     });
   });
 
-  it("different atlas types produce different core types", () => {
+  it("different RA produce different core types", () => {
     type OtherAtlas = { readonly other: { readonly value: number } };
-    expectTypeOf<NextAppPathStrategyCore<TestAtlas, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppPathStrategyCore<OtherAtlas, SimpleConfig>
+    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
+      NextAppPathStrategyCore<OtherAtlas, TestLocale, AnyFmtProvider, SimpleConfig>
+    >();
+  });
+
+  it("different L produce different core types", () => {
+    type OtherLocale = "fr" | "de";
+    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
+      NextAppPathStrategyCore<TestAtlas, OtherLocale, AnyFmtProvider, SimpleConfig>
     >();
   });
 
   it("different config types produce different core types", () => {
     type OtherConfig = NextAppPathStrategyConfig<SimplePathAtlas, "lang">;
-    expectTypeOf<NextAppPathStrategyCore<TestAtlas, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppPathStrategyCore<TestAtlas, OtherConfig>
+    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
+      NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, OtherConfig>
+    >();
+  });
+
+  it("different FP produce different core types", () => {
+    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
+      NextAppPathStrategyCore<TestAtlas, TestLocale, EmptyFmtProvider, SimpleConfig>
     >();
   });
 });
@@ -279,9 +293,9 @@ describe("NextAppPathStrategyCore", () => {
 // ---------------------------------------------------------------------------
 
 describe("NextAppPathStrategyPathTranslator", () => {
-  it("is constructible with (AnyPathAtlas, readonly string[], string, boolean, boolean)", () => {
+  it("is constructible with (AnyPathAtlasProvider, readonly string[], string, boolean, boolean)", () => {
     expectTypeOf(NextAppPathStrategyPathTranslator).toBeConstructibleWith(
-      {} as AnyPathAtlas,
+      {} as AnyPathAtlasProvider,
       ["en", "it"] as const,
       "en",
       true,
@@ -299,9 +313,9 @@ describe("NextAppPathStrategyPathTranslator", () => {
 // ---------------------------------------------------------------------------
 
 describe("NextAppPathStrategyPathCanonicalizer", () => {
-  it("is constructible with (AnyPathAtlas, readonly string[], string, boolean)", () => {
+  it("is constructible with (AnyPathAtlasProvider, readonly string[], string, boolean)", () => {
     expectTypeOf(NextAppPathStrategyPathCanonicalizer).toBeConstructibleWith(
-      {} as AnyPathAtlas,
+      {} as AnyPathAtlasProvider,
       ["en", "it"] as const,
       "en",
       false

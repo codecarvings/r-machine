@@ -1,12 +1,15 @@
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
+import type { AnyLocale } from "#r-machine/locale";
+import type { AnyFmtGetter, AnyFmtProvider, ExtractFmt } from "./fmt.js";
 import type { AnyNamespace, AnyR } from "./r.js";
 
-export interface R$ {
-  readonly namespace: string;
-  readonly locale: string;
+export interface RCtx<L extends AnyLocale = AnyLocale, FP extends AnyFmtProvider = AnyFmtProvider> {
+  readonly namespace: AnyNamespace;
+  readonly locale: L;
+  readonly fmt: ExtractFmt<FP>;
 }
 
-export type AnyRFactory = ($: R$) => AnyR | Promise<AnyR>;
+export type AnyRFactory = ($: RCtx) => AnyR | Promise<AnyR>;
 
 export type AnyRForge = AnyR | AnyRFactory;
 
@@ -14,11 +17,11 @@ export interface AnyRModule {
   readonly default: AnyRForge;
 }
 
-export type RModuleResolver = (namespace: AnyNamespace, locale: string) => Promise<AnyRModule>;
+export type RModuleResolver = (namespace: AnyNamespace, locale: AnyLocale) => Promise<AnyRModule>;
 
 function getResolveRFromModuleError(
   namespace: AnyNamespace,
-  locale: string,
+  locale: AnyLocale,
   reason: string,
   innerError?: Error | undefined
 ) {
@@ -29,72 +32,58 @@ function getResolveRFromModuleError(
   );
 }
 
-export function resolveRFromModule(rModule: AnyRModule, $: R$): Promise<AnyR> {
-  return new Promise<AnyR>((resolve, reject) => {
-    if (!rModule || typeof rModule !== "object") {
-      reject(getResolveRFromModuleError($.namespace, $.locale, "module is not an object"));
-      return;
+export async function resolveRFromModule(rModule: AnyRModule, $: RCtx): Promise<AnyR> {
+  if (!rModule || typeof rModule !== "object") {
+    throw getResolveRFromModuleError($.namespace, $.locale, "module is not an object");
+  }
+
+  const rForge = rModule.default;
+  const rForgeType = typeof rForge;
+
+  if (rForgeType === "function") {
+    let r: AnyR;
+    try {
+      r = await (rForge as AnyRFactory)($);
+    } catch (reason) {
+      throw getResolveRFromModuleError($.namespace, $.locale, "factory promise rejected", reason as Error);
     }
 
-    const processFactoryResult = (r: any) => {
-      const rType = typeof r;
-      if (rType === "object") {
-        if (r !== null) {
-          resolve(r);
-        } else {
-          reject(getResolveRFromModuleError($.namespace, $.locale, "resource returned by factory is null"));
-        }
-      } else {
-        reject(
-          getResolveRFromModuleError($.namespace, $.locale, `invalid resource type returned by factory (${rType})`)
-        );
-      }
-    };
-
-    const rForge = rModule.default;
-    const rForgeType = typeof rForge;
-    if (rForgeType === "function") {
-      // The module exports a factory function
-      const r = (rForge as AnyRFactory)($);
-
-      if (r instanceof Promise) {
-        // The factory returned a promise, wait for it to resolve
-        r.then(
-          (resolvedR) => {
-            processFactoryResult(resolvedR);
-          },
-          (reason) => reject(getResolveRFromModuleError($.namespace, $.locale, "factory promise rejected", reason))
-        );
-      } else {
-        // The factory returned the resource directly
-        processFactoryResult(r);
-      }
-    } else if (rForgeType === "object") {
-      if (rForge !== null) {
-        resolve(rForge);
-      } else {
-        reject(getResolveRFromModuleError($.namespace, $.locale, "exported resource is null"));
-      }
-    } else {
-      reject(getResolveRFromModuleError($.namespace, $.locale, `invalid export type (${rForgeType})`));
+    const rType = typeof r;
+    if (rType !== "object" || r === null) {
+      throw getResolveRFromModuleError(
+        $.namespace,
+        $.locale,
+        r === null ? "resource returned by factory is null" : `invalid resource type returned by factory (${rType})`
+      );
     }
-  });
+    return r;
+  }
+
+  if (rForgeType === "object") {
+    if (rForge !== null) {
+      return rForge;
+    }
+    throw getResolveRFromModuleError($.namespace, $.locale, "exported resource is null");
+  }
+
+  throw getResolveRFromModuleError($.namespace, $.locale, `invalid export type (${rForgeType})`);
 }
 
-export function resolveR(rModuleResolver: RModuleResolver, namespace: AnyNamespace, locale: string): Promise<AnyR> {
-  return new Promise<AnyR>((resolve, reject) => {
-    rModuleResolver(namespace, locale).then(
-      (resolvedRModule) => {
-        resolveRFromModule(resolvedRModule, { namespace, locale }).then(resolve, reject);
-      },
-      (reason) => {
-        const error = new RMachineResolveError(
-          ERR_RESOLVE_FAILED,
-          `Unable to resolve resource module "${namespace}" for locale "${locale}" - rModuleResolver failed.`,
-          reason
-        );
-        reject(error);
-      }
+export async function resolveR(
+  rModuleResolver: RModuleResolver,
+  namespace: AnyNamespace,
+  locale: AnyLocale,
+  formatters: AnyFmtGetter
+): Promise<AnyR> {
+  let rModule: AnyRModule;
+  try {
+    rModule = await rModuleResolver(namespace, locale);
+  } catch (reason) {
+    throw new RMachineResolveError(
+      ERR_RESOLVE_FAILED,
+      `Unable to resolve resource module "${namespace}" for locale "${locale}" - rModuleResolver failed.`,
+      reason as Error
     );
-  });
+  }
+  return resolveRFromModule(rModule, { namespace, locale, fmt: formatters(locale) } as RCtx);
 }

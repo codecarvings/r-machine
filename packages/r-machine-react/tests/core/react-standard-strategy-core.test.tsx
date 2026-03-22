@@ -1,7 +1,8 @@
 import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
-import type { RMachine } from "r-machine";
+import type { AnyFmtProvider, RMachine } from "r-machine";
+import { RMachineError } from "r-machine/errors";
+import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector } from "r-machine/strategy";
-import { Strategy } from "r-machine/strategy";
 import type { ReactNode } from "react";
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -10,7 +11,7 @@ import {
   ReactStandardStrategyCore,
 } from "../../src/core/react-standard-strategy-core.js";
 import type { TestAtlas } from "../_fixtures/mock-machine.js";
-import { createMockMachine } from "../_fixtures/mock-machine.js";
+import { createMockMachine, spies } from "../_fixtures/mock-machine.js";
 import { configWith, syncStore } from "../_fixtures/mock-strategy-config.js";
 
 afterEach(cleanup);
@@ -19,9 +20,11 @@ afterEach(cleanup);
 // Test helpers
 // ---------------------------------------------------------------------------
 
-class ConcreteStandardStrategy extends ReactStandardStrategyCore<TestAtlas> {}
+class ConcreteStandardStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider> {}
 
-function createStrategy(options: { machine?: RMachine<TestAtlas>; config?: ReactStandardStrategyConfig } = {}) {
+function createStrategy(
+  options: { machine?: RMachine<TestAtlas, AnyLocale, AnyFmtProvider>; config?: ReactStandardStrategyConfig } = {}
+) {
   const machine = options.machine ?? createMockMachine();
   const config = options.config ?? configWith();
   return { strategy: new ConcreteStandardStrategy(machine, config), machine };
@@ -37,20 +40,11 @@ describe("ReactStandardStrategyCore", () => {
   // -----------------------------------------------------------------------
 
   describe("construction", () => {
-    it("extends Strategy", () => {
-      const { strategy } = createStrategy();
-      expect(strategy).toBeInstanceOf(Strategy);
-    });
-
-    it("exposes the rMachine property from the base class", () => {
+    it("exposes rMachine and config from constructor arguments", () => {
       const machine = createMockMachine();
-      const { strategy } = createStrategy({ machine });
-      expect(strategy.rMachine).toBe(machine);
-    });
-
-    it("exposes the config property from the base class", () => {
       const config = configWith({ localeDetector: () => "it" });
-      const { strategy } = createStrategy({ config });
+      const { strategy } = createStrategy({ machine, config });
+      expect(strategy.rMachine).toBe(machine);
       expect(strategy.config).toBe(config);
     });
   });
@@ -60,16 +54,11 @@ describe("ReactStandardStrategyCore", () => {
   // -----------------------------------------------------------------------
 
   describe("defaultConfig", () => {
-    it("has localeDetector set to undefined", () => {
-      expect(ReactStandardStrategyCore.defaultConfig.localeDetector).toBeUndefined();
-    });
-
-    it("has localeStore set to undefined", () => {
-      expect(ReactStandardStrategyCore.defaultConfig.localeStore).toBeUndefined();
-    });
-
-    it("is the same reference when accessed from a subclass", () => {
-      expect(ConcreteStandardStrategy.defaultConfig).toBe(ReactStandardStrategyCore.defaultConfig);
+    it("defaults both localeDetector and localeStore to undefined", () => {
+      expect(ReactStandardStrategyCore.defaultConfig).toEqual({
+        localeDetector: undefined,
+        localeStore: undefined,
+      });
     });
   });
 
@@ -78,7 +67,7 @@ describe("ReactStandardStrategyCore", () => {
   // -----------------------------------------------------------------------
 
   describe("createToolset — config wiring", () => {
-    it("falls back to rMachine.config.defaultLocale when no detector or store is configured", async () => {
+    it("falls back to rMachine.defaultLocale when no detector or store is configured", async () => {
       const machine = createMockMachine({ defaultLocale: "it" });
       const { strategy } = createStrategy({ machine, config: configWith() });
       const toolset = await strategy.createToolset();
@@ -175,6 +164,54 @@ describe("ReactStandardStrategyCore", () => {
       expect(screen.getByTestId("locale").textContent).toBe("it");
       expect(localeDetector).not.toHaveBeenCalled();
     });
+
+    it("falls back to localeDetector when localeStore.get() returns undefined", async () => {
+      const localeDetector = vi.fn(() => "it");
+      const store = syncStore(undefined);
+      const { strategy } = createStrategy({
+        config: configWith({ localeStore: store, localeDetector }),
+      });
+      const toolset = await strategy.createToolset();
+
+      function LocaleDisplay() {
+        return <span data-testid="locale">{toolset.useLocale()}</span>;
+      }
+
+      render(
+        <toolset.ReactRMachine>
+          <LocaleDisplay />
+        </toolset.ReactRMachine>
+      );
+
+      expect(screen.getByTestId("locale").textContent).toBe("it");
+      expect(localeDetector).toHaveBeenCalled();
+      expect(store.set).toHaveBeenCalledWith("it");
+    });
+
+    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
+    it("throws when localeDetector returns an invalid locale", async () => {
+      const localeDetector: CustomLocaleDetector = () => "xx";
+      const { strategy } = createStrategy({
+        config: configWith({ localeDetector }),
+      });
+      const toolset = await strategy.createToolset();
+
+      function LocaleDisplay() {
+        return <span data-testid="locale">{toolset.useLocale()}</span>;
+      }
+
+      try {
+        render(
+          <toolset.ReactRMachine>
+            <LocaleDisplay />
+          </toolset.ReactRMachine>
+        );
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineError);
+        expect((error as RMachineError).message).toMatch(/Invalid locale detected: xx/);
+      }
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -200,7 +237,7 @@ describe("ReactStandardStrategyCore", () => {
         );
       });
 
-      expect((machine as any).hybridPickR).toHaveBeenCalled();
+      expect(spies(machine).hybridPickR).toHaveBeenCalled();
     });
 
     it("validates detected locale through rMachine.localeHelper", async () => {

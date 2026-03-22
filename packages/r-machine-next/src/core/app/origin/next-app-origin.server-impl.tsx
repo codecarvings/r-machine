@@ -13,7 +13,8 @@
 
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { NextAppServerImpl } from "../next-app-server-toolset.js";
@@ -22,15 +23,21 @@ import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-
 
 const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
 
-export async function createNextAppOriginServerImpl(
-  rMachine: RMachine<AnyResourceAtlas>,
-  strategyConfig: AnyNextAppOriginStrategyConfig,
+export async function createNextAppOriginServerImpl<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  FP extends AnyFmtProvider,
+  C extends AnyNextAppOriginStrategyConfig,
+>(
+  rMachine: RMachine<RA, L, FP>,
+  strategyConfig: C,
   pathTranslator: HrefTranslator,
   urlTranslator: HrefTranslator,
   pathCanonicalizer: HrefCanonicalizer
 ) {
-  const defaultLocale = rMachine.config.defaultLocale;
-  const { localeKey, autoLocaleBinding, localeOriginMap, pathMatcher } = strategyConfig;
+  const { locales, defaultLocale } = rMachine;
+  const { autoLocaleBinding, localeOriginMap, pathMatcher } = strategyConfig;
+  const localeKey = strategyConfig.localeKey as C["localeKey"]; // Type assertion needed to use localeKey in a typed way, since it's not a generic parameter of the strategy core class
   const autoLBSw = autoLocaleBinding === "on";
 
   return {
@@ -58,13 +65,13 @@ export async function createNextAppOriginServerImpl(
 
     createLocaleStaticParamsGenerator() {
       return async () =>
-        rMachine.config.locales.map((locale: string) => ({
+        locales.map((locale: L) => ({
           [localeKey]: locale,
         }));
     },
 
     createProxy() {
-      function rewriteToCanonicalLocalePath(request: NextRequest, locale: string, path: string): NextResponse {
+      function rewriteToCanonicalLocalePath(request: NextRequest, locale: L, path: string): NextResponse {
         // Rewrite to locale-prefixed URL internally - basePath already included
         const newUrl = request.nextUrl.clone();
         // Reconstruct canonical URL
@@ -92,7 +99,7 @@ export async function createNextAppOriginServerImpl(
         });
       }
 
-      const originCacheMap = new Map<string, string>();
+      const originCacheMap = new Map<string, L>();
       function proxy(request: NextRequest): NextProxyResult {
         const { pathname } = request.nextUrl;
         if (pathMatcher === null || pathMatcher.test(pathname)) {
@@ -106,12 +113,12 @@ export async function createNextAppOriginServerImpl(
             for (const [mapLocale, mapOrigin] of Object.entries(localeOriginMap)) {
               if (typeof mapOrigin === "string") {
                 if (mapOrigin === origin) {
-                  locale = mapLocale;
+                  locale = mapLocale as L;
                   break;
                 }
               } else {
                 if (mapOrigin.includes(origin)) {
-                  locale = mapLocale;
+                  locale = mapLocale as L;
                   break;
                 }
               }
@@ -143,5 +150,5 @@ export async function createNextAppOriginServerImpl(
         return (path, params) => pathTranslator.get(locale, path, params).value;
       };
     },
-  } as NextAppServerImpl;
+  } as NextAppServerImpl<L, C["localeKey"]>;
 }

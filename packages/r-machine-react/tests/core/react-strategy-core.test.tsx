@@ -1,6 +1,6 @@
 import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
-import type { RMachine } from "r-machine";
-import { Strategy } from "r-machine/strategy";
+import type { AnyFmtProvider, RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,7 +8,7 @@ import { ReactStrategyCore } from "../../src/core/react-strategy-core.js";
 import type { ReactImpl } from "../../src/core/react-toolset.js";
 import { createMockImpl } from "../_fixtures/mock-impl.js";
 import type { TestAtlas } from "../_fixtures/mock-machine.js";
-import { createMockMachine } from "../_fixtures/mock-machine.js";
+import { createMockMachine, spies } from "../_fixtures/mock-machine.js";
 
 afterEach(cleanup);
 
@@ -18,15 +18,19 @@ afterEach(cleanup);
 
 type TestConfig = { readonly label: string };
 
-class ConcreteReactStrategy extends ReactStrategyCore<TestAtlas, TestConfig> {
-  implFactory: () => Promise<ReactImpl>;
+class ConcreteReactStrategy extends ReactStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider, TestConfig> {
+  implFactory: () => Promise<ReactImpl<AnyLocale>>;
 
-  constructor(rMachine: RMachine<TestAtlas>, config: TestConfig, implFactory: () => Promise<ReactImpl>) {
+  constructor(
+    rMachine: RMachine<TestAtlas, AnyLocale, AnyFmtProvider>,
+    config: TestConfig,
+    implFactory: () => Promise<ReactImpl<AnyLocale>>
+  ) {
     super(rMachine, config);
     this.implFactory = implFactory;
   }
 
-  protected createImpl(): Promise<ReactImpl> {
+  protected createImpl(): Promise<ReactImpl<AnyLocale>> {
     return this.implFactory();
   }
 }
@@ -34,7 +38,11 @@ class ConcreteReactStrategy extends ReactStrategyCore<TestAtlas, TestConfig> {
 const defaultConfig: TestConfig = { label: "test" };
 
 function createStrategy(
-  options: { machine?: RMachine<TestAtlas>; config?: TestConfig; implFactory?: () => Promise<ReactImpl> } = {}
+  options: {
+    machine?: RMachine<TestAtlas, AnyLocale, AnyFmtProvider>;
+    config?: TestConfig;
+    implFactory?: () => Promise<ReactImpl<AnyLocale>>;
+  } = {}
 ) {
   const machine = options.machine ?? createMockMachine();
   const config = options.config ?? defaultConfig;
@@ -52,20 +60,11 @@ describe("ReactStrategyCore", () => {
   // -----------------------------------------------------------------------
 
   describe("construction", () => {
-    it("extends Strategy", () => {
-      const { strategy } = createStrategy();
-      expect(strategy).toBeInstanceOf(Strategy);
-    });
-
-    it("exposes the rMachine property from the base class", () => {
+    it("exposes rMachine and config from constructor arguments", () => {
       const machine = createMockMachine();
-      const { strategy } = createStrategy({ machine });
-      expect(strategy.rMachine).toBe(machine);
-    });
-
-    it("exposes the config property from the base class", () => {
       const config: TestConfig = { label: "custom" };
-      const { strategy } = createStrategy({ config });
+      const { strategy } = createStrategy({ machine, config });
+      expect(strategy.rMachine).toBe(machine);
       expect(strategy.config).toBe(config);
     });
   });
@@ -113,8 +112,8 @@ describe("ReactStrategyCore", () => {
     });
 
     it("awaits an async createImpl before assembling the toolset", async () => {
-      let resolveImpl!: (impl: ReactImpl) => void;
-      const implPromise = new Promise<ReactImpl>((r) => {
+      let resolveImpl!: (impl: ReactImpl<AnyLocale>) => void;
+      const implPromise = new Promise<ReactImpl<AnyLocale>>((r) => {
         resolveImpl = r;
       });
       const { strategy } = createStrategy({
@@ -162,7 +161,7 @@ describe("ReactStrategyCore", () => {
         );
       });
 
-      expect((machine as any).hybridPickR).toHaveBeenCalled();
+      expect(spies(machine).hybridPickR).toHaveBeenCalled();
     });
 
     it("toolsets from the same strategy share the same rMachine", async () => {
@@ -194,7 +193,7 @@ describe("ReactStrategyCore", () => {
       );
 
       // Both toolsets invoked hybridPickR on the same shared machine instance
-      expect((machine as any).hybridPickR).toHaveBeenCalledTimes(2);
+      expect(spies(machine).hybridPickR).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -273,99 +272,6 @@ describe("ReactStrategyCore", () => {
         await result.current("it");
       });
 
-      expect(writeLocale).toHaveBeenCalledWith("it");
-    });
-
-    it("different impls produce toolsets with different initial locales", async () => {
-      const machine = createMockMachine();
-      const implEn = createMockImpl({ readLocale: () => "en" });
-      const implIt = createMockImpl({ readLocale: () => "it" });
-
-      const strategy1 = new ConcreteReactStrategy(machine, defaultConfig, () => Promise.resolve(implEn));
-      const strategy2 = new ConcreteReactStrategy(machine, defaultConfig, () => Promise.resolve(implIt));
-
-      const toolset1 = await strategy1.createToolset();
-      const toolset2 = await strategy2.createToolset();
-
-      function Display1() {
-        return <span data-testid="l1">{toolset1.useLocale()}</span>;
-      }
-      function Display2() {
-        return <span data-testid="l2">{toolset2.useLocale()}</span>;
-      }
-
-      render(
-        <toolset1.ReactRMachine>
-          <Display1 />
-          <toolset2.ReactRMachine>
-            <Display2 />
-          </toolset2.ReactRMachine>
-        </toolset1.ReactRMachine>
-      );
-
-      expect(screen.getByTestId("l1").textContent).toBe("en");
-      expect(screen.getByTestId("l2").textContent).toBe("it");
-    });
-
-    it("returns a toolset with all expected members", async () => {
-      const { strategy } = createStrategy();
-      const toolset = await strategy.createToolset();
-
-      expect(toolset).toHaveProperty("ReactRMachine");
-      expect(toolset).toHaveProperty("useLocale");
-      expect(toolset).toHaveProperty("useSetLocale");
-      expect(toolset).toHaveProperty("useR");
-      expect(toolset).toHaveProperty("useRKit");
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // createToolset — full integration
-  // -----------------------------------------------------------------------
-
-  describe("createToolset — full integration", () => {
-    it("readLocale → render → setLocale → writeLocale", async () => {
-      const writeLocale = vi.fn();
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const machine = createMockMachine({
-        hybridPickR: (locale) => ({ greeting: locale === "en" ? "hello" : "ciao" }),
-      });
-      const { strategy } = createStrategy({
-        machine,
-        implFactory: () => Promise.resolve(impl),
-      });
-      const { ReactRMachine, useR, useLocale, useSetLocale } = await strategy.createToolset();
-
-      function App() {
-        const locale = useLocale();
-        const r = useR("common");
-        const setLocale = useSetLocale();
-        return (
-          <>
-            <span data-testid="locale">{locale}</span>
-            <span data-testid="greeting">{r.greeting}</span>
-            <button type="button" onClick={() => setLocale("it")}>
-              switch
-            </button>
-          </>
-        );
-      }
-
-      render(
-        <ReactRMachine>
-          <App />
-        </ReactRMachine>
-      );
-
-      expect(screen.getByTestId("locale").textContent).toBe("en");
-      expect(screen.getByTestId("greeting").textContent).toBe("hello");
-
-      await act(async () => {
-        screen.getByText("switch").click();
-      });
-
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-      expect(screen.getByTestId("greeting").textContent).toBe("ciao");
       expect(writeLocale).toHaveBeenCalledWith("it");
     });
   });

@@ -1,43 +1,21 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyNamespace, AnyR, AnyResourceAtlas, Namespace, R } from "../../src/lib/r.js";
-import type { AnyRForge, R$ } from "../../src/lib/r-module.js";
+import type { RCtx } from "../../src/lib/r-module.js";
 
 describe("AnyNamespace", () => {
-  it("should be string type", () => {
+  it("should be string type and accept string literals", () => {
     expectTypeOf<AnyNamespace>().toEqualTypeOf<string>();
-  });
-
-  it("string should be assignable to AnyNamespace", () => {
-    expectTypeOf<string>().toExtend<AnyNamespace>();
-  });
-
-  it("string literal should be assignable to AnyNamespace", () => {
     expectTypeOf<"my-namespace">().toExtend<AnyNamespace>();
   });
 });
 
 describe("AnyR", () => {
-  it("should be object type", () => {
+  it("should accept objects and reject primitives and nullish values", () => {
     expectTypeOf<AnyR>().toEqualTypeOf<object>();
-  });
-
-  it("object should be assignable to AnyR", () => {
-    expectTypeOf<object>().toExtend<AnyR>();
-  });
-
-  it("record type should be assignable to AnyR", () => {
     expectTypeOf<{ key: string }>().toExtend<AnyR>();
-  });
 
-  it("null should not be assignable to AnyR", () => {
     expectTypeOf<null>().not.toExtend<AnyR>();
-  });
-
-  it("undefined should not be assignable to AnyR", () => {
     expectTypeOf<undefined>().not.toExtend<AnyR>();
-  });
-
-  it("primitive types should not be assignable to AnyR", () => {
     expectTypeOf<string>().not.toExtend<AnyR>();
     expectTypeOf<number>().not.toExtend<AnyR>();
     expectTypeOf<boolean>().not.toExtend<AnyR>();
@@ -51,7 +29,7 @@ describe("AnyResourceAtlas", () => {
 
   it("should have index signature with AnyNamespace keys", () => {
     type AtlasValue = AnyResourceAtlas[string];
-    expectTypeOf<AtlasValue>().toEqualTypeOf<AnyRForge>();
+    expectTypeOf<AtlasValue>().toEqualTypeOf<AnyR>();
   });
 
   it("valid resource atlas should be assignable", () => {
@@ -64,14 +42,14 @@ describe("AnyResourceAtlas", () => {
 
   it("resource atlas with factory should be assignable", () => {
     const atlas: AnyResourceAtlas = {
-      common: ($: R$) => ({ greeting: `Hello from ${$.locale}` }),
+      common: ($: RCtx) => ({ greeting: `Hello from ${$.locale}` }),
     };
     expectTypeOf(atlas).toExtend<AnyResourceAtlas>();
   });
 
   it("resource atlas with async factory should be assignable", () => {
     const atlas: AnyResourceAtlas = {
-      common: async ($: R$) => ({ greeting: `Hello from ${$.locale}` }),
+      common: async ($: RCtx) => ({ greeting: `Hello from ${$.locale}` }),
     };
     expectTypeOf(atlas).toExtend<AnyResourceAtlas>();
   });
@@ -119,14 +97,14 @@ describe("R", () => {
 
   it("should extract type from sync factory", () => {
     type ResourceObject = { greeting: string };
-    type Factory = ($: R$) => ResourceObject;
+    type Factory = ($: RCtx) => ResourceObject;
     type Result = R<Factory>;
     expectTypeOf<Result>().toExtend<ResourceObject>();
   });
 
   it("should extract type from async factory", () => {
     type ResourceObject = { greeting: string };
-    type AsyncFactory = ($: R$) => Promise<ResourceObject>;
+    type AsyncFactory = ($: RCtx) => Promise<ResourceObject>;
     type Result = R<AsyncFactory>;
     expectTypeOf<Result>().toExtend<ResourceObject>();
   });
@@ -140,7 +118,7 @@ describe("R", () => {
 
   it("should preserve resource structure from factory", () => {
     type Resource = { title: string; count: number };
-    type Factory = ($: R$) => Resource;
+    type Factory = ($: RCtx) => Resource;
     type Result = R<Factory>;
     expectTypeOf<Result>().toHaveProperty("title");
     expectTypeOf<Result>().toHaveProperty("count");
@@ -148,7 +126,7 @@ describe("R", () => {
 
   it("should preserve resource structure from async factory", () => {
     type Resource = { title: string; count: number };
-    type Factory = ($: R$) => Promise<Resource>;
+    type Factory = ($: RCtx) => Promise<Resource>;
     type Result = R<Factory>;
     expectTypeOf<Result>().toHaveProperty("title");
     expectTypeOf<Result>().toHaveProperty("count");
@@ -178,7 +156,7 @@ describe("R", () => {
 
   it("R from factory should extend AnyR", () => {
     type Resource = { greeting: string };
-    type Factory = ($: R$) => Resource;
+    type Factory = ($: RCtx) => Resource;
     type Result = R<Factory>;
     expectTypeOf<Result>().toExtend<AnyR>();
   });

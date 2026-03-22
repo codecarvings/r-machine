@@ -1,21 +1,19 @@
 import { describe, expect, it } from "vitest";
 import * as errorCodes from "../../src/errors/error-codes.js";
 
-const codes = Object.values(errorCodes);
-
 describe("error codes", () => {
+  const entries = Object.entries(errorCodes);
+
   it("exports at least one error code", () => {
-    expect(codes.length).toBeGreaterThan(0);
+    expect(entries.length).toBeGreaterThan(0);
   });
 
-  it("all codes are non-empty strings", () => {
-    for (const code of codes) {
-      expect(code).toBeTypeOf("string");
-      expect(code).not.toBe("");
-    }
+  it.each(entries)("%s should equal its export name", (name, value) => {
+    expect(value).toBe(name);
   });
 
   it("all codes are unique", () => {
-    expect(new Set(codes).size).toBe(codes.length);
+    const values = entries.map(([, v]) => v);
+    expect(new Set(values).size).toBe(values.length);
   });
 });

@@ -5,7 +5,7 @@ import {
   HrefMapper,
   type MappedHrefResult,
 } from "../../src/core/href-mapper.js";
-import type { AnyPathAtlas } from "../../src/core/path-atlas.js";
+import type { AnyPathAtlasProvider } from "../../src/core/path-atlas.js";
 import { createMockAtlas } from "../_fixtures/_helpers.js";
 
 describe("getSegmentData", () => {
@@ -243,7 +243,7 @@ type TestHrefMapperFn = (locale: string, path: string) => MappedHrefResult;
 
 class TestHrefMapper extends HrefMapper<TestHrefMapperFn> {
   constructor(
-    atlas: AnyPathAtlas,
+    atlas: AnyPathAtlasProvider,
     locales: readonly string[],
     defaultLocale: string,
     private readonly computeFn: TestHrefMapperFn
@@ -260,7 +260,7 @@ class TestHrefMapperWithAdapter extends TestHrefMapper {
   protected override readonly adapter;
 
   constructor(
-    atlas: AnyPathAtlas,
+    atlas: AnyPathAtlasProvider,
     locales: readonly string[],
     defaultLocale: string,
     computeFn: TestHrefMapperFn,

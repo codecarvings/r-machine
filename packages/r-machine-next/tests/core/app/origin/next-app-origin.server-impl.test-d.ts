@@ -1,4 +1,5 @@
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import type { NextAppServerImpl } from "#r-machine/next/core/app";
@@ -6,8 +7,10 @@ import { createNextAppOriginServerImpl } from "../../../../src/core/app/origin/n
 import type { AnyNextAppOriginStrategyConfig } from "../../../../src/core/app/origin/next-app-origin-strategy-core.js";
 
 describe("createNextAppOriginServerImpl", () => {
-  it("first parameter is RMachine<AnyResourceAtlas>", () => {
-    expectTypeOf(createNextAppOriginServerImpl).parameter(0).toEqualTypeOf<RMachine<AnyResourceAtlas>>();
+  it("first parameter is RMachine<AnyResourceAtlas, AnyLocale, AnyFmtProvider>", () => {
+    expectTypeOf(createNextAppOriginServerImpl)
+      .parameter(0)
+      .toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>();
   });
 
   it("second parameter is AnyNextAppOriginStrategyConfig", () => {
@@ -27,7 +30,7 @@ describe("createNextAppOriginServerImpl", () => {
   });
 
   it("resolves to NextAppServerImpl", () => {
-    expectTypeOf(createNextAppOriginServerImpl).returns.toEqualTypeOf<Promise<NextAppServerImpl>>();
+    expectTypeOf(createNextAppOriginServerImpl).returns.toEqualTypeOf<Promise<NextAppServerImpl<AnyLocale, any>>>();
   });
 
   it("does not accept a plain object as rMachine", () => {
@@ -57,5 +60,39 @@ describe("createNextAppOriginServerImpl", () => {
     type P2 = Parameters<typeof createNextAppOriginServerImpl>[2];
     type P4 = Parameters<typeof createNextAppOriginServerImpl>[4];
     expectTypeOf<P2>().not.toEqualTypeOf<P4>();
+  });
+});
+
+describe("NextAppServerImpl property types (origin)", () => {
+  it("writeLocale first parameter accepts L | undefined", () => {
+    expectTypeOf<NextAppServerImpl<AnyLocale, string>["writeLocale"]>()
+      .parameter(0)
+      .toEqualTypeOf<string | undefined>();
+    expectTypeOf<undefined>().toExtend<Parameters<NextAppServerImpl<AnyLocale, string>["writeLocale"]>[0]>();
+  });
+
+  it("writeLocale second parameter is strictly L", () => {
+    expectTypeOf<undefined>().not.toExtend<Parameters<NextAppServerImpl<AnyLocale, string>["writeLocale"]>[1]>();
+  });
+
+  it("writeLocale parameter types narrow when L is concrete", () => {
+    type Narrow = NextAppServerImpl<"en" | "it", string>;
+    expectTypeOf<Narrow["writeLocale"]>().parameter(0).toEqualTypeOf<"en" | "it" | undefined>();
+    expectTypeOf<Narrow["writeLocale"]>().parameter(1).toEqualTypeOf<"en" | "it">();
+  });
+
+  it("localeKey preserves the LK literal type", () => {
+    expectTypeOf<NextAppServerImpl<AnyLocale, "locale">["localeKey"]>().toEqualTypeOf<"locale">();
+    expectTypeOf<NextAppServerImpl<AnyLocale, "lang">["localeKey"]>().toEqualTypeOf<"lang">();
+  });
+
+  it("different L produce different impl types", () => {
+    expectTypeOf<NextAppServerImpl<"en" | "it", "locale">>().not.toEqualTypeOf<
+      NextAppServerImpl<"fr" | "de", "locale">
+    >();
+  });
+
+  it("different LK produce different impl types", () => {
+    expectTypeOf<NextAppServerImpl<AnyLocale, "locale">>().not.toEqualTypeOf<NextAppServerImpl<AnyLocale, "lang">>();
   });
 });

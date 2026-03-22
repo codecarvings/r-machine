@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { rMachine } from "@/r-machine/r-machine";
 import { bindLocale, getPathComposer, pickR } from "@/r-machine/server-toolset";
+import { type Locale, rMachine } from "@/r-machine/setup";
 
 // Generate static params for dynamic routes
 export async function generateStaticParams({
@@ -12,7 +12,7 @@ export async function generateStaticParams({
 }: {
   params: Awaited<PageProps<"/[locale]/example-dynamic/[slug]">["params"]>;
 }) {
-  const r = await rMachine.pickR(getCanonicalUnicodeLocaleId(locale), "example-dynamic");
+  const r = await rMachine.pickR(getCanonicalUnicodeLocaleId(locale) as Locale, "example-dynamic");
   return r.items.map((item) => ({ slug: item.slug }));
 }
 

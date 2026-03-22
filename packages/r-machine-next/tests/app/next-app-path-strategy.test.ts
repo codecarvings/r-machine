@@ -315,7 +315,7 @@ describe("NextAppPathStrategy", () => {
         { PathAtlas: TranslatedPathAtlas, localeLabel: "strict" }
       );
 
-      expect(strategy.hrefHelper.getPath("en-US", "/about")).toBe("/en-US/about");
+      expect(strategy.hrefHelper.getPath("en-US" as any, "/about")).toBe("/en-US/about");
     });
 
     it("getPath lowercases locale in prefix by default", () => {
@@ -324,7 +324,7 @@ describe("NextAppPathStrategy", () => {
         { PathAtlas: TranslatedPathAtlas }
       );
 
-      expect(strategy.hrefHelper.getPath("en-US", "/about")).toBe("/en-us/about");
+      expect(strategy.hrefHelper.getPath("en-US" as any, "/about")).toBe("/en-us/about");
     });
 
     it("getPath handles root path /", () => {
@@ -360,8 +360,8 @@ describe("NextAppPathStrategy", () => {
         { PathAtlas: TranslatedPathAtlas }
       );
 
-      expect(strategy.hrefHelper.getPath("fr", "/about")).toBe("/fr/about");
-      expect(strategy.hrefHelper.getPath("fr", "/products/[id]", { id: "7" })).toBe("/fr/products/7");
+      expect(strategy.hrefHelper.getPath("fr" as any, "/about")).toBe("/fr/about");
+      expect(strategy.hrefHelper.getPath("fr" as any, "/products/[id]", { id: "7" })).toBe("/fr/products/7");
     });
   });
 });

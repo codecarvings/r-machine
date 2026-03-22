@@ -1,6 +1,7 @@
 import { ERR_INVALID_LOCALE_ID, RMachineConfigError } from "#r-machine/errors";
+import type { AnyLocale } from "#r-machine/locale";
 
-function computeCanonicalUnicodeLocaleId(locale: string): string {
+function computeCanonicalUnicodeLocaleId(locale: AnyLocale): AnyLocale {
   if (locale === "") {
     return "und";
   }
@@ -27,9 +28,9 @@ function computeCanonicalUnicodeLocaleId(locale: string): string {
   return result;
 }
 
-const localeIdCache = new Map<string, string>();
+const localeIdCache = new Map<AnyLocale, AnyLocale>();
 
-export function getCanonicalUnicodeLocaleId(locale: string): string {
+export function getCanonicalUnicodeLocaleId(locale: AnyLocale): AnyLocale {
   const cached = localeIdCache.get(locale);
   if (cached !== undefined) {
     return cached;
@@ -41,7 +42,7 @@ export function getCanonicalUnicodeLocaleId(locale: string): string {
   return result;
 }
 
-export function validateCanonicalUnicodeLocaleId(locale: string): RMachineConfigError | null {
+export function validateCanonicalUnicodeLocaleId(locale: AnyLocale): RMachineConfigError | null {
   if (locale.includes("*")) {
     return new RMachineConfigError(
       ERR_INVALID_LOCALE_ID,

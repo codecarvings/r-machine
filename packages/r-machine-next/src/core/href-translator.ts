@@ -12,6 +12,7 @@
  */
 
 import { RMachineUsageError } from "r-machine/errors";
+import type { AnyLocale } from "r-machine/locale";
 import { ERR_INVALID_PATH, ERR_PATH_TRANSLATION_FAILED } from "#r-machine/next/errors";
 import {
   getSegmentData,
@@ -22,7 +23,7 @@ import {
   type PathAtlasSegment,
 } from "./href-mapper.js";
 
-type HrefTranslatorFn = (locale: string, path: string, params?: object) => MappedHrefResult;
+type HrefTranslatorFn = (locale: AnyLocale, path: string, params?: object) => MappedHrefResult;
 
 export class HrefTranslator extends HrefMapper<HrefTranslatorFn> {
   protected readonly compute: HrefTranslatorFn = (locale, path, params) => {
@@ -42,7 +43,7 @@ export class HrefTranslator extends HrefMapper<HrefTranslatorFn> {
     };
   };
 
-  protected internalCompute(locale: string, path: string): MappedPath {
+  protected internalCompute(locale: AnyLocale, path: string): MappedPath {
     if (!path.startsWith("/")) {
       throw new RMachineUsageError(ERR_INVALID_PATH, `Path must start with "/".`);
     }
@@ -100,7 +101,7 @@ export class HrefTranslator extends HrefMapper<HrefTranslatorFn> {
 }
 
 export function getTranslatedHref(
-  locale: string,
+  locale: AnyLocale,
   path: string,
   mappedSegments: MappedSegment[],
   params?: object

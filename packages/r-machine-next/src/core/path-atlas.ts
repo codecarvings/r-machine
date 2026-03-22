@@ -12,7 +12,7 @@
  */
 
 import { RMachineConfigError } from "r-machine/errors";
-import { validateCanonicalUnicodeLocaleId } from "r-machine/locale";
+import { type AnyLocale, validateCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { ERR_PATH_ATLAS_MALFORMED } from "#r-machine/next/errors";
 
 export type AnySegmentKey = `/${string}`;
@@ -24,19 +24,21 @@ const __error = Symbol("__error");
 const __invalidKey = Symbol("__invalidKey");
 const __invalidValue = Symbol("__invalidValue");
 
-type Segment<T> = T extends TranslatableSegmentDecl<T> ? T : TranslatableSegmentDecl<T>;
-type DynamicSegment<T> = T extends NonTranslatableSegmentDecl<T> ? T : NonTranslatableSegmentDecl<T>;
+type Segment<T, L extends AnyLocale = AnyLocale> =
+  T extends TranslatableSegmentDecl<T, L> ? T : TranslatableSegmentDecl<T, L>;
+type DynamicSegment<T, L extends AnyLocale = AnyLocale> =
+  T extends NonTranslatableSegmentDecl<T, L> ? T : NonTranslatableSegmentDecl<T, L>;
 
 type EmptyObject = {
   [key: string]: never;
 };
 
-export type NonTranslatableSegmentDecl<T> = {
+export type NonTranslatableSegmentDecl<T, L extends AnyLocale = AnyLocale> = {
   [K in keyof T]: K extends "/"
     ? { [__error]: "Invalid empty segment key"; [__invalidKey]: K }
     : K extends AnyCatchAllSegmentKey | AnyOptionalCatchAllSegmentKey
       ? T[K] extends EmptyObject
-        ? DynamicSegment<T[K]>
+        ? DynamicSegment<T[K], L>
         : {
             [__error]: "Catch all segment declarations must be empty objects";
             [__invalidKey]: K;
@@ -44,21 +46,21 @@ export type NonTranslatableSegmentDecl<T> = {
           }
       : K extends AnyDynamicSegmentKey
         ? T[K] extends object
-          ? DynamicSegment<T[K]>
+          ? DynamicSegment<T[K], L>
           : { [__error]: "Dynamic segment declarations must be objects"; [__invalidKey]: K; [__invalidValue]: T[K] }
         : K extends AnySegmentKey
           ? T[K] extends object
-            ? Segment<T[K]>
+            ? Segment<T[K], L>
             : { [__error]: "Segment declarations must be objects"; [__invalidKey]: K; [__invalidValue]: T[K] }
           : { [__error]: "Unexpected translation. Object keys must match pattern /${string}"; [__invalidKey]: K };
 };
 
-export type TranslatableSegmentDecl<T> = {
+export type TranslatableSegmentDecl<T, L extends AnyLocale = AnyLocale> = {
   [K in keyof T]: K extends "/"
     ? { [__error]: "Invalid empty segment key"; [__invalidKey]: K }
     : K extends AnyCatchAllSegmentKey | AnyOptionalCatchAllSegmentKey
       ? T[K] extends EmptyObject
-        ? DynamicSegment<T[K]>
+        ? DynamicSegment<T[K], L>
         : {
             [__error]: "Catch all segment declarations must be empty objects";
             [__invalidKey]: K;
@@ -66,33 +68,48 @@ export type TranslatableSegmentDecl<T> = {
           }
       : K extends AnyDynamicSegmentKey
         ? T[K] extends object
-          ? DynamicSegment<T[K]>
+          ? DynamicSegment<T[K], L>
           : { [__error]: "Dynamic segment declarations must be objects"; [__invalidKey]: K; [__invalidValue]: T[K] }
         : K extends AnySegmentKey
           ? T[K] extends object
-            ? Segment<T[K]>
+            ? Segment<T[K], L>
             : { [__error]: "Segment declarations must be objects"; [__invalidKey]: K; [__invalidValue]: T[K] }
-          : T[K] extends AnySegmentKey
-            ? T[K]
+          : K extends L
+            ? T[K] extends AnySegmentKey
+              ? T[K]
+              : {
+                  [__error]: "Segment translations must match pattern /${string}";
+                  [__invalidKey]: K;
+                  [__invalidValue]: T[K];
+                }
             : {
-                [__error]: "Segment translations must match pattern /${string}";
+                [__error]: "Unknown locale. Translation key is not in the configured locale set";
                 [__invalidKey]: K;
-                [__invalidValue]: T[K];
               };
 };
 
-export interface AnyPathAtlas {
-  readonly decl: object;
-}
-export type PathAtlasCtor<PA extends AnyPathAtlas> = new () => PA;
+// --- Provider ---
+export type AnyPathAtlas = object;
 
-export type ExtendedPathAtlas<PA extends AnyPathAtlas> = PA & { containsTranslations: boolean };
+export interface PathAtlasProvider<PA extends AnyPathAtlas> {
+  readonly decl: PA;
+}
+export type AnyPathAtlasProvider = PathAtlasProvider<AnyPathAtlas>;
+
+// --- Provider Ctor ---
+export interface PathAtlasProviderCtor<PAP extends AnyPathAtlasProvider> {
+  new (): PAP;
+}
+export type AnyPathAtlasProviderCtor = PathAtlasProviderCtor<AnyPathAtlasProvider>;
+
+// --- Extended ---
+export type ExtendedPathAtlasProvider<PAP extends AnyPathAtlasProvider> = PAP & { containsTranslations: boolean };
 
 // Build and validate PathAtlas
-export function buildPathAtlas<PA extends AnyPathAtlas>(
-  ctor: PathAtlasCtor<PA>,
+export function buildPathAtlas<PAP extends AnyPathAtlasProvider>(
+  ctor: PathAtlasProviderCtor<PAP>,
   allowTranslation: boolean
-): ExtendedPathAtlas<PA> {
+): ExtendedPathAtlasProvider<PAP> {
   const instance = new ctor();
   const context: ValidationContext = { foundTranslation: false };
   validatePathAtlasDecl(instance.decl, "", allowTranslation, context);

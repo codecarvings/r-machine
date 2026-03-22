@@ -1,5 +1,16 @@
+export {
+  type AnyFmtProvider,
+  type EmptyFmtProvider,
+  EmptyFmtProviderCtor,
+  type ExtractFmt,
+} from "./fmt.js";
+export { FormattersSeed } from "./formatters-seed.js";
 export type { AnyNamespace, AnyR, AnyResourceAtlas, Namespace, R } from "./r.js";
 export type { AnyNamespaceList, AnyRKit, NamespaceList, RKit } from "./r-kit.js";
-export { RMachine } from "./r-machine.js";
-export type { RMachineConfig } from "./r-machine-config.js";
-export type { R$ } from "./r-module.js";
+export {
+  RMachine,
+  type RMachineLocale,
+  type RMachineRCtx,
+} from "./r-machine.js";
+export type { RMachineConfig, RMachineConfigParams } from "./r-machine-config.js";
+export type { RCtx } from "./r-module.js";

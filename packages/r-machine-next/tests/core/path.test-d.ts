@@ -64,7 +64,7 @@ type CatchAllAtlas = {
 // ──────────────────────────────────────────────────────────
 
 describe("PathSelector", () => {
-  describe("any-guard: produces `/${string}` when PA is any", () => {
+  describe("any-guard: produces `/${string}` when PAP is any", () => {
     it("falls back to `/${string}`", () => {
       type Result = PathSelector<any>;
       expectTypeOf<Result>().toEqualTypeOf<`/${string}`>();
@@ -338,7 +338,7 @@ describe("BoundPathComposer", () => {
     compose("/users/[userId]/posts/[postId]");
   });
 
-  it("returns string when PA is any", () => {
+  it("returns string when PAP is any", () => {
     const compose = null as unknown as BoundPathComposer<any>;
     expectTypeOf(compose("/anything")).toBeString();
   });

@@ -11,7 +11,11 @@ import {
   docsWithOptionalCatchAllAtlas,
   productsAtlas,
 } from "../../../_fixtures/_helpers.js";
-import { TEST_DEFAULT_LOCALE as defaultLocale, TEST_LOCALES as locales } from "../../../_fixtures/constants.js";
+import {
+  TEST_DEFAULT_LOCALE as defaultLocale,
+  TEST_LOCALES as locales,
+  type TestLocale,
+} from "../../../_fixtures/constants.js";
 import { createMockMachineForProxy } from "../../../_fixtures/mock-machine.js";
 import { createMockCookiesFn, createMockHeadersFn, createMockRequest } from "../../../_fixtures/mock-server-helpers.js";
 import type { AnyProxyFn, AnySupplierFn, MockRewriteArgs } from "../../../_fixtures/test-types.js";
@@ -75,7 +79,7 @@ interface CreateImplOptions {
   autoDetectLocale?: "on" | "off" | { pathMatcher: RegExp | null };
   implicitDefaultLocale?: "on" | "off" | { pathMatcher: RegExp | null };
   basePath?: string;
-  matchLocaleReturn?: string;
+  matchLocaleReturn?: TestLocale;
   pathCanonicalizer?: HrefCanonicalizer;
 }
 

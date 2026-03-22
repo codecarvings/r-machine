@@ -8,7 +8,7 @@
  * that prerelease versions (e.g., alpha, beta) are tagged correctly on npm.
  *
  * Usage:
- *   tsx scripts/update-dist-tags.ts '{"name":"pkg","version":"1.0.0-alpha.1"}'
+ *   tsx scripts/update-npm-dist-tags.ts '{"name":"pkg","version":"1.0.0-alpha.1"}'
  *
  * Arguments:
  *   publishedPackages - JSON string containing array of {name, version} objects

@@ -1,9 +1,14 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "../../src/errors/index.js";
+import {
+  ERR_CONTEXT_NOT_FOUND as OriginalContextNotFound,
+  ERR_MISSING_WRITE_LOCALE as OriginalMissingWriteLocale,
+} from "../../src/errors/error-codes.js";
+import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "../../src/errors/index.js";
 
+// Barrel test: uses a single it() to verify export completeness only. Type shape tests belong in dedicated files.
 describe("errors barrel exports", () => {
   it("exports all expected symbols", () => {
-    expectTypeOf<typeof ERR_CONTEXT_NOT_FOUND>().toEqualTypeOf<"ERR_CONTEXT_NOT_FOUND">();
-    expectTypeOf<typeof ERR_MISSING_WRITE_LOCALE>().toEqualTypeOf<"ERR_MISSING_WRITE_LOCALE">();
+    expectTypeOf(ERR_CONTEXT_NOT_FOUND).toEqualTypeOf(OriginalContextNotFound);
+    expectTypeOf(ERR_MISSING_WRITE_LOCALE).toEqualTypeOf(OriginalMissingWriteLocale);
   });
 });

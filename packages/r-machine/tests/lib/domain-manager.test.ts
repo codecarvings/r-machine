@@ -2,8 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Domain } from "../../src/lib/domain.js";
 import { DomainManager } from "../../src/lib/domain-manager.js";
+import type { AnyFmtGetter } from "../../src/lib/fmt.js";
 import type { AnyRModule, RModuleResolver } from "../../src/lib/r-module.js";
 import { createMockResolver } from "../_fixtures/resolver-helpers.js";
+
+const noFmt: AnyFmtGetter = () => ({});
 
 const commonR = { greeting: "hello" };
 const navR = { home: "Home" };
@@ -21,21 +24,21 @@ const modules: Record<string, Record<string, AnyRModule>> = {
 describe("DomainManager", () => {
   describe("getDomain", () => {
     it("returns a Domain with the correct locale", () => {
-      const manager = new DomainManager(createMockResolver(modules));
+      const manager = new DomainManager(createMockResolver(modules), noFmt);
       const domain = manager.getDomain("en");
       expect(domain).toBeInstanceOf(Domain);
       expect(domain.locale).toBe("en");
     });
 
     it("caches and returns the same Domain for the same locale", () => {
-      const manager = new DomainManager(createMockResolver(modules));
+      const manager = new DomainManager(createMockResolver(modules), noFmt);
       const first = manager.getDomain("en");
       const second = manager.getDomain("en");
       expect(first).toBe(second);
     });
 
     it("returns different Domain instances for different locales", () => {
-      const manager = new DomainManager(createMockResolver(modules));
+      const manager = new DomainManager(createMockResolver(modules), noFmt);
       expect(manager.getDomain("en")).not.toBe(manager.getDomain("it"));
     });
 
@@ -44,7 +47,7 @@ describe("DomainManager", () => {
         const mod = modules[locale]?.[namespace];
         return mod ? Promise.resolve(mod) : Promise.reject(new Error("not found"));
       });
-      const manager = new DomainManager(resolver);
+      const manager = new DomainManager(resolver, noFmt);
 
       await manager.getDomain("en").pickR("common");
       await manager.getDomain("it").pickR("common");
@@ -55,15 +58,44 @@ describe("DomainManager", () => {
     });
 
     it("domains resolve locale-specific resources", async () => {
-      const manager = new DomainManager(createMockResolver(modules));
+      const manager = new DomainManager(createMockResolver(modules), noFmt);
       expect(await manager.getDomain("en").pickR("common")).toEqual({ greeting: "hello" });
       expect(await manager.getDomain("it").pickR("common")).toEqual({ greeting: "ciao" });
     });
   });
 
+  describe("formatter propagation", () => {
+    it("passes formatter getter to domains which forward it to factories", async () => {
+      const fmtGetter: AnyFmtGetter = (locale) => ({ lang: locale });
+      const factory = vi.fn(($: { namespace: string; locale: string; fmt: any }) => ({
+        value: $.fmt.lang,
+      }));
+      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
+      const manager = new DomainManager(resolver, fmtGetter);
+
+      const result = await manager.getDomain("it").pickR("common");
+      expect(result).toEqual({ value: "it" });
+      expect(factory).toHaveBeenCalledWith(expect.objectContaining({ locale: "it", fmt: { lang: "it" } }));
+    });
+
+    it("provides locale-specific formatters to each domain", async () => {
+      const fmtGetter: AnyFmtGetter = (locale) => ({ lang: locale.toUpperCase() });
+      const factory = ($: { namespace: string; locale: string; fmt: any }) => ({
+        label: $.fmt.lang,
+      });
+      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
+      const manager = new DomainManager(resolver, fmtGetter);
+
+      const enResult = await manager.getDomain("en").pickR("common");
+      const itResult = await manager.getDomain("it").pickR("common");
+      expect(enResult).toEqual({ label: "EN" });
+      expect(itResult).toEqual({ label: "IT" });
+    });
+  });
+
   describe("caching behavior", () => {
     it("cached domain retains its resolved resources", async () => {
-      const manager = new DomainManager(createMockResolver(modules));
+      const manager = new DomainManager(createMockResolver(modules), noFmt);
       const domain = manager.getDomain("en");
       await domain.pickR("common");
 
@@ -73,16 +105,23 @@ describe("DomainManager", () => {
 
     it("each DomainManager has independent caches", () => {
       const resolver = createMockResolver(modules);
-      const manager1 = new DomainManager(resolver);
-      const manager2 = new DomainManager(resolver);
+      const manager1 = new DomainManager(resolver, noFmt);
+      const manager2 = new DomainManager(resolver, noFmt);
       expect(manager1.getDomain("en")).not.toBe(manager2.getDomain("en"));
     });
 
     it("domain resolver failure does not evict from manager cache", async () => {
-      const manager = new DomainManager(createMockResolver(modules));
+      const manager = new DomainManager(createMockResolver(modules), noFmt);
       const domain = manager.getDomain("en");
       await expect(domain.pickR("nonexistent")).rejects.toThrow();
       expect(manager.getDomain("en")).toBe(domain);
+    });
+
+    it("failed namespace does not prevent resolving other namespaces in the same domain", async () => {
+      const manager = new DomainManager(createMockResolver(modules), noFmt);
+      const domain = manager.getDomain("en");
+      await expect(domain.pickR("nonexistent")).rejects.toThrow();
+      expect(await domain.pickR("common")).toEqual(commonR);
     });
   });
 });

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { RMachineError } from "#r-machine/errors";
-import { LocaleHelper } from "../../src/lib/locale-helper.js";
+import { RMachineConfigError } from "#r-machine/errors";
+import { LocaleHelper } from "../../src/locale/locale-helper.js";
 
 const locales = ["en", "fr", "de", "it", "es"] as const;
 const defaultLocale = "en";
 
-function createHelper(locs: readonly string[] = locales, def: string = defaultLocale): LocaleHelper {
+function createHelper(locs: readonly string[] = locales, def: string = defaultLocale) {
   return new LocaleHelper(locs, def);
 }
 
@@ -26,6 +26,11 @@ describe("LocaleHelper", () => {
       const helper = createHelper();
       expect(helper.matchLocales(["fr"], "lookup")).toBe("fr");
       expect(helper.matchLocales(["fr"], "best-fit")).toBe("fr");
+    });
+
+    it("returns the default locale for an empty requested array", () => {
+      const helper = createHelper();
+      expect(helper.matchLocales([])).toBe("en");
     });
   });
 
@@ -47,6 +52,16 @@ describe("LocaleHelper", () => {
       expect(helper.matchLocalesForAcceptLanguageHeader("fr", "lookup")).toBe("fr");
       expect(helper.matchLocalesForAcceptLanguageHeader("fr", "best-fit")).toBe("fr");
     });
+
+    it("respects q=0 to exclude locales", () => {
+      const helper = createHelper();
+      expect(helper.matchLocalesForAcceptLanguageHeader("fr;q=0, de;q=0.5")).toBe("de");
+    });
+
+    it("falls back to the default when all locales are excluded with q=0", () => {
+      const helper = createHelper();
+      expect(helper.matchLocalesForAcceptLanguageHeader("fr;q=0, de;q=0")).toBe("en");
+    });
   });
 
   describe("validateLocale", () => {
@@ -56,23 +71,24 @@ describe("LocaleHelper", () => {
       expect(helper.validateLocale("fr")).toBeNull();
     });
 
-    it("returns an RMachineError for a locale not in the list", () => {
+    it("returns an RMachineConfigError for a locale not in the list", () => {
       const helper = createHelper();
       const result = helper.validateLocale("ja");
-      expect(result).toBeInstanceOf(RMachineError);
+      expect(result).toBeInstanceOf(RMachineConfigError);
       expect(result!.message).toContain("ja");
+      expect((result as RMachineConfigError).code).toBe("ERR_UNKNOWN_LOCALE");
     });
 
     it("is case-sensitive", () => {
       const helper = createHelper(["en"], "en");
-      expect(helper.validateLocale("EN")).toBeInstanceOf(RMachineError);
+      expect(helper.validateLocale("EN")).toBeInstanceOf(RMachineConfigError);
     });
 
     it("handles locales with region subtags", () => {
       const helper = createHelper(["en-US", "en-GB"], "en-US");
       expect(helper.validateLocale("en-US")).toBeNull();
       expect(helper.validateLocale("en-GB")).toBeNull();
-      expect(helper.validateLocale("en")).toBeInstanceOf(RMachineError);
+      expect(helper.validateLocale("en")).toBeInstanceOf(RMachineConfigError);
     });
   });
 

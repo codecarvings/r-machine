@@ -1,4 +1,5 @@
-import type { AnyResourceAtlas } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
   PartialReactStandardStrategyConfig,
@@ -12,31 +13,76 @@ import type {
   ReactToolset,
 } from "../../src/core/index.js";
 import { createReactBareToolset, createReactToolset } from "../../src/core/index.js";
+import type { ReactBareStrategy as OriginalReactBareStrategy } from "../../src/core/react-bare-strategy.js";
+import type {
+  ReactBareRMachine as OriginalReactBareRMachine,
+  ReactBareToolset as OriginalReactBareToolset,
+} from "../../src/core/react-bare-toolset.js";
+import { createReactBareToolset as originalCreateReactBareToolset } from "../../src/core/react-bare-toolset.js";
+import type {
+  ReactStandardStrategyConfig as OriginalConfig,
+  PartialReactStandardStrategyConfig as OriginalPartialConfig,
+  ReactStandardStrategyCore as OriginalStandardStrategyCore,
+} from "../../src/core/react-standard-strategy-core.js";
+import type { ReactStrategyCore as OriginalReactStrategyCore } from "../../src/core/react-strategy-core.js";
+import type {
+  ReactImpl as OriginalReactImpl,
+  ReactToolset as OriginalReactToolset,
+} from "../../src/core/react-toolset.js";
+import { createReactToolset as originalCreateReactToolset } from "../../src/core/react-toolset.js";
 
 describe("core barrel exports", () => {
-  it("exports all expected symbols", () => {
-    expectTypeOf<ReactBareStrategy<AnyResourceAtlas>>().toBeObject();
+  it("re-exports ReactBareStrategy identical to the original", () => {
+    expectTypeOf<ReactBareStrategy<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>().toEqualTypeOf<
+      OriginalReactBareStrategy<AnyResourceAtlas, AnyLocale, AnyFmtProvider>
+    >();
+  });
 
-    expectTypeOf(createReactBareToolset).toBeFunction();
+  it("re-exports createReactBareToolset identical to the original", () => {
+    expectTypeOf(createReactBareToolset).toEqualTypeOf(originalCreateReactBareToolset);
+  });
 
-    expectTypeOf<ReactBareRMachine>().toBeFunction();
+  it("re-exports ReactBareRMachine identical to the original", () => {
+    expectTypeOf<ReactBareRMachine<AnyLocale>>().toEqualTypeOf<OriginalReactBareRMachine<AnyLocale>>();
+  });
 
-    expectTypeOf<ReactBareToolset<AnyResourceAtlas>>().toBeObject();
+  it("re-exports ReactBareToolset identical to the original", () => {
+    expectTypeOf<ReactBareToolset<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>().toEqualTypeOf<
+      OriginalReactBareToolset<AnyResourceAtlas, AnyLocale, AnyFmtProvider>
+    >();
+  });
 
-    expectTypeOf<ReactStandardStrategyConfig>().toBeObject();
+  it("re-exports ReactStandardStrategyConfig identical to the original", () => {
+    expectTypeOf<ReactStandardStrategyConfig>().toEqualTypeOf<OriginalConfig>();
+  });
 
-    expectTypeOf<PartialReactStandardStrategyConfig>().toBeObject();
+  it("re-exports PartialReactStandardStrategyConfig identical to the original", () => {
+    expectTypeOf<PartialReactStandardStrategyConfig>().toEqualTypeOf<OriginalPartialConfig>();
+  });
 
-    expectTypeOf<ReactStandardStrategyCore<AnyResourceAtlas>>().toBeObject();
+  it("re-exports ReactStandardStrategyCore identical to the original", () => {
+    expectTypeOf<ReactStandardStrategyCore<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>().toEqualTypeOf<
+      OriginalStandardStrategyCore<AnyResourceAtlas, AnyLocale, AnyFmtProvider>
+    >();
+  });
 
-    expectTypeOf<ReactStrategyCore<AnyResourceAtlas, unknown>>().toBeObject();
+  it("re-exports ReactStrategyCore identical to the original", () => {
+    expectTypeOf<ReactStrategyCore<AnyResourceAtlas, AnyLocale, AnyFmtProvider, unknown>>().toEqualTypeOf<
+      OriginalReactStrategyCore<AnyResourceAtlas, AnyLocale, AnyFmtProvider, unknown>
+    >();
+  });
 
-    expectTypeOf(createReactToolset).toBeFunction();
+  it("re-exports createReactToolset identical to the original", () => {
+    expectTypeOf(createReactToolset).toEqualTypeOf(originalCreateReactToolset);
+  });
 
-    expectTypeOf<ReactImpl>().toBeObject();
-    expectTypeOf<ReactImpl>().toHaveProperty("readLocale");
-    expectTypeOf<ReactImpl>().toHaveProperty("writeLocale");
+  it("re-exports ReactImpl identical to the original", () => {
+    expectTypeOf<ReactImpl<AnyLocale>>().toEqualTypeOf<OriginalReactImpl<AnyLocale>>();
+  });
 
-    expectTypeOf<ReactToolset<AnyResourceAtlas>>().toBeObject();
+  it("re-exports ReactToolset identical to the original", () => {
+    expectTypeOf<ReactToolset<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>().toEqualTypeOf<
+      OriginalReactToolset<AnyResourceAtlas, AnyLocale, AnyFmtProvider>
+    >();
   });
 });

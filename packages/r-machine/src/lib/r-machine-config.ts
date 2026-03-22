@@ -4,16 +4,28 @@ import {
   ERR_NO_LOCALES,
   RMachineConfigError,
 } from "#r-machine/errors";
-import { validateCanonicalUnicodeLocaleId } from "#r-machine/locale";
+import {
+  type AnyLocale,
+  type AnyLocaleList,
+  type LocaleList,
+  validateCanonicalUnicodeLocaleId,
+} from "#r-machine/locale";
 import type { RModuleResolver } from "./r-module.js";
 
-export interface RMachineConfig {
-  readonly locales: readonly string[];
-  readonly defaultLocale: string;
+// The generic parameter LL is used to ensure that the defaultLocale is one of the locales in the list
+export interface RMachineConfigParams<LL extends AnyLocaleList> {
+  readonly locales: LL;
+  readonly defaultLocale: LL[number];
   readonly rModuleResolver: RModuleResolver;
 }
 
-export function validateRMachineConfig(config: RMachineConfig): RMachineConfigError | null {
+export interface RMachineConfig<L extends AnyLocale> {
+  readonly locales: LocaleList<L>;
+  readonly defaultLocale: L;
+  readonly rModuleResolver: RModuleResolver;
+}
+
+export function validateRMachineConfig<L extends AnyLocale>(config: RMachineConfig<L>): RMachineConfigError | null {
   if (!config.locales.length) {
     return new RMachineConfigError(ERR_NO_LOCALES, "No locales provided.");
   }
@@ -44,9 +56,9 @@ export function validateRMachineConfig(config: RMachineConfig): RMachineConfigEr
   return null;
 }
 
-export function cloneRMachineConfig(config: RMachineConfig): RMachineConfig {
+export function cloneRMachineConfig<L extends AnyLocale>(config: RMachineConfig<L>): RMachineConfig<L> {
   return {
     ...config,
-    locales: [...config.locales],
+    locales: Object.freeze([...config.locales]) as LocaleList<L>,
   };
 }

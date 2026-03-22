@@ -13,9 +13,9 @@
 
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
 import { RMachineConfigError } from "r-machine/errors";
-import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
+import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { ERR_FEATURE_REQUIRES_PROXY } from "#r-machine/next/errors";
@@ -30,18 +30,21 @@ const default_autoDL_matcher_implicit: RegExp | null = /^\/$/; // Auto detect on
 const default_autoDL_matcher_explicit: RegExp | null = defaultPathMatcher; // Auto detect all standard next paths
 const default_implicit_matcher: RegExp | null = defaultPathMatcher; // Implicit for all standard paths
 
-// const pathComposerNormalizerRegExp = /^\//;
-
-export async function createNextAppPathServerImpl(
-  rMachine: RMachine<AnyResourceAtlas>,
-  strategyConfig: AnyNextAppPathStrategyConfig,
+export async function createNextAppPathServerImpl<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  FP extends AnyFmtProvider,
+  C extends AnyNextAppPathStrategyConfig,
+>(
+  rMachine: RMachine<RA, L, FP>,
+  strategyConfig: C,
   pathTranslator: HrefTranslator,
   contentPathCanonicalizer: HrefCanonicalizer
 ) {
-  const locales = rMachine.config.locales;
-  const defaultLocale = rMachine.config.defaultLocale;
-  const { localeKey, autoLocaleBinding, basePath, cookie, localeLabel, autoDetectLocale, implicitDefaultLocale } =
-    strategyConfig;
+  const { locales, defaultLocale, localeHelper } = rMachine;
+  const { autoLocaleBinding, basePath, cookie, localeLabel, autoDetectLocale, implicitDefaultLocale } = strategyConfig;
+  const localeKey = strategyConfig.localeKey as C["localeKey"]; // Type assertion needed to use localeKey in a typed way, since it's not a generic parameter of the strategy core class
+
   const autoLBSw = autoLocaleBinding === "on";
   const lowercaseLocaleSw = localeLabel === "lowercase";
   const implicitSw = implicitDefaultLocale !== "off";
@@ -86,7 +89,7 @@ export async function createNextAppPathServerImpl(
 
     createLocaleStaticParamsGenerator() {
       return async () =>
-        rMachine.config.locales.map((locale: string) => ({
+        locales.map((locale: L) => ({
           [localeKey]: lowercaseLocaleSw ? locale.toLowerCase() : locale,
         }));
     },
@@ -111,7 +114,7 @@ export async function createNextAppPathServerImpl(
       // Use case-insensitive matching for locale codes
       const localeRegex = new RegExp(`^\\/(${locales.join("|")})(?:\\/|$)`, "i");
 
-      function getLocaleFromCookie(request: NextRequest): string | undefined {
+      function getLocaleFromCookie(request: NextRequest): L | undefined {
         if (!cookieSw) {
           return undefined;
         }
@@ -121,14 +124,14 @@ export async function createNextAppPathServerImpl(
           return undefined;
         }
 
-        if (!locales.includes(cookieLocale)) {
+        if (!locales.includes(cookieLocale as L)) {
           return undefined;
         }
 
-        return cookieLocale;
+        return cookieLocale as L;
       }
 
-      function rewriteToCanonicalLocalePath(request: NextRequest, locale: string, contentPath: string): NextResponse {
+      function rewriteToCanonicalLocalePath(request: NextRequest, locale: L, contentPath: string): NextResponse {
         // Rewrite to locale-prefixed URL internally - basePath already included
         const newUrl = request.nextUrl.clone();
         // Reconstruct canonical URL
@@ -158,7 +161,7 @@ export async function createNextAppPathServerImpl(
 
       function redirectToCanonicalLocalePath(
         request: NextRequest,
-        locale: string,
+        locale: L,
         pathname: string,
         implicitLocale: boolean
       ): NextResponse {
@@ -180,7 +183,7 @@ export async function createNextAppPathServerImpl(
         if (match) {
           // Locale is present in the URL
           const providedLocale = match[1];
-          const locale = getCanonicalUnicodeLocaleId(providedLocale);
+          const locale = getCanonicalUnicodeLocaleId(providedLocale) as L;
 
           if (implicitSw && locale === defaultLocale) {
             // Locale is present but canonical URL is implicit (no locale prefix)
@@ -205,7 +208,7 @@ export async function createNextAppPathServerImpl(
 
           if (implicitRegExp === null || implicitRegExp.test(pathname)) {
             // Valid implicit URL
-            let locale: string;
+            let locale: L;
             if (autoDLSw && (autoDLRegExp === null || autoDLRegExp.test(pathname))) {
               // Is auto-detect URL
               const cookieLocale = getLocaleFromCookie(request);
@@ -215,9 +218,7 @@ export async function createNextAppPathServerImpl(
                 locale = cookieLocale;
               } else {
                 // Cookie disabled - OR - First time visiting, auto-detect from Accept-Language header
-                locale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(
-                  request.headers.get("accept-language")
-                );
+                locale = localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
               }
 
               if (locale !== defaultLocale) {
@@ -242,13 +243,13 @@ export async function createNextAppPathServerImpl(
           // Is auto-detect URL
           const cookieLocale = getLocaleFromCookie(request);
 
-          let locale: string;
+          let locale: L;
           if (cookieLocale !== undefined) {
             // Cookie enabled and available, use locale from cookie
             locale = cookieLocale;
           } else {
             // Cookie disabled - OR - First time visiting, auto-detect from Accept-Language header
-            locale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
+            locale = localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
           }
 
           // Redirect to the URL with the locale prefix
@@ -278,7 +279,7 @@ export async function createNextAppPathServerImpl(
         throwRequiredProxyError("autoLocaleBinding is on");
       }
 
-      async function getLocaleFromCookie(): Promise<string | undefined> {
+      async function getLocaleFromCookie(): Promise<L | undefined> {
         if (!cookieSw) {
           return undefined;
         }
@@ -289,11 +290,11 @@ export async function createNextAppPathServerImpl(
           return undefined;
         }
 
-        if (!locales.includes(cookieLocale)) {
+        if (!locales.includes(cookieLocale as L)) {
           return undefined;
         }
 
-        return cookieLocale;
+        return cookieLocale as L;
       }
 
       async function entranceGet() {
@@ -304,7 +305,7 @@ export async function createNextAppPathServerImpl(
 
         const headerStore = await headers();
         const acceptLanguageHeader = headerStore.get("accept-language");
-        const detectedLocale = rMachine.localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
+        const detectedLocale = localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
         await setLocale(detectedLocale);
       }
 
@@ -319,5 +320,5 @@ export async function createNextAppPathServerImpl(
         return (path, params) => pathTranslator.get(locale, path, params).value;
       };
     },
-  } as NextAppNoProxyServerImpl;
+  } as NextAppNoProxyServerImpl<L, C["localeKey"]>;
 }

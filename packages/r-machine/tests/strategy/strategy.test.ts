@@ -1,46 +1,78 @@
 import { describe, expect, it, vi } from "vitest";
-import type { AnyResourceAtlas, RMachine } from "#r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachineConfig } from "#r-machine";
+import type { AnyLocale } from "#r-machine/locale";
+import { RMachine } from "../../src/lib/r-machine.js";
 import { Strategy } from "../../src/strategy/strategy.js";
 
-class SpyStrategy<RA extends AnyResourceAtlas, C> extends Strategy<RA, C> {
-  static validateConfigFn = vi.fn();
-  protected override validateConfig(): void {
-    SpyStrategy.validateConfigFn();
+function createSpyStrategyClass<RA extends AnyResourceAtlas, L extends AnyLocale, C>() {
+  const validateConfigSpy = vi.fn();
+  class SpyStrategy extends Strategy<RA, L, AnyFmtProvider, C> {
+    protected override validateConfig(): void {
+      validateConfigSpy();
+    }
   }
+  return { SpyStrategy, validateConfigSpy };
 }
 
-class ThrowingStrategy<RA extends AnyResourceAtlas, C> extends Strategy<RA, C> {
+class ThrowingStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, AnyFmtProvider, C> {
   protected override validateConfig(): void {
     throw new Error("Validation failed");
   }
 }
 
-function createMockRMachine(): RMachine<AnyResourceAtlas> {
-  return {
-    config: {
-      locales: ["en", "it"],
-      defaultLocale: "en",
-      rModuleResolver: async () => ({ default: {} }),
-    },
-    localeHelper: {},
-    pickR: vi.fn(),
-    pickRKit: vi.fn(),
-  } as unknown as RMachine<AnyResourceAtlas>;
+class DefaultStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, AnyFmtProvider, C> {}
+
+const testConfig: RMachineConfig<string> = {
+  locales: ["en", "it"],
+  defaultLocale: "en",
+  rModuleResolver: async () => ({ default: {} }),
+};
+
+function createTestRMachine() {
+  return RMachine.builder(testConfig).create<AnyResourceAtlas>();
 }
 
 describe("Strategy", () => {
-  it("should call validateConfig during construction", () => {
-    SpyStrategy.validateConfigFn.mockClear();
-    new SpyStrategy(createMockRMachine(), { option: "value" });
-    expect(SpyStrategy.validateConfigFn).toHaveBeenCalledOnce();
+  describe("construction", () => {
+    it("should call validateConfig during construction", () => {
+      const { SpyStrategy, validateConfigSpy } = createSpyStrategyClass();
+      new SpyStrategy(createTestRMachine(), { option: "value" });
+      expect(validateConfigSpy).toHaveBeenCalledOnce();
+    });
+
+    it("should propagate error if validateConfig throws", () => {
+      expect(() => new ThrowingStrategy(createTestRMachine(), {})).toThrow("Validation failed");
+    });
+
+    it("should not throw with default validateConfig", () => {
+      expect(() => new DefaultStrategy(createTestRMachine(), {})).not.toThrow();
+    });
   });
 
-  it("should propagate error if validateConfig throws", () => {
-    expect(() => new ThrowingStrategy(createMockRMachine(), {})).toThrow("Validation failed");
-  });
+  describe("instance properties", () => {
+    it("should store the rMachine reference", () => {
+      const rMachine = createTestRMachine();
+      const strategy = new DefaultStrategy(rMachine, { key: "value" });
+      expect(strategy.rMachine).toBe(rMachine);
+    });
 
-  it("should not throw with default validateConfig", () => {
-    class DefaultStrategy<RA extends AnyResourceAtlas, C> extends Strategy<RA, C> {}
-    expect(() => new DefaultStrategy(createMockRMachine(), {})).not.toThrow();
+    it("should store the config value", () => {
+      const config = { key: "value" };
+      const strategy = new DefaultStrategy(createTestRMachine(), config);
+      expect(strategy.config).toBe(config);
+    });
+
+    it("should accept undefined as config", () => {
+      const strategy = new DefaultStrategy(createTestRMachine(), undefined);
+      expect(strategy.config).toBeUndefined();
+    });
+
+    it("multiple strategies sharing the same RMachine do not interfere", () => {
+      const rMachine = createTestRMachine();
+      const s1 = new DefaultStrategy(rMachine, { a: 1 });
+      const s2 = new DefaultStrategy(rMachine, { b: 2 });
+      expect(s1.rMachine).toBe(s2.rMachine);
+      expect(s1.config).not.toBe(s2.config);
+    });
   });
 });

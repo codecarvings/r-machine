@@ -1,7 +1,13 @@
-import type { RMachine } from "r-machine";
+import type { AnyFmtProvider, EmptyFmtProvider, RMachine } from "r-machine";
 import type { SwitchableOption } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyPathAtlas, HrefTranslator, PathAtlasCtor, PathParamMap, PathSelector } from "#r-machine/next/core";
+import type {
+  AnyPathAtlasProvider,
+  HrefTranslator,
+  PathAtlasProviderCtor,
+  PathParamMap,
+  PathSelector,
+} from "#r-machine/next/core";
 import type {
   AnyNextAppOriginStrategyConfig,
   LocaleOriginMap,
@@ -12,16 +18,8 @@ import {
   NextAppOriginStrategyCore,
   NextAppOriginStrategyUrlTranslator,
 } from "../../../../src/core/app/origin/next-app-origin-strategy-core.js";
+import type { SimplePathAtlas, TestLocale, TranslatedPathAtlas } from "../../../_fixtures/constants.js";
 import type { TestAtlas } from "../../../_fixtures/mock-machine.js";
-
-type SimplePathAtlas = { readonly decl: {} };
-
-type TranslatedPathAtlas = {
-  readonly decl: {
-    readonly "/about": { readonly it: "/chi-siamo" };
-    readonly "/products": { readonly it: "/prodotti"; readonly "/[id]": {} };
-  };
-};
 
 // ---------------------------------------------------------------------------
 // LocaleOriginMap
@@ -62,8 +60,8 @@ describe("NextAppOriginStrategyConfig", () => {
     >();
   });
 
-  it("PathAtlas is PathAtlasCtor<PA>", () => {
-    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasCtor<SimplePathAtlas>>();
+  it("PathAtlas is PathAtlasProviderCtor<PAP>", () => {
+    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasProviderCtor<SimplePathAtlas>>();
   });
 
   it("localeKey is the literal string type", () => {
@@ -157,11 +155,15 @@ describe("NextAppOriginStrategyCore", () => {
   });
 
   it("rMachine is RMachine<RA>", () => {
-    expectTypeOf<NextAppOriginStrategyCore<TestAtlas, SimpleConfig>["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas>>();
+    expectTypeOf<
+      NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["rMachine"]
+    >().toEqualTypeOf<RMachine<TestAtlas, TestLocale, AnyFmtProvider>>();
   });
 
   it("config is C", () => {
-    expectTypeOf<NextAppOriginStrategyCore<TestAtlas, SimpleConfig>["config"]>().toEqualTypeOf<SimpleConfig>();
+    expectTypeOf<
+      NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["config"]
+    >().toEqualTypeOf<SimpleConfig>();
   });
 
   // -----------------------------------------------------------------------
@@ -170,18 +172,28 @@ describe("NextAppOriginStrategyCore", () => {
 
   describe("hrefHelper", () => {
     it("has readonly getPath and getUrl properties", () => {
-      type Helper = NextAppOriginStrategyCore<TestAtlas, SimpleConfig>["hrefHelper"];
+      type Helper = NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["hrefHelper"];
       expectTypeOf<Helper>().toHaveProperty("getPath");
       expectTypeOf<Helper>().toHaveProperty("getUrl");
     });
 
     it("getPath is a function", () => {
-      type GetPath = NextAppOriginStrategyCore<TestAtlas, SimpleConfig>["hrefHelper"]["getPath"];
+      type GetPath = NextAppOriginStrategyCore<
+        TestAtlas,
+        TestLocale,
+        AnyFmtProvider,
+        SimpleConfig
+      >["hrefHelper"]["getPath"];
       expectTypeOf<GetPath>().toBeFunction();
     });
 
     it("getUrl is a function", () => {
-      type GetUrl = NextAppOriginStrategyCore<TestAtlas, SimpleConfig>["hrefHelper"]["getUrl"];
+      type GetUrl = NextAppOriginStrategyCore<
+        TestAtlas,
+        TestLocale,
+        AnyFmtProvider,
+        SimpleConfig
+      >["hrefHelper"]["getUrl"];
       expectTypeOf<GetUrl>().toBeFunction();
     });
 
@@ -220,17 +232,30 @@ describe("NextAppOriginStrategyCore", () => {
     });
   });
 
-  it("different atlas types produce different core types", () => {
+  it("different RA produce different core types", () => {
     type OtherAtlas = { readonly other: { readonly value: number } };
-    expectTypeOf<NextAppOriginStrategyCore<TestAtlas, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppOriginStrategyCore<OtherAtlas, SimpleConfig>
+    expectTypeOf<NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
+      NextAppOriginStrategyCore<OtherAtlas, TestLocale, AnyFmtProvider, SimpleConfig>
+    >();
+  });
+
+  it("different L produce different core types", () => {
+    type OtherLocale = "fr" | "de";
+    expectTypeOf<NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
+      NextAppOriginStrategyCore<TestAtlas, OtherLocale, AnyFmtProvider, SimpleConfig>
     >();
   });
 
   it("different config types produce different core types", () => {
     type OtherConfig = NextAppOriginStrategyConfig<SimplePathAtlas, "lang">;
-    expectTypeOf<NextAppOriginStrategyCore<TestAtlas, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppOriginStrategyCore<TestAtlas, OtherConfig>
+    expectTypeOf<NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
+      NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, OtherConfig>
+    >();
+  });
+
+  it("different FP produce different core types", () => {
+    expectTypeOf<NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
+      NextAppOriginStrategyCore<TestAtlas, TestLocale, EmptyFmtProvider, SimpleConfig>
     >();
   });
 });
@@ -240,9 +265,9 @@ describe("NextAppOriginStrategyCore", () => {
 // ---------------------------------------------------------------------------
 
 describe("NextAppOriginStrategyUrlTranslator", () => {
-  it("is constructible with (AnyPathAtlas, readonly string[], string, LocaleOriginMap)", () => {
+  it("is constructible with (AnyPathAtlasProvider, readonly string[], string, LocaleOriginMap)", () => {
     expectTypeOf(NextAppOriginStrategyUrlTranslator).toBeConstructibleWith(
-      {} as AnyPathAtlas,
+      {} as AnyPathAtlasProvider,
       ["en", "it"] as const,
       "en",
       { en: "https://en.example.com", it: "https://it.example.com" }

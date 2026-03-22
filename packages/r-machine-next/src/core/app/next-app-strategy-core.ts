@@ -11,23 +11,24 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import { Strategy, type SwitchableOption } from "r-machine/strategy";
-import type { AnyPathAtlas, ExtendedPathAtlas, PathAtlasCtor } from "#r-machine/next/core";
+import type { AnyPathAtlasProvider, ExtendedPathAtlasProvider, PathAtlasProviderCtor } from "#r-machine/next/core";
 import type { NextAppClientImpl, NextAppClientRMachine, NextAppClientToolset } from "./next-app-client-toolset.js";
 import type { NextAppServerImpl, NextAppServerToolset } from "./next-app-server-toolset.js";
 
 export const localeHeaderName = "x-rm-locale";
 
-export interface NextAppStrategyConfig<PA extends AnyPathAtlas, LK extends string> {
-  readonly PathAtlas: PathAtlasCtor<PA>;
+export interface NextAppStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string> {
+  readonly PathAtlas: PathAtlasProviderCtor<PAP>;
   readonly localeKey: LK;
   readonly autoLocaleBinding: SwitchableOption;
   readonly basePath: string;
 }
 export type AnyNextAppStrategyConfig = NextAppStrategyConfig<any, any>;
-export interface PartialNextAppStrategyConfig<PA extends AnyPathAtlas, LK extends string> {
-  readonly PathAtlas?: PathAtlasCtor<PA>;
+export interface PartialNextAppStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string> {
+  readonly PathAtlas?: PathAtlasProviderCtor<PAP>;
   readonly localeKey?: LK;
   readonly autoLocaleBinding?: SwitchableOption;
   readonly basePath?: string;
@@ -47,24 +48,26 @@ const defaultConfig: NextAppStrategyConfig<DefaultPathAtlas, typeof defaultLocal
 
 export abstract class NextAppStrategyCore<
   RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  FP extends AnyFmtProvider,
   C extends AnyNextAppStrategyConfig,
-> extends Strategy<RA, C> {
+> extends Strategy<RA, L, FP, C> {
   static readonly defaultConfig = defaultConfig;
 
-  protected abstract readonly pathAtlas: ExtendedPathAtlas<InstanceType<C["PathAtlas"]>>;
+  protected abstract readonly pathAtlas: ExtendedPathAtlasProvider<InstanceType<C["PathAtlas"]>>;
 
-  protected abstract createClientImpl(): Promise<NextAppClientImpl>;
-  protected abstract createServerImpl(): Promise<NextAppServerImpl>;
+  protected abstract createClientImpl(): Promise<NextAppClientImpl<L>>;
+  protected abstract createServerImpl(): Promise<NextAppServerImpl<L, C["localeKey"]>>;
 
-  async createClientToolset(): Promise<NextAppClientToolset<RA, InstanceType<C["PathAtlas"]>>> {
+  async createClientToolset(): Promise<NextAppClientToolset<RA, L, FP, InstanceType<C["PathAtlas"]>>> {
     const impl = await this.createClientImpl();
     const module = await import("./next-app-client-toolset.js");
     return module.createNextAppClientToolset(this.rMachine, impl);
   }
 
   async createServerToolset(
-    NextClientRMachine: NextAppClientRMachine
-  ): Promise<NextAppServerToolset<RA, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
+    NextClientRMachine: NextAppClientRMachine<L>
+  ): Promise<NextAppServerToolset<RA, L, FP, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     const impl = await this.createServerImpl();
     const module = await import("./next-app-server-toolset.js");
     return module.createNextAppServerToolset(this.rMachine, impl, NextClientRMachine);

@@ -1,4 +1,5 @@
-import type { AnyResourceAtlas } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { createReactStandardImpl } from "./react-standard.impl.js";
 import { ReactStrategyCore } from "./react-strategy-core.js";
@@ -17,13 +18,14 @@ const defaultConfig: ReactStandardStrategyConfig = {
   localeStore: undefined,
 };
 
-export abstract class ReactStandardStrategyCore<RA extends AnyResourceAtlas> extends ReactStrategyCore<
-  RA,
-  ReactStandardStrategyConfig
-> {
+export abstract class ReactStandardStrategyCore<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  FP extends AnyFmtProvider,
+> extends ReactStrategyCore<RA, L, FP, ReactStandardStrategyConfig> {
   static readonly defaultConfig = defaultConfig;
 
   protected createImpl() {
-    return createReactStandardImpl(this.rMachine, this.config);
+    return createReactStandardImpl<RA, L, FP>(this.rMachine, this.config);
   }
 }

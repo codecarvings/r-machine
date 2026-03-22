@@ -76,18 +76,22 @@
   "imports": {
     "#r-machine/react/errors": {
       "@r-machine/source": "./src/errors/index.ts",
+      "types": "./errors/index.d.cts",
       "default": "./errors/index.js"
     },
     "#r-machine/react/core": {
       "@r-machine/source": "./src/core/index.ts",
+      "types": "./core/index.d.cts",
       "default": "./core/index.js"
     },
     "#r-machine/react": {
       "@r-machine/source": "./src/lib/index.ts",
+      "types": "./lib/index.d.cts",
       "default": "./lib/index.js"
     },
     "#r-machine/react/utils": {
       "@r-machine/source": "./src/utils/index.ts",
+      "types": "./utils/index.d.cts",
       "default": "./utils/index.js"
     }
   },

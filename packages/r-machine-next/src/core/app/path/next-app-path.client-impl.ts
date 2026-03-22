@@ -12,17 +12,20 @@
  */
 
 import Cookies from "js-cookie";
-import type { AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyLocale } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { setCookie } from "#r-machine/next/internal";
 import type { NextAppClientImpl } from "../next-app-client-toolset.js";
 import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
 
-// const pathComposerNormalizerRegExp = /^\//;
-
-export async function createNextAppPathClientImpl(
-  _rMachine: RMachine<AnyResourceAtlas>,
+export async function createNextAppPathClientImpl<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  FP extends AnyFmtProvider,
+>(
+  _rMachine: RMachine<RA, L, FP>,
   strategyConfig: AnyNextAppPathStrategyConfig,
   pathTranslator: HrefTranslator,
   pathCanonicalizer: HrefCanonicalizer
@@ -31,7 +34,7 @@ export async function createNextAppPathClientImpl(
   const cookieSw = cookie !== "off";
   const { name: cookieName, ...cookieConfig } = cookieSw ? (cookie === "on" ? defaultCookieDeclaration : cookie) : {};
 
-  let onLoad: NextAppClientImpl["onLoad"];
+  let onLoad: NextAppClientImpl<L>["onLoad"];
   if (cookieSw) {
     onLoad = (locale) => {
       const cookieLocale = Cookies.get(cookieName!);
@@ -74,5 +77,5 @@ export async function createNextAppPathClientImpl(
         return (path, params) => pathTranslator.get(locale, path, params).value;
       };
     },
-  } as NextAppClientImpl;
+  } as NextAppClientImpl<L>;
 }

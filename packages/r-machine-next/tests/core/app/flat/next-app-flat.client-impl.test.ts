@@ -9,6 +9,7 @@ import {
   docsWithCatchAllAtlas,
   productsAtlas,
 } from "../../../_fixtures/_helpers.js";
+import type { TestLocale } from "../../../_fixtures/constants.js";
 import { TEST_DEFAULT_LOCALE as defaultLocale, TEST_LOCALES as locales } from "../../../_fixtures/constants.js";
 import { createMockMachine } from "../../../_fixtures/mock-machine.js";
 import { createMockRouter } from "../../../_fixtures/mock-router.js";
@@ -316,7 +317,7 @@ describe("createNextAppFlatClientImpl", () => {
       const { impl } = await createImpl({ atlas: aboutAtlas });
 
       let currentLocale = "en";
-      const useLocale = () => currentLocale;
+      const useLocale = () => currentLocale as TestLocale;
       const usePathComposer = impl.createUsePathComposer(useLocale);
 
       const composer1 = usePathComposer() as AnyPathComposer;

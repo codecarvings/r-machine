@@ -85,26 +85,32 @@
   "imports": {
     "#r-machine/next/internal": {
       "@r-machine/source": "./src/internal/index.ts",
+      "types": "./internal/index.d.cts",
       "default": "./internal/index.js"
     },
     "#r-machine/next/core": {
       "@r-machine/source": "./src/core/index.ts",
+      "types": "./core/index.d.cts",
       "default": "./core/index.js"
     },
     "#r-machine/next/core/app": {
       "@r-machine/source": "./src/core/app/index.ts",
+      "types": "./core/app/index.d.cts",
       "default": "./core/app/index.js"
     },
     "#r-machine/next/errors": {
       "@r-machine/source": "./src/errors/index.ts",
+      "types": "./errors/index.d.cts",
       "default": "./errors/index.js"
     },
     "#r-machine/next/app": {
       "@r-machine/source": "./src/app/index.ts",
+      "types": "./app/index.d.cts",
       "default": "./app/index.js"
     },
     "#r-machine/next": {
       "@r-machine/source": "./src/lib/index.ts",
+      "types": "./lib/index.d.cts",
       "default": "./lib/index.js"
     }
   },

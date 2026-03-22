@@ -1,6 +1,6 @@
-import type { RMachine } from "r-machine";
+import type { AnyFmtProvider, RMachine } from "r-machine";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ExtendedPathAtlas } from "#r-machine/next/core";
+import type { ExtendedPathAtlasProvider } from "#r-machine/next/core";
 import type { NextAppClientImpl, NextAppClientRMachine } from "../../../src/core/app/next-app-client-toolset.js";
 import type { NextAppServerImpl } from "../../../src/core/app/next-app-server-toolset.js";
 import {
@@ -9,6 +9,7 @@ import {
   type NextAppStrategyConfig,
   NextAppStrategyCore,
 } from "../../../src/core/app/next-app-strategy-core.js";
+import type { TestLocale } from "../../_fixtures/constants.js";
 import type { TestAtlas } from "../../_fixtures/mock-machine.js";
 import { createMockMachine } from "../../_fixtures/mock-machine.js";
 
@@ -34,13 +35,13 @@ vi.mock("../../../src/core/app/next-app-server-toolset.js", () => ({
 type TestConfig = NextAppStrategyConfig<DefaultPathAtlas, "locale">;
 
 function createTestStrategy() {
-  const mockClientImpl: NextAppClientImpl = {
+  const mockClientImpl: NextAppClientImpl<TestLocale> = {
     onLoad: undefined,
     writeLocale: vi.fn(),
     createUsePathComposer: vi.fn(() => () => vi.fn(() => "/")),
   };
 
-  const mockServerImpl: NextAppServerImpl = {
+  const mockServerImpl: NextAppServerImpl<TestLocale, "locale"> = {
     localeKey: "locale",
     autoLocaleBinding: false,
     writeLocale: vi.fn(),
@@ -49,22 +50,22 @@ function createTestStrategy() {
     createBoundPathComposerSupplier: vi.fn(async () => async () => vi.fn(() => "/")),
   };
 
-  class TestStrategy extends NextAppStrategyCore<TestAtlas, TestConfig> {
+  class TestStrategy extends NextAppStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, TestConfig> {
     protected readonly pathAtlas = {
       decl: {},
       containsTranslations: false,
-    } as ExtendedPathAtlas<DefaultPathAtlas>;
+    } as ExtendedPathAtlasProvider<DefaultPathAtlas>;
 
-    protected async createClientImpl(): Promise<NextAppClientImpl> {
+    protected async createClientImpl(): Promise<NextAppClientImpl<TestLocale>> {
       return mockClientImpl;
     }
 
-    protected async createServerImpl(): Promise<NextAppServerImpl> {
+    protected async createServerImpl(): Promise<NextAppServerImpl<TestLocale, "locale">> {
       return mockServerImpl;
     }
   }
 
-  const rMachine = createMockMachine() as unknown as RMachine<TestAtlas>;
+  const rMachine = createMockMachine() as unknown as RMachine<TestAtlas, TestLocale, AnyFmtProvider>;
   const strategy = new TestStrategy(rMachine, NextAppStrategyCore.defaultConfig as TestConfig);
 
   return { strategy, rMachine, mockClientImpl, mockServerImpl };
@@ -119,13 +120,6 @@ describe("NextAppStrategyCore", () => {
     });
   });
 
-  it("stores rMachine and config from constructor", () => {
-    const { strategy, rMachine } = createTestStrategy();
-
-    expect(strategy.rMachine).toBe(rMachine);
-    expect(strategy.config).toBe(NextAppStrategyCore.defaultConfig);
-  });
-
   // -----------------------------------------------------------------------
   // createClientToolset
   // -----------------------------------------------------------------------
@@ -167,7 +161,7 @@ describe("NextAppStrategyCore", () => {
   describe("createServerToolset", () => {
     it("delegates to createNextAppServerToolset with rMachine, server impl, and NextClientRMachine", async () => {
       const { strategy, mockServerImpl } = createTestStrategy();
-      const MockNextClientRMachine = vi.fn() as unknown as NextAppClientRMachine;
+      const MockNextClientRMachine = vi.fn() as unknown as NextAppClientRMachine<TestLocale>;
       mockCreateServerToolset.mockReturnValue({});
 
       await strategy.createServerToolset(MockNextClientRMachine);
@@ -178,7 +172,7 @@ describe("NextAppStrategyCore", () => {
 
     it("returns the result of createNextAppServerToolset", async () => {
       const { strategy } = createTestStrategy();
-      const MockNextClientRMachine = vi.fn() as unknown as NextAppClientRMachine;
+      const MockNextClientRMachine = vi.fn() as unknown as NextAppClientRMachine<TestLocale>;
       const expectedToolset = { getLocale: vi.fn() };
       mockCreateServerToolset.mockReturnValue(expectedToolset);
 
@@ -189,7 +183,7 @@ describe("NextAppStrategyCore", () => {
 
     it("propagates rejection from createServerImpl", async () => {
       const { strategy } = createTestStrategy();
-      const MockNextClientRMachine = vi.fn() as unknown as NextAppClientRMachine;
+      const MockNextClientRMachine = vi.fn() as unknown as NextAppClientRMachine<TestLocale>;
       const implError = new Error("server impl failure");
       vi.spyOn(strategy as any, "createServerImpl").mockRejectedValue(implError);
 
