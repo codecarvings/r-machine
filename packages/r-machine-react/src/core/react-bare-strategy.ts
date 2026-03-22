@@ -8,7 +8,7 @@ export class ReactBareStrategy<
   L extends AnyLocale,
   FP extends AnyFmtProvider,
 > extends Strategy<RA, L, FP, undefined> {
-  createToolset(): Promise<ReactBareToolset<RA, L>> {
+  createToolset(): Promise<ReactBareToolset<RA, L, FP>> {
     return createReactBareToolset(this.rMachine);
   }
 }

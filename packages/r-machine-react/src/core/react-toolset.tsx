@@ -9,8 +9,8 @@ import { createReactBareToolset, type ReactBareToolset } from "./react-bare-tool
 // THIS IS THE BASE TOOLSET ALSO USED BY THE REACT STANDARD STRATEGY
 // DO NOT RENAME
 
-export type ReactToolset<RA extends AnyResourceAtlas, L extends AnyLocale> = Omit<
-  ReactBareToolset<RA, L>,
+export type ReactToolset<RA extends AnyResourceAtlas, L extends AnyLocale, FP extends AnyFmtProvider> = Omit<
+  ReactBareToolset<RA, L, FP>,
   "ReactRMachine"
 > & {
   readonly ReactRMachine: ReactRMachine;
@@ -34,7 +34,7 @@ type ReactToolsetContext<L extends AnyLocale> = [L, (newLocale: L) => void];
 export async function createReactToolset<RA extends AnyResourceAtlas, L extends AnyLocale, FP extends AnyFmtProvider>(
   rMachine: RMachine<RA, L, FP>,
   impl: ReactImpl<L>
-): Promise<ReactToolset<RA, L>> {
+): Promise<ReactToolset<RA, L, FP>> {
   const { ReactRMachine: OriginalReactRMachine, ...otherTools } = await createReactBareToolset(rMachine);
 
   const Context = createContext<ReactToolsetContext<L> | null>(null);
@@ -67,7 +67,7 @@ export async function createReactToolset<RA extends AnyResourceAtlas, L extends 
     }
   }
 
-  function useSetLocale(): ReturnType<ReactBareToolset<RA, L>["useSetLocale"]> {
+  function useSetLocale(): ReturnType<ReactBareToolset<RA, L, FP>["useSetLocale"]> {
     const context = useReactToolsetContext();
 
     return (newLocale: L) => setLocale(newLocale, context);

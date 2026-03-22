@@ -563,6 +563,51 @@ describe("createReactToolset", () => {
   });
 
   // -----------------------------------------------------------------------
+  // useFmt (inherited from ReactBareToolset, accessed through provider)
+  // -----------------------------------------------------------------------
+
+  describe("useFmt", () => {
+    it("returns updated formatters after locale change via setLocale", async () => {
+      const enFmt = { label: "Hello" };
+      const itFmt = { label: "Ciao" };
+      const mock = createMockMachine({
+        fmt: (locale) => (locale === "it" ? itFmt : enFmt),
+      });
+      const writeLocale = vi.fn();
+      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
+      const { ReactRMachine, useFmt, useSetLocale } = await createReactToolset(mock, impl);
+
+      function Consumer() {
+        const fmt = useFmt();
+        const setLocale = useSetLocale();
+        return (
+          <>
+            <span data-testid="label">{(fmt as typeof enFmt).label}</span>
+            <button type="button" onClick={() => setLocale("it")}>
+              switch
+            </button>
+          </>
+        );
+      }
+
+      render(
+        <ReactRMachine>
+          <Consumer />
+        </ReactRMachine>
+      );
+
+      expect(screen.getByTestId("label").textContent).toBe("Hello");
+
+      await act(async () => {
+        screen.getByText("switch").click();
+      });
+
+      expect(screen.getByTestId("label").textContent).toBe("Ciao");
+      expect(spies(mock).fmt).toHaveBeenCalledWith("it");
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // Integration tests
   // -----------------------------------------------------------------------
 

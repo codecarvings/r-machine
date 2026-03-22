@@ -1,11 +1,12 @@
 import { Calendar, Hash, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useR } from "@/r-machine/toolset";
+import { useFmt, useR } from "@/r-machine/toolset";
 import FeatureBox from "./FeatureBox";
 
 export default function IntlDemo() {
   const r = useR("features/intl_demo");
+  const { time } = useFmt();
 
   // Live clock
   const [now, setNow] = useState(() => new Date());
@@ -32,7 +33,7 @@ export default function IntlDemo() {
             title={r.dateTime.label}
             icon={<Calendar className="size-5 text-stone-600 group-hover:text-red-600" />}
           >
-            <div className="text-2xl font-mono font-bold text-foreground mb-1.5">{r.dateTime.time(now)}</div>
+            <div className="text-2xl font-mono font-bold text-foreground mb-1.5">{time(now)}</div>
             <div className="text-xs text-muted-foreground">{r.dateTime.caption(now)}</div>
           </FeatureBox>
 

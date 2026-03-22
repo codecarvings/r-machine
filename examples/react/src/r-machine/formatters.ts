@@ -30,5 +30,8 @@ export class Formatters extends createFormatters((locale: Locale) => {
       const rule = pluralRules.select(count);
       return `${count} ${rule === "one" ? one : other}`;
     },
+
+    // You can also add here any other locale-dependent values that you want to share across your resources
+    appName: "🚀 R-Machine 😊",
   };
 }) {}

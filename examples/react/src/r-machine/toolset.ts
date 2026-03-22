@@ -1,3 +1,3 @@
 import { strategy } from "./r-machine";
 
-export const { ReactRMachine, useLocale, useSetLocale, useR, useRKit } = await strategy.createToolset();
+export const { ReactRMachine, useLocale, useSetLocale, useR, useRKit, useFmt } = await strategy.createToolset();

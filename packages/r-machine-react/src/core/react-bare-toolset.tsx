@@ -1,6 +1,6 @@
 "use client";
 
-import type { AnyFmtProvider, AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, ExtractFmt, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
@@ -10,7 +10,7 @@ import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "#r-machine/reac
 type SetLocale<L extends AnyLocale> = (newLocale: L) => Promise<void>;
 type WriteLocale<L extends AnyLocale> = (newLocale: L) => void | Promise<void>;
 
-export interface ReactBareToolset<RA extends AnyResourceAtlas, L extends AnyLocale> {
+export interface ReactBareToolset<RA extends AnyResourceAtlas, L extends AnyLocale, FP extends AnyFmtProvider> {
   readonly ReactRMachine: ReactBareRMachine<L>;
   readonly useLocale: () => L;
   // Performance optimization: do not use the same approach as useState ([state, setState])
@@ -19,6 +19,7 @@ export interface ReactBareToolset<RA extends AnyResourceAtlas, L extends AnyLoca
   readonly useSetLocale: () => SetLocale<L>;
   readonly useR: <N extends Namespace<RA>>(namespace: N) => RA[N];
   readonly useRKit: <NL extends NamespaceList<RA>>(...namespaces: NL) => RKit<RA, NL>;
+  readonly useFmt: () => ExtractFmt<FP>;
 }
 
 export interface ReactBareRMachine<L extends AnyLocale> {
@@ -40,7 +41,7 @@ export async function createReactBareToolset<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   FP extends AnyFmtProvider,
->(rMachine: RMachine<RA, L, FP>): Promise<ReactBareToolset<RA, L>> {
+>(rMachine: RMachine<RA, L, FP>): Promise<ReactBareToolset<RA, L, FP>> {
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const Context = createContext<ReactBareToolsetContext<L> | null>(null);
@@ -131,11 +132,17 @@ export async function createReactBareToolset<
     return rKit as RKit<RA, NL>;
   }
 
+  function useFmt(): ExtractFmt<FP> {
+    const context = useReactToolsetContext();
+    return rMachine.fmt(context.locale);
+  }
+
   return {
     ReactRMachine,
     useLocale,
     useSetLocale,
     useR,
     useRKit,
+    useFmt,
   };
 }

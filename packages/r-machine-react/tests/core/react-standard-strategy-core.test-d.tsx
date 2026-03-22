@@ -185,7 +185,7 @@ describe("ReactStandardStrategyCore", () => {
     it("returns Promise<ReactToolset<RA, L>>", () => {
       expectTypeOf<
         ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider>["createToolset"]
-      >().returns.toEqualTypeOf<Promise<ReactToolset<TestAtlas, AnyLocale>>>();
+      >().returns.toEqualTypeOf<Promise<ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>>>();
     });
 
     it("takes no parameters", () => {
@@ -198,7 +198,7 @@ describe("ReactStandardStrategyCore", () => {
       type Result = Awaited<
         ReturnType<ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider>["createToolset"]>
       >;
-      expectTypeOf<Result>().toEqualTypeOf<ReactToolset<TestAtlas, AnyLocale>>();
+      expectTypeOf<Result>().toEqualTypeOf<ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>>();
     });
   });
 

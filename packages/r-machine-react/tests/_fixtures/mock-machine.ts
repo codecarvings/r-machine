@@ -12,6 +12,7 @@ export type TestAtlas = {
 export interface MockMachineSpies {
   readonly hybridPickR: MockInstance;
   readonly hybridPickRKit: MockInstance;
+  readonly fmt: MockInstance;
   readonly localeHelper: { readonly validateLocale: MockInstance };
 }
 
@@ -22,6 +23,7 @@ export function createMockMachine(
     defaultLocale?: string;
     hybridPickR?: (locale: string, namespace: string) => unknown;
     hybridPickRKit?: (locale: string, ...namespaces: string[]) => unknown;
+    fmt?: (locale: string) => unknown;
   } = {}
 ): RMachine<TestAtlas, AnyLocale, AnyFmtProvider> {
   return {
@@ -38,6 +40,7 @@ export function createMockMachine(
     },
     hybridPickR: vi.fn(overrides.hybridPickR ?? (() => ({ greeting: "hello" }))),
     hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
+    fmt: vi.fn(overrides.fmt ?? (() => ({}))),
   } as unknown as RMachine<TestAtlas, AnyLocale, AnyFmtProvider>;
 }
 

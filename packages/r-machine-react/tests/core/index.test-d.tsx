@@ -47,8 +47,8 @@ describe("core barrel exports", () => {
   });
 
   it("re-exports ReactBareToolset identical to the original", () => {
-    expectTypeOf<ReactBareToolset<AnyResourceAtlas, AnyLocale>>().toEqualTypeOf<
-      OriginalReactBareToolset<AnyResourceAtlas, AnyLocale>
+    expectTypeOf<ReactBareToolset<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>().toEqualTypeOf<
+      OriginalReactBareToolset<AnyResourceAtlas, AnyLocale, AnyFmtProvider>
     >();
   });
 
@@ -81,8 +81,8 @@ describe("core barrel exports", () => {
   });
 
   it("re-exports ReactToolset identical to the original", () => {
-    expectTypeOf<ReactToolset<AnyResourceAtlas, AnyLocale>>().toEqualTypeOf<
-      OriginalReactToolset<AnyResourceAtlas, AnyLocale>
+    expectTypeOf<ReactToolset<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>().toEqualTypeOf<
+      OriginalReactToolset<AnyResourceAtlas, AnyLocale, AnyFmtProvider>
     >();
   });
 });

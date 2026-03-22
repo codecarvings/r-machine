@@ -69,7 +69,7 @@ describe("ReactStrategyCore", () => {
     it("returns Promise<ReactToolset<RA, L>>", () => {
       expectTypeOf<
         ReactStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider, TestConfig>["createToolset"]
-      >().returns.toEqualTypeOf<Promise<ReactToolset<TestAtlas, AnyLocale>>>();
+      >().returns.toEqualTypeOf<Promise<ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>>>();
     });
 
     it("takes no parameters", () => {
@@ -82,7 +82,7 @@ describe("ReactStrategyCore", () => {
       type Result = Awaited<
         ReturnType<ReactStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider, TestConfig>["createToolset"]>
       >;
-      expectTypeOf<Result>().toEqualTypeOf<ReactToolset<TestAtlas, AnyLocale>>();
+      expectTypeOf<Result>().toEqualTypeOf<ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>>();
     });
 
     it("return type depends on RA, not on C", () => {
@@ -202,7 +202,7 @@ describe("narrowed Locale type", () => {
     type Result = Awaited<
       ReturnType<ReactStrategyCore<TestAtlas, AppLocale, AnyFmtProvider, TestConfig>["createToolset"]>
     >;
-    expectTypeOf<Result>().toEqualTypeOf<ReactToolset<TestAtlas, AppLocale>>();
+    expectTypeOf<Result>().toEqualTypeOf<ReactToolset<TestAtlas, AppLocale, AnyFmtProvider>>();
   });
 
   it("rMachine property uses the narrowed locale", () => {

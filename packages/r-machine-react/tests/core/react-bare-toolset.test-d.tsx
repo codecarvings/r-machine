@@ -1,4 +1,4 @@
-import type { AnyFmtProvider, RMachine } from "r-machine";
+import type { AnyFmtProvider, ExtractFmt, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import { describe, expectTypeOf, it } from "vitest";
@@ -20,7 +20,7 @@ describe("createReactBareToolset", () => {
       .parameter(0)
       .toEqualTypeOf<RMachine<TestAtlas, AnyLocale, AnyFmtProvider>>();
     expectTypeOf(createReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>).returns.toEqualTypeOf<
-      Promise<ReactBareToolset<TestAtlas, AnyLocale>>
+      Promise<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>>
     >();
   });
 });
@@ -31,40 +31,42 @@ describe("createReactBareToolset", () => {
 
 describe("ReactBareToolset", () => {
   it("has readonly ReactRMachine property", () => {
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale>["ReactRMachine"]>().toEqualTypeOf<
+    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>["ReactRMachine"]>().toEqualTypeOf<
       ReactBareRMachine<AnyLocale>
     >();
   });
 
   it("useLocale returns AnyLocale", () => {
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale>["useLocale"]>().toEqualTypeOf<() => AnyLocale>();
+    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>["useLocale"]>().toEqualTypeOf<
+      () => AnyLocale
+    >();
   });
 
   it("useSetLocale returns a function that takes AnyLocale and returns Promise<void>", () => {
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale>["useSetLocale"]>().toEqualTypeOf<
+    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>["useSetLocale"]>().toEqualTypeOf<
       () => (newLocale: AnyLocale) => Promise<void>
     >();
   });
 
   it("useR is parameterized by namespace", () => {
-    type UseR = ReactBareToolset<TestAtlas, AnyLocale>["useR"];
+    type UseR = ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>["useR"];
     expectTypeOf<UseR>().parameter(0).toExtend<"common" | "nav">();
   });
 
   it("useR rejects namespace arguments not in atlas keys", () => {
-    type UseR = ReactBareToolset<TestAtlas, AnyLocale>["useR"];
+    type UseR = ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>["useR"];
     expectTypeOf<"invalid">().not.toExtend<Parameters<UseR>[0]>();
   });
 
   it("useR return type is RA[N] for a given namespace", () => {
-    type Toolset = ReactBareToolset<TestAtlas, AnyLocale>;
+    type Toolset = ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>;
 
     expectTypeOf<Toolset["useR"]>().toExtend<(namespace: "common") => TestAtlas["common"]>();
     expectTypeOf<Toolset["useR"]>().toExtend<(namespace: "nav") => TestAtlas["nav"]>();
   });
 
   it("useRKit accepts namespace arguments constrained to atlas keys", () => {
-    type UseRKit = ReactBareToolset<TestAtlas, AnyLocale>["useRKit"];
+    type UseRKit = ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>["useRKit"];
     expectTypeOf<UseRKit>().toBeCallableWith("common");
     expectTypeOf<UseRKit>().toBeCallableWith("common", "nav");
     expectTypeOf<UseRKit>().toExtend<(...args: ["common"]) => unknown>();
@@ -72,20 +74,53 @@ describe("ReactBareToolset", () => {
   });
 
   it("useRKit rejects namespace arguments not in atlas keys", () => {
-    type UseRKit = ReactBareToolset<TestAtlas, AnyLocale>["useRKit"];
+    type UseRKit = ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>["useRKit"];
     expectTypeOf<UseRKit>().not.toExtend<(...args: ["invalid"]) => unknown>();
     expectTypeOf<UseRKit>().not.toExtend<(...args: ["common", "invalid"]) => unknown>();
   });
 
   it("has exactly the expected properties", () => {
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale>>().toHaveProperty("ReactRMachine");
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale>>().toHaveProperty("useLocale");
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale>>().toHaveProperty("useSetLocale");
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale>>().toHaveProperty("useR");
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale>>().toHaveProperty("useRKit");
+    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>>().toHaveProperty("ReactRMachine");
+    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>>().toHaveProperty("useLocale");
+    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>>().toHaveProperty("useSetLocale");
+    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>>().toHaveProperty("useR");
+    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>>().toHaveProperty("useRKit");
+    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>>().toHaveProperty("useFmt");
 
-    type Keys = keyof ReactBareToolset<TestAtlas, AnyLocale>;
-    expectTypeOf<Keys>().toEqualTypeOf<"ReactRMachine" | "useLocale" | "useSetLocale" | "useR" | "useRKit">();
+    type Keys = keyof ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>;
+    expectTypeOf<Keys>().toEqualTypeOf<
+      "ReactRMachine" | "useLocale" | "useSetLocale" | "useR" | "useRKit" | "useFmt"
+    >();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// useFmt
+// ---------------------------------------------------------------------------
+
+describe("useFmt", () => {
+  it("returns ExtractFmt<FP> for AnyFmtProvider", () => {
+    type UseFmt = ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>["useFmt"];
+    expectTypeOf<UseFmt>().toEqualTypeOf<() => ExtractFmt<AnyFmtProvider>>();
+  });
+
+  it("extracts the concrete formatter type from a custom FmtProvider", () => {
+    type TestFmt = { readonly date: (d: Date) => string };
+    type TestFmtProvider = { readonly get: (locale: AnyLocale) => TestFmt };
+
+    type UseFmt = ReactBareToolset<TestAtlas, AnyLocale, TestFmtProvider>["useFmt"];
+    expectTypeOf<ReturnType<UseFmt>>().toEqualTypeOf<TestFmt>();
+  });
+
+  it("different FmtProviders produce non-assignable return types", () => {
+    type FmtA = { readonly date: (d: Date) => string };
+    type FmtB = { readonly number: (n: number) => string };
+    type ProviderA = { readonly get: (locale: AnyLocale) => FmtA };
+    type ProviderB = { readonly get: (locale: AnyLocale) => FmtB };
+
+    type UseFmtA = ReactBareToolset<TestAtlas, AnyLocale, ProviderA>["useFmt"];
+    type UseFmtB = ReactBareToolset<TestAtlas, AnyLocale, ProviderB>["useFmt"];
+    expectTypeOf<ReturnType<UseFmtA>>().not.toEqualTypeOf<ReturnType<UseFmtB>>();
   });
 });
 
@@ -150,11 +185,13 @@ describe("narrowed Locale type", () => {
   type AppLocale = "en" | "it";
 
   it("useLocale returns the narrowed locale type", () => {
-    expectTypeOf<ReactBareToolset<TestAtlas, AppLocale>["useLocale"]>().toEqualTypeOf<() => AppLocale>();
+    expectTypeOf<ReactBareToolset<TestAtlas, AppLocale, AnyFmtProvider>["useLocale"]>().toEqualTypeOf<
+      () => AppLocale
+    >();
   });
 
   it("useSetLocale accepts only the narrowed locale type", () => {
-    expectTypeOf<ReactBareToolset<TestAtlas, AppLocale>["useSetLocale"]>().toEqualTypeOf<
+    expectTypeOf<ReactBareToolset<TestAtlas, AppLocale, AnyFmtProvider>["useSetLocale"]>().toEqualTypeOf<
       () => (newLocale: AppLocale) => Promise<void>
     >();
   });
@@ -184,8 +221,8 @@ describe("narrowed Locale type", () => {
 
   it("narrowed toolset is not assignable to differently-narrowed toolset", () => {
     type OtherLocale = "fr" | "de";
-    expectTypeOf<ReactBareToolset<TestAtlas, AppLocale>>().not.toEqualTypeOf<
-      ReactBareToolset<TestAtlas, OtherLocale>
+    expectTypeOf<ReactBareToolset<TestAtlas, AppLocale, AnyFmtProvider>>().not.toEqualTypeOf<
+      ReactBareToolset<TestAtlas, OtherLocale, AnyFmtProvider>
     >();
   });
 });

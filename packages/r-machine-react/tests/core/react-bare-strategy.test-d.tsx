@@ -61,7 +61,7 @@ describe("ReactBareStrategy", () => {
   describe("createToolset", () => {
     it("returns Promise<ReactBareToolset<RA, L>>", () => {
       expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>["createToolset"]>().returns.toEqualTypeOf<
-        Promise<ReactBareToolset<TestAtlas, AnyLocale>>
+        Promise<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>>
       >();
     });
 
@@ -73,7 +73,7 @@ describe("ReactBareStrategy", () => {
 
     it("preserves the atlas type parameter in the returned toolset", () => {
       type Result = Awaited<ReturnType<ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>["createToolset"]>>;
-      expectTypeOf<Result>().toEqualTypeOf<ReactBareToolset<TestAtlas, AnyLocale>>();
+      expectTypeOf<Result>().toEqualTypeOf<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>>();
     });
   });
 
@@ -136,7 +136,7 @@ describe("narrowed Locale type", () => {
 
   it("strategy with narrowed locale produces a narrowed toolset", () => {
     type Result = Awaited<ReturnType<ReactBareStrategy<TestAtlas, AppLocale, AnyFmtProvider>["createToolset"]>>;
-    expectTypeOf<Result>().toEqualTypeOf<ReactBareToolset<TestAtlas, AppLocale>>();
+    expectTypeOf<Result>().toEqualTypeOf<ReactBareToolset<TestAtlas, AppLocale, AnyFmtProvider>>();
   });
 
   it("rMachine property uses the narrowed locale", () => {

@@ -7,25 +7,24 @@ import type { R$ } from "@/r-machine/r-machine";
  * This is useful if you don't want to use a factory function for your resources and prefer
  * to export a plain object instead.
  */
-// const { date, time, number, currency, plural } = Formatters.get("en");
+// const { date, number, currency, plural } = Formatters.get("en");
 
 const r = ($: R$) => {
-  const { date, time, number, currency, plural } = $.fmt;
+  const { date, number, currency, plural } = $.fmt;
 
   return {
     sectionTitle: "Locale-Aware Formatting",
     sectionSubtitle:
       "Create your own custom formatting functions with the native Intl API and share them across all your resource files.",
 
-    // Pattern 1: direct function references + template string
+    // Pattern 1: template string
     dateTime: {
       label: "Date & Time Formatting",
       badge: "Intl.DateTimeFormat",
-      time: time,
       caption: (d: Date) => `Today's date: ${date.long(d)}`,
     },
 
-    // Pattern 2: formatters embedded in JSX fragments and template strings
+    // Pattern 2: formatters embedded in JSX fragments
     number: {
       label: "Number & Currency",
       badge: "Intl.NumberFormat",

@@ -925,4 +925,88 @@ describe("createReactBareToolset", () => {
       expect(spies(mock).hybridPickRKit).toHaveBeenCalledWith("it", "common", "nav");
     });
   });
+
+  // -----------------------------------------------------------------------
+  // useFmt
+  // -----------------------------------------------------------------------
+
+  describe("useFmt", () => {
+    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
+    it("throws when used outside ReactRMachine", async () => {
+      const { useFmt } = await createReactBareToolset(createMockMachine());
+      try {
+        renderHook(() => useFmt());
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineError);
+        expect(error).toHaveProperty("code", ERR_CONTEXT_NOT_FOUND);
+      }
+    });
+
+    it("calls rMachine.fmt with the current locale", async () => {
+      const mock = createMockMachine();
+      const { ReactRMachine, useFmt } = await createReactBareToolset(mock);
+
+      renderHook(() => useFmt(), {
+        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
+      });
+
+      expect(spies(mock).fmt).toHaveBeenCalledWith("en");
+    });
+
+    it("returns the formatter object from rMachine.fmt", async () => {
+      const formatter = { date: (d: Date) => d.toISOString() };
+      const mock = createMockMachine({ fmt: () => formatter });
+      const { ReactRMachine, useFmt } = await createReactBareToolset(mock);
+
+      const { result } = renderHook(() => useFmt(), {
+        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
+      });
+
+      expect(result.current).toBe(formatter);
+    });
+
+    it("returns updated formatters when locale changes", async () => {
+      const enFormatter = { label: "Hello" };
+      const itFormatter = { label: "Ciao" };
+      const mock = createMockMachine({
+        fmt: (locale) => (locale === "it" ? itFormatter : enFormatter),
+      });
+      const { ReactRMachine, useFmt } = await createReactBareToolset(mock);
+
+      function FmtConsumer() {
+        const fmt = useFmt();
+        return <span data-testid="label">{(fmt as typeof enFormatter).label}</span>;
+      }
+
+      const { rerender } = render(
+        <ReactRMachine locale="en">
+          <FmtConsumer />
+        </ReactRMachine>
+      );
+
+      expect(screen.getByTestId("label").textContent).toBe("Hello");
+
+      rerender(
+        <ReactRMachine locale="it">
+          <FmtConsumer />
+        </ReactRMachine>
+      );
+
+      expect(screen.getByTestId("label").textContent).toBe("Ciao");
+    });
+
+    it("returns synchronously without throwing a promise", async () => {
+      const formatter = { greeting: "hi" };
+      const mock = createMockMachine({ fmt: () => formatter });
+      const { ReactRMachine, useFmt } = await createReactBareToolset(mock);
+
+      const { result } = renderHook(() => useFmt(), {
+        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
+      });
+
+      expect(result.current).toBe(formatter);
+      expect(spies(mock).fmt).toHaveBeenCalledTimes(1);
+    });
+  });
 });

@@ -11,7 +11,7 @@ export abstract class ReactStrategyCore<
 > extends Strategy<RA, L, FP, C> {
   protected abstract createImpl(): Promise<ReactImpl<L>>;
 
-  async createToolset(): Promise<ReactToolset<RA, L>> {
+  async createToolset(): Promise<ReactToolset<RA, L, FP>> {
     const impl = await this.createImpl();
     return await createReactToolset(this.rMachine, impl);
   }

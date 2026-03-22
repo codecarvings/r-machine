@@ -6,6 +6,8 @@ import type {
   AnyR,
   AnyResourceAtlas,
   AnyRKit,
+  EmptyFmtProvider,
+  ExtractFmt,
   Namespace,
   NamespaceList,
   R,
@@ -51,6 +53,10 @@ describe("lib barrel exports", () => {
     expectTypeOf<RCtx>().toBeObject();
 
     expectTypeOf<AnyFmtProvider>().toBeObject();
+
+    expectTypeOf<EmptyFmtProvider>().toExtend<AnyFmtProvider>();
+
+    expectTypeOf<ExtractFmt<EmptyFmtProvider>>().toEqualTypeOf<{}>();
 
     expectTypeOf(createFormatters).toBeFunction();
 

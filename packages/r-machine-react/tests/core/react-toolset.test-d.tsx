@@ -24,7 +24,7 @@ describe("createReactToolset", () => {
       .parameter(1)
       .toEqualTypeOf<ReactImpl<AnyLocale>>();
     expectTypeOf(createReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>).returns.toEqualTypeOf<
-      Promise<ReactToolset<TestAtlas, AnyLocale>>
+      Promise<ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>>
     >();
   });
 });
@@ -35,16 +35,18 @@ describe("createReactToolset", () => {
 
 describe("ReactToolset", () => {
   it("has readonly ReactRMachine property (different from bare)", () => {
-    expectTypeOf<ReactToolset<TestAtlas, AnyLocale>["ReactRMachine"]>().toEqualTypeOf<ReactRMachine>();
+    expectTypeOf<ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>["ReactRMachine"]>().toEqualTypeOf<ReactRMachine>();
   });
 
   it("has the same hook properties as ReactBareToolset (via Omit & intersection)", () => {
-    type Keys = keyof ReactToolset<TestAtlas, AnyLocale>;
-    expectTypeOf<Keys>().toEqualTypeOf<"ReactRMachine" | "useLocale" | "useSetLocale" | "useR" | "useRKit">();
+    type Keys = keyof ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>;
+    expectTypeOf<Keys>().toEqualTypeOf<
+      "ReactRMachine" | "useLocale" | "useSetLocale" | "useR" | "useRKit" | "useFmt"
+    >();
   });
 
   it("useRKit return type maps namespaces to their resource types", () => {
-    type UseRKit = ReactToolset<TestAtlas, AnyLocale>["useRKit"];
+    type UseRKit = ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>["useRKit"];
     expectTypeOf<UseRKit>().toExtend<(...namespaces: ["common"]) => readonly [TestAtlas["common"]]>();
     expectTypeOf<UseRKit>().toExtend<
       (...namespaces: ["common", "nav"]) => readonly [TestAtlas["common"], TestAtlas["nav"]]
@@ -143,7 +145,7 @@ describe("narrowed Locale type", () => {
   });
 
   it("useSetLocale setter rejects locale values not in L", () => {
-    const setLocale = {} as ReturnType<ReactToolset<TestAtlas, AppLocale>["useSetLocale"]>;
+    const setLocale = {} as ReturnType<ReactToolset<TestAtlas, AppLocale, AnyFmtProvider>["useSetLocale"]>;
     // @ts-expect-error - "fr" is not in AppLocale ("en" | "it")
     setLocale("fr");
   });

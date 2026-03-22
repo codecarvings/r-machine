@@ -1,4 +1,10 @@
-export { type AnyFmtProvider, createFormatters, type EmptyFmtProvider, EmptyFmtProviderCtor } from "./fmt.js";
+export {
+  type AnyFmtProvider,
+  createFormatters,
+  type EmptyFmtProvider,
+  EmptyFmtProviderCtor,
+  type ExtractFmt,
+} from "./fmt.js";
 export type { AnyNamespace, AnyR, AnyResourceAtlas, Namespace, R } from "./r.js";
 export type { AnyNamespaceList, AnyRKit, NamespaceList, RKit } from "./r-kit.js";
 export {
