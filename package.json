@@ -1,6 +1,6 @@
 {
   "private": true,
-  "description": "Monorepo for R-Machine packages",
+  "description": "Monorepo for R-Machine — a typed resource layer for TypeScript applications with first-class i18n support",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "type": "module",
   "homepage": "https://r-machine.codecarvings.com",

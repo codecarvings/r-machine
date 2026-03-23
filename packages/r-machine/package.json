@@ -1,9 +1,9 @@
 {
   "name": "r-machine",
   "version": "1.0.0-alpha.10",
-  "description": "A Type-Safe internationalization (i18n) library",
+  "description": "Framework-agnostic typed resource layer for TypeScript — organize, type, and compose your application resources across locales",
   "author": "Sergio Turolla <hello@codecarvings.com>",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "homepage": "https://r-machine.codecarvings.com",
   "repository": {
@@ -12,16 +12,16 @@
   },
   "bugs": "https://github.com/codecarvings/r-machine/issues",
   "keywords": [
+    "typescript",
+    "type-safe",
+    "resources",
+    "resource-layer",
     "i18n",
-    "i10n",
     "internationalization",
     "localization",
-    "globalization",
-    "translation",
-    "translate",
-    "locale",
-    "typescript",
-    "library"
+    "l10n",
+    "llm-friendly",
+    "ai-friendly"
   ],
   "sideEffects": false,
   "files": [
