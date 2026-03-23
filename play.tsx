@@ -1,5 +1,4 @@
-import { RMachine, type RMachineLocale, type RMachineRCtx } from "r-machine";
-import { FormattersSeed } from "./packages/r-machine/src/lib/fmt.js";
+import { FormattersSeed, RMachine, type RMachineLocale, type RMachineRCtx } from "r-machine";
 
 type ResourceAtlas = {
   ns1: { message: string };

@@ -1,9 +1,9 @@
 {
   "name": "@r-machine/react",
   "version": "1.0.0-alpha.10",
-  "description": "Official React bindings for R-Machine - A Type-Safe internationalization (i18n) library",
+  "description": "React adapter for R-Machine — typed resource access and locale switching in React applications",
   "author": "Sergio Turolla <hello@codecarvings.com>",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "homepage": "https://r-machine.codecarvings.com",
   "repository": {
@@ -12,17 +12,16 @@
   },
   "bugs": "https://github.com/codecarvings/r-machine/issues",
   "keywords": [
+    "typescript",
+    "type-safe",
+    "react",
+    "resources",
     "i18n",
-    "i10n",
     "internationalization",
     "localization",
-    "globalization",
-    "translation",
-    "translate",
-    "locale",
-    "react",
-    "typescript",
-    "library"
+    "hooks",
+    "llm-friendly",
+    "ai-friendly"
   ],
   "sideEffects": false,
   "files": [

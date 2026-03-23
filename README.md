@@ -2,23 +2,14 @@
 
 ---
 
-<br />
-<p align="center">
-  <img src="r-machine.logo.svg" width="158px" align="center" alt="R-Machine logo" />
-  <h1 align="center">R-Machine</h1>
-  <p align="center">
-    A Type-Safe internationalization (i18n) library
-    <br/>
-    by <a href="https://codecarvings.com">@turolla</a>
-  </p>
-</p>
-<br/>
+<img src="r-machine.logo.svg" width="158px" align="center" alt="R-Machine logo" />
 
-<p align="center">
-<a href="https://www.npmjs.com/package/r-machine" rel="nofollow"><img alt="NPM Version" src="https://img.shields.io/npm/v/r-machine?label=latest"></a>
-<a href="https://github.com/codecarvings/r-machine/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://github.com/codecarvings/r-machine/actions/workflows/ci.yml/badge.svg?event=push&branch=main" alt="R-Machine CI status" /></a>
-</p>
-<br/>
+# R-Machine — Typed Resource Layer for TypeScript
+
+Monorepo containing [`r-machine`](https://www.npmjs.com/package/r-machine), [`@r-machine/react`](https://www.npmjs.com/package/@r-machine/react), and [`@r-machine/next`](https://www.npmjs.com/package/@r-machine/next).
+
+[![NPM Version](https://img.shields.io/npm/v/r-machine?label=latest)](https://www.npmjs.com/package/r-machine)
+[![R-Machine CI status](https://github.com/codecarvings/r-machine/actions/workflows/ci.yml/badge.svg?event=push&branch=main)](https://github.com/codecarvings/r-machine/actions/workflows/ci.yml?query=branch%3Amain)
 
 ## Features
 
@@ -538,3 +529,15 @@ pnpm test
 # Format and lint
 pnpm check
 ```
+
+## License
+
+| Package | License |
+|---|---|
+| `r-machine` | [AGPL-3.0](./LICENSE) |
+| `@r-machine/react` | [AGPL-3.0](./LICENSE) |
+| `@r-machine/next` | [AGPL-3.0](./LICENSE) |
+
+> All packages are free for open source projects.
+> If you need to use them in a proprietary project, reach out at 
+> licensing@codecarvings.com to discuss a commercial arrangement.

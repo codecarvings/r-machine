@@ -1,7 +1,7 @@
 {
   "name": "@r-machine/next",
   "version": "1.0.0-alpha.10",
-  "description": "Official Next.js bindings for R-Machine - A Type-Safe internationalization (i18n) library",
+  "description": "Next.js adapter for R-Machine — full App Router and React Server Components support for typed, locale-aware resources",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -12,19 +12,19 @@
   },
   "bugs": "https://github.com/codecarvings/r-machine/issues",
   "keywords": [
+    "typescript",
+    "type-safe",
+    "nextjs",
+    "next.js",
+    "app-router",
+    "react-server-components",
+    "rsc",
+    "resources",
     "i18n",
-    "i10n",
     "internationalization",
     "localization",
-    "globalization",
-    "translation",
-    "translate",
-    "locale",
-    "next",
-    "next.js",
-    "nextjs",
-    "typescript",
-    "library"
+    "llm-friendly",
+    "ai-friendly"
   ],
   "sideEffects": false,
   "files": [
