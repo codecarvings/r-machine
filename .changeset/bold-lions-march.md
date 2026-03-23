@@ -1,7 +1,7 @@
 ---
-"r-machine": minor
-"@r-machine/react": minor
-"@r-machine/next": minor
+"r-machine": patch
+"@r-machine/react": patch
+"@r-machine/next": patch
 ---
 
 All r-machine library packages are now licensed under AGPL-3.0-only. For proprietary licensing inquiries, contact: licensing@codecarvings.com.
