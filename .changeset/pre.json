@@ -12,6 +12,7 @@
     "@r-machine/react": "1.0.0-alpha.1"
   },
   "changesets": [
+    "bold-lions-march",
     "bright-errors-shine",
     "chilly-bottles-show",
     "clear-errors-flow",

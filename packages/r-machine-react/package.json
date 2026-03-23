@@ -1,6 +1,6 @@
 {
   "name": "@r-machine/react",
-  "version": "1.0.0-alpha.10",
+  "version": "1.0.0-alpha.11",
   "description": "React adapter for R-Machine — typed resource access and locale switching in React applications",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "AGPL-3.0-only",

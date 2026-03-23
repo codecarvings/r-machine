@@ -1,6 +1,6 @@
 {
   "name": "r-machine",
-  "version": "1.0.0-alpha.10",
+  "version": "1.0.0-alpha.11",
   "description": "Framework-agnostic typed resource layer for TypeScript — organize, type, and compose your application resources across locales",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "AGPL-3.0-only",
