@@ -9,19 +9,6 @@ describe("AnyNamespace", () => {
   });
 });
 
-describe("AnyR", () => {
-  it("should accept objects and reject primitives and nullish values", () => {
-    expectTypeOf<AnyR>().toEqualTypeOf<object>();
-    expectTypeOf<{ key: string }>().toExtend<AnyR>();
-
-    expectTypeOf<null>().not.toExtend<AnyR>();
-    expectTypeOf<undefined>().not.toExtend<AnyR>();
-    expectTypeOf<string>().not.toExtend<AnyR>();
-    expectTypeOf<number>().not.toExtend<AnyR>();
-    expectTypeOf<boolean>().not.toExtend<AnyR>();
-  });
-});
-
 describe("AnyResourceAtlas", () => {
   it("should be an object type", () => {
     expectTypeOf<AnyResourceAtlas>().toBeObject();

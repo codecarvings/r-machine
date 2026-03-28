@@ -17,6 +17,10 @@
       "path": "packages/r-machine-next"
     },
     {
+      "name": "🟠 packages ― @r-machine/testing",
+      "path": "packages/r-machine-testing"
+    },
+    {
       "name": "🟥 examples",
       "path": "examples"
     }

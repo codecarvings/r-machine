@@ -1,7 +1,7 @@
 {
-  "name": "@r-machine/react",
+  "name": "@r-machine/testing",
   "version": "1.0.0-alpha.11",
-  "description": "React adapter for R-Machine — typed resource access and locale switching in React applications",
+  "description": "Testing utilities for R-Machine — helpers for testing typed resource access in your applications",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -13,19 +13,19 @@
   "bugs": "https://github.com/codecarvings/r-machine/issues",
   "keywords": [
     "typescript",
-    "react",
+    "testing",
+    "test",
+    "mock",
     "r-machine",
-    "resources",
-    "i18n",
-    "internationalization",
-    "dependency-injection",
-    "di",
-    "state-management",
-    "reactive",
     "type-safe",
     "typesafe",
-    "hooks",
-    "testable",
+    "i18n",
+    "dependency-injection",
+    "state-management",
+    "reactive",
+    "vitest",
+    "jest",
+    "react-testing-library",
     "shell",
     "gear",
     "plug",
@@ -45,61 +45,25 @@
   "module": "./lib/index.js",
   "zshy": {
     "exports": {
-      "./errors": "./src/errors/index.ts",
-      "./core": "./src/core/index.ts",
-      ".": "./src/lib/index.ts",
-      "./utils": "./src/utils/index.ts"
+      ".": "./src/lib/index.ts"
     },
     "conditions": {
       "@r-machine/source": "src"
     }
   },
   "exports": {
-    "./errors": {
-      "@r-machine/source": "./src/errors/index.ts",
-      "types": "./errors/index.d.cts",
-      "import": "./errors/index.js",
-      "require": "./errors/index.cjs"
-    },
-    "./core": {
-      "@r-machine/source": "./src/core/index.ts",
-      "types": "./core/index.d.cts",
-      "import": "./core/index.js",
-      "require": "./core/index.cjs"
-    },
     ".": {
       "@r-machine/source": "./src/lib/index.ts",
       "types": "./lib/index.d.cts",
       "import": "./lib/index.js",
       "require": "./lib/index.cjs"
-    },
-    "./utils": {
-      "@r-machine/source": "./src/utils/index.ts",
-      "types": "./utils/index.d.cts",
-      "import": "./utils/index.js",
-      "require": "./utils/index.cjs"
     }
   },
   "imports": {
-    "#r-machine/react/errors": {
-      "@r-machine/source": "./src/errors/index.ts",
-      "types": "./errors/index.d.cts",
-      "default": "./errors/index.js"
-    },
-    "#r-machine/react/core": {
-      "@r-machine/source": "./src/core/index.ts",
-      "types": "./core/index.d.cts",
-      "default": "./core/index.js"
-    },
-    "#r-machine/react": {
+    "#r-machine/testing": {
       "@r-machine/source": "./src/lib/index.ts",
       "types": "./lib/index.d.cts",
       "default": "./lib/index.js"
-    },
-    "#r-machine/react/utils": {
-      "@r-machine/source": "./src/utils/index.ts",
-      "types": "./utils/index.d.cts",
-      "default": "./utils/index.js"
     }
   },
   "scripts": {
@@ -110,7 +74,6 @@
     "test:watch": "pnpm vitest watch --typecheck"
   },
   "peerDependencies": {
-    "react": "^19",
     "r-machine": "workspace:*"
   }
 }

@@ -449,6 +449,12 @@ importers:
         specifier: 19.2.4
         version: 19.2.4
 
+  packages/r-machine-testing:
+    dependencies:
+      r-machine:
+        specifier: workspace:*
+        version: link:../r-machine
+
 packages:
 
   '@alloc/quick-lru@5.2.0':

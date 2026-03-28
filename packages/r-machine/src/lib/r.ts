@@ -15,7 +15,7 @@ import type { AnyRForge } from "./r-module.js";
 
 export type AnyNamespace = string;
 
-export type AnyR = object;
+export type AnyR = any;
 
 export interface AnyResourceAtlas {
   readonly [namespace: AnyNamespace]: AnyR;

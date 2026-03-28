@@ -33,7 +33,7 @@ describe("AnyRKit", () => {
   });
 
   it("should be readonly array of objects", () => {
-    expectTypeOf<AnyRKit>().toEqualTypeOf<readonly object[]>();
+    expectTypeOf<AnyRKit>().toEqualTypeOf<readonly any[]>();
   });
 
   it("array of objects should be assignable", () => {

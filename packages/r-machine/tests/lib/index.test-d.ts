@@ -40,7 +40,7 @@ describe("lib barrel exports", () => {
     expectTypeOf<RMachineConfigParams<readonly ["en", "it"]>>().toBeObject();
 
     expectTypeOf<AnyNamespace>().toEqualTypeOf<string>();
-    expectTypeOf<AnyR>().toEqualTypeOf<object>();
+    expectTypeOf<AnyR>().toEqualTypeOf<any>();
     expectTypeOf<AnyResourceAtlas>().toBeObject();
     expectTypeOf<Namespace<TestAtlas>>().toExtend<string>();
     expectTypeOf<R<{ greeting: string }>>().toExtend<{ greeting: string }>();
