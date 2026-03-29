@@ -1,6 +1,6 @@
 import type { R_Features_Box_1_2 } from "./en";
 
-const r: R_Features_Box_1_2 = {
+export const r: R_Features_Box_1_2 = {
   box1: {
     title: "Traduzioni Type-Safe",
     description: (
@@ -26,5 +26,3 @@ const r: R_Features_Box_1_2 = {
     badge: "Performance",
   },
 };
-
-export default r;

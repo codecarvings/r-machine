@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { AnyPathAtlasProvider } from "#r-machine/next/core";
 import {
@@ -23,13 +23,13 @@ import {
 export class NextAppPathStrategy<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  KA extends NamespaceMap<RA>,
   PAP extends AnyPathAtlasProvider = InstanceType<typeof NextAppPathStrategyCore.defaultConfig.PathAtlas>,
   LK extends string = typeof NextAppPathStrategyCore.defaultConfig.localeKey,
-> extends NextAppPathStrategyCore<RA, L, FP, NextAppPathStrategyConfig<PAP, LK>> {
-  constructor(rMachine: RMachine<RA, L, FP>);
-  constructor(rMachine: RMachine<RA, L, FP>, config: PartialNextAppPathStrategyConfig<PAP, LK>);
-  constructor(rMachine: RMachine<RA, L, FP>, config: PartialNextAppPathStrategyConfig<PAP, LK> = {}) {
+> extends NextAppPathStrategyCore<RA, L, KA, NextAppPathStrategyConfig<PAP, LK>> {
+  constructor(rMachine: RMachine<RA, L, KA>);
+  constructor(rMachine: RMachine<RA, L, KA>, config: PartialNextAppPathStrategyConfig<PAP, LK>);
+  constructor(rMachine: RMachine<RA, L, KA>, config: PartialNextAppPathStrategyConfig<PAP, LK> = {}) {
     super(rMachine, {
       ...NextAppPathStrategyCore.defaultConfig,
       ...config,

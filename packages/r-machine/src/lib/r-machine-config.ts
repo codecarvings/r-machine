@@ -24,7 +24,7 @@ import {
   validateCanonicalUnicodeLocaleId,
 } from "#r-machine/locale";
 import type { NamespaceMap } from "./r-map.js";
-import type { RModuleResolver } from "./r-module.js";
+import type { RModuleLoader } from "./r-module.js";
 import type { AnyResourceAtlas } from "./resource-atlas.js";
 
 // The generic parameter LL is used to ensure that the defaultLocale is one of the locales in the list
@@ -36,7 +36,7 @@ export interface RMachineConfigParams<
   readonly resourceAtlas: RA;
   readonly locales: LL;
   readonly defaultLocale: LL[number];
-  readonly rModuleResolver: RModuleResolver;
+  readonly load: RModuleLoader;
   readonly kit?: KA;
 }
 
@@ -44,7 +44,7 @@ export interface RMachineConfig<RA extends AnyResourceAtlas, L extends AnyLocale
   readonly resourceAtlas: RA;
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
-  readonly rModuleResolver: RModuleResolver;
+  readonly load: RModuleLoader;
   readonly kit: KA;
 }
 

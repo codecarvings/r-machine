@@ -1,4 +1,4 @@
-import type { AnyFmtProvider } from "r-machine";
+import type { NamespaceMap } from "r-machine";
 import { RMachineConfigError } from "r-machine/errors";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
@@ -53,7 +53,12 @@ function createTestConfig(overrides?: Partial<SimpleConfig>): SimpleConfig {
 function createTestStrategy(configOverrides?: Partial<SimpleConfig>) {
   const config = createTestConfig(configOverrides);
 
-  class TestOriginStrategy extends NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig> {}
+  class TestOriginStrategy extends NextAppOriginStrategyCore<
+    TestAtlas,
+    TestLocale,
+    NamespaceMap<TestAtlas>,
+    SimpleConfig
+  > {}
 
   const rMachine = createMockMachine();
   const strategy = new TestOriginStrategy(rMachine, config);
@@ -76,7 +81,12 @@ function createTranslatedStrategy(
     pathMatcher: defaultPathMatcher,
   } as TranslatedConfig;
 
-  class TestOriginStrategy extends NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, TranslatedConfig> {}
+  class TestOriginStrategy extends NextAppOriginStrategyCore<
+    TestAtlas,
+    TestLocale,
+    NamespaceMap<TestAtlas>,
+    TranslatedConfig
+  > {}
 
   const rMachine = createMockMachine();
   return new TestOriginStrategy(rMachine, config);

@@ -3,13 +3,13 @@ import { ofType, RMachine, type RMachineLocale } from "r-machine";
 import type { ResourceAtlas } from "./resource-atlas";
 
 // Vite statically analyzes this at build time and creates chunk files for all matching modules
-const moduleLoaders = import.meta.glob<{ default: any }>("./resources/**/*.{tsx,ts}");
+const moduleLoaders = import.meta.glob<{ r: any }>("./resources/**/*.{tsx,ts}");
 
 export const { rMachine, R } = RMachine.create({
   resourceAtlas: ofType<ResourceAtlas>(),
   locales: ["en", "it"],
   defaultLocale: "en",
-  rModuleResolver: (namespace, locale) => {
+  load: (namespace, locale) => {
     // Find the appropriate module loader for either .tsx or .ts files
     const modulePathTsx = `./resources/${namespace}/${locale}.tsx`;
     const modulePathTs = `./resources/${namespace}/${locale}.ts`;
@@ -22,7 +22,7 @@ export const { rMachine, R } = RMachine.create({
     return moduleLoader();
   },
   kit: {
-    landingPage: "landing-page",
+    landingPage: "landing-page", // TODO: WIP
   },
 });
 

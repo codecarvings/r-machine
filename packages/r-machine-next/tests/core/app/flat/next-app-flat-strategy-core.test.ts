@@ -1,4 +1,4 @@
-import type { AnyFmtProvider } from "r-machine";
+import type { NamespaceMap } from "r-machine";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
@@ -39,7 +39,12 @@ function createTestConfig(overrides?: Partial<SimpleConfig>): SimpleConfig {
 function createTestStrategy(configOverrides?: Partial<SimpleConfig>) {
   const config = createTestConfig(configOverrides);
 
-  class TestFlatStrategy extends NextAppFlatStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig> {}
+  class TestFlatStrategy extends NextAppFlatStrategyCore<
+    TestAtlas,
+    TestLocale,
+    NamespaceMap<TestAtlas>,
+    SimpleConfig
+  > {}
 
   const rMachine = createMockMachine();
   const strategy = new TestFlatStrategy(rMachine, config);
@@ -57,7 +62,12 @@ function createDynamicStrategy() {
     pathMatcher: defaultPathMatcher,
   } as DynamicConfig;
 
-  class TestFlatStrategy extends NextAppFlatStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, DynamicConfig> {}
+  class TestFlatStrategy extends NextAppFlatStrategyCore<
+    TestAtlas,
+    TestLocale,
+    NamespaceMap<TestAtlas>,
+    DynamicConfig
+  > {}
 
   const rMachine = createMockMachine();
   return new TestFlatStrategy(rMachine, config);
@@ -73,7 +83,12 @@ function createDynamicStrategyWithLocale(overrideDefaultLocale: TestLocale) {
     pathMatcher: defaultPathMatcher,
   } as DynamicConfig;
 
-  class TestFlatStrategy extends NextAppFlatStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, DynamicConfig> {}
+  class TestFlatStrategy extends NextAppFlatStrategyCore<
+    TestAtlas,
+    TestLocale,
+    NamespaceMap<TestAtlas>,
+    DynamicConfig
+  > {}
 
   const rMachine = createMockMachine({ defaultLocale: overrideDefaultLocale });
   return new TestFlatStrategy(rMachine, config);

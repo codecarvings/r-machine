@@ -1,5 +1,5 @@
 import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
-import type { AnyFmtProvider, RMachine } from "r-machine";
+import type { NamespaceMap, RMachine } from "r-machine";
 import { RMachineError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector } from "r-machine/strategy";
@@ -20,10 +20,13 @@ afterEach(cleanup);
 // Test helpers
 // ---------------------------------------------------------------------------
 
-class ConcreteStandardStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider> {}
+class ConcreteStandardStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>> {}
 
 function createStrategy(
-  options: { machine?: RMachine<TestAtlas, AnyLocale, AnyFmtProvider>; config?: ReactStandardStrategyConfig } = {}
+  options: {
+    machine?: RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>;
+    config?: ReactStandardStrategyConfig;
+  } = {}
 ) {
   const machine = options.machine ?? createMockMachine();
   const config = options.config ?? configWith();

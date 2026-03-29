@@ -1,6 +1,6 @@
 import type { RShape } from "r-machine";
 
-const r = {
+export const r = {
   box1: {
     title: "Type-Safe Translations",
     description: (
@@ -23,5 +23,4 @@ const r = {
   },
 };
 
-export default r;
 export type R_Features_Box_1_2 = RShape<typeof r>;

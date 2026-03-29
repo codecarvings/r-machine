@@ -12,7 +12,7 @@
  */
 
 import Cookies from "js-cookie";
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
@@ -23,9 +23,9 @@ import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core
 export async function createNextAppPathClientImpl<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  KA extends NamespaceMap<RA>,
 >(
-  _rMachine: RMachine<RA, L, FP>,
+  _rMachine: RMachine<RA, L, KA>,
   strategyConfig: AnyNextAppPathStrategyConfig,
   pathTranslator: HrefTranslator,
   pathCanonicalizer: HrefCanonicalizer

@@ -8,8 +8,8 @@ import {
 } from "#r-machine/errors";
 import { cloneRMachineConfig, type RMachineConfig, validateRMachineConfig } from "../../src/lib/r-machine-config.js";
 
-const stubResolver: RMachineConfig<any, string, any>["rModuleResolver"] = async (namespace, locale) => {
-  return { default: { message: `${namespace} in ${locale}` } };
+const stubResolver: RMachineConfig<any, string, any>["load"] = async (namespace, locale) => {
+  return { r: { message: `${namespace} in ${locale}` } };
 };
 
 function makeConfig(overrides: Partial<RMachineConfig<any, string, any>> = {}): RMachineConfig<any, string, any> {
@@ -17,7 +17,7 @@ function makeConfig(overrides: Partial<RMachineConfig<any, string, any>> = {}): 
     resourceAtlas: {},
     locales: ["en", "it"],
     defaultLocale: "en",
-    rModuleResolver: stubResolver,
+    load: stubResolver,
     kit: {},
     ...overrides,
   };
@@ -177,11 +177,11 @@ describe("cloneRMachineConfig", () => {
     expect(cloned.locales).not.toBe(original.locales);
   });
 
-  it("should share the same rModuleResolver reference", () => {
+  it("should share the same load reference", () => {
     const original = makeConfig();
     const cloned = cloneRMachineConfig(original);
 
-    expect(cloned.rModuleResolver).toBe(original.rModuleResolver);
+    expect(cloned.load).toBe(original.load);
   });
 
   it("should preserve the defaultLocale value", () => {

@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
+import type { AnyResourceAtlas, NamespaceMap } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { createReactStandardImpl } from "./react-standard.impl.js";
@@ -34,11 +34,11 @@ const defaultConfig: ReactStandardStrategyConfig = {
 export abstract class ReactStandardStrategyCore<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
-> extends ReactStrategyCore<RA, L, FP, ReactStandardStrategyConfig> {
+  KA extends NamespaceMap<RA>,
+> extends ReactStrategyCore<RA, L, KA, ReactStandardStrategyConfig> {
   static readonly defaultConfig = defaultConfig;
 
   protected createImpl() {
-    return createReactStandardImpl<RA, L, FP>(this.rMachine, this.config);
+    return createReactStandardImpl<RA, L, KA>(this.rMachine, this.config);
   }
 }

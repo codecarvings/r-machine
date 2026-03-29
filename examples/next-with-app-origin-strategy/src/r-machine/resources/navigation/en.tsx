@@ -1,6 +1,6 @@
 import type { RShape } from "r-machine";
 
-const r = {
+export const r = {
   home: "Home",
   exampleStatic: {
     label: "Static Routes",
@@ -19,5 +19,4 @@ const r = {
   },
 };
 
-export default r;
 export type R_Navigation = RShape<typeof r>;

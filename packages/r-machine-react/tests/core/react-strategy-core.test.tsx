@@ -1,5 +1,5 @@
 import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
-import type { AnyFmtProvider, RMachine } from "r-machine";
+import type { NamespaceMap, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import React from "react";
@@ -18,11 +18,11 @@ afterEach(cleanup);
 
 type TestConfig = { readonly label: string };
 
-class ConcreteReactStrategy extends ReactStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider, TestConfig> {
+class ConcreteReactStrategy extends ReactStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>, TestConfig> {
   implFactory: () => Promise<ReactImpl<AnyLocale>>;
 
   constructor(
-    rMachine: RMachine<TestAtlas, AnyLocale, AnyFmtProvider>,
+    rMachine: RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>,
     config: TestConfig,
     implFactory: () => Promise<ReactImpl<AnyLocale>>
   ) {
@@ -39,7 +39,7 @@ const defaultConfig: TestConfig = { label: "test" };
 
 function createStrategy(
   options: {
-    machine?: RMachine<TestAtlas, AnyLocale, AnyFmtProvider>;
+    machine?: RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>;
     config?: TestConfig;
     implFactory?: () => Promise<ReactImpl<AnyLocale>>;
   } = {}

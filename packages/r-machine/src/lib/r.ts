@@ -11,15 +11,17 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyLocale } from "#r-machine/locale";
-import type { RCtx } from "./r-ctx.js";
-import type { NamespaceMap, RMap } from "./r-map.js";
 import type { AnyRForge } from "./r-module.js";
-import type { AnyResourceAtlas } from "./resource-atlas.js";
 
 export type AnyR = any;
 
-type RType<F extends AnyRForge> = F extends (...args: any[]) => infer R ? (R extends Promise<infer R2> ? R2 : R) : F;
+type RType<F extends AnyRForge> = F extends (...args: any[]) => infer R
+  ? R extends Promise<infer R2>
+    ? R2
+    : R
+  : F extends Promise<infer R2>
+    ? R2
+    : F;
 
 // Branded type
 declare const _rBrand: unique symbol;
@@ -28,7 +30,3 @@ interface RBrand {
 }
 
 export type RShape<F extends AnyRForge> = RType<F> & RBrand;
-
-export interface R<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
-  define<T>(factory: ($: RCtx<L, RMap<RA, KA>>) => T): T;
-}

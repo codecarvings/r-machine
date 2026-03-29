@@ -1,6 +1,6 @@
 import type { R_ExampleStatic } from "./en";
 
-const r: R_ExampleStatic = {
+export const r: R_ExampleStatic = {
   page1: {
     title: "Pagina Statica 1",
     description: "Questa pagina dimostra una route statica annidata a 2 livelli: /example-static/page-1",
@@ -13,4 +13,3 @@ const r: R_ExampleStatic = {
   },
 };
 
-export default r;

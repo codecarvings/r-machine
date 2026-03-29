@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Domain } from "../../src/lib/domain.js";
-import type { AnyRModule, RModuleResolver } from "../../src/lib/r-module.js";
+import type { AnyRModule, RModuleLoader } from "../../src/lib/r-module.js";
 import { createDelayedResolver, createMockResolver } from "../_fixtures/resolver-helpers.js";
 
 const commonR = { greeting: "hello" };
@@ -10,9 +10,9 @@ const footerR = { copyright: "2024" };
 
 const modules: Record<string, Record<string, AnyRModule>> = {
   en: {
-    common: { default: commonR },
-    nav: { default: navR },
-    footer: { default: footerR },
+    common: { r: commonR },
+    nav: { r: navR },
+    footer: { r: footerR },
   },
 };
 
@@ -67,12 +67,12 @@ describe("Domain", () => {
 
     it("allows retrying after a failed resolution", async () => {
       let callCount = 0;
-      const resolver: RModuleResolver = () => {
+      const resolver: RModuleLoader = () => {
         callCount++;
         if (callCount === 1) {
           return Promise.reject(new Error("transient failure"));
         }
-        return Promise.resolve({ default: commonR });
+        return Promise.resolve({ r: commonR });
       };
 
       const domain = new Domain("en", resolver);
@@ -95,7 +95,7 @@ describe("Domain", () => {
     });
 
     it("calls the resolver only once for the same namespace", async () => {
-      const resolver = vi.fn<RModuleResolver>(() => Promise.resolve({ default: commonR }));
+      const resolver = vi.fn<RModuleLoader>(() => Promise.resolve({ r: commonR }));
       const domain = new Domain("en", resolver);
 
       await domain.pickR("common");
@@ -204,7 +204,7 @@ describe("Domain", () => {
     });
 
     it("calls the resolver only once per namespace across multiple kit requests", async () => {
-      const resolver = vi.fn<RModuleResolver>((namespace) => {
+      const resolver = vi.fn<RModuleLoader>((namespace) => {
         const mod = modules.en[namespace];
         if (!mod) return Promise.reject(new Error("not found"));
         return Promise.resolve(mod);
@@ -256,7 +256,7 @@ describe("Domain", () => {
     });
 
     it("hybridPickRKit resolves cache used by pickR", async () => {
-      const resolver = vi.fn<RModuleResolver>((namespace) => {
+      const resolver = vi.fn<RModuleLoader>((namespace) => {
         const mod = modules.en[namespace];
         if (!mod) return Promise.reject(new Error("not found"));
         return Promise.resolve(mod);
@@ -273,7 +273,7 @@ describe("Domain", () => {
 
   describe("concurrent resolution behavior", () => {
     it("deduplicates concurrent pickR calls for the same namespace", async () => {
-      const resolver = vi.fn<RModuleResolver>(() => Promise.resolve({ default: commonR }));
+      const resolver = vi.fn<RModuleLoader>(() => Promise.resolve({ r: commonR }));
       const domain = new Domain("en", resolver);
 
       const [r1, r2] = await Promise.all([domain.pickR("common"), domain.pickR("common")]);
@@ -284,7 +284,7 @@ describe("Domain", () => {
     });
 
     it("deduplicates concurrent hybridPickR calls for the same namespace", async () => {
-      const resolver = vi.fn<RModuleResolver>(() => Promise.resolve({ default: commonR }));
+      const resolver = vi.fn<RModuleLoader>(() => Promise.resolve({ r: commonR }));
       const domain = new Domain("en", resolver);
 
       const [r1, r2] = await Promise.all([
@@ -298,7 +298,7 @@ describe("Domain", () => {
     });
 
     it("resolves multiple kits sharing namespaces without extra resolver calls", async () => {
-      const resolver = vi.fn<RModuleResolver>((namespace) => {
+      const resolver = vi.fn<RModuleLoader>((namespace) => {
         const mod = modules.en[namespace];
         if (!mod) return Promise.reject(new Error("not found"));
         return Promise.resolve(mod);
@@ -344,14 +344,14 @@ describe("Domain", () => {
     it("hybridPickR called during in-flight reject allows successful retry", async () => {
       let callCount = 0;
       let rejectFn: (reason: Error) => void;
-      const resolver: RModuleResolver = () => {
+      const resolver: RModuleLoader = () => {
         callCount++;
         if (callCount === 1) {
           return new Promise((_resolve, reject) => {
             rejectFn = reject;
           });
         }
-        return Promise.resolve({ default: commonR });
+        return Promise.resolve({ r: commonR });
       };
 
       const domain = new Domain("en", resolver);
@@ -372,7 +372,7 @@ describe("Domain", () => {
 
   describe("error handling", () => {
     it("rejects with an error when the module resolver rejects", async () => {
-      const resolver: RModuleResolver = () => Promise.reject(new Error("network error"));
+      const resolver: RModuleLoader = () => Promise.reject(new Error("network error"));
       const domain = new Domain("en", resolver);
 
       await expect(domain.pickR("common")).rejects.toThrow();
@@ -380,11 +380,11 @@ describe("Domain", () => {
 
     it("clears the cache entry on resolver failure", async () => {
       let shouldFail = true;
-      const resolver: RModuleResolver = () => {
+      const resolver: RModuleLoader = () => {
         if (shouldFail) {
           return Promise.reject(new Error("fail"));
         }
-        return Promise.resolve({ default: commonR });
+        return Promise.resolve({ r: commonR });
       };
       const domain = new Domain("en", resolver);
 
@@ -397,7 +397,7 @@ describe("Domain", () => {
 
     it("one namespace failure in a kit rejects the entire kit", async () => {
       const failingModules: Record<string, Record<string, AnyRModule>> = {
-        en: { common: { default: commonR } },
+        en: { common: { r: commonR } },
       };
       const domain = new Domain("en", createMockResolver(failingModules));
 
@@ -405,11 +405,11 @@ describe("Domain", () => {
     });
 
     it("successful namespaces in a failed kit remain cached", async () => {
-      const resolver = vi.fn<RModuleResolver>((namespace) => {
+      const resolver = vi.fn<RModuleLoader>((namespace) => {
         if (namespace === "fail") {
           return Promise.reject(new Error("fail"));
         }
-        return Promise.resolve({ default: commonR });
+        return Promise.resolve({ r: commonR });
       });
       const domain = new Domain("en", resolver);
 
@@ -422,13 +422,13 @@ describe("Domain", () => {
 
     it("rejects hybridPickRKit when a previously pending resource fails", async () => {
       let rejectFn: (reason: Error) => void;
-      const resolver: RModuleResolver = (namespace) => {
+      const resolver: RModuleLoader = (namespace) => {
         if (namespace === "slow-fail") {
           return new Promise((_resolve, reject) => {
             rejectFn = reject;
           });
         }
-        return Promise.resolve({ default: commonR });
+        return Promise.resolve({ r: commonR });
       };
 
       const domain = new Domain("en", resolver);
@@ -449,9 +449,9 @@ describe("Domain", () => {
       const r2 = { id: 2 };
       const resolver = createMockResolver({
         en: {
-          "a⨆b": { default: r1 },
-          a: { default: r2 },
-          b: { default: { id: 3 } },
+          "a⨆b": { r: r1 },
+          a: { r: r2 },
+          b: { r: { id: 3 } },
         },
       });
       const domain = new Domain("en", resolver);
@@ -465,7 +465,7 @@ describe("Domain", () => {
     });
 
     it("pickRKit with duplicate namespaces returns duplicated entries", async () => {
-      const resolver = vi.fn<RModuleResolver>((namespace) => {
+      const resolver = vi.fn<RModuleLoader>((namespace) => {
         const mod = modules.en[namespace];
         if (!mod) return Promise.reject(new Error("not found"));
         return Promise.resolve(mod);
@@ -477,7 +477,7 @@ describe("Domain", () => {
     });
 
     it("pickRKit with pre-cached duplicate namespaces resolves only once", async () => {
-      const resolver = vi.fn<RModuleResolver>((namespace) => {
+      const resolver = vi.fn<RModuleLoader>((namespace) => {
         const mod = modules.en[namespace];
         if (!mod) return Promise.reject(new Error("not found"));
         return Promise.resolve(mod);
@@ -506,7 +506,7 @@ describe("Domain", () => {
 
     it("resolveRKit handles mix of cached, pending, and unresolved resources", async () => {
       let resolveSlow: (value: AnyRModule) => void;
-      const resolver: RModuleResolver = (namespace) => {
+      const resolver: RModuleLoader = (namespace) => {
         if (namespace === "slow") {
           return new Promise((resolve) => {
             resolveSlow = resolve;
@@ -526,7 +526,7 @@ describe("Domain", () => {
       expect(kitPromise).toBeInstanceOf(Promise);
 
       const slowR = { slow: true };
-      resolveSlow!({ default: slowR });
+      resolveSlow!({ r: slowR });
 
       const kit = await kitPromise;
       expect(kit[0]).toBe(commonR);

@@ -1,6 +1,6 @@
 import type { R_ExampleDynamic } from "./en";
 
-const r: R_ExampleDynamic = {
+export const r: R_ExampleDynamic = {
   list: {
     title: "Route Dinamiche",
     description: "Questa pagina elenca elementi con slug dinamici",
@@ -17,4 +17,3 @@ const r: R_ExampleDynamic = {
   },
 };
 
-export default r;

@@ -1,6 +1,6 @@
 import type { RShape } from "r-machine";
 
-const r = {
+export const r = {
   title: (locale: string) => `[${locale}] - R-Machine ⧹ Examples ⧹ Next App ⧹ Origin Strategy`,
   footer: {
     message: (
@@ -14,5 +14,4 @@ const r = {
   },
 };
 
-export default r;
 export type R_Common = RShape<typeof r>;

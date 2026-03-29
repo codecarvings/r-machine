@@ -1,4 +1,4 @@
-import type { AnyFmtProvider, EmptyFmtProvider, RMachine } from "r-machine";
+import type { NamespaceMap, RMachine } from "r-machine";
 import { describe, expectTypeOf, it } from "vitest";
 import type { PathAtlasProviderCtor } from "#r-machine/next/core";
 import type {
@@ -32,7 +32,7 @@ describe("NextAppOriginStrategy", () => {
 
     it("accepts rMachine and config", () => {
       type Ctor = new (
-        rMachine: RMachine<TestAtlas, TestLocale, AnyFmtProvider>,
+        rMachine: RMachine<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>,
         config: PartialNextAppOriginStrategyConfig<DefaultPA, DefaultLK>
       ) => any;
       expectTypeOf<typeof NextAppOriginStrategy>().toExtend<Ctor>();
@@ -40,17 +40,19 @@ describe("NextAppOriginStrategy", () => {
 
     it("rejects construction with only rMachine (no 1-arg overload)", () => {
       // @ts-expect-error - config is required
-      new NextAppOriginStrategy(null! as RMachine<TestAtlas, TestLocale, AnyFmtProvider>);
+      new NextAppOriginStrategy(null! as RMachine<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>);
     });
 
     it("config must include localeOriginMap", () => {
-      type ConfigParam = ConstructorParameters<typeof NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider>>[1];
+      type ConfigParam = ConstructorParameters<
+        typeof NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>
+      >[1];
       expectTypeOf<ConfigParam>().toHaveProperty("localeOriginMap");
     });
 
     it("rejects config without localeOriginMap", () => {
       // @ts-expect-error - localeOriginMap is required in config
-      new NextAppOriginStrategy(null! as RMachine<TestAtlas, TestLocale, AnyFmtProvider>, {
+      new NextAppOriginStrategy(null! as RMachine<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>, {
         basePath: "/docs",
       });
     });
@@ -62,14 +64,14 @@ describe("NextAppOriginStrategy", () => {
 
   describe("default type parameters", () => {
     it("PAP defaults to defaultConfig PathAtlas constructor", () => {
-      expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider>["config"]["PathAtlas"]>().toEqualTypeOf<
-        PathAtlasProviderCtor<DefaultPA>
-      >();
+      expectTypeOf<
+        NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>["config"]["PathAtlas"]
+      >().toEqualTypeOf<PathAtlasProviderCtor<DefaultPA>>();
     });
 
     it("LK defaults to defaultConfig localeKey", () => {
       expectTypeOf<
-        NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider>["config"]["localeKey"]
+        NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>["config"]["localeKey"]
       >().toEqualTypeOf<DefaultLK>();
     });
   });
@@ -81,61 +83,87 @@ describe("NextAppOriginStrategy", () => {
   describe("custom type parameters", () => {
     it("custom PAP is wired through to config.PathAtlas", () => {
       expectTypeOf<
-        NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["config"]["PathAtlas"]
+        NextAppOriginStrategy<
+          TestAtlas,
+          TestLocale,
+          NamespaceMap<TestAtlas>,
+          TranslatedPathAtlas
+        >["config"]["PathAtlas"]
       >().toEqualTypeOf<PathAtlasProviderCtor<TranslatedPathAtlas>>();
     });
 
     it("custom LK is reflected in config.localeKey", () => {
       expectTypeOf<
-        NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">["config"]["localeKey"]
+        NextAppOriginStrategy<
+          TestAtlas,
+          TestLocale,
+          NamespaceMap<TestAtlas>,
+          SimplePathAtlas,
+          "lang"
+        >["config"]["localeKey"]
       >().toEqualTypeOf<"lang">();
     });
 
     it("custom PAP affects client toolset return type", () => {
       expectTypeOf<
-        NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["createClientToolset"]
+        NextAppOriginStrategy<
+          TestAtlas,
+          TestLocale,
+          NamespaceMap<TestAtlas>,
+          TranslatedPathAtlas
+        >["createClientToolset"]
       >().returns.toEqualTypeOf<
-        Promise<NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>>
+        Promise<NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>>
       >();
     });
 
     it("custom LK affects server toolset return type", () => {
       expectTypeOf<
-        NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">["createServerToolset"]
+        NextAppOriginStrategy<
+          TestAtlas,
+          TestLocale,
+          NamespaceMap<TestAtlas>,
+          SimplePathAtlas,
+          "lang"
+        >["createServerToolset"]
       >().returns.toEqualTypeOf<
-        Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">>
+        Promise<NextAppServerToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimplePathAtlas, "lang">>
       >();
     });
 
     it("different RA produce different types", () => {
       type OtherAtlas = { readonly other: { readonly value: number } };
-      expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider>>().not.toEqualTypeOf<
-        NextAppOriginStrategy<OtherAtlas, TestLocale, AnyFmtProvider>
+      expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>>().not.toEqualTypeOf<
+        NextAppOriginStrategy<OtherAtlas, TestLocale, NamespaceMap<OtherAtlas>>
       >();
     });
 
     it("different L produce different types", () => {
       type OtherLocale = "fr" | "de";
-      expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider>>().not.toEqualTypeOf<
-        NextAppOriginStrategy<TestAtlas, OtherLocale, AnyFmtProvider>
+      expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>>().not.toEqualTypeOf<
+        NextAppOriginStrategy<TestAtlas, OtherLocale, NamespaceMap<TestAtlas>>
       >();
     });
 
     it("different PAP produce different types", () => {
-      expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas>>().not.toEqualTypeOf<
-        NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>
+      expectTypeOf<
+        NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimplePathAtlas>
+      >().not.toEqualTypeOf<
+        NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>
       >();
     });
 
     it("different LK produce different types", () => {
       expectTypeOf<
-        NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "locale">
-      >().not.toEqualTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">>();
+        NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimplePathAtlas, "locale">
+      >().not.toEqualTypeOf<
+        NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimplePathAtlas, "lang">
+      >();
     });
 
-    it("different FP produce different types", () => {
-      expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider>>().not.toEqualTypeOf<
-        NextAppOriginStrategy<TestAtlas, TestLocale, EmptyFmtProvider>
+    it("different KA produce different types", () => {
+      expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>>().not.toEqualTypeOf<
+        NextAppOriginStrategy<TestAtlas, TestLocale, {}>
       >();
     });
   });
@@ -150,30 +178,55 @@ describe("NextAppOriginStrategy", () => {
 
   describe("hrefHelper", () => {
     it("getPath returns string", () => {
-      const strategy = null! as NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>;
+      const strategy = null! as NextAppOriginStrategy<
+        TestAtlas,
+        TestLocale,
+        NamespaceMap<TestAtlas>,
+        TranslatedPathAtlas
+      >;
       const result = strategy.hrefHelper.getPath("en", "/about");
       expectTypeOf(result).toBeString();
     });
 
     it("getUrl returns string", () => {
-      const strategy = null! as NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>;
+      const strategy = null! as NextAppOriginStrategy<
+        TestAtlas,
+        TestLocale,
+        NamespaceMap<TestAtlas>,
+        TranslatedPathAtlas
+      >;
       const result = strategy.hrefHelper.getUrl("en", "/about");
       expectTypeOf(result).toBeString();
     });
 
     it("requires params for dynamic path segments", () => {
-      const strategy = null! as NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>;
+      const strategy = null! as NextAppOriginStrategy<
+        TestAtlas,
+        TestLocale,
+        NamespaceMap<TestAtlas>,
+        TranslatedPathAtlas
+      >;
       // @ts-expect-error - params required for path with dynamic segment [id]
       strategy.hrefHelper.getPath("en", "/products/[id]");
     });
 
     it("does not require params for static paths", () => {
-      const strategy = null! as NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>;
+      const strategy = null! as NextAppOriginStrategy<
+        TestAtlas,
+        TestLocale,
+        NamespaceMap<TestAtlas>,
+        TranslatedPathAtlas
+      >;
       strategy.hrefHelper.getPath("en", "/about");
     });
 
     it("params type is { id: string } for /products/[id]", () => {
-      const strategy = null! as NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>;
+      const strategy = null! as NextAppOriginStrategy<
+        TestAtlas,
+        TestLocale,
+        NamespaceMap<TestAtlas>,
+        TranslatedPathAtlas
+      >;
       const result = strategy.hrefHelper.getPath("en", "/products/[id]", {
         id: "42",
       });
@@ -181,7 +234,12 @@ describe("NextAppOriginStrategy", () => {
     });
 
     it("getUrl composes origin with translated path", () => {
-      const strategy = null! as NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>;
+      const strategy = null! as NextAppOriginStrategy<
+        TestAtlas,
+        TestLocale,
+        NamespaceMap<TestAtlas>,
+        TranslatedPathAtlas
+      >;
       const result = strategy.hrefHelper.getUrl("it", "/products/[id]", {
         id: "42",
       });
@@ -201,12 +259,12 @@ describe("NextAppOriginStrategy", () => {
 
     it("rejects non-AnyPathAtlasProvider as PAP", () => {
       // @ts-expect-error - string does not satisfy AnyPathAtlasProvider
-      type _Invalid = NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, string>;
+      type _Invalid = NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, string>;
     });
 
     it("rejects non-string as LK", () => {
       // @ts-expect-error - number does not satisfy string constraint
-      type _Invalid = NextAppOriginStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, number>;
+      type _Invalid = NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimplePathAtlas, number>;
     });
 
     it("rejects non-AnyLocale as L", () => {
@@ -214,8 +272,8 @@ describe("NextAppOriginStrategy", () => {
       type _Invalid = NextAppOriginStrategy<TestAtlas, number>;
     });
 
-    it("rejects non-AnyFmtProvider as FP", () => {
-      // @ts-expect-error - string does not satisfy AnyFmtProvider
+    it("rejects non-NamespaceMap<TestAtlas> as KA", () => {
+      // @ts-expect-error - string does not satisfy NamespaceMap<TestAtlas>
       type _Invalid = NextAppOriginStrategy<TestAtlas, TestLocale, string>;
     });
   });

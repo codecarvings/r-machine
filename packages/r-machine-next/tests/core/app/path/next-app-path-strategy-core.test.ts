@@ -1,4 +1,4 @@
-import type { AnyFmtProvider } from "r-machine";
+import type { NamespaceMap } from "r-machine";
 import { RMachineConfigError } from "r-machine/errors";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
@@ -60,7 +60,12 @@ function createTestConfig(overrides?: Partial<SimpleConfig>): SimpleConfig {
 function createTestStrategy(configOverrides?: Partial<SimpleConfig>) {
   const config = createTestConfig(configOverrides);
 
-  class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig> {}
+  class TestPathStrategy extends NextAppPathStrategyCore<
+    TestAtlas,
+    TestLocale,
+    NamespaceMap<TestAtlas>,
+    SimpleConfig
+  > {}
 
   const rMachine = createMockMachine();
   const strategy = new TestPathStrategy(rMachine, config);
@@ -75,7 +80,12 @@ function createTranslatedStrategy(configOverrides?: Partial<TranslatedConfig>) {
     ...configOverrides,
   } as TranslatedConfig;
 
-  class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, TranslatedConfig> {}
+  class TestPathStrategy extends NextAppPathStrategyCore<
+    TestAtlas,
+    TestLocale,
+    NamespaceMap<TestAtlas>,
+    TranslatedConfig
+  > {}
 
   const rMachine = createMockMachine();
   const strategy = new TestPathStrategy(rMachine, config);
@@ -90,7 +100,12 @@ function createDynamicStrategy(configOverrides?: Partial<DynamicConfig>) {
     ...configOverrides,
   } as DynamicConfig;
 
-  class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, DynamicConfig> {}
+  class TestPathStrategy extends NextAppPathStrategyCore<
+    TestAtlas,
+    TestLocale,
+    NamespaceMap<TestAtlas>,
+    DynamicConfig
+  > {}
 
   const rMachine = createMockMachine();
   return new TestPathStrategy(rMachine, config);
@@ -415,7 +430,12 @@ describe("NextAppPathStrategyCore", () => {
           localeLabel: "lowercase",
         } as DynamicConfig;
 
-        class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, MixedLocale, AnyFmtProvider, DynamicConfig> {}
+        class TestPathStrategy extends NextAppPathStrategyCore<
+          TestAtlas,
+          MixedLocale,
+          NamespaceMap<TestAtlas>,
+          DynamicConfig
+        > {}
 
         const rMachine = createMockMachine<MixedLocale>({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
         const strategy = new TestPathStrategy(rMachine, config);
@@ -432,7 +452,12 @@ describe("NextAppPathStrategyCore", () => {
           localeLabel: "strict",
         } as DynamicConfig;
 
-        class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, MixedLocale, AnyFmtProvider, DynamicConfig> {}
+        class TestPathStrategy extends NextAppPathStrategyCore<
+          TestAtlas,
+          MixedLocale,
+          NamespaceMap<TestAtlas>,
+          DynamicConfig
+        > {}
 
         const rMachine = createMockMachine<MixedLocale>({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
         const strategy = new TestPathStrategy(rMachine, config);

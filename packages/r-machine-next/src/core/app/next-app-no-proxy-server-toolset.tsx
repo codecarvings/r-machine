@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { AnyPathAtlasProvider } from "#r-machine/next/core";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
@@ -25,10 +25,10 @@ import {
 export interface NextAppNoProxyServerToolset<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  KA extends NamespaceMap<RA>,
   PAP extends AnyPathAtlasProvider,
   LK extends string,
-> extends Omit<NextAppServerToolset<RA, L, FP, PAP, LK>, "rMachineProxy"> {
+> extends Omit<NextAppServerToolset<RA, L, KA, PAP, LK>, "rMachineProxy"> {
   readonly routeHandlers: routeHandlers;
 }
 
@@ -49,19 +49,19 @@ export interface NextAppNoProxyServerImpl<L extends AnyLocale, LK extends string
 export async function createNextAppNoProxyServerToolset<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  KA extends NamespaceMap<RA>,
   PAP extends AnyPathAtlasProvider,
   LK extends string,
 >(
-  rMachine: RMachine<RA, L, FP>,
+  rMachine: RMachine<RA, L, KA>,
   impl: NextAppNoProxyServerImpl<L, LK>,
   NextClientRMachine: NextAppClientRMachine<L>
-): Promise<NextAppNoProxyServerToolset<RA, L, FP, PAP, LK>> {
+): Promise<NextAppNoProxyServerToolset<RA, L, KA, PAP, LK>> {
   const {
     rMachineProxy: _rMachineProxy,
     setLocale,
     ...otherTools
-  } = await createNextAppServerToolset<RA, L, FP, PAP, LK>(rMachine, impl, NextClientRMachine);
+  } = await createNextAppServerToolset<RA, L, KA, PAP, LK>(rMachine, impl, NextClientRMachine);
 
   // Use dynamic import to bypass the "next/headers" import issue in pages/ directory
   // You're importing a component that needs "next/headers". That only works in a Server Component which is not supported in the pages/ directory. Read more: https://nextjs.org/docs/app/building-your-application/rendering/server-components

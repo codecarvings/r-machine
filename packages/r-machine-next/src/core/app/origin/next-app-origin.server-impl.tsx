@@ -13,7 +13,7 @@
 
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
@@ -26,10 +26,10 @@ const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
 export async function createNextAppOriginServerImpl<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  KA extends NamespaceMap<RA>,
   C extends AnyNextAppOriginStrategyConfig,
 >(
-  rMachine: RMachine<RA, L, FP>,
+  rMachine: RMachine<RA, L, KA>,
   strategyConfig: C,
   pathTranslator: HrefTranslator,
   urlTranslator: HrefTranslator,

@@ -1,4 +1,4 @@
-import type { AnyFmtProvider, EmptyFmtProvider, RMachine } from "r-machine";
+import type { NamespaceMap, RMachine } from "r-machine";
 import type { SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import { describe, expectTypeOf, it } from "vitest";
@@ -122,13 +122,13 @@ describe("NextAppFlatStrategyCore", () => {
 
   it("rMachine is RMachine<RA>", () => {
     expectTypeOf<
-      NextAppFlatStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["rMachine"]
-    >().toEqualTypeOf<RMachine<TestAtlas, TestLocale, AnyFmtProvider>>();
+      NextAppFlatStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimpleConfig>["rMachine"]
+    >().toEqualTypeOf<RMachine<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>>();
   });
 
   it("config preserves the concrete config type parameter", () => {
     expectTypeOf<
-      NextAppFlatStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["config"]
+      NextAppFlatStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimpleConfig>["config"]
     >().toEqualTypeOf<SimpleConfig>();
   });
 
@@ -138,12 +138,12 @@ describe("NextAppFlatStrategyCore", () => {
 
   describe("hrefHelper", () => {
     it("has readonly getPath property", () => {
-      type Helper = NextAppFlatStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["hrefHelper"];
+      type Helper = NextAppFlatStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimpleConfig>["hrefHelper"];
       expectTypeOf<Helper>().toHaveProperty("getPath");
     });
 
     it("does not have getUrl property", () => {
-      type Helper = NextAppFlatStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["hrefHelper"];
+      type Helper = NextAppFlatStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimpleConfig>["hrefHelper"];
       expectTypeOf<Helper>().not.toHaveProperty("getUrl");
     });
 
@@ -151,7 +151,7 @@ describe("NextAppFlatStrategyCore", () => {
       type GetPath = NextAppFlatStrategyCore<
         TestAtlas,
         TestLocale,
-        AnyFmtProvider,
+        NamespaceMap<TestAtlas>,
         SimpleConfig
       >["hrefHelper"]["getPath"];
       expectTypeOf<GetPath>().toBeFunction();
@@ -167,28 +167,28 @@ describe("NextAppFlatStrategyCore", () => {
 
   it("different RA produce different core types", () => {
     type OtherAtlas = { readonly other: { readonly value: number } };
-    expectTypeOf<NextAppFlatStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppFlatStrategyCore<OtherAtlas, TestLocale, AnyFmtProvider, SimpleConfig>
-    >();
+    expectTypeOf<
+      NextAppFlatStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimpleConfig>
+    >().not.toEqualTypeOf<NextAppFlatStrategyCore<OtherAtlas, TestLocale, NamespaceMap<OtherAtlas>, SimpleConfig>>();
   });
 
   it("different L produce different core types", () => {
     type OtherLocale = "fr" | "de";
-    expectTypeOf<NextAppFlatStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppFlatStrategyCore<TestAtlas, OtherLocale, AnyFmtProvider, SimpleConfig>
-    >();
+    expectTypeOf<
+      NextAppFlatStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimpleConfig>
+    >().not.toEqualTypeOf<NextAppFlatStrategyCore<TestAtlas, OtherLocale, NamespaceMap<TestAtlas>, SimpleConfig>>();
   });
 
   it("different config types produce different core types", () => {
     type OtherConfig = NextAppFlatStrategyConfig<SimplePathAtlas, "lang">;
-    expectTypeOf<NextAppFlatStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppFlatStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, OtherConfig>
-    >();
+    expectTypeOf<
+      NextAppFlatStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimpleConfig>
+    >().not.toEqualTypeOf<NextAppFlatStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, OtherConfig>>();
   });
 
-  it("different FP produce different core types", () => {
-    expectTypeOf<NextAppFlatStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppFlatStrategyCore<TestAtlas, TestLocale, EmptyFmtProvider, SimpleConfig>
-    >();
+  it("different KA produce different core types", () => {
+    expectTypeOf<
+      NextAppFlatStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimpleConfig>
+    >().not.toEqualTypeOf<NextAppFlatStrategyCore<TestAtlas, TestLocale, {}, SimpleConfig>>();
   });
 });

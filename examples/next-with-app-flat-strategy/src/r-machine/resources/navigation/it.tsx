@@ -1,6 +1,6 @@
 import type { R_Navigation } from "./en";
 
-const r: R_Navigation = {
+export const r: R_Navigation = {
   home: "Home",
   exampleStatic: {
     label: "Route Statiche",
@@ -19,4 +19,3 @@ const r: R_Navigation = {
   },
 };
 
-export default r;

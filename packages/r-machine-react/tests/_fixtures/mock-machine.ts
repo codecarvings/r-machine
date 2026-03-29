@@ -1,4 +1,4 @@
-import type { AnyFmtProvider, RMachine } from "r-machine";
+import type { NamespaceMap, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { MockInstance } from "vitest";
@@ -23,7 +23,7 @@ export function createMockMachine(
     hybridPickR?: (locale: string, namespace: string) => unknown;
     hybridPickRKit?: (locale: string, ...namespaces: string[]) => unknown;
   } = {}
-): RMachine<TestAtlas, AnyLocale, AnyFmtProvider> {
+): RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>> {
   return {
     defaultLocale: overrides.defaultLocale ?? "en",
     localeHelper: {
@@ -38,7 +38,7 @@ export function createMockMachine(
     },
     hybridPickR: vi.fn(overrides.hybridPickR ?? (() => ({ greeting: "hello" }))),
     hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
-  } as unknown as RMachine<TestAtlas, AnyLocale, AnyFmtProvider>;
+  } as unknown as RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>;
 }
 
 /**
@@ -49,7 +49,7 @@ export function createMockMachine(
  * If createMockMachine returned `RMachine<TestAtlas, …> & MockMachineSpies`,
  * the untyped `MockInstance` members (hybridPickR, hybridPickRKit) would shadow
  * the generic-typed protected members of RMachine. When TypeScript then tries to
- * infer `RA` in `createReactBareToolset<RA, L, FP>(rMachine)`, the conflicting
+ * infer `RA` in `createReactBareToolset<RA, L, KA>(rMachine)`, the conflicting
  * signatures cause `RA` to degrade from `TestAtlas` to its constraint (`object`),
  * making `useR("common")` return `object` instead of `TestAtlas["common"]`.
  *
@@ -57,6 +57,6 @@ export function createMockMachine(
  * inference, while this helper provides typed access to the underlying vi.fn()
  * mocks for assertion purposes only.
  */
-export function spies(machine: RMachine<TestAtlas, AnyLocale, AnyFmtProvider>): MockMachineSpies {
+export function spies(machine: RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>): MockMachineSpies {
   return machine as unknown as MockMachineSpies;
 }

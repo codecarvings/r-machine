@@ -1,5 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyR, R, RShape } from "../../src/lib/r.js";
+import type { AnyR, RShape } from "../../src/lib/r.js";
+import type { RComposer } from "../../src/lib/r-composer.js";
 
 describe("RShape", () => {
   it("should extract type from object forge", () => {
@@ -67,7 +68,7 @@ describe("RShape", () => {
   });
 });
 
-describe("R interface", () => {
+describe("RComposer interface", () => {
   type TestAtlas = {
     readonly common: { greeting: string };
     readonly nav: { home: string };
@@ -76,18 +77,18 @@ describe("R interface", () => {
   type TestKA = { readonly c: "common"; readonly n: "nav" };
 
   it("should have a define method", () => {
-    type TestR = R<TestAtlas, "en" | "it", TestKA>;
+    type TestR = RComposer<TestAtlas, "en" | "it", TestKA>;
     expectTypeOf<TestR>().toHaveProperty("define");
   });
 
   it("define should accept a factory receiving RCtx", () => {
-    type TestR = R<TestAtlas, "en" | "it", TestKA>;
+    type TestR = RComposer<TestAtlas, "en" | "it", TestKA>;
     type DefineParam = Parameters<TestR["define"]>[0];
     expectTypeOf<DefineParam>().toBeFunction();
   });
 
   it("factory parameter should receive locale and kit from RCtx", () => {
-    type TestR = R<TestAtlas, "en" | "it", TestKA>;
+    type TestR = RComposer<TestAtlas, "en" | "it", TestKA>;
     type FactoryCtx = Parameters<Parameters<TestR["define"]>[0]>[0];
     expectTypeOf<FactoryCtx>().toHaveProperty("locale");
     expectTypeOf<FactoryCtx>().toHaveProperty("kit");
@@ -95,7 +96,7 @@ describe("R interface", () => {
   });
 
   it("kit in factory context should resolve namespace aliases to resource types", () => {
-    type TestR = R<TestAtlas, "en" | "it", TestKA>;
+    type TestR = RComposer<TestAtlas, "en" | "it", TestKA>;
     type FactoryCtx = Parameters<Parameters<TestR["define"]>[0]>[0];
     expectTypeOf<FactoryCtx["kit"]["c"]>().toEqualTypeOf<TestAtlas["common"]>();
     expectTypeOf<FactoryCtx["kit"]["n"]>().toEqualTypeOf<TestAtlas["nav"]>();

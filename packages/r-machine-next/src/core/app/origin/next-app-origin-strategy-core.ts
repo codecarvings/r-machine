@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
+import type { AnyResourceAtlas, NamespaceMap } from "r-machine";
 import { RMachineConfigError } from "r-machine/errors";
 import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
 import {
@@ -80,9 +80,9 @@ const defaultConfig: NextAppOriginStrategyConfig<
 export abstract class NextAppOriginStrategyCore<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  KA extends NamespaceMap<RA>,
   C extends AnyNextAppOriginStrategyConfig,
-> extends NextAppStrategyCore<RA, L, FP, C> {
+> extends NextAppStrategyCore<RA, L, KA, C> {
   static override readonly defaultConfig = defaultConfig;
 
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, true);

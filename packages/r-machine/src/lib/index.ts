@@ -19,5 +19,6 @@ export {
   type RMachineLocale,
 } from "./r-machine.js";
 export type { RMachineConfig, RMachineConfigParams } from "./r-machine-config.js";
+export type { NamespaceMap } from "./r-map.js";
 export type { AnyNamespace, AnyResourceAtlas, Namespace } from "./resource-atlas.js";
 export { ofType } from "./type.js";

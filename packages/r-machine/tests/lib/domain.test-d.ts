@@ -3,15 +3,15 @@ import { describe, expectTypeOf, it } from "vitest";
 import { Domain } from "../../src/lib/domain.js";
 import type { AnyR } from "../../src/lib/r.js";
 import type { AnyNamespaceList, AnyRKit } from "../../src/lib/r-kit.js";
-import type { RModuleResolver } from "../../src/lib/r-module.js";
+import type { RModuleLoader } from "../../src/lib/r-module.js";
 
 describe("Domain", () => {
   it("should be a class", () => {
-    expectTypeOf(Domain).toBeConstructibleWith("en", (() => Promise.resolve({ default: {} })) as RModuleResolver);
+    expectTypeOf(Domain).toBeConstructibleWith("en", (() => Promise.resolve({ r: {} })) as RModuleLoader);
   });
 
-  it("constructor should require locale and rModuleResolver", () => {
-    expectTypeOf(Domain).constructorParameters.toEqualTypeOf<[locale: string, rModuleResolver: RModuleResolver]>();
+  it("constructor should require locale and loadModule", () => {
+    expectTypeOf(Domain).constructorParameters.toEqualTypeOf<[locale: string, loadModule: RModuleLoader]>();
   });
 
   describe("locale", () => {
@@ -101,8 +101,8 @@ describe("Domain", () => {
   });
 
   describe("protected members are not publicly accessible", () => {
-    it("should not expose rModuleResolver", () => {
-      expectTypeOf<Domain>().not.toHaveProperty("rModuleResolver");
+    it("should not expose loadModule", () => {
+      expectTypeOf<Domain>().not.toHaveProperty("loadModule");
     });
 
     it("should not expose resources", () => {

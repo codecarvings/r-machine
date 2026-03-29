@@ -3,7 +3,7 @@ import type { RMachineConfigError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { RMachineConfig, RMachineConfigParams } from "../../src/lib/r-machine-config.js";
 import { cloneRMachineConfig, validateRMachineConfig } from "../../src/lib/r-machine-config.js";
-import type { RModuleResolver } from "../../src/lib/r-module.js";
+import type { RModuleLoader } from "../../src/lib/r-module.js";
 import type { AnyResourceAtlas } from "../../src/lib/resource-atlas.js";
 
 describe("RMachineConfig", () => {
@@ -13,16 +13,14 @@ describe("RMachineConfig", () => {
         readonly resourceAtlas: AnyResourceAtlas;
         readonly locales: readonly string[];
         readonly defaultLocale: string;
-        readonly rModuleResolver: RModuleResolver;
+        readonly load: RModuleLoader;
         readonly kit: {};
       }>();
     });
 
     it("should have exactly five properties", () => {
       type ConfigKeys = keyof RMachineConfig<AnyResourceAtlas, string, {}>;
-      expectTypeOf<ConfigKeys>().toEqualTypeOf<
-        "resourceAtlas" | "locales" | "defaultLocale" | "rModuleResolver" | "kit"
-      >();
+      expectTypeOf<ConfigKeys>().toEqualTypeOf<"resourceAtlas" | "locales" | "defaultLocale" | "load" | "kit">();
     });
 
     it("should be fully readonly", () => {
@@ -45,8 +43,8 @@ describe("RMachineConfig", () => {
       expectTypeOf<RMachineConfig<AnyResourceAtlas, "en", {}>["defaultLocale"]>().toEqualTypeOf<"en">();
     });
 
-    it("should not affect rModuleResolver type", () => {
-      expectTypeOf<RMachineConfig<AnyResourceAtlas, "en", {}>["rModuleResolver"]>().toEqualTypeOf<RModuleResolver>();
+    it("should not affect load type", () => {
+      expectTypeOf<RMachineConfig<AnyResourceAtlas, "en", {}>["load"]>().toEqualTypeOf<RModuleLoader>();
     });
 
     it("should accept AnyLocale as type parameter", () => {
@@ -82,7 +80,7 @@ describe("RMachineConfig", () => {
         resourceAtlas: {},
         locales: ["en", "it"],
         defaultLocale: "en",
-        rModuleResolver: async () => ({ default: {} }),
+        load: async () => ({ r: {} }),
         kit: {},
       };
       expectTypeOf(config).toExtend<RMachineConfig<AnyResourceAtlas, string, {}>>();
@@ -106,7 +104,7 @@ describe("RMachineConfigParams", () => {
         resourceAtlas: {},
         locales: ["en"],
         defaultLocale: "en",
-        rModuleResolver: async () => ({ default: {} }),
+        load: async () => ({ r: {} }),
         // kit is optional
       };
       expectTypeOf(params).toBeObject();
@@ -134,7 +132,7 @@ describe("validateRMachineConfig", () => {
       resourceAtlas: {},
       locales: ["en"],
       defaultLocale: "en",
-      rModuleResolver: async () => ({ default: {} }),
+      load: async () => ({ r: {} }),
       kit: {},
     };
     const result = validateRMachineConfig(config);
@@ -152,7 +150,7 @@ describe("cloneRMachineConfig", () => {
       resourceAtlas: {},
       locales: ["en", "it"],
       defaultLocale: "en",
-      rModuleResolver: async () => ({ default: {} }),
+      load: async () => ({ r: {} }),
       kit: {},
     };
     const cloned = cloneRMachineConfig(original);
@@ -164,7 +162,7 @@ describe("cloneRMachineConfig", () => {
       resourceAtlas: {},
       locales: ["en"],
       defaultLocale: "en",
-      rModuleResolver: async () => ({ default: {} }),
+      load: async () => ({ r: {} }),
       kit: {},
     };
     const cloned = cloneRMachineConfig(original);

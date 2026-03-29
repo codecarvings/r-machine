@@ -1,4 +1,4 @@
-import type { AnyFmtProvider, RMachine } from "r-machine";
+import type { NamespaceMap, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
@@ -26,23 +26,23 @@ type TestAtlas = {
 describe("ReactStandardStrategy", () => {
   describe("class shape", () => {
     it("extends ReactStandardStrategyCore<RA, L>", () => {
-      expectTypeOf<ReactStandardStrategy<TestAtlas, AnyLocale, AnyFmtProvider>>().toExtend<
-        ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider>
+      expectTypeOf<ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>().toExtend<
+        ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>
       >();
     });
 
     it("rMachine property is typed as RMachine<RA, L>", () => {
-      expectTypeOf<ReactStandardStrategy<TestAtlas, AnyLocale, AnyFmtProvider>["rMachine"]>().toEqualTypeOf<
-        RMachine<TestAtlas, AnyLocale, AnyFmtProvider>
+      expectTypeOf<ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["rMachine"]>().toEqualTypeOf<
+        RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>
       >();
     });
 
     it("config property is typed as full ReactStandardStrategyConfig (not partial)", () => {
       expectTypeOf<
-        ReactStandardStrategy<TestAtlas, AnyLocale, AnyFmtProvider>["config"]
+        ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["config"]
       >().toEqualTypeOf<ReactStandardStrategyConfig>();
       expectTypeOf<
-        ReactStandardStrategy<TestAtlas, AnyLocale, AnyFmtProvider>["config"]
+        ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["config"]
       >().not.toEqualTypeOf<PartialReactStandardStrategyConfig>();
     });
   });
@@ -53,28 +53,28 @@ describe("ReactStandardStrategy", () => {
 
   describe("constructor overloads", () => {
     it("is constructible with only RMachine<RA, L>", () => {
-      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, AnyFmtProvider>).toBeConstructibleWith(
-        {} as RMachine<TestAtlas, AnyLocale, AnyFmtProvider>
+      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>).toBeConstructibleWith(
+        {} as RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>
       );
     });
 
     it("is constructible with RMachine<RA, L> and PartialReactStandardStrategyConfig", () => {
-      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, AnyFmtProvider>).toBeConstructibleWith(
-        {} as RMachine<TestAtlas, AnyLocale, AnyFmtProvider>,
+      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>).toBeConstructibleWith(
+        {} as RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>,
         {} as PartialReactStandardStrategyConfig
       );
     });
 
     it("accepts an empty object as partial config", () => {
-      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, AnyFmtProvider>).toBeConstructibleWith(
-        {} as RMachine<TestAtlas, AnyLocale, AnyFmtProvider>,
+      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>).toBeConstructibleWith(
+        {} as RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>,
         {}
       );
     });
 
     it("accepts a config with only localeDetector", () => {
-      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, AnyFmtProvider>).toBeConstructibleWith(
-        {} as RMachine<TestAtlas, AnyLocale, AnyFmtProvider>,
+      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>).toBeConstructibleWith(
+        {} as RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>,
         {
           localeDetector: (() => "en") as CustomLocaleDetector,
         }
@@ -82,8 +82,8 @@ describe("ReactStandardStrategy", () => {
     });
 
     it("accepts a config with only localeStore", () => {
-      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, AnyFmtProvider>).toBeConstructibleWith(
-        {} as RMachine<TestAtlas, AnyLocale, AnyFmtProvider>,
+      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>).toBeConstructibleWith(
+        {} as RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>,
         {
           localeStore: {} as CustomLocaleStore,
         }
@@ -91,8 +91,8 @@ describe("ReactStandardStrategy", () => {
     });
 
     it("first parameter must be RMachine<RA, L>", () => {
-      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, AnyFmtProvider>).constructorParameters.toExtend<
-        [rMachine: RMachine<TestAtlas, AnyLocale, AnyFmtProvider>, ...args: unknown[]]
+      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>).constructorParameters.toExtend<
+        [rMachine: RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>, ...args: unknown[]]
       >();
     });
   });
@@ -104,19 +104,21 @@ describe("ReactStandardStrategy", () => {
   describe("createToolset", () => {
     it("returns Promise<ReactToolset<RA, L>>", () => {
       expectTypeOf<
-        ReactStandardStrategy<TestAtlas, AnyLocale, AnyFmtProvider>["createToolset"]
-      >().returns.toEqualTypeOf<Promise<ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>>>();
+        ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]
+      >().returns.toEqualTypeOf<Promise<ReactToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>>();
     });
 
     it("takes no parameters", () => {
       expectTypeOf<
-        ReactStandardStrategy<TestAtlas, AnyLocale, AnyFmtProvider>["createToolset"]
+        ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]
       >().parameters.toEqualTypeOf<[]>();
     });
 
     it("preserves the atlas type parameter in the returned toolset", () => {
-      type Result = Awaited<ReturnType<ReactStandardStrategy<TestAtlas, AnyLocale, AnyFmtProvider>["createToolset"]>>;
-      expectTypeOf<Result>().toEqualTypeOf<ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>>();
+      type Result = Awaited<
+        ReturnType<ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]>
+      >;
+      expectTypeOf<Result>().toEqualTypeOf<ReactToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>();
     });
   });
 

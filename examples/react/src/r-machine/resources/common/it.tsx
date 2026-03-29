@@ -1,6 +1,6 @@
 import type { R_Common } from "./en";
 
-const r: R_Common = {
+export const r: R_Common = {
   footer: {
     message: (
       <>
@@ -13,4 +13,3 @@ const r: R_Common = {
   },
 };
 
-export default r;

@@ -1,4 +1,4 @@
-import type { AnyFmtProvider, RMachine } from "r-machine";
+import type { NamespaceMap, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
@@ -20,7 +20,7 @@ type TestAtlas = {
 };
 
 // Concrete subclass for testing the abstract class
-class ConcreteStandardStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider> {
+class ConcreteStandardStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>> {
   // createImpl is already implemented by ReactStandardStrategyCore
 }
 
@@ -138,27 +138,27 @@ describe("PartialReactStandardStrategyConfig", () => {
 describe("ReactStandardStrategyCore", () => {
   describe("class shape", () => {
     it("extends ReactStrategyCore<RA, L, ReactStandardStrategyConfig>", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider>>().toExtend<
-        ReactStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider, ReactStandardStrategyConfig>
+      expectTypeOf<ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>().toExtend<
+        ReactStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>, ReactStandardStrategyConfig>
       >();
     });
 
     it("is abstract — concrete subclass is constructible", () => {
       expectTypeOf(ConcreteStandardStrategy).toBeConstructibleWith(
-        {} as RMachine<TestAtlas, AnyLocale, AnyFmtProvider>,
+        {} as RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>,
         {} as ReactStandardStrategyConfig
       );
     });
 
     it("rMachine property is typed as RMachine<RA, L>", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider>["rMachine"]>().toEqualTypeOf<
-        RMachine<TestAtlas, AnyLocale, AnyFmtProvider>
-      >();
+      expectTypeOf<
+        ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["rMachine"]
+      >().toEqualTypeOf<RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>();
     });
 
     it("config property is typed as ReactStandardStrategyConfig", () => {
       expectTypeOf<
-        ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider>["config"]
+        ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["config"]
       >().toEqualTypeOf<ReactStandardStrategyConfig>();
     });
   });
@@ -184,21 +184,21 @@ describe("ReactStandardStrategyCore", () => {
   describe("createToolset", () => {
     it("returns Promise<ReactToolset<RA, L>>", () => {
       expectTypeOf<
-        ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider>["createToolset"]
-      >().returns.toEqualTypeOf<Promise<ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>>>();
+        ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]
+      >().returns.toEqualTypeOf<Promise<ReactToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>>();
     });
 
     it("takes no parameters", () => {
       expectTypeOf<
-        ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider>["createToolset"]
+        ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]
       >().parameters.toEqualTypeOf<[]>();
     });
 
     it("preserves the atlas type parameter in the returned toolset", () => {
       type Result = Awaited<
-        ReturnType<ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider>["createToolset"]>
+        ReturnType<ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]>
       >;
-      expectTypeOf<Result>().toEqualTypeOf<ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>>();
+      expectTypeOf<Result>().toEqualTypeOf<ReactToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>();
     });
   });
 
@@ -208,23 +208,27 @@ describe("ReactStandardStrategyCore", () => {
 
   describe("createImpl", () => {
     it("can be overridden to return Promise<ReactImpl<L>>", () => {
-      class OverriddenStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider> {
+      class OverriddenStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>> {
         protected override createImpl(): Promise<ReactImpl<AnyLocale>> {
           return Promise.resolve({ readLocale: () => "en", writeLocale: () => {} });
         }
       }
-      expectTypeOf<OverriddenStrategy>().toExtend<ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider>>();
+      expectTypeOf<OverriddenStrategy>().toExtend<
+        ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>
+      >();
     });
 
     it("has access to rMachine and config from the base class", () => {
-      class AccessingStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider> {
+      class AccessingStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>> {
         protected override createImpl(): Promise<ReactImpl<AnyLocale>> {
-          const _machine: RMachine<TestAtlas, AnyLocale, AnyFmtProvider> = this.rMachine;
+          const _machine: RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>> = this.rMachine;
           const _config: ReactStandardStrategyConfig = this.config;
           return Promise.resolve({ readLocale: () => "en", writeLocale: () => {} });
         }
       }
-      expectTypeOf<AccessingStrategy>().toExtend<ReactStandardStrategyCore<TestAtlas, AnyLocale, AnyFmtProvider>>();
+      expectTypeOf<AccessingStrategy>().toExtend<
+        ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>
+      >();
     });
   });
 });

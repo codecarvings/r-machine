@@ -1,4 +1,4 @@
-import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
+import type { AnyResourceAtlas, NamespaceMap } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
@@ -33,8 +33,8 @@ import { createReactToolset as originalCreateReactToolset } from "../../src/core
 
 describe("core barrel exports", () => {
   it("re-exports ReactBareStrategy identical to the original", () => {
-    expectTypeOf<ReactBareStrategy<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>().toEqualTypeOf<
-      OriginalReactBareStrategy<AnyResourceAtlas, AnyLocale, AnyFmtProvider>
+    expectTypeOf<ReactBareStrategy<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>>().toEqualTypeOf<
+      OriginalReactBareStrategy<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>
     >();
   });
 
@@ -47,8 +47,8 @@ describe("core barrel exports", () => {
   });
 
   it("re-exports ReactBareToolset identical to the original", () => {
-    expectTypeOf<ReactBareToolset<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>().toEqualTypeOf<
-      OriginalReactBareToolset<AnyResourceAtlas, AnyLocale, AnyFmtProvider>
+    expectTypeOf<ReactBareToolset<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>>().toEqualTypeOf<
+      OriginalReactBareToolset<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>
     >();
   });
 
@@ -61,14 +61,16 @@ describe("core barrel exports", () => {
   });
 
   it("re-exports ReactStandardStrategyCore identical to the original", () => {
-    expectTypeOf<ReactStandardStrategyCore<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>().toEqualTypeOf<
-      OriginalStandardStrategyCore<AnyResourceAtlas, AnyLocale, AnyFmtProvider>
-    >();
+    expectTypeOf<
+      ReactStandardStrategyCore<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>
+    >().toEqualTypeOf<OriginalStandardStrategyCore<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>>();
   });
 
   it("re-exports ReactStrategyCore identical to the original", () => {
-    expectTypeOf<ReactStrategyCore<AnyResourceAtlas, AnyLocale, AnyFmtProvider, unknown>>().toEqualTypeOf<
-      OriginalReactStrategyCore<AnyResourceAtlas, AnyLocale, AnyFmtProvider, unknown>
+    expectTypeOf<
+      ReactStrategyCore<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>, unknown>
+    >().toEqualTypeOf<
+      OriginalReactStrategyCore<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>, unknown>
     >();
   });
 
@@ -81,8 +83,8 @@ describe("core barrel exports", () => {
   });
 
   it("re-exports ReactToolset identical to the original", () => {
-    expectTypeOf<ReactToolset<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>().toEqualTypeOf<
-      OriginalReactToolset<AnyResourceAtlas, AnyLocale, AnyFmtProvider>
+    expectTypeOf<ReactToolset<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>>().toEqualTypeOf<
+      OriginalReactToolset<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>
     >();
   });
 });

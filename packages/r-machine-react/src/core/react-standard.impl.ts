@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactStandardStrategyConfig } from "./react-standard-strategy-core.js";
@@ -20,8 +20,8 @@ import type { ReactImpl } from "./react-toolset.js";
 export async function createReactStandardImpl<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
->(rMachine: RMachine<RA, L, FP>, strategyConfig: ReactStandardStrategyConfig): Promise<ReactImpl<L>> {
+  KA extends NamespaceMap<RA>,
+>(rMachine: RMachine<RA, L, KA>, strategyConfig: ReactStandardStrategyConfig): Promise<ReactImpl<L>> {
   function returnValidLocale(locale: AnyLocale): L {
     const error = rMachine.localeHelper.validateLocale(locale);
     if (error) {

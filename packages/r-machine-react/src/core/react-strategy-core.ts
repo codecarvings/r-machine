@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
+import type { AnyResourceAtlas, NamespaceMap } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { Strategy } from "r-machine/strategy";
 import { createReactToolset, type ReactImpl, type ReactToolset } from "./react-toolset.js";
@@ -19,12 +19,12 @@ import { createReactToolset, type ReactImpl, type ReactToolset } from "./react-t
 export abstract class ReactStrategyCore<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  KA extends NamespaceMap<RA>,
   C,
-> extends Strategy<RA, L, FP, C> {
+> extends Strategy<RA, L, KA, C> {
   protected abstract createImpl(): Promise<ReactImpl<L>>;
 
-  async createToolset(): Promise<ReactToolset<RA, L, FP>> {
+  async createToolset(): Promise<ReactToolset<RA, L, KA>> {
     const impl = await this.createImpl();
     return await createReactToolset(this.rMachine, impl);
   }

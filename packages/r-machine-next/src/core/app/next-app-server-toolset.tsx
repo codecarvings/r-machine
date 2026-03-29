@@ -12,7 +12,7 @@
  */
 
 import { notFound } from "next/navigation";
-import type { AnyFmtProvider, AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
+import type { AnyResourceAtlas, Namespace, NamespaceList, NamespaceMap, RKit, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
@@ -25,7 +25,7 @@ import { localeHeaderName } from "./next-app-strategy-core.js";
 export interface NextAppServerToolset<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  _FP extends AnyFmtProvider,
+  _KA extends NamespaceMap<RA>,
   PAP extends AnyPathAtlasProvider,
   LK extends string,
 > {
@@ -86,14 +86,14 @@ interface NextAppServerRMachineContext<L extends AnyLocale> {
 export async function createNextAppServerToolset<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  KA extends NamespaceMap<RA>,
   PAP extends AnyPathAtlasProvider,
   LK extends string,
 >(
-  rMachine: RMachine<RA, L, FP>,
+  rMachine: RMachine<RA, L, KA>,
   impl: NextAppServerImpl<L, LK>,
   NextClientRMachine: NextAppClientRMachine<L>
-): Promise<NextAppServerToolset<RA, L, FP, PAP, LK>> {
+): Promise<NextAppServerToolset<RA, L, KA, PAP, LK>> {
   const localeKey = impl.localeKey as LK;
   const { autoLocaleBinding } = impl;
 

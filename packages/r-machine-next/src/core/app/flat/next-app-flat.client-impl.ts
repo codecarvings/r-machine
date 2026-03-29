@@ -12,7 +12,7 @@
  */
 
 import Cookies from "js-cookie";
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { setCookie } from "#r-machine/next/internal";
@@ -22,10 +22,10 @@ import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core
 export async function createNextAppFlatClientImpl<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  KA extends NamespaceMap<RA>,
   C extends AnyNextAppFlatStrategyConfig,
 >(
-  _rMachine: RMachine<RA, L, FP>,
+  _rMachine: RMachine<RA, L, KA>,
   strategyConfig: C,
   pathTranslator: HrefTranslator,
   pathCanonicalizer: HrefCanonicalizer

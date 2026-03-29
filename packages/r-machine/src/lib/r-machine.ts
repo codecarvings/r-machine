@@ -15,7 +15,7 @@ import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
 import { DomainManager } from "./domain-manager.js";
-import type { R } from "./r.js";
+import type { RComposer } from "./r-composer.js";
 import type { NamespaceList, RKit } from "./r-kit.js";
 import {
   cloneRMachineConfig,
@@ -28,7 +28,7 @@ import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
 
 interface RMachineBundle<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
   readonly rMachine: RMachine<RA, L, KA>;
-  readonly R: R<RA, L, KA>;
+  readonly R: RComposer<RA, L, KA>;
 }
 
 export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
@@ -41,7 +41,7 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA exten
     this.locales = this.config.locales;
     this.defaultLocale = this.config.defaultLocale;
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
-    this.domainManager = new DomainManager(config.rModuleResolver);
+    this.domainManager = new DomainManager(config.load);
   }
 
   readonly locales: LocaleList<L>;
@@ -87,7 +87,8 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA exten
     return domain.hybridPickRKit(namespaces) as RKit<RA, NL> | Promise<RKit<RA, NL>>;
   };
 
-  static create<RA extends AnyResourceAtlas, const LL extends AnyLocaleList, const KA extends NamespaceMap<RA> = {}>(
+  // KA not "const KA" for DX purposes
+  static create<RA extends AnyResourceAtlas, const LL extends AnyLocaleList, KA extends NamespaceMap<RA> = {}>(
     config: RMachineConfigParams<RA, LL, KA>
   ): RMachineBundle<RA, LL[number], KA> {
     const rMachine = new RMachine<RA, LL[number], KA>(config as any);

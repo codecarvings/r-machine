@@ -1,4 +1,4 @@
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { Strategy } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
@@ -25,32 +25,36 @@ type OtherAtlas = {
 describe("ReactBareStrategy", () => {
   describe("class shape", () => {
     it("extends Strategy<RA, L, undefined>", () => {
-      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>>().toExtend<
-        Strategy<TestAtlas, AnyLocale, AnyFmtProvider, undefined>
+      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>().toExtend<
+        Strategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>, undefined>
       >();
     });
 
     it("is constructible with RMachine<RA, L> and undefined", () => {
-      expectTypeOf(ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>).toBeConstructibleWith(
-        {} as RMachine<TestAtlas, AnyLocale, AnyFmtProvider>,
+      expectTypeOf(ReactBareStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>).toBeConstructibleWith(
+        {} as RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>,
         undefined
       );
     });
 
     it("constructor requires exactly two parameters", () => {
-      expectTypeOf(ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>).constructorParameters.toEqualTypeOf<
-        [rMachine: RMachine<TestAtlas, AnyLocale, AnyFmtProvider>, config: undefined]
+      expectTypeOf(
+        ReactBareStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>
+      ).constructorParameters.toEqualTypeOf<
+        [rMachine: RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>, config: undefined]
       >();
     });
 
     it("rMachine property is typed as RMachine<RA, L>", () => {
-      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>["rMachine"]>().toEqualTypeOf<
-        RMachine<TestAtlas, AnyLocale, AnyFmtProvider>
+      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["rMachine"]>().toEqualTypeOf<
+        RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>
       >();
     });
 
     it("config property is typed as undefined", () => {
-      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>["config"]>().toEqualTypeOf<undefined>();
+      expectTypeOf<
+        ReactBareStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["config"]
+      >().toEqualTypeOf<undefined>();
     });
   });
 
@@ -60,20 +64,22 @@ describe("ReactBareStrategy", () => {
 
   describe("createToolset", () => {
     it("returns Promise<ReactBareToolset<RA, L>>", () => {
-      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>["createToolset"]>().returns.toEqualTypeOf<
-        Promise<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>>
-      >();
+      expectTypeOf<
+        ReactBareStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]
+      >().returns.toEqualTypeOf<Promise<ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>>();
     });
 
     it("takes no parameters", () => {
-      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>["createToolset"]>().parameters.toEqualTypeOf<
-        []
-      >();
+      expectTypeOf<
+        ReactBareStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]
+      >().parameters.toEqualTypeOf<[]>();
     });
 
     it("preserves the atlas type parameter in the returned toolset", () => {
-      type Result = Awaited<ReturnType<ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>["createToolset"]>>;
-      expectTypeOf<Result>().toEqualTypeOf<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>>();
+      type Result = Awaited<
+        ReturnType<ReactBareStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]>
+      >;
+      expectTypeOf<Result>().toEqualTypeOf<ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>();
     });
   });
 
@@ -83,28 +89,30 @@ describe("ReactBareStrategy", () => {
 
   describe("generic type parameter", () => {
     it("RA must extend AnyResourceAtlas", () => {
-      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>>().toExtend<
-        Strategy<TestAtlas, AnyLocale, AnyFmtProvider, undefined>
+      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>().toExtend<
+        Strategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>, undefined>
       >();
-      expectTypeOf<ReactBareStrategy<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>().toBeObject();
+      expectTypeOf<ReactBareStrategy<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>>().toBeObject();
     });
 
     it("different atlas types produce different strategy types", () => {
-      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>>().not.toEqualTypeOf<
-        ReactBareStrategy<OtherAtlas, AnyLocale, AnyFmtProvider>
+      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>().not.toEqualTypeOf<
+        ReactBareStrategy<OtherAtlas, AnyLocale, NamespaceMap<OtherAtlas>>
       >();
     });
 
     it("different atlas types produce different toolset return types", () => {
-      type ToolsetA = Awaited<ReturnType<ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>["createToolset"]>>;
-      type ToolsetB = Awaited<ReturnType<ReactBareStrategy<OtherAtlas, AnyLocale, AnyFmtProvider>["createToolset"]>>;
+      type ToolsetA = Awaited<
+        ReturnType<ReactBareStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]>
+      >;
+      type ToolsetB = Awaited<
+        ReturnType<ReactBareStrategy<OtherAtlas, AnyLocale, NamespaceMap<OtherAtlas>>["createToolset"]>
+      >;
       expectTypeOf<ToolsetA>().not.toEqualTypeOf<ToolsetB>();
     });
 
-    it("strategy with AnyResourceAtlas is a supertype", () => {
-      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>>().toExtend<
-        ReactBareStrategy<AnyResourceAtlas, AnyLocale, AnyFmtProvider>
-      >();
+    it("strategy with AnyResourceAtlas is instantiable", () => {
+      expectTypeOf<ReactBareStrategy<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>>().toBeObject();
     });
   });
 
@@ -114,14 +122,14 @@ describe("ReactBareStrategy", () => {
 
   describe("structural compatibility", () => {
     it("is not assignable to Strategy with a non-undefined config", () => {
-      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>>().not.toExtend<
-        Strategy<TestAtlas, AnyLocale, AnyFmtProvider, string>
+      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>().not.toExtend<
+        Strategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>, string>
       >();
     });
 
     it("is not assignable to Strategy with a different atlas", () => {
-      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, AnyFmtProvider>>().not.toExtend<
-        Strategy<OtherAtlas, AnyLocale, AnyFmtProvider, undefined>
+      expectTypeOf<ReactBareStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>().not.toExtend<
+        Strategy<OtherAtlas, AnyLocale, NamespaceMap<OtherAtlas>, undefined>
       >();
     });
   });
@@ -135,20 +143,22 @@ describe("narrowed Locale type", () => {
   type AppLocale = "en" | "it";
 
   it("strategy with narrowed locale produces a narrowed toolset", () => {
-    type Result = Awaited<ReturnType<ReactBareStrategy<TestAtlas, AppLocale, AnyFmtProvider>["createToolset"]>>;
-    expectTypeOf<Result>().toEqualTypeOf<ReactBareToolset<TestAtlas, AppLocale, AnyFmtProvider>>();
+    type Result = Awaited<
+      ReturnType<ReactBareStrategy<TestAtlas, AppLocale, NamespaceMap<TestAtlas>>["createToolset"]>
+    >;
+    expectTypeOf<Result>().toEqualTypeOf<ReactBareToolset<TestAtlas, AppLocale, NamespaceMap<TestAtlas>>>();
   });
 
   it("rMachine property uses the narrowed locale", () => {
-    expectTypeOf<ReactBareStrategy<TestAtlas, AppLocale, AnyFmtProvider>["rMachine"]>().toEqualTypeOf<
-      RMachine<TestAtlas, AppLocale, AnyFmtProvider>
+    expectTypeOf<ReactBareStrategy<TestAtlas, AppLocale, NamespaceMap<TestAtlas>>["rMachine"]>().toEqualTypeOf<
+      RMachine<TestAtlas, AppLocale, NamespaceMap<TestAtlas>>
     >();
   });
 
   it("narrowed strategy is not assignable to differently-narrowed strategy", () => {
     type OtherLocale = "fr" | "de";
-    expectTypeOf<ReactBareStrategy<TestAtlas, AppLocale, AnyFmtProvider>>().not.toEqualTypeOf<
-      ReactBareStrategy<TestAtlas, OtherLocale, AnyFmtProvider>
+    expectTypeOf<ReactBareStrategy<TestAtlas, AppLocale, NamespaceMap<TestAtlas>>>().not.toEqualTypeOf<
+      ReactBareStrategy<TestAtlas, OtherLocale, NamespaceMap<TestAtlas>>
     >();
   });
 });

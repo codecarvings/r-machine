@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyR } from "../../src/lib/r.js";
-import type { AnyRFactory, AnyRForge, AnyRModule, RModuleResolver } from "../../src/lib/r-module.js";
+import type { AnyRFactory, AnyRForge, AnyRModule, RModuleLoader } from "../../src/lib/r-module.js";
 import { resolveR, resolveRFromModule } from "../../src/lib/r-module.js";
 import type { AnyNamespace } from "../../src/lib/resource-atlas.js";
 
@@ -48,52 +48,52 @@ describe("AnyRModule", () => {
     expectTypeOf<AnyRModule>().toBeObject();
   });
 
-  it("should have readonly default property", () => {
-    expectTypeOf<AnyRModule>().toHaveProperty("default");
+  it("should have readonly r property", () => {
+    expectTypeOf<AnyRModule>().toHaveProperty("r");
   });
 
-  it("default should be AnyRForge type", () => {
-    expectTypeOf<AnyRModule["default"]>().toEqualTypeOf<AnyRForge>();
+  it("r should be AnyRForge type", () => {
+    expectTypeOf<AnyRModule["r"]>().toEqualTypeOf<AnyRForge>();
   });
 
-  it("module with object default should be assignable", () => {
-    const module: AnyRModule = { default: { greeting: "Hello" } };
+  it("module with object r should be assignable", () => {
+    const module: AnyRModule = { r: { greeting: "Hello" } };
     expectTypeOf(module).toExtend<AnyRModule>();
   });
 
-  it("module with sync factory default should be assignable", () => {
-    const module: AnyRModule = { default: () => ({ greeting: "hi" }) };
+  it("module with sync factory r should be assignable", () => {
+    const module: AnyRModule = { r: () => ({ greeting: "hi" }) };
     expectTypeOf(module).toExtend<AnyRModule>();
   });
 
-  it("module with async factory default should be assignable", () => {
-    const module: AnyRModule = { default: async () => ({ greeting: "hi" }) };
+  it("module with async factory r should be assignable", () => {
+    const module: AnyRModule = { r: async () => ({ greeting: "hi" }) };
     expectTypeOf(module).toExtend<AnyRModule>();
   });
 });
 
-describe("RModuleResolver", () => {
+describe("RModuleLoader", () => {
   it("should be a function type", () => {
-    expectTypeOf<RModuleResolver>().toBeFunction();
+    expectTypeOf<RModuleLoader>().toBeFunction();
   });
 
   it("should accept namespace as first parameter", () => {
-    expectTypeOf<RModuleResolver>().parameter(0).toEqualTypeOf<AnyNamespace>();
+    expectTypeOf<RModuleLoader>().parameter(0).toEqualTypeOf<AnyNamespace>();
   });
 
   it("should accept locale string as second parameter", () => {
-    expectTypeOf<RModuleResolver>().parameter(1).toEqualTypeOf<string>();
+    expectTypeOf<RModuleLoader>().parameter(1).toEqualTypeOf<string>();
   });
 
   it("should return Promise<AnyRModule>", () => {
-    expectTypeOf<RModuleResolver>().returns.toEqualTypeOf<Promise<AnyRModule>>();
+    expectTypeOf<RModuleLoader>().returns.toEqualTypeOf<Promise<AnyRModule>>();
   });
 
   it("valid resolver should be assignable", () => {
-    const resolver: RModuleResolver = async (namespace, locale) => ({
-      default: { key: `${namespace}-${locale}` },
+    const resolver: RModuleLoader = async (namespace, locale) => ({
+      r: { key: `${namespace}-${locale}` },
     });
-    expectTypeOf(resolver).toExtend<RModuleResolver>();
+    expectTypeOf(resolver).toExtend<RModuleLoader>();
   });
 });
 
@@ -104,8 +104,8 @@ describe("resolveRFromModule", () => {
 });
 
 describe("resolveR", () => {
-  it("should accept RModuleResolver as first parameter", () => {
-    expectTypeOf(resolveR).parameter(0).toEqualTypeOf<RModuleResolver>();
+  it("should accept RModuleLoader as first parameter", () => {
+    expectTypeOf(resolveR).parameter(0).toEqualTypeOf<RModuleLoader>();
   });
 
   it("should accept AnyNamespace as second parameter", () => {

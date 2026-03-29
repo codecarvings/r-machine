@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { RMachineError } from "#r-machine/errors";
 import { RMachine } from "../../src/lib/r-machine.js";
 import type { RMachineConfig } from "../../src/lib/r-machine-config.js";
-import type { AnyRModule, RModuleResolver } from "../../src/lib/r-module.js";
+import type { AnyRModule, RModuleLoader } from "../../src/lib/r-module.js";
 import { createDelayedResolver, createMockResolver } from "../_fixtures/resolver-helpers.js";
 import { TestableRMachine } from "../_fixtures/testable-r-machine.js";
 
@@ -27,17 +27,17 @@ const navR = { home: "Home", about: "About" };
 const footerR = { copyright: "2024" };
 
 const enModules: Record<string, AnyRModule> = {
-  common: { default: commonR },
-  nav: { default: navR },
-  footer: { default: footerR },
+  common: { r: commonR },
+  nav: { r: navR },
+  footer: { r: footerR },
 };
 
 const itCommonR = { greeting: "ciao" };
 const itNavR = { home: "Casa", about: "Chi siamo" };
 
 const itModules: Record<string, AnyRModule> = {
-  common: { default: itCommonR },
-  nav: { default: itNavR },
+  common: { r: itCommonR },
+  nav: { r: itNavR },
 };
 
 const allModules: Record<string, Record<string, AnyRModule>> = {
@@ -50,7 +50,7 @@ function makeConfig(overrides: Partial<RMachineConfig<TestRA, string, any>> = {}
     resourceAtlas: {} as TestRA,
     locales: ["en", "it"],
     defaultLocale: "en",
-    rModuleResolver: createMockResolver(allModules),
+    load: createMockResolver(allModules),
     kit: {},
     ...overrides,
   };
@@ -62,7 +62,7 @@ function makeCreateConfig(overrides: Partial<RMachineConfig<TestRA, string, any>
     resourceAtlas: cfg.resourceAtlas,
     locales: cfg.locales as readonly string[],
     defaultLocale: cfg.defaultLocale,
-    rModuleResolver: cfg.rModuleResolver,
+    load: cfg.load,
   };
 }
 
@@ -108,7 +108,7 @@ describe("RMachine", () => {
         resourceAtlas: {} as TestRA,
         locales: ["en"],
         defaultLocale: "en",
-        rModuleResolver: createMockResolver({ en: { common: { default: commonR } } }),
+        load: createMockResolver({ en: { common: { r: commonR } } }),
       });
       expect(rMachine.locales).toEqual(["en"]);
     });
@@ -158,8 +158,8 @@ describe("RMachine", () => {
 
   describe("locale validation across methods", () => {
     it("throws synchronously before the resolver is called", () => {
-      const resolver = vi.fn<RModuleResolver>();
-      const machine = createMachine({ rModuleResolver: resolver });
+      const resolver = vi.fn<RModuleLoader>();
+      const machine = createMachine({ load: resolver });
 
       expect(() => machine.pickR("fr", "common")).toThrow(RMachineError);
       expect(() => machine.pickRKit("fr", "common")).toThrow(RMachineError);
@@ -207,14 +207,14 @@ describe("RMachine", () => {
     });
 
     it("calls the resolver with the correct arguments", async () => {
-      const resolver = vi.fn<RModuleResolver>(() => Promise.resolve({ default: {} }));
-      const machine = createMachine({ rModuleResolver: resolver });
+      const resolver = vi.fn<RModuleLoader>(() => Promise.resolve({ r: {} }));
+      const machine = createMachine({ load: resolver });
       await machine.pickR("en", "common");
       expect(resolver).toHaveBeenCalledWith("common", "en");
     });
 
     it("works with a delayed resolver", async () => {
-      const machine = createMachine({ rModuleResolver: createDelayedResolver(allModules) });
+      const machine = createMachine({ load: createDelayedResolver(allModules) });
       expect(await machine.pickR("en", "common")).toBe(commonR);
     });
 
@@ -253,11 +253,11 @@ describe("RMachine", () => {
 
   describe("pickR and pickRKit interaction", () => {
     it("shares cached resources between pickR and pickRKit", async () => {
-      const resolver = vi.fn<RModuleResolver>((namespace, locale) => {
+      const resolver = vi.fn<RModuleLoader>((namespace, locale) => {
         const mod = allModules[locale]?.[namespace];
         return mod ? Promise.resolve(mod) : Promise.reject(new Error("not found"));
       });
-      const machine = createMachine({ rModuleResolver: resolver });
+      const machine = createMachine({ load: resolver });
 
       await machine.pickR("en", "common");
       await machine.pickRKit("en", "common", "nav");
@@ -267,11 +267,11 @@ describe("RMachine", () => {
     });
 
     it("does not share cache between different locales", async () => {
-      const resolver = vi.fn<RModuleResolver>((namespace, locale) => {
+      const resolver = vi.fn<RModuleLoader>((namespace, locale) => {
         const mod = allModules[locale]?.[namespace];
         return mod ? Promise.resolve(mod) : Promise.reject(new Error("not found"));
       });
-      const machine = createMachine({ rModuleResolver: resolver });
+      const machine = createMachine({ load: resolver });
 
       await machine.pickR("en", "common");
       await machine.pickR("it", "common");
@@ -284,15 +284,15 @@ describe("RMachine", () => {
   describe("factory-based resources", () => {
     it("resolves resources from factory functions", async () => {
       const factoryR = { dynamic: true };
-      const resolver: RModuleResolver = () => Promise.resolve({ default: () => factoryR });
-      const machine = createMachine({ rModuleResolver: resolver });
+      const resolver: RModuleLoader = () => Promise.resolve({ r: () => factoryR });
+      const machine = createMachine({ load: resolver });
       expect(await machine.pickR("en", "common")).toBe(factoryR);
     });
 
     it("resolves resources from async factory functions", async () => {
       const asyncR = { async: true };
-      const resolver: RModuleResolver = () => Promise.resolve({ default: () => Promise.resolve(asyncR) });
-      const machine = createMachine({ rModuleResolver: resolver });
+      const resolver: RModuleLoader = () => Promise.resolve({ r: () => Promise.resolve(asyncR) });
+      const machine = createMachine({ load: resolver });
       expect(await machine.pickR("en", "common")).toBe(asyncR);
     });
 
@@ -301,8 +301,8 @@ describe("RMachine", () => {
         ns: $.namespace,
         loc: $.locale,
       }));
-      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
-      const machine = createMachine({ rModuleResolver: resolver });
+      const resolver: RModuleLoader = () => Promise.resolve({ r: factory });
+      const machine = createMachine({ load: resolver });
       const result = await machine.pickR("en", "common");
       expect(factory).toHaveBeenCalledWith({ namespace: "common", locale: "en" });
       expect(result).toEqual({ ns: "common", loc: "en" });
@@ -311,8 +311,8 @@ describe("RMachine", () => {
     it("resolves factory-based resources through pickRKit", async () => {
       const factoryA = () => ({ a: true });
       const factoryB = () => Promise.resolve({ b: true });
-      const resolver: RModuleResolver = (ns) => Promise.resolve({ default: ns === "common" ? factoryA : factoryB });
-      const machine = createMachine({ rModuleResolver: resolver });
+      const resolver: RModuleLoader = (ns) => Promise.resolve({ r: ns === "common" ? factoryA : factoryB });
+      const machine = createMachine({ load: resolver });
       const kit = await machine.pickRKit("en", "common", "nav");
       expect(kit).toEqual([{ a: true }, { b: true }]);
     });
@@ -320,29 +320,29 @@ describe("RMachine", () => {
 
   describe("resolver error handling", () => {
     it("handles resolver throwing synchronously", async () => {
-      const resolver: RModuleResolver = () => {
+      const resolver: RModuleLoader = () => {
         throw new Error("Sync error");
       };
-      const machine = createMachine({ rModuleResolver: resolver });
+      const machine = createMachine({ load: resolver });
       await expect(machine.pickR("en", "common")).rejects.toThrow(RMachineError);
-      await expect(machine.pickR("en", "common")).rejects.toThrow(/rModuleResolver failed/);
+      await expect(machine.pickR("en", "common")).rejects.toThrow(/loadModule failed/);
     });
 
     it("handles resolver returning a rejected promise", async () => {
-      const resolver: RModuleResolver = () => Promise.reject(new Error("Async error"));
-      const machine = createMachine({ rModuleResolver: resolver });
+      const resolver: RModuleLoader = () => Promise.reject(new Error("Async error"));
+      const machine = createMachine({ load: resolver });
       await expect(machine.pickR("en", "common")).rejects.toThrow(RMachineError);
-      await expect(machine.pickR("en", "common")).rejects.toThrow(/rModuleResolver failed/);
+      await expect(machine.pickR("en", "common")).rejects.toThrow(/loadModule failed/);
     });
 
     it("allows retry after resolver rejection", async () => {
       let callCount = 0;
-      const resolver: RModuleResolver = () => {
+      const resolver: RModuleLoader = () => {
         callCount++;
         if (callCount === 1) return Promise.reject(new Error("First call fails"));
-        return Promise.resolve({ default: commonR });
+        return Promise.resolve({ r: commonR });
       };
-      const machine = createMachine({ rModuleResolver: resolver });
+      const machine = createMachine({ load: resolver });
 
       await expect(machine.pickR("en", "common")).rejects.toThrow(RMachineError);
       expect(await machine.pickR("en", "common")).toBe(commonR);
@@ -350,41 +350,41 @@ describe("RMachine", () => {
     });
 
     it("handles factory function throwing synchronously", async () => {
-      const resolver: RModuleResolver = () =>
+      const resolver: RModuleLoader = () =>
         Promise.resolve({
-          default: () => {
+          r: () => {
             throw new Error("Factory error");
           },
         });
-      const machine = createMachine({ rModuleResolver: resolver });
+      const machine = createMachine({ load: resolver });
       await expect(machine.pickR("en", "common")).rejects.toThrow(RMachineError);
       await expect(machine.pickR("en", "common")).rejects.toThrow(/factory promise rejected/);
     });
 
     it("handles async factory function rejecting", async () => {
-      const resolver: RModuleResolver = () =>
-        Promise.resolve({ default: () => Promise.reject(new Error("Async factory error")) });
-      const machine = createMachine({ rModuleResolver: resolver });
+      const resolver: RModuleLoader = () =>
+        Promise.resolve({ r: () => Promise.reject(new Error("Async factory error")) });
+      const machine = createMachine({ load: resolver });
       await expect(machine.pickR("en", "common")).rejects.toThrow(RMachineError);
       await expect(machine.pickR("en", "common")).rejects.toThrow(/factory promise rejected/);
     });
 
     it("propagates rejection for pickRKit when one namespace fails", async () => {
-      const resolver: RModuleResolver = (namespace) => {
+      const resolver: RModuleLoader = (namespace) => {
         if (namespace === "fail") return Promise.reject(new Error("Namespace fail error"));
-        return Promise.resolve({ default: commonR });
+        return Promise.resolve({ r: commonR });
       };
-      const machine = createMachine({ rModuleResolver: resolver });
+      const machine = createMachine({ load: resolver });
       await expect(machine.pickRKit("en", "common", "fail" as any)).rejects.toThrow(RMachineError);
     });
   });
 
   describe("concurrent call deduplication", () => {
     it("deduplicates concurrent pickR calls to the same namespace", async () => {
-      const resolver = vi.fn<RModuleResolver>(
-        () => new Promise((resolve) => setTimeout(() => resolve({ default: commonR }), 20))
+      const resolver = vi.fn<RModuleLoader>(
+        () => new Promise((resolve) => setTimeout(() => resolve({ r: commonR }), 20))
       );
-      const machine = createMachine({ rModuleResolver: resolver });
+      const machine = createMachine({ load: resolver });
 
       const [r1, r2, r3] = await Promise.all([
         machine.pickR("en", "common"),
@@ -399,7 +399,7 @@ describe("RMachine", () => {
     });
 
     it("deduplicates concurrent pickRKit calls for the same namespace set", async () => {
-      const resolver = vi.fn<RModuleResolver>(
+      const resolver = vi.fn<RModuleLoader>(
         (namespace) =>
           new Promise((resolve) =>
             setTimeout(() => {
@@ -408,7 +408,7 @@ describe("RMachine", () => {
             }, 20)
           )
       );
-      const machine = createMachine({ rModuleResolver: resolver });
+      const machine = createMachine({ load: resolver });
 
       const [k1, k2] = await Promise.all([
         machine.pickRKit("en", "common", "nav"),
@@ -422,7 +422,7 @@ describe("RMachine", () => {
     });
 
     it("does not deduplicate calls to different namespaces", async () => {
-      const resolver = vi.fn<RModuleResolver>(
+      const resolver = vi.fn<RModuleLoader>(
         (namespace) =>
           new Promise((resolve) =>
             setTimeout(() => {
@@ -431,7 +431,7 @@ describe("RMachine", () => {
             }, 20)
           )
       );
-      const machine = createMachine({ rModuleResolver: resolver });
+      const machine = createMachine({ load: resolver });
 
       await Promise.all([machine.pickR("en", "common"), machine.pickR("en", "nav")]);
       expect(resolver).toHaveBeenCalledTimes(2);
@@ -479,10 +479,10 @@ describe("RMachine", () => {
     });
 
     it("maintains independent caches across instances", async () => {
-      const resolver1 = vi.fn<RModuleResolver>(() => Promise.resolve({ default: commonR }));
-      const resolver2 = vi.fn<RModuleResolver>(() => Promise.resolve({ default: itCommonR }));
-      const m1 = createMachine({ rModuleResolver: resolver1 });
-      const m2 = createMachine({ rModuleResolver: resolver2 });
+      const resolver1 = vi.fn<RModuleLoader>(() => Promise.resolve({ r: commonR }));
+      const resolver2 = vi.fn<RModuleLoader>(() => Promise.resolve({ r: itCommonR }));
+      const m1 = createMachine({ load: resolver1 });
+      const m2 = createMachine({ load: resolver2 });
 
       await m1.pickR("en", "common");
       await m2.pickR("en", "common");

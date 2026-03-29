@@ -26,7 +26,7 @@ const testConfig: RMachineConfig<AnyResourceAtlas, string, {}> = {
   resourceAtlas: {},
   locales: ["en", "it"],
   defaultLocale: "en",
-  rModuleResolver: async () => ({ default: {} }),
+  load: async () => ({ r: {} }),
   kit: {},
 };
 

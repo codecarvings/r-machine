@@ -1,6 +1,7 @@
 import type { RShape } from "r-machine";
+import { R } from "@/r-machine/setup";
 
-const rFactory = async () => {
+export const r = R.define(async () => {
   // Simulate a delay to force display of loading state
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -14,7 +15,6 @@ const rFactory = async () => {
     ),
     badge: "Next.js",
   };
-};
+});
 
-export default rFactory;
-export type R_Features_Box_3 = RShape<typeof rFactory>;
+export type R_Features_Box_3 = RShape<typeof r>;

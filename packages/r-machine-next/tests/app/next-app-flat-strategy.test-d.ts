@@ -1,4 +1,4 @@
-import type { AnyFmtProvider, EmptyFmtProvider, RMachine } from "r-machine";
+import type { NamespaceMap, RMachine } from "r-machine";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import { describe, expectTypeOf, it } from "vitest";
 import type { PathAtlasProviderCtor } from "#r-machine/next/core";
@@ -35,13 +35,13 @@ describe("NextAppFlatStrategy", () => {
     });
 
     it("1-arg overload: accepts rMachine only", () => {
-      type Ctor = new (rMachine: RMachine<TestAtlas, TestLocale, AnyFmtProvider>) => any;
+      type Ctor = new (rMachine: RMachine<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>) => any;
       expectTypeOf<typeof NextAppFlatStrategy>().toExtend<Ctor>();
     });
 
     it("2-arg overload: accepts rMachine and partial config", () => {
       type Ctor = new (
-        rMachine: RMachine<TestAtlas, TestLocale, AnyFmtProvider>,
+        rMachine: RMachine<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>,
         config: PartialNextAppFlatStrategyConfig<DefaultPA, DefaultLK>
       ) => any;
       expectTypeOf<typeof NextAppFlatStrategy>().toExtend<Ctor>();
@@ -54,14 +54,14 @@ describe("NextAppFlatStrategy", () => {
 
   describe("default type parameters", () => {
     it("PAP defaults to defaultConfig PathAtlas instance", () => {
-      expectTypeOf<NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider>>().toExtend<
-        NextAppFlatStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, DefaultConfig>
+      expectTypeOf<NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>>().toExtend<
+        NextAppFlatStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, DefaultConfig>
       >();
     });
 
     it("LK defaults to defaultConfig localeKey", () => {
       expectTypeOf<
-        NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider>["config"]["localeKey"]
+        NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>["config"]["localeKey"]
       >().toEqualTypeOf<DefaultLK>();
     });
   });
@@ -72,20 +72,20 @@ describe("NextAppFlatStrategy", () => {
 
   describe("public properties", () => {
     it("rMachine is RMachine<RA, L>", () => {
-      expectTypeOf<NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider>["rMachine"]>().toEqualTypeOf<
-        RMachine<TestAtlas, TestLocale, AnyFmtProvider>
+      expectTypeOf<NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>["rMachine"]>().toEqualTypeOf<
+        RMachine<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>
       >();
     });
 
     it("config.cookie is CookieDeclaration", () => {
       expectTypeOf<
-        NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider>["config"]["cookie"]
+        NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>["config"]["cookie"]
       >().toEqualTypeOf<CookieDeclaration>();
     });
 
     it("config.pathMatcher is RegExp | null", () => {
       expectTypeOf<
-        NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider>["config"]["pathMatcher"]
+        NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>["config"]["pathMatcher"]
       >().toEqualTypeOf<RegExp | null>();
     });
   });
@@ -97,21 +97,23 @@ describe("NextAppFlatStrategy", () => {
   describe("toolset return types", () => {
     it("createClientToolset returns Promise<NextAppClientToolset<RA, L, DefaultPA>>", () => {
       expectTypeOf<
-        NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider>["createClientToolset"]
-      >().returns.toEqualTypeOf<Promise<NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, DefaultPA>>>();
+        NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>["createClientToolset"]
+      >().returns.toEqualTypeOf<
+        Promise<NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, DefaultPA>>
+      >();
     });
 
     it("createServerToolset accepts NextAppClientRMachine<L>", () => {
-      expectTypeOf<NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider>["createServerToolset"]>()
+      expectTypeOf<NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>["createServerToolset"]>()
         .parameter(0)
         .toEqualTypeOf<NextAppClientRMachine<TestLocale>>();
     });
 
     it("createServerToolset returns Promise<NextAppServerToolset<RA, L, DefaultPA, DefaultLK>>", () => {
       expectTypeOf<
-        NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider>["createServerToolset"]
+        NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>["createServerToolset"]
       >().returns.toEqualTypeOf<
-        Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, DefaultPA, DefaultLK>>
+        Promise<NextAppServerToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, DefaultPA, DefaultLK>>
       >();
     });
   });
@@ -123,61 +125,75 @@ describe("NextAppFlatStrategy", () => {
   describe("custom type parameters", () => {
     it("custom PAP is wired through to config.PathAtlas", () => {
       expectTypeOf<
-        NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["config"]["PathAtlas"]
+        NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>["config"]["PathAtlas"]
       >().toEqualTypeOf<PathAtlasProviderCtor<TranslatedPathAtlas>>();
     });
 
     it("custom LK is reflected in config.localeKey", () => {
       expectTypeOf<
-        NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">["config"]["localeKey"]
+        NextAppFlatStrategy<
+          TestAtlas,
+          TestLocale,
+          NamespaceMap<TestAtlas>,
+          SimplePathAtlas,
+          "lang"
+        >["config"]["localeKey"]
       >().toEqualTypeOf<"lang">();
     });
 
     it("custom PAP affects client toolset return type", () => {
       expectTypeOf<
-        NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["createClientToolset"]
+        NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>["createClientToolset"]
       >().returns.toEqualTypeOf<
-        Promise<NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>>
+        Promise<NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>>
       >();
     });
 
     it("custom LK affects server toolset return type", () => {
       expectTypeOf<
-        NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">["createServerToolset"]
+        NextAppFlatStrategy<
+          TestAtlas,
+          TestLocale,
+          NamespaceMap<TestAtlas>,
+          SimplePathAtlas,
+          "lang"
+        >["createServerToolset"]
       >().returns.toEqualTypeOf<
-        Promise<NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">>
+        Promise<NextAppServerToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimplePathAtlas, "lang">>
       >();
     });
 
     it("different RA produce different types", () => {
       type OtherAtlas = { readonly other: { readonly value: number } };
-      expectTypeOf<NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider>>().not.toEqualTypeOf<
-        NextAppFlatStrategy<OtherAtlas, TestLocale, AnyFmtProvider>
+      expectTypeOf<NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>>().not.toEqualTypeOf<
+        NextAppFlatStrategy<OtherAtlas, TestLocale, NamespaceMap<OtherAtlas>>
       >();
     });
 
     it("different L produce different types", () => {
       type OtherLocale = "fr" | "de";
-      expectTypeOf<NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider>>().not.toEqualTypeOf<
-        NextAppFlatStrategy<TestAtlas, OtherLocale, AnyFmtProvider>
+      expectTypeOf<NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>>().not.toEqualTypeOf<
+        NextAppFlatStrategy<TestAtlas, OtherLocale, NamespaceMap<TestAtlas>>
       >();
     });
 
     it("different PAP produce different types", () => {
-      expectTypeOf<NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas>>().not.toEqualTypeOf<
-        NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>
-      >();
+      expectTypeOf<
+        NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimplePathAtlas>
+      >().not.toEqualTypeOf<NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>>();
     });
 
     it("different LK produce different types", () => {
       expectTypeOf<
-        NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "locale">
-      >().not.toEqualTypeOf<NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, "lang">>();
+        NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimplePathAtlas, "locale">
+      >().not.toEqualTypeOf<
+        NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimplePathAtlas, "lang">
+      >();
     });
 
-    it("different FP produce different types", () => {
-      expectTypeOf<NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider>>().not.toEqualTypeOf<
-        NextAppFlatStrategy<TestAtlas, TestLocale, EmptyFmtProvider>
+    it("different KA produce different types", () => {
+      expectTypeOf<NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>>().not.toEqualTypeOf<
+        NextAppFlatStrategy<TestAtlas, TestLocale, {}>
       >();
     });
   });
@@ -194,12 +210,12 @@ describe("NextAppFlatStrategy", () => {
 
     it("rejects non-AnyPathAtlasProvider as PAP", () => {
       // @ts-expect-error - string does not satisfy AnyPathAtlasProvider
-      type _Invalid = NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider, string>;
+      type _Invalid = NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, string>;
     });
 
     it("rejects non-string as LK", () => {
       // @ts-expect-error - number does not satisfy string constraint
-      type _Invalid = NextAppFlatStrategy<TestAtlas, TestLocale, AnyFmtProvider, SimplePathAtlas, number>;
+      type _Invalid = NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimplePathAtlas, number>;
     });
 
     it("rejects non-AnyLocale as L", () => {
@@ -207,8 +223,8 @@ describe("NextAppFlatStrategy", () => {
       type _Invalid = NextAppFlatStrategy<TestAtlas, number>;
     });
 
-    it("rejects non-AnyFmtProvider as FP", () => {
-      // @ts-expect-error - string does not satisfy AnyFmtProvider
+    it("rejects non-NamespaceMap<TestAtlas> as KA", () => {
+      // @ts-expect-error - string does not satisfy NamespaceMap<TestAtlas>
       type _Invalid = NextAppFlatStrategy<TestAtlas, TestLocale, string>;
     });
   });

@@ -1,4 +1,4 @@
-const r = {
+export const r = {
   list: {
     title: "Dynamic Routes",
     description: "This page lists items with dynamic slugs",
@@ -15,5 +15,4 @@ const r = {
   },
 };
 
-export default r;
 export type R_ExampleDynamic = typeof r;

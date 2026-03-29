@@ -20,7 +20,7 @@ const mockConfig: RMachineConfig<AnyResourceAtlas, string, any> = {
   resourceAtlas: {},
   locales: ["en", "it"],
   defaultLocale: "en",
-  rModuleResolver: async () => ({ default: {} }),
+  load: async () => ({ r: {} }),
   kit: {},
 };
 
@@ -28,7 +28,7 @@ const narrowConfig: RMachineConfig<AnyResourceAtlas, "en" | "it", any> = {
   resourceAtlas: {},
   locales: ["en", "it"],
   defaultLocale: "en",
-  rModuleResolver: async () => ({ default: {} }),
+  load: async () => ({ r: {} }),
   kit: {},
 };
 
@@ -62,7 +62,7 @@ describe("RMachine", () => {
         resourceAtlas: {} as TestResourceAtlas,
         locales: ["en", "it"] as const,
         defaultLocale: "en",
-        rModuleResolver: async () => ({ default: {} }),
+        load: async () => ({ r: {} }),
       });
       expectTypeOf(bundle.rMachine).toBeObject();
       expectTypeOf(bundle.R).toBeObject();
@@ -73,7 +73,7 @@ describe("RMachine", () => {
         resourceAtlas: {} as TestResourceAtlas,
         locales: ["en", "it"] as const,
         defaultLocale: "en",
-        rModuleResolver: async () => ({ default: {} }),
+        load: async () => ({ r: {} }),
         kit: { nav: "common" as const },
       });
       expectTypeOf(bundle.rMachine).toBeObject();

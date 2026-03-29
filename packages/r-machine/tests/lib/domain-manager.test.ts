@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Domain } from "../../src/lib/domain.js";
 import { DomainManager } from "../../src/lib/domain-manager.js";
-import type { AnyRModule, RModuleResolver } from "../../src/lib/r-module.js";
+import type { AnyRModule, RModuleLoader } from "../../src/lib/r-module.js";
 import { createMockResolver } from "../_fixtures/resolver-helpers.js";
 
 const commonR = { greeting: "hello" };
@@ -10,11 +10,11 @@ const navR = { home: "Home" };
 
 const modules: Record<string, Record<string, AnyRModule>> = {
   en: {
-    common: { default: commonR },
-    nav: { default: navR },
+    common: { r: commonR },
+    nav: { r: navR },
   },
   it: {
-    common: { default: { greeting: "ciao" } },
+    common: { r: { greeting: "ciao" } },
   },
 };
 
@@ -40,7 +40,7 @@ describe("DomainManager", () => {
     });
 
     it("creates domains that share the same resolver", async () => {
-      const resolver = vi.fn<RModuleResolver>((namespace, locale) => {
+      const resolver = vi.fn<RModuleLoader>((namespace, locale) => {
         const mod = modules[locale]?.[namespace];
         return mod ? Promise.resolve(mod) : Promise.reject(new Error("not found"));
       });

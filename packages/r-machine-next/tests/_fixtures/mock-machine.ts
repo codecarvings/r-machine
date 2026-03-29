@@ -1,4 +1,4 @@
-import type { AnyFmtProvider, RMachine } from "r-machine";
+import type { NamespaceMap, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "r-machine/errors";
 import { vi } from "vitest";
 import type { TestLocale } from "./constants.js";
@@ -41,7 +41,7 @@ export function createMockMachine<L extends string = TestLocale>(overrides: Mock
     hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
     pickR: vi.fn(overrides.pickR ?? (() => Promise.resolve({ greeting: "hello" }))),
     pickRKit: vi.fn(overrides.pickRKit ?? (() => Promise.resolve([{ greeting: "hello" }, { home: "Home" }]))),
-  } as unknown as RMachine<TestAtlas, L, AnyFmtProvider>;
+  } as unknown as RMachine<TestAtlas, L, NamespaceMap<TestAtlas>>;
 }
 
 export function createMockMachineForProxy<L extends string = TestLocale>(
@@ -57,5 +57,5 @@ export function createMockMachineForProxy<L extends string = TestLocale>(
     localeHelper: {
       matchLocalesForAcceptLanguageHeader: vi.fn(() => overrides.matchLocaleReturn ?? dl),
     },
-  } as unknown as RMachine<TestAtlas, L, AnyFmtProvider>;
+  } as unknown as RMachine<TestAtlas, L, NamespaceMap<TestAtlas>>;
 }

@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import { createContext, type ReactNode, use, useContext, useMemo, useState } from "react";
@@ -22,8 +22,8 @@ import { createReactBareToolset, type ReactBareToolset } from "./react-bare-tool
 // THIS IS THE BASE TOOLSET ALSO USED BY THE REACT STANDARD STRATEGY
 // DO NOT RENAME
 
-export type ReactToolset<RA extends AnyResourceAtlas, L extends AnyLocale, FP extends AnyFmtProvider> = Omit<
-  ReactBareToolset<RA, L, FP>,
+export type ReactToolset<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = Omit<
+  ReactBareToolset<RA, L, KA>,
   "ReactRMachine"
 > & {
   readonly ReactRMachine: ReactRMachine;
@@ -44,10 +44,10 @@ export interface ReactImpl<L extends AnyLocale> {
 
 type ReactToolsetContext<L extends AnyLocale> = [L, (newLocale: L) => void];
 
-export async function createReactToolset<RA extends AnyResourceAtlas, L extends AnyLocale, FP extends AnyFmtProvider>(
-  rMachine: RMachine<RA, L, FP>,
+export async function createReactToolset<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>>(
+  rMachine: RMachine<RA, L, KA>,
   impl: ReactImpl<L>
-): Promise<ReactToolset<RA, L, FP>> {
+): Promise<ReactToolset<RA, L, KA>> {
   const { ReactRMachine: OriginalReactRMachine, ...otherTools } = await createReactBareToolset(rMachine);
 
   const Context = createContext<ReactToolsetContext<L> | null>(null);
@@ -80,7 +80,7 @@ export async function createReactToolset<RA extends AnyResourceAtlas, L extends 
     }
   }
 
-  function useSetLocale(): ReturnType<ReactBareToolset<RA, L, FP>["useSetLocale"]> {
+  function useSetLocale(): ReturnType<ReactBareToolset<RA, L, KA>["useSetLocale"]> {
     const context = useReactToolsetContext();
 
     return (newLocale: L) => setLocale(newLocale, context);

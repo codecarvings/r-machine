@@ -2,15 +2,7 @@ import type { RShape } from "r-machine";
 import { Formatters } from "@/r-machine/formatters";
 import { R } from "@/r-machine/setup";
 
-/*
- * If you prefer, you can also import the formatters directly in your resource files and use
- * them as regular functions, without the need to access them through the R$ parameter.
- * This is useful if you don't want to use a factory function for your resources and prefer
- * to export a plain object instead.
- */
-// const { date, number, currency, plural } = Formatters.get("en");
-
-const r = R.define(($) => {
+export const r = R.define(($) => {
   const { date, number, currency, plural } = Formatters.get($.locale);
 
   return {
@@ -50,5 +42,4 @@ const r = R.define(($) => {
   };
 });
 
-export default r;
 export type R_Features_IntlDemo = RShape<typeof r>;

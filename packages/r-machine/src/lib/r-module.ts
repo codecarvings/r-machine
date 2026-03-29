@@ -17,15 +17,15 @@ import type { AnyR } from "./r.js";
 import type { AnyNamespace } from "./resource-atlas.js";
 
 // TODO: WIP
-export type AnyRFactory = ($: any) => AnyR | Promise<AnyR>;
+export type AnyRFactory = ($?: any) => AnyR | Promise<AnyR>;
 
 export type AnyRForge = AnyR | AnyRFactory;
 
 export interface AnyRModule {
-  readonly default: AnyRForge;
+  readonly r: AnyRForge;
 }
 
-export type RModuleResolver = (namespace: AnyNamespace, locale: AnyLocale) => Promise<AnyRModule>;
+export type RModuleLoader = (namespace: AnyNamespace, locale: AnyLocale) => Promise<AnyRModule>;
 
 function getResolveRFromModuleError(
   namespace: AnyNamespace,
@@ -46,7 +46,7 @@ export async function resolveRFromModule(rModule: AnyRModule, $: any): Promise<A
     throw getResolveRFromModuleError($.namespace, $.locale, "module is not an object");
   }
 
-  const rForge = rModule.default;
+  const rForge = rModule.r;
   const rForgeType = typeof rForge;
 
   if (rForgeType === "function") {
@@ -78,18 +78,14 @@ export async function resolveRFromModule(rModule: AnyRModule, $: any): Promise<A
   throw getResolveRFromModuleError($.namespace, $.locale, `invalid export type (${rForgeType})`);
 }
 
-export async function resolveR(
-  rModuleResolver: RModuleResolver,
-  namespace: AnyNamespace,
-  locale: AnyLocale
-): Promise<AnyR> {
+export async function resolveR(loadModule: RModuleLoader, namespace: AnyNamespace, locale: AnyLocale): Promise<AnyR> {
   let rModule: AnyRModule;
   try {
-    rModule = await rModuleResolver(namespace, locale);
+    rModule = await loadModule(namespace, locale);
   } catch (reason) {
     throw new RMachineResolveError(
       ERR_RESOLVE_FAILED,
-      `Unable to resolve resource module "${namespace}" for locale "${locale}" - rModuleResolver failed.`,
+      `Unable to resolve resource module "${namespace}" for locale "${locale}" - loadModule failed.`,
       reason as Error
     );
   }

@@ -1,4 +1,4 @@
-import type { AnyFmtProvider, RMachine } from "r-machine";
+import type { NamespaceMap, RMachine } from "r-machine";
 import type { ReactNode } from "react";
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyPathAtlasProvider, BoundPathComposer } from "#r-machine/next/core";
@@ -17,19 +17,19 @@ import type { TestAtlas } from "../../_fixtures/mock-machine.js";
 
 describe("createNextAppClientToolset", () => {
   it("accepts an RMachine and NextAppClientImpl as parameters", () => {
-    expectTypeOf(createNextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>)
+    expectTypeOf(createNextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>)
       .parameter(0)
-      .toEqualTypeOf<RMachine<TestAtlas, TestLocale, AnyFmtProvider>>();
-    expectTypeOf(createNextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>)
+      .toEqualTypeOf<RMachine<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>>();
+    expectTypeOf(createNextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>)
       .parameter(1)
       .toEqualTypeOf<NextAppClientImpl<TestLocale>>();
   });
 
   it("returns a Promise of NextAppClientToolset", () => {
     expectTypeOf(
-      createNextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>
+      createNextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>
     ).returns.toEqualTypeOf<
-      Promise<NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>>
+      Promise<NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>>
     >();
   });
 });
@@ -40,28 +40,28 @@ describe("createNextAppClientToolset", () => {
 
 describe("NextAppClientToolset", () => {
   it("has exactly the expected properties", () => {
-    type Keys = keyof NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>;
+    type Keys = keyof NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>;
     expectTypeOf<Keys>().toEqualTypeOf<
       "NextClientRMachine" | "useLocale" | "useSetLocale" | "usePathComposer" | "useR" | "useRKit"
     >();
   });
 
   it("does not have ReactRMachine", () => {
-    expectTypeOf<NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>>().not.toHaveProperty(
-      "ReactRMachine"
-    );
+    expectTypeOf<
+      NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>
+    >().not.toHaveProperty("ReactRMachine");
   });
 
   it("NextClientRMachine locale parameter tracks the toolset's L parameter", () => {
-    type ToolsetEnIt = NextAppClientToolset<TestAtlas, "en" | "it", AnyFmtProvider, TranslatedPathAtlas>;
-    type ToolsetFrDe = NextAppClientToolset<TestAtlas, "fr" | "de", AnyFmtProvider, TranslatedPathAtlas>;
+    type ToolsetEnIt = NextAppClientToolset<TestAtlas, "en" | "it", NamespaceMap<TestAtlas>, TranslatedPathAtlas>;
+    type ToolsetFrDe = NextAppClientToolset<TestAtlas, "fr" | "de", NamespaceMap<TestAtlas>, TranslatedPathAtlas>;
     expectTypeOf<ToolsetEnIt["NextClientRMachine"]>().toEqualTypeOf<NextAppClientRMachine<"en" | "it">>();
     expectTypeOf<ToolsetEnIt["NextClientRMachine"]>().not.toEqualTypeOf<ToolsetFrDe["NextClientRMachine"]>();
   });
 
   it("useLocale return type is determined by the L parameter", () => {
-    type ToolsetEnIt = NextAppClientToolset<TestAtlas, "en" | "it", AnyFmtProvider, TranslatedPathAtlas>;
-    type ToolsetFrDe = NextAppClientToolset<TestAtlas, "fr" | "de", AnyFmtProvider, TranslatedPathAtlas>;
+    type ToolsetEnIt = NextAppClientToolset<TestAtlas, "en" | "it", NamespaceMap<TestAtlas>, TranslatedPathAtlas>;
+    type ToolsetFrDe = NextAppClientToolset<TestAtlas, "fr" | "de", NamespaceMap<TestAtlas>, TranslatedPathAtlas>;
     expectTypeOf<ReturnType<ToolsetEnIt["useLocale"]>>().toEqualTypeOf<"en" | "it">();
     expectTypeOf<ReturnType<ToolsetFrDe["useLocale"]>>().toEqualTypeOf<"fr" | "de">();
     expectTypeOf<ToolsetEnIt["useLocale"]>().not.toEqualTypeOf<ToolsetFrDe["useLocale"]>();
@@ -69,19 +69,19 @@ describe("NextAppClientToolset", () => {
 
   it("useSetLocale setter parameter type is determined by the L parameter", () => {
     type Setter = ReturnType<
-      NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["useSetLocale"]
+      NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>["useSetLocale"]
     >;
     expectTypeOf<Setter>().toEqualTypeOf<(newLocale: TestLocale) => Promise<void>>();
     // Changing L changes the setter signature
     type OtherSetter = ReturnType<
-      NextAppClientToolset<TestAtlas, "fr" | "de", AnyFmtProvider, TranslatedPathAtlas>["useSetLocale"]
+      NextAppClientToolset<TestAtlas, "fr" | "de", NamespaceMap<TestAtlas>, TranslatedPathAtlas>["useSetLocale"]
     >;
     expectTypeOf<Setter>().not.toEqualTypeOf<OtherSetter>();
   });
 
   it("useSetLocale setter rejects locale values not in L", () => {
     const setLocale = {} as ReturnType<
-      NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["useSetLocale"]
+      NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>["useSetLocale"]
     >;
     // @ts-expect-error - "fr" is not in TestLocale ("en" | "it")
     setLocale("fr");
@@ -89,28 +89,28 @@ describe("NextAppClientToolset", () => {
 
   it("usePathComposer returns BoundPathComposer<PAP>", () => {
     expectTypeOf<
-      NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["usePathComposer"]
+      NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>["usePathComposer"]
     >().toEqualTypeOf<() => BoundPathComposer<TranslatedPathAtlas>>();
   });
 
   it("useR is parameterized by namespace", () => {
-    type UseR = NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["useR"];
+    type UseR = NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>["useR"];
     expectTypeOf<UseR>().parameter(0).toExtend<"common" | "nav">();
   });
 
   it("useR rejects namespace arguments not in atlas keys", () => {
-    type UseR = NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["useR"];
+    type UseR = NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>["useR"];
     expectTypeOf<"invalid">().not.toExtend<Parameters<UseR>[0]>();
   });
 
   it("useR return type is RA[N] for a given namespace", () => {
-    type Toolset = NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>;
+    type Toolset = NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>;
     expectTypeOf<Toolset["useR"]>().toExtend<(namespace: "common") => TestAtlas["common"]>();
     expectTypeOf<Toolset["useR"]>().toExtend<(namespace: "nav") => TestAtlas["nav"]>();
   });
 
   it("useRKit accepts namespace arguments constrained to atlas keys", () => {
-    type UseRKit = NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["useRKit"];
+    type UseRKit = NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>["useRKit"];
     expectTypeOf<UseRKit>().toBeCallableWith("common");
     expectTypeOf<UseRKit>().toBeCallableWith("common", "nav");
     expectTypeOf<UseRKit>().toExtend<(...args: ["common"]) => unknown>();
@@ -118,23 +118,25 @@ describe("NextAppClientToolset", () => {
   });
 
   it("useRKit rejects namespace arguments not in atlas keys", () => {
-    type UseRKit = NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["useRKit"];
+    type UseRKit = NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>["useRKit"];
     expectTypeOf<UseRKit>().not.toExtend<(...args: ["invalid"]) => unknown>();
     expectTypeOf<UseRKit>().not.toExtend<(...args: ["common", "invalid"]) => unknown>();
   });
 
   it("different RA produce different toolset types", () => {
     type OtherAtlas = { readonly other: { readonly value: number } };
-    expectTypeOf<NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>>().not.toEqualTypeOf<
-      NextAppClientToolset<OtherAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>
+    expectTypeOf<
+      NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>
+    >().not.toEqualTypeOf<
+      NextAppClientToolset<OtherAtlas, TestLocale, NamespaceMap<OtherAtlas>, TranslatedPathAtlas>
     >();
   });
 
   it("different L produce different toolset types", () => {
     type OtherLocale = "fr" | "de";
-    expectTypeOf<NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>>().not.toEqualTypeOf<
-      NextAppClientToolset<TestAtlas, OtherLocale, AnyFmtProvider, TranslatedPathAtlas>
-    >();
+    expectTypeOf<
+      NextAppClientToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>
+    >().not.toEqualTypeOf<NextAppClientToolset<TestAtlas, OtherLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>>();
   });
 
   it("different PAP produce different path selectors", () => {
@@ -142,7 +144,7 @@ describe("NextAppClientToolset", () => {
     type PathSelector = NextAppClientToolset<
       TestAtlas,
       TestLocale,
-      AnyFmtProvider,
+      NamespaceMap<TestAtlas>,
       TranslatedPathAtlas
     >["usePathComposer"] extends () => BoundPathComposer<infer PS>
       ? PS
@@ -150,7 +152,7 @@ describe("NextAppClientToolset", () => {
     type OtherPathSelector = NextAppClientToolset<
       TestAtlas,
       TestLocale,
-      AnyFmtProvider,
+      NamespaceMap<TestAtlas>,
       OtherPathAtlas
     >["usePathComposer"] extends () => BoundPathComposer<infer PS>
       ? PS

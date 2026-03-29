@@ -1,6 +1,6 @@
 import type { R_Common } from "./en";
 
-const r: R_Common = {
+export const r: R_Common = {
   title: (locale: string) => `[${locale}] - R-Machine ⧹ Examples ⧹ Next App ⧹ Flat Strategy`,
   footer: {
     message: (
@@ -14,4 +14,3 @@ const r: R_Common = {
   },
 };
 
-export default r;

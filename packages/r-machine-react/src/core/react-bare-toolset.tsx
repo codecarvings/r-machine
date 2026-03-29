@@ -13,7 +13,7 @@
 
 "use client";
 
-import type { AnyFmtProvider, AnyResourceAtlas, Namespace, NamespaceList, RKit, RMachine } from "r-machine";
+import type { AnyResourceAtlas, Namespace, NamespaceList, NamespaceMap, RKit, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
@@ -23,7 +23,7 @@ import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "#r-machine/reac
 type SetLocale<L extends AnyLocale> = (newLocale: L) => Promise<void>;
 type WriteLocale<L extends AnyLocale> = (newLocale: L) => void | Promise<void>;
 
-export interface ReactBareToolset<RA extends AnyResourceAtlas, L extends AnyLocale, _FP extends AnyFmtProvider> {
+export interface ReactBareToolset<RA extends AnyResourceAtlas, L extends AnyLocale, _KA extends NamespaceMap<RA>> {
   readonly ReactRMachine: ReactBareRMachine<L>;
   readonly useLocale: () => L;
   // Performance optimization: do not use the same approach as useState ([state, setState])
@@ -52,8 +52,8 @@ interface ReactBareToolsetContext<L extends AnyLocale> {
 export async function createReactBareToolset<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
->(rMachine: RMachine<RA, L, FP>): Promise<ReactBareToolset<RA, L, FP>> {
+  KA extends NamespaceMap<RA>,
+>(rMachine: RMachine<RA, L, KA>): Promise<ReactBareToolset<RA, L, KA>> {
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const Context = createContext<ReactBareToolsetContext<L> | null>(null);

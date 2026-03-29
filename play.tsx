@@ -18,7 +18,7 @@ const { rMachine, R } = RMachine.create({
   resourceAtlas: ofType<ResourceAtlas>(),
   locales: ["en", "it"],
   defaultLocale: "en",
-  rModuleResolver: async (namespace, locale) => {
+  load: async (namespace, locale) => {
     await new Promise((resolve) => setTimeout(resolve, 500));
     return {
       default: async ($: any) => {

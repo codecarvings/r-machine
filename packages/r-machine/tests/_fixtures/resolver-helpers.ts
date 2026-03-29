@@ -1,6 +1,6 @@
-import type { AnyRModule, RModuleResolver } from "../../src/lib/r-module.js";
+import type { AnyRModule, RModuleLoader } from "../../src/lib/r-module.js";
 
-export function createMockResolver(modules: Record<string, Record<string, AnyRModule>>): RModuleResolver {
+export function createMockResolver(modules: Record<string, Record<string, AnyRModule>>): RModuleLoader {
   return (namespace, locale) => {
     const localeModules = modules[locale];
     if (!localeModules) {
@@ -17,7 +17,7 @@ export function createMockResolver(modules: Record<string, Record<string, AnyRMo
 export function createDelayedResolver(
   modules: Record<string, Record<string, AnyRModule>>,
   delayMs = 10
-): RModuleResolver {
+): RModuleLoader {
   return (namespace, locale) => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {

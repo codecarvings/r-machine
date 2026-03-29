@@ -1,4 +1,4 @@
-import type { AnyFmtProvider, RMachine } from "r-machine";
+import type { NamespaceMap, RMachine } from "r-machine";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ExtendedPathAtlasProvider } from "#r-machine/next/core";
 import type { NextAppClientImpl, NextAppClientRMachine } from "../../../src/core/app/next-app-client-toolset.js";
@@ -50,7 +50,7 @@ function createTestStrategy() {
     createBoundPathComposerSupplier: vi.fn(async () => async () => vi.fn(() => "/")),
   };
 
-  class TestStrategy extends NextAppStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, TestConfig> {
+  class TestStrategy extends NextAppStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TestConfig> {
     protected readonly pathAtlas = {
       decl: {},
       containsTranslations: false,
@@ -65,7 +65,7 @@ function createTestStrategy() {
     }
   }
 
-  const rMachine = createMockMachine() as unknown as RMachine<TestAtlas, TestLocale, AnyFmtProvider>;
+  const rMachine = createMockMachine() as unknown as RMachine<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>;
   const strategy = new TestStrategy(rMachine, NextAppStrategyCore.defaultConfig as TestConfig);
 
   return { strategy, rMachine, mockClientImpl, mockServerImpl };

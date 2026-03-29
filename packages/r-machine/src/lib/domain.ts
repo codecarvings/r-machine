@@ -14,7 +14,7 @@
 import type { AnyLocale } from "#r-machine/locale";
 import type { AnyR } from "./r.js";
 import type { AnyNamespaceList, AnyRKit } from "./r-kit.js";
-import { type RModuleResolver, resolveR } from "./r-module.js";
+import { type RModuleLoader, resolveR } from "./r-module.js";
 import type { AnyNamespace } from "./resource-atlas.js";
 
 function getRKitKey(...namespaces: AnyNamespaceList): string {
@@ -24,7 +24,7 @@ function getRKitKey(...namespaces: AnyNamespaceList): string {
 export class Domain {
   constructor(
     readonly locale: AnyLocale,
-    protected readonly rModuleResolver: RModuleResolver
+    protected readonly loadModule: RModuleLoader
   ) {}
 
   protected resources = new Map<AnyNamespace, AnyR | Promise<AnyR>>();
@@ -32,7 +32,7 @@ export class Domain {
 
   protected resolveR(namespace: AnyNamespace): Promise<AnyR> {
     const r = new Promise<AnyR>((resolve, reject) => {
-      resolveR(this.rModuleResolver, namespace, this.locale).then(
+      resolveR(this.loadModule, namespace, this.locale).then(
         (r) => {
           this.resources.set(namespace, r);
           resolve(r);

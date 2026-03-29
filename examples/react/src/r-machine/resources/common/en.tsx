@@ -1,6 +1,6 @@
 import type { RShape } from "r-machine";
 
-const r = {
+export const r = {
   footer: {
     message: (
       <>
@@ -13,5 +13,4 @@ const r = {
   },
 };
 
-export default r;
 export type R_Common = RShape<typeof r>;

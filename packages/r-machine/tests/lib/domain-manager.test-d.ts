@@ -2,15 +2,15 @@ import { describe, expectTypeOf, it } from "vitest";
 
 import type { Domain } from "../../src/lib/domain.js";
 import { DomainManager } from "../../src/lib/domain-manager.js";
-import type { RModuleResolver } from "../../src/lib/r-module.js";
+import type { RModuleLoader } from "../../src/lib/r-module.js";
 
 describe("DomainManager", () => {
   it("should be a class", () => {
-    expectTypeOf(DomainManager).toBeConstructibleWith((() => Promise.resolve({ default: {} })) as RModuleResolver);
+    expectTypeOf(DomainManager).toBeConstructibleWith((() => Promise.resolve({ r: {} })) as RModuleLoader);
   });
 
-  it("constructor should require an RModuleResolver parameter", () => {
-    expectTypeOf(DomainManager).constructorParameters.toEqualTypeOf<[rModuleResolver: RModuleResolver]>();
+  it("constructor should require an RModuleLoader parameter", () => {
+    expectTypeOf(DomainManager).constructorParameters.toEqualTypeOf<[loadModule: RModuleLoader]>();
   });
 
   describe("getDomain", () => {
@@ -28,8 +28,8 @@ describe("DomainManager", () => {
   });
 
   describe("protected members are not publicly accessible", () => {
-    it("should not expose rModuleResolver", () => {
-      expectTypeOf<DomainManager>().not.toHaveProperty("rModuleResolver");
+    it("should not expose loadModule", () => {
+      expectTypeOf<DomainManager>().not.toHaveProperty("loadModule");
     });
 
     it("should not expose cache", () => {

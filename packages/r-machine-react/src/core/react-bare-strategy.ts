@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
+import type { AnyResourceAtlas, NamespaceMap } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { Strategy } from "r-machine/strategy";
 import { createReactBareToolset, type ReactBareToolset } from "./react-bare-toolset.js";
@@ -19,9 +19,9 @@ import { createReactBareToolset, type ReactBareToolset } from "./react-bare-tool
 export class ReactBareStrategy<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
-> extends Strategy<RA, L, FP, undefined> {
-  createToolset(): Promise<ReactBareToolset<RA, L, FP>> {
+  KA extends NamespaceMap<RA>,
+> extends Strategy<RA, L, KA, undefined> {
+  createToolset(): Promise<ReactBareToolset<RA, L, KA>> {
     return createReactBareToolset(this.rMachine);
   }
 }

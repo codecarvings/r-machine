@@ -1,4 +1,3 @@
-import { ResourceAtlasSeed } from "r-machine";
 import type { R_Common } from "./resources/common/en";
 import type { R_ExampleDynamic } from "./resources/example-dynamic/en";
 import type { R_ExampleStatic } from "./resources/example-static/en";
@@ -8,7 +7,7 @@ import type { R_Features_IntlDemo } from "./resources/features/intl_demo/en";
 import type { R_LandingPage } from "./resources/landing-page/en";
 import type { R_Navigation } from "./resources/navigation/en";
 
-export class ResourceAtlas extends ResourceAtlasSeed.create<{
+export type ResourceAtlas = {
   common: R_Common;
   navigation: R_Navigation;
   "landing-page": R_LandingPage;
@@ -17,4 +16,4 @@ export class ResourceAtlas extends ResourceAtlasSeed.create<{
   "features/intl_demo": R_Features_IntlDemo;
   "example-static": R_ExampleStatic;
   "example-dynamic": R_ExampleDynamic;
-}>() {}
+};

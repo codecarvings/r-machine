@@ -1,6 +1,7 @@
+import { R } from "@/r-machine/setup";
 import type { R_Features_Box_3 } from "./en";
 
-const rFactory = async () => {
+export const r = R.withType<R_Features_Box_3>().define(async () => {
   // Simulate a delay to force display of loading state
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -13,7 +14,5 @@ const rFactory = async () => {
       </>
     ),
     badge: "React",
-  } satisfies R_Features_Box_3;
-};
-
-export default rFactory;
+  };
+});

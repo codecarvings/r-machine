@@ -1,8 +1,8 @@
 import { Formatters } from "@/r-machine/formatters";
-import type { R$ } from "@/r-machine/setup";
+import { R } from "@/r-machine/setup";
 import type { R_Features_IntlDemo } from "./en";
 
-const r = ($: R$): R_Features_IntlDemo => {
+export const r = R.withType<R_Features_IntlDemo>().define(($) => {
   const { date, number, currency, plural } = Formatters.get($.locale);
 
   return {
@@ -36,6 +36,5 @@ const r = ($: R$): R_Features_IntlDemo => {
       ),
     },
   };
-};
+});
 
-export default r;

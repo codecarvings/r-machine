@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
+import type { AnyResourceAtlas, NamespaceMap } from "r-machine";
 import { RMachineConfigError } from "r-machine/errors";
 import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
 import type { SwitchableOption } from "r-machine/strategy";
@@ -97,9 +97,9 @@ const defaultConfig: NextAppPathStrategyConfig<
 export abstract class NextAppPathStrategyCore<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  KA extends NamespaceMap<RA>,
   C extends AnyNextAppPathStrategyConfig,
-> extends NextAppStrategyCore<RA, L, FP, C> {
+> extends NextAppStrategyCore<RA, L, KA, C> {
   static override readonly defaultConfig = defaultConfig;
 
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, true);
@@ -179,7 +179,7 @@ export abstract class NextAppPathStrategyCore<
 
   async createNoProxyServerToolset(
     NextClientRMachine: NextAppClientRMachine<L>
-  ): Promise<NextAppNoProxyServerToolset<RA, L, FP, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
+  ): Promise<NextAppNoProxyServerToolset<RA, L, KA, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     this.validateNoProxyConfig();
     const impl = await this.createServerImpl();
     const module = await import("../next-app-no-proxy-server-toolset.js");
