@@ -16,3 +16,7 @@ import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
 export type NamespaceMap<RA extends AnyResourceAtlas> = {
   readonly [k: string]: Namespace<RA>;
 };
+
+export type RMap<RA extends AnyResourceAtlas, NM extends NamespaceMap<RA>> = {
+  readonly [K in keyof NM]: RA[NM[K]];
+};

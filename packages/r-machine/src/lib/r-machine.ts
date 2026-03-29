@@ -15,20 +15,24 @@ import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
 import { DomainManager } from "./domain-manager.js";
-import type { AnyFmtProvider, EmptyFmtProvider } from "./fmt.js";
+import type { R } from "./r.js";
 import type { NamespaceList, RKit } from "./r-kit.js";
-import { defaultRMachineExtensions, type RMachineExtensions } from "./r-machine-builder.js";
 import {
   cloneRMachineConfig,
   type RMachineConfig,
   type RMachineConfigParams,
   validateRMachineConfig,
 } from "./r-machine-config.js";
-import type { RCtx } from "./r-module.js";
-import type { AnyResourceAtlas, AnyResourceAtlasCtor, Namespace } from "./resource-atlas.js";
+import type { NamespaceMap } from "./r-map.js";
+import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
 
-export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, FP extends AnyFmtProvider> {
-  constructor(config: RMachineConfig<RA, L>, extensions: RMachineExtensions<FP>) {
+interface RMachineBundle<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
+  readonly rMachine: RMachine<RA, L, KA>;
+  readonly R: R<RA, L, KA>;
+}
+
+export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
+  constructor(config: RMachineConfig<RA, L, KA>) {
     const configError = validateRMachineConfig(config);
     if (configError) {
       throw configError;
@@ -38,15 +42,13 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, FP exten
     this.defaultLocale = this.config.defaultLocale;
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
     this.domainManager = new DomainManager(config.rModuleResolver);
-    this.extensions = extensions; // TO BE REMOVED
   }
 
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly localeHelper: LocaleHelper<L>;
-  protected readonly config: RMachineConfig<RA, L>;
+  protected readonly config: RMachineConfig<RA, L, KA>;
   protected readonly domainManager: DomainManager;
-  protected readonly extensions: RMachineExtensions<FP>;
 
   protected validateLocaleForPick(locale: L) {
     const error = this.localeHelper.validateLocale(locale);
@@ -85,23 +87,15 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, FP exten
     return domain.hybridPickRKit(namespaces) as RKit<RA, NL> | Promise<RKit<RA, NL>>;
   };
 
-  static create<RAC extends AnyResourceAtlasCtor, const LL extends AnyLocaleList>(
-    config: RMachineConfigParams<RAC, LL>
-  ): RMachine<InstanceType<RAC>, LL[number], EmptyFmtProvider> {
-    return new RMachine(config as any, defaultRMachineExtensions);
+  static create<RA extends AnyResourceAtlas, const LL extends AnyLocaleList, const KA extends NamespaceMap<RA> = {}>(
+    config: RMachineConfigParams<RA, LL, KA>
+  ): RMachineBundle<RA, LL[number], KA> {
+    const rMachine = new RMachine<RA, LL[number], KA>(config as any);
+    return {
+      rMachine,
+      R: undefined!,
+    };
   }
 }
 
 export type RMachineLocale<RM extends RMachine<any, any, any>> = RM extends RMachine<any, infer L, any> ? L : never;
-
-export type RMachineRCtx<T> = T extends RMachine<any, infer L, infer FP> ? RCtx<L, FP> : never;
-
-/*
-type RBuilder<RA extends AnyResourceAtlas, L extends AnyLocale, FP extends AnyFmtProvider> = (
-  $: RCtx<L, FP> & {
-    kit: RKit<RA, NamespaceList<RA>>;
-  }
-) => any;
-
-type RTemp<RA extends AnyResourceAtlas> = {};
-*/

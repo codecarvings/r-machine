@@ -1,47 +1,38 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyR, R } from "../../src/lib/r.js";
-import type { RCtx } from "../../src/lib/r-module.js";
+import type { AnyR, R, RShape } from "../../src/lib/r.js";
 
-describe("R", () => {
+describe("RShape", () => {
   it("should extract type from object forge", () => {
     type ResourceObject = { greeting: string; farewell: string };
-    type Result = R<ResourceObject>;
+    type Result = RShape<ResourceObject>;
     expectTypeOf<Result>().toExtend<ResourceObject>();
   });
 
   it("should extract type from sync factory", () => {
     type ResourceObject = { greeting: string };
-    type Factory = ($: RCtx) => ResourceObject;
-    type Result = R<Factory>;
+    type Factory = ($: any) => ResourceObject;
+    type Result = RShape<Factory>;
     expectTypeOf<Result>().toExtend<ResourceObject>();
   });
 
   it("should extract type from async factory", () => {
     type ResourceObject = { greeting: string };
-    type AsyncFactory = ($: RCtx) => Promise<ResourceObject>;
-    type Result = R<AsyncFactory>;
+    type AsyncFactory = ($: any) => Promise<ResourceObject>;
+    type Result = RShape<AsyncFactory>;
     expectTypeOf<Result>().toExtend<ResourceObject>();
   });
 
   it("should preserve resource structure from object", () => {
     type Resource = { title: string; count: number };
-    type Result = R<Resource>;
+    type Result = RShape<Resource>;
     expectTypeOf<Result>().toHaveProperty("title");
     expectTypeOf<Result>().toHaveProperty("count");
   });
 
   it("should preserve resource structure from factory", () => {
     type Resource = { title: string; count: number };
-    type Factory = ($: RCtx) => Resource;
-    type Result = R<Factory>;
-    expectTypeOf<Result>().toHaveProperty("title");
-    expectTypeOf<Result>().toHaveProperty("count");
-  });
-
-  it("should preserve resource structure from async factory", () => {
-    type Resource = { title: string; count: number };
-    type Factory = ($: RCtx) => Promise<Resource>;
-    type Result = R<Factory>;
+    type Factory = ($: any) => Resource;
+    type Result = RShape<Factory>;
     expectTypeOf<Result>().toHaveProperty("title");
     expectTypeOf<Result>().toHaveProperty("count");
   });
@@ -57,21 +48,56 @@ describe("R", () => {
         cancel: string;
       };
     };
-    type Result = R<NestedResource>;
+    type Result = RShape<NestedResource>;
     expectTypeOf<Result>().toHaveProperty("messages");
     expectTypeOf<Result>().toHaveProperty("buttons");
   });
 
-  it("R type should extend AnyR", () => {
+  it("RShape type should extend AnyR", () => {
     type Resource = { greeting: string };
-    type Result = R<Resource>;
+    type Result = RShape<Resource>;
     expectTypeOf<Result>().toExtend<AnyR>();
   });
 
-  it("R from factory should extend AnyR", () => {
+  it("RShape from factory should extend AnyR", () => {
     type Resource = { greeting: string };
-    type Factory = ($: RCtx) => Resource;
-    type Result = R<Factory>;
+    type Factory = ($: any) => Resource;
+    type Result = RShape<Factory>;
     expectTypeOf<Result>().toExtend<AnyR>();
+  });
+});
+
+describe("R interface", () => {
+  type TestAtlas = {
+    readonly common: { greeting: string };
+    readonly nav: { home: string };
+  };
+
+  type TestKA = { readonly c: "common"; readonly n: "nav" };
+
+  it("should have a define method", () => {
+    type TestR = R<TestAtlas, "en" | "it", TestKA>;
+    expectTypeOf<TestR>().toHaveProperty("define");
+  });
+
+  it("define should accept a factory receiving RCtx", () => {
+    type TestR = R<TestAtlas, "en" | "it", TestKA>;
+    type DefineParam = Parameters<TestR["define"]>[0];
+    expectTypeOf<DefineParam>().toBeFunction();
+  });
+
+  it("factory parameter should receive locale and kit from RCtx", () => {
+    type TestR = R<TestAtlas, "en" | "it", TestKA>;
+    type FactoryCtx = Parameters<Parameters<TestR["define"]>[0]>[0];
+    expectTypeOf<FactoryCtx>().toHaveProperty("locale");
+    expectTypeOf<FactoryCtx>().toHaveProperty("kit");
+    expectTypeOf<FactoryCtx["locale"]>().toEqualTypeOf<"en" | "it">();
+  });
+
+  it("kit in factory context should resolve namespace aliases to resource types", () => {
+    type TestR = R<TestAtlas, "en" | "it", TestKA>;
+    type FactoryCtx = Parameters<Parameters<TestR["define"]>[0]>[0];
+    expectTypeOf<FactoryCtx["kit"]["c"]>().toEqualTypeOf<TestAtlas["common"]>();
+    expectTypeOf<FactoryCtx["kit"]["n"]>().toEqualTypeOf<TestAtlas["nav"]>();
   });
 });

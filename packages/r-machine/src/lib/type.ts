@@ -11,13 +11,6 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, EmptyFmtProvider, FmtProviderCtor } from "./fmt.js";
-import { EmptyFmtProviderCtor } from "./fmt.js";
-
-export interface RMachineExtensions<FP extends AnyFmtProvider> {
-  readonly Formatters: FmtProviderCtor<FP>;
+export function ofType<T>(): T {
+  return undefined!;
 }
-
-export const defaultRMachineExtensions: RMachineExtensions<EmptyFmtProvider> = {
-  Formatters: EmptyFmtProviderCtor,
-};

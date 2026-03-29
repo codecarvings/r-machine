@@ -23,25 +23,32 @@ import {
   type LocaleList,
   validateCanonicalUnicodeLocaleId,
 } from "#r-machine/locale";
+import type { NamespaceMap } from "./r-map.js";
 import type { RModuleResolver } from "./r-module.js";
-import type { AnyResourceAtlas, AnyResourceAtlasCtor } from "./resource-atlas.js";
+import type { AnyResourceAtlas } from "./resource-atlas.js";
 
 // The generic parameter LL is used to ensure that the defaultLocale is one of the locales in the list
-export interface RMachineConfigParams<RAC extends AnyResourceAtlasCtor, LL extends AnyLocaleList> {
-  readonly ResourceAtlas: RAC;
+export interface RMachineConfigParams<
+  RA extends AnyResourceAtlas,
+  LL extends AnyLocaleList,
+  KA extends NamespaceMap<RA>,
+> {
+  readonly resourceAtlas: RA;
   readonly locales: LL;
   readonly defaultLocale: LL[number];
   readonly rModuleResolver: RModuleResolver;
+  readonly kit?: KA;
 }
 
-export interface RMachineConfig<RA extends AnyResourceAtlas, L extends AnyLocale> {
-  readonly resourceAtlas?: RA;
+export interface RMachineConfig<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
+  readonly resourceAtlas: RA;
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly rModuleResolver: RModuleResolver;
+  readonly kit: KA;
 }
 
-export function validateRMachineConfig(config: RMachineConfig<any, any>): RMachineConfigError | null {
+export function validateRMachineConfig(config: RMachineConfig<any, any, any>): RMachineConfigError | null {
   if (!config.locales.length) {
     return new RMachineConfigError(ERR_NO_LOCALES, "No locales provided.");
   }
@@ -72,11 +79,9 @@ export function validateRMachineConfig(config: RMachineConfig<any, any>): RMachi
   return null;
 }
 
-export function cloneRMachineConfig<RA extends AnyResourceAtlas, L extends AnyLocale>(
-  config: RMachineConfig<RA, L>
-): RMachineConfig<RA, L> {
+export function cloneRMachineConfig<C extends RMachineConfig<any, any, any>>(config: C): C {
   return {
     ...config,
-    locales: Object.freeze([...config.locales]) as LocaleList<L>,
+    locales: Object.freeze([...config.locales]) as LocaleList<C["defaultLocale"]>,
   };
 }

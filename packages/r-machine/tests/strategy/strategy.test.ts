@@ -1,13 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import type { AnyFmtProvider, AnyResourceAtlas, EmptyFmtProvider, RMachineConfig } from "#r-machine";
+import type { AnyResourceAtlas, RMachineConfig } from "#r-machine";
 import type { AnyLocale } from "#r-machine/locale";
 import { RMachine } from "../../src/lib/r-machine.js";
-import { defaultRMachineExtensions } from "../../src/lib/r-machine-builder.js";
 import { Strategy } from "../../src/strategy/strategy.js";
 
 function createSpyStrategyClass<RA extends AnyResourceAtlas, L extends AnyLocale, C>() {
   const validateConfigSpy = vi.fn();
-  class SpyStrategy extends Strategy<RA, L, AnyFmtProvider, C> {
+  class SpyStrategy extends Strategy<RA, L, {}, C> {
     protected override validateConfig(): void {
       validateConfigSpy();
     }
@@ -15,22 +14,24 @@ function createSpyStrategyClass<RA extends AnyResourceAtlas, L extends AnyLocale
   return { SpyStrategy, validateConfigSpy };
 }
 
-class ThrowingStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, AnyFmtProvider, C> {
+class ThrowingStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, {}, C> {
   protected override validateConfig(): void {
     throw new Error("Validation failed");
   }
 }
 
-class DefaultStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, AnyFmtProvider, C> {}
+class DefaultStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, {}, C> {}
 
-const testConfig: RMachineConfig<AnyResourceAtlas, string> = {
+const testConfig: RMachineConfig<AnyResourceAtlas, string, {}> = {
+  resourceAtlas: {},
   locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: async () => ({ default: {} }),
+  kit: {},
 };
 
 function createTestRMachine() {
-  return new RMachine<AnyResourceAtlas, string, EmptyFmtProvider>(testConfig, defaultRMachineExtensions);
+  return new RMachine<AnyResourceAtlas, string, {}>(testConfig);
 }
 
 describe("Strategy", () => {

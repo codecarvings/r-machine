@@ -11,14 +11,10 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, ResourceAtlasCtor } from "./resource-atlas.js";
+import type { AnyLocale } from "#r-machine/locale";
+import type { AnyResourceAtlas } from "./resource-atlas.js";
 
-interface ResourceAtlasSeed {
-  create<RA extends AnyResourceAtlas>(): ResourceAtlasCtor<RA>;
+export interface RCtx<L extends AnyLocale, KA extends AnyResourceAtlas> {
+  readonly locale: L;
+  readonly kit: KA;
 }
-
-export const ResourceAtlasSeed: ResourceAtlasSeed = {
-  create<RA extends AnyResourceAtlas>(): ResourceAtlasCtor<RA> {
-    return class {} as ResourceAtlasCtor<RA>;
-  },
-};

@@ -1,4 +1,4 @@
-import type { R } from "r-machine";
+import type { RShape } from "r-machine";
 
 const r = {
   box1: {
@@ -24,4 +24,4 @@ const r = {
 };
 
 export default r;
-export type R_Features_Box_1_2 = R<typeof r>;
+export type R_Features_Box_1_2 = RShape<typeof r>;

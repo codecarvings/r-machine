@@ -1,4 +1,4 @@
-import type { R } from "r-machine";
+import type { RShape } from "r-machine";
 
 const rFactory = async () => {
   // Simulate a delay to force display of loading state
@@ -17,4 +17,4 @@ const rFactory = async () => {
 };
 
 export default rFactory;
-export type R_Features_Box_3 = R<typeof rFactory>;
+export type R_Features_Box_3 = RShape<typeof rFactory>;

@@ -20,9 +20,3 @@ export interface AnyResourceAtlas {
 }
 
 export type Namespace<RA extends AnyResourceAtlas> = Extract<keyof RA, AnyNamespace>;
-
-export interface ResourceAtlasCtor<RA extends AnyResourceAtlas> {
-  new (): RA;
-}
-
-export type AnyResourceAtlasCtor = ResourceAtlasCtor<AnyResourceAtlas>;

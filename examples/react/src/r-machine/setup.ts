@@ -1,12 +1,12 @@
 import { ReactStandardStrategy } from "@r-machine/react";
-import { RMachine, type RMachineLocale, type RMachineRCtx } from "r-machine";
-import { ResourceAtlas } from "./resource-atlas";
+import { ofType, RMachine, type RMachineLocale } from "r-machine";
+import type { ResourceAtlas } from "./resource-atlas";
 
 // Vite statically analyzes this at build time and creates chunk files for all matching modules
 const moduleLoaders = import.meta.glob<{ default: any }>("./resources/**/*.{tsx,ts}");
 
-const rMachine = RMachine.create({
-  ResourceAtlas,
+export const { rMachine, R } = RMachine.create({
+  resourceAtlas: ofType<ResourceAtlas>(),
   locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: (namespace, locale) => {
@@ -21,10 +21,12 @@ const rMachine = RMachine.create({
 
     return moduleLoader();
   },
-}) as any; // TODO: WIP
+  kit: {
+    landingPage: "landing-page",
+  },
+});
 
 export type Locale = RMachineLocale<typeof rMachine>;
-export type R$ = RMachineRCtx<typeof rMachine>;
 
 // Step 4: setup the strategy
 export const strategy = new ReactStandardStrategy(rMachine, {

@@ -1,13 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyR } from "../../src/lib/r.js";
-import type { RCtx } from "../../src/lib/r-module.js";
-import type {
-  AnyNamespace,
-  AnyResourceAtlas,
-  AnyResourceAtlasCtor,
-  Namespace,
-  ResourceAtlasCtor,
-} from "../../src/lib/resource-atlas.js";
+import type { AnyNamespace, AnyResourceAtlas, Namespace } from "../../src/lib/resource-atlas.js";
 
 describe("AnyNamespace", () => {
   it("should be string type and accept string literals", () => {
@@ -36,14 +29,14 @@ describe("AnyResourceAtlas", () => {
 
   it("resource atlas with factory should be assignable", () => {
     const atlas: AnyResourceAtlas = {
-      common: ($: RCtx) => ({ greeting: `Hello from ${$.locale}` }),
+      common: () => ({ greeting: "Hello" }),
     };
     expectTypeOf(atlas).toExtend<AnyResourceAtlas>();
   });
 
   it("resource atlas with async factory should be assignable", () => {
     const atlas: AnyResourceAtlas = {
-      common: async ($: RCtx) => ({ greeting: `Hello from ${$.locale}` }),
+      common: async () => ({ greeting: "Hello" }),
     };
     expectTypeOf(atlas).toExtend<AnyResourceAtlas>();
   });
@@ -79,30 +72,5 @@ describe("Namespace", () => {
     };
     type NS = Namespace<TestAtlas>;
     expectTypeOf<NS>().toExtend<string>();
-  });
-});
-
-describe("ResourceAtlasCtor", () => {
-  it("should be a constructor type for a specific ResourceAtlas", () => {
-    type TestAtlas = {
-      readonly common: { greeting: string };
-    };
-    type Ctor = ResourceAtlasCtor<TestAtlas>;
-    expectTypeOf<Ctor>().toBeConstructibleWith();
-    expectTypeOf<InstanceType<Ctor>>().toEqualTypeOf<TestAtlas>();
-  });
-
-  it("should extend AnyResourceAtlasCtor", () => {
-    type TestAtlas = {
-      readonly common: { greeting: string };
-    };
-    expectTypeOf<ResourceAtlasCtor<TestAtlas>>().toExtend<AnyResourceAtlasCtor>();
-  });
-});
-
-describe("AnyResourceAtlasCtor", () => {
-  it("should be a constructor for AnyResourceAtlas", () => {
-    expectTypeOf<AnyResourceAtlasCtor>().toBeConstructibleWith();
-    expectTypeOf<InstanceType<AnyResourceAtlasCtor>>().toExtend<AnyResourceAtlas>();
   });
 });

@@ -1,6 +1,6 @@
-import type { R } from "r-machine";
+import type { RShape } from "r-machine";
 import { Formatters } from "@/r-machine/formatters";
-import type { R$ } from "@/r-machine/setup";
+import { R } from "@/r-machine/setup";
 
 /*
  * If you prefer, you can also import the formatters directly in your resource files and use
@@ -10,7 +10,7 @@ import type { R$ } from "@/r-machine/setup";
  */
 // const { date, number, currency, plural } = Formatters.get("en");
 
-const r = ($: R$) => {
+const r = R.define(($) => {
   const { date, number, currency, plural } = Formatters.get($.locale);
 
   return {
@@ -48,7 +48,7 @@ const r = ($: R$) => {
       ),
     },
   };
-};
+});
 
 export default r;
-export type R_Features_IntlDemo = R<typeof r>;
+export type R_Features_IntlDemo = RShape<typeof r>;

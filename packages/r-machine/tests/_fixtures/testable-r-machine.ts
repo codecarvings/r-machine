@@ -1,12 +1,13 @@
-import type { AnyFmtProvider, AnyResourceAtlas, EmptyFmtProvider, Namespace, NamespaceList } from "#r-machine";
+import type { AnyResourceAtlas, Namespace, NamespaceList } from "#r-machine";
 import type { AnyLocale } from "#r-machine/locale";
 import { RMachine } from "../../src/lib/r-machine.js";
+import type { NamespaceMap } from "../../src/lib/r-map.js";
 
 export class TestableRMachine<
   RA extends AnyResourceAtlas,
   L extends AnyLocale = string,
-  FP extends AnyFmtProvider = EmptyFmtProvider,
-> extends RMachine<RA, L, FP> {
+  KA extends NamespaceMap<RA> = {},
+> extends RMachine<RA, L, KA> {
   public exposeHybridPickR<N extends Namespace<RA>>(locale: L, namespace: N): RA[N] | Promise<RA[N]> {
     return this.hybridPickR(locale, namespace);
   }

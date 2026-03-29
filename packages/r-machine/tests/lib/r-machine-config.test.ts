@@ -8,15 +8,17 @@ import {
 } from "#r-machine/errors";
 import { cloneRMachineConfig, type RMachineConfig, validateRMachineConfig } from "../../src/lib/r-machine-config.js";
 
-const stubResolver: RMachineConfig<any, string>["rModuleResolver"] = async (namespace, locale) => {
+const stubResolver: RMachineConfig<any, string, any>["rModuleResolver"] = async (namespace, locale) => {
   return { default: { message: `${namespace} in ${locale}` } };
 };
 
-function makeConfig(overrides: Partial<RMachineConfig<any, string>> = {}): RMachineConfig<any, string> {
+function makeConfig(overrides: Partial<RMachineConfig<any, string, any>> = {}): RMachineConfig<any, string, any> {
   return {
+    resourceAtlas: {},
     locales: ["en", "it"],
     defaultLocale: "en",
     rModuleResolver: stubResolver,
+    kit: {},
     ...overrides,
   };
 }
@@ -199,5 +201,15 @@ describe("cloneRMachineConfig", () => {
 
     (original.locales as string[]).push("de");
     expect(cloned.locales).toEqual(["en", "it"]);
+  });
+
+  it("should preserve resourceAtlas and kit references", () => {
+    const atlas = { common: { greeting: "hi" } };
+    const kit = { nav: "common" };
+    const original = makeConfig({ resourceAtlas: atlas, kit });
+    const cloned = cloneRMachineConfig(original);
+
+    expect(cloned.resourceAtlas).toBe(atlas);
+    expect(cloned.kit).toBe(kit);
   });
 });

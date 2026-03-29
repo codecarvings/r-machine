@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import { RMachineError } from "#r-machine/errors";
 import { RMachine } from "../../src/lib/r-machine.js";
-import { defaultRMachineExtensions } from "../../src/lib/r-machine-builder.js";
 import type { RMachineConfig } from "../../src/lib/r-machine-config.js";
 import type { AnyRModule, RModuleResolver } from "../../src/lib/r-module.js";
 import { createDelayedResolver, createMockResolver } from "../_fixtures/resolver-helpers.js";
@@ -21,12 +20,6 @@ interface TestRA {
   readonly common: { greeting: string };
   readonly nav: { home: string; about: string };
   readonly footer: { copyright: string };
-}
-
-class TestRAClass implements TestRA {
-  readonly common!: { greeting: string };
-  readonly nav!: { home: string; about: string };
-  readonly footer!: { copyright: string };
 }
 
 const commonR = { greeting: "hello" };
@@ -52,27 +45,29 @@ const allModules: Record<string, Record<string, AnyRModule>> = {
   it: itModules,
 };
 
-function makeConfig(overrides: Partial<RMachineConfig<TestRA, string>> = {}): RMachineConfig<TestRA, string> {
+function makeConfig(overrides: Partial<RMachineConfig<TestRA, string, any>> = {}): RMachineConfig<TestRA, string, any> {
   return {
+    resourceAtlas: {} as TestRA,
     locales: ["en", "it"],
     defaultLocale: "en",
     rModuleResolver: createMockResolver(allModules),
+    kit: {},
     ...overrides,
   };
 }
 
-function makeCreateConfig(overrides: Partial<RMachineConfig<TestRA, string>> = {}) {
+function makeCreateConfig(overrides: Partial<RMachineConfig<TestRA, string, any>> = {}) {
   const cfg = makeConfig(overrides);
   return {
-    ResourceAtlas: TestRAClass,
+    resourceAtlas: cfg.resourceAtlas,
     locales: cfg.locales as readonly string[],
     defaultLocale: cfg.defaultLocale,
     rModuleResolver: cfg.rModuleResolver,
   };
 }
 
-function createMachine(overrides: Partial<RMachineConfig<TestRA, string>> = {}) {
-  return RMachine.create(makeCreateConfig(overrides));
+function createMachine(overrides: Partial<RMachineConfig<TestRA, string, any>> = {}) {
+  return RMachine.create(makeCreateConfig(overrides)).rMachine;
 }
 
 describe("RMachine", () => {
@@ -82,8 +77,8 @@ describe("RMachine", () => {
       expect(machine).toBeInstanceOf(RMachine);
     });
 
-    it("can be constructed directly with new RMachine(config, extensions)", () => {
-      const machine = new RMachine(makeConfig(), defaultRMachineExtensions);
+    it("can be constructed directly with new RMachine(config)", () => {
+      const machine = new RMachine(makeConfig());
       expect(machine).toBeInstanceOf(RMachine);
       expect(machine.locales).toEqual(["en", "it"]);
     });
@@ -109,19 +104,26 @@ describe("RMachine", () => {
     });
 
     it("accepts a single locale configuration", () => {
-      const machine = RMachine.create({
-        ResourceAtlas: TestRAClass,
+      const { rMachine } = RMachine.create({
+        resourceAtlas: {} as TestRA,
         locales: ["en"],
         defaultLocale: "en",
         rModuleResolver: createMockResolver({ en: { common: { default: commonR } } }),
       });
-      expect(machine.locales).toEqual(["en"]);
+      expect(rMachine.locales).toEqual(["en"]);
     });
 
     it("RMachine.create() produces a working RMachine", async () => {
       const machine = createMachine();
       expect(machine).toBeInstanceOf(RMachine);
       expect(await machine.pickR("en", "common")).toBe(commonR);
+    });
+
+    it("RMachine.create() returns a bundle with rMachine and R", () => {
+      const bundle = RMachine.create(makeCreateConfig());
+      expect(bundle).toHaveProperty("rMachine");
+      expect(bundle).toHaveProperty("R");
+      expect(bundle.rMachine).toBeInstanceOf(RMachine);
     });
   });
 
@@ -134,7 +136,7 @@ describe("RMachine", () => {
 
     it("is not affected by mutations to the original config object", () => {
       const config = makeConfig();
-      const machine = new RMachine(config, defaultRMachineExtensions);
+      const machine = new RMachine(config);
       (config.locales as string[]).push("fr");
       expect(machine.locales).toEqual(["en", "it"]);
     });
@@ -294,7 +296,7 @@ describe("RMachine", () => {
       expect(await machine.pickR("en", "common")).toBe(asyncR);
     });
 
-    it("passes the correct RCtx context (namespace, locale) to the factory", async () => {
+    it("passes context (namespace, locale) to the factory", async () => {
       const factory = vi.fn(($: { namespace: string; locale: string }) => ({
         ns: $.namespace,
         loc: $.locale,
@@ -438,7 +440,7 @@ describe("RMachine", () => {
 
   describe("hybridPickR / hybridPickRKit (protected, via subclass)", () => {
     it("hybridPickR returns a promise when not cached, then the value when cached", async () => {
-      const machine = new TestableRMachine<TestRA>(makeConfig(), defaultRMachineExtensions);
+      const machine = new TestableRMachine<TestRA>(makeConfig());
       const first = machine.exposeHybridPickR("en", "common");
       expect(first).toBeInstanceOf(Promise);
       await first;
@@ -446,7 +448,7 @@ describe("RMachine", () => {
     });
 
     it("hybridPickRKit returns a promise when not cached, then the kit when cached", async () => {
-      const machine = new TestableRMachine<TestRA>(makeConfig(), defaultRMachineExtensions);
+      const machine = new TestableRMachine<TestRA>(makeConfig());
       const first = machine.exposeHybridPickRKit("en", "common", "nav");
       expect(first).toBeInstanceOf(Promise);
       await first;
@@ -454,12 +456,12 @@ describe("RMachine", () => {
     });
 
     it("hybridPickR throws for invalid locale", () => {
-      const machine = new TestableRMachine<TestRA>(makeConfig(), defaultRMachineExtensions);
+      const machine = new TestableRMachine<TestRA>(makeConfig());
       expect(() => machine.exposeHybridPickR("fr", "common")).toThrow(RMachineError);
     });
 
     it("hybridPickRKit throws for invalid locale", () => {
-      const machine = new TestableRMachine<TestRA>(makeConfig(), defaultRMachineExtensions);
+      const machine = new TestableRMachine<TestRA>(makeConfig());
       expect(() => machine.exposeHybridPickRKit("fr", "common")).toThrow(RMachineError);
     });
   });

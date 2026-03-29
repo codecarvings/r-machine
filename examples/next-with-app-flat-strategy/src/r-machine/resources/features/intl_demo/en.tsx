@@ -1,4 +1,4 @@
-import type { R } from "r-machine";
+import type { RShape } from "r-machine";
 import { Formatters } from "@/r-machine/formatters";
 import type { R$ } from "@/r-machine/setup";
 
@@ -51,4 +51,4 @@ const r = ($: R$) => {
 };
 
 export default r;
-export type R_Features_IntlDemo = R<typeof r>;
+export type R_Features_IntlDemo = RShape<typeof r>;

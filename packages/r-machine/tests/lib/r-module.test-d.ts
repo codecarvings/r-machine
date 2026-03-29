@@ -1,66 +1,16 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { FmtProvider } from "../../src/lib/fmt.js";
 import type { AnyR } from "../../src/lib/r.js";
-import type { AnyRFactory, AnyRForge, AnyRModule, RCtx, RModuleResolver } from "../../src/lib/r-module.js";
+import type { AnyRFactory, AnyRForge, AnyRModule, RModuleResolver } from "../../src/lib/r-module.js";
 import { resolveR, resolveRFromModule } from "../../src/lib/r-module.js";
 import type { AnyNamespace } from "../../src/lib/resource-atlas.js";
-
-describe("RCtx", () => {
-  it("should be an object type", () => {
-    expectTypeOf<RCtx>().toBeObject();
-  });
-
-  it("should have readonly namespace property of type string", () => {
-    expectTypeOf<RCtx>().toHaveProperty("namespace").toEqualTypeOf<string>();
-  });
-
-  it("should have readonly locale property of type string", () => {
-    expectTypeOf<RCtx>().toHaveProperty("locale").toEqualTypeOf<string>();
-  });
-
-  it("valid RCtx object should be assignable", () => {
-    const r$: RCtx = { namespace: "common", locale: "en" };
-    expectTypeOf(r$).toExtend<RCtx>();
-  });
-
-  it("should have exactly two properties", () => {
-    type RCtxKeys = keyof RCtx;
-    expectTypeOf<RCtxKeys>().toEqualTypeOf<"namespace" | "locale">();
-  });
-
-  it("should accept generic parameters for locale and FmtProvider", () => {
-    type FmtType = { date: (d: Date) => string };
-    type Narrow = RCtx<"en" | "it", FmtProvider<"en" | "it", FmtType>>;
-    expectTypeOf<Narrow>().toHaveProperty("locale").toEqualTypeOf<"en" | "it">();
-  });
-});
 
 describe("AnyRFactory", () => {
   it("should be a function type", () => {
     expectTypeOf<AnyRFactory>().toBeFunction();
   });
 
-  it("should accept RCtx parameter", () => {
-    expectTypeOf<AnyRFactory>().parameter(0).toEqualTypeOf<RCtx>();
-  });
-
   it("should return AnyR or Promise<AnyR>", () => {
     expectTypeOf<AnyRFactory>().returns.toEqualTypeOf<AnyR | Promise<AnyR>>();
-  });
-
-  it("sync factory returning object should be assignable", () => {
-    const syncFactory: AnyRFactory = ($: RCtx) => ({ greeting: `Hello from ${$.locale}` });
-    expectTypeOf(syncFactory).toExtend<AnyRFactory>();
-  });
-
-  it("async factory returning object should be assignable", () => {
-    const asyncFactory: AnyRFactory = async ($: RCtx) => ({ greeting: `Hello from ${$.locale}` });
-    expectTypeOf(asyncFactory).toExtend<AnyRFactory>();
-  });
-
-  it("factory using namespace should be valid", () => {
-    const factory: AnyRFactory = ($: RCtx) => ({ ns: $.namespace, loc: $.locale });
-    expectTypeOf(factory).toExtend<AnyRFactory>();
   });
 });
 
@@ -75,12 +25,12 @@ describe("AnyRForge", () => {
   });
 
   it("sync factory should be assignable to AnyRForge", () => {
-    const forge: AnyRForge = ($: RCtx) => ({ greeting: $.locale });
+    const forge: AnyRForge = () => ({ greeting: "hi" });
     expectTypeOf(forge).toExtend<AnyRForge>();
   });
 
   it("async factory should be assignable to AnyRForge", () => {
-    const forge: AnyRForge = async ($: RCtx) => ({ greeting: $.locale });
+    const forge: AnyRForge = async () => ({ greeting: "hi" });
     expectTypeOf(forge).toExtend<AnyRForge>();
   });
 
@@ -112,12 +62,12 @@ describe("AnyRModule", () => {
   });
 
   it("module with sync factory default should be assignable", () => {
-    const module: AnyRModule = { default: ($: RCtx) => ({ greeting: $.locale }) };
+    const module: AnyRModule = { default: () => ({ greeting: "hi" }) };
     expectTypeOf(module).toExtend<AnyRModule>();
   });
 
   it("module with async factory default should be assignable", () => {
-    const module: AnyRModule = { default: async ($: RCtx) => ({ greeting: $.locale }) };
+    const module: AnyRModule = { default: async () => ({ greeting: "hi" }) };
     expectTypeOf(module).toExtend<AnyRModule>();
   });
 });
@@ -145,30 +95,11 @@ describe("RModuleResolver", () => {
     });
     expectTypeOf(resolver).toExtend<RModuleResolver>();
   });
-
-  it("resolver returning factory module should be valid", () => {
-    const resolver: RModuleResolver = async (_namespace, _locale) => ({
-      default: ($: RCtx) => ({ greeting: $.locale }),
-    });
-    expectTypeOf(resolver).toExtend<RModuleResolver>();
-  });
 });
 
 describe("resolveRFromModule", () => {
-  it("should accept AnyRModule as first parameter", () => {
-    expectTypeOf(resolveRFromModule).parameter(0).toEqualTypeOf<AnyRModule>();
-  });
-
-  it("should accept RCtx as second parameter", () => {
-    expectTypeOf(resolveRFromModule).parameter(1).toEqualTypeOf<RCtx>();
-  });
-
   it("should return Promise<AnyR>", () => {
     expectTypeOf(resolveRFromModule).returns.toEqualTypeOf<Promise<AnyR>>();
-  });
-
-  it("should have correct function signature", () => {
-    expectTypeOf(resolveRFromModule).toEqualTypeOf<(rModule: AnyRModule, $: RCtx) => Promise<AnyR>>();
   });
 });
 

@@ -13,16 +13,11 @@
 
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
-import type { AnyFmtProvider } from "./fmt.js";
 import type { AnyR } from "./r.js";
 import type { AnyNamespace } from "./resource-atlas.js";
 
-export interface RCtx<L extends AnyLocale = AnyLocale, _FP extends AnyFmtProvider = AnyFmtProvider> {
-  readonly namespace: AnyNamespace;
-  readonly locale: L;
-}
-
-export type AnyRFactory = ($: RCtx) => AnyR | Promise<AnyR>;
+// TODO: WIP
+export type AnyRFactory = ($: any) => AnyR | Promise<AnyR>;
 
 export type AnyRForge = AnyR | AnyRFactory;
 
@@ -45,7 +40,8 @@ function getResolveRFromModuleError(
   );
 }
 
-export async function resolveRFromModule(rModule: AnyRModule, $: RCtx): Promise<AnyR> {
+// TODO: WIP
+export async function resolveRFromModule(rModule: AnyRModule, $: any): Promise<AnyR> {
   if (!rModule || typeof rModule !== "object") {
     throw getResolveRFromModuleError($.namespace, $.locale, "module is not an object");
   }
