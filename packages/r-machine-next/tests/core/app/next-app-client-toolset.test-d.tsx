@@ -1,4 +1,4 @@
-import type { AnyFmtProvider, EmptyFmtProvider, RMachine } from "r-machine";
+import type { AnyFmtProvider, RMachine } from "r-machine";
 import type { ReactNode } from "react";
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyPathAtlasProvider, BoundPathComposer } from "#r-machine/next/core";
@@ -42,7 +42,7 @@ describe("NextAppClientToolset", () => {
   it("has exactly the expected properties", () => {
     type Keys = keyof NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>;
     expectTypeOf<Keys>().toEqualTypeOf<
-      "NextClientRMachine" | "useLocale" | "useSetLocale" | "usePathComposer" | "useR" | "useRKit" | "useFmt"
+      "NextClientRMachine" | "useLocale" | "useSetLocale" | "usePathComposer" | "useR" | "useRKit"
     >();
   });
 
@@ -123,26 +123,6 @@ describe("NextAppClientToolset", () => {
     expectTypeOf<UseRKit>().not.toExtend<(...args: ["common", "invalid"]) => unknown>();
   });
 
-  // -----------------------------------------------------------------------
-  // useFmt
-  // -----------------------------------------------------------------------
-
-  it("useFmt return type is any when FP is AnyFmtProvider", () => {
-    type ToolsetAny = NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>;
-    expectTypeOf<ReturnType<ToolsetAny["useFmt"]>>().toBeAny();
-  });
-
-  it("useFmt return type narrows with a concrete FP", () => {
-    type ToolsetEmpty = NextAppClientToolset<TestAtlas, TestLocale, EmptyFmtProvider, TranslatedPathAtlas>;
-    expectTypeOf<ReturnType<ToolsetEmpty["useFmt"]>>().toEqualTypeOf<{}>();
-  });
-
-  it("different FP produce different useFmt return types", () => {
-    type UseFmtAny = NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>["useFmt"];
-    type UseFmtEmpty = NextAppClientToolset<TestAtlas, TestLocale, EmptyFmtProvider, TranslatedPathAtlas>["useFmt"];
-    expectTypeOf<UseFmtAny>().not.toEqualTypeOf<UseFmtEmpty>();
-  });
-
   it("different RA produce different toolset types", () => {
     type OtherAtlas = { readonly other: { readonly value: number } };
     expectTypeOf<NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>>().not.toEqualTypeOf<
@@ -176,12 +156,6 @@ describe("NextAppClientToolset", () => {
       ? PS
       : never;
     expectTypeOf<PathSelector>().not.toEqualTypeOf<OtherPathSelector>();
-  });
-
-  it("different FP produce different toolset types", () => {
-    expectTypeOf<NextAppClientToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas>>().not.toEqualTypeOf<
-      NextAppClientToolset<TestAtlas, TestLocale, EmptyFmtProvider, TranslatedPathAtlas>
-    >();
   });
 });
 

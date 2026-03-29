@@ -17,7 +17,6 @@ export interface MockMachineOverrides<L extends string = TestLocale> {
   hybridPickRKit?: (locale: string, ...namespaces: string[]) => unknown;
   pickR?: (locale: string, namespace: string) => Promise<unknown>;
   pickRKit?: (locale: string, ...namespaces: string[]) => Promise<unknown>;
-  fmt?: (locale: string) => unknown;
 }
 
 export function createMockMachine<L extends string = TestLocale>(overrides: MockMachineOverrides<L> = {}) {
@@ -42,7 +41,6 @@ export function createMockMachine<L extends string = TestLocale>(overrides: Mock
     hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
     pickR: vi.fn(overrides.pickR ?? (() => Promise.resolve({ greeting: "hello" }))),
     pickRKit: vi.fn(overrides.pickRKit ?? (() => Promise.resolve([{ greeting: "hello" }, { home: "Home" }]))),
-    fmt: vi.fn(overrides.fmt ?? (() => ({}))),
   } as unknown as RMachine<TestAtlas, L, AnyFmtProvider>;
 }
 

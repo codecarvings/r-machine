@@ -8,11 +8,11 @@ import {
 } from "#r-machine/errors";
 import { cloneRMachineConfig, type RMachineConfig, validateRMachineConfig } from "../../src/lib/r-machine-config.js";
 
-const stubResolver: RMachineConfig<string>["rModuleResolver"] = async (namespace, locale) => {
+const stubResolver: RMachineConfig<any, string>["rModuleResolver"] = async (namespace, locale) => {
   return { default: { message: `${namespace} in ${locale}` } };
 };
 
-function makeConfig(overrides: Partial<RMachineConfig<string>> = {}): RMachineConfig<string> {
+function makeConfig(overrides: Partial<RMachineConfig<any, string>> = {}): RMachineConfig<any, string> {
   return {
     locales: ["en", "it"],
     defaultLocale: "en",

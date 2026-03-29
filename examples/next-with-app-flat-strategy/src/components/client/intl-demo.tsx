@@ -3,12 +3,14 @@
 import { Calendar, Hash, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useFmt, useR } from "@/r-machine/client-toolset";
+import { useLocale, useR } from "@/r-machine/client-toolset";
+import { Formatters } from "@/r-machine/formatters";
 import FeatureBox from "../server/feature-box";
 
 export default function IntlDemo() {
   const r = useR("features/intl_demo");
-  const { time } = useFmt();
+  const locale = useLocale();
+  const { time } = Formatters.get(locale);
 
   // Live clock — start null to avoid hydration mismatch (server vs client time)
   const [now, setNow] = useState<Date | null>(null);

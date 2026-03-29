@@ -40,9 +40,7 @@ describe("ReactToolset", () => {
 
   it("has the same hook properties as ReactBareToolset (via Omit & intersection)", () => {
     type Keys = keyof ReactToolset<TestAtlas, AnyLocale, AnyFmtProvider>;
-    expectTypeOf<Keys>().toEqualTypeOf<
-      "ReactRMachine" | "useLocale" | "useSetLocale" | "useR" | "useRKit" | "useFmt"
-    >();
+    expectTypeOf<Keys>().toEqualTypeOf<"ReactRMachine" | "useLocale" | "useSetLocale" | "useR" | "useRKit">();
   });
 
   it("useRKit return type maps namespaces to their resource types", () => {

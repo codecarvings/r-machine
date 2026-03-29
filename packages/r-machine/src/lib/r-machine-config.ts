@@ -24,21 +24,24 @@ import {
   validateCanonicalUnicodeLocaleId,
 } from "#r-machine/locale";
 import type { RModuleResolver } from "./r-module.js";
+import type { AnyResourceAtlas, AnyResourceAtlasCtor } from "./resource-atlas.js";
 
 // The generic parameter LL is used to ensure that the defaultLocale is one of the locales in the list
-export interface RMachineConfigParams<LL extends AnyLocaleList> {
+export interface RMachineConfigParams<RAC extends AnyResourceAtlasCtor, LL extends AnyLocaleList> {
+  readonly ResourceAtlas: RAC;
   readonly locales: LL;
   readonly defaultLocale: LL[number];
   readonly rModuleResolver: RModuleResolver;
 }
 
-export interface RMachineConfig<L extends AnyLocale> {
+export interface RMachineConfig<RA extends AnyResourceAtlas, L extends AnyLocale> {
+  readonly resourceAtlas?: RA;
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly rModuleResolver: RModuleResolver;
 }
 
-export function validateRMachineConfig<L extends AnyLocale>(config: RMachineConfig<L>): RMachineConfigError | null {
+export function validateRMachineConfig(config: RMachineConfig<any, any>): RMachineConfigError | null {
   if (!config.locales.length) {
     return new RMachineConfigError(ERR_NO_LOCALES, "No locales provided.");
   }
@@ -69,7 +72,9 @@ export function validateRMachineConfig<L extends AnyLocale>(config: RMachineConf
   return null;
 }
 
-export function cloneRMachineConfig<L extends AnyLocale>(config: RMachineConfig<L>): RMachineConfig<L> {
+export function cloneRMachineConfig<RA extends AnyResourceAtlas, L extends AnyLocale>(
+  config: RMachineConfig<RA, L>
+): RMachineConfig<RA, L> {
   return {
     ...config,
     locales: Object.freeze([...config.locales]) as LocaleList<L>,

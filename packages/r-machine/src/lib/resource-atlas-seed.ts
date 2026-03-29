@@ -11,13 +11,14 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, EmptyFmtProvider, FmtProviderCtor } from "./fmt.js";
-import { EmptyFmtProviderCtor } from "./fmt.js";
+import type { AnyResourceAtlas, ResourceAtlasCtor } from "./resource-atlas.js";
 
-export interface RMachineExtensions<FP extends AnyFmtProvider> {
-  readonly Formatters: FmtProviderCtor<FP>;
+interface ResourceAtlasSeed {
+  create<RA extends AnyResourceAtlas>(): ResourceAtlasCtor<RA>;
 }
 
-export const defaultRMachineExtensions: RMachineExtensions<EmptyFmtProvider> = {
-  Formatters: EmptyFmtProviderCtor,
+export const ResourceAtlasSeed: ResourceAtlasSeed = {
+  create<RA extends AnyResourceAtlas>(): ResourceAtlasCtor<RA> {
+    return class {} as ResourceAtlasCtor<RA>;
+  },
 };

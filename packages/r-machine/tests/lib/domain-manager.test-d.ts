@@ -2,21 +2,15 @@ import { describe, expectTypeOf, it } from "vitest";
 
 import type { Domain } from "../../src/lib/domain.js";
 import { DomainManager } from "../../src/lib/domain-manager.js";
-import type { AnyFmtGetter } from "../../src/lib/fmt.js";
 import type { RModuleResolver } from "../../src/lib/r-module.js";
 
 describe("DomainManager", () => {
   it("should be a class", () => {
-    expectTypeOf(DomainManager).toBeConstructibleWith(
-      (() => Promise.resolve({ default: {} })) as RModuleResolver,
-      (() => ({})) as AnyFmtGetter
-    );
+    expectTypeOf(DomainManager).toBeConstructibleWith((() => Promise.resolve({ default: {} })) as RModuleResolver);
   });
 
-  it("constructor should require an RModuleResolver and formatters parameters", () => {
-    expectTypeOf(DomainManager).constructorParameters.toEqualTypeOf<
-      [rModuleResolver: RModuleResolver, formatters: AnyFmtGetter]
-    >();
+  it("constructor should require an RModuleResolver parameter", () => {
+    expectTypeOf(DomainManager).constructorParameters.toEqualTypeOf<[rModuleResolver: RModuleResolver]>();
   });
 
   describe("getDomain", () => {
@@ -40,10 +34,6 @@ describe("DomainManager", () => {
 
     it("should not expose cache", () => {
       expectTypeOf<DomainManager>().not.toHaveProperty("cache");
-    });
-
-    it("should not expose formatters", () => {
-      expectTypeOf<DomainManager>().not.toHaveProperty("formatters");
     });
   });
 });

@@ -1,8 +1,9 @@
+import { Formatters } from "@/r-machine/formatters";
 import type { R$ } from "@/r-machine/setup";
 import type { R_Features_IntlDemo } from "./en";
 
 const r = ($: R$): R_Features_IntlDemo => {
-  const { date, number, currency, plural } = $.fmt;
+  const { date, number, currency, plural } = Formatters.get($.locale);
 
   return {
     sectionTitle: "Formattazione Locale-Aware",

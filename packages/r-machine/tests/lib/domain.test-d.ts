@@ -1,24 +1,17 @@
 import { describe, expectTypeOf, it } from "vitest";
 
 import { Domain } from "../../src/lib/domain.js";
-import type { AnyFmtGetter } from "../../src/lib/fmt.js";
 import type { AnyR } from "../../src/lib/r.js";
 import type { AnyNamespaceList, AnyRKit } from "../../src/lib/r-kit.js";
 import type { RModuleResolver } from "../../src/lib/r-module.js";
 
 describe("Domain", () => {
   it("should be a class", () => {
-    expectTypeOf(Domain).toBeConstructibleWith(
-      "en",
-      (() => Promise.resolve({ default: {} })) as RModuleResolver,
-      (() => ({})) as AnyFmtGetter
-    );
+    expectTypeOf(Domain).toBeConstructibleWith("en", (() => Promise.resolve({ default: {} })) as RModuleResolver);
   });
 
-  it("constructor should require locale, rModuleResolver and formatters", () => {
-    expectTypeOf(Domain).constructorParameters.toEqualTypeOf<
-      [locale: string, rModuleResolver: RModuleResolver, formatters: AnyFmtGetter]
-    >();
+  it("constructor should require locale and rModuleResolver", () => {
+    expectTypeOf(Domain).constructorParameters.toEqualTypeOf<[locale: string, rModuleResolver: RModuleResolver]>();
   });
 
   describe("locale", () => {
@@ -126,10 +119,6 @@ describe("Domain", () => {
 
     it("should not expose resolveRKit", () => {
       expectTypeOf<Domain>().not.toHaveProperty("resolveRKit");
-    });
-
-    it("should not expose formatters", () => {
-      expectTypeOf<Domain>().not.toHaveProperty("formatters");
     });
   });
 

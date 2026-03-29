@@ -13,14 +13,10 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import { Domain } from "./domain.js";
-import type { AnyFmtGetter } from "./fmt.js";
 import type { RModuleResolver } from "./r-module.js";
 
 export class DomainManager {
-  constructor(
-    protected readonly rModuleResolver: RModuleResolver,
-    protected readonly formatters: AnyFmtGetter
-  ) {}
+  constructor(protected readonly rModuleResolver: RModuleResolver) {}
 
   protected cache = new Map<AnyLocale, Domain>();
 
@@ -30,7 +26,7 @@ export class DomainManager {
       return domain;
     }
 
-    const newDomain = new Domain(locale, this.rModuleResolver, this.formatters);
+    const newDomain = new Domain(locale, this.rModuleResolver);
     this.cache.set(locale, newDomain);
     return newDomain;
   }

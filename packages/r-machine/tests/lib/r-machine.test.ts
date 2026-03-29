@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { RMachineError, RMachineUsageError } from "#r-machine/errors";
-import { FormattersSeed } from "../../src/lib/formatters-seed.js";
+import { RMachineError } from "#r-machine/errors";
 import { RMachine } from "../../src/lib/r-machine.js";
 import { defaultRMachineExtensions } from "../../src/lib/r-machine-builder.js";
 import type { RMachineConfig } from "../../src/lib/r-machine-config.js";
@@ -18,11 +17,17 @@ function getError(fn: () => unknown): Error {
   throw new Error("Expected function to throw");
 }
 
-type TestRA = {
+interface TestRA {
   readonly common: { greeting: string };
   readonly nav: { home: string; about: string };
   readonly footer: { copyright: string };
-};
+}
+
+class TestRAClass implements TestRA {
+  readonly common!: { greeting: string };
+  readonly nav!: { home: string; about: string };
+  readonly footer!: { copyright: string };
+}
 
 const commonR = { greeting: "hello" };
 const navR = { home: "Home", about: "About" };
@@ -47,7 +52,7 @@ const allModules: Record<string, Record<string, AnyRModule>> = {
   it: itModules,
 };
 
-function makeConfig(overrides: Partial<RMachineConfig<string>> = {}): RMachineConfig<string> {
+function makeConfig(overrides: Partial<RMachineConfig<TestRA, string>> = {}): RMachineConfig<TestRA, string> {
   return {
     locales: ["en", "it"],
     defaultLocale: "en",
@@ -56,8 +61,18 @@ function makeConfig(overrides: Partial<RMachineConfig<string>> = {}): RMachineCo
   };
 }
 
-function createMachine(overrides: Partial<RMachineConfig<string>> = {}) {
-  return RMachine.builder(makeConfig(overrides)).create<TestRA>();
+function makeCreateConfig(overrides: Partial<RMachineConfig<TestRA, string>> = {}) {
+  const cfg = makeConfig(overrides);
+  return {
+    ResourceAtlas: TestRAClass,
+    locales: cfg.locales as readonly string[],
+    defaultLocale: cfg.defaultLocale,
+    rModuleResolver: cfg.rModuleResolver,
+  };
+}
+
+function createMachine(overrides: Partial<RMachineConfig<TestRA, string>> = {}) {
+  return RMachine.create(makeCreateConfig(overrides));
 }
 
 describe("RMachine", () => {
@@ -94,238 +109,19 @@ describe("RMachine", () => {
     });
 
     it("accepts a single locale configuration", () => {
-      const machine = RMachine.builder({
+      const machine = RMachine.create({
+        ResourceAtlas: TestRAClass,
         locales: ["en"],
         defaultLocale: "en",
         rModuleResolver: createMockResolver({ en: { common: { default: commonR } } }),
-      }).create<TestRA>();
+      });
       expect(machine.locales).toEqual(["en"]);
     });
-  });
 
-  describe("builder pattern", () => {
-    it("RMachine.builder(config) returns a builder object", () => {
-      const builder = RMachine.builder(makeConfig());
-      expect(builder).toBeDefined();
-      expect(typeof builder.create).toBe("function");
-      expect(typeof builder.with).toBe("function");
-    });
-
-    it("builder.create() produces a working RMachine", async () => {
-      const machine = RMachine.builder(makeConfig()).create<TestRA>();
+    it("RMachine.create() produces a working RMachine", async () => {
+      const machine = createMachine();
       expect(machine).toBeInstanceOf(RMachine);
       expect(await machine.pickR("en", "common")).toBe(commonR);
-    });
-
-    it("builder.with({}) (empty extensions) produces an RMachine with EmptyFmtProvider", async () => {
-      const factory = vi.fn(() => ({ value: 1 }));
-      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
-      const machine = RMachine.builder({
-        locales: ["en"],
-        defaultLocale: "en",
-        rModuleResolver: resolver,
-      })
-        .with({})
-        .create<{ readonly test: { value: number } }>();
-
-      await machine.pickR("en", "test");
-      expect(factory).toHaveBeenCalledWith(expect.objectContaining({ fmt: {} }));
-      expect(machine.fmt("en")).toEqual({});
-    });
-
-    it("builder.with({ Formatters: undefined }) falls back to EmptyFmtProvider", async () => {
-      const factory = vi.fn(() => ({ value: 1 }));
-      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
-      const machine = RMachine.builder({
-        locales: ["en"],
-        defaultLocale: "en",
-        rModuleResolver: resolver,
-      })
-        .with({ Formatters: undefined } as any)
-        .create<{ readonly test: { value: number } }>();
-
-      await machine.pickR("en", "test");
-      expect(factory).toHaveBeenCalledWith(expect.objectContaining({ fmt: {} }));
-      expect(machine.fmt("en")).toEqual({});
-    });
-
-    it("builder.with({ Formatters }).create() produces an RMachine with formatters injected in RCtx", async () => {
-      const Formatters = FormattersSeed.create((_locale: string) => ({ currency: (n: number) => `$${n}` }));
-      const factory = vi.fn(($: { namespace: string; locale: string; fmt: any }) => ({
-        value: $.fmt.currency(42),
-      }));
-      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
-      const machine = RMachine.builder({
-        locales: ["en", "it"],
-        defaultLocale: "en",
-        rModuleResolver: resolver,
-      })
-        .with({ Formatters })
-        .create<{ readonly test: { value: string } }>();
-
-      const result = await machine.pickR("en", "test");
-      expect(result).toEqual({ value: "$42" });
-      expect(factory).toHaveBeenCalledWith(
-        expect.objectContaining({
-          namespace: "test",
-          locale: "en",
-          fmt: expect.objectContaining({ currency: expect.any(Function) }),
-        })
-      );
-    });
-
-    it("async factory function receives $.fmt and uses it correctly", async () => {
-      const Formatters = FormattersSeed.create((locale: string) => ({
-        currency: (n: number) => `${locale === "en" ? "$" : "€"}${n}`,
-      }));
-      const factory = async ($: { namespace: string; locale: string; fmt: any }) => {
-        // Simulate async work before using fmt
-        await Promise.resolve();
-        return { price: $.fmt.currency(100) };
-      };
-      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
-      const machine = RMachine.builder({
-        locales: ["en", "it"],
-        defaultLocale: "en",
-        rModuleResolver: resolver,
-      })
-        .with({ Formatters })
-        .create<{ readonly test: { price: string } }>();
-
-      expect(await machine.pickR("en", "test")).toEqual({ price: "$100" });
-      expect(await machine.pickR("it", "test")).toEqual({ price: "€100" });
-    });
-
-    it("is not affected by mutations to the extensions object after construction", () => {
-      const extensions = { Formatters: FormattersSeed.create((locale: string) => ({ tag: locale })) };
-      const machine = RMachine.builder(makeConfig()).with(extensions).create<TestRA>();
-
-      // Mutate the original extensions object
-      (extensions as any).Formatters = undefined;
-
-      // machine.fmt must still work — extensions were cloned at construction time
-      expect(machine.fmt("en")).toEqual({ tag: "en" });
-    });
-
-    it("factory function receives $.fmt resolved for the correct locale", async () => {
-      const fmtFactory = vi.fn((locale: string) => ({ lang: locale }));
-      const Formatters = FormattersSeed.create(fmtFactory);
-      const factory = ($: { namespace: string; locale: string; fmt: any }) => ({
-        result: $.fmt.lang,
-      });
-      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
-      const machine = RMachine.builder({
-        locales: ["en", "it"],
-        defaultLocale: "en",
-        rModuleResolver: resolver,
-      })
-        .with({ Formatters })
-        .create<{ readonly test: { result: string } }>();
-
-      const enResult = await machine.pickR("en", "test");
-      expect(enResult.result).toBe("en");
-
-      const itResult = await machine.pickR("it", "test");
-      expect(itResult.result).toBe("it");
-    });
-  });
-
-  describe("formatter integration via FormattersSeed.create", () => {
-    it("$.fmt is an empty object when builder does not use .with()", async () => {
-      const factory = vi.fn(() => ({ value: 1 }));
-      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
-      const machine = RMachine.builder({
-        locales: ["en"],
-        defaultLocale: "en",
-        rModuleResolver: resolver,
-      }).create<{ readonly test: { value: number } }>();
-
-      await machine.pickR("en", "test");
-      expect(factory).toHaveBeenCalledWith(expect.objectContaining({ fmt: {} }));
-    });
-
-    it("does not cache formatter factory errors, allowing subsequent resolution to succeed", async () => {
-      let callCount = 0;
-      const Formatters = FormattersSeed.create((_locale: string) => {
-        callCount++;
-        if (callCount === 1) throw new Error("Formatter init failed");
-        return { v: 1 };
-      });
-      const factory = ($: { namespace: string; locale: string; fmt: any }) => ({ v: $.fmt?.v });
-      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
-      const machine = RMachine.builder({
-        locales: ["en", "it"],
-        defaultLocale: "en",
-        rModuleResolver: resolver,
-      })
-        .with({ Formatters })
-        .create<{ readonly test: { v: number } }>();
-
-      // First call: Formatters.get throws → resolveR rejects
-      await expect(machine.pickR("en", "test")).rejects.toThrow();
-      // Second call: FormattersSeed.create does not cache errors, so the factory is called again and succeeds
-      const result = await machine.pickR("en", "test");
-      expect(result).toEqual({ v: 1 });
-    });
-
-    it("FormattersSeed.create caches formatter instances across resource resolutions", async () => {
-      const fmtFactory = vi.fn((locale: string) => ({ lang: locale }));
-      const Formatters = FormattersSeed.create(fmtFactory);
-      const factory = ($: { namespace: string; locale: string; fmt: any }) => ({ v: $.fmt.lang });
-      const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
-      const machine = RMachine.builder({
-        locales: ["en", "it"],
-        defaultLocale: "en",
-        rModuleResolver: resolver,
-      })
-        .with({ Formatters })
-        .create<{ readonly a: { v: string }; readonly b: { v: string } }>();
-
-      await machine.pickR("en", "a");
-      await machine.pickR("en", "b");
-
-      // Factory called once for "en", not once per namespace
-      expect(fmtFactory).toHaveBeenCalledTimes(1);
-      expect(fmtFactory).toHaveBeenCalledWith("en");
-    });
-  });
-
-  describe("fmt getter", () => {
-    it("returns an empty object when machine is built without .with()", () => {
-      const machine = RMachine.builder(makeConfig()).create<TestRA>();
-      expect(machine.fmt("en")).toEqual({});
-    });
-
-    it("returns the formatter object for a valid locale", () => {
-      const Formatters = FormattersSeed.create((locale: string) => ({ greeting: `hello-${locale}` }));
-      const machine = RMachine.builder(makeConfig()).with({ Formatters }).create<TestRA>();
-      expect(machine.fmt("en")).toEqual({ greeting: "hello-en" });
-      expect(machine.fmt("it")).toEqual({ greeting: "hello-it" });
-    });
-
-    it("throws RMachineUsageError for an invalid locale", () => {
-      const Formatters = FormattersSeed.create((locale: string) => ({ greeting: `hello-${locale}` }));
-      const machine = RMachine.builder(makeConfig()).with({ Formatters }).create<TestRA>();
-      expect(() => machine.fmt("fr")).toThrow(RMachineUsageError);
-      expect(() => machine.fmt("fr")).toThrow(/Cannot use invalid locale/);
-    });
-
-    it("validates locale before calling Formatters.get — factory is never called for invalid locale", () => {
-      const factory = vi.fn((locale: string) => ({ greeting: `hello-${locale}` }));
-      const Formatters = FormattersSeed.create(factory);
-      const machine = RMachine.builder(makeConfig()).with({ Formatters }).create<TestRA>();
-
-      expect(() => machine.fmt("fr")).toThrow(RMachineUsageError);
-      expect(factory).not.toHaveBeenCalled();
-    });
-
-    it("propagates errors thrown by Formatters.get for a valid locale", () => {
-      const Formatters = FormattersSeed.create((_locale: string) => {
-        throw new Error("formatter explosion");
-      });
-      const machine = RMachine.builder(makeConfig()).with({ Formatters }).create<TestRA>();
-
-      expect(() => machine.fmt("en")).toThrow("formatter explosion");
     });
   });
 
@@ -338,7 +134,7 @@ describe("RMachine", () => {
 
     it("is not affected by mutations to the original config object", () => {
       const config = makeConfig();
-      const machine = RMachine.builder(config).create<TestRA>();
+      const machine = new RMachine(config, defaultRMachineExtensions);
       (config.locales as string[]).push("fr");
       expect(machine.locales).toEqual(["en", "it"]);
     });
@@ -498,15 +294,15 @@ describe("RMachine", () => {
       expect(await machine.pickR("en", "common")).toBe(asyncR);
     });
 
-    it("passes the correct RCtx context (namespace, locale, fmt) to the factory", async () => {
-      const factory = vi.fn(($: { namespace: string; locale: string; fmt: unknown }) => ({
+    it("passes the correct RCtx context (namespace, locale) to the factory", async () => {
+      const factory = vi.fn(($: { namespace: string; locale: string }) => ({
         ns: $.namespace,
         loc: $.locale,
       }));
       const resolver: RModuleResolver = () => Promise.resolve({ default: factory });
       const machine = createMachine({ rModuleResolver: resolver });
       const result = await machine.pickR("en", "common");
-      expect(factory).toHaveBeenCalledWith({ namespace: "common", locale: "en", fmt: {} });
+      expect(factory).toHaveBeenCalledWith({ namespace: "common", locale: "en" });
       expect(result).toEqual({ ns: "common", loc: "en" });
     });
 

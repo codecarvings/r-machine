@@ -1,8 +1,9 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyFmtGetter, EmptyFmt, EmptyFmtProvider, FmtProvider } from "../../src/lib/fmt.js";
-import type { AnyNamespace, AnyR } from "../../src/lib/r.js";
+import type { FmtProvider } from "../../src/lib/fmt.js";
+import type { AnyR } from "../../src/lib/r.js";
 import type { AnyRFactory, AnyRForge, AnyRModule, RCtx, RModuleResolver } from "../../src/lib/r-module.js";
 import { resolveR, resolveRFromModule } from "../../src/lib/r-module.js";
+import type { AnyNamespace } from "../../src/lib/resource-atlas.js";
 
 describe("RCtx", () => {
   it("should be an object type", () => {
@@ -17,30 +18,20 @@ describe("RCtx", () => {
     expectTypeOf<RCtx>().toHaveProperty("locale").toEqualTypeOf<string>();
   });
 
-  it("should have readonly fmt property", () => {
-    expectTypeOf<RCtx>().toHaveProperty("fmt");
-  });
-
   it("valid RCtx object should be assignable", () => {
-    const r$: RCtx = { namespace: "common", locale: "en", fmt: {} };
+    const r$: RCtx = { namespace: "common", locale: "en" };
     expectTypeOf(r$).toExtend<RCtx>();
   });
 
-  it("should have exactly three properties", () => {
+  it("should have exactly two properties", () => {
     type RCtxKeys = keyof RCtx;
-    expectTypeOf<RCtxKeys>().toEqualTypeOf<"namespace" | "locale" | "fmt">();
+    expectTypeOf<RCtxKeys>().toEqualTypeOf<"namespace" | "locale">();
   });
 
   it("should accept generic parameters for locale and FmtProvider", () => {
     type FmtType = { date: (d: Date) => string };
     type Narrow = RCtx<"en" | "it", FmtProvider<"en" | "it", FmtType>>;
     expectTypeOf<Narrow>().toHaveProperty("locale").toEqualTypeOf<"en" | "it">();
-    expectTypeOf<Narrow>().toHaveProperty("fmt").toEqualTypeOf<FmtType>();
-  });
-
-  it("should have fmt as EmptyFmt when FmtProvider is EmptyFmtProvider", () => {
-    type NoFmt = RCtx<"en", EmptyFmtProvider>;
-    expectTypeOf<NoFmt>().toHaveProperty("fmt").toEqualTypeOf<EmptyFmt>();
   });
 });
 
@@ -192,10 +183,6 @@ describe("resolveR", () => {
 
   it("should accept locale string as third parameter", () => {
     expectTypeOf(resolveR).parameter(2).toEqualTypeOf<string>();
-  });
-
-  it("should accept AnyFmtGetter as fourth parameter", () => {
-    expectTypeOf(resolveR).parameter(3).toEqualTypeOf<AnyFmtGetter>();
   });
 
   it("should return Promise<AnyR>", () => {

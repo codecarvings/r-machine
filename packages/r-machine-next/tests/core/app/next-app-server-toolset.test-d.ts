@@ -1,4 +1,4 @@
-import type { AnyFmtProvider, EmptyFmtProvider, RMachine } from "r-machine";
+import type { AnyFmtProvider, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import { describe, expectTypeOf, it } from "vitest";
@@ -58,7 +58,6 @@ describe("NextAppServerToolset", () => {
       | "setLocale"
       | "pickR"
       | "pickRKit"
-      | "getFmt"
       | "getPathComposer"
     >();
   });
@@ -153,37 +152,6 @@ describe("NextAppServerToolset", () => {
   });
 
   // -----------------------------------------------------------------------
-  // getFmt
-  // -----------------------------------------------------------------------
-
-  it("getFmt return type is Promise<any> when FP is AnyFmtProvider", () => {
-    expectTypeOf<Awaited<ReturnType<Toolset["getFmt"]>>>().toBeAny();
-  });
-
-  it("getFmt return type narrows with a concrete FP", () => {
-    type ToolsetEmpty = NextAppServerToolset<TestAtlas, TestLocale, EmptyFmtProvider, TranslatedPathAtlas, "locale">;
-    expectTypeOf<ReturnType<ToolsetEmpty["getFmt"]>>().toEqualTypeOf<Promise<{}>>();
-  });
-
-  it("different FP produce different getFmt return types", () => {
-    type GetFmtAny = NextAppServerToolset<
-      TestAtlas,
-      TestLocale,
-      AnyFmtProvider,
-      TranslatedPathAtlas,
-      "locale"
-    >["getFmt"];
-    type GetFmtEmpty = NextAppServerToolset<
-      TestAtlas,
-      TestLocale,
-      EmptyFmtProvider,
-      TranslatedPathAtlas,
-      "locale"
-    >["getFmt"];
-    expectTypeOf<GetFmtAny>().not.toEqualTypeOf<GetFmtEmpty>();
-  });
-
-  // -----------------------------------------------------------------------
   // bindLocale
   // -----------------------------------------------------------------------
 
@@ -235,14 +203,6 @@ describe("NextAppServerToolset", () => {
       ? PAP
       : never;
     expectTypeOf<PathAtlasFromToolset>().not.toEqualTypeOf<OtherPathAtlasFromToolset>();
-  });
-
-  it("different FP produce different toolset types", () => {
-    expectTypeOf<
-      NextAppServerToolset<TestAtlas, TestLocale, AnyFmtProvider, TranslatedPathAtlas, "locale">
-    >().not.toEqualTypeOf<
-      NextAppServerToolset<TestAtlas, TestLocale, EmptyFmtProvider, TranslatedPathAtlas, "locale">
-    >();
   });
 
   it("different LK produce different toolset types", () => {

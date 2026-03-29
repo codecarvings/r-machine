@@ -1,12 +1,12 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { EmptyFmt, EmptyFmtProvider } from "../../src/lib/fmt.js";
+import type { EmptyFmtProvider } from "../../src/lib/fmt.js";
 import { FormattersSeed } from "../../src/lib/formatters-seed.js";
-import type { AnyResourceAtlas, Namespace } from "../../src/lib/r.js";
 import type { RKit } from "../../src/lib/r-kit.js";
 import { RMachine, type RMachineLocale, type RMachineRCtx } from "../../src/lib/r-machine.js";
 import { defaultRMachineExtensions } from "../../src/lib/r-machine-builder.js";
 import type { RMachineConfig } from "../../src/lib/r-machine-config.js";
 import type { RCtx } from "../../src/lib/r-module.js";
+import type { AnyResourceAtlas, Namespace } from "../../src/lib/resource-atlas.js";
 import type { LocaleHelper } from "../../src/locale/locale-helper.js";
 import { TestableRMachine } from "../_fixtures/testable-r-machine.js";
 
@@ -31,73 +31,54 @@ type SingleNamespaceAtlas = {
   readonly only: { single: string };
 };
 
-const mockConfig: RMachineConfig<string> = {
+const mockConfig: RMachineConfig<AnyResourceAtlas, string> = {
   locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: async () => ({ default: {} }),
 };
 
-const narrowConfig = {
-  locales: ["en", "it"] as const,
-  defaultLocale: "en" as const,
+const narrowConfig: RMachineConfig<AnyResourceAtlas, "en" | "it"> = {
+  locales: ["en", "it"],
+  defaultLocale: "en",
   rModuleResolver: async () => ({ default: {} }),
 };
 
 function createMachine<RA extends AnyResourceAtlas>() {
-  return RMachine.builder(mockConfig).create<RA>();
+  return new RMachine<RA, string, EmptyFmtProvider>(mockConfig as any, defaultRMachineExtensions);
 }
 
 function createNarrowMachine<RA extends AnyResourceAtlas>() {
-  return RMachine.builder(narrowConfig).create<RA>();
+  return new RMachine<RA, "en" | "it", EmptyFmtProvider>(narrowConfig as any, defaultRMachineExtensions);
 }
 
 describe("RMachine", () => {
-  describe("static builder pattern", () => {
-    it("RMachine.builder should return a builder with .with and .create", () => {
-      const builder = RMachine.builder(narrowConfig);
-      expectTypeOf(builder).toHaveProperty("with");
-      expectTypeOf(builder).toHaveProperty("create");
-      expectTypeOf(builder.with).toBeFunction();
-      expectTypeOf(builder.create).toBeFunction();
-    });
-
-    it("builder.create should return an RMachine instance", () => {
-      const machine = RMachine.builder(mockConfig).create<TestResourceAtlas>();
+  describe("static factory methods", () => {
+    it("should produce an RMachine instance via constructor", () => {
+      const machine = new RMachine(mockConfig, defaultRMachineExtensions);
       expectTypeOf(machine).toBeObject();
     });
 
-    it("should infer narrow locale types from as const config", () => {
+    it("should preserve narrow locale types", () => {
       const machine = createNarrowMachine<TestResourceAtlas>();
       expectTypeOf(machine).toEqualTypeOf<RMachine<TestResourceAtlas, "en" | "it", EmptyFmtProvider>>();
     });
 
-    it("should infer string when locales are not const", () => {
-      const machine = RMachine.builder(mockConfig).create<TestResourceAtlas>();
+    it("should produce string locale when config uses string", () => {
+      const machine = createMachine<TestResourceAtlas>();
       expectTypeOf(machine).toEqualTypeOf<RMachine<TestResourceAtlas, string, EmptyFmtProvider>>();
     });
 
-    it("should constrain defaultLocale to locales list members", () => {
-      // This compiles because "en" is in the const locales tuple
-      RMachine.builder(narrowConfig).create<TestResourceAtlas>();
-    });
-
-    it("builder.with should return an extended builder with .create", () => {
+    it("constructor with custom Formatters should produce a typed RMachine", () => {
       const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
-      const extended = RMachine.builder(narrowConfig).with({ Formatters });
-      expectTypeOf(extended).toHaveProperty("create");
-      expectTypeOf(extended.create).toBeFunction();
-    });
-
-    it("extended builder .create should return an RMachine with fmt getter", () => {
-      const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
-      const machine = RMachine.builder(narrowConfig).with({ Formatters }).create<TestResourceAtlas>();
+      type FPC = typeof Formatters;
+      const machine = new RMachine<TestResourceAtlas, "en" | "it", InstanceType<FPC>>(narrowConfig as any, {
+        Formatters,
+      });
       expectTypeOf(machine).toBeObject();
-      expectTypeOf(machine.fmt).toBeFunction();
-      expectTypeOf(machine.fmt("en")).toHaveProperty("date");
     });
 
-    it("builder without .with() should produce create() directly", () => {
-      const machine = RMachine.builder(narrowConfig).create<TestResourceAtlas>();
+    it("constructor without custom Formatters produces EmptyFmtProvider", () => {
+      const machine = createNarrowMachine<TestResourceAtlas>();
       expectTypeOf(machine).toEqualTypeOf<RMachine<TestResourceAtlas, "en" | "it", EmptyFmtProvider>>();
     });
   });
@@ -399,13 +380,13 @@ describe("RMachine", () => {
 
   describe("subclass access to protected members", () => {
     it("hybridPickR should return union of sync and async types", () => {
-      const machine = new TestableRMachine<TestResourceAtlas>(mockConfig, defaultRMachineExtensions);
+      const machine = new TestableRMachine<TestResourceAtlas>(mockConfig as any, defaultRMachineExtensions);
       const result = machine.exposeHybridPickR("en", "common");
       expectTypeOf(result).toEqualTypeOf<TestResourceAtlas["common"] | Promise<TestResourceAtlas["common"]>>();
     });
 
     it("hybridPickRKit should return union of sync and async types", () => {
-      const machine = new TestableRMachine<TestResourceAtlas>(mockConfig, defaultRMachineExtensions);
+      const machine = new TestableRMachine<TestResourceAtlas>(mockConfig as any, defaultRMachineExtensions);
       const result = machine.exposeHybridPickRKit("en", "common", "home");
       type Expected =
         | RKit<TestResourceAtlas, readonly ["common", "home"]>
@@ -414,7 +395,7 @@ describe("RMachine", () => {
     });
 
     it("hybridPickR should preserve namespace type in return", () => {
-      const machine = new TestableRMachine<TestResourceAtlas>(mockConfig, defaultRMachineExtensions);
+      const machine = new TestableRMachine<TestResourceAtlas>(mockConfig as any, defaultRMachineExtensions);
 
       const common = machine.exposeHybridPickR("en", "common");
       expectTypeOf(common).toEqualTypeOf<TestResourceAtlas["common"] | Promise<TestResourceAtlas["common"]>>();
@@ -550,69 +531,34 @@ describe("RMachine", () => {
   });
 
   describe("RMachineLocale utility type", () => {
-    it("should resolve to never for RMachine instance (only supports builders)", () => {
+    it("should extract locale from RMachine instance", () => {
       type Machine = RMachine<TestResourceAtlas, "en" | "it", EmptyFmtProvider>;
-      expectTypeOf<RMachineLocale<Machine>>().toEqualTypeOf<never>();
+      expectTypeOf<RMachineLocale<Machine>>().toEqualTypeOf<"en" | "it">();
     });
 
-    it("should extract locale from RMachineBuilder", () => {
-      const builder = RMachine.builder(narrowConfig);
-      expectTypeOf<RMachineLocale<typeof builder>>().toEqualTypeOf<"en" | "it">();
-    });
-
-    it("should extract locale from RMachineExtendedBuilder", () => {
-      const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
-      const extended = RMachine.builder(narrowConfig).with({ Formatters });
-      expectTypeOf<RMachineLocale<typeof extended>>().toEqualTypeOf<"en" | "it">();
+    it("should extract wide locale from RMachine with string locale", () => {
+      type Machine = RMachine<TestResourceAtlas, string, EmptyFmtProvider>;
+      expectTypeOf<RMachineLocale<Machine>>().toEqualTypeOf<string>();
     });
   });
 
   describe("RMachineRCtx utility type", () => {
-    it("should extract RCtx with locale from builder (no formatters)", () => {
-      const builder = RMachine.builder(narrowConfig);
-      type Ctx = RMachineRCtx<typeof builder>;
+    it("should extract RCtx with locale from RMachine (no formatters)", () => {
+      const machine = createNarrowMachine<TestResourceAtlas>();
+      type Ctx = RMachineRCtx<typeof machine>;
       expectTypeOf<Ctx>().toHaveProperty("locale").toEqualTypeOf<"en" | "it">();
       expectTypeOf<Ctx>().toHaveProperty("namespace").toBeString();
     });
 
-    it("should extract RCtx with resolved fmt type from extended builder (with formatters)", () => {
+    it("should extract RCtx with locale from RMachine (with formatters)", () => {
       const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
-      const extended = RMachine.builder(narrowConfig).with({ Formatters });
-      type Ctx = RMachineRCtx<typeof extended>;
+      type FPC = typeof Formatters;
+      const machine = new RMachine<TestResourceAtlas, "en" | "it", InstanceType<FPC>>(narrowConfig as any, {
+        Formatters,
+      });
+      type Ctx = RMachineRCtx<typeof machine>;
       expectTypeOf<Ctx>().toHaveProperty("locale").toEqualTypeOf<"en" | "it">();
-      expectTypeOf<Ctx>().toHaveProperty("fmt").toHaveProperty("date");
-    });
-  });
-
-  describe("fmt property types", () => {
-    it("fmt should return EmptyFmt when FP is EmptyFmtProvider", () => {
-      const machine = createMachine<TestResourceAtlas>();
-      expectTypeOf(machine.fmt).toBeFunction();
-      expectTypeOf(machine.fmt("en")).toEqualTypeOf<EmptyFmt>();
-    });
-
-    it("fmt should be a getter function when FP is a FmtProvider", () => {
-      const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
-      const machine = RMachine.builder(narrowConfig).with({ Formatters }).create<TestResourceAtlas>();
-      expectTypeOf(machine.fmt).toBeFunction();
-    });
-
-    it("fmt should reject locale not in the narrow union", () => {
-      const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({ date: (d: Date) => d.toISOString() }));
-      const machine = RMachine.builder(narrowConfig).with({ Formatters }).create<TestResourceAtlas>();
-      // @ts-expect-error - "fr" is not in "en" | "it"
-      machine.fmt("fr");
-    });
-
-    it("fmt return type should match the formatter object shape", () => {
-      const Formatters = FormattersSeed.create((_locale: "en" | "it") => ({
-        currency: (n: number) => `$${n}`,
-        date: (d: Date) => d.toISOString(),
-      }));
-      const machine = RMachine.builder(narrowConfig).with({ Formatters }).create<TestResourceAtlas>();
-      const fmt = machine.fmt("en");
-      expectTypeOf(fmt).toHaveProperty("currency");
-      expectTypeOf(fmt).toHaveProperty("date");
+      expectTypeOf<Ctx>().toHaveProperty("namespace").toBeString();
     });
   });
 });

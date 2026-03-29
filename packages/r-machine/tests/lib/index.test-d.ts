@@ -19,25 +19,27 @@ import type {
 import {
   EmptyFmtProviderCtor,
   FormattersSeed,
+  ResourceAtlasSeed,
   RMachine,
   type RMachineLocale,
   type RMachineRCtx,
 } from "../../src/lib/index.js";
+import type { AnyResourceAtlasCtor } from "../../src/lib/resource-atlas.js";
 
 type TestAtlas = { readonly common: { greeting: string } };
 
 // Barrel test: uses a single it() to verify export completeness only. Type shape tests belong in dedicated files.
 describe("lib barrel exports", () => {
   it("exports all expected symbols", () => {
-    expectTypeOf(RMachine.builder).toBeFunction();
+    expectTypeOf(RMachine.create).toBeFunction();
 
-    expectTypeOf<RMachineLocale<ReturnType<typeof RMachine.builder>>>().toBeString();
+    expectTypeOf<RMachineLocale<RMachine<AnyResourceAtlas, string, EmptyFmtProvider>>>().toBeString();
 
-    expectTypeOf<RMachineRCtx<ReturnType<typeof RMachine.builder>>>().toBeObject();
+    expectTypeOf<RMachineRCtx<RMachine<AnyResourceAtlas, string, EmptyFmtProvider>>>().toBeObject();
 
-    expectTypeOf<RMachineConfig<string>>().toBeObject();
+    expectTypeOf<RMachineConfig<AnyResourceAtlas, string>>().toBeObject();
 
-    expectTypeOf<RMachineConfigParams<readonly ["en", "it"]>>().toBeObject();
+    expectTypeOf<RMachineConfigParams<AnyResourceAtlasCtor, readonly ["en", "it"]>>().toBeObject();
 
     expectTypeOf<AnyNamespace>().toEqualTypeOf<string>();
     expectTypeOf<AnyR>().toEqualTypeOf<any>();
@@ -59,6 +61,8 @@ describe("lib barrel exports", () => {
     expectTypeOf<ExtractFmt<EmptyFmtProvider>>().toEqualTypeOf<{}>();
 
     expectTypeOf(FormattersSeed.create).toBeFunction();
+
+    expectTypeOf(ResourceAtlasSeed.create).toBeFunction();
 
     expectTypeOf(EmptyFmtProviderCtor).toBeConstructibleWith();
     expectTypeOf(EmptyFmtProviderCtor.get).toBeFunction();

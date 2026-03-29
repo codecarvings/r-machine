@@ -1,12 +1,14 @@
-import { FormattersSeed, RMachine, type RMachineLocale, type RMachineRCtx } from "r-machine";
+import { RMachine } from "r-machine";
+import { ResourceAtlasSeed } from "./packages/r-machine/src/lib/resource-atlas-seed.js";
 
-type ResourceAtlas = {
+class ResourceAtlas extends ResourceAtlasSeed.create<{
   ns1: { message: string };
   ns2: { message: string };
   ns3: { message: string };
-};
+}>() {}
 
-const rMachineBuilder = RMachine.builder({
+const rMachine = RMachine.create({
+  ResourceAtlas,
   locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: async (namespace, locale) => {
@@ -19,21 +21,9 @@ const rMachineBuilder = RMachine.builder({
     };
   },
 });
-type Locale = RMachineLocale<typeof rMachineBuilder>;
+// type Locale = RMachineLocale<typeof rMachine>;
 
-class Formatters extends FormattersSeed.create((locale: Locale) => {
-  return {
-    uppercase: (str: string) => str.toUpperCase() + locale,
-  };
-}) {}
-
-const rMachineExtBuilder = rMachineBuilder.with({ Formatters });
-export type R$ = RMachineRCtx<typeof rMachineExtBuilder>;
-
-const rMachine = rMachineExtBuilder.create<ResourceAtlas>();
-export const { uppercase } = rMachine.fmt("en");
-
-const r = await rMachine.pickR("en", "ns1");
+const r = await rMachine.pickR("it", "ns1");
 console.log(r.message);
 
 const [r1, r2] = await rMachine.pickRKit("it", "ns1", "ns2");

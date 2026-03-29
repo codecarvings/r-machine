@@ -1,6 +1,7 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyNamespace, AnyR, Namespace } from "../../src/lib/r.js";
+import type { AnyR } from "../../src/lib/r.js";
 import type { AnyNamespaceList, AnyRKit, NamespaceList, RKit } from "../../src/lib/r-kit.js";
+import type { AnyNamespace, Namespace } from "../../src/lib/resource-atlas.js";
 
 describe("AnyNamespaceList", () => {
   it("should be readonly array of AnyNamespace", () => {

@@ -18,7 +18,7 @@ export {
   type ExtractFmt,
 } from "./fmt.js";
 export { FormattersSeed } from "./formatters-seed.js";
-export type { AnyNamespace, AnyR, AnyResourceAtlas, Namespace, R } from "./r.js";
+export type { AnyR, R } from "./r.js";
 export type { AnyNamespaceList, AnyRKit, NamespaceList, RKit } from "./r-kit.js";
 export {
   RMachine,
@@ -27,3 +27,5 @@ export {
 } from "./r-machine.js";
 export type { RMachineConfig, RMachineConfigParams } from "./r-machine-config.js";
 export type { RCtx } from "./r-module.js";
+export type { AnyNamespace, AnyResourceAtlas, Namespace } from "./resource-atlas.js";
+export { ResourceAtlasSeed } from "./resource-atlas-seed.js";

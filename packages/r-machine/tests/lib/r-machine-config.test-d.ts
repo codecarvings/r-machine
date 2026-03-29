@@ -4,81 +4,95 @@ import type { AnyLocale } from "#r-machine/locale";
 import type { RMachineConfig, RMachineConfigParams } from "../../src/lib/r-machine-config.js";
 import { cloneRMachineConfig, validateRMachineConfig } from "../../src/lib/r-machine-config.js";
 import type { RModuleResolver } from "../../src/lib/r-module.js";
+import type { AnyResourceAtlas, AnyResourceAtlasCtor } from "../../src/lib/resource-atlas.js";
 
 describe("RMachineConfig", () => {
   describe("structure", () => {
     it("should have the correct shape with all properties readonly", () => {
-      expectTypeOf<RMachineConfig<string>>().toEqualTypeOf<{
+      expectTypeOf<RMachineConfig<AnyResourceAtlas, string>>().toEqualTypeOf<{
+        readonly resourceAtlas?: AnyResourceAtlas;
         readonly locales: readonly string[];
         readonly defaultLocale: string;
         readonly rModuleResolver: RModuleResolver;
       }>();
     });
 
-    it("should have exactly three properties", () => {
-      type ConfigKeys = keyof RMachineConfig<string>;
-      expectTypeOf<ConfigKeys>().toEqualTypeOf<"locales" | "defaultLocale" | "rModuleResolver">();
+    it("should have exactly four properties", () => {
+      type ConfigKeys = keyof RMachineConfig<AnyResourceAtlas, string>;
+      expectTypeOf<ConfigKeys>().toEqualTypeOf<"resourceAtlas" | "locales" | "defaultLocale" | "rModuleResolver">();
     });
 
     it("should be fully readonly", () => {
-      expectTypeOf<RMachineConfig<string>>().toEqualTypeOf<Readonly<RMachineConfig<string>>>();
+      expectTypeOf<RMachineConfig<AnyResourceAtlas, string>>().toEqualTypeOf<
+        Readonly<RMachineConfig<AnyResourceAtlas, string>>
+      >();
     });
   });
 
   describe("type parameter L", () => {
     it("should propagate locale type to locales and defaultLocale", () => {
-      expectTypeOf<RMachineConfig<"en" | "it">["locales"]>().toEqualTypeOf<readonly ("en" | "it")[]>();
-      expectTypeOf<RMachineConfig<"en" | "it">["defaultLocale"]>().toEqualTypeOf<"en" | "it">();
+      expectTypeOf<RMachineConfig<AnyResourceAtlas, "en" | "it">["locales"]>().toEqualTypeOf<
+        readonly ("en" | "it")[]
+      >();
+      expectTypeOf<RMachineConfig<AnyResourceAtlas, "en" | "it">["defaultLocale"]>().toEqualTypeOf<"en" | "it">();
     });
 
     it("should work with a single literal locale", () => {
-      expectTypeOf<RMachineConfig<"en">["locales"]>().toEqualTypeOf<readonly "en"[]>();
-      expectTypeOf<RMachineConfig<"en">["defaultLocale"]>().toEqualTypeOf<"en">();
+      expectTypeOf<RMachineConfig<AnyResourceAtlas, "en">["locales"]>().toEqualTypeOf<readonly "en"[]>();
+      expectTypeOf<RMachineConfig<AnyResourceAtlas, "en">["defaultLocale"]>().toEqualTypeOf<"en">();
     });
 
     it("should not affect rModuleResolver type", () => {
-      expectTypeOf<RMachineConfig<"en">["rModuleResolver"]>().toEqualTypeOf<RModuleResolver>();
-      expectTypeOf<RMachineConfig<"en" | "it">["rModuleResolver"]>().toEqualTypeOf<RModuleResolver>();
+      expectTypeOf<RMachineConfig<AnyResourceAtlas, "en">["rModuleResolver"]>().toEqualTypeOf<RModuleResolver>();
+      expectTypeOf<RMachineConfig<AnyResourceAtlas, "en" | "it">["rModuleResolver"]>().toEqualTypeOf<RModuleResolver>();
     });
 
     it("should accept AnyLocale as type parameter", () => {
-      expectTypeOf<RMachineConfig<AnyLocale>>().toEqualTypeOf<RMachineConfig<string>>();
+      expectTypeOf<RMachineConfig<AnyResourceAtlas, AnyLocale>>().toEqualTypeOf<
+        RMachineConfig<AnyResourceAtlas, string>
+      >();
     });
   });
 
   describe("covariance", () => {
     it("narrow locale config should be assignable to wider locale config", () => {
-      expectTypeOf<RMachineConfig<"en">>().toExtend<RMachineConfig<"en" | "it">>();
-      expectTypeOf<RMachineConfig<"en" | "it">>().toExtend<RMachineConfig<string>>();
+      expectTypeOf<RMachineConfig<AnyResourceAtlas, "en">>().toExtend<RMachineConfig<AnyResourceAtlas, "en" | "it">>();
+      expectTypeOf<RMachineConfig<AnyResourceAtlas, "en" | "it">>().toExtend<
+        RMachineConfig<AnyResourceAtlas, string>
+      >();
     });
 
     it("wider locale config should NOT be assignable to narrower locale config", () => {
-      expectTypeOf<RMachineConfig<string>>().not.toExtend<RMachineConfig<"en" | "it">>();
-      expectTypeOf<RMachineConfig<"en" | "it">>().not.toExtend<RMachineConfig<"en">>();
+      expectTypeOf<RMachineConfig<AnyResourceAtlas, string>>().not.toExtend<
+        RMachineConfig<AnyResourceAtlas, "en" | "it">
+      >();
+      expectTypeOf<RMachineConfig<AnyResourceAtlas, "en" | "it">>().not.toExtend<
+        RMachineConfig<AnyResourceAtlas, "en">
+      >();
     });
   });
 
   describe("assignability", () => {
     it("valid config object should be assignable", () => {
-      const config: RMachineConfig<string> = {
+      const config: RMachineConfig<AnyResourceAtlas, string> = {
         locales: ["en", "it"],
         defaultLocale: "en",
         rModuleResolver: async () => ({ default: {} }),
       };
-      expectTypeOf(config).toExtend<RMachineConfig<string>>();
+      expectTypeOf(config).toExtend<RMachineConfig<AnyResourceAtlas, string>>();
     });
 
     it("config with as const locales should be assignable", () => {
-      const config: RMachineConfig<string> = {
+      const config: RMachineConfig<AnyResourceAtlas, string> = {
         locales: ["en", "it", "de"] as const,
         defaultLocale: "en",
         rModuleResolver: async () => ({ default: {} }),
       };
-      expectTypeOf(config).toExtend<RMachineConfig<string>>();
+      expectTypeOf(config).toExtend<RMachineConfig<AnyResourceAtlas, string>>();
     });
 
     it("should reject defaultLocale outside the locale union", () => {
-      expectTypeOf<"fr">().not.toExtend<RMachineConfig<"en" | "it">["defaultLocale"]>();
+      expectTypeOf<"fr">().not.toExtend<RMachineConfig<AnyResourceAtlas, "en" | "it">["defaultLocale"]>();
     });
   });
 });
@@ -86,7 +100,8 @@ describe("RMachineConfig", () => {
 describe("RMachineConfigParams", () => {
   describe("structure", () => {
     it("should have the correct shape with all properties readonly", () => {
-      expectTypeOf<RMachineConfigParams<readonly string[]>>().toEqualTypeOf<{
+      expectTypeOf<RMachineConfigParams<AnyResourceAtlasCtor, readonly string[]>>().toEqualTypeOf<{
+        readonly ResourceAtlas: AnyResourceAtlasCtor;
         readonly locales: readonly string[];
         readonly defaultLocale: string;
         readonly rModuleResolver: RModuleResolver;
@@ -96,24 +111,30 @@ describe("RMachineConfigParams", () => {
 
   describe("type parameter LL", () => {
     it("should constrain defaultLocale to members of the locales tuple", () => {
-      expectTypeOf<RMachineConfigParams<readonly ["en", "it"]>["defaultLocale"]>().toEqualTypeOf<"en" | "it">();
+      expectTypeOf<RMachineConfigParams<AnyResourceAtlasCtor, readonly ["en", "it"]>["defaultLocale"]>().toEqualTypeOf<
+        "en" | "it"
+      >();
     });
 
     it("should preserve the exact tuple type for locales", () => {
-      expectTypeOf<RMachineConfigParams<readonly ["en", "it"]>["locales"]>().toEqualTypeOf<readonly ["en", "it"]>();
+      expectTypeOf<RMachineConfigParams<AnyResourceAtlasCtor, readonly ["en", "it"]>["locales"]>().toEqualTypeOf<
+        readonly ["en", "it"]
+      >();
     });
   });
 
   describe("relationship with RMachineConfig", () => {
     it("RMachineConfigParams with tuple should be assignable to RMachineConfig with union", () => {
-      expectTypeOf<RMachineConfigParams<readonly ["en", "it"]>>().toExtend<RMachineConfig<"en" | "it">>();
+      expectTypeOf<RMachineConfigParams<AnyResourceAtlasCtor, readonly ["en", "it"]>>().toExtend<
+        RMachineConfig<AnyResourceAtlas, "en" | "it">
+      >();
     });
   });
 });
 
 describe("validateRMachineConfig", () => {
   it("should accept RMachineConfig and return RMachineConfigError or null", () => {
-    const config: RMachineConfig<string> = {
+    const config: RMachineConfig<AnyResourceAtlas, string> = {
       locales: ["en"],
       defaultLocale: "en",
       rModuleResolver: async () => ({ default: {} }),
@@ -127,7 +148,7 @@ describe("validateRMachineConfig", () => {
   });
 
   it("should infer locale type from config argument", () => {
-    const config: RMachineConfig<"en" | "it"> = {
+    const config: RMachineConfig<AnyResourceAtlas, "en" | "it"> = {
       locales: ["en", "it"],
       defaultLocale: "en",
       rModuleResolver: async () => ({ default: {} }),
@@ -140,22 +161,22 @@ describe("validateRMachineConfig", () => {
 
 describe("cloneRMachineConfig", () => {
   it("should preserve the locale type parameter through cloning", () => {
-    const original: RMachineConfig<"en" | "it"> = {
+    const original: RMachineConfig<AnyResourceAtlas, "en" | "it"> = {
       locales: ["en", "it"],
       defaultLocale: "en",
       rModuleResolver: async () => ({ default: {} }),
     };
     const cloned = cloneRMachineConfig(original);
-    expectTypeOf(cloned).toEqualTypeOf<RMachineConfig<"en" | "it">>();
+    expectTypeOf(cloned).toEqualTypeOf<RMachineConfig<AnyResourceAtlas, "en" | "it">>();
   });
 
   it("should preserve wide locale type through cloning", () => {
-    const original: RMachineConfig<string> = {
+    const original: RMachineConfig<AnyResourceAtlas, string> = {
       locales: ["en"],
       defaultLocale: "en",
       rModuleResolver: async () => ({ default: {} }),
     };
     const cloned = cloneRMachineConfig(original);
-    expectTypeOf(cloned).toEqualTypeOf<RMachineConfig<string>>();
+    expectTypeOf(cloned).toEqualTypeOf<RMachineConfig<AnyResourceAtlas, string>>();
   });
 });

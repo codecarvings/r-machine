@@ -13,13 +13,13 @@
 
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
-import type { AnyFmtGetter, AnyFmtProvider, ExtractFmt } from "./fmt.js";
-import type { AnyNamespace, AnyR } from "./r.js";
+import type { AnyFmtProvider } from "./fmt.js";
+import type { AnyR } from "./r.js";
+import type { AnyNamespace } from "./resource-atlas.js";
 
-export interface RCtx<L extends AnyLocale = AnyLocale, FP extends AnyFmtProvider = AnyFmtProvider> {
+export interface RCtx<L extends AnyLocale = AnyLocale, _FP extends AnyFmtProvider = AnyFmtProvider> {
   readonly namespace: AnyNamespace;
   readonly locale: L;
-  readonly fmt: ExtractFmt<FP>;
 }
 
 export type AnyRFactory = ($: RCtx) => AnyR | Promise<AnyR>;
@@ -85,8 +85,7 @@ export async function resolveRFromModule(rModule: AnyRModule, $: RCtx): Promise<
 export async function resolveR(
   rModuleResolver: RModuleResolver,
   namespace: AnyNamespace,
-  locale: AnyLocale,
-  formatters: AnyFmtGetter
+  locale: AnyLocale
 ): Promise<AnyR> {
   let rModule: AnyRModule;
   try {
@@ -98,5 +97,5 @@ export async function resolveR(
       reason as Error
     );
   }
-  return resolveRFromModule(rModule, { namespace, locale, fmt: formatters(locale) } as RCtx);
+  return resolveRFromModule(rModule, { namespace, locale });
 }

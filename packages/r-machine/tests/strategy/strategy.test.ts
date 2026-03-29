@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import type { AnyFmtProvider, AnyResourceAtlas, RMachineConfig } from "#r-machine";
+import type { AnyFmtProvider, AnyResourceAtlas, EmptyFmtProvider, RMachineConfig } from "#r-machine";
 import type { AnyLocale } from "#r-machine/locale";
 import { RMachine } from "../../src/lib/r-machine.js";
+import { defaultRMachineExtensions } from "../../src/lib/r-machine-builder.js";
 import { Strategy } from "../../src/strategy/strategy.js";
 
 function createSpyStrategyClass<RA extends AnyResourceAtlas, L extends AnyLocale, C>() {
@@ -22,14 +23,14 @@ class ThrowingStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> exte
 
 class DefaultStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, AnyFmtProvider, C> {}
 
-const testConfig: RMachineConfig<string> = {
+const testConfig: RMachineConfig<AnyResourceAtlas, string> = {
   locales: ["en", "it"],
   defaultLocale: "en",
   rModuleResolver: async () => ({ default: {} }),
 };
 
 function createTestRMachine() {
-  return RMachine.builder(testConfig).create<AnyResourceAtlas>();
+  return new RMachine<AnyResourceAtlas, string, EmptyFmtProvider>(testConfig, defaultRMachineExtensions);
 }
 
 describe("Strategy", () => {

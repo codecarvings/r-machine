@@ -1,4 +1,4 @@
-import type { AnyFmtProvider, ExtractFmt, RMachine } from "r-machine";
+import type { AnyFmtProvider, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import { describe, expectTypeOf, it } from "vitest";
@@ -85,42 +85,9 @@ describe("ReactBareToolset", () => {
     expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>>().toHaveProperty("useSetLocale");
     expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>>().toHaveProperty("useR");
     expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>>().toHaveProperty("useRKit");
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>>().toHaveProperty("useFmt");
 
     type Keys = keyof ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>;
-    expectTypeOf<Keys>().toEqualTypeOf<
-      "ReactRMachine" | "useLocale" | "useSetLocale" | "useR" | "useRKit" | "useFmt"
-    >();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// useFmt
-// ---------------------------------------------------------------------------
-
-describe("useFmt", () => {
-  it("returns ExtractFmt<FP> for AnyFmtProvider", () => {
-    type UseFmt = ReactBareToolset<TestAtlas, AnyLocale, AnyFmtProvider>["useFmt"];
-    expectTypeOf<UseFmt>().toEqualTypeOf<() => ExtractFmt<AnyFmtProvider>>();
-  });
-
-  it("extracts the concrete formatter type from a custom FmtProvider", () => {
-    type TestFmt = { readonly date: (d: Date) => string };
-    type TestFmtProvider = { readonly get: (locale: AnyLocale) => TestFmt };
-
-    type UseFmt = ReactBareToolset<TestAtlas, AnyLocale, TestFmtProvider>["useFmt"];
-    expectTypeOf<ReturnType<UseFmt>>().toEqualTypeOf<TestFmt>();
-  });
-
-  it("different FmtProviders produce non-assignable return types", () => {
-    type FmtA = { readonly date: (d: Date) => string };
-    type FmtB = { readonly number: (n: number) => string };
-    type ProviderA = { readonly get: (locale: AnyLocale) => FmtA };
-    type ProviderB = { readonly get: (locale: AnyLocale) => FmtB };
-
-    type UseFmtA = ReactBareToolset<TestAtlas, AnyLocale, ProviderA>["useFmt"];
-    type UseFmtB = ReactBareToolset<TestAtlas, AnyLocale, ProviderB>["useFmt"];
-    expectTypeOf<ReturnType<UseFmtA>>().not.toEqualTypeOf<ReturnType<UseFmtB>>();
+    expectTypeOf<Keys>().toEqualTypeOf<"ReactRMachine" | "useLocale" | "useSetLocale" | "useR" | "useRKit">();
   });
 });
 

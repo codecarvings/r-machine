@@ -12,14 +12,17 @@
  */
 
 import type { AnyR } from "./r.js";
-import type { AnyNamespace, AnyResourceAtlas, Namespace } from "./resource-atlas.js";
 
-export type AnyNamespaceList = readonly AnyNamespace[];
+export type AnyNamespace = string;
 
-export type AnyRKit = readonly AnyR[];
+export interface AnyResourceAtlas {
+  readonly [namespace: AnyNamespace]: AnyR;
+}
 
-export type NamespaceList<RA extends AnyResourceAtlas> = readonly Namespace<RA>[];
+export type Namespace<RA extends AnyResourceAtlas> = Extract<keyof RA, AnyNamespace>;
 
-export type RKit<RA extends AnyResourceAtlas, NL extends NamespaceList<RA>> = {
-  readonly [I in keyof NL]: RA[NL[I]];
-};
+export interface ResourceAtlasCtor<RA extends AnyResourceAtlas> {
+  new (): RA;
+}
+
+export type AnyResourceAtlasCtor = ResourceAtlasCtor<AnyResourceAtlas>;

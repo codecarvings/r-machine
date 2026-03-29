@@ -13,7 +13,8 @@ export async function generateStaticParams({
   params: Awaited<PageProps<"/[locale]/example-dynamic/[slug]">["params"]>;
 }) {
   const r = await rMachine.pickR(getCanonicalUnicodeLocaleId(locale) as Locale, "example-dynamic");
-  return r.items.map((item) => ({ slug: item.slug }));
+  // TODO: WIP
+  return r.items.map((item: any) => ({ slug: item.slug }));
 }
 
 export default async function DynamicSlugPage({ params }: PageProps<"/[locale]/example-dynamic/[slug]">) {
@@ -22,7 +23,8 @@ export default async function DynamicSlugPage({ params }: PageProps<"/[locale]/e
   const getPath = await getPathComposer();
   const { slug } = await params;
 
-  const item = r.items.find((i) => i.slug === slug);
+  // TODO: WIP
+  const item = r.items.find((i: any) => i.slug === slug);
 
   if (!item) {
     notFound();
