@@ -13,7 +13,7 @@
 
 "use client";
 
-import type { AnyResourceAtlas, Namespace, NamespaceList, NamespaceMap, RKit, RMachine } from "r-machine";
+import type { AnyResourceAtlas, Namespace, NamespaceList, NamespaceMap, RList, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
@@ -31,7 +31,7 @@ export interface ReactBareToolset<RA extends AnyResourceAtlas, L extends AnyLoca
   // the setter function should be recreated on every render to capture the latest context.
   readonly useSetLocale: () => SetLocale<L>;
   readonly useR: <N extends Namespace<RA>>(namespace: N) => RA[N];
-  readonly useRKit: <NL extends NamespaceList<RA>>(...namespaces: NL) => RKit<RA, NL>;
+  readonly useRKit: <NL extends NamespaceList<RA>>(...namespaces: NL) => RList<RA, NL>;
 }
 
 export interface ReactBareRMachine<L extends AnyLocale> {
@@ -134,14 +134,14 @@ export async function createReactBareToolset<
   }
 
   const hybridPickRKit: (typeof rMachine)["hybridPickRKit"] = (rMachine as any).hybridPickRKit;
-  function useRKit<NL extends NamespaceList<RA>>(...namespaces: NL): RKit<RA, NL> {
+  function useRKit<NL extends NamespaceList<RA>>(...namespaces: NL): RList<RA, NL> {
     const context = useReactToolsetContext();
-    const rKit = hybridPickRKit(context.locale, ...namespaces);
+    const rList = hybridPickRKit(context.locale, ...namespaces);
 
-    if (rKit instanceof Promise) {
-      throw rKit;
+    if (rList instanceof Promise) {
+      throw rList;
     }
-    return rKit as RKit<RA, NL>;
+    return rList as RList<RA, NL>;
   }
 
   return {

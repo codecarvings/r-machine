@@ -1,6 +1,6 @@
-import type { R_Common } from "./en";
+import type { R_Shell_Common } from "./en";
 
-export const r: R_Common = {
+export const r: R_Shell_Common = {
   footer: {
     message: (
       <>
@@ -12,4 +12,3 @@ export const r: R_Common = {
     ),
   },
 };
-

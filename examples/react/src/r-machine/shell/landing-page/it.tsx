@@ -1,6 +1,6 @@
-import type { R_LandingPage } from "./en";
+import type { R_Shell_LandingPage } from "./en";
 
-export const r: R_LandingPage = {
+export const r: R_Shell_LandingPage = {
   hero: {
     title: "i18n Type-Safe per Applicazioni Moderne",
     subtitle:
@@ -15,4 +15,3 @@ export const r: R_LandingPage = {
     subtitle: "Costruito per sviluppatori che richiedono type safety e performance.",
   },
 };
-

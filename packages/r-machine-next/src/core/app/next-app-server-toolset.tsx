@@ -12,7 +12,7 @@
  */
 
 import { notFound } from "next/navigation";
-import type { AnyResourceAtlas, Namespace, NamespaceList, NamespaceMap, RKit, RMachine } from "r-machine";
+import type { AnyResourceAtlas, Namespace, NamespaceList, NamespaceMap, RList, RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
@@ -36,7 +36,7 @@ export interface NextAppServerToolset<
   readonly getLocale: () => Promise<L>;
   readonly setLocale: (newLocale: L) => Promise<void>;
   readonly pickR: <N extends Namespace<RA>>(namespace: N) => Promise<RA[N]>;
-  readonly pickRKit: <NL extends NamespaceList<RA>>(...namespaces: NL) => Promise<RKit<RA, NL>>;
+  readonly pickRKit: <NL extends NamespaceList<RA>>(...namespaces: NL) => Promise<RList<RA, NL>>;
   readonly getPathComposer: BoundPathComposerSupplier<PAP>;
 }
 
@@ -251,14 +251,14 @@ export async function createNextAppServerToolset<
     }
   }
 
-  function pickRKit<NL extends NamespaceList<RA>>(...namespaces: NL): Promise<RKit<RA, NL>> {
+  function pickRKit<NL extends NamespaceList<RA>>(...namespaces: NL): Promise<RList<RA, NL>> {
     validateServerOnlyUsage("pickRKit");
 
     const localeOrPromise = getSafeLocale();
     if (localeOrPromise instanceof Promise) {
-      return localeOrPromise.then((locale) => rMachine.pickRKit(locale, ...namespaces)) as Promise<RKit<RA, NL>>;
+      return localeOrPromise.then((locale) => rMachine.pickRKit(locale, ...namespaces)) as Promise<RList<RA, NL>>;
     } else {
-      return rMachine.pickRKit(localeOrPromise, ...namespaces) as Promise<RKit<RA, NL>>;
+      return rMachine.pickRKit(localeOrPromise, ...namespaces) as Promise<RList<RA, NL>>;
     }
   }
 

@@ -17,7 +17,7 @@ import type { AnyR } from "./r.js";
 import type { AnyNamespace } from "./resource-atlas.js";
 
 // TODO: WIP
-export type AnyRFactory = ($?: any) => AnyR | Promise<AnyR>;
+export type AnyRFactory = () => AnyR | Promise<AnyR>;
 
 export type AnyRForge = AnyR | AnyRFactory;
 
@@ -52,7 +52,7 @@ export async function resolveRFromModule(rModule: AnyRModule, $: any): Promise<A
   if (rForgeType === "function") {
     let r: AnyR;
     try {
-      r = await (rForge as AnyRFactory)($);
+      r = await (rForge as AnyRFactory)();
     } catch (reason) {
       throw getResolveRFromModuleError($.namespace, $.locale, "factory promise rejected", reason as Error);
     }

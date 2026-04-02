@@ -16,4 +16,4 @@ export const r = {
   },
 };
 
-export type R_LandingPage = RShape<typeof r>;
+export type R_Shell_LandingPage = RShape<typeof r>;

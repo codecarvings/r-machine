@@ -164,7 +164,7 @@ describe("NextAppNoProxyServerToolset", () => {
     expectTypeOf<PickRKit>().toBeCallableWith("common", "nav");
   });
 
-  it("pickRKit return type is Promise<RKit> for given namespaces", () => {
+  it("pickRKit return type is Promise<RList> for given namespaces", () => {
     const pickRKit = {} as Toolset["pickRKit"];
     expectTypeOf(pickRKit("common")).toEqualTypeOf<Promise<readonly [TestAtlas["common"]]>>();
     expectTypeOf(pickRKit("common", "nav")).toEqualTypeOf<Promise<readonly [TestAtlas["common"], TestAtlas["nav"]]>>();

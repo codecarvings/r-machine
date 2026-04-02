@@ -2,7 +2,7 @@ import { describe, expectTypeOf, it } from "vitest";
 
 import { Domain } from "../../src/lib/domain.js";
 import type { AnyR } from "../../src/lib/r.js";
-import type { AnyNamespaceList, AnyRKit } from "../../src/lib/r-kit.js";
+import type { AnyNamespaceList, AnyRList } from "../../src/lib/r-kit.js";
 import type { RModuleLoader } from "../../src/lib/r-module.js";
 
 describe("Domain", () => {
@@ -70,15 +70,15 @@ describe("Domain", () => {
     });
 
     it("should return AnyRKit | Promise<AnyRKit>", () => {
-      expectTypeOf<Domain["hybridPickRKit"]>().returns.toEqualTypeOf<AnyRKit | Promise<AnyRKit>>();
+      expectTypeOf<Domain["hybridPickRKit"]>().returns.toEqualTypeOf<AnyRList | Promise<AnyRList>>();
     });
 
     it("return type should include synchronous AnyRKit", () => {
-      expectTypeOf<AnyRKit>().toExtend<ReturnType<Domain["hybridPickRKit"]>>();
+      expectTypeOf<AnyRList>().toExtend<ReturnType<Domain["hybridPickRKit"]>>();
     });
 
     it("return type should include Promise<AnyRKit>", () => {
-      expectTypeOf<Promise<AnyRKit>>().toExtend<ReturnType<Domain["hybridPickRKit"]>>();
+      expectTypeOf<Promise<AnyRList>>().toExtend<ReturnType<Domain["hybridPickRKit"]>>();
     });
   });
 
@@ -92,11 +92,11 @@ describe("Domain", () => {
     });
 
     it("should return Promise<AnyRKit>", () => {
-      expectTypeOf<Domain["pickRKit"]>().returns.toEqualTypeOf<Promise<AnyRKit>>();
+      expectTypeOf<Domain["pickRKit"]>().returns.toEqualTypeOf<Promise<AnyRList>>();
     });
 
     it("return type should not include synchronous AnyRKit", () => {
-      expectTypeOf<ReturnType<Domain["pickRKit"]>>().toExtend<Promise<AnyRKit>>();
+      expectTypeOf<ReturnType<Domain["pickRKit"]>>().toExtend<Promise<AnyRList>>();
     });
   });
 

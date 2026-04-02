@@ -1,5 +1,5 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { RKit } from "../../src/lib/r-kit.js";
+import type { RList } from "../../src/lib/r-kit.js";
 import { RMachine, type RMachineLocale } from "../../src/lib/r-machine.js";
 import type { RMachineConfig } from "../../src/lib/r-machine-config.js";
 import type { AnyResourceAtlas, Namespace } from "../../src/lib/resource-atlas.js";
@@ -194,10 +194,10 @@ describe("RMachine", () => {
   });
 
   describe("pickRKit method", () => {
-    it("should return Promise of RKit type", () => {
+    it("should return Promise of RList type", () => {
       const machine = createMachine<TestResourceAtlas>();
       const result = machine.pickRKit("en", "common", "home");
-      expectTypeOf(result).toEqualTypeOf<Promise<RKit<TestResourceAtlas, readonly ["common", "home"]>>>();
+      expectTypeOf(result).toEqualTypeOf<Promise<RList<TestResourceAtlas, readonly ["common", "home"]>>>();
     });
 
     it("should preserve namespace order in result type", async () => {
@@ -219,7 +219,7 @@ describe("RMachine", () => {
       const { pickRKit } = machine;
       expectTypeOf(pickRKit).toBeFunction();
       expectTypeOf(pickRKit("en", "common", "home")).toEqualTypeOf<
-        Promise<RKit<TestResourceAtlas, readonly ["common", "home"]>>
+        Promise<RList<TestResourceAtlas, readonly ["common", "home"]>>
       >();
     });
 
@@ -293,8 +293,8 @@ describe("RMachine", () => {
       const machine = new TestableRMachine<TestResourceAtlas>(mockConfig as any);
       const result = machine.exposeHybridPickRKit("en", "common", "home");
       type Expected =
-        | RKit<TestResourceAtlas, readonly ["common", "home"]>
-        | Promise<RKit<TestResourceAtlas, readonly ["common", "home"]>>;
+        | RList<TestResourceAtlas, readonly ["common", "home"]>
+        | Promise<RList<TestResourceAtlas, readonly ["common", "home"]>>;
       expectTypeOf(result).toEqualTypeOf<Expected>();
     });
   });

@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyR } from "../../src/lib/r.js";
-import type { AnyNamespaceList, AnyRKit, NamespaceList, RKit } from "../../src/lib/r-kit.js";
+import type { AnyNamespaceList, AnyRList, NamespaceList, RList } from "../../src/lib/r-kit.js";
 import type { AnyNamespace, Namespace } from "../../src/lib/resource-atlas.js";
 
 describe("AnyNamespaceList", () => {
@@ -30,26 +30,26 @@ describe("AnyNamespaceList", () => {
 
 describe("AnyRKit", () => {
   it("should be readonly array of AnyR", () => {
-    expectTypeOf<AnyRKit>().toEqualTypeOf<readonly AnyR[]>();
+    expectTypeOf<AnyRList>().toEqualTypeOf<readonly AnyR[]>();
   });
 
   it("should be readonly array of objects", () => {
-    expectTypeOf<AnyRKit>().toEqualTypeOf<readonly any[]>();
+    expectTypeOf<AnyRList>().toEqualTypeOf<readonly any[]>();
   });
 
   it("array of objects should be assignable", () => {
-    const kit: AnyRKit = [{ greeting: "Hello" }, { title: "Home" }];
-    expectTypeOf(kit).toExtend<AnyRKit>();
+    const kit: AnyRList = [{ greeting: "Hello" }, { title: "Home" }];
+    expectTypeOf(kit).toExtend<AnyRList>();
   });
 
   it("const tuple of objects should be assignable", () => {
     const kit = [{ greeting: "Hello" }, { title: "Home" }] as const;
-    expectTypeOf(kit).toExtend<AnyRKit>();
+    expectTypeOf(kit).toExtend<AnyRList>();
   });
 
   it("empty array should be assignable", () => {
-    const kit: AnyRKit = [];
-    expectTypeOf(kit).toExtend<AnyRKit>();
+    const kit: AnyRList = [];
+    expectTypeOf(kit).toExtend<AnyRList>();
   });
 });
 
@@ -95,7 +95,7 @@ describe("NamespaceList", () => {
   });
 });
 
-describe("RKit", () => {
+describe("RList", () => {
   type TestAtlas = {
     readonly common: { greeting: string; farewell: string };
     readonly home: { title: string };
@@ -104,52 +104,52 @@ describe("RKit", () => {
 
   it("should map namespace list to resource types", () => {
     type NL = readonly ["common", "home"];
-    type Result = RKit<TestAtlas, NL>;
+    type Result = RList<TestAtlas, NL>;
     expectTypeOf<Result[0]>().toEqualTypeOf<TestAtlas["common"]>();
     expectTypeOf<Result[1]>().toEqualTypeOf<TestAtlas["home"]>();
   });
 
   it("should preserve tuple length", () => {
     type NL = readonly ["common", "home", "about"];
-    type Result = RKit<TestAtlas, NL>;
+    type Result = RList<TestAtlas, NL>;
     expectTypeOf<Result["length"]>().toEqualTypeOf<3>();
   });
 
   it("should work with single namespace", () => {
     type NL = readonly ["common"];
-    type Result = RKit<TestAtlas, NL>;
+    type Result = RList<TestAtlas, NL>;
     expectTypeOf<Result[0]>().toEqualTypeOf<TestAtlas["common"]>();
     expectTypeOf<Result["length"]>().toEqualTypeOf<1>();
   });
 
   it("should work with empty tuple", () => {
     type NL = readonly [];
-    type Result = RKit<TestAtlas, NL>;
+    type Result = RList<TestAtlas, NL>;
     expectTypeOf<Result["length"]>().toEqualTypeOf<0>();
   });
 
   it("should preserve resource structure", () => {
     type NL = readonly ["common"];
-    type Result = RKit<TestAtlas, NL>;
+    type Result = RList<TestAtlas, NL>;
     expectTypeOf<Result[0]>().toHaveProperty("greeting");
     expectTypeOf<Result[0]>().toHaveProperty("farewell");
   });
 
   it("should be readonly", () => {
     type NL = readonly ["common", "home"];
-    type Result = RKit<TestAtlas, NL>;
+    type Result = RList<TestAtlas, NL>;
     expectTypeOf<Result>().toBeObject();
   });
 
   it("should extend AnyRKit", () => {
     type NL = readonly ["common", "home"];
-    type Result = RKit<TestAtlas, NL>;
-    expectTypeOf<Result>().toExtend<AnyRKit>();
+    type Result = RList<TestAtlas, NL>;
+    expectTypeOf<Result>().toExtend<AnyRList>();
   });
 
   it("should work with all namespaces", () => {
     type NL = readonly ["common", "home", "about"];
-    type Result = RKit<TestAtlas, NL>;
+    type Result = RList<TestAtlas, NL>;
     expectTypeOf<Result[0]>().toEqualTypeOf<TestAtlas["common"]>();
     expectTypeOf<Result[1]>().toEqualTypeOf<TestAtlas["home"]>();
     expectTypeOf<Result[2]>().toEqualTypeOf<TestAtlas["about"]>();
@@ -157,7 +157,7 @@ describe("RKit", () => {
 
   it("should allow duplicate namespaces in tuple", () => {
     type NL = readonly ["common", "common"];
-    type Result = RKit<TestAtlas, NL>;
+    type Result = RList<TestAtlas, NL>;
     expectTypeOf<Result[0]>().toEqualTypeOf<TestAtlas["common"]>();
     expectTypeOf<Result[1]>().toEqualTypeOf<TestAtlas["common"]>();
   });

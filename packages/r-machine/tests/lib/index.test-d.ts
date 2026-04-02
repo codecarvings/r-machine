@@ -4,11 +4,11 @@ import type {
   AnyNamespaceList,
   AnyR,
   AnyResourceAtlas,
-  AnyRKit,
+  AnyRList,
   Namespace,
   NamespaceList,
   RCtx,
-  RKit,
+  RList,
   RMachineConfig,
   RMachineConfigParams,
   RShape,
@@ -35,9 +35,9 @@ describe("lib barrel exports", () => {
     expectTypeOf<RShape<{ greeting: string }>>().toExtend<{ greeting: string }>();
 
     expectTypeOf<AnyNamespaceList>().toExtend<readonly AnyNamespace[]>();
-    expectTypeOf<AnyRKit>().toExtend<readonly AnyR[]>();
+    expectTypeOf<AnyRList>().toExtend<readonly AnyR[]>();
     expectTypeOf<NamespaceList<TestAtlas>>().toExtend<readonly string[]>();
-    expectTypeOf<RKit<TestAtlas, readonly ["common"]>>().toBeObject();
+    expectTypeOf<RList<TestAtlas, readonly ["common"]>>().toBeObject();
 
     expectTypeOf<RCtx<string, {}>>().toBeObject();
 

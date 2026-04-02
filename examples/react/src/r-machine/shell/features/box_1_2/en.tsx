@@ -23,4 +23,4 @@ export const r = {
   },
 };
 
-export type R_Features_Box_1_2 = RShape<typeof r>;
+export type R_Shell_Features_Box_1_2 = RShape<typeof r>;

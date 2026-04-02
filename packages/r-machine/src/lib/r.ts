@@ -24,9 +24,9 @@ type RType<F extends AnyRForge> = F extends (...args: any[]) => infer R
     : F;
 
 // Branded type
-declare const _rBrand: unique symbol;
+declare const rBrand: unique symbol;
 interface RBrand {
-  readonly [_rBrand]?: "R-Machine Resource";
+  readonly [rBrand]?: true;
 }
 
 export type RShape<F extends AnyRForge> = RType<F> & RBrand;

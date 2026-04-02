@@ -1,7 +1,7 @@
 import type { RShape } from "r-machine";
-import { R } from "@/r-machine/setup";
+import { gear } from "@/r-machine/setup";
 
-export const r = R.define(async () => {
+export const r = gear(async () => {
   // Simulate a delay to force display of loading state
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -17,4 +17,4 @@ export const r = R.define(async () => {
   };
 });
 
-export type R_Features_Box_3 = RShape<typeof r>;
+export type R_Shell_Features_Box_3 = RShape<typeof r>;

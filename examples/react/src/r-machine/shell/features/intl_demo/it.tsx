@@ -1,11 +1,11 @@
-import { Formatters } from "@/r-machine/formatters";
-import { R } from "@/r-machine/setup";
-import type { R_Features_IntlDemo } from "./en";
+import { localized, RPlug, shell } from "@/r-machine/setup";
 
-export const r = R.withType<R_Features_IntlDemo>().define(($) => {
-  const { date, number, currency, plural } = Formatters.get($.locale);
+export const plug = RPlug.connect({});
 
-  return {
+export const r = shell(() => {
+  const { fmt } = plug.use();
+
+  return localized("shell/features/intl_demo", {
     sectionTitle: "Formattazione Locale-Aware",
     sectionSubtitle:
       "Crea le tue funzioni di formattazione personalizzate con l'API nativa Intl e condividile tra tutti i tuoi file risorsa.",
@@ -13,7 +13,7 @@ export const r = R.withType<R_Features_IntlDemo>().define(($) => {
     dateTime: {
       label: "Formattazione Date e Orari",
       badge: "Intl.DateTimeFormat",
-      caption: (d: Date) => `Data odierna: ${date.long(d)}`,
+      caption: (d: Date) => `Data odierna: ${fmt.date.long(d)}`,
     },
 
     number: {
@@ -21,7 +21,8 @@ export const r = R.withType<R_Features_IntlDemo>().define(($) => {
       badge: "Intl.NumberFormat",
       description: (amount: number) => (
         <>
-          Il valore <strong>{currency(amount)}</strong> si scrive <strong>{number(amount)}</strong> senza valuta.
+          Il valore <strong>{fmt.currency(amount)}</strong> si scrive <strong>{fmt.number(amount)}</strong> senza
+          valuta.
         </>
       ),
     },
@@ -31,9 +32,9 @@ export const r = R.withType<R_Features_IntlDemo>().define(($) => {
       badge: "Intl.PluralRules",
       Items: ({ count }: { count: number }) => (
         <span>
-          Hai <strong>{plural(count, "elemento", "elementi")}</strong> nel carrello.
+          Hai <strong>{fmt.plural(count, "elemento", "elementi")}</strong> nel carrello.
         </span>
       ),
     },
-  };
+  });
 });

@@ -1,6 +1,6 @@
-import type { R_Features_Box_1_2 } from "./en";
+import type { R_Shell_Features_Box_1_2 } from "./en";
 
-export const r: R_Features_Box_1_2 = {
+export const r: R_Shell_Features_Box_1_2 = {
   box1: {
     title: "Traduzioni Type-Safe",
     description: (
@@ -26,4 +26,3 @@ export const r: R_Features_Box_1_2 = {
     badge: "Performance",
   },
 };
-

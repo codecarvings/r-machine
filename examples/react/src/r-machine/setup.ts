@@ -3,16 +3,16 @@ import { ofType, RMachine, type RMachineLocale } from "r-machine";
 import type { ResourceAtlas } from "./resource-atlas";
 
 // Vite statically analyzes this at build time and creates chunk files for all matching modules
-const moduleLoaders = import.meta.glob<{ r: any }>("./resources/**/*.{tsx,ts}");
+const moduleLoaders = import.meta.glob<{ r: any }>("./**/*.{tsx,ts}");
 
-export const { rMachine, R } = RMachine.create({
+const rMachine = RMachine.create({
   resourceAtlas: ofType<ResourceAtlas>(),
   locales: ["en", "it"],
   defaultLocale: "en",
   load: (namespace, locale) => {
     // Find the appropriate module loader for either .tsx or .ts files
-    const modulePathTsx = `./resources/${namespace}/${locale}.tsx`;
-    const modulePathTs = `./resources/${namespace}/${locale}.ts`;
+    const modulePathTsx = `./${namespace}/${locale}.tsx`;
+    const modulePathTs = `./${namespace}/${locale}.ts`;
     const moduleLoader = moduleLoaders[modulePathTsx] || moduleLoaders[modulePathTs];
 
     if (!moduleLoader) {
@@ -22,10 +22,11 @@ export const { rMachine, R } = RMachine.create({
     return moduleLoader();
   },
   kit: {
-    landingPage: "landing-page", // TODO: WIP
+    fmt: "shell/lib/fmt",
   },
 });
 
+export const { RPlug, gear, shell, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 
 // Step 4: setup the strategy

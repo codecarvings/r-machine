@@ -1,9 +1,10 @@
 import type { RShape } from "r-machine";
-import { Formatters } from "@/r-machine/formatters";
-import { R } from "@/r-machine/setup";
+import { RPlug, shell } from "@/r-machine/setup";
 
-export const r = R.define(($) => {
-  const { date, number, currency, plural } = Formatters.get($.locale);
+export const plug = RPlug.connect({});
+
+export const r = shell(() => {
+  const { fmt } = plug.use();
 
   return {
     sectionTitle: "Locale-Aware Formatting",
@@ -14,7 +15,7 @@ export const r = R.define(($) => {
     dateTime: {
       label: "Date & Time Formatting",
       badge: "Intl.DateTimeFormat",
-      caption: (d: Date) => `Today's date: ${date.long(d)}`,
+      caption: (d: Date) => `Today's date: ${fmt.date.long(d)}`,
     },
 
     // Pattern 2: formatters embedded in JSX fragments
@@ -23,7 +24,7 @@ export const r = R.define(($) => {
       badge: "Intl.NumberFormat",
       description: (amount: number) => (
         <>
-          The value <strong>{currency(amount)}</strong> is written as <strong>{number(amount)}</strong> without
+          The value <strong>{fmt.currency(amount)}</strong> is written as <strong>{fmt.number(amount)}</strong> without
           currency.
         </>
       ),
@@ -35,11 +36,11 @@ export const r = R.define(($) => {
       badge: "Intl.PluralRules",
       Items: ({ count }: { count: number }) => (
         <span>
-          You have <strong>{plural(count, "item", "items")}</strong> in your cart.
+          You have <strong>{fmt.plural(count, "item", "items")}</strong> in your cart.
         </span>
       ),
     },
   };
 });
 
-export type R_Features_IntlDemo = RShape<typeof r>;
+export type R_Shell_Features_IntlDemo = RShape<typeof r>;

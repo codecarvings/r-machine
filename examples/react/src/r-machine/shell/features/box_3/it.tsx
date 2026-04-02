@@ -1,11 +1,10 @@
-import { R } from "@/r-machine/setup";
-import type { R_Features_Box_3 } from "./en";
+import { gear, localized } from "@/r-machine/setup";
 
-export const r = R.withType<R_Features_Box_3>().define(async () => {
+export const r = gear(async () => {
   // Simulate a delay to force display of loading state
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
-  return {
+  return localized("shell/features/box_3", {
     title: "Integrazione React",
     description: (
       <>
@@ -14,5 +13,5 @@ export const r = R.withType<R_Features_Box_3>().define(async () => {
       </>
     ),
     badge: "React",
-  };
+  });
 });

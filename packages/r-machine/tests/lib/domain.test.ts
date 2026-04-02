@@ -315,7 +315,7 @@ describe("Domain", () => {
       expect(resolver).toHaveBeenCalledTimes(3);
     });
 
-    it("pending RKit promise is cleaned up after resolution", async () => {
+    it("pending RList promise is cleaned up after resolution", async () => {
       const domain = new Domain("en", createMockResolver(modules));
 
       const kit1 = domain.pickRKit(["common", "nav"]);
@@ -328,7 +328,7 @@ describe("Domain", () => {
       expect(kit2).not.toBe(kit1);
     });
 
-    it("pending RKit promise is cleaned up after rejection", async () => {
+    it("pending RList promise is cleaned up after rejection", async () => {
       const domain = new Domain("en", createMockResolver(modules));
 
       const kit1 = domain.pickRKit(["common", "nonexistent"]);

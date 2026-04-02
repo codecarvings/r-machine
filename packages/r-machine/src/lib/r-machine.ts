@@ -14,9 +14,9 @@
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
+import type { RMachineToolset } from "./__wp_types.js";
 import { DomainManager } from "./domain-manager.js";
-import type { RComposer } from "./r-composer.js";
-import type { NamespaceList, RKit } from "./r-kit.js";
+import type { NamespaceList, RList } from "./r-kit.js";
 import {
   cloneRMachineConfig,
   type RMachineConfig,
@@ -25,11 +25,6 @@ import {
 } from "./r-machine-config.js";
 import type { NamespaceMap } from "./r-map.js";
 import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
-
-interface RMachineBundle<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
-  readonly rMachine: RMachine<RA, L, KA>;
-  readonly R: RComposer<RA, L, KA>;
-}
 
 export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
   constructor(config: RMachineConfig<RA, L, KA>) {
@@ -71,31 +66,31 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA exten
     return domain.hybridPickR(namespace) as RA[N] | Promise<RA[N]>;
   };
 
-  readonly pickRKit = <NL extends NamespaceList<RA>>(locale: L, ...namespaces: NL): Promise<RKit<RA, NL>> => {
+  readonly pickRKit = <NL extends NamespaceList<RA>>(locale: L, ...namespaces: NL): Promise<RList<RA, NL>> => {
     this.validateLocaleForPick(locale);
     const domain = this.domainManager.getDomain(locale);
-    return domain.pickRKit(namespaces) as Promise<RKit<RA, NL>>;
+    return domain.pickRKit(namespaces) as Promise<RList<RA, NL>>;
   };
 
   // Required for react suspense support
   protected readonly hybridPickRKit = <NL extends NamespaceList<RA>>(
     locale: L,
     ...namespaces: NL
-  ): RKit<RA, NL> | Promise<RKit<RA, NL>> => {
+  ): RList<RA, NL> | Promise<RList<RA, NL>> => {
     this.validateLocaleForPick(locale);
     const domain = this.domainManager.getDomain(locale);
-    return domain.hybridPickRKit(namespaces) as RKit<RA, NL> | Promise<RKit<RA, NL>>;
+    return domain.hybridPickRKit(namespaces) as RList<RA, NL> | Promise<RList<RA, NL>>;
   };
+
+  createToolset(): RMachineToolset<RA, L, KA> {
+    return undefined!; // TODO: WIP;
+  }
 
   // KA not "const KA" for DX purposes
   static create<RA extends AnyResourceAtlas, const LL extends AnyLocaleList, KA extends NamespaceMap<RA> = {}>(
     config: RMachineConfigParams<RA, LL, KA>
-  ): RMachineBundle<RA, LL[number], KA> {
-    const rMachine = new RMachine<RA, LL[number], KA>(config as any);
-    return {
-      rMachine,
-      R: undefined!,
-    };
+  ): RMachine<RA, LL[number], KA> {
+    return new RMachine<RA, LL[number], KA>(config as any);
   }
 }
 

@@ -13,7 +13,7 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import type { AnyR } from "./r.js";
-import type { AnyNamespaceList, AnyRKit } from "./r-kit.js";
+import type { AnyNamespaceList, AnyRList } from "./r-kit.js";
 import { type RModuleLoader, resolveR } from "./r-module.js";
 import type { AnyNamespace } from "./resource-atlas.js";
 
@@ -28,7 +28,7 @@ export class Domain {
   ) {}
 
   protected resources = new Map<AnyNamespace, AnyR | Promise<AnyR>>();
-  protected pendingRKits = new Map<string, Promise<AnyRKit>>();
+  protected pendingRKits = new Map<string, Promise<AnyRList>>();
 
   protected resolveR(namespace: AnyNamespace): Promise<AnyR> {
     const r = new Promise<AnyR>((resolve, reject) => {
@@ -48,27 +48,27 @@ export class Domain {
     return r;
   }
 
-  protected resolveRKit(namespaces: AnyNamespaceList): Promise<AnyRKit> {
+  protected resolveRKit(namespaces: AnyNamespaceList): Promise<AnyRList> {
     const key = getRKitKey(...namespaces);
     const totRequestedR = namespaces.length;
 
-    let pendingRKit = this.pendingRKits.get(key);
-    if (pendingRKit) {
-      // The same RKit have been requested before
+    let pendingRList = this.pendingRKits.get(key);
+    if (pendingRList) {
+      // The same RList have been requested before
       // but it's not ready, return the existing promise
-      return pendingRKit;
+      return pendingRList;
     }
 
-    pendingRKit = new Promise<AnyRKit>((resolve, reject) => {
+    pendingRList = new Promise<AnyRList>((resolve, reject) => {
       // Must re-check the current state of each resource
-      const rKit = namespaces.map((namespace) => this.resources.get(namespace));
+      const rList = namespaces.map((namespace) => this.resources.get(namespace));
 
       let totRFulfilled = 0;
       const onResolveFulfilled = () => {
         totRFulfilled++;
         if (totRFulfilled === totRequestedR) {
           this.pendingRKits.delete(key);
-          resolve(rKit as AnyRKit);
+          resolve(rList as AnyRList);
         }
       };
       const onResolveRejected = (reason: unknown) => {
@@ -76,7 +76,7 @@ export class Domain {
         reject(reason);
       };
 
-      rKit.forEach((r, i) => {
+      rList.forEach((r, i) => {
         if (r !== undefined) {
           // The resource is already resolved or resolving
           if (r instanceof Promise) {
@@ -84,7 +84,7 @@ export class Domain {
             r.then(
               (resolvedR) => {
                 // Finished resolving - Success
-                rKit[i] = resolvedR;
+                rList[i] = resolvedR;
                 onResolveFulfilled();
               },
               (reason) => {
@@ -101,7 +101,7 @@ export class Domain {
           const namespace = namespaces[i];
           void this.resolveR(namespace).then(
             (resolvedR) => {
-              rKit[i] = resolvedR;
+              rList[i] = resolvedR;
               onResolveFulfilled();
             },
             (reject) => {
@@ -112,8 +112,8 @@ export class Domain {
       });
     });
 
-    this.pendingRKits.set(key, pendingRKit);
-    return pendingRKit;
+    this.pendingRKits.set(key, pendingRList);
+    return pendingRList;
   }
 
   // Required for react suspense support
@@ -140,7 +140,7 @@ export class Domain {
   }
 
   // Required for react suspense support
-  hybridPickRKit(namespaces: AnyNamespaceList): AnyRKit | Promise<AnyRKit> {
+  hybridPickRKit(namespaces: AnyNamespaceList): AnyRList | Promise<AnyRList> {
     if (namespaces.length === 0) {
       return [];
     }
@@ -148,13 +148,13 @@ export class Domain {
     const initialRKit = namespaces.map((namespace) => this.resources.get(namespace));
     if (initialRKit.every((r) => r !== undefined && !(r instanceof Promise))) {
       // All resources are already resolved
-      return initialRKit as AnyRKit;
+      return initialRKit as AnyRList;
     }
 
     return this.resolveRKit(namespaces);
   }
 
-  pickRKit(namespaces: AnyNamespaceList): Promise<AnyRKit> {
+  pickRKit(namespaces: AnyNamespaceList): Promise<AnyRList> {
     if (namespaces.length === 0) {
       return Promise.resolve([]);
     }
@@ -162,7 +162,7 @@ export class Domain {
     const initialRKit = namespaces.map((namespace) => this.resources.get(namespace));
     if (initialRKit.every((r) => r !== undefined && !(r instanceof Promise))) {
       // All resources are already resolved
-      return Promise.resolve(initialRKit as AnyRKit);
+      return Promise.resolve(initialRKit as AnyRList);
     }
 
     return this.resolveRKit(namespaces);

@@ -13,4 +13,4 @@ export const r = {
   },
 };
 
-export type R_Common = RShape<typeof r>;
+export type R_Shell_Common = RShape<typeof r>;
