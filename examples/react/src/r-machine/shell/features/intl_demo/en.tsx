@@ -1,8 +1,8 @@
-import { RPlug, shell } from "@/r-machine/setup";
+import { RPlug } from "@/r-machine/setup";
 
 export const plug = RPlug.connect({ cart: "gear/shopping-cart" });
 
-export const r = shell(() => {
+export const r = plug.wireGear(() => {
   const { fmt, cart, _ } = plug.use();
 
   return {

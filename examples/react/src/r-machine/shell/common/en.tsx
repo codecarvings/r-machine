@@ -1,5 +1,3 @@
-import type { RShape } from "r-machine";
-
 export const r = {
   footer: {
     message: (
@@ -12,5 +10,3 @@ export const r = {
     ),
   },
 };
-
-export type R_Shell_Common = RShape<typeof r>;

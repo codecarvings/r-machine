@@ -1,6 +1,7 @@
-import { gear } from "@/r-machine/setup";
+import { RPlug } from "@/r-machine/setup";
 
-export const r = gear(async () => {
+const plug = RPlug.connect();
+export const r = plug.wireShell(async () => {
   // Simulate a delay to force display of loading state
   await new Promise((resolve) => setTimeout(resolve, 2000));
 

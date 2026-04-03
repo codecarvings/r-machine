@@ -1,6 +1,6 @@
-import type { R_Shell_Common } from "./en";
+import { localized } from "@/r-machine/setup";
 
-export const r: R_Shell_Common = {
+export const r = localized("shell/common", {
   footer: {
     message: (
       <>
@@ -11,4 +11,4 @@ export const r: R_Shell_Common = {
       </>
     ),
   },
-};
+});

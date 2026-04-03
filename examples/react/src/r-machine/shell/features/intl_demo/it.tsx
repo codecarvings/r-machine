@@ -1,9 +1,8 @@
-import { localized, RPlug, shell } from "@/r-machine/setup";
+import { localized, RPlug } from "@/r-machine/setup";
 
-export const plug = RPlug.connect({});
-
-export const r = shell(() => {
-  const { fmt } = plug.use();
+export const plug = RPlug.connect();
+export const r = plug.wireShell(() => {
+  const { fmt, _ } = plug.use();
 
   return localized("shell/features/intl_demo", {
     sectionTitle: "Formattazione Locale-Aware",

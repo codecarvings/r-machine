@@ -1,4 +1,4 @@
-import { type Locale, RPlug, shell } from "../../setup";
+import { type Locale, RPlug } from "../../setup";
 
 const currencyByLocale: Record<Locale, string> = {
   en: "USD",
@@ -7,7 +7,7 @@ const currencyByLocale: Record<Locale, string> = {
 
 export const plug = RPlug.connect();
 
-export const r = shell(() => {
+export const r = plug.wireShell(() => {
   const {
     $: { locale },
     _,
@@ -23,7 +23,7 @@ export const r = shell(() => {
   });
   const pluralRules = new Intl.PluralRules(locale);
 
-  return _.surface({
+  return {
     date: {
       long: (d: Date) => dateLongFmt.format(d),
       short: (d: Date) => dateShortFmt.format(d),
@@ -35,5 +35,5 @@ export const r = shell(() => {
       const rule = pluralRules.select(count);
       return `${count} ${rule === "one" ? one : other}`;
     },
-  });
+  };
 });

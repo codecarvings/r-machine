@@ -26,7 +26,7 @@ const rMachine = RMachine.create({
   },
 });
 
-export const { RPlug, gear, shell, localized } = rMachine.createToolset();
+export const { RPlug, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 
 // Step 4: setup the strategy

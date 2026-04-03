@@ -1,6 +1,6 @@
-import type { ResourceAtlasShape } from "r-machine";
+import type { ResourceAtlasOf } from "r-machine";
 
-export type ResourceAtlas = ResourceAtlasShape<{
+export type ResourceAtlas = ResourceAtlasOf<{
   "shell/common": typeof import("./shell/common/en");
   "shell/landing-page": typeof import("./shell/landing-page/en");
   "shell/features/box_1_2": typeof import("./shell/features/box_1_2/en");
