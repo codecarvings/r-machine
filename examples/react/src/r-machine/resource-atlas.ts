@@ -1,3 +1,4 @@
+import type { R_Gear_ShoppingCart } from "./gear/shopping-cart";
 import type { R_Shell_Common } from "./shell/common/en";
 import type { R_Shell_Features_Box_1_2 } from "./shell/features/box_1_2/en";
 import type { R_Shell_Features_Box_3 } from "./shell/features/box_3/en";
@@ -13,4 +14,7 @@ export type ResourceAtlas = {
   "shell/features/intl_demo": R_Shell_Features_IntlDemo;
 
   "shell/lib/fmt": R_Shell_Lib_Fmt;
+
+  // TODO: WP
+  "gear/shopping-cart": R_Gear_ShoppingCart;
 };

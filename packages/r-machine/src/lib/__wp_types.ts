@@ -17,12 +17,29 @@ import type { NamespaceMap, RMap } from "./r-map.js";
 import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
 
 // TODO: WIP;
+
+// #region RMachineToolset
+
 export interface RMachineToolset<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
   readonly RPlug: RPlugComposer<RA, L, KA>;
   readonly gear: GearFactory;
   readonly shell: ShellFactory;
   readonly localized: Localized<RA>;
 }
+
+interface GearFactory {
+  <R>(gearFactory: () => R): R;
+  <R>(scoped: "scoped", gearFactory: () => R): R;
+}
+
+type ShellFactory = <R>(shellFactory: () => R) => R;
+
+type Localized<RA extends AnyResourceAtlas> = <N extends Namespace<RA>, const R extends RA[N]>(
+  namespace: N,
+  shell: R
+) => R;
+
+// #endregion
 
 // #region RPlug
 
@@ -32,6 +49,7 @@ interface RPlugComposer<RA extends AnyResourceAtlas, L extends AnyLocale, KA ext
 }
 
 interface RPlugConnector<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
+  (): RPlugMapDecl<RA, L, KA, {}>;
   <NL extends NamespaceList<RA>>(...namespaces: NL): RPlugListDecl<RA, L, KA, NL>;
   <NM extends NamespaceMap<RA>>(namespaces: NM): RPlugMapDecl<RA, L, KA, NM>;
 }
@@ -77,7 +95,8 @@ type RCtx<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends Namespace
 
 interface RWire {
   readonly relay: any;
-  readonly port: any;
+  readonly cmd: CmdComposer;
+  readonly surface: SurfaceComposer;
 }
 
 // #endregion
@@ -114,6 +133,7 @@ interface RReactivePlugAsyncConnector<
   KA extends NamespaceMap<RA>,
   S extends object,
 > {
+  (): Promise<RReactivePlugMapDecl<RA, L, KA, S, {}>>;
   <NL extends NamespaceList<RA>>(...namespaces: NL): Promise<RReactivePlugListDecl<RA, L, KA, S, NL>>;
   <NM extends NamespaceMap<RA>>(namespaces: NM): Promise<RReactivePlugMapDecl<RA, L, KA, S, NM>>;
 }
@@ -124,6 +144,7 @@ interface RReactivePlugConnector<
   KA extends NamespaceMap<RA>,
   S extends object,
 > {
+  (): RReactivePlugMapDecl<RA, L, KA, S, {}>;
   <NL extends NamespaceList<RA>>(...namespaces: NL): RReactivePlugListDecl<RA, L, KA, S, NL>;
   <NM extends NamespaceMap<RA>>(namespaces: NM): RReactivePlugMapDecl<RA, L, KA, S, NM>;
 }
@@ -178,11 +199,11 @@ type RReactiveCtx<
 };
 
 interface RReactiveWire<S extends object> {
-  readonly getter: GetterComposer;
+  readonly getter: GetterComposer<S>;
   readonly action: ActionComposer<S>;
-  readonly act: ActComposer;
+  readonly cmd: CmdComposer;
   readonly relay: any;
-  readonly reactive: any;
+  readonly surface: ReactiveSurfaceComposer<S>;
 }
 
 // #endregion
@@ -195,7 +216,10 @@ interface GetterBrand {
 }
 type Getter<F extends () => any> = F & GetterBrand;
 
-type GetterComposer = <GF extends () => any>(getter: GF) => Getter<GF>;
+interface GetterComposer<S extends object> {
+  (): Getter<() => S>;
+  <GF extends () => any>(getter: GF): Getter<GF>;
+}
 
 // #endregion
 
@@ -234,29 +258,51 @@ interface ActionBrand {
 }
 type Action<R extends (...args: any[]) => any> = R & ActionBrand;
 
-type ActionComposer<S extends object> = <A extends unknown[]>(
-  reducer: (...args: A) => DeepPartial<S>
-) => Action<(...args: A) => S>;
+interface ActionComposer<S extends object> {
+  (): Action<(partialState: DeepPartial<S>) => S>;
+  <A extends unknown[]>(reducer: (...args: A) => DeepPartial<S>): Action<(...args: A) => S>;
+}
 
 // #endregion
 
-// #region Act
+// #region Cmd
 
-declare const actBrand: unique symbol;
-interface Act {
-  readonly [actBrand]: true;
+declare const cmdBrand: unique symbol;
+interface Cmd {
+  readonly [cmdBrand]: true;
   readonly name: string;
   readonly payload: any[];
 }
 
-type ActComposer = <F extends (...args: any[]) => any>(action: Action<F>, ...args: Parameters<F>) => Act;
+type CmdComposer = <F extends (...args: any[]) => any>(action: Action<F>, ...args: Parameters<F>) => Cmd;
 
 // #endregion
 
-type GearFactory = <R>(gearFactory: () => R) => R;
-type ShellFactory = <R>(shellFactory: () => R) => R;
+// #region Surface
 
-type Localized<RA extends AnyResourceAtlas> = <N extends Namespace<RA>, const R extends RA[N]>(
-  namespace: N,
-  shell: R
-) => R;
+type AnyReactiveSurfaceItem = ActionBrand | GetterBrand | ((...args: any[]) => any);
+
+interface AnyReactiveSurface {
+  readonly [key: string]: AnyReactiveSurfaceItem;
+}
+
+type ReactiveDefaultSurface<S extends object, N extends string> = {
+  [K in N]: Getter<() => S>;
+} & {
+  [K in `set${Capitalize<N>}`]: Action<(partialState: DeepPartial<S>) => S>;
+};
+
+interface ReactiveSurfaceComposer<S extends object> {
+  (): ReactiveDefaultSurface<S, "state">;
+  <N extends string>(name: N): ReactiveDefaultSurface<S, N>;
+
+  <RS extends AnyReactiveSurface>(surface: RS, teardown?: () => void): RS;
+}
+
+interface AnySurface {
+  readonly [key: string]: any;
+}
+
+type SurfaceComposer = <S extends AnySurface>(surface: S, teardown?: () => void) => S;
+
+// #endregion

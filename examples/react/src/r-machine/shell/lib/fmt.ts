@@ -6,11 +6,12 @@ const currencyByLocale: Record<Locale, string> = {
   it: "EUR",
 };
 
-export const plug = RPlug.connect({});
+export const plug = RPlug.connect();
 
-export const r = shell(() => {
+export default shell(() => {
   const {
     $: { locale },
+    _,
   } = plug.use();
 
   const dateLongFmt = new Intl.DateTimeFormat(locale, { dateStyle: "long" });
@@ -23,7 +24,7 @@ export const r = shell(() => {
   });
   const pluralRules = new Intl.PluralRules(locale);
 
-  return {
+  return _.surface({
     date: {
       long: (d: Date) => dateLongFmt.format(d),
       short: (d: Date) => dateShortFmt.format(d),
@@ -35,7 +36,7 @@ export const r = shell(() => {
       const rule = pluralRules.select(count);
       return `${count} ${rule === "one" ? one : other}`;
     },
-  };
+  });
 });
 
 export type R_Shell_Lib_Fmt = RShape<typeof r>;
