@@ -1,4 +1,3 @@
-import type { RShape } from "r-machine";
 import { gear } from "@/r-machine/setup";
 
 export const r = gear(async () => {
@@ -16,5 +15,3 @@ export const r = gear(async () => {
     badge: "React",
   };
 });
-
-export type R_Shell_Features_Box_3 = RShape<typeof r>;

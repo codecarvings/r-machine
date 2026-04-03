@@ -1,5 +1,3 @@
-import type { RShape } from "r-machine";
-
 export const r = {
   hero: {
     title: "Type-Safe i18n for Modern Applications",
@@ -15,5 +13,3 @@ export const r = {
     subtitle: "Built for developers who demand type safety and performance.",
   },
 };
-
-export type R_Shell_LandingPage = RShape<typeof r>;

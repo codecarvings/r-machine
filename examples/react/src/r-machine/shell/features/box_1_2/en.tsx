@@ -1,5 +1,3 @@
-import type { RShape } from "r-machine";
-
 export const r = {
   box1: {
     title: "Type-Safe Translations",
@@ -22,5 +20,3 @@ export const r = {
     badge: "Performance",
   },
 };
-
-export type R_Shell_Features_Box_1_2 = RShape<typeof r>;

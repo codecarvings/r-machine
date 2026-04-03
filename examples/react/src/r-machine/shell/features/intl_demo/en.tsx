@@ -1,4 +1,3 @@
-import type { RShape } from "r-machine";
 import { RPlug, shell } from "@/r-machine/setup";
 
 export const plug = RPlug.connect({ cart: "gear/shopping-cart" });
@@ -42,5 +41,3 @@ export const r = shell(() => {
     },
   };
 });
-
-export type R_Shell_Features_IntlDemo = RShape<typeof r>;
