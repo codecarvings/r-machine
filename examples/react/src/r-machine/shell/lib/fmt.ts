@@ -1,4 +1,3 @@
-import type { RShape } from "r-machine";
 import { type Locale, RPlug, shell } from "../../setup";
 
 const currencyByLocale: Record<Locale, string> = {
@@ -38,5 +37,3 @@ export const r = shell(() => {
     },
   });
 });
-
-export type R_Shell_Lib_Fmt = RShape<typeof r>;

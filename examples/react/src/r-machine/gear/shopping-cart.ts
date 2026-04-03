@@ -1,4 +1,3 @@
-import type { RShape } from "r-machine";
 import { gear, RPlug } from "../setup";
 
 export const plug = RPlug.reactive({
@@ -22,5 +21,3 @@ export const r = gear(() => {
     },
   });
 });
-
-export type R_Gear_ShoppingCart = RShape<typeof r>;

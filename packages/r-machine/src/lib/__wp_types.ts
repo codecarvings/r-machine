@@ -297,7 +297,7 @@ type SurfaceDecl<S extends AnySurface> = {
   readonly public: PublicSurface<S>;
   readonly teardown: (() => void) | undefined;
 };
-type AnySurfaceDecl = SurfaceDecl<AnySurface>;
+// type AnySurfaceDecl = SurfaceDecl<AnySurface>;
 
 type SurfaceDeclFactory<SF extends AnySurfaceFactory> = SF extends () => infer S
   ? S extends Promise<infer S2 extends AnySurface>
@@ -306,7 +306,7 @@ type SurfaceDeclFactory<SF extends AnySurfaceFactory> = SF extends () => infer S
       ? () => SurfaceDecl<S>
       : never
   : never;
-// type AnySurfaceDeclFactory = SurfaceDeclFactory<AnySurfaceFactory>;
+type AnySurfaceDeclFactory = SurfaceDeclFactory<AnySurfaceFactory>;
 
 type SurfaceComposer = <S extends AnySurface>(surface: S, teardown?: () => void) => S;
 
@@ -331,9 +331,14 @@ interface ReactiveSurfaceComposer<S extends object> {
 
 // #region ResourceAtlas
 
-type AnyRForge = AnySurfaceDecl | AnySurface;
+type AnyRForge = AnySurfaceDeclFactory | AnySurface;
 
-export type RSurface<RF extends AnyRForge> = RF extends () => infer SD
+interface RModule<RF extends AnyRForge> {
+  readonly r: RF;
+}
+type AnyRModule = RModule<AnyRForge>;
+
+type RShape<RF extends AnyRForge> = RF extends () => infer SD
   ? SD extends Promise<infer SD2>
     ? SD2
     : SD
@@ -342,11 +347,11 @@ export type RSurface<RF extends AnyRForge> = RF extends () => infer SD
     : any;
 
 interface AnyResourceSurfaceAtlas {
-  readonly [namespace: AnyNamespace]: AnyRForge;
+  readonly [namespace: AnyNamespace]: AnyRModule;
 }
 
 export type ResourceAtlasShape<RA extends AnyResourceSurfaceAtlas> = {
-  [N in Namespace<RA>]: RA[N]["public"];
+  [N in Namespace<RA>]: RShape<RA[N]["r"]>["public"];
 };
 
 // endregion
