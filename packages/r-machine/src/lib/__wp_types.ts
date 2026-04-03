@@ -25,17 +25,17 @@ export interface RMachineToolset<RA extends AnyResourceAtlas, L extends AnyLocal
   readonly RPlug: RPlugComposer<RA, L, KA>;
   readonly gear: GearFactory;
   readonly shell: ShellFactory;
-  readonly localized: Localized<RA>;
+  readonly localized: LocalizerHelper<RA>;
 }
 
 interface GearFactory {
-  <SF extends AnySurfaceFactory>(gearFactory: SF): SurfaceDeclFactory<SF>;
-  <SF extends AnySurfaceFactory>(scoped: "scoped", gearFactory: SF): SurfaceDeclFactory<SF>;
+  <SF extends AnySurfaceFactory>(gearFactory: SF): SF;
+  <SF extends AnySurfaceFactory>(scoped: "scoped", gearFactory: SF): SF;
 }
 
-type ShellFactory = <SF extends AnySurfaceFactory>(shellFactory: SF) => SurfaceDeclFactory<SF>;
+type ShellFactory = <SF extends AnySurfaceFactory>(shellFactory: SF) => SF;
 
-type Localized<RA extends AnyResourceAtlas> = <N extends Namespace<RA>, const R extends RA[N]>(
+type LocalizerHelper<RA extends AnyResourceAtlas> = <N extends Namespace<RA>, const R extends RA[N]>(
   namespace: N,
   shell: R
 ) => R;
@@ -286,27 +286,10 @@ type AnySurface = Record<string, unknown> & object;
 type SurfaceFactory<S extends AnySurface> = () => S | Promise<S>;
 type AnySurfaceFactory = SurfaceFactory<AnySurface>;
 
+type PublicSurfaceItem<I> = I extends Getter<infer F> ? ReturnType<F> : I;
 type PublicSurface<S extends AnySurface> = {
-  readonly [K in keyof S as K extends `$${string}` ? never : K]: S[K];
+  readonly [K in keyof S as K extends `$${string}` ? never : K]: PublicSurfaceItem<S[K]>;
 };
-
-declare const surfaceDeclBrand: unique symbol;
-type SurfaceDecl<S extends AnySurface> = {
-  readonly [surfaceDeclBrand]?: true;
-  readonly complete: S;
-  readonly public: PublicSurface<S>;
-  readonly teardown: (() => void) | undefined;
-};
-// type AnySurfaceDecl = SurfaceDecl<AnySurface>;
-
-type SurfaceDeclFactory<SF extends AnySurfaceFactory> = SF extends () => infer S
-  ? S extends Promise<infer S2 extends AnySurface>
-    ? () => Promise<SurfaceDecl<S2>>
-    : S extends AnySurface
-      ? () => SurfaceDecl<S>
-      : never
-  : never;
-type AnySurfaceDeclFactory = SurfaceDeclFactory<AnySurfaceFactory>;
 
 type SurfaceComposer = <S extends AnySurface>(surface: S, teardown?: () => void) => S;
 
@@ -331,27 +314,21 @@ interface ReactiveSurfaceComposer<S extends object> {
 
 // #region ResourceAtlas
 
-type AnyRForge = AnySurfaceDeclFactory | AnySurface;
+type AnyRForge = AnySurfaceFactory | AnySurface;
 
 interface RModule<RF extends AnyRForge> {
   readonly r: RF;
 }
 type AnyRModule = RModule<AnyRForge>;
 
-type RShape<RF extends AnyRForge> = RF extends () => infer SD
-  ? SD extends Promise<infer SD2>
-    ? SD2
-    : SD
-  : RF extends AnySurface
-    ? SurfaceDecl<RF>
-    : any;
+type RSurface<RF extends AnyRForge> = RF extends () => infer S ? (S extends Promise<infer S2> ? S2 : S) : RF;
 
 interface AnyResourceSurfaceAtlas {
   readonly [namespace: AnyNamespace]: AnyRModule;
 }
 
 export type ResourceAtlasShape<RA extends AnyResourceSurfaceAtlas> = {
-  [N in Namespace<RA>]: RShape<RA[N]["r"]>["public"];
+  [N in Namespace<RA>]: PublicSurface<RSurface<RA[N]["r"]>>;
 };
 
 // endregion
