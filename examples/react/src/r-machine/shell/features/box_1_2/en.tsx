@@ -1,3 +1,5 @@
+import type { R } from "@/r-machine/setup";
+
 export const r = {
   box1: {
     title: "Type-Safe Translations",
@@ -20,3 +22,5 @@ export const r = {
     badge: "Performance",
   },
 };
+
+export type Shell_Features_Box_1_2 = R<typeof r>;

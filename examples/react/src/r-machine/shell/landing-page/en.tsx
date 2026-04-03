@@ -1,3 +1,5 @@
+import type { R } from "@/r-machine/setup";
+
 export const r = {
   hero: {
     title: "Type-Safe i18n for Modern Applications",
@@ -13,3 +15,5 @@ export const r = {
     subtitle: "Built for developers who demand type safety and performance.",
   },
 };
+
+export type Shell_LandingPage = R<typeof r>;

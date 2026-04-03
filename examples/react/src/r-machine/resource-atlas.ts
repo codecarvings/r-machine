@@ -1,14 +1,19 @@
-import type { ResourceAtlasOf } from "r-machine";
+import type { Gear_ShoppingCart } from "./gear/shopping-cart";
+import type { Shell_Common } from "./shell/common/en";
+import type { Shell_Features_Box_1_2 } from "./shell/features/box_1_2/en";
+import type { Shell_Features_Box_3 } from "./shell/features/box_3/en";
+import type { Shell_Features_IntlDemo } from "./shell/features/intl_demo/en";
+import type { Shell_LandingPage } from "./shell/landing-page/en";
+import type { Shell_Lib_Fmt } from "./shell/lib/fmt";
 
-export type ResourceAtlas = ResourceAtlasOf<{
-  "shell/common": typeof import("./shell/common/en");
-  "shell/landing-page": typeof import("./shell/landing-page/en");
-  "shell/features/box_1_2": typeof import("./shell/features/box_1_2/en");
-  "shell/features/box_3": typeof import("./shell/features/box_3/en");
-  "shell/features/intl_demo": typeof import("./shell/features/intl_demo/en");
+export type ResourceAtlas = {
+  "gear/shopping-cart": Gear_ShoppingCart;
 
-  "shell/lib/fmt": typeof import("./shell/lib/fmt");
+  "shell/common": Shell_Common;
+  "shell/landing-page": Shell_LandingPage;
+  "shell/features/box_1_2": Shell_Features_Box_1_2;
+  "shell/features/box_3": Shell_Features_Box_3;
+  "shell/features/intl_demo": Shell_Features_IntlDemo;
 
-  // TODO: WP
-  "gear/shopping-cart": typeof import("./gear/shopping-cart");
-}>;
+  "shell/lib/fmt": Shell_Lib_Fmt;
+};

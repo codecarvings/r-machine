@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { RSurface } from "./__wp_types.js";
 import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
 
 export type NamespaceMap<RA extends AnyResourceAtlas> = {
@@ -18,5 +19,6 @@ export type NamespaceMap<RA extends AnyResourceAtlas> = {
 };
 
 export type RMap<RA extends AnyResourceAtlas, NM extends NamespaceMap<RA>> = {
-  readonly [K in keyof NM]: RA[NM[K]];
+  // TODO: WP
+  readonly [K in keyof NM]: RSurface<RA[NM[K]]>;
 };

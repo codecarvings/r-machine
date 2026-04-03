@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-export type { Atomic, ResourceAtlasOf } from "./__wp_types.js";
+export type { Atomic, BrandedResource } from "./__wp_types.js";
 export type { AnyR } from "./r.js";
 export type { RCtx } from "./r-ctx.js";
 export type { AnyNamespaceList, AnyRList, NamespaceList, RList } from "./r-kit.js";

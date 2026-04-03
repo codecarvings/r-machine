@@ -1,4 +1,4 @@
-import { RPlug } from "@/r-machine/setup";
+import { type R, RPlug } from "@/r-machine/setup";
 
 const plug = RPlug.connect();
 export const r = plug.wireShell(async () => {
@@ -16,3 +16,5 @@ export const r = plug.wireShell(async () => {
     badge: "React",
   };
 });
+
+export type Shell_Features_Box_3 = R<typeof r>;

@@ -11,7 +11,6 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyNamespace } from "#r-machine";
 import type { AnyLocale } from "#r-machine/locale";
 import type { NamespaceList, RList } from "./r-kit.js";
 import type { NamespaceMap, RMap } from "./r-map.js";
@@ -97,7 +96,7 @@ type RCtx<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends Namespace
 } & (keyof KA extends never ? {} : { readonly kit: RMap<RA, KA> });
 
 interface RCursor {
-  readonly relay: any;
+  readonly relay: RelayComposer;
   readonly cmd: CmdComposer;
   readonly resource: ResourceComposer;
 }
@@ -211,8 +210,8 @@ type RReactiveCtx<
 interface RReactiveCursor<S extends object> {
   readonly getter: GetterComposer<S>;
   readonly action: ActionComposer<S>;
+  readonly relay: RelayComposer;
   readonly cmd: CmdComposer;
-  readonly relay: any;
   readonly resource: ReactiveResourceComposer<S>;
 }
 
@@ -275,6 +274,26 @@ interface ActionComposer<S extends object> {
 
 // #endregion
 
+// #region Relay
+
+// biome-ignore lint/suspicious/noConfusingVoidType: This is intentional
+type RelayOnChangeResult = void | Cmd | Cmd[] | Promise<void | Cmd | Cmd[]>;
+
+interface RelayConfig<T> {
+  select: () => T;
+  onChange: (current: T, prev: T) => RelayOnChangeResult | Promise<RelayOnChangeResult>;
+}
+
+declare const relayBrand: unique symbol;
+interface RelayBrand {
+  readonly [relayBrand]: true;
+}
+interface Relay<T> extends RelayConfig<T>, RelayBrand {}
+
+type RelayComposer = <T>(config: RelayConfig<T>) => Relay<T>;
+
+// #endregion
+
 // #region Cmd
 
 declare const cmdBrand: unique symbol;
@@ -297,7 +316,7 @@ type AnyResourceFactory = ResourceFactory<AnyResource>;
 
 type ResourceComposer = <R extends AnyResource>(resource: R, teardown?: () => void) => R;
 
-type AnyReactiveResourceItem = ActionBrand | GetterBrand | ((...args: any[]) => any);
+type AnyReactiveResourceItem = ActionBrand | GetterBrand | RelayBrand | ((...args: any[]) => any);
 interface AnyReactiveResource {
   readonly [key: string]: AnyReactiveResourceItem;
 }
@@ -318,9 +337,9 @@ interface ReactiveResourceComposer<S extends object> {
 
 // #region Surface
 
-type PublicSurfaceItem<I> = I extends Getter<infer F> ? ReturnType<F> : I;
-type PublicSurface<R extends AnyResource> = {
-  readonly [K in keyof R as K extends `$${string}` ? never : K]: PublicSurfaceItem<R[K]>;
+type RSurfaceItem<I> = I extends Getter<infer F> ? ReturnType<F> : I extends RelayBrand ? never : I;
+export type RSurface<R extends AnyResource> = {
+  readonly [K in keyof R as K extends `$${string}` ? never : K]: RSurfaceItem<R[K]>;
 };
 
 // #endregion
@@ -329,12 +348,19 @@ type PublicSurface<R extends AnyResource> = {
 
 type AnyRForge = AnyResourceFactory | AnyResource;
 
+type Resource<RF extends AnyRForge> = RF extends () => infer R ? (R extends Promise<infer R2> ? R2 : R) : RF;
+
+// Re-exported from setup.ts as R
+declare const rModuleBrand: unique symbol;
+export type BrandedResource<RF extends AnyRForge> = Resource<RF> & {
+  readonly [rModuleBrand]?: true;
+};
+
+/*
 interface RModule<RF extends AnyRForge> {
   readonly r: RF;
 }
 type AnyRModule = RModule<AnyRForge>;
-
-type Resource<RF extends AnyRForge> = RF extends () => infer R ? (R extends Promise<infer R2> ? R2 : R) : RF;
 
 interface AnyRModuleMap {
   readonly [namespace: AnyNamespace]: AnyRModule;
@@ -343,5 +369,6 @@ interface AnyRModuleMap {
 export type ResourceAtlasOf<RA extends AnyRModuleMap> = {
   [N in Namespace<RA>]: PublicSurface<Resource<RA[N]["r"]>>;
 };
+*/
 
 // #endregion

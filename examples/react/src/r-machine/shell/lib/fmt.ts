@@ -1,4 +1,4 @@
-import { type Locale, RPlug } from "../../setup";
+import { type Locale, type R, RPlug } from "@/r-machine/setup";
 
 const currencyByLocale: Record<Locale, string> = {
   en: "USD",
@@ -37,3 +37,5 @@ export const r = plug.wireShell(() => {
     },
   };
 });
+
+export type Shell_Lib_Fmt = R<typeof r>;

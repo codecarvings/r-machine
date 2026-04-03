@@ -1,3 +1,5 @@
+import type { R } from "@/r-machine/setup";
+
 export const r = {
   footer: {
     message: (
@@ -10,3 +12,5 @@ export const r = {
     ),
   },
 };
+
+export type Shell_Common = R<typeof r>;

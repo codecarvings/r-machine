@@ -28,6 +28,7 @@ const rMachine = RMachine.create({
 
 export const { RPlug, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
+export type { BrandedResource as R } from "r-machine";
 
 // Step 4: setup the strategy
 export const strategy = new ReactStandardStrategy(rMachine, {
