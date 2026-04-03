@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { AnyNamespace } from "#r-machine";
 import type { AnyLocale } from "#r-machine/locale";
 import type { NamespaceList, RList } from "./r-kit.js";
 import type { NamespaceMap, RMap } from "./r-map.js";
@@ -28,11 +29,11 @@ export interface RMachineToolset<RA extends AnyResourceAtlas, L extends AnyLocal
 }
 
 interface GearFactory {
-  <R>(gearFactory: () => R): R;
-  <R>(scoped: "scoped", gearFactory: () => R): R;
+  <SF extends AnySurfaceFactory>(gearFactory: SF): SurfaceDeclFactory<SF>;
+  <SF extends AnySurfaceFactory>(scoped: "scoped", gearFactory: SF): SurfaceDeclFactory<SF>;
 }
 
-type ShellFactory = <R>(shellFactory: () => R) => R;
+type ShellFactory = <SF extends AnySurfaceFactory>(shellFactory: SF) => SurfaceDeclFactory<SF>;
 
 type Localized<RA extends AnyResourceAtlas> = <N extends Namespace<RA>, const R extends RA[N]>(
   namespace: N,
@@ -256,7 +257,7 @@ declare const actionBrand: unique symbol;
 interface ActionBrand {
   readonly [actionBrand]?: true;
 }
-type Action<R extends (...args: any[]) => any> = R & ActionBrand;
+type Action<F extends (...args: any[]) => any> = F & ActionBrand;
 
 interface ActionComposer<S extends object> {
   (): Action<(partialState: DeepPartial<S>) => S>;
@@ -280,8 +281,36 @@ type CmdComposer = <F extends (...args: any[]) => any>(action: Action<F>, ...arg
 
 // #region Surface
 
-type AnyReactiveSurfaceItem = ActionBrand | GetterBrand | ((...args: any[]) => any);
+type AnySurface = Record<string, unknown> & object;
 
+type SurfaceFactory<S extends AnySurface> = () => S | Promise<S>;
+type AnySurfaceFactory = SurfaceFactory<AnySurface>;
+
+type PublicSurface<S extends AnySurface> = {
+  readonly [K in keyof S as K extends `$${string}` ? never : K]: S[K];
+};
+
+declare const surfaceDeclBrand: unique symbol;
+type SurfaceDecl<S extends AnySurface> = {
+  readonly [surfaceDeclBrand]?: true;
+  readonly complete: S;
+  readonly public: PublicSurface<S>;
+  readonly teardown: (() => void) | undefined;
+};
+type AnySurfaceDecl = SurfaceDecl<AnySurface>;
+
+type SurfaceDeclFactory<SF extends AnySurfaceFactory> = SF extends () => infer S
+  ? S extends Promise<infer S2 extends AnySurface>
+    ? () => Promise<SurfaceDecl<S2>>
+    : S extends AnySurface
+      ? () => SurfaceDecl<S>
+      : never
+  : never;
+// type AnySurfaceDeclFactory = SurfaceDeclFactory<AnySurfaceFactory>;
+
+type SurfaceComposer = <S extends AnySurface>(surface: S, teardown?: () => void) => S;
+
+type AnyReactiveSurfaceItem = ActionBrand | GetterBrand | ((...args: any[]) => any);
 interface AnyReactiveSurface {
   readonly [key: string]: AnyReactiveSurfaceItem;
 }
@@ -295,14 +324,29 @@ type ReactiveDefaultSurface<S extends object, N extends string> = {
 interface ReactiveSurfaceComposer<S extends object> {
   (): ReactiveDefaultSurface<S, "state">;
   <N extends string>(name: N): ReactiveDefaultSurface<S, N>;
-
-  <RS extends AnyReactiveSurface>(surface: RS, teardown?: () => void): RS;
+  <S extends AnyReactiveSurface>(surface: S, teardown?: () => void): S;
 }
-
-interface AnySurface {
-  readonly [key: string]: any;
-}
-
-type SurfaceComposer = <S extends AnySurface>(surface: S, teardown?: () => void) => S;
 
 // #endregion
+
+// #region ResourceAtlas
+
+type AnyRForge = AnySurfaceDecl | AnySurface;
+
+export type RSurface<RF extends AnyRForge> = RF extends () => infer SD
+  ? SD extends Promise<infer SD2>
+    ? SD2
+    : SD
+  : RF extends AnySurface
+    ? SurfaceDecl<RF>
+    : any;
+
+interface AnyResourceSurfaceAtlas {
+  readonly [namespace: AnyNamespace]: AnyRForge;
+}
+
+export type ResourceAtlasShape<RA extends AnyResourceSurfaceAtlas> = {
+  [N in Namespace<RA>]: RA[N]["public"];
+};
+
+// endregion

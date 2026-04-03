@@ -3,9 +3,7 @@ import { gear, RPlug } from "../setup";
 
 export const plug = RPlug.reactive({
   counter: 0,
-}).connect({
-  prova: "shell/features/box_1_2",
-});
+}).connect();
 
 export const r = gear(() => {
   const { $, _ } = plug.use();

@@ -8,7 +8,7 @@ const currencyByLocale: Record<Locale, string> = {
 
 export const plug = RPlug.connect();
 
-export default shell(() => {
+export const r = shell(() => {
   const {
     $: { locale },
     _,

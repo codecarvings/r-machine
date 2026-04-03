@@ -1,10 +1,10 @@
 import type { RShape } from "r-machine";
 import { RPlug, shell } from "@/r-machine/setup";
 
-export const plug = RPlug.connect({});
+export const plug = RPlug.connect({ cart: "gear/shopping-cart" });
 
 export const r = shell(() => {
-  const { fmt } = plug.use();
+  const { fmt, cart, _ } = plug.use();
 
   return {
     sectionTitle: "Locale-Aware Formatting",
