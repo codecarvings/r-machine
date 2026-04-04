@@ -26,7 +26,7 @@ const rMachine = RMachine.create({
   },
 });
 
-export const { RPlug, localized } = rMachine.createToolset();
+export const { Gear, Plug, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as R } from "r-machine";
 

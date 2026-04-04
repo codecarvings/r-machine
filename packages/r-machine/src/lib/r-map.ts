@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { RSurface } from "./__wp_types.js";
+import type { RSurface } from "./__wp_resource_types.js";
 import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
 
 export type NamespaceMap<RA extends AnyResourceAtlas> = {
