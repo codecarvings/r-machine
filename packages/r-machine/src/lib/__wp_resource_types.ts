@@ -279,45 +279,45 @@ interface AnyReactiveResource {
   readonly [key: string]: AnyReactiveResourceItem;
 }
 
-type RawResourceFactory<R extends AnyResource> = () => R | Promise<R>;
-type AnyRawResourceFactory = RawResourceFactory<AnyResource>;
-
-type RawReactiveResourceFactory<R extends AnyReactiveResource> = () => R | Promise<R>;
-type AnyRawReactiveResourceFactory = RawReactiveResourceFactory<AnyReactiveResource>;
-
 declare const gearFactoryBrand: unique symbol;
 interface GearFactoryBrand {
   readonly [gearFactoryBrand]: true;
 }
-type GearFactory<RF extends AnyRawResourceFactory> = RF & GearFactoryBrand;
-type AnyGearFactory = GearFactory<AnyRawResourceFactory>;
-type GearFactoryComposer = <RF extends AnyRawResourceFactory>(factory: RF) => GearFactory<RF>;
+type GearFactory<R extends AnyResource> = (() => R) & GearFactoryBrand;
+type AnyGearFactory = GearFactory<AnyResource>;
+type GearFactoryComposer = <R extends AnyResource>(factory: () => R | Promise<R>) => GearFactory<R>;
 
 declare const reactiveGearFactoryBrand: unique symbol;
 interface ReactiveGearFactoryBrand {
   readonly [reactiveGearFactoryBrand]: true;
 }
-type ReactiveGearFactory<RF extends AnyRawReactiveResourceFactory> = RF & ReactiveGearFactoryBrand;
-type AnyReactiveGearFactory = ReactiveGearFactory<AnyRawReactiveResourceFactory>;
+type ReactiveGearFactory<R extends AnyReactiveResource> = (() => R) & ReactiveGearFactoryBrand;
+type AnyReactiveGearFactory = ReactiveGearFactory<AnyReactiveResource>;
+
+type DefaultROReactiveGearResource<S extends object, G extends string> = { readonly [P in G]: Getter<() => S> };
+type DefaultRWReactiveGearResource<S extends object, G extends string, A extends string> = {
+  readonly [P in G]: Getter<() => S>;
+} & {
+  readonly [P in A]: Action<(partialState: DeepPartial<S>) => S>;
+};
+
 interface ReactiveGearFactoryComposer<S extends object> {
   <const G extends string, const A extends string>(
     factory: () => readonly [G, A] | Promise<readonly [G, A]>
-  ): ReactiveGearFactory<
-    () => { readonly [P in G]: Getter<() => S> } & { readonly [P in A]: Action<(partialState: DeepPartial<S>) => S> }
-  >;
+  ): ReactiveGearFactory<DefaultRWReactiveGearResource<S, G, A>>;
   <const G extends string>(
     factory: () => readonly [G] | Promise<readonly [G]>
-  ): ReactiveGearFactory<() => { readonly [P in G]: Getter<() => S> }>;
-  <RF extends AnyRawReactiveResourceFactory>(factory: RF): ReactiveGearFactory<RF>;
+  ): ReactiveGearFactory<DefaultROReactiveGearResource<S, G>>;
+  <R extends AnyReactiveResource>(factory: () => R | Promise<R>): ReactiveGearFactory<R>;
 }
 
 declare const shellFactoryBrand: unique symbol;
 interface ShellFactoryBrand {
   readonly [shellFactoryBrand]: true;
 }
-type ShellFactory<RF extends AnyRawResourceFactory> = RF & ShellFactoryBrand;
-type AnyShellFactory = ShellFactory<AnyRawResourceFactory>;
-type ShellFactoryComposer = <RF extends AnyRawResourceFactory>(factory: RF) => ShellFactory<RF>;
+type ShellFactory<R extends AnyResource> = (() => R) & ShellFactoryBrand;
+type AnyShellFactory = ShellFactory<AnyResource>;
+type ShellFactoryComposer = <R extends AnyResource>(factory: () => R | Promise<R>) => ShellFactory<R>;
 
 type AnyResourceFactory = AnyGearFactory | AnyReactiveGearFactory | AnyShellFactory;
 
@@ -325,8 +325,6 @@ type LocalizerHelper<RA extends AnyResourceAtlas> = <N extends Namespace<RA>, co
   namespace: N,
   shell: R
 ) => R;
-
-// type AnyReactiveResourceFactory = () => AnyReactiveResource;
 
 // #endregion
 
@@ -343,6 +341,7 @@ export type RSurface<R extends AnyResource> = {
 
 type AnyRForge = AnyResourceFactory | AnyResource;
 
+// type Resource<RF extends AnyRForge> = RF extends () => infer R ? (R extends Promise<infer R2> ? R2 : R) : RF;
 type Resource<RF extends AnyRForge> = RF extends () => infer R ? (R extends Promise<infer R2> ? R2 : R) : RF;
 
 // Re-exported from setup.ts as R

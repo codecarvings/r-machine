@@ -3,7 +3,7 @@ import { BasePlug, Gear, type R } from "@/r-machine/setup";
 export const plug = BasePlug();
 
 export const r = Gear(() => {
-  const { $ } = plug.use(r);
+  const { $ } = plug.use();
   return {
     locale: $.locale,
   };
