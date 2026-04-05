@@ -1,6 +1,6 @@
 import { type R, ReactivePlug } from "@/r-machine/setup";
 
-export const plug = ReactivePlug().default({ counter: 0 });
+export const plug = ReactivePlug().defaultState({ counter: 0 });
 
 export const r = plug.Gear(async () => {
   const { $, _ } = plug.use();

@@ -1,7 +1,8 @@
-import { type R, RPlug } from "@/r-machine/setup";
+import { BasePlug, type R } from "@/r-machine/setup";
 
-export const plug = RPlug.connect("shell/lib/fmt");
-export const r = plug.wireShell(() => {
+export const plug = BasePlug("shell/lib/fmt");
+
+export const r = plug.Shell(() => {
   const [fmt] = plug.use();
 
   return {

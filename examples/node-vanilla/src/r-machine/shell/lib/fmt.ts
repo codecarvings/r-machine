@@ -1,11 +1,12 @@
-import { BasePlug, Gear, type R } from "@/r-machine/setup";
+import { BasePlug, type R } from "@/r-machine/setup";
 
 export const plug = BasePlug();
 
-export const r = Gear(() => {
+export const r = plug.Gear(() => {
   const { $ } = plug.use();
   return {
     locale: $.locale,
+    number: (num: number) => num.toLocaleString(),
   };
 });
 

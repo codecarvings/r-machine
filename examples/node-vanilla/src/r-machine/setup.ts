@@ -6,8 +6,11 @@ const rMachine = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
   load: (namespace, locale) => import(`./${namespace}/${locale}.ts`),
+  kit: {
+    fmt: "shell/lib/fmt",
+  },
 });
 
-export const { BasePlug, StatePlug, Gear, Shell, localized } = rMachine.createToolset();
+export const { BasePlug, ReactivePlug, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as R } from "r-machine";

@@ -30,7 +30,6 @@ export const { BasePlug, ReactivePlug, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as R } from "r-machine";
 
-// Step 4: setup the strategy
 export const strategy = new ReactStandardStrategy(rMachine, {
   localeDetector: () => rMachine.localeHelper.matchLocales(navigator.languages),
   localeStore: {
