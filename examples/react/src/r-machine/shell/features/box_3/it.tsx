@@ -1,7 +1,7 @@
-import { localized, RPlug } from "@/r-machine/setup";
+import { BasePlug, localized } from "@/r-machine/setup";
 
-const plug = RPlug.connect();
-export const r = plug.wireShell(async () => {
+const plug = BasePlug();
+export const r = plug.Shell(async () => {
   // Simulate a delay to force display of loading state
   await new Promise((resolve) => setTimeout(resolve, 2000));
 

@@ -1,9 +1,8 @@
-import { Gear, type R, StatePlug } from "@/r-machine/setup";
+import { type R, ReactivePlug } from "@/r-machine/setup";
 
-export const plug = StatePlug().default({ counter: 0 });
-
-export const r = Gear(() => {
-  const { $, _ } = plug.use(r);
+export const plug = ReactivePlug().default({ counter: 0 });
+export const r = plug.Gear(async () => {
+  const { $, _ } = plug.use();
 
   const setSomeValue = _.action((value: number) => ({ counter: value }));
 

@@ -1,8 +1,9 @@
-import { type R, RPlug } from "@/r-machine/setup";
+import { BasePlug, type R } from "@/r-machine/setup";
 
-export const plug = RPlug.connect({ cart: "gear/shopping-cart" });
-export const r = plug.wireGear(() => {
-  const { fmt } = plug.use();
+export const plug = BasePlug({ cart: "gear/shopping-cart" });
+export const r = plug.Gear(() => {
+  const { fmt, cart } = plug.use();
+  cart.increment();
 
   return {
     sectionTitle: "Locale-Aware Formatting",
