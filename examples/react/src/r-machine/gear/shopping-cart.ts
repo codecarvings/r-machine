@@ -1,16 +1,9 @@
-import { Gear, type R } from "@/r-machine/setup";
+import { Gear, type R, StatePlug } from "@/r-machine/setup";
 
-// Versione Reactive
-const wire = reactive({
-  counter: 0,
-}).connect();
+export const plug = StatePlug().default({ counter: 0 });
 
-// Versione normale
-const deps = Deps();
-
-// Creazione Gear
-export const { r, plug } = Gear(deps, () => {
-  const { $, _ } = plug.use();
+export const r = Gear(() => {
+  const { $, _ } = plug.use(r);
 
   const setSomeValue = _.action((value: number) => ({ counter: value }));
 

@@ -21,237 +21,149 @@ import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
 // #region RMachineToolset
 
 export interface RMachineToolset<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
-  readonly Gear: GearWireComposer<RA, L, KA>;
+  readonly BasePlug: BasePlugComposer<RA, L, KA>;
+  readonly StatePlug: StatePlugComposer<RA, L, KA>;
+  readonly Gear: GearFactoryComposer;
+  readonly Shell: ShellFactoryComposer;
   readonly localized: LocalizerHelper<RA>;
 }
 
-type LocalizerHelper<RA extends AnyResourceAtlas> = <N extends Namespace<RA>, const R extends RA[N]>(
-  namespace: N,
-  shell: R
-) => R;
-
 // #endregion
 
-// #region RPlug
+// #region BasePlug
 
-declare const rMapPlugBrand: unique symbol;
-interface RMapPlug<
+interface BasePlugComposer<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
+  (): BaseMapPlug<RA, L, KA, {}>;
+  <NL extends NamespaceList<RA>>(...namespaces: NL): BaseListPlug<RA, L, KA, NL>;
+  <NM extends NamespaceMap<RA>>(namespaces: NM): BaseMapPlug<RA, L, KA, NM>;
+}
+
+interface BaseMapPlug<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
 > {
-  readonly [rMapPlugBrand]: [RA, L, KA, NM];
-}
-type AnyRMapPlug = RMapPlug<any, any, any, any>;
-
-declare const rListPlugBrand: unique symbol;
-interface RListPlug<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-> {
-  readonly [rListPlugBrand]: [RA, L, KA, NL];
-}
-type AnyRListPlug = RListPlug<any, any, any, any>;
-
-declare const rReactiveMapPlugBrand: unique symbol;
-interface RReactiveMapPlug<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  S extends object,
-  NM extends NamespaceMap<RA>,
-> {
-  readonly [rReactiveMapPlugBrand]: [RA, L, KA, S, NM];
-}
-type AnyRReactiveMapPlug = RReactiveMapPlug<any, any, any, any, any>;
-
-declare const rReactiveListPlugBrand: unique symbol;
-interface RReactiveListPlug<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  S extends object,
-  NL extends NamespaceList<RA>,
-> {
-  readonly [rReactiveListPlugBrand]: [RA, L, KA, S, NL];
-}
-type AnyRReactiveListPlug = RReactiveListPlug<any, any, any, any, any>;
-
-type AnyPlug = AnyRMapPlug | AnyRListPlug | AnyRReactiveMapPlug | AnyRReactiveListPlug;
-
-interface WiredPackage<RF extends AnyResourceFactory, P extends AnyPlug> {
-  readonly r: RF;
-  readonly plug: P;
+  use(r: AnyResourceFactory): BaseMapPlugPackage<RA, L, KA, NM>;
 }
 
-// #endregion
-
-// #region GearWireComposer
-
-interface GearWireComposer<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
-  readonly connect: GearWireConnector<RA, L, KA>;
-  readonly reactive: GearReactiveWireInitializer<RA, L, KA>;
-}
-
-interface GearWireConnector<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
-  (): GearMapWire<RA, L, KA, {}>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): GearListWire<RA, L, KA, NL>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): GearMapWire<RA, L, KA, NM>;
-}
-
-interface GearMapWire<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
-> {
-  <RF extends AnyResourceFactory>(factory: RF): WiredPackage<RF, RMapPlug<RA, L, KA, NM>>;
-  <RF extends AnyResourceFactory>(scoped: "scoped", factory: RF): WiredPackage<RF, RMapPlug<RA, L, KA, NM>>;
-  (): GearMapWireHandle<RA, L, KA, NM>;
-}
-
-type GearMapWireHandle<
+type BaseMapPlugPackage<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
 > = RMap<RA, Omit<NM, "$" | "_" | keyof KA>> & {
-  readonly $: RCtx<RA, L, KA>;
-  readonly _: RCursor;
+  readonly $: BasePlugCtx<RA, L, KA>;
+  readonly _: BasePlugCursor;
 } & RMap<RA, KA>;
 
-interface GearListWire<
+interface BaseListPlug<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
 > {
-  <RF extends AnyResourceFactory>(factory: RF): WiredPackage<RF, RListPlug<RA, L, KA, NL>>;
-  <RF extends AnyResourceFactory>(scoped: "scoped", factory: RF): WiredPackage<RF, RListPlug<RA, L, KA, NL>>;
-  (): GearListWireHandle<RA, L, KA, NL>;
+  use(r: AnyResourceFactory): BaseListPlugPackage<RA, L, KA, NL>;
 }
 
-type GearListWireHandle<
+type BaseListPlugPackage<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> = [...RList<RA, NL>, RCtx<RA, L, KA>, RCursor];
+> = [...RList<RA, NL>, BasePlugCtx<RA, L, KA>, BasePlugCursor];
 
-type RCtx<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = {
+type BasePlugCtx<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = {
   readonly locale: L;
 } & (keyof KA extends never ? {} : { readonly kit: RMap<RA, KA> });
 
-interface RCursor {
+interface BasePlugCursor {
   readonly relay: RelayComposer;
   readonly cmd: CmdComposer;
-  readonly resource: ResourceComposer;
 }
 
-interface GearReactiveWireInitializer<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
-  <S extends object>(defaultState: () => Promise<S>): GearReactiveWireAsyncComposer<RA, L, KA, S>;
-  <S extends object>(defaultState: () => S): GearReactiveWireComposer<RA, L, KA, S>;
-  <S extends object>(defaultState: S): GearReactiveWireComposer<RA, L, KA, S>;
+// #endregion
+
+// #region StatePlug
+
+interface StatePlugComposer<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
+  (): StateMapPlugComposer<RA, L, KA, {}>;
+  <NL extends NamespaceList<RA>>(...namespaces: NL): StateListPlugComposer<RA, L, KA, NL>;
+  <NM extends NamespaceMap<RA>>(namespaces: NM): StateMapPlugComposer<RA, L, KA, NM>;
 }
 
-interface GearReactiveWireAsyncComposer<
+interface StateMapPlugComposer<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
-  S extends object,
-> {
-  readonly connect: GearReactiveWireAsyncConnector<RA, L, KA, S>;
-}
-
-interface GearReactiveWireComposer<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  S extends object,
-> {
-  readonly connect: GearReactiveWireConnector<RA, L, KA, S>;
-}
-
-interface GearReactiveWireAsyncConnector<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  S extends object,
-> {
-  (): Promise<GearReactiveMapWire<RA, L, KA, S, {}>>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): Promise<GearReactiveListWire<RA, L, KA, S, NL>>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): Promise<GearReactiveMapWire<RA, L, KA, S, NM>>;
-}
-
-interface GearReactiveWireConnector<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  S extends object,
-> {
-  (): GearReactiveMapWire<RA, L, KA, S, {}>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): GearReactiveListWire<RA, L, KA, S, NL>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): GearReactiveMapWire<RA, L, KA, S, NM>;
-}
-
-interface GearReactiveMapWire<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  S extends object,
   NM extends NamespaceMap<RA>,
 > {
-  doSomething: () => void;
-  <RF extends AnyResourceFactory>(factory: RF): WiredPackage<RF, RReactiveMapPlug<RA, L, KA, S, NM>>;
-  <RF extends AnyResourceFactory>(scoped: "scoped", factory: RF): WiredPackage<RF, RReactiveMapPlug<RA, L, KA, S, NM>>;
-  (): GearReactiveMapWireHandle<RA, L, KA, S, NM>;
+  default<S extends object>(defaultState: () => Promise<S>): Promise<StateMapPlug<RA, L, KA, NM, S>>;
+  default<S extends object>(defaultState: () => S): StateMapPlug<RA, L, KA, NM, S>;
+  default<S extends object>(defaultState: S): StateMapPlug<RA, L, KA, NM, S>;
 }
 
-type GearReactiveMapWireHandle<
+interface StateListPlugComposer<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
-  S extends object,
+  NL extends NamespaceList<RA>,
+> {
+  default<S extends object>(defaultState: () => Promise<S>): Promise<StateListPlug<RA, L, KA, NL, S>>;
+  default<S extends object>(defaultState: () => S): StateListPlug<RA, L, KA, NL, S>;
+  default<S extends object>(defaultState: S): StateListPlug<RA, L, KA, NL, S>;
+}
+
+interface StateMapPlug<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
+  S extends object,
+> {
+  use(r: AnyGearFactory): StateMapPlugPackage<RA, L, KA, NM, S>;
+}
+
+type StateMapPlugPackage<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+  S extends object,
 > = RMap<RA, Omit<NM, "$" | "_" | keyof KA>> & {
-  readonly $: RReactiveCtx<RA, L, KA, S>;
-  readonly _: RReactiveCursor<S>;
+  readonly $: StatePlugCtx<RA, L, KA, S>;
+  readonly _: StatePlugCursor<S>;
 } & RMap<RA, KA>;
 
-interface GearReactiveListWire<
+interface StateListPlug<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
-  S extends object,
   NL extends NamespaceList<RA>,
+  S extends object,
 > {
-  <RF extends AnyResourceFactory>(factory: RF): WiredPackage<RF, RReactiveListPlug<RA, L, KA, S, NL>>;
-  <RF extends AnyResourceFactory>(scoped: "scoped", factory: RF): WiredPackage<RF, RReactiveListPlug<RA, L, KA, S, NL>>;
-  (): GearReactiveListWireHandle<RA, L, KA, S, NL>;
+  use(r: AnyGearFactory): StateListPlugPackage<RA, L, KA, NL, S>;
 }
 
-type GearReactiveListWireHandle<
+type StateListPlugPackage<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
-  S extends object,
   NL extends NamespaceList<RA>,
-> = [...RList<RA, NL>, RReactiveCtx<RA, L, KA, S>, RReactiveCursor<S>];
+  S extends object,
+> = [...RList<RA, NL>, StatePlugCtx<RA, L, KA, S>, StatePlugCursor<S>];
 
-type RReactiveCtx<
+type StatePlugCtx<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   S extends object,
-> = RCtx<RA, L, KA> & {
+> = BasePlugCtx<RA, L, KA> & {
   readonly state: S;
   readonly defaultState: S;
 };
 
-interface RReactiveCursor<S extends object> {
+interface StatePlugCursor<S extends object> {
   readonly getter: GetterComposer<S>;
   readonly action: ActionComposer<S>;
   readonly relay: RelayComposer;
@@ -351,19 +263,7 @@ type CmdComposer = <F extends (...args: any[]) => any>(action: Action<F>, ...arg
 
 // #endregion
 
-// #region Resource
-
-type AnyResource = Record<string, unknown> & object;
-
-type ResourceFactory<R extends AnyResource> = () => R | Promise<R>;
-type AnyResourceFactory = ResourceFactory<AnyResource>;
-
-type ResourceComposer = <R extends AnyResource>(resource: R, teardown?: () => void) => R;
-
-type AnyReactiveResourceItem = ActionBrand | GetterBrand | RelayBrand | ((...args: any[]) => any);
-interface AnyReactiveResource {
-  readonly [key: string]: AnyReactiveResourceItem;
-}
+// #region Reactive
 
 type ReactiveDefaultResource<S extends object, N extends string> = {
   [K in N]: Getter<() => S>;
@@ -373,8 +273,50 @@ type ReactiveDefaultResource<S extends object, N extends string> = {
 
 interface ReactiveResourceComposer<S extends object> {
   <N extends string>(name: N): ReactiveDefaultResource<S, N>;
-  <S extends AnyReactiveResource>(resource: S, teardown?: () => void): S;
+  <R extends AnyReactiveResource>(resource: R): R;
 }
+
+// #endregion
+
+// #region Resource
+
+type AnyResource = Record<string, unknown> & object;
+
+type AnyReactiveResourceItem = ActionBrand | GetterBrand | RelayBrand | ((...args: any[]) => any);
+interface AnyReactiveResource {
+  readonly [key: string]: AnyReactiveResourceItem;
+}
+
+type RawResourceFactory<R extends AnyResource> = () => R | Promise<R>;
+type AnyRawResourceFactory = RawResourceFactory<AnyResource>;
+
+declare const gearFactoryBrand: unique symbol;
+interface GearFactoryBrand {
+  readonly [gearFactoryBrand]: true;
+}
+type GearFactory<RF extends AnyRawResourceFactory> = RF & GearFactoryBrand;
+type AnyGearFactory = GearFactory<AnyRawResourceFactory>;
+interface GearFactoryComposer {
+  <RF extends AnyRawResourceFactory>(factory: RF): GearFactory<RF>;
+  <RF extends AnyRawResourceFactory>(scoped: "scoped", factory: RF): GearFactory<RF>;
+}
+
+declare const shellFactoryBrand: unique symbol;
+interface ShellFactoryBrand {
+  readonly [shellFactoryBrand]: true;
+}
+type ShellFactory<RF extends AnyRawResourceFactory> = RF & ShellFactoryBrand;
+type AnyShellFactory = ShellFactory<AnyRawResourceFactory>;
+type ShellFactoryComposer = <RF extends AnyRawResourceFactory>(factory: RF) => ShellFactory<RF>;
+
+type AnyResourceFactory = AnyGearFactory | AnyShellFactory;
+
+type LocalizerHelper<RA extends AnyResourceAtlas> = <N extends Namespace<RA>, const R extends RA[N]>(
+  namespace: N,
+  shell: R
+) => R;
+
+// type AnyReactiveResourceFactory = () => AnyReactiveResource;
 
 // #endregion
 
@@ -398,20 +340,5 @@ declare const rModuleBrand: unique symbol;
 export type BrandedResource<RF extends AnyRForge> = Resource<RF> & {
   readonly [rModuleBrand]?: true;
 };
-
-/*
-interface RModule<RF extends AnyRForge> {
-  readonly r: RF;
-}
-type AnyRModule = RModule<AnyRForge>;
-
-interface AnyRModuleMap {
-  readonly [namespace: AnyNamespace]: AnyRModule;
-}
-
-export type ResourceAtlasOf<RA extends AnyRModuleMap> = {
-  [N in Namespace<RA>]: PublicSurface<Resource<RA[N]["r"]>>;
-};
-*/
 
 // #endregion
