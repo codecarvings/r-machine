@@ -1,9 +1,10 @@
-import { BasePlug, type R } from "@/r-machine/setup";
+import { type R, ShellPlug } from "@/r-machine/setup";
 
-export const plug = BasePlug("shell/lib/fmt");
+export const plug = ShellPlug("shell/lib/fmt", "gear/counter");
 
 export const r = plug.Shell(() => {
-  const [fmt] = plug.use();
+  const [fmt, counter, $] = plug.use();
+  counter.increment();
 
   return {
     greeting: `Hello ${fmt.number(21)}`,

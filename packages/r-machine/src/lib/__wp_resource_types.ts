@@ -18,153 +18,182 @@ import type { AnyLocale } from "#r-machine/locale";
 // #region RMachineToolset
 
 export interface RMachineToolset<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
-  readonly BasePlug: BasePlugComposer<RA, L, KA>;
-  readonly ReactivePlug: ReactivePlugComposer<RA, L, KA>;
+  readonly GearPlug: GearPlugComposer<RA, KA>;
+  readonly ReactivePlug: ReactivePlugComposer<RA, KA>;
+  readonly ShellPlug: ShellPlugComposer<RA, L, KA>;
   readonly localized: LocalizerHelper<RA>;
 }
 
 // #endregion
 
-// #region BasePlug
+// #region Gear - Plug
 
-interface BasePlugComposer<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
-  (): BaseMapPlug<RA, L, KA, {}>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): BaseListPlug<RA, L, KA, NL>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): BaseMapPlug<RA, L, KA, NM>;
+interface GearPlugComposer<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>> {
+  (): GearMapPlug<RA, KA, {}>;
+  <NL extends NamespaceList<RA>>(...namespaces: NL): GearListPlug<RA, KA, NL>;
+  <NM extends NamespaceMap<RA>>(namespaces: NM): GearMapPlug<RA, KA, NM>;
 }
 
-interface BaseMapPlug<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
-> {
+interface GearMapPlug<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> {
   readonly Gear: GearFactoryComposer;
-  readonly ScopedGear: GearFactoryComposer;
-  readonly Shell: ShellFactoryComposer;
-  use(): BaseMapPlugPackage<RA, L, KA, NM>;
+  readonly CompGear: GearFactoryComposer;
+  use(): GearMapPlugPackage<RA, KA, NM>;
 }
 
-type BaseMapPlugPackage<
+type GearMapPlugPackage<
   RA extends AnyResourceAtlas,
-  L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
 > = SurfaceMap<RA, Omit<NM, "$" | "_" | keyof KA>> & {
-  readonly $: BasePlugCtx<RA, L, KA>;
-  readonly _: BasePlugCursor;
+  readonly $: GearPlugCtx<RA, KA>;
+  readonly _: GearPlugCursor;
 } & SurfaceMap<RA, KA>;
 
-interface BaseListPlug<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-> {
+interface GearListPlug<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> {
   readonly Gear: GearFactoryComposer;
-  readonly ScopedGear: GearFactoryComposer;
-  readonly Shell: ShellFactoryComposer;
-  use(): BaseListPlugPackage<RA, L, KA, NL>;
+  readonly CompGear: GearFactoryComposer;
+  use(): GearListPlugPackage<RA, KA, NL>;
 }
 
-type BaseListPlugPackage<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-> = [...SurfaceList<RA, NL>, BasePlugCtx<RA, L, KA>, BasePlugCursor];
+type GearListPlugPackage<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = [
+  ...SurfaceList<RA, NL>,
+  GearPlugCtx<RA, KA>,
+  GearPlugCursor,
+];
 
-type BasePlugCtx<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = {
-  readonly locale: L;
-} & (keyof KA extends never ? {} : { readonly kit: SurfaceMap<RA, KA> });
+type GearPlugCtx<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>> = {} & (keyof KA extends never
+  ? {}
+  : { readonly kit: SurfaceMap<RA, KA> });
 
-interface BasePlugCursor {
+interface GearPlugCursor {
   readonly relay: RelayComposer;
   readonly cmd: CmdComposer;
 }
 
 // #endregion
 
-// #region ReactivePlug
+// #region Gear - ReactivePlug
 
-type AnyState = Record<PropertyKey, unknown> & object;
+type AnyState = unknown; // Record<PropertyKey, unknown> & object;
 
-interface ReactivePlugComposer<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
-  (): ReactiveMapPlugComposer<RA, L, KA, {}>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): ReactiveListPlugComposer<RA, L, KA, NL>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): ReactiveMapPlugComposer<RA, L, KA, NM>;
+interface ReactivePlugComposer<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>> {
+  (): ReactiveMapPlugComposer<RA, KA, {}>;
+  <NL extends NamespaceList<RA>>(...namespaces: NL): ReactiveListPlugComposer<RA, KA, NL>;
+  <NM extends NamespaceMap<RA>>(namespaces: NM): ReactiveMapPlugComposer<RA, KA, NM>;
 }
 
 interface ReactiveMapPlugComposer<
   RA extends AnyResourceAtlas,
-  L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
 > {
-  defaultState<S extends AnyState>(state: S): ReactiveMapPlug<RA, L, KA, NM, S>;
+  stateless(): StatelessReactiveMapPlug<RA, KA, NM>;
+  defaultState<S extends AnyState>(state: S): ReactiveMapPlug<RA, KA, NM, S>;
 }
 
 interface ReactiveListPlugComposer<
   RA extends AnyResourceAtlas,
-  L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
 > {
-  defaultState<S extends AnyState>(state: S): ReactiveListPlug<RA, L, KA, NL, S>;
+  stateless(): StatelessReactiveListPlug<RA, KA, NL>;
+  defaultState<S extends AnyState>(state: S): ReactiveListPlug<RA, KA, NL, S>;
 }
+
+// #region Stateless
+
+interface StatelessReactiveMapPlug<
+  RA extends AnyResourceAtlas,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+> {
+  readonly Gear: StatelessReactiveGearFactoryComposer;
+  readonly CompGear: StatelessReactiveGearFactoryComposer;
+  use(): StatelessReactiveMapPlugPackage<RA, KA, NM>;
+}
+
+type StatelessReactiveMapPlugPackage<
+  RA extends AnyResourceAtlas,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+> = SurfaceMap<RA, Omit<NM, "$" | "_" | keyof KA>> & {
+  readonly $: StatelessReactivePlugCtx<RA, KA>;
+  readonly _: StatelessReactivePlugCursor;
+} & SurfaceMap<RA, KA>;
+
+interface StatelessReactiveListPlug<
+  RA extends AnyResourceAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+> {
+  readonly Gear: StatelessReactiveGearFactoryComposer;
+  readonly CompGear: StatelessReactiveGearFactoryComposer;
+  use(): StatelessReactiveListPlugPackage<RA, KA, NL>;
+}
+
+type StatelessReactiveListPlugPackage<
+  RA extends AnyResourceAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+> = [...SurfaceList<RA, NL>, StatelessReactivePlugCtx<RA, KA>, StatelessReactivePlugCursor];
+
+type StatelessReactivePlugCtx<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>> = keyof KA extends never
+  ? {}
+  : { readonly kit: SurfaceMap<RA, KA> };
+
+interface StatelessReactivePlugCursor {
+  readonly getter: StatelessGetterComposer;
+  readonly relay: RelayComposer;
+  readonly cmd: CmdComposer;
+}
+
+// #endregion
+
+// #region With state
 
 interface ReactiveMapPlug<
   RA extends AnyResourceAtlas,
-  L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
 > {
   readonly Gear: ReactiveGearFactoryComposer<S>;
-  readonly ScopedGear: ReactiveGearFactoryComposer<S>;
-  use(): ReactiveMapPlugPackage<RA, L, KA, NM, S>;
+  readonly CompGear: ReactiveGearFactoryComposer<S>;
+  use(): ReactiveMapPlugPackage<RA, KA, NM, S>;
 }
 
 type ReactiveMapPlugPackage<
   RA extends AnyResourceAtlas,
-  L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
 > = SurfaceMap<RA, Omit<NM, "$" | "_" | keyof KA>> & {
-  readonly $: ReactivePlugCtx<RA, L, KA, S>;
+  readonly $: ReactivePlugCtx<RA, KA, S>;
   readonly _: ReactivePlugCursor<S>;
 } & SurfaceMap<RA, KA>;
 
 interface ReactiveListPlug<
   RA extends AnyResourceAtlas,
-  L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
   S extends AnyState,
 > {
   readonly Gear: ReactiveGearFactoryComposer<S>;
-  readonly ScopedGear: ReactiveGearFactoryComposer<S>;
-  use(): ReactiveListPlugPackage<RA, L, KA, NL, S>;
+  readonly CompGear: ReactiveGearFactoryComposer<S>;
+  use(): ReactiveListPlugPackage<RA, KA, NL, S>;
 }
 
 type ReactiveListPlugPackage<
   RA extends AnyResourceAtlas,
-  L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
   S extends AnyState,
-> = [...SurfaceList<RA, NL>, ReactivePlugCtx<RA, L, KA, S>, ReactivePlugCursor<S>];
+> = [...SurfaceList<RA, NL>, ReactivePlugCtx<RA, KA, S>, ReactivePlugCursor<S>];
 
-type ReactivePlugCtx<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  S extends AnyState,
-> = BasePlugCtx<RA, L, KA> & {
+type ReactivePlugCtx<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, S extends AnyState> = {
   readonly state: S;
   readonly defaultState: S;
-};
+} & (keyof KA extends never ? {} : { readonly kit: SurfaceMap<RA, KA> });
 
 interface ReactivePlugCursor<S extends AnyState> {
   readonly getter: GetterComposer<S>;
@@ -172,6 +201,59 @@ interface ReactivePlugCursor<S extends AnyState> {
   readonly relay: RelayComposer;
   readonly cmd: CmdComposer;
 }
+
+// #endregion
+
+// #endregion
+
+// #region ShellPlug
+
+interface ShellPlugComposer<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
+  (): ShellMapPlug<RA, L, KA, {}>;
+  <NL extends NamespaceList<RA>>(...namespaces: NL): ShellListPlug<RA, L, KA, NL>;
+  <NM extends NamespaceMap<RA>>(namespaces: NM): ShellMapPlug<RA, L, KA, NM>;
+}
+
+interface ShellMapPlug<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+> {
+  readonly Shell: ShellFactoryComposer;
+  use(): ShellMapPlugPackage<RA, L, KA, NM>;
+}
+
+type ShellMapPlugPackage<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+> = SurfaceMap<RA, Omit<NM, "$" | "_" | keyof KA>> & {
+  readonly $: ShellPlugCtx<RA, L, KA>;
+  readonly _: {};
+} & SurfaceMap<RA, KA>;
+
+interface ShellListPlug<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+> {
+  readonly Shell: ShellFactoryComposer;
+  use(): ShellListPlugPackage<RA, L, KA, NL>;
+}
+
+type ShellListPlugPackage<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+> = [...SurfaceList<RA, NL>, ShellPlugCtx<RA, L, KA>, {}];
+
+type ShellPlugCtx<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = {
+  readonly locale: L;
+} & (keyof KA extends never ? {} : { readonly kit: SurfaceMap<RA, KA> });
 
 // #endregion
 
@@ -183,9 +265,10 @@ interface GetterBrand {
 }
 type Getter<V> = () => V & GetterBrand;
 
-interface GetterComposer<S extends AnyState> {
+type StatelessGetterComposer = <V>(getter: () => V) => Getter<V>;
+
+interface GetterComposer<S extends AnyState> extends StatelessGetterComposer {
   (): Getter<() => S>;
-  <V>(getter: () => V): Getter<V>;
 }
 
 // #endregion
@@ -296,14 +379,17 @@ type WritableReactiveGearResource<S extends AnyState, G extends string, A extend
   readonly [P in A]: Action<(partialState: DeepPartial<S>) => S>;
 };
 
-interface ReactiveGearFactoryComposer<S extends AnyState> {
+type StatelessReactiveGearFactoryComposer = <R extends AnyReactiveResource>(
+  factory: () => R | Promise<R>
+) => ReactiveGearFactory<R>;
+
+interface ReactiveGearFactoryComposer<S extends AnyState> extends StatelessReactiveGearFactoryComposer {
   <const G extends string, const A extends string>(
     factory: () => readonly [G, A] | Promise<readonly [G, A]>
   ): ReactiveGearFactory<WritableReactiveGearResource<S, G, A>>;
   <const G extends string>(
     factory: () => readonly [G] | Promise<readonly [G]>
   ): ReactiveGearFactory<ReadableReactiveGearResource<S, G>>;
-  <R extends AnyReactiveResource>(factory: () => R | Promise<R>): ReactiveGearFactory<R>;
 }
 
 declare const shellFactoryBrand: unique symbol;
@@ -335,14 +421,13 @@ export type Surface<R extends AnyResource> = {
 
 // #region ResourceAtlas
 
-type AnyResourceForge = AnyResourceFactory | AnyResource;
+type AnyResourceOrigin = AnyResourceFactory | AnyResource;
 
-// type Resource<RF extends AnyRForge> = RF extends () => infer R ? (R extends Promise<infer R2> ? R2 : R) : RF;
-type Resource<RF extends AnyResourceForge> = RF extends () => infer R ? R : RF;
+type Resource<RF extends AnyResourceOrigin> = RF extends () => infer R ? R : RF;
 
 // Re-exported from setup.ts as R
 declare const r: unique symbol;
-export type BrandedResource<RF extends AnyResourceForge> = Resource<RF> & {
+export type BrandedResource<RF extends AnyResourceOrigin> = Resource<RF> & {
   readonly [r]?: undefined; // Allow nominal typing for resources
 };
 
