@@ -1,6 +1,6 @@
-import { ReactivePlug } from "../setup";
+import { GearPlug, type R } from "../setup";
 
-export const plug = ReactivePlug("gear/counter", "gear/shopping-cart").stateless();
+export const plug = GearPlug("gear/counter", "gear/shopping-cart").reactive();
 
 export const r = plug.Gear(() => {
   const [counter, shoppingCart, $, _] = plug.use();
@@ -10,4 +10,4 @@ export const r = plug.Gear(() => {
   };
 });
 
-export type Gear_Aggregator = ReturnType<typeof r>;
+export type Gear_Aggregator = R<typeof r>;

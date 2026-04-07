@@ -1,6 +1,7 @@
-import { BasePlug, localized } from "@/r-machine/setup";
+import { localized, ShellPlug } from "@/r-machine/setup";
 
-export const plug = BasePlug();
+export const plug = ShellPlug();
+
 export const r = plug.Shell(() => {
   const { fmt } = plug.use();
 

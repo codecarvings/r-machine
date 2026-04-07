@@ -1,11 +1,11 @@
-import { BasePlug, type Locale, type R } from "@/r-machine/setup";
+import { type Locale, type R, ShellPlug } from "@/r-machine/setup";
 
 const currencyByLocale: Record<Locale, string> = {
   en: "USD",
   it: "EUR",
 };
 
-export const plug = BasePlug();
+export const plug = ShellPlug();
 
 export const r = plug.Shell(() => {
   const {

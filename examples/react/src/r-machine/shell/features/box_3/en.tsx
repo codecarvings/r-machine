@@ -1,6 +1,7 @@
-import { BasePlug, type R } from "@/r-machine/setup";
+import { type R, ShellPlug } from "@/r-machine/setup";
 
-const plug = BasePlug();
+const plug = ShellPlug();
+
 export const r = plug.Shell(async () => {
   // Simulate a delay to force display of loading state
   await new Promise((resolve) => setTimeout(resolve, 2000));

@@ -1,6 +1,6 @@
-import { type R, ReactivePlug } from "../setup";
+import { GearPlug, type R } from "../setup";
 
-export const plug = ReactivePlug().defaultState({ items: [] as string[] });
+export const plug = GearPlug().reactive({ items: [] as string[] });
 
 export const r = plug.Gear(() => {
   const { $, _ } = plug.use();

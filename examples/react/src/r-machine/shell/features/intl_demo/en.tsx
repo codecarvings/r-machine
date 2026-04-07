@@ -1,7 +1,8 @@
-import { BasePlug, type R } from "@/r-machine/setup";
+import { type R, ShellPlug } from "@/r-machine/setup";
 
-export const plug = BasePlug();
-export const r = plug.Gear(() => {
+export const plug = ShellPlug();
+
+export const r = plug.Shell(() => {
   const { fmt } = plug.use();
 
   return {
