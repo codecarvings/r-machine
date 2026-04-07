@@ -23,7 +23,7 @@ import {
   type LocaleList,
   validateCanonicalUnicodeLocaleId,
 } from "#r-machine/locale";
-import type { NamespaceMap } from "./r-map.js";
+import type { ExplicitNamespaceMap } from "./__wp_resource_types.js";
 import type { RModuleLoader } from "./r-module.js";
 import type { AnyResourceAtlas } from "./resource-atlas.js";
 
@@ -31,16 +31,35 @@ import type { AnyResourceAtlas } from "./resource-atlas.js";
 export interface RMachineConfigParams<
   RA extends AnyResourceAtlas,
   LL extends AnyLocaleList,
-  KA extends NamespaceMap<RA>,
+  GKA extends ExplicitNamespaceMap<RA>,
+  SKA extends ExplicitNamespaceMap<RA>,
+  XKA extends ExplicitNamespaceMap<RA>,
 > {
   readonly resourceAtlas: RA;
   readonly locales: LL;
   readonly defaultLocale: LL[number];
   readonly load: RModuleLoader;
-  readonly kit?: KA;
+  readonly gearKit?: GKA;
+  readonly shellKit?: SKA;
+  readonly gateKit?: XKA;
 }
 
-export interface RMachineConfig<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
+export interface RMachineKit<
+  RA extends AnyResourceAtlas,
+  GKA extends ExplicitNamespaceMap<RA> = {},
+  SKA extends ExplicitNamespaceMap<RA> = {},
+  XKA extends ExplicitNamespaceMap<RA> = {},
+> {
+  readonly gear: GKA;
+  readonly shell: SKA;
+  readonly gate: XKA;
+}
+
+export interface RMachineConfig<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  KA extends RMachineKit<RA, any, any, any>,
+> {
   readonly resourceAtlas: RA;
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;

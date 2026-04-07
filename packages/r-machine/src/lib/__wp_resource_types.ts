@@ -12,14 +12,16 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
+import type { RMachineKit } from "./r-machine-config.js";
 
 // TODO: WIP;
 
 // #region RMachineToolset
 
-export interface RMachineToolset<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
-  readonly GearPlug: GearPlugComposer<RA, KA>;
-  readonly ShellPlug: ShellPlugComposer<RA, L, KA>;
+export interface RMachineToolset<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends RMachineKit<RA>> {
+  readonly GearPlug: GearPlugComposer<RA, KA["gear"]>;
+  readonly ShellPlug: ShellPlugComposer<RA, L, KA["shell"]>;
+  readonly Shell: SimpleShellComposer<RA, L, KA["shell"]>;
   readonly localized: LocalizerHelper<RA>;
 }
 
@@ -59,10 +61,10 @@ interface GearListPlug<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>,
 interface PlainGearMapPlug<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> {
   readonly Gear: PlainGearFactoryComposer;
   readonly VertexGear: PlainGearFactoryComposer;
-  use(): PlainGearMapPlugPackage<RA, KA, NM>;
+  use(): PlainGearMapPlugPkg<RA, KA, NM>;
 }
 
-type PlainGearMapPlugPackage<
+type PlainGearMapPlugPkg<
   RA extends AnyResourceAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
@@ -74,7 +76,7 @@ type PlainGearMapPlugPackage<
 interface PlainGearListPlug<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> {
   readonly Gear: PlainGearFactoryComposer;
   readonly VertexGear: PlainGearFactoryComposer;
-  use(): PlainGearListPlugPackage<RA, KA, NL>;
+  use(): PlainGearListPlugPkg<RA, KA, NL>;
 }
 
 type PlainGearPlugCtx<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>> = {} & (keyof KA extends never
@@ -94,11 +96,11 @@ type PlainGearFactory<R extends AnyResource> = (() => R) & PlainGearFactoryBrand
 type AnyPlainGearFactory = PlainGearFactory<AnyResource>;
 type PlainGearFactoryComposer = <R extends AnyResource>(factory: () => R | Promise<R>) => PlainGearFactory<R>;
 
-type PlainGearListPlugPackage<
-  RA extends AnyResourceAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-> = [...SurfaceList<RA, NL>, PlainGearPlugCtx<RA, KA>, PlainGearPlugCursor];
+type PlainGearListPlugPkg<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = [
+  ...SurfaceList<RA, NL>,
+  PlainGearPlugCtx<RA, KA>,
+  PlainGearPlugCursor,
+];
 
 // #endregion
 
@@ -112,10 +114,10 @@ interface ReactiveMapPlug<
 > {
   readonly Gear: ReactiveGearFactoryComposer<S>;
   readonly VertexGear: ReactiveGearFactoryComposer<S>;
-  use(): ReactiveMapPlugPackage<RA, KA, NM, S>;
+  use(): ReactiveMapPlugPkg<RA, KA, NM, S>;
 }
 
-type ReactiveMapPlugPackage<
+type ReactiveMapPlugPkg<
   RA extends AnyResourceAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
@@ -133,10 +135,10 @@ interface ReactiveListPlug<
 > {
   readonly Gear: ReactiveGearFactoryComposer<S>;
   readonly VertexGear: ReactiveGearFactoryComposer<S>;
-  use(): ReactiveListPlugPackage<RA, KA, NL, S>;
+  use(): ReactiveListPlugPkg<RA, KA, NL, S>;
 }
 
-type ReactiveListPlugPackage<
+type ReactiveListPlugPkg<
   RA extends AnyResourceAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
@@ -194,10 +196,10 @@ interface StatelessReactiveMapPlug<
 > {
   readonly Gear: StatelessReactiveGearFactoryComposer;
   readonly VertexGear: StatelessReactiveGearFactoryComposer;
-  use(): StatelessReactiveMapPlugPackage<RA, KA, NM>;
+  use(): StatelessReactiveMapPlugPkg<RA, KA, NM>;
 }
 
-type StatelessReactiveMapPlugPackage<
+type StatelessReactiveMapPlugPkg<
   RA extends AnyResourceAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
@@ -213,10 +215,10 @@ interface StatelessReactiveListPlug<
 > {
   readonly Gear: StatelessReactiveGearFactoryComposer;
   readonly VertexGear: StatelessReactiveGearFactoryComposer;
-  use(): StatelessReactiveListPlugPackage<RA, KA, NL>;
+  use(): StatelessReactiveListPlugPkg<RA, KA, NL>;
 }
 
-type StatelessReactiveListPlugPackage<
+type StatelessReactiveListPlugPkg<
   RA extends AnyResourceAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
@@ -238,8 +240,6 @@ type StatelessReactiveGearFactoryComposer = <R extends AnyReactiveResource>(
 
 // #endregion
 
-// #endregion
-
 // #region ShellPlug
 
 interface ShellPlugComposer<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
@@ -255,10 +255,10 @@ interface ShellMapPlug<
   NM extends NamespaceMap<RA>,
 > {
   readonly Shell: ShellFactoryComposer;
-  use(): ShellMapPlugPackage<RA, L, KA, NM>;
+  use(): ShellMapPlugPkg<RA, L, KA, NM>;
 }
 
-type ShellMapPlugPackage<
+type ShellMapPlugPkg<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
@@ -275,10 +275,10 @@ interface ShellListPlug<
   NL extends NamespaceList<RA>,
 > {
   readonly Shell: ShellFactoryComposer;
-  use(): ShellListPlugPackage<RA, L, KA, NL>;
+  use(): ShellListPlugPkg<RA, L, KA, NL>;
 }
 
-type ShellListPlugPackage<
+type ShellListPlugPkg<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
@@ -298,6 +298,29 @@ interface ShellFactoryBrand {
 type ShellFactory<R extends AnyResource> = (() => R) & ShellFactoryBrand;
 type AnyShellFactory = ShellFactory<AnyResource>;
 type ShellFactoryComposer = <R extends AnyResource>(factory: () => R | Promise<R>) => ShellFactory<R>;
+
+// #endregion
+
+// #region SimpleShell
+
+type SimpleShellComposer<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = <
+  R extends AnyResource,
+>(
+  factory: (pkg: SimpleShellPlugPkg<RA, L, KA>) => R | Promise<R>
+) => { readonly r: ShellFactory<R>; readonly plug: SimpleShellPlug<RA, L, KA> };
+
+type SimpleShellPlug<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = ShellMapPlug<
+  RA,
+  L,
+  KA,
+  {}
+>;
+
+type SimpleShellPlugPkg<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  KA extends NamespaceMap<RA>,
+> = ShellMapPlugPkg<RA, L, KA, {}>;
 
 // #endregion
 
@@ -453,7 +476,12 @@ type ExtractNamespace<T extends NamespaceRef<any>> = T extends Token<infer N> ? 
 
 // #region RMap
 
-type NamespaceMap<RA extends AnyResourceAtlas> = {
+// Required for explicit namespace definitions to avoid circular type references
+export type ExplicitNamespaceMap<RA extends AnyResourceAtlas> = {
+  readonly [k: string]: Namespace<RA>;
+};
+
+export type NamespaceMap<RA extends AnyResourceAtlas> = {
   readonly [k: string]: NamespaceRef<RA>;
 };
 

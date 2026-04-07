@@ -21,12 +21,13 @@ import {
   cloneRMachineConfig,
   type RMachineConfig,
   type RMachineConfigParams,
+  type RMachineKit,
   validateRMachineConfig,
 } from "./r-machine-config.js";
 import type { NamespaceMap } from "./r-map.js";
 import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
 
-export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
+export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends RMachineKit<RA>> {
   constructor(config: RMachineConfig<RA, L, KA>) {
     const configError = validateRMachineConfig(config);
     if (configError) {
@@ -87,10 +88,14 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA exten
   }
 
   // KA not "const KA" for DX purposes
-  static create<RA extends AnyResourceAtlas, const LL extends AnyLocaleList, KA extends NamespaceMap<RA> = {}>(
-    config: RMachineConfigParams<RA, LL, KA>
-  ): RMachine<RA, LL[number], KA> {
-    return new RMachine<RA, LL[number], KA>(config as any);
+  static create<
+    RA extends AnyResourceAtlas,
+    const LL extends AnyLocaleList,
+    GKA extends NamespaceMap<RA> = {},
+    SKA extends NamespaceMap<RA> = {},
+    XKA extends NamespaceMap<RA> = {},
+  >(config: RMachineConfigParams<RA, LL, GKA, SKA, XKA>): RMachine<RA, LL[number], RMachineKit<RA, GKA, SKA, XKA>> {
+    return new RMachine<RA, LL[number], RMachineKit<RA, GKA, SKA, XKA>>(config as any);
   }
 }
 
