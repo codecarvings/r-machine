@@ -27,7 +27,7 @@ export interface RMachineToolset<RA extends AnyResourceAtlas, L extends AnyLocal
 
 type LocalizerHelper<RA extends AnyResourceAtlas> = <N extends Namespace<RA>, const R extends RA[N]>(
   namespace: N,
-  shell: R
+  shell: R & Record<Exclude<keyof R, keyof RA[N]>, never>
 ) => R;
 
 // #endregion
@@ -162,6 +162,14 @@ interface AnyReactiveResource {
   readonly [key: string]: AnyReactiveResourceItem;
 }
 
+type RejectAsyncValueProperties<R> = {
+  readonly [K in keyof R]: R[K] extends (...args: any[]) => Promise<void>
+    ? R[K]
+    : R[K] extends (...args: any[]) => Promise<any>
+      ? never
+      : R[K];
+};
+
 declare const reactiveGearFactoryBrand: unique symbol;
 interface ReactiveGearFactoryBrand {
   readonly [reactiveGearFactoryBrand]: true;
@@ -234,7 +242,7 @@ interface StatelessReactivePlugCursor {
   readonly cmd: CmdComposer;
 }
 
-type StatelessReactiveGearFactoryComposer = <R extends AnyReactiveResource>(
+type StatelessReactiveGearFactoryComposer = <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
   factory: () => R | Promise<R>
 ) => ReactiveGearFactory<R>;
 
@@ -385,7 +393,7 @@ interface ActionComposer<S extends AnyState> {
 // #region Relay
 
 // biome-ignore lint/suspicious/noConfusingVoidType: This is intentional
-type RelayOnChangeResult = void | Cmd | Cmd[] | Promise<void | Cmd | Cmd[]>;
+type RelayOnChangeResult = void | Cmd | Cmd[];
 
 interface RelayConfig<T> {
   select: () => T;
