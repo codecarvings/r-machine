@@ -11,14 +11,10 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { Surface } from "#r-machine/core";
-import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
+import { type AnyResourceAtlas, type Namespace, namespaceSymbol, type Token } from "#r-machine/core";
 
-export type NamespaceMap<RA extends AnyResourceAtlas> = {
-  readonly [k: string]: Namespace<RA>;
-};
+type TokenBuilder<RA extends AnyResourceAtlas> = <N extends Namespace<RA>>(namespace: N) => Token<N>;
 
-export type RMap<RA extends AnyResourceAtlas, NM extends NamespaceMap<RA>> = {
-  // TODO: WP
-  readonly [K in keyof NM]: Surface<RA[NM[K]]>;
-};
+export function createTokenBuilder<RA extends AnyResourceAtlas>(): TokenBuilder<RA> {
+  return <N extends Namespace<RA>>(ns: N) => ({ [namespaceSymbol]: ns });
+}

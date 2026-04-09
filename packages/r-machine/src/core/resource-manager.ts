@@ -11,14 +11,4 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { Surface } from "#r-machine/core";
-import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
-
-export type NamespaceMap<RA extends AnyResourceAtlas> = {
-  readonly [k: string]: Namespace<RA>;
-};
-
-export type RMap<RA extends AnyResourceAtlas, NM extends NamespaceMap<RA>> = {
-  // TODO: WP
-  readonly [K in keyof NM]: Surface<RA[NM[K]]>;
-};
+export class ResourceManager {}

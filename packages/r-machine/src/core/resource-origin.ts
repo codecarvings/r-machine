@@ -11,14 +11,12 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { Surface } from "#r-machine/core";
-import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
+import type { AnyPlainGearFactory } from "./plain-gear.js";
+import type { AnyReactiveGearFactory } from "./reactive-gear.js";
+import type { AnyShellFactory } from "./shell.js";
 
-export type NamespaceMap<RA extends AnyResourceAtlas> = {
-  readonly [k: string]: Namespace<RA>;
-};
+export type AnyResource = Record<string, unknown> & object;
 
-export type RMap<RA extends AnyResourceAtlas, NM extends NamespaceMap<RA>> = {
-  // TODO: WP
-  readonly [K in keyof NM]: Surface<RA[NM[K]]>;
-};
+type AnyResourceFactory = AnyPlainGearFactory | AnyReactiveGearFactory | AnyShellFactory;
+
+export type AnyResourceOrigin = AnyResourceFactory | AnyResource;

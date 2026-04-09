@@ -48,6 +48,7 @@
     "exports": {
       "./errors": "./src/errors/index.ts",
       "./locale": "./src/locale/index.ts",
+      "./core": "./src/core/index.ts",
       ".": "./src/lib/index.ts",
       "./strategy": "./src/strategy/index.ts",
       "./strategy/web": "./src/strategy/web/index.ts"
@@ -68,6 +69,12 @@
       "types": "./locale/index.d.cts",
       "import": "./locale/index.js",
       "require": "./locale/index.cjs"
+    },
+    "./core": {
+      "@r-machine/source": "./src/core/index.ts",
+      "types": "./core/index.d.cts",
+      "import": "./core/index.js",
+      "require": "./core/index.cjs"
     },
     ".": {
       "@r-machine/source": "./src/lib/index.ts",
@@ -98,6 +105,11 @@
       "@r-machine/source": "./src/locale/index.ts",
       "types": "./locale/index.d.cts",
       "default": "./locale/index.js"
+    },
+    "#r-machine/core": {
+      "@r-machine/source": "./src/core/index.ts",
+      "types": "./core/index.d.cts",
+      "default": "./core/index.js"
     },
     "#r-machine": {
       "@r-machine/source": "./src/lib/index.ts",

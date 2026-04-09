@@ -11,14 +11,12 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { Surface } from "#r-machine/core";
-import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
+import type { AnyNamespace } from "./resource-atlas.js";
+import type { AnyResourceOrigin } from "./resource-origin.js";
 
-export type NamespaceMap<RA extends AnyResourceAtlas> = {
-  readonly [k: string]: Namespace<RA>;
-};
+export interface AnyModule {
+  readonly plug?: unknown; // TODO: WP;
+  readonly r: AnyResourceOrigin;
+}
 
-export type RMap<RA extends AnyResourceAtlas, NM extends NamespaceMap<RA>> = {
-  // TODO: WP
-  readonly [K in keyof NM]: Surface<RA[NM[K]]>;
-};
+export type ModuleLoader = (namespace: AnyNamespace, name: string) => Promise<AnyModule>;

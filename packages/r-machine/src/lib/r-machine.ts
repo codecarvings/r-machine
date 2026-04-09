@@ -14,7 +14,6 @@
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
-import type { RMachineToolset } from "./__wp_resource_types.js";
 import { DomainManager } from "./domain-manager.js";
 import type { NamespaceList, RList } from "./r-kit.js";
 import {
@@ -24,6 +23,7 @@ import {
   type RMachineKit,
   validateRMachineConfig,
 } from "./r-machine-config.js";
+import type { RMachineToolset } from "./r-machine-toolset.js";
 import type { NamespaceMap } from "./r-map.js";
 import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
 

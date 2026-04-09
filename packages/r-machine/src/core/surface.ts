@@ -11,14 +11,12 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { Surface } from "#r-machine/core";
-import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
+import type { Getter } from "./getter.js";
+import type { RelayBrand } from "./relay.js";
+import type { AnyResourceAtlas } from "./resource-atlas.js";
 
-export type NamespaceMap<RA extends AnyResourceAtlas> = {
-  readonly [k: string]: Namespace<RA>;
-};
+type SurfaceItem<I> = I extends Getter<infer V> ? V : I extends RelayBrand ? never : I;
 
-export type RMap<RA extends AnyResourceAtlas, NM extends NamespaceMap<RA>> = {
-  // TODO: WP
-  readonly [K in keyof NM]: Surface<RA[NM[K]]>;
+export type Surface<R extends AnyResourceAtlas> = {
+  readonly [K in keyof R as K extends `$${string}` ? never : K]: SurfaceItem<R[K]>;
 };

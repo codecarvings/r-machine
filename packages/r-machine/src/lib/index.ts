@@ -11,7 +11,6 @@
  * contact: licensing@codecarvings.com
  */
 
-export { type Atomic, type BrandedResource, createTokenBuilder } from "./__wp_resource_types.js";
 export type { AnyR } from "./r.js";
 export type { RCtx } from "./r-ctx.js";
 export type { AnyNamespaceList, AnyRList, NamespaceList, RList } from "./r-kit.js";
@@ -21,5 +20,7 @@ export {
 } from "./r-machine.js";
 export type { RMachineConfig, RMachineConfigParams, RMachineKit } from "./r-machine-config.js";
 export type { NamespaceMap } from "./r-map.js";
+export type { BrandedResource } from "./resource.js";
 export type { AnyNamespace, AnyResourceAtlas, Namespace } from "./resource-atlas.js";
+export { createTokenBuilder } from "./token-builder.js";
 export { ofType } from "./type.js";

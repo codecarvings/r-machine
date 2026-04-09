@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { ExplicitNamespaceMap } from "#r-machine/core";
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
@@ -23,7 +24,6 @@ import {
   type LocaleList,
   validateCanonicalUnicodeLocaleId,
 } from "#r-machine/locale";
-import type { ExplicitNamespaceMap } from "./__wp_resource_types.js";
 import type { RModuleLoader } from "./r-module.js";
 import type { AnyResourceAtlas } from "./resource-atlas.js";
 
