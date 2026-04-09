@@ -11,67 +11,31 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { CmdComposer } from "./cmd.js";
+import type { NamespaceList } from "../lib/r-kit.js";
+import type { GearCursor, GearListPlugin, GearMapPlugin } from "./gear.js";
 import type { StatelessGetterComposer } from "./getter.js";
-import type { AnyReactiveResource, ReactiveGearFactory } from "./reactive-gear.js";
-import type { RelayComposer } from "./relay.js";
+import type { AnyReactiveResource, RejectAsyncValueProperties } from "./reactive-resource.js";
 import type { AnyResourceAtlas } from "./resource-atlas.js";
-import type { NamespaceList, SurfaceList } from "./resource-list.js";
-import type { NamespaceMap, SurfaceMap } from "./resource-map.js";
+import type { NamespaceMap } from "./resource-map.js";
+import type { ResourcePackage } from "./resource-package.js";
+import type { ResourceListPlug, ResourceMapPlug } from "./resource-plug.js";
 
-export interface StatelessReactiveMapPlug<
-  RA extends AnyResourceAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
-> {
-  readonly Gear: StatelessReactiveGearFactoryComposer;
-  readonly VertexGear: StatelessReactiveGearFactoryComposer;
-  use(): StatelessReactiveMapPlugPkg<RA, KA, NM>;
-}
-
-type StatelessReactiveMapPlugPkg<
-  RA extends AnyResourceAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
-> = SurfaceMap<RA, Omit<NM, "$" | "_" | keyof KA>> & {
-  readonly $: StatelessReactivePlugCtx<RA, KA>;
-  readonly _: StatelessReactivePlugCursor;
-} & SurfaceMap<RA, KA>;
-
-export interface StatelessReactiveListPlug<
-  RA extends AnyResourceAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-> {
-  readonly Gear: StatelessReactiveGearFactoryComposer;
-  readonly VertexGear: StatelessReactiveGearFactoryComposer;
-  use(): StatelessReactiveListPlugPkg<RA, KA, NL>;
-}
-
-type StatelessReactiveListPlugPkg<
-  RA extends AnyResourceAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-> = [...SurfaceList<RA, NL>, StatelessReactivePlugCtx<RA, KA>, StatelessReactivePlugCursor];
-
-type StatelessReactivePlugCtx<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>> = keyof KA extends never
-  ? {}
-  : { readonly kit: SurfaceMap<RA, KA> };
-
-interface StatelessReactivePlugCursor {
+interface StatelessReactiveGearCursor extends GearCursor {
   readonly getter: StatelessGetterComposer;
-  readonly relay: RelayComposer;
-  readonly cmd: CmdComposer;
 }
 
-type RejectAsyncValueProperties<R> = {
-  readonly [K in keyof R]: R[K] extends (...args: any[]) => Promise<void>
-    ? R[K]
-    : R[K] extends (...args: any[]) => Promise<any>
-      ? never
-      : R[K];
-};
+export type StatelessReactiveGearMapComposer<
+  RA extends AnyResourceAtlas,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+> = <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
+  factory: (plugin: GearMapPlugin<RA, KA, NM>, _: StatelessReactiveGearCursor) => R | Promise<R>
+) => ResourcePackage<R, ResourceMapPlug<RA, KA, NM>>;
 
-export type StatelessReactiveGearFactoryComposer = <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
-  factory: () => R | Promise<R>
-) => ReactiveGearFactory<R>;
+export type StatelessReactiveGearListComposer<
+  RA extends AnyResourceAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+> = <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
+  factory: (plugin: GearListPlugin<RA, KA, NL>, _: StatelessReactiveGearCursor) => R | Promise<R>
+) => ResourcePackage<R, ResourceListPlug<RA, KA, NL>>;

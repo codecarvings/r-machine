@@ -20,9 +20,10 @@ export interface AnyReactiveResource {
   readonly [key: string]: AnyReactiveResourceItem;
 }
 
-declare const reactiveGearFactoryBrand: unique symbol;
-interface ReactiveGearFactoryBrand {
-  readonly [reactiveGearFactoryBrand]: true;
-}
-export type ReactiveGearFactory<R extends AnyReactiveResource> = (() => R) & ReactiveGearFactoryBrand;
-export type AnyReactiveGearFactory = ReactiveGearFactory<AnyReactiveResource>;
+export type RejectAsyncValueProperties<R> = {
+  readonly [K in keyof R]: R[K] extends (...args: any[]) => Promise<void>
+    ? R[K]
+    : R[K] extends (...args: any[]) => Promise<any>
+      ? never
+      : R[K];
+};

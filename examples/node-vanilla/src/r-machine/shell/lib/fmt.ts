@@ -1,13 +1,10 @@
-import { type R, ShellPlug } from "@/r-machine/setup";
+import { R, type RShape } from "@/r-machine/setup";
 
-export const plug = ShellPlug();
-
-export const r = plug.Shell(() => {
-  const { $ } = plug.use();
+export const r = R.shell(({ $ }) => {
   return {
     locale: $.locale,
     number: (num: number) => num.toLocaleString(),
   };
 });
 
-export type Shell_Lib_Fmt = R<typeof r>;
+export type Shell_Lib_Fmt = RShape<typeof r>;

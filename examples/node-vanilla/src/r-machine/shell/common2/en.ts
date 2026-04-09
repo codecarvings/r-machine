@@ -1,7 +1,7 @@
-import { type R, Shell } from "@/r-machine/setup";
+import { R, type RShape } from "@/r-machine/setup";
 
-export const { r, plug } = Shell(({ fmt }) => ({
-  greeting: `Hello world ${fmt}`,
+export const r = R.shell(({ fmt }) => ({
+  greeting: `Hello world ${fmt.number(21)}`,
 }));
 
-export type Shell_Common2 = R<typeof r>;
+export type Shell_Common2 = RShape<typeof r>;

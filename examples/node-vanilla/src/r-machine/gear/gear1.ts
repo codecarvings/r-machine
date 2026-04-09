@@ -1,4 +1,4 @@
-import { GearPlug, type R } from "../setup";
+import { R, type RShape } from "../setup";
 
 interface User {
   name: string;
@@ -10,14 +10,12 @@ interface GearState {
   user: User | null;
 }
 
-export const plug = GearPlug().reactive<GearState>({
+export const r = R.reactive<GearState>({
   loading: true,
   error: null,
   user: null,
-});
-
-export const r = plug.Gear(() => {
-  const { $, _ } = plug.use();
+}).gear((plugin, _) => {
+  const { $ } = plugin;
 
   const setLoading = _.action(() => ({ loading: true, error: null, user: null }));
   const setUser = _.action((user: User) => ({ loading: false, error: null, user }));
@@ -43,4 +41,4 @@ export const r = plug.Gear(() => {
   };
 });
 
-export type Gear_Aggregator = R<typeof r>;
+export type Gear_Aggregator = RShape<typeof r>;

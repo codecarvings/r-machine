@@ -11,27 +11,46 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { PlainGearListPlug, PlainGearMapPlug } from "./plain-gear.js";
+import type { NamespaceList } from "../lib/r-kit.js";
+import type { CmdComposer } from "./cmd.js";
+import type { RelayComposer } from "./relay.js";
 import type { AnyResourceAtlas } from "./resource-atlas.js";
-import type { NamespaceList } from "./resource-list.js";
-import type { NamespaceMap } from "./resource-map.js";
-import type { AnyState, StatefulReactiveListPlug, StatefulReactiveMapPlug } from "./stateful-reactive-gear.js";
-import type { StatelessReactiveListPlug, StatelessReactiveMapPlug } from "./stateless-reactive-gear.js";
+import type { SurfaceList } from "./resource-list.js";
+import type { NamespaceMap, SurfaceMap } from "./resource-map.js";
+import type { AnyResource } from "./resource-origin.js";
+import type { ResourcePackage } from "./resource-package.js";
+import type { ResourceListPlug, ResourceMapPlug } from "./resource-plug.js";
 
-export interface GearPlugComposer<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>> {
-  (): GearMapPlug<RA, KA, {}>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): GearListPlug<RA, KA, NL>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): GearMapPlug<RA, KA, NM>;
+export type GearCtx<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>> = {} & (keyof KA extends never
+  ? {}
+  : { readonly kit: SurfaceMap<RA, KA> });
+
+export interface GearCursor {
+  readonly relay: RelayComposer;
+  readonly cmd: CmdComposer;
 }
 
-interface GearMapPlug<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> {
-  plain(): PlainGearMapPlug<RA, KA, NM>;
-  reactive<S extends AnyState>(state: S): StatefulReactiveMapPlug<RA, KA, NM, S>;
-  reactive(): StatelessReactiveMapPlug<RA, KA, NM>;
-}
+export type GearMapPlugin<
+  RA extends AnyResourceAtlas,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+> = SurfaceMap<RA, Omit<NM, "$" | keyof KA>> & {
+  readonly $: GearCtx<RA, KA>;
+} & SurfaceMap<RA, KA>;
 
-interface GearListPlug<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> {
-  plain(): PlainGearListPlug<RA, KA, NL>;
-  reactive<S extends AnyState>(state: S): StatefulReactiveListPlug<RA, KA, NL, S>;
-  reactive(): StatelessReactiveListPlug<RA, KA, NL>;
-}
+export type GearListPlugin<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = [
+  ...SurfaceList<RA, NL>,
+  GearCtx<RA, KA>,
+];
+
+export type GearMapComposer<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = <
+  R extends AnyResource,
+>(
+  factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => R | Promise<R>
+) => ResourcePackage<R, ResourceMapPlug<RA, KA, NM>>;
+
+export type GearListComposer<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = <
+  R extends AnyResource,
+>(
+  factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => R | Promise<R>
+) => ResourcePackage<R, ResourceListPlug<RA, KA, NL>>;

@@ -1,13 +1,11 @@
-import { GearPlug, type R } from "../setup";
+import { R, type RShape } from "../setup";
 
-export const plug = GearPlug().reactive({ items: [] as string[] });
-
-export const r = plug.Gear(() => {
-  const { $, _ } = plug.use();
+export const r = R.reactive({ items: [] as string[] }).gear((plugin, _) => {
+  const { $ } = plugin;
   return {
     addItem: _.action((item: string) => ({ items: [...$.state.items, item] })),
     totalItems: _.getter(() => $.state.items.length),
   };
 });
 
-export type Gear_ShoppingCart = R<typeof r>;
+export type Gear_ShoppingCart = RShape<typeof r>;

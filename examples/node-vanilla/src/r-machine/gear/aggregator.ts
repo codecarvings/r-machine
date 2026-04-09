@@ -1,13 +1,11 @@
-import { GearPlug, type R } from "../setup";
+import { R, type RShape } from "../setup";
 
-export const plug = GearPlug("gear/counter", "gear/shopping-cart").reactive();
+export const r = R.connected("gear/counter", "gear/shopping-cart")
+  .reactive()
+  .gear(([counter, cart], _) => {
+    return {
+      mySum: _.getter("memoized", () => counter.myCount + cart.totalItems),
+    };
+  });
 
-export const r = plug.Gear(() => {
-  const [counter, shoppingCart, $, _] = plug.use();
-
-  return {
-    mySum: _.getter(() => counter.myCount + shoppingCart.totalItems),
-  };
-});
-
-export type Gear_Aggregator = R<typeof r>;
+export type Gear_Aggregator = RShape<typeof r>;

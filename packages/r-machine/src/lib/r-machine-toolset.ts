@@ -11,20 +11,12 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { RMachineKit } from "#r-machine";
-import type {
-  AnyResourceAtlas,
-  GearPlugComposer,
-  Namespace,
-  ShellPlugComposer,
-  SimpleShellComposer,
-} from "#r-machine/core";
+import type { Kit } from "#r-machine";
+import type { AnyResourceAtlas, Namespace, RComposer } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
-export interface RMachineToolset<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends RMachineKit<RA>> {
-  readonly GearPlug: GearPlugComposer<RA, KA["gear"]>;
-  readonly ShellPlug: ShellPlugComposer<RA, L, KA["shell"]>;
-  readonly Shell: SimpleShellComposer<RA, L, KA["shell"]>;
+export interface RMachineToolset<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends Kit<RA>> {
+  readonly R: RComposer<RA, L, KA>;
   readonly localized: LocalizerHelper<RA>;
 }
 

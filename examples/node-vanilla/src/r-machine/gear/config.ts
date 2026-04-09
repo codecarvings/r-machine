@@ -1,11 +1,9 @@
-import { GearPlug, type R } from "../setup";
+import { R, type RShape } from "../setup";
 
-export const plug = GearPlug().plain();
-
-export const r = plug.Gear(() => {
+export const r = R.gear(() => {
   return {
     someData: true,
   };
 });
 
-export type Gear_Config = R<typeof r>;
+export type Gear_Config = RShape<typeof r>;

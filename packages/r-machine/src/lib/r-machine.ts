@@ -18,16 +18,16 @@ import { DomainManager } from "./domain-manager.js";
 import type { NamespaceList, RList } from "./r-kit.js";
 import {
   cloneRMachineConfig,
+  type Kit,
   type RMachineConfig,
   type RMachineConfigParams,
-  type RMachineKit,
   validateRMachineConfig,
 } from "./r-machine-config.js";
 import type { RMachineToolset } from "./r-machine-toolset.js";
 import type { NamespaceMap } from "./r-map.js";
 import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
 
-export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends RMachineKit<RA>> {
+export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends Kit<RA>> {
   constructor(config: RMachineConfig<RA, L, KA>) {
     const configError = validateRMachineConfig(config);
     if (configError) {
@@ -94,8 +94,8 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA exten
     GKA extends NamespaceMap<RA> = {},
     SKA extends NamespaceMap<RA> = {},
     XKA extends NamespaceMap<RA> = {},
-  >(config: RMachineConfigParams<RA, LL, GKA, SKA, XKA>): RMachine<RA, LL[number], RMachineKit<RA, GKA, SKA, XKA>> {
-    return new RMachine<RA, LL[number], RMachineKit<RA, GKA, SKA, XKA>>(config as any);
+  >(config: RMachineConfigParams<RA, LL, GKA, SKA, XKA>): RMachine<RA, LL[number], Kit<RA, GKA, SKA, XKA>> {
+    return new RMachine<RA, LL[number], Kit<RA, GKA, SKA, XKA>>(config as any);
   }
 }
 

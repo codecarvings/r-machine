@@ -1,10 +1,6 @@
-import { GearPlug, type R } from "../setup";
+import { R, type RShape } from "../setup";
 
-export const plug = GearPlug().reactive(0);
-
-export const r = plug.Gear(() => {
-  const { $, _ } = plug.use();
-
+export const r = R.reactive(0).gear(({ $ }, _) => {
   return {
     increment: _.action(() => $.state + 1),
     decrement: _.action(() => $.state - 1),
@@ -13,4 +9,4 @@ export const r = plug.Gear(() => {
   };
 });
 
-export type Gear_Counter = R<typeof r>;
+export type Gear_Counter = RShape<typeof r>;

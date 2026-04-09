@@ -44,7 +44,7 @@ export interface RMachineConfigParams<
   readonly gateKit?: XKA;
 }
 
-export interface RMachineKit<
+export interface Kit<
   RA extends AnyResourceAtlas,
   GKA extends ExplicitNamespaceMap<RA> = {},
   SKA extends ExplicitNamespaceMap<RA> = {},
@@ -55,11 +55,7 @@ export interface RMachineKit<
   readonly gate: XKA;
 }
 
-export interface RMachineConfig<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends RMachineKit<RA, any, any, any>,
-> {
+export interface RMachineConfig<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends Kit<RA, any, any, any>> {
   readonly resourceAtlas: RA;
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;

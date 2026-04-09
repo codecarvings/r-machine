@@ -12,65 +12,49 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
+import type { NamespaceList } from "../lib/r-kit.js";
+import type { GearCtx } from "./gear.js";
 import type { AnyResourceAtlas } from "./resource-atlas.js";
-import type { NamespaceList, SurfaceList } from "./resource-list.js";
+import type { SurfaceList } from "./resource-list.js";
 import type { NamespaceMap, SurfaceMap } from "./resource-map.js";
 import type { AnyResource } from "./resource-origin.js";
+import type { ResourcePackage } from "./resource-package.js";
+import type { ResourceListPlug, ResourceMapPlug } from "./resource-plug.js";
 
-export interface ShellPlugComposer<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
-  (): ShellMapPlug<RA, L, KA, {}>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): ShellListPlug<RA, L, KA, NL>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): ShellMapPlug<RA, L, KA, NM>;
-}
+type ShellCtx<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = GearCtx<RA, KA> & {
+  readonly locale: L;
+};
 
-export interface ShellMapPlug<
+type ShellMapPlugin<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-> {
-  readonly Shell: ShellFactoryComposer;
-  use(): ShellMapPlugPkg<RA, L, KA, NM>;
-}
-
-export type ShellMapPlugPkg<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
-> = SurfaceMap<RA, Omit<NM, "$" | "_" | keyof KA>> & {
-  readonly $: ShellPlugCtx<RA, L, KA>;
-  readonly _: ShellPlugCursor;
+> = SurfaceMap<RA, Omit<NM, "$" | keyof KA>> & {
+  readonly $: ShellCtx<RA, L, KA>;
 } & SurfaceMap<RA, KA>;
 
-interface ShellListPlug<
+type GearListPlugin<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> {
-  readonly Shell: ShellFactoryComposer;
-  use(): ShellListPlugPkg<RA, L, KA, NL>;
-}
+> = [...SurfaceList<RA, NL>, ShellCtx<RA, L, KA>];
 
-type ShellListPlugPkg<
+export type ShellMapComposer<
+  RA extends AnyResourceAtlas,
+  L extends AnyLocale,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+> = <R extends AnyResource>(
+  factory: (plugin: ShellMapPlugin<RA, L, KA, NM>) => R | Promise<R>
+) => ResourcePackage<R, ResourceMapPlug<RA, KA, NM>>;
+
+export type ShellListComposer<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> = [...SurfaceList<RA, NL>, ShellPlugCtx<RA, L, KA>, ShellPlugCursor];
-
-type ShellPlugCtx<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = {
-  readonly locale: L;
-} & (keyof KA extends never ? {} : { readonly kit: SurfaceMap<RA, KA> });
-
-type ShellPlugCursor = {};
-
-declare const shellFactoryBrand: unique symbol;
-interface ShellFactoryBrand {
-  readonly [shellFactoryBrand]: true;
-}
-export type ShellFactory<R extends AnyResource> = (() => R) & ShellFactoryBrand;
-export type AnyShellFactory = ShellFactory<AnyResource>;
-
-type ShellFactoryComposer = <R extends AnyResource>(factory: () => R | Promise<R>) => ShellFactory<R>;
+> = <R extends AnyResource>(
+  factory: (plugin: GearListPlugin<RA, L, KA, NL>) => R | Promise<R>
+) => ResourcePackage<R, ResourceListPlug<RA, KA, NL>>;

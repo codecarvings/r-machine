@@ -11,12 +11,8 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyPlainGearFactory } from "./plain-gear.js";
-import type { AnyReactiveGearFactory } from "./reactive-gear.js";
-import type { AnyShellFactory } from "./shell.js";
+import type { AnyResourcePackage } from "./resource-package.js";
 
 export type AnyResource = Record<string, unknown> & object;
 
-type AnyResourceFactory = AnyPlainGearFactory | AnyReactiveGearFactory | AnyShellFactory;
-
-export type AnyResourceOrigin = AnyResourceFactory | AnyResource;
+export type AnyResourceOrigin = AnyResourcePackage | AnyResource;

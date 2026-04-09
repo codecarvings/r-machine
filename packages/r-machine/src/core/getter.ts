@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyState } from "./stateful-reactive-gear.js";
+import type { AnyState } from "./resource-plug.js";
 
 declare const getterBrand: unique symbol;
 export interface GetterBrand {
@@ -19,7 +19,10 @@ export interface GetterBrand {
 }
 export type Getter<V> = () => V & GetterBrand;
 
-export type StatelessGetterComposer = <V>(getter: () => V) => Getter<V>;
+export interface StatelessGetterComposer {
+  <V>(getter: () => V): Getter<V>;
+  <V>(memoized: "memoized", getter: () => V): Getter<V>;
+}
 
 export interface GetterComposer<S extends AnyState> extends StatelessGetterComposer {
   (): Getter<() => S>;
