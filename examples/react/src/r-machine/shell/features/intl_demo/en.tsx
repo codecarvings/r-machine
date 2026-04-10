@@ -1,10 +1,6 @@
-import { type R, ShellPlug } from "@/r-machine/setup";
+import { R, type RShape } from "@/r-machine/setup";
 
-export const plug = ShellPlug();
-
-export const r = plug.Shell(() => {
-  const { fmt } = plug.use();
-
+export const r = R.shell(({ fmt }) => {
   return {
     sectionTitle: "Locale-Aware Formatting",
     sectionSubtitle:
@@ -42,4 +38,4 @@ export const r = plug.Shell(() => {
   };
 });
 
-export type Shell_Features_IntlDemo = R<typeof r>;
+export type Shell_Features_IntlDemo = RShape<typeof r>;

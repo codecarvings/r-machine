@@ -1,17 +1,12 @@
-import { type Locale, type R, ShellPlug } from "@/r-machine/setup";
+import { type Locale, R, type RShape } from "@/r-machine/setup";
 
 const currencyByLocale: Record<Locale, string> = {
   en: "USD",
   it: "EUR",
 };
 
-export const plug = ShellPlug();
-
-export const r = plug.Shell(() => {
-  const {
-    $: { locale },
-    _,
-  } = plug.use();
+export const r = R.shell((plugin) => {
+  const locale = plugin.$.locale;
 
   const dateLongFmt = new Intl.DateTimeFormat(locale, { dateStyle: "long" });
   const dateShortFmt = new Intl.DateTimeFormat(locale, { dateStyle: "short" });
@@ -38,4 +33,4 @@ export const r = plug.Shell(() => {
   };
 });
 
-export type Shell_Lib_Fmt = R<typeof r>;
+export type Shell_Lib_Fmt = RShape<typeof r>;

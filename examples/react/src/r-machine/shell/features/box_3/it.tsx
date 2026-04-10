@@ -1,8 +1,6 @@
-import { localized, ShellPlug } from "@/r-machine/setup";
+import { localized, R } from "@/r-machine/setup";
 
-const plug = ShellPlug();
-
-export const r = plug.Shell(async () => {
+export const r = R.shell(async () => {
   // Simulate a delay to force display of loading state
   await new Promise((resolve) => setTimeout(resolve, 2000));
 

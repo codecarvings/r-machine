@@ -1,10 +1,6 @@
-import { localized, ShellPlug } from "@/r-machine/setup";
+import { localized, R } from "@/r-machine/setup";
 
-export const plug = ShellPlug();
-
-export const r = plug.Shell(() => {
-  const { fmt } = plug.use();
-
+export const r = R.shell(({ fmt }) => {
   return localized("shell/features/intl_demo", {
     sectionTitle: "Formattazione Locale-Aware",
     sectionSubtitle:

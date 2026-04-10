@@ -15,7 +15,6 @@ import type { AnyNamespace } from "./resource-atlas.js";
 import type { AnyResourceOrigin } from "./resource-origin.js";
 
 export interface AnyModule {
-  readonly plug?: unknown; // TODO: WP;
   readonly r: AnyResourceOrigin;
 }
 

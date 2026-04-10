@@ -1,20 +1,16 @@
-import { GearPlug, type R } from "@/r-machine/setup";
+import { R, type RShape } from "../setup";
 
-export const plug = GearPlug().reactive({ counter: 0 });
-
-export const r = plug.Gear(async () => {
-  const { $, _ } = plug.use();
-
+export const r = R.reactive({ counter: 0 }).gear(async ({ $ }, _) => {
   const setSomeValue = _.action((value: number) => ({ counter: value }));
 
-  const relay1 = _.relay({
+  const $myRelay = _.relay({
     select: () => ({
       myState: $.state.counter,
     }),
     onChange: (current) => {
       console.log("Counter value in relay:", current);
-      if (current.myState >= 5) {
-        return _.cmd(setSomeValue, 21);
+      if (current.myState > 5) {
+        return _.cmd(setSomeValue, 0);
       }
     },
   });
@@ -24,9 +20,9 @@ export const r = plug.Gear(async () => {
     clear: _.action(() => ({ counter: 0 })),
     increment: _.action(() => ({ counter: $.state.counter + 1 })),
     double: _.getter(() => $.state.counter * 2),
-    $internal: _.action(() => ({ counter: $.state.counter + 100 })),
-    relay1,
+    $internalAction: _.action(() => ({ counter: $.state.counter + 100 })),
+    $relay1: $myRelay,
   };
 });
 
-export type Gear_ShoppingCart = R<typeof r>;
+export type Gear_ShoppingCart = RShape<typeof r>;

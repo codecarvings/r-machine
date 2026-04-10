@@ -5,6 +5,7 @@
 **/*.d.mts
 **/*.d.cts
 /errors
-/lib
 /locale
+/core
+/lib
 /strategy

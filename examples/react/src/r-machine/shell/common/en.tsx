@@ -1,4 +1,4 @@
-import type { R } from "@/r-machine/setup";
+import type { RShape } from "@/r-machine/setup";
 
 export const r = {
   footer: {
@@ -13,4 +13,4 @@ export const r = {
   },
 };
 
-export type Shell_Common = R<typeof r>;
+export type Shell_Common = RShape<typeof r>;

@@ -29,9 +29,9 @@ const rMachine = RMachine.create({
   },
 });
 
-export const { GearPlug, ShellPlug, Shell, localized } = rMachine.createToolset();
+export const { R, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
-export type { BrandedResource as R } from "r-machine";
+export type { BrandedResource as RShape } from "r-machine";
 
 export const strategy = new ReactStandardStrategy(rMachine, {
   localeDetector: () => rMachine.localeHelper.matchLocales(navigator.languages),
