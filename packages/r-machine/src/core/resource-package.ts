@@ -14,10 +14,15 @@
 import type { AnyResource } from "./resource-origin.js";
 import type { AnyResourcePlug } from "./resource-plug.js";
 
+export type ResourceFactoryOutcome<R> = R | Promise<R>; // Accept any type of R, even syntactic sugar
+export type AnyResourceFactoryOutcome = ResourceFactoryOutcome<any>;
+
+export type IsAsyncResourceFactory<RO> = RO extends Promise<any> ? true : false;
+
 declare const resourcePackageBrand: unique symbol;
-export interface ResourcePackage<R extends AnyResource, P extends AnyResourcePlug> {
+export interface ResourcePackage<R extends AnyResource, A extends boolean, P extends AnyResourcePlug> {
   readonly [resourcePackageBrand]: true;
-  readonly factory: () => R;
+  readonly factory: () => A extends true ? Promise<R> : R;
   readonly plug: P;
 }
-export type AnyResourcePackage = ResourcePackage<AnyResource, AnyResourcePlug>;
+export type AnyResourcePackage = ResourcePackage<AnyResource, boolean, AnyResourcePlug>;

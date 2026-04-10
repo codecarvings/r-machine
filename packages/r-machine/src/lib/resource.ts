@@ -13,7 +13,7 @@
 
 import type { AnyResourceOrigin, ResourcePackage } from "#r-machine/core";
 
-type Resource<O extends AnyResourceOrigin> = O extends ResourcePackage<infer R, any> ? R : O;
+type Resource<O extends AnyResourceOrigin> = O extends ResourcePackage<infer R, any, any> ? R : O;
 
 // Re-exported from setup.ts as RShape
 declare const r: unique symbol;

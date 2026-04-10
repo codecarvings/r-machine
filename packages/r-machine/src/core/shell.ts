@@ -18,7 +18,7 @@ import type { AnyResourceAtlas } from "./resource-atlas.js";
 import type { SurfaceList } from "./resource-list.js";
 import type { NamespaceMap, SurfaceMap } from "./resource-map.js";
 import type { AnyResource } from "./resource-origin.js";
-import type { ResourcePackage } from "./resource-package.js";
+import type { IsAsyncResourceFactory, ResourceFactoryOutcome, ResourcePackage } from "./resource-package.js";
 import type { ResourceListPlug, ResourceMapPlug } from "./resource-plug.js";
 
 type ShellCtx<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = GearCtx<RA, KA> & {
@@ -46,15 +46,15 @@ export type ShellMapComposer<
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-> = <R extends AnyResource>(
-  factory: (plugin: ShellMapPlugin<RA, L, KA, NM>) => R | Promise<R>
-) => ResourcePackage<R, ResourceMapPlug<RA, KA, NM>>;
+> = <R extends AnyResource, RO extends ResourceFactoryOutcome<R>>(
+  factory: (plugin: ShellMapPlugin<RA, L, KA, NM>) => RO
+) => ResourcePackage<R, IsAsyncResourceFactory<RO>, ResourceMapPlug<RA, KA, NM>>;
 
 export type ShellListComposer<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> = <R extends AnyResource>(
-  factory: (plugin: GearListPlugin<RA, L, KA, NL>) => R | Promise<R>
-) => ResourcePackage<R, ResourceListPlug<RA, KA, NL>>;
+> = <R extends AnyResource, RO extends ResourceFactoryOutcome<R>>(
+  factory: (plugin: GearListPlugin<RA, L, KA, NL>) => RO
+) => ResourcePackage<R, IsAsyncResourceFactory<RO>, ResourceListPlug<RA, KA, NL>>;
