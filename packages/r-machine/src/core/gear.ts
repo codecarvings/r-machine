@@ -33,9 +33,9 @@ export type GearMapPlugin<
   RA extends AnyResourceAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-> = SurfaceMap<RA, Omit<NM, "$" | keyof KA>> & {
+> = SurfaceMap<RA, Omit<NM, "$">> & {
   readonly $: GearCtx<RA, KA>;
-} & SurfaceMap<RA, KA>;
+} & SurfaceMap<RA, Omit<KA, keyof NM>>;
 
 export type GearListPlugin<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = [
   ...SurfaceList<RA, NL>,

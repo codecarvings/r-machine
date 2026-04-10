@@ -11,81 +11,47 @@
  * contact: licensing@codecarvings.com
  */
 
+import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
+import type { AnyLocale } from "#r-machine/locale";
 import type { AnyResourceOrigin } from "./resource.js";
 import type { AnyNamespace } from "./resource-atlas.js";
+import type { PathResolver } from "./resource-layout.js";
 
 export interface AnyModule {
   readonly r: AnyResourceOrigin;
 }
 
-export type ModuleLoader = (path: string, namespace: AnyNamespace, locale: string) => Promise<AnyModule>;
-
-/*
-
-function getResolveRFromModuleError(
+export type ModuleLoaderFn = (
+  path: string,
   namespace: AnyNamespace,
-  locale: AnyLocale,
-  reason: string,
-  innerError?: Error | undefined
-) {
-  return new RMachineResolveError(
-    ERR_RESOLVE_FAILED,
-    `Unable to resolve resource "${namespace}" for locale "${locale}" - ${reason}.`,
-    innerError
-  );
+  locale: AnyLocale | undefined
+) => Promise<AnyModule>;
+
+export type ModuleLoader = (namespace: AnyNamespace, locale: AnyLocale | undefined) => Promise<AnyModule>;
+
+export function createModuleLoader(resolvePath: PathResolver, loadModuleFn: ModuleLoaderFn): ModuleLoader {
+  return function loadModule(namespace, locale) {
+    const path = resolvePath(namespace, locale);
+    return loadModuleFn(path, namespace, locale);
+  };
 }
 
-// TODO: WIP
-export async function resolveRFromModule(rModule: AnyRModule, $: any): Promise<AnyR> {
-  if (!rModule || typeof rModule !== "object") {
-    throw getResolveRFromModuleError($.namespace, $.locale, "module is not an object");
-  }
-
-  const rForge = rModule.r;
-  const rForgeType = typeof rForge;
-
-  if (rForgeType === "function") {
-    let r: AnyR;
-    try {
-      r = await (rForge as AnyRFactory)();
-    } catch (reason) {
-      throw getResolveRFromModuleError($.namespace, $.locale, "factory promise rejected", reason as Error);
-    }
-
-    const rType = typeof r;
-    if (rType !== "object" || r === null) {
-      throw getResolveRFromModuleError(
-        $.namespace,
-        $.locale,
-        r === null ? "resource returned by factory is null" : `invalid resource type returned by factory (${rType})`
-      );
-    }
-    return r;
-  }
-
-  if (rForgeType === "object") {
-    if (rForge !== null) {
-      return rForge;
-    }
-    throw getResolveRFromModuleError($.namespace, $.locale, "exported resource is null");
-  }
-
-  throw getResolveRFromModuleError($.namespace, $.locale, `invalid export type (${rForgeType})`);
-}
-
-export async function resolveR(loadModule: RModuleLoader, namespace: AnyNamespace, locale: AnyLocale): Promise<AnyR> {
-  let rModule: AnyRModule;
-  try {
-    rModule = await loadModule(namespace, locale);
-  } catch (reason) {
-    throw new RMachineResolveError(
+export function validateModule(input: unknown): RMachineResolveError | null {
+  if (typeof input !== "object" || input === null) {
+    return new RMachineResolveError(
       ERR_RESOLVE_FAILED,
-      `Unable to resolve resource module "${namespace}" for locale "${locale}" - loadModule failed.`,
-      reason as Error
+      `Invalid module - expected an object, got ${input === null ? "null" : typeof input}.`
     );
   }
-  return resolveRFromModule(rModule, { namespace, locale });
+  if (!("r" in input)) {
+    return new RMachineResolveError(ERR_RESOLVE_FAILED, `Invalid module - missing required property "r".`);
+  }
+  const r = (input as { r: unknown }).r;
+  if (typeof r !== "object" || r === null) {
+    return new RMachineResolveError(
+      ERR_RESOLVE_FAILED,
+      `Invalid module - property "r" is not a valid resource origin (expected a non-null object, got ${r === null ? "null" : typeof r}).`
+    );
+  }
+  return null;
 }
-
-
-*/

@@ -11,42 +11,68 @@
  * contact: licensing@codecarvings.com
  */
 
+import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
+import type { AnyLocale } from "#r-machine/locale";
+import type { ResourceFamily } from "./resource.js";
 import type { AnyNamespace } from "./resource-atlas.js";
 
-type ResourceLayoutType = "gear" | "shell" | "dynamic-shell";
+// #region ResourceLayout
+
+export type ResourceLayoutType = ResourceFamily | "dynamic-shell";
 
 export interface AnyResourceLayout {
   readonly [namespacePrefix: string]: ResourceLayoutType;
 }
 
-const NAMESPACE_SEPARATOR = "/";
-
 type LayoutEntry = readonly [prefix: string, type: ResourceLayoutType];
 
-export class ResourceLayoutManager {
-  protected readonly entries: readonly LayoutEntry[];
-  protected readonly cache = new Map<string, ResourceLayoutType | undefined>();
+export type ResourceLayoutResolver = (namespace: AnyNamespace) => ResourceLayoutType | undefined;
 
-  constructor(layout: AnyResourceLayout) {
-    this.entries = Object.entries(layout).sort(([a], [b]) => b.length - a.length);
-  }
+export function createResourceLayoutResolver(layout: AnyResourceLayout): ResourceLayoutResolver {
+  const entries: readonly LayoutEntry[] = Object.entries(layout).sort(([a], [b]) => b.length - a.length);
+  const cache = new Map<string, ResourceLayoutType | undefined>();
 
-  resolve(namespace: AnyNamespace): ResourceLayoutType | undefined {
-    const cached = this.cache.get(namespace);
-    if (cached !== undefined || this.cache.has(namespace)) {
-      return cached;
-    }
-
-    const match = this.entries.find(([prefix]) => isPrefixMatch(namespace, prefix));
-    const type = match?.[1];
-    this.cache.set(namespace, type);
+  return function resolveResourceLayout(namespace) {
+    if (cache.has(namespace)) return cache.get(namespace);
+    const type = entries.find(([prefix]) => isPrefixMatch(namespace, prefix))?.[1];
+    cache.set(namespace, type);
     return type;
-  }
+  };
 }
 
 function isPrefixMatch(namespace: string, prefix: string): boolean {
   if (namespace === prefix) return true;
-  return (
-    namespace.length > prefix.length && namespace.startsWith(prefix) && namespace[prefix.length] === NAMESPACE_SEPARATOR
-  );
+  return namespace.length > prefix.length && namespace.startsWith(prefix) && namespace[prefix.length] === "/";
 }
+
+// #endregion
+
+// #region PathResolver
+
+export type PathResolver = (namespace: AnyNamespace, locale: AnyLocale | undefined) => string;
+
+export function createPathResolver(resolveResourceLayout: ResourceLayoutResolver): PathResolver {
+  return function resolvePath(namespace, locale) {
+    const layoutType = resolveResourceLayout(namespace);
+    switch (layoutType) {
+      case "gear":
+      case "dynamic-shell":
+        return namespace;
+      case "shell":
+        if (locale === undefined) {
+          throw new RMachineResolveError(
+            ERR_RESOLVE_FAILED,
+            `Unable to resolve path for namespace "${namespace}" - locale is required for "shell" layout.`
+          );
+        }
+        return `${namespace}/${locale}`;
+      default:
+        throw new RMachineResolveError(
+          ERR_RESOLVE_FAILED,
+          `Unable to resolve path for namespace "${namespace}" - no matching resource layout.`
+        );
+    }
+  };
+}
+
+// #endregion

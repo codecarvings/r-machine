@@ -29,9 +29,9 @@ type ShellMapPlugin<
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-> = SurfaceMap<RA, Omit<NM, "$" | keyof KA>> & {
+> = SurfaceMap<RA, Omit<NM, "$">> & {
   readonly $: ShellCtx<RA, L, KA>;
-} & SurfaceMap<RA, KA>;
+} & SurfaceMap<RA, Omit<KA, keyof NM>>;
 
 type GearListPlugin<
   RA extends AnyResourceAtlas,

@@ -11,13 +11,35 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResource } from "./resource.js";
+import type { AnyResource, AnyResourceOrigin, ResourceFamily } from "./resource.js";
 import type { AnyResourcePlug } from "./resource-plug.js";
 
-declare const resourcePackageBrand: unique symbol;
+export interface ResourcePackageDescriptor {
+  readonly family: ResourceFamily;
+  readonly isReactive: boolean;
+  readonly isVertex: boolean;
+}
+
+const resourcePackageDescriptor: unique symbol = Symbol("resourcePackageDescriptor");
 export interface ResourcePackage<R extends AnyResource, P extends AnyResourcePlug> {
-  readonly [resourcePackageBrand]: true;
+  readonly [resourcePackageDescriptor]: ResourcePackageDescriptor;
   readonly factory: () => Promise<R>;
   readonly plug: P;
 }
 export type AnyResourcePackage = ResourcePackage<AnyResource, AnyResourcePlug>;
+
+export function createResourcePackage<R extends AnyResource, P extends AnyResourcePlug>(
+  descriptor: ResourcePackageDescriptor,
+  factory: () => Promise<R>,
+  plug: P
+): ResourcePackage<R, P> {
+  return {
+    [resourcePackageDescriptor]: descriptor,
+    factory,
+    plug,
+  };
+}
+
+export function tryGetResourcePackageDescriptor(origin: AnyResourceOrigin): ResourcePackageDescriptor | undefined {
+  return (origin as Partial<AnyResourcePackage>)[resourcePackageDescriptor];
+}

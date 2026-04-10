@@ -13,7 +13,7 @@
 
 export type { Atomic } from "./action.js";
 export type { Forge } from "./forge.js";
-export type { ModuleLoader } from "./module.js";
+export type { ModuleLoaderFn } from "./module.js";
 export type { AnyResource, AnyResourceOrigin } from "./resource.js";
 export { type AnyResourceAtlas, type Namespace, namespaceSymbol, type Token } from "./resource-atlas.js";
 export type { ResourceKit } from "./resource-kit.js";

@@ -16,3 +16,5 @@ import type { AnyResourcePackage } from "./resource-package.js";
 export type AnyResource = Record<string, unknown> & object;
 
 export type AnyResourceOrigin = AnyResourcePackage | AnyResource;
+
+export type ResourceFamily = "gear" | "shell";

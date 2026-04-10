@@ -39,9 +39,9 @@ type StatefulReactiveGearMapPlugin<
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
-> = SurfaceMap<RA, Omit<NM, "$" | keyof KA>> & {
+> = SurfaceMap<RA, Omit<NM, "$">> & {
   readonly $: StatefulReactiveGearCtx<RA, KA, S>;
-} & SurfaceMap<RA, KA>;
+} & SurfaceMap<RA, Omit<KA, keyof NM>>;
 
 type StatefulReactiveGearListPlugin<
   RA extends AnyResourceAtlas,

@@ -1,0 +1,344 @@
+import { describe, expect, it } from "vitest";
+import {
+  type AnyResourceLayout,
+  createPathResolver,
+  createResourceLayoutResolver,
+  type ResourceLayoutResolver,
+} from "../../src/core/resource-layout.js";
+import { ERR_RESOLVE_FAILED } from "../../src/errors/error-codes.js";
+import { RMachineResolveError } from "../../src/errors/r-machine-resolve-error.js";
+
+describe("createResourceLayoutResolver", () => {
+  describe("exact-match semantics", () => {
+    it("resolves when the namespace equals a registered prefix", () => {
+      const resolve = createResourceLayoutResolver({ app: "gear" });
+      expect(resolve("app")).toBe("gear");
+    });
+
+    it("returns undefined when no prefix matches", () => {
+      const resolve = createResourceLayoutResolver({ app: "gear" });
+      expect(resolve("other")).toBeUndefined();
+    });
+
+    it("returns undefined for an empty layout regardless of namespace", () => {
+      const resolve = createResourceLayoutResolver({});
+      expect(resolve("")).toBeUndefined();
+      expect(resolve("anything")).toBeUndefined();
+      expect(resolve("a/b/c")).toBeUndefined();
+    });
+  });
+
+  describe("path-boundary prefix matching", () => {
+    it("matches a child namespace only at a '/' boundary", () => {
+      const resolve = createResourceLayoutResolver({ app: "gear" });
+      expect(resolve("app/home")).toBe("gear");
+      expect(resolve("app/deeply/nested/key")).toBe("gear");
+    });
+
+    it("does not treat a longer namespace that merely starts with the prefix as a match", () => {
+      // Classic boundary bug: "app" must NOT match "application".
+      const resolve = createResourceLayoutResolver({ app: "gear" });
+      expect(resolve("application")).toBeUndefined();
+      expect(resolve("apps")).toBeUndefined();
+      expect(resolve("app-extra")).toBeUndefined();
+    });
+
+    it("does not match when the namespace is strictly shorter than the prefix", () => {
+      const resolve = createResourceLayoutResolver({ "app/home": "gear" });
+      expect(resolve("app")).toBeUndefined();
+      expect(resolve("app/hom")).toBeUndefined();
+    });
+
+    it("requires the character immediately after the prefix to be '/', not any other separator", () => {
+      const resolve = createResourceLayoutResolver({ app: "gear" });
+      expect(resolve("app.home")).toBeUndefined();
+      expect(resolve("app:home")).toBeUndefined();
+      expect(resolve("app_home")).toBeUndefined();
+    });
+  });
+
+  describe("longest-prefix-wins precedence", () => {
+    it("picks the most specific (longest) matching prefix over a shorter one", () => {
+      const resolve = createResourceLayoutResolver({
+        app: "gear",
+        "app/settings": "shell",
+      });
+      expect(resolve("app/settings")).toBe("shell");
+      expect(resolve("app/settings/theme")).toBe("shell");
+      expect(resolve("app/home")).toBe("gear");
+    });
+
+    it("is independent of the declaration order in the input object", () => {
+      const shortFirst = createResourceLayoutResolver({
+        app: "gear",
+        "app/settings": "shell",
+      });
+      const longFirst = createResourceLayoutResolver({
+        "app/settings": "shell",
+        app: "gear",
+      });
+      for (const ns of ["app", "app/home", "app/settings", "app/settings/theme"]) {
+        expect(shortFirst(ns)).toBe(longFirst(ns));
+      }
+    });
+
+    it("selects the deepest prefix across three overlapping levels", () => {
+      const resolve = createResourceLayoutResolver({
+        a: "gear",
+        "a/b": "shell",
+        "a/b/c": "dynamic-shell",
+      });
+      expect(resolve("a")).toBe("gear");
+      expect(resolve("a/x")).toBe("gear");
+      expect(resolve("a/b")).toBe("shell");
+      expect(resolve("a/b/x")).toBe("shell");
+      expect(resolve("a/b/c")).toBe("dynamic-shell");
+      expect(resolve("a/b/c/x")).toBe("dynamic-shell");
+    });
+  });
+
+  describe("layout-type coverage", () => {
+    it("returns each of the three layout types verbatim", () => {
+      const resolve = createResourceLayoutResolver({
+        g: "gear",
+        s: "shell",
+        d: "dynamic-shell",
+      });
+      expect(resolve("g")).toBe("gear");
+      expect(resolve("s")).toBe("shell");
+      expect(resolve("d")).toBe("dynamic-shell");
+    });
+  });
+
+  describe("input-snapshot semantics", () => {
+    it("ignores mutations to the layout object performed after resolver creation", () => {
+      const layout: Record<string, "gear" | "shell" | "dynamic-shell"> = { app: "gear" };
+      const resolve = createResourceLayoutResolver(layout);
+
+      // Mutate input after creation.
+      layout.app = "shell";
+      layout.extra = "dynamic-shell";
+      delete layout.app;
+
+      // Resolver behavior stays pinned to the original snapshot.
+      expect(resolve("app")).toBe("gear");
+      expect(resolve("extra")).toBeUndefined();
+    });
+
+    it("only observes own enumerable properties (ignores inherited)", () => {
+      const proto = { inherited: "gear" as const };
+      const layout = Object.create(proto) as AnyResourceLayout & { own: "shell" };
+      (layout as Record<string, "shell">).own = "shell";
+
+      const resolve = createResourceLayoutResolver(layout);
+      expect(resolve("own")).toBe("shell");
+      expect(resolve("inherited")).toBeUndefined();
+    });
+  });
+
+  describe("caching behavior", () => {
+    it("returns a stable, equal result for repeated lookups of the same namespace", () => {
+      const resolve = createResourceLayoutResolver({ app: "gear", "app/settings": "shell" });
+      for (let i = 0; i < 3; i++) {
+        expect(resolve("app/settings/theme")).toBe("shell");
+        expect(resolve("app/home")).toBe("gear");
+        expect(resolve("unknown")).toBeUndefined();
+      }
+    });
+
+    it("caches undefined results (cache.has guard, not cache.get fall-through)", () => {
+      // Build a layout where the resolver is forced to return undefined; then
+      // inspect repeated behavior. The critical implementation detail is that
+      // the cache must distinguish "namespace was never looked up" from
+      // "namespace was looked up and produced undefined". We verify the contract
+      // is observable: the answer is stable, and it matches what we'd get from
+      // a fresh resolver with the same (unchanged) input.
+      const layout = { app: "gear" } as const;
+      const resolve = createResourceLayoutResolver(layout);
+
+      expect(resolve("unknown")).toBeUndefined();
+      expect(resolve("unknown")).toBeUndefined();
+      expect(resolve("unknown")).toBeUndefined();
+
+      // Cross-check against a freshly-built resolver over the same input.
+      const fresh = createResourceLayoutResolver(layout);
+      expect(fresh("unknown")).toBeUndefined();
+    });
+
+    it("uses a cache that is private per resolver instance", () => {
+      const a = createResourceLayoutResolver({ app: "gear" });
+      const b = createResourceLayoutResolver({ app: "shell" });
+      expect(a("app")).toBe("gear");
+      expect(b("app")).toBe("shell");
+      // Second round: if they shared a cache, one would contaminate the other.
+      expect(a("app")).toBe("gear");
+      expect(b("app")).toBe("shell");
+    });
+  });
+
+  describe("edge-case prefixes", () => {
+    it("treats an empty-string prefix as matching only '' or namespaces starting with '/'", () => {
+      // This documents the (quirky) behavior of isPrefixMatch when prefix === "".
+      // The boundary rule requires namespace[0] === "/", so "app" is NOT matched
+      // by an empty prefix even though it technically "starts with" "".
+      const resolve = createResourceLayoutResolver({ "": "gear" });
+      expect(resolve("")).toBe("gear");
+      expect(resolve("/anything")).toBe("gear");
+      expect(resolve("app")).toBeUndefined();
+    });
+
+    it("handles single-segment prefixes with trailing-slash namespaces", () => {
+      const resolve = createResourceLayoutResolver({ app: "gear" });
+      // "app/" = "app" + "/" boundary + "" — valid per isPrefixMatch.
+      expect(resolve("app/")).toBe("gear");
+    });
+
+    it("matches a deeply-nested prefix exactly and at boundaries only", () => {
+      const resolve = createResourceLayoutResolver({ "a/b/c": "shell" });
+      expect(resolve("a/b/c")).toBe("shell");
+      expect(resolve("a/b/c/d")).toBe("shell");
+      expect(resolve("a/b/cd")).toBeUndefined();
+      expect(resolve("a/b")).toBeUndefined();
+    });
+  });
+});
+
+describe("createPathResolver", () => {
+  // Small helper to build a resolver paired with an explicit layout, so each
+  // test states its premise in one place.
+  function withLayout(layout: AnyResourceLayout) {
+    const layoutResolver = createResourceLayoutResolver(layout);
+    return createPathResolver(layoutResolver);
+  }
+
+  describe("gear layout", () => {
+    it("returns the namespace unchanged when locale is undefined", () => {
+      const resolvePath = withLayout({ app: "gear" });
+      expect(resolvePath("app", undefined)).toBe("app");
+    });
+
+    it("ignores the locale and still returns the namespace when one is provided", () => {
+      const resolvePath = withLayout({ app: "gear" });
+      expect(resolvePath("app", "en-US")).toBe("app");
+      expect(resolvePath("app/home", "it-IT")).toBe("app/home");
+    });
+  });
+
+  describe("dynamic-shell layout", () => {
+    it("returns the namespace unchanged when locale is undefined", () => {
+      const resolvePath = withLayout({ app: "dynamic-shell" });
+      expect(resolvePath("app", undefined)).toBe("app");
+    });
+
+    it("ignores the locale and still returns the namespace when one is provided", () => {
+      // dynamic-shell is a shell whose locale handling happens elsewhere, so
+      // the path resolver must not append the locale to the namespace.
+      const resolvePath = withLayout({ app: "dynamic-shell" });
+      expect(resolvePath("app", "en-US")).toBe("app");
+      expect(resolvePath("app/home", "it-IT")).toBe("app/home");
+    });
+  });
+
+  describe("shell layout", () => {
+    it("appends the locale as a final path segment", () => {
+      const resolvePath = withLayout({ app: "shell" });
+      expect(resolvePath("app", "en-US")).toBe("app/en-US");
+      expect(resolvePath("app/home", "it-IT")).toBe("app/home/it-IT");
+    });
+
+    it("appends the locale verbatim, without normalization", () => {
+      // The path resolver is a low-level primitive: locale canonicalization
+      // must have happened upstream. Document that by asserting raw pass-through.
+      const resolvePath = withLayout({ app: "shell" });
+      expect(resolvePath("app", "EN_us")).toBe("app/EN_us");
+    });
+
+    it("throws RMachineResolveError when the locale is undefined", () => {
+      const resolvePath = withLayout({ app: "shell" });
+      try {
+        resolvePath("app", undefined);
+        expect.unreachable("expected createPathResolver to throw for shell without a locale");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineResolveError);
+        expect((error as RMachineResolveError).code).toBe(ERR_RESOLVE_FAILED);
+        expect((error as RMachineResolveError).message).toContain('"app"');
+        expect((error as RMachineResolveError).message).toContain("shell");
+        expect((error as RMachineResolveError).message).toContain("locale is required");
+      }
+    });
+  });
+
+  describe("unresolved namespace", () => {
+    it("throws RMachineResolveError when the layout resolver returns undefined", () => {
+      const resolvePath = withLayout({ app: "gear" });
+      try {
+        resolvePath("other", "en-US");
+        expect.unreachable("expected createPathResolver to throw for an unmatched namespace");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineResolveError);
+        expect((error as RMachineResolveError).code).toBe(ERR_RESOLVE_FAILED);
+        expect((error as RMachineResolveError).message).toContain('"other"');
+        expect((error as RMachineResolveError).message).toContain("no matching resource layout");
+      }
+    });
+
+    it("throws the unresolved-namespace error even when a locale is provided", () => {
+      const resolvePath = withLayout({ app: "gear" });
+      try {
+        resolvePath("other", "en-US");
+        expect.unreachable();
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineResolveError);
+        expect((error as RMachineResolveError).message).toContain("no matching resource layout");
+      }
+    });
+
+    it("throws the unresolved-namespace error (not the shell-locale error) for missing namespaces without a locale", () => {
+      // The resolver checks layout type *before* validating the locale.
+      // An unknown namespace should surface the "no matching layout" error
+      // regardless of whether a locale was provided.
+      const resolvePath = withLayout({ app: "shell" });
+      try {
+        resolvePath("other", undefined);
+        expect.unreachable();
+      } catch (error) {
+        expect(error).toBeInstanceOf(RMachineResolveError);
+        expect((error as RMachineResolveError).message).toContain("no matching resource layout");
+      }
+    });
+  });
+
+  describe("delegation to the layout resolver", () => {
+    it("delegates to the supplied resolver exactly once per call", () => {
+      const calls: string[] = [];
+      const spy: ResourceLayoutResolver = (ns) => {
+        calls.push(ns);
+        return ns === "app" ? "gear" : undefined;
+      };
+      const resolvePath = createPathResolver(spy);
+
+      expect(resolvePath("app", undefined)).toBe("app");
+      expect(calls).toEqual(["app"]);
+
+      expect(() => resolvePath("missing", undefined)).toThrow(RMachineResolveError);
+      expect(calls).toEqual(["app", "missing"]);
+    });
+
+    it("honors whatever layout type the injected resolver returns, even without caching", () => {
+      // A fresh (uncached) resolver still drives correct dispatch. This guards
+      // against accidental coupling between createPathResolver and the cache
+      // inside createResourceLayoutResolver.
+      const manual: ResourceLayoutResolver = (ns) => {
+        if (ns === "g") return "gear";
+        if (ns === "s") return "shell";
+        if (ns === "d") return "dynamic-shell";
+        return undefined;
+      };
+      const resolvePath = createPathResolver(manual);
+
+      expect(resolvePath("g", "en")).toBe("g");
+      expect(resolvePath("s", "en")).toBe("s/en");
+      expect(resolvePath("d", "en")).toBe("d");
+    });
+  });
+});
