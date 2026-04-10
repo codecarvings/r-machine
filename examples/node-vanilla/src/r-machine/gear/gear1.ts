@@ -1,4 +1,4 @@
-import { R, type RShape } from "../setup";
+import { Forge, type RShape } from "../setup";
 
 interface User {
   name: string;
@@ -10,7 +10,7 @@ interface GearState {
   user: User | null;
 }
 
-export const r = R.reactive<GearState>({
+export const r = Forge.reactive<GearState>({
   loading: true,
   error: null,
   user: null,

@@ -12,11 +12,11 @@
  */
 
 import type { Kit } from "#r-machine";
-import type { AnyResourceAtlas, Namespace, RComposer } from "#r-machine/core";
+import type { AnyResourceAtlas, Forge, Namespace } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
 export interface RMachineToolset<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends Kit<RA>> {
-  readonly R: RComposer<RA, L, KA>;
+  readonly Forge: Forge<RA, L, KA>;
   readonly localized: LocalizerHelper<RA>;
 }
 

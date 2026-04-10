@@ -1,6 +1,6 @@
-import { localized, R } from "@/r-machine/setup";
+import { Forge, localized } from "@/r-machine/setup";
 
-export const r = R.shell(({ fmt }) => {
+export const r = Forge.shell(({ fmt }) => {
   return localized("shell/features/intl_demo", {
     sectionTitle: "Formattazione Locale-Aware",
     sectionSubtitle:

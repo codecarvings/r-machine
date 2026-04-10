@@ -18,7 +18,7 @@ import type { AnyResourceAtlas } from "./resource-atlas.js";
 import type { SurfaceList } from "./resource-list.js";
 import type { NamespaceMap, SurfaceMap } from "./resource-map.js";
 import type { AnyResource } from "./resource-origin.js";
-import type { IsAsyncResourceFactory, ResourceFactoryOutcome, ResourcePackage } from "./resource-package.js";
+import type { ResourcePackage } from "./resource-package.js";
 import type { ResourceListPlug, ResourceMapPlug } from "./resource-plug.js";
 
 export type GearCtx<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>> = {} & (keyof KA extends never
@@ -43,14 +43,28 @@ export type GearListPlugin<RA extends AnyResourceAtlas, KA extends NamespaceMap<
   GearCtx<RA, KA>,
 ];
 
-export type GearMapComposer<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = <
-  const RO extends ResourceFactoryOutcome<AnyResource>,
->(
-  factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => RO
-) => ResourcePackage<Awaited<RO>, IsAsyncResourceFactory<RO>, ResourceMapPlug<RA, KA, NM>>;
+export interface GearMapComposer<
+  RA extends AnyResourceAtlas,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+> {
+  <R extends AnyResource>(
+    factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => R
+  ): ResourcePackage<R, ResourceMapPlug<RA, KA, NM>, false>;
+  <R extends AnyResource>(
+    factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => Promise<R>
+  ): ResourcePackage<R, ResourceMapPlug<RA, KA, NM>, true>;
+}
 
-export type GearListComposer<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = <
-  const RO extends ResourceFactoryOutcome<AnyResource>,
->(
-  factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => RO
-) => ResourcePackage<Awaited<RO>, IsAsyncResourceFactory<RO>, ResourceListPlug<RA, KA, NL>>;
+export interface GearListComposer<
+  RA extends AnyResourceAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+> {
+  <R extends AnyResource>(
+    factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => R
+  ): ResourcePackage<R, ResourceListPlug<RA, KA, NL>, false>;
+  <R extends AnyResource>(
+    factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => Promise<R>
+  ): ResourcePackage<R, ResourceListPlug<RA, KA, NL>, true>;
+}

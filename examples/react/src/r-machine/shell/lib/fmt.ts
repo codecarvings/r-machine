@@ -1,11 +1,11 @@
-import { type Locale, R, type RShape } from "@/r-machine/setup";
+import { Forge, type Locale, type RShape } from "@/r-machine/setup";
 
 const currencyByLocale: Record<Locale, string> = {
   en: "USD",
   it: "EUR",
 };
 
-export const r = R.shell((plugin) => {
+export const r = Forge.shell((plugin) => {
   const locale = plugin.$.locale;
 
   const dateLongFmt = new Intl.DateTimeFormat(locale, { dateStyle: "long" });

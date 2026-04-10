@@ -1,6 +1,6 @@
-import { R, type RShape } from "@/r-machine/setup";
+import { Forge, type RShape } from "@/r-machine/setup";
 
-export const r = R.shell(({ fmt }) => {
+export const r = Forge.shell(({ fmt }) => {
   return {
     sectionTitle: "Locale-Aware Formatting",
     sectionSubtitle:

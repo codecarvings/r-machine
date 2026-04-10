@@ -29,7 +29,7 @@ const rMachine = RMachine.create({
   },
 });
 
-export const { R, localized } = rMachine.createToolset();
+export const { Forge, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 

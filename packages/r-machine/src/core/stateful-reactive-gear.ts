@@ -19,7 +19,7 @@ import type { AnyReactiveResource, RejectAsyncValueProperties } from "./reactive
 import type { AnyResourceAtlas } from "./resource-atlas.js";
 import type { SurfaceList } from "./resource-list.js";
 import type { NamespaceMap, SurfaceMap } from "./resource-map.js";
-import type { IsAsyncResourceFactory, ResourceFactoryOutcome, ResourcePackage } from "./resource-package.js";
+import type { ResourcePackage } from "./resource-package.js";
 import type { AnyState, StatefulResourceListPlug, StatefulResourceMapPlug } from "./resource-plug.js";
 
 type StatefulReactiveGearCtx<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, S extends AnyState> = GearCtx<
@@ -51,12 +51,25 @@ type StatefulReactiveGearListPlugin<
   S extends AnyState,
 > = [...SurfaceList<RA, NL>, StatefulReactiveGearCtx<RA, KA, S>];
 
-type ReadableReactiveGearResource<S extends AnyState, G extends string> = { readonly [P in G]: DefaultGetter<S> };
+type ReadableReactiveGearResource<S extends AnyState, G extends string> = { [P in G]: DefaultGetter<S> };
 type WritableReactiveGearResource<S extends AnyState, G extends string, A extends string> = {
-  readonly [P in G]: DefaultGetter<S>;
+  [P in G]: DefaultGetter<S>;
 } & {
-  readonly [P in A]: DefaultAction<S>;
+  [P in A]: DefaultAction<S>;
 };
+
+type ReadonlyStateDef = readonly [string];
+type WritableStateDef = readonly [string, string];
+type StateDef = ReadonlyStateDef | WritableStateDef;
+
+type StateReactiveGearResource<S extends AnyState, D extends StateDef> = D extends readonly [
+  infer G extends string,
+  infer A extends string,
+]
+  ? WritableReactiveGearResource<S, G, A>
+  : D extends readonly [infer G extends string]
+    ? ReadableReactiveGearResource<S, G>
+    : never;
 
 export interface StatefulReactiveGearMapComposer<
   RA extends AnyResourceAtlas,
@@ -64,24 +77,19 @@ export interface StatefulReactiveGearMapComposer<
   NM extends NamespaceMap<RA>,
   S extends AnyState,
 > {
-  <const G extends string, const A extends string, RO extends ResourceFactoryOutcome<readonly [G, A]>>(
-    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => RO
-  ): ResourcePackage<
-    WritableReactiveGearResource<S, G, A>,
-    IsAsyncResourceFactory<RO>,
-    StatefulResourceMapPlug<RA, KA, NM, S>
-  >;
-  <const G extends string, RO extends ResourceFactoryOutcome<readonly [G]>>(
-    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => RO
-  ): ResourcePackage<
-    ReadableReactiveGearResource<S, G>,
-    IsAsyncResourceFactory<RO>,
-    StatefulResourceMapPlug<RA, KA, NM, S>
-  >;
+  <const D extends StateDef>(
+    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => D
+  ): ResourcePackage<StateReactiveGearResource<S, D>, StatefulResourceMapPlug<RA, KA, NM, S>, false>;
+  <const D extends StateDef>(
+    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => Promise<D>
+  ): ResourcePackage<StateReactiveGearResource<S, D>, StatefulResourceMapPlug<RA, KA, NM, S>, true>;
 
-  <RO extends ResourceFactoryOutcome<AnyReactiveResource & RejectAsyncValueProperties<Awaited<RO>>>>(
-    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => RO
-  ): ResourcePackage<Awaited<RO>, IsAsyncResourceFactory<RO>, StatefulResourceMapPlug<RA, KA, NM, S>>;
+  <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
+    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => R
+  ): ResourcePackage<R, StatefulResourceMapPlug<RA, KA, NM, S>, false>;
+  <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
+    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => Promise<R>
+  ): ResourcePackage<R, StatefulResourceMapPlug<RA, KA, NM, S>, true>;
 }
 
 export interface StatefulReactiveGearListComposer<
@@ -90,22 +98,17 @@ export interface StatefulReactiveGearListComposer<
   NL extends NamespaceList<RA>,
   S extends AnyState,
 > {
-  <const G extends string, const A extends string, RO extends ResourceFactoryOutcome<readonly [G, A]>>(
-    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => RO
-  ): ResourcePackage<
-    WritableReactiveGearResource<S, G, A>,
-    IsAsyncResourceFactory<RO>,
-    StatefulResourceListPlug<RA, KA, NL, S>
-  >;
-  <const G extends string, RO extends ResourceFactoryOutcome<readonly [G]>>(
-    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => RO
-  ): ResourcePackage<
-    ReadableReactiveGearResource<S, G>,
-    IsAsyncResourceFactory<RO>,
-    StatefulResourceListPlug<RA, KA, NL, S>
-  >;
+  <const D extends StateDef>(
+    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => D
+  ): ResourcePackage<StateReactiveGearResource<S, D>, StatefulResourceListPlug<RA, KA, NL, S>, false>;
+  <const D extends StateDef>(
+    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => Promise<D>
+  ): ResourcePackage<StateReactiveGearResource<S, D>, StatefulResourceListPlug<RA, KA, NL, S>, true>;
 
-  <RO extends ResourceFactoryOutcome<AnyReactiveResource & RejectAsyncValueProperties<Awaited<RO>>>>(
-    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => RO
-  ): ResourcePackage<Awaited<RO>, IsAsyncResourceFactory<RO>, StatefulResourceListPlug<RA, KA, NL, S>>;
+  <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
+    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => R
+  ): ResourcePackage<R, StatefulResourceListPlug<RA, KA, NL, S>, false>;
+  <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
+    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => Promise<R>
+  ): ResourcePackage<R, StatefulResourceListPlug<RA, KA, NL, S>, true>;
 }

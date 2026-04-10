@@ -19,7 +19,7 @@ import type { GearMapComposer } from "./gear.js";
 import type { ReactiveComposer } from "./reactive-composer.js";
 import type { ShellMapComposer } from "./shell.js";
 
-export interface RComposer<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends Kit<RA>> {
+export interface Forge<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends Kit<RA>> {
   readonly connected: ConnectedComposer<RA, L, KA>;
   readonly reactive: ReactiveComposer<RA, KA>;
 

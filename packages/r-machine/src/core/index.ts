@@ -12,7 +12,7 @@
  */
 
 export type { Atomic } from "./action.js";
-export type { RComposer } from "./r-composer.js";
+export type { Forge } from "./forge.js";
 export { type AnyResourceAtlas, type Namespace, namespaceSymbol, type Token } from "./resource-atlas.js";
 export type { ExplicitNamespaceMap } from "./resource-map.js";
 export type { AnyResourceOrigin } from "./resource-origin.js";

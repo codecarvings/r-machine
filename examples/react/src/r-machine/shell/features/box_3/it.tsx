@@ -1,6 +1,6 @@
-import { localized, R } from "@/r-machine/setup";
+import { Forge, localized } from "@/r-machine/setup";
 
-export const r = R.shell(async () => {
+export const r = Forge.shell(async () => {
   // Simulate a delay to force display of loading state
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
