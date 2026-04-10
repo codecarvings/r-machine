@@ -24,28 +24,18 @@ interface StatelessReactiveGearCursor extends GearCursor {
   readonly getter: StatelessGetterComposer;
 }
 
-export interface StatelessReactiveGearMapComposer<
+export type StatelessReactiveGearMapComposer<
   RA extends AnyResourceAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-> {
-  <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
-    factory: (plugin: GearMapPlugin<RA, KA, NM>, _: StatelessReactiveGearCursor) => R
-  ): ResourcePackage<R, ResourceMapPlug<RA, KA, NM>, false>;
-  <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
-    factory: (plugin: GearMapPlugin<RA, KA, NM>, _: StatelessReactiveGearCursor) => Promise<R>
-  ): ResourcePackage<R, ResourceMapPlug<RA, KA, NM>, true>;
-}
+> = <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
+  factory: (plugin: GearMapPlugin<RA, KA, NM>, _: StatelessReactiveGearCursor) => R | Promise<R>
+) => ResourcePackage<R, ResourceMapPlug<RA, KA, NM>>;
 
-export interface StatelessReactiveGearListComposer<
+export type StatelessReactiveGearListComposer<
   RA extends AnyResourceAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> {
-  <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
-    factory: (plugin: GearListPlugin<RA, KA, NL>, _: StatelessReactiveGearCursor) => R
-  ): ResourcePackage<R, ResourceListPlug<RA, KA, NL>, false>;
-  <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
-    factory: (plugin: GearListPlugin<RA, KA, NL>, _: StatelessReactiveGearCursor) => Promise<R>
-  ): ResourcePackage<R, ResourceListPlug<RA, KA, NL>, true>;
-}
+> = <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
+  factory: (plugin: GearListPlugin<RA, KA, NL>, _: StatelessReactiveGearCursor) => R | Promise<R>
+) => ResourcePackage<R, ResourceListPlug<RA, KA, NL>>;

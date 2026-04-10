@@ -17,7 +17,7 @@ import type { RelayBrand } from "./relay.js";
 
 type AnyReactiveResourceItem = ActionBrand | GetterBrand | RelayBrand | ((...args: any[]) => any);
 export interface AnyReactiveResource {
-  readonly [key: string]: AnyReactiveResourceItem;
+  [key: string]: AnyReactiveResourceItem;
 }
 
 export type RejectAsyncValueProperties<R> = {

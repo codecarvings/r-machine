@@ -41,30 +41,20 @@ type GearListPlugin<
   NL extends NamespaceList<RA>,
 > = [...SurfaceList<RA, NL>, ShellCtx<RA, L, KA>];
 
-export interface ShellMapComposer<
+export type ShellMapComposer<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-> {
-  <R extends AnyResource>(
-    factory: (plugin: ShellMapPlugin<RA, L, KA, NM>) => R
-  ): ResourcePackage<R, ResourceMapPlug<RA, KA, NM>, false>;
-  <R extends AnyResource>(
-    factory: (plugin: ShellMapPlugin<RA, L, KA, NM>) => Promise<R>
-  ): ResourcePackage<R, ResourceMapPlug<RA, KA, NM>, true>;
-}
+> = <R extends AnyResource>(
+  factory: (plugin: ShellMapPlugin<RA, L, KA, NM>) => R | Promise<R>
+) => ResourcePackage<R, ResourceMapPlug<RA, KA, NM>>;
 
-export interface ShellListComposer<
+export type ShellListComposer<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> {
-  <R extends AnyResource>(
-    factory: (plugin: GearListPlugin<RA, L, KA, NL>) => R
-  ): ResourcePackage<R, ResourceListPlug<RA, KA, NL>, false>;
-  <R extends AnyResource>(
-    factory: (plugin: GearListPlugin<RA, L, KA, NL>) => Promise<R>
-  ): ResourcePackage<R, ResourceListPlug<RA, KA, NL>, true>;
-}
+> = <R extends AnyResource>(
+  factory: (plugin: GearListPlugin<RA, L, KA, NL>) => R | Promise<R>
+) => ResourcePackage<R, ResourceListPlug<RA, KA, NL>>;

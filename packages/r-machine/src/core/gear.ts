@@ -43,28 +43,14 @@ export type GearListPlugin<RA extends AnyResourceAtlas, KA extends NamespaceMap<
   GearCtx<RA, KA>,
 ];
 
-export interface GearMapComposer<
-  RA extends AnyResourceAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
-> {
-  <R extends AnyResource>(
-    factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => R
-  ): ResourcePackage<R, ResourceMapPlug<RA, KA, NM>, false>;
-  <R extends AnyResource>(
-    factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => Promise<R>
-  ): ResourcePackage<R, ResourceMapPlug<RA, KA, NM>, true>;
-}
+export type GearMapComposer<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = <
+  R extends AnyResource,
+>(
+  factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => R | Promise<R>
+) => ResourcePackage<R, ResourceMapPlug<RA, KA, NM>>;
 
-export interface GearListComposer<
-  RA extends AnyResourceAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-> {
-  <R extends AnyResource>(
-    factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => R
-  ): ResourcePackage<R, ResourceListPlug<RA, KA, NL>, false>;
-  <R extends AnyResource>(
-    factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => Promise<R>
-  ): ResourcePackage<R, ResourceListPlug<RA, KA, NL>, true>;
-}
+export type GearListComposer<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = <
+  R extends AnyResource,
+>(
+  factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => R | Promise<R>
+) => ResourcePackage<R, ResourceListPlug<RA, KA, NL>>;

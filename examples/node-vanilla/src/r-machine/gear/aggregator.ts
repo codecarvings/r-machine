@@ -3,7 +3,6 @@ import { Forge, type RShape } from "../setup";
 export const r = Forge.connected("gear/counter", "gear/shopping-cart")
   .reactive()
   .gear(([counter, cart], _) => {
-    // DIPENDENZE TUTTE PRONTE
     return {
       mySum: _.getter("memoized", () => counter.myCount + cart.totalItems),
       doSomething: () => 21,

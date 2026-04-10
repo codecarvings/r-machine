@@ -15,9 +15,9 @@ import type { AnyResource } from "./resource-origin.js";
 import type { AnyResourcePlug } from "./resource-plug.js";
 
 declare const resourcePackageBrand: unique symbol;
-export interface ResourcePackage<R extends AnyResource, P extends AnyResourcePlug, A extends boolean> {
+export interface ResourcePackage<R extends AnyResource, P extends AnyResourcePlug> {
   readonly [resourcePackageBrand]: true;
-  readonly factory: () => A extends true ? Promise<R> : R;
+  readonly factory: () => Promise<R>;
   readonly plug: P;
 }
-export type AnyResourcePackage = ResourcePackage<AnyResource, AnyResourcePlug, boolean>;
+export type AnyResourcePackage = ResourcePackage<AnyResource, AnyResourcePlug>;

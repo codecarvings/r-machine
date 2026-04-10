@@ -78,18 +78,12 @@ export interface StatefulReactiveGearMapComposer<
   S extends AnyState,
 > {
   <const D extends StateDef>(
-    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => D
-  ): ResourcePackage<StateReactiveGearResource<S, D>, StatefulResourceMapPlug<RA, KA, NM, S>, false>;
-  <const D extends StateDef>(
-    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => Promise<D>
-  ): ResourcePackage<StateReactiveGearResource<S, D>, StatefulResourceMapPlug<RA, KA, NM, S>, true>;
+    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => D | Promise<D>
+  ): ResourcePackage<StateReactiveGearResource<S, D>, StatefulResourceMapPlug<RA, KA, NM, S>>;
 
   <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
-    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => R
-  ): ResourcePackage<R, StatefulResourceMapPlug<RA, KA, NM, S>, false>;
-  <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
-    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => Promise<R>
-  ): ResourcePackage<R, StatefulResourceMapPlug<RA, KA, NM, S>, true>;
+    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => R | Promise<R>
+  ): ResourcePackage<R, StatefulResourceMapPlug<RA, KA, NM, S>>;
 }
 
 export interface StatefulReactiveGearListComposer<
@@ -99,16 +93,10 @@ export interface StatefulReactiveGearListComposer<
   S extends AnyState,
 > {
   <const D extends StateDef>(
-    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => D
-  ): ResourcePackage<StateReactiveGearResource<S, D>, StatefulResourceListPlug<RA, KA, NL, S>, false>;
-  <const D extends StateDef>(
-    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => Promise<D>
-  ): ResourcePackage<StateReactiveGearResource<S, D>, StatefulResourceListPlug<RA, KA, NL, S>, true>;
+    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => D | Promise<D>
+  ): ResourcePackage<StateReactiveGearResource<S, D>, StatefulResourceListPlug<RA, KA, NL, S>>;
 
   <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
-    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => R
-  ): ResourcePackage<R, StatefulResourceListPlug<RA, KA, NL, S>, false>;
-  <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
-    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => Promise<R>
-  ): ResourcePackage<R, StatefulResourceListPlug<RA, KA, NL, S>, true>;
+    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => R | Promise<R>
+  ): ResourcePackage<R, StatefulResourceListPlug<RA, KA, NL, S>>;
 }
