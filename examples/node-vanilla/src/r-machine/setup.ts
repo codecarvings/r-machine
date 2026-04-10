@@ -5,7 +5,12 @@ const rMachine = RMachine.create({
   resourceAtlas: ofType<ResourceAtlas>(),
   locales: ["en", "it"],
   defaultLocale: "en",
-  load: (namespace, locale) => import(`./${namespace}/${locale}.ts`),
+  load: (path) => import(`./${path}.ts`),
+  layout: {
+    gear: "gear",
+    shell: "shell",
+    "shell/lib": "dynamic-shell",
+  },
   shellKit: {
     fmt: "shell/lib/fmt",
   },

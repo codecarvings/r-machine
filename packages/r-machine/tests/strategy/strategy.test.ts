@@ -1,12 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
-import type { AnyResourceAtlas, RMachineConfig } from "#r-machine";
+import type { RMachineConfig } from "#r-machine";
+import type { AnyResourceAtlas } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 import { RMachine } from "../../src/lib/r-machine.js";
 import { Strategy } from "../../src/strategy/strategy.js";
 
+interface TestResourceKit {
+  gear: {};
+  shell: {};
+  gate: {};
+}
+
 function createSpyStrategyClass<RA extends AnyResourceAtlas, L extends AnyLocale, C>() {
   const validateConfigSpy = vi.fn();
-  class SpyStrategy extends Strategy<RA, L, {}, C> {
+  class SpyStrategy extends Strategy<RA, L, TestResourceKit, C> {
     protected override validateConfig(): void {
       validateConfigSpy();
     }
@@ -14,24 +21,35 @@ function createSpyStrategyClass<RA extends AnyResourceAtlas, L extends AnyLocale
   return { SpyStrategy, validateConfigSpy };
 }
 
-class ThrowingStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, {}, C> {
+class ThrowingStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<
+  RA,
+  L,
+  TestResourceKit,
+  C
+> {
   protected override validateConfig(): void {
     throw new Error("Validation failed");
   }
 }
 
-class DefaultStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, {}, C> {}
+class DefaultStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<
+  RA,
+  L,
+  TestResourceKit,
+  C
+> {}
 
-const testConfig: RMachineConfig<AnyResourceAtlas, string, {}> = {
+const testConfig: RMachineConfig<AnyResourceAtlas, string, TestResourceKit> = {
   resourceAtlas: {},
   locales: ["en", "it"],
   defaultLocale: "en",
   load: async () => ({ r: {} }),
-  kit: {},
+  layout: {},
+  kit: { gear: {}, shell: {}, gate: {} },
 };
 
 function createTestRMachine() {
-  return new RMachine<AnyResourceAtlas, string, {}>(testConfig);
+  return new RMachine<AnyResourceAtlas, string, TestResourceKit>(testConfig);
 }
 
 describe("Strategy", () => {

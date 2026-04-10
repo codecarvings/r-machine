@@ -11,10 +11,4 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyLocale } from "#r-machine/locale";
-import type { AnyResourceAtlas } from "./resource-atlas.js";
-
-export interface RCtx<L extends AnyLocale, KA extends AnyResourceAtlas> {
-  readonly locale: L;
-  readonly kit: KA;
-}
+export class ResourceBuilder {}

@@ -11,23 +11,19 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { AnyResourceAtlas, ExplicitNamespaceMap, ResourceKit } from "#r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
-import { DomainManager } from "./domain-manager.js";
-import type { NamespaceList, RList } from "./r-kit.js";
 import {
   cloneRMachineConfig,
-  type Kit,
   type RMachineConfig,
   type RMachineConfigParams,
   validateRMachineConfig,
 } from "./r-machine-config.js";
 import type { RMachineToolset } from "./r-machine-toolset.js";
-import type { NamespaceMap } from "./r-map.js";
-import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
 
-export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends Kit<RA>> {
+export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends ResourceKit<RA>> {
   constructor(config: RMachineConfig<RA, L, KA>) {
     const configError = validateRMachineConfig(config);
     if (configError) {
@@ -37,14 +33,12 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA exten
     this.locales = this.config.locales;
     this.defaultLocale = this.config.defaultLocale;
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
-    this.domainManager = new DomainManager(config.load);
   }
 
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly localeHelper: LocaleHelper<L>;
   protected readonly config: RMachineConfig<RA, L, KA>;
-  protected readonly domainManager: DomainManager;
 
   protected validateLocaleForPick(locale: L) {
     const error = this.localeHelper.validateLocale(locale);
@@ -52,36 +46,6 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA exten
       throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot use invalid locale: "${locale}".`, error);
     }
   }
-
-  // Use property syntax to bind 'this' correctly
-  readonly pickR = <N extends Namespace<RA>>(locale: L, namespace: N): Promise<RA[N]> => {
-    this.validateLocaleForPick(locale);
-    const domain = this.domainManager.getDomain(locale);
-    return domain.pickR(namespace) as Promise<RA[N]>;
-  };
-
-  // Required for react suspense support
-  protected readonly hybridPickR = <N extends Namespace<RA>>(locale: L, namespace: N): RA[N] | Promise<RA[N]> => {
-    this.validateLocaleForPick(locale);
-    const domain = this.domainManager.getDomain(locale);
-    return domain.hybridPickR(namespace) as RA[N] | Promise<RA[N]>;
-  };
-
-  readonly pickRKit = <NL extends NamespaceList<RA>>(locale: L, ...namespaces: NL): Promise<RList<RA, NL>> => {
-    this.validateLocaleForPick(locale);
-    const domain = this.domainManager.getDomain(locale);
-    return domain.pickRKit(namespaces) as Promise<RList<RA, NL>>;
-  };
-
-  // Required for react suspense support
-  protected readonly hybridPickRKit = <NL extends NamespaceList<RA>>(
-    locale: L,
-    ...namespaces: NL
-  ): RList<RA, NL> | Promise<RList<RA, NL>> => {
-    this.validateLocaleForPick(locale);
-    const domain = this.domainManager.getDomain(locale);
-    return domain.hybridPickRKit(namespaces) as RList<RA, NL> | Promise<RList<RA, NL>>;
-  };
 
   createToolset(): RMachineToolset<RA, L, KA> {
     return undefined!; // TODO: WIP;
@@ -91,11 +55,11 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA exten
   static create<
     RA extends AnyResourceAtlas,
     const LL extends AnyLocaleList,
-    GKA extends NamespaceMap<RA> = {},
-    SKA extends NamespaceMap<RA> = {},
-    XKA extends NamespaceMap<RA> = {},
-  >(config: RMachineConfigParams<RA, LL, GKA, SKA, XKA>): RMachine<RA, LL[number], Kit<RA, GKA, SKA, XKA>> {
-    return new RMachine<RA, LL[number], Kit<RA, GKA, SKA, XKA>>(config as any);
+    GKA extends ExplicitNamespaceMap<RA> = {},
+    SKA extends ExplicitNamespaceMap<RA> = {},
+    XKA extends ExplicitNamespaceMap<RA> = {},
+  >(config: RMachineConfigParams<RA, LL, GKA, SKA, XKA>): RMachine<RA, LL[number], ResourceKit<RA, GKA, SKA, XKA>> {
+    return new RMachine<RA, LL[number], ResourceKit<RA, GKA, SKA, XKA>>(config as any);
   }
 }
 

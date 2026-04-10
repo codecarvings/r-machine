@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResource } from "./resource-origin.js";
+import type { AnyResource } from "./resource.js";
 import type { AnyResourcePlug } from "./resource-plug.js";
 
 declare const resourcePackageBrand: unique symbol;

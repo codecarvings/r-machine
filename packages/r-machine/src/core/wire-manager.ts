@@ -11,12 +11,4 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceOrigin, ResourcePackage } from "#r-machine/core";
-
-type Resource<O extends AnyResourceOrigin> = O extends ResourcePackage<infer R, any> ? R : O;
-
-// Re-exported from setup.ts as RShape
-declare const r: unique symbol;
-export type BrandedResource<RF extends AnyResourceOrigin> = Resource<RF> & {
-  readonly [r]?: undefined; // Allow nominal typing for resources
-};
+export class WireManager {}

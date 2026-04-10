@@ -11,16 +11,11 @@
  * contact: licensing@codecarvings.com
  */
 
-export type { AnyR } from "./r.js";
-export type { RCtx } from "./r-ctx.js";
-export type { AnyNamespaceList, AnyRList, NamespaceList, RList } from "./r-kit.js";
+export type { BrandedResource } from "./branded-resource.js";
+export { ofType } from "./of-type.js";
 export {
   RMachine,
   type RMachineLocale,
 } from "./r-machine.js";
-export type { Kit, RMachineConfig, RMachineConfigParams } from "./r-machine-config.js";
-export type { NamespaceMap } from "./r-map.js";
-export type { BrandedResource } from "./resource.js";
-export type { AnyNamespace, AnyResourceAtlas, Namespace } from "./resource-atlas.js";
+export type { RMachineConfig, RMachineConfigParams } from "./r-machine-config.js";
 export { createTokenBuilder } from "./token-builder.js";
-export { ofType } from "./type.js";

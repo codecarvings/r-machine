@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { ExplicitNamespaceMap } from "#r-machine/core";
+import type { AnyResourceAtlas, ExplicitNamespaceMap, ModuleLoader, ResourceKit } from "#r-machine/core";
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
@@ -24,8 +24,7 @@ import {
   type LocaleList,
   validateCanonicalUnicodeLocaleId,
 } from "#r-machine/locale";
-import type { RModuleLoader } from "./r-module.js";
-import type { AnyResourceAtlas } from "./resource-atlas.js";
+import type { AnyResourceLayout } from "../core/resource-layout.js";
 
 // The generic parameter LL is used to ensure that the defaultLocale is one of the locales in the list
 export interface RMachineConfigParams<
@@ -38,28 +37,23 @@ export interface RMachineConfigParams<
   readonly resourceAtlas: RA;
   readonly locales: LL;
   readonly defaultLocale: LL[number];
-  readonly load: RModuleLoader;
+  readonly load: ModuleLoader;
+  readonly layout: AnyResourceLayout;
   readonly gearKit?: GKA;
   readonly shellKit?: SKA;
   readonly gateKit?: XKA;
 }
 
-export interface Kit<
+export interface RMachineConfig<
   RA extends AnyResourceAtlas,
-  GKA extends ExplicitNamespaceMap<RA> = {},
-  SKA extends ExplicitNamespaceMap<RA> = {},
-  XKA extends ExplicitNamespaceMap<RA> = {},
+  L extends AnyLocale,
+  KA extends ResourceKit<RA, any, any, any>,
 > {
-  readonly gear: GKA;
-  readonly shell: SKA;
-  readonly gate: XKA;
-}
-
-export interface RMachineConfig<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends Kit<RA, any, any, any>> {
   readonly resourceAtlas: RA;
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
-  readonly load: RModuleLoader;
+  readonly load: ModuleLoader;
+  readonly layout: AnyResourceLayout;
   readonly kit: KA;
 }
 
@@ -98,5 +92,11 @@ export function cloneRMachineConfig<C extends RMachineConfig<any, any, any>>(con
   return {
     ...config,
     locales: Object.freeze([...config.locales]) as LocaleList<C["defaultLocale"]>,
+    layout: { ...config.layout },
+    kit: {
+      gear: { ...config.kit.gear },
+      shell: { ...config.kit.shell },
+      gate: { ...config.kit.gate },
+    },
   };
 }

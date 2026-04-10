@@ -11,11 +11,81 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { AnyResourceOrigin } from "./resource.js";
 import type { AnyNamespace } from "./resource-atlas.js";
-import type { AnyResourceOrigin } from "./resource-origin.js";
 
 export interface AnyModule {
   readonly r: AnyResourceOrigin;
 }
 
-export type ModuleLoader = (namespace: AnyNamespace, name: string) => Promise<AnyModule>;
+export type ModuleLoader = (path: string, namespace: AnyNamespace, locale: string) => Promise<AnyModule>;
+
+/*
+
+function getResolveRFromModuleError(
+  namespace: AnyNamespace,
+  locale: AnyLocale,
+  reason: string,
+  innerError?: Error | undefined
+) {
+  return new RMachineResolveError(
+    ERR_RESOLVE_FAILED,
+    `Unable to resolve resource "${namespace}" for locale "${locale}" - ${reason}.`,
+    innerError
+  );
+}
+
+// TODO: WIP
+export async function resolveRFromModule(rModule: AnyRModule, $: any): Promise<AnyR> {
+  if (!rModule || typeof rModule !== "object") {
+    throw getResolveRFromModuleError($.namespace, $.locale, "module is not an object");
+  }
+
+  const rForge = rModule.r;
+  const rForgeType = typeof rForge;
+
+  if (rForgeType === "function") {
+    let r: AnyR;
+    try {
+      r = await (rForge as AnyRFactory)();
+    } catch (reason) {
+      throw getResolveRFromModuleError($.namespace, $.locale, "factory promise rejected", reason as Error);
+    }
+
+    const rType = typeof r;
+    if (rType !== "object" || r === null) {
+      throw getResolveRFromModuleError(
+        $.namespace,
+        $.locale,
+        r === null ? "resource returned by factory is null" : `invalid resource type returned by factory (${rType})`
+      );
+    }
+    return r;
+  }
+
+  if (rForgeType === "object") {
+    if (rForge !== null) {
+      return rForge;
+    }
+    throw getResolveRFromModuleError($.namespace, $.locale, "exported resource is null");
+  }
+
+  throw getResolveRFromModuleError($.namespace, $.locale, `invalid export type (${rForgeType})`);
+}
+
+export async function resolveR(loadModule: RModuleLoader, namespace: AnyNamespace, locale: AnyLocale): Promise<AnyR> {
+  let rModule: AnyRModule;
+  try {
+    rModule = await loadModule(namespace, locale);
+  } catch (reason) {
+    throw new RMachineResolveError(
+      ERR_RESOLVE_FAILED,
+      `Unable to resolve resource module "${namespace}" for locale "${locale}" - loadModule failed.`,
+      reason as Error
+    );
+  }
+  return resolveRFromModule(rModule, { namespace, locale });
+}
+
+
+*/

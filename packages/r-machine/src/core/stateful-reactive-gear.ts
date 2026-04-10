@@ -11,13 +11,12 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { NamespaceList } from "../lib/r-kit.js";
 import type { ActionComposer, DefaultAction } from "./action.js";
 import type { GearCtx, GearCursor } from "./gear.js";
 import type { DefaultGetter, GetterComposer } from "./getter.js";
 import type { AnyReactiveResource, RejectAsyncValueProperties } from "./reactive-resource.js";
 import type { AnyResourceAtlas } from "./resource-atlas.js";
-import type { SurfaceList } from "./resource-list.js";
+import type { NamespaceList, SurfaceList } from "./resource-list.js";
 import type { NamespaceMap, SurfaceMap } from "./resource-map.js";
 import type { ResourcePackage } from "./resource-package.js";
 import type { AnyState, StatefulResourceListPlug, StatefulResourceMapPlug } from "./resource-plug.js";

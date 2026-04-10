@@ -11,13 +11,13 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, Kit, RMachine } from "#r-machine";
+import type { RMachine } from "#r-machine";
+import type { AnyResourceAtlas, ResourceKit } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
-import type { NamespaceMap } from "../lib/r-map.js";
 
-export abstract class Strategy<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>, C> {
+export abstract class Strategy<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends ResourceKit<RA>, C> {
   constructor(
-    readonly rMachine: RMachine<RA, L, Kit<RA, any, any, KA>>,
+    readonly rMachine: RMachine<RA, L, KA>,
     readonly config: C
   ) {
     this.validateConfig();

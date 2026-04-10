@@ -11,13 +11,12 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { NamespaceList } from "../lib/r-kit.js";
 import type { CmdComposer } from "./cmd.js";
 import type { RelayComposer } from "./relay.js";
+import type { AnyResource } from "./resource.js";
 import type { AnyResourceAtlas } from "./resource-atlas.js";
-import type { SurfaceList } from "./resource-list.js";
+import type { NamespaceList, SurfaceList } from "./resource-list.js";
 import type { NamespaceMap, SurfaceMap } from "./resource-map.js";
-import type { AnyResource } from "./resource-origin.js";
 import type { ResourcePackage } from "./resource-package.js";
 import type { ResourceListPlug, ResourceMapPlug } from "./resource-plug.js";
 

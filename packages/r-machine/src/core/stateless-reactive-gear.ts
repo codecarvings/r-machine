@@ -11,11 +11,11 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { NamespaceList } from "../lib/r-kit.js";
 import type { GearCursor, GearListPlugin, GearMapPlugin } from "./gear.js";
 import type { StatelessGetterComposer } from "./getter.js";
 import type { AnyReactiveResource, RejectAsyncValueProperties } from "./reactive-resource.js";
 import type { AnyResourceAtlas } from "./resource-atlas.js";
+import type { NamespaceList } from "./resource-list.js";
 import type { NamespaceMap } from "./resource-map.js";
 import type { ResourcePackage } from "./resource-package.js";
 import type { ResourceListPlug, ResourceMapPlug } from "./resource-plug.js";

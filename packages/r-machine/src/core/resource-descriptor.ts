@@ -11,14 +11,15 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { Surface } from "#r-machine/core";
-import type { AnyResourceAtlas, Namespace } from "./resource-atlas.js";
+import type { AnyLocale } from "#r-machine/locale";
+import type { AnyResourceOrigin } from "./resource.js";
 
-export type NamespaceMap<RA extends AnyResourceAtlas> = {
-  readonly [k: string]: Namespace<RA>;
-};
-
-export type RMap<RA extends AnyResourceAtlas, NM extends NamespaceMap<RA>> = {
-  // TODO: WP
-  readonly [K in keyof NM]: Surface<RA[NM[K]]>;
-};
+export interface ResourceDescriptor {
+  readonly isGear: true;
+  readonly isReactive: boolean;
+  readonly isVertex: boolean;
+  readonly locale: AnyLocale;
+  readonly dependencies: string[];
+  readonly kind: "resource" | "resource-package";
+  readonly origin: AnyResourceOrigin;
+}

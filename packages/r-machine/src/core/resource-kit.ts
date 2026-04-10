@@ -11,12 +11,16 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyR } from "./r.js";
+import type { AnyResourceAtlas } from "./resource-atlas.js";
+import type { ExplicitNamespaceMap } from "./resource-map.js";
 
-export type AnyNamespace = string;
-
-export interface AnyResourceAtlas {
-  readonly [namespace: AnyNamespace]: AnyR;
+export interface ResourceKit<
+  RA extends AnyResourceAtlas,
+  GKA extends ExplicitNamespaceMap<RA> = {},
+  SKA extends ExplicitNamespaceMap<RA> = {},
+  XKA extends ExplicitNamespaceMap<RA> = {},
+> {
+  readonly gear: GKA;
+  readonly shell: SKA;
+  readonly gate: XKA;
 }
-
-export type Namespace<RA extends AnyResourceAtlas> = Extract<keyof RA, AnyNamespace>;

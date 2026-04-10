@@ -13,8 +13,10 @@
 
 export type { Atomic } from "./action.js";
 export type { Forge } from "./forge.js";
+export type { ModuleLoader } from "./module.js";
+export type { AnyResource, AnyResourceOrigin } from "./resource.js";
 export { type AnyResourceAtlas, type Namespace, namespaceSymbol, type Token } from "./resource-atlas.js";
+export type { ResourceKit } from "./resource-kit.js";
 export type { ExplicitNamespaceMap } from "./resource-map.js";
-export type { AnyResourceOrigin } from "./resource-origin.js";
 export type { ResourcePackage } from "./resource-package.js";
 export type { Surface } from "./surface.js";

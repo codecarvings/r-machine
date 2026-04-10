@@ -11,15 +11,15 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { Kit } from "#r-machine";
-import type { AnyResourceAtlas } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 import type { ConnectedComposer } from "./connected-composer.js";
 import type { GearMapComposer } from "./gear.js";
 import type { ReactiveComposer } from "./reactive-composer.js";
+import type { AnyResourceAtlas } from "./resource-atlas.js";
+import type { ResourceKit } from "./resource-kit.js";
 import type { ShellMapComposer } from "./shell.js";
 
-export interface Forge<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends Kit<RA>> {
+export interface Forge<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends ResourceKit<RA>> {
   readonly connected: ConnectedComposer<RA, L, KA>;
   readonly reactive: ReactiveComposer<RA, KA>;
 
