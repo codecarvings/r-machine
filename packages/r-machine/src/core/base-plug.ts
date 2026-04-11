@@ -11,12 +11,12 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyNamespace, AnyResourceAtlas } from "./resource-atlas.js";
+import type { AnyNamespace, AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./resource-list.js";
 import type { NamespaceMap } from "./resource-map.js";
 
 export interface BasePlugDescriptor<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NS extends NamespaceMap<RA> | NamespaceList<RA>,
 > {

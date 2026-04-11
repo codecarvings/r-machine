@@ -1,9 +1,9 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyModule } from "../../src/core/module.js";
+import type { AnyNamespace } from "../../src/core/res-atlas.js";
 import { createResDescriptor, type ResDescriptor } from "../../src/core/res-descriptor.js";
 import type { ResLayoutType } from "../../src/core/res-layout.js";
 import type { AnyResourceOrigin, ResourceFamily } from "../../src/core/resource.js";
-import type { AnyNamespace } from "../../src/core/resource-atlas.js";
 import type { AnyLocale } from "../../src/locale/locale.js";
 
 describe("ResDescriptor", () => {

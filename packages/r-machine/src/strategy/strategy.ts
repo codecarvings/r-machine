@@ -12,10 +12,10 @@
  */
 
 import type { RMachine } from "#r-machine";
-import type { AnyResourceAtlas, ResKit } from "#r-machine/core";
+import type { AnyResAtlas, ResKit } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
-export abstract class Strategy<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends ResKit<RA>, C> {
+export abstract class Strategy<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>, C> {
   constructor(
     readonly rMachine: RMachine<RA, L, KA>,
     readonly config: C

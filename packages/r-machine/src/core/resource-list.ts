@@ -11,11 +11,11 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, ExtractNamespace, NamespaceRef } from "./resource-atlas.js";
+import type { AnyResAtlas, ExtractNamespace, NamespaceRef } from "./res-atlas.js";
 import type { Surface } from "./surface.js";
 
-export type NamespaceList<RA extends AnyResourceAtlas> = readonly NamespaceRef<RA>[];
+export type NamespaceList<RA extends AnyResAtlas> = readonly NamespaceRef<RA>[];
 
-export type SurfaceList<RA extends AnyResourceAtlas, NL extends NamespaceList<RA>> = {
+export type SurfaceList<RA extends AnyResAtlas, NL extends NamespaceList<RA>> = {
   readonly [I in keyof NL]: Surface<RA[ExtractNamespace<NL[I]>]>;
 };

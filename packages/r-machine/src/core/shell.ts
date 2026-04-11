@@ -13,19 +13,19 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import type { GearCtx } from "./gear.js";
+import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { AnyResource } from "./resource.js";
-import type { AnyResourceAtlas } from "./resource-atlas.js";
 import type { NamespaceList, SurfaceList } from "./resource-list.js";
 import type { NamespaceMap, SurfaceMap } from "./resource-map.js";
 import type { ResourceListPlug, ResourceMapPlug } from "./resource-plug.js";
 
-type ShellCtx<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = GearCtx<RA, KA> & {
+type ShellCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = GearCtx<RA, KA> & {
   readonly locale: L;
 };
 
 type ShellMapPlugin<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
@@ -34,14 +34,14 @@ type ShellMapPlugin<
 } & SurfaceMap<RA, Omit<KA, keyof NM>>;
 
 type GearListPlugin<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
 > = [...SurfaceList<RA, NL>, ShellCtx<RA, L, KA>];
 
 export type ShellMapComposer<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
@@ -50,7 +50,7 @@ export type ShellMapComposer<
 ) => ResMatrix<R, ResourceMapPlug<RA, KA, NM>>;
 
 export type ShellListComposer<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,

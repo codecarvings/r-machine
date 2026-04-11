@@ -15,13 +15,13 @@ import type { ActionComposer, DefaultAction } from "./action.js";
 import type { GearCtx, GearCursor } from "./gear.js";
 import type { DefaultGetter, GetterComposer } from "./getter.js";
 import type { AnyReactiveResource, RejectAsyncValueProperties } from "./reactive-resource.js";
+import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResMatrix } from "./res-matrix.js";
-import type { AnyResourceAtlas } from "./resource-atlas.js";
 import type { NamespaceList, SurfaceList } from "./resource-list.js";
 import type { NamespaceMap, SurfaceMap } from "./resource-map.js";
 import type { AnyState, StatefulResourceListPlug, StatefulResourceMapPlug } from "./resource-plug.js";
 
-type StatefulReactiveGearCtx<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, S extends AnyState> = GearCtx<
+type StatefulReactiveGearCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, S extends AnyState> = GearCtx<
   RA,
   KA
 > & {
@@ -35,7 +35,7 @@ interface StatefulReactiveGearCursor<S extends AnyState> extends GearCursor {
 }
 
 type StatefulReactiveGearMapPlugin<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
@@ -44,7 +44,7 @@ type StatefulReactiveGearMapPlugin<
 } & SurfaceMap<RA, Omit<KA, keyof NM>>;
 
 type StatefulReactiveGearListPlugin<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
   S extends AnyState,
@@ -71,7 +71,7 @@ type StateReactiveGearResource<S extends AnyState, D extends StateDef> = D exten
     : never;
 
 export interface StatefulReactiveGearMapComposer<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
@@ -86,7 +86,7 @@ export interface StatefulReactiveGearMapComposer<
 }
 
 export interface StatefulReactiveGearListComposer<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
   S extends AnyState,

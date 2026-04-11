@@ -13,17 +13,17 @@
 
 export type AnyNamespace = string;
 
-export interface AnyResourceAtlas {
+export interface AnyResAtlas {
   readonly [namespace: AnyNamespace]: any; // Do not use AnyResource - It breaks token system
 }
 
-export type Namespace<RA extends AnyResourceAtlas> = Extract<keyof RA, AnyNamespace>;
+export type Namespace<RA extends AnyResAtlas> = Extract<keyof RA, AnyNamespace>;
 
 export const namespaceSymbol = Symbol("namespace");
 export interface Token<N extends string> {
   readonly [namespaceSymbol]: N;
 }
 
-export type NamespaceRef<RA extends AnyResourceAtlas> = Namespace<RA> | Token<Namespace<RA>>;
+export type NamespaceRef<RA extends AnyResAtlas> = Namespace<RA> | Token<Namespace<RA>>;
 
 export type ExtractNamespace<T extends NamespaceRef<any>> = T extends Token<infer N> ? N : T;

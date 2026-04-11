@@ -11,15 +11,15 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, Forge, Namespace, ResKit } from "#r-machine/core";
+import type { AnyResAtlas, Forge, Namespace, ResKit } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
-export interface RMachineToolset<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends ResKit<RA>> {
+export interface RMachineToolset<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>> {
   readonly Forge: Forge<RA, L, KA>;
   readonly localized: LocalizerHelper<RA>;
 }
 
-type LocalizerHelper<RA extends AnyResourceAtlas> = <N extends Namespace<RA>, const R extends RA[N]>(
+type LocalizerHelper<RA extends AnyResAtlas> = <N extends Namespace<RA>, const R extends RA[N]>(
   namespace: N,
   shell: R & Record<Exclude<keyof R, keyof RA[N]>, never>
 ) => R;

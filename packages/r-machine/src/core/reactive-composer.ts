@@ -12,31 +12,31 @@
  */
 
 import type { GearMapComposer } from "./gear.js";
+import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResKit } from "./res-kit.js";
-import type { AnyResourceAtlas } from "./resource-atlas.js";
 import type { NamespaceList } from "./resource-list.js";
 import type { NamespaceMap } from "./resource-map.js";
 import type { AnyState } from "./resource-plug.js";
 import type { StatefulReactiveGearListComposer, StatefulReactiveGearMapComposer } from "./stateful-reactive-gear.js";
 import type { StatelessReactiveGearListComposer, StatelessReactiveGearMapComposer } from "./stateless-reactive-gear.js";
 
-export interface ReactiveComposer<RA extends AnyResourceAtlas, KA extends ResKit<RA>> {
+export interface ReactiveComposer<RA extends AnyResAtlas, KA extends ResKit<RA>> {
   <S extends AnyState>(state: S): StatefulReactiveComposer<RA, KA, S>;
   (): StatelessReactiveComposer<RA, KA>;
 }
 
-type StatefulReactiveComposer<RA extends AnyResourceAtlas, KA extends ResKit<RA>, S extends AnyState> = {
+type StatefulReactiveComposer<RA extends AnyResAtlas, KA extends ResKit<RA>, S extends AnyState> = {
   readonly gear: StatefulReactiveGearMapComposer<RA, KA["gear"], {}, S>;
   readonly vertexGear: StatefulReactiveGearMapComposer<RA, KA["gear"], {}, S>;
 };
 
-type StatelessReactiveComposer<RA extends AnyResourceAtlas, KA extends ResKit<RA>> = {
+type StatelessReactiveComposer<RA extends AnyResAtlas, KA extends ResKit<RA>> = {
   readonly gear: GearMapComposer<RA, KA["gear"], {}>;
   readonly vertexGear: GearMapComposer<RA, KA["gear"], {}>;
 };
 
 export interface ReactiveConnectedMapComposer<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends ResKit<RA>,
   NM extends NamespaceMap<RA>,
 > {
@@ -45,7 +45,7 @@ export interface ReactiveConnectedMapComposer<
 }
 
 type StatefulReactiveConnectedMapComposer<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends ResKit<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
@@ -55,7 +55,7 @@ type StatefulReactiveConnectedMapComposer<
 };
 
 type StatelessReactiveConnectedMapComposer<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends ResKit<RA>,
   NM extends NamespaceMap<RA>,
 > = {
@@ -64,7 +64,7 @@ type StatelessReactiveConnectedMapComposer<
 };
 
 export interface ReactiveConnectedListComposer<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends ResKit<RA>,
   NL extends NamespaceList<RA>,
 > {
@@ -73,7 +73,7 @@ export interface ReactiveConnectedListComposer<
 }
 
 type StatefulReactiveConnectedListComposer<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends ResKit<RA>,
   NL extends NamespaceList<RA>,
   S extends AnyState,
@@ -83,7 +83,7 @@ type StatefulReactiveConnectedListComposer<
 };
 
 type StatelessReactiveConnectedListComposer<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends ResKit<RA>,
   NL extends NamespaceList<RA>,
 > = {

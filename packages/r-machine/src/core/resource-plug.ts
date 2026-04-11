@@ -12,7 +12,7 @@
  */
 
 import type { BasePlugDescriptor } from "./base-plug.js";
-import type { AnyResourceAtlas } from "./resource-atlas.js";
+import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./resource-list.js";
 import type { NamespaceMap } from "./resource-map.js";
 
@@ -20,7 +20,7 @@ type PlugKind = "map" | "list";
 
 interface ResourcePlugDescriptor<
   K extends PlugKind,
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NS extends NamespaceMap<RA> | NamespaceList<RA>,
   S extends AnyState,
@@ -32,7 +32,7 @@ interface ResourcePlugDescriptor<
 const resourcePlugDescriptor = Symbol("resourcePlugDescriptor");
 interface ResourcePlug<
   K extends PlugKind,
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NS extends NamespaceMap<RA> | NamespaceList<RA>,
   S extends AnyState,
@@ -47,26 +47,23 @@ export function getResourcePlugDescriptor<P extends AnyResourcePlug>(plug: P): P
 export type AnyResourcePlug = ResourcePlug<any, any, any, any, any>;
 
 declare const noState: unique symbol;
-export interface ResourceMapPlug<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>
+export interface ResourceMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>
   extends ResourcePlug<"map", RA, KA, NM, typeof noState> {}
 
-export interface ResourceListPlug<
-  RA extends AnyResourceAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-> extends ResourcePlug<"list", RA, KA, NL, typeof noState> {}
+export interface ResourceListPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>>
+  extends ResourcePlug<"list", RA, KA, NL, typeof noState> {}
 
 export type AnyState = unknown; // Record<PropertyKey, unknown> & object;
 
 export interface StatefulResourceMapPlug<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
 > extends ResourcePlug<"map", RA, KA, NM, S> {}
 
 export interface StatefulResourceListPlug<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
   S extends AnyState,

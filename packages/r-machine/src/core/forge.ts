@@ -15,11 +15,11 @@ import type { AnyLocale } from "#r-machine/locale";
 import type { ConnectedComposer } from "./connected-composer.js";
 import type { GearMapComposer } from "./gear.js";
 import type { ReactiveComposer } from "./reactive-composer.js";
+import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResKit } from "./res-kit.js";
-import type { AnyResourceAtlas } from "./resource-atlas.js";
 import type { ShellMapComposer } from "./shell.js";
 
-export interface Forge<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends ResKit<RA>> {
+export interface Forge<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>> {
   readonly connected: ConnectedComposer<RA, L, KA>;
   readonly reactive: ReactiveComposer<RA, KA>;
 

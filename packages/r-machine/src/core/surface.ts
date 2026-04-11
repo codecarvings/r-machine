@@ -13,10 +13,10 @@
 
 import type { Getter } from "./getter.js";
 import type { RelayBrand } from "./relay.js";
-import type { AnyResourceAtlas } from "./resource-atlas.js";
+import type { AnyResAtlas } from "./res-atlas.js";
 
 type SurfaceItem<I> = I extends Getter<infer V> ? V : I extends RelayBrand ? never : I;
 
-export type Surface<R extends AnyResourceAtlas> = {
+export type Surface<R extends AnyResAtlas> = {
   readonly [K in keyof R as K extends `$${string}` ? never : K]: SurfaceItem<R[K]>;
 };

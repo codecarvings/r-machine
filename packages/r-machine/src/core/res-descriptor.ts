@@ -14,10 +14,10 @@
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { AnyModule } from "./module.js";
+import type { AnyNamespace } from "./res-atlas.js";
 import type { ResLayoutType } from "./res-layout.js";
 import { type AnyResMatrix, tryGetResMatrixDescriptor } from "./res-matrix.js";
 import type { AnyResourceOrigin, ResourceFamily } from "./resource.js";
-import type { AnyNamespace } from "./resource-atlas.js";
 import { getResourcePlugDescriptor } from "./resource-plug.js";
 
 type ResOriginType = "resource" | "res-matrix";

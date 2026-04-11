@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, ExplicitNamespaceMap, ModuleLoaderFn, ResKit } from "#r-machine/core";
+import type { AnyResAtlas, ExplicitNamespaceMap, ModuleLoaderFn, ResKit } from "#r-machine/core";
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
@@ -28,7 +28,7 @@ import type { AnyResLayout } from "../core/res-layout.js";
 
 // The generic parameter LL is used to ensure that the defaultLocale is one of the locales in the list
 export interface RMachineConfigParams<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   LL extends AnyLocaleList,
   GKA extends ExplicitNamespaceMap<RA>,
   SKA extends ExplicitNamespaceMap<RA>,
@@ -44,11 +44,7 @@ export interface RMachineConfigParams<
   readonly gateKit?: XKA;
 }
 
-export interface RMachineConfig<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends ResKit<RA, any, any, any>,
-> {
+export interface RMachineConfig<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA, any, any, any>> {
   readonly resourceAtlas: RA;
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;

@@ -11,11 +11,11 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas } from "./resource-atlas.js";
+import type { AnyResAtlas } from "./res-atlas.js";
 import type { ExplicitNamespaceMap } from "./resource-map.js";
 
 export interface ResKit<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   GKA extends ExplicitNamespaceMap<RA> = {},
   SKA extends ExplicitNamespaceMap<RA> = {},
   XKA extends ExplicitNamespaceMap<RA> = {},

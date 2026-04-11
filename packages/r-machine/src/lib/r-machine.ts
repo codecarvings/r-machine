@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, ExplicitNamespaceMap, ResKit } from "#r-machine/core";
+import type { AnyResAtlas, ExplicitNamespaceMap, ResKit } from "#r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
@@ -23,7 +23,7 @@ import {
 } from "./r-machine-config.js";
 import type { RMachineToolset } from "./r-machine-toolset.js";
 
-export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends ResKit<RA>> {
+export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>> {
   constructor(config: RMachineConfig<RA, L, KA>) {
     const configError = validateRMachineConfig(config);
     if (configError) {
@@ -53,7 +53,7 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA exten
 
   // KA not "const KA" for DX purposes
   static create<
-    RA extends AnyResourceAtlas,
+    RA extends AnyResAtlas,
     const LL extends AnyLocaleList,
     GKA extends ExplicitNamespaceMap<RA> = {},
     SKA extends ExplicitNamespaceMap<RA> = {},

@@ -11,19 +11,19 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, ExtractNamespace, Namespace, NamespaceRef } from "./resource-atlas.js";
+import type { AnyResAtlas, ExtractNamespace, Namespace, NamespaceRef } from "./res-atlas.js";
 import type { Surface } from "./surface.js";
 
 // Required for explicit namespace definitions to avoid circular type references
-export type ExplicitNamespaceMap<RA extends AnyResourceAtlas> = {
+export type ExplicitNamespaceMap<RA extends AnyResAtlas> = {
   readonly [k: string]: Namespace<RA>;
 };
 
-export type NamespaceMap<RA extends AnyResourceAtlas> = {
+export type NamespaceMap<RA extends AnyResAtlas> = {
   readonly [k: string]: NamespaceRef<RA>;
 };
 
-export type SurfaceMap<RA extends AnyResourceAtlas, NM extends NamespaceMap<RA>> = {
+export type SurfaceMap<RA extends AnyResAtlas, NM extends NamespaceMap<RA>> = {
   // TODO: WP
   readonly [K in keyof NM]: Surface<RA[ExtractNamespace<NM[K]>]>;
 };

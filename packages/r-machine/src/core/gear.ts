@@ -13,14 +13,14 @@
 
 import type { CmdComposer } from "./cmd.js";
 import type { RelayComposer } from "./relay.js";
+import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { AnyResource } from "./resource.js";
-import type { AnyResourceAtlas } from "./resource-atlas.js";
 import type { NamespaceList, SurfaceList } from "./resource-list.js";
 import type { NamespaceMap, SurfaceMap } from "./resource-map.js";
 import type { ResourceListPlug, ResourceMapPlug } from "./resource-plug.js";
 
-export type GearCtx<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>> = {} & (keyof KA extends never
+export type GearCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>> = {} & (keyof KA extends never
   ? {}
   : { readonly kit: SurfaceMap<RA, KA> });
 
@@ -30,25 +30,25 @@ export interface GearCursor {
 }
 
 export type GearMapPlugin<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
 > = SurfaceMap<RA, Omit<NM, "$">> & {
   readonly $: GearCtx<RA, KA>;
 } & SurfaceMap<RA, Omit<KA, keyof NM>>;
 
-export type GearListPlugin<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = [
+export type GearListPlugin<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = [
   ...SurfaceList<RA, NL>,
   GearCtx<RA, KA>,
 ];
 
-export type GearMapComposer<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = <
+export type GearMapComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = <
   R extends AnyResource,
 >(
   factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => R | Promise<R>
 ) => ResMatrix<R, ResourceMapPlug<RA, KA, NM>>;
 
-export type GearListComposer<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = <
+export type GearListComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = <
   R extends AnyResource,
 >(
   factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => R | Promise<R>

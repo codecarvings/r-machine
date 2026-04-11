@@ -14,8 +14,8 @@
 import type { GearCursor, GearListPlugin, GearMapPlugin } from "./gear.js";
 import type { StatelessGetterComposer } from "./getter.js";
 import type { AnyReactiveResource, RejectAsyncValueProperties } from "./reactive-resource.js";
+import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResMatrix } from "./res-matrix.js";
-import type { AnyResourceAtlas } from "./resource-atlas.js";
 import type { NamespaceList } from "./resource-list.js";
 import type { NamespaceMap } from "./resource-map.js";
 import type { ResourceListPlug, ResourceMapPlug } from "./resource-plug.js";
@@ -25,7 +25,7 @@ interface StatelessReactiveGearCursor extends GearCursor {
 }
 
 export type StatelessReactiveGearMapComposer<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
 > = <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
@@ -33,7 +33,7 @@ export type StatelessReactiveGearMapComposer<
 ) => ResMatrix<R, ResourceMapPlug<RA, KA, NM>>;
 
 export type StatelessReactiveGearListComposer<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
 > = <R extends AnyReactiveResource & RejectAsyncValueProperties<R>>(
