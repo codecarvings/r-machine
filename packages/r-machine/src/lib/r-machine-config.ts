@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, ExplicitNamespaceMap, ModuleLoaderFn, ResKit } from "#r-machine/core";
+import type { AnyResAtlas, ExplicitNamespaceMap, ResKit, ResModuleLoaderFn } from "#r-machine/core";
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
@@ -37,7 +37,7 @@ export interface RMachineConfigParams<
   readonly resourceAtlas: RA;
   readonly locales: LL;
   readonly defaultLocale: LL[number];
-  readonly load: ModuleLoaderFn;
+  readonly load: ResModuleLoaderFn;
   readonly layout: AnyResLayout;
   readonly gearKit?: GKA;
   readonly shellKit?: SKA;
@@ -48,7 +48,7 @@ export interface RMachineConfig<RA extends AnyResAtlas, L extends AnyLocale, KA 
   readonly resourceAtlas: RA;
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
-  readonly load: ModuleLoaderFn;
+  readonly load: ResModuleLoaderFn;
   readonly layout: AnyResLayout;
   readonly kit: KA;
 }

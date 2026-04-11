@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { AnyModule } from "../../src/core/module.js";
 import type { AnyRes, ResFamily } from "../../src/core/res.js";
 import { createResDescriptor } from "../../src/core/res-descriptor.js";
 import { type AnyResMatrix, createResMatrix } from "../../src/core/res-matrix.js";
+import type { AnyResModule } from "../../src/core/res-module.js";
 import type { AnyResPlug } from "../../src/core/res-plug.js";
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "../../src/errors/index.js";
 
@@ -17,11 +17,11 @@ function makeMatrix(descriptor: MatrixDescriptor, resource: AnyRes = {}): AnyRes
   return createResMatrix(descriptor, async () => resource, {} as AnyResPlug);
 }
 
-function makeMatrixModule(descriptor: MatrixDescriptor, resource?: AnyRes): AnyModule {
+function makeMatrixModule(descriptor: MatrixDescriptor, resource?: AnyRes): AnyResModule {
   return { r: makeMatrix(descriptor, resource) };
 }
 
-function makeRawModule(resource: AnyRes = { greeting: "hi" }): AnyModule {
+function makeRawModule(resource: AnyRes = { greeting: "hi" }): AnyResModule {
   return { r: resource };
 }
 
@@ -299,7 +299,7 @@ describe("createResDescriptor", () => {
 
     it("does not mutate the module envelope", () => {
       const raw: AnyRes = { a: 1 };
-      const module: AnyModule = Object.freeze({ r: raw });
+      const module: AnyResModule = Object.freeze({ r: raw });
 
       const d = createResDescriptor(module, "app", undefined, "gear");
 
@@ -314,7 +314,7 @@ describe("createResDescriptor", () => {
       // produce an independent descriptor that still points at the shared
       // origin — critical for any caching layer built on top.
       const mat = makeMatrix({ family: "shell", isReactive: false, isVertex: false });
-      const module: AnyModule = { r: mat };
+      const module: AnyResModule = { r: mat };
 
       const dIt = createResDescriptor(module, "app", "it-IT", "shell");
       const dEn = createResDescriptor(module, "app", "en-US", "shell");

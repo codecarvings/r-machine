@@ -13,11 +13,11 @@
 
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
-import type { AnyModule } from "./module.js";
 import type { AnyResOrigin, ResFamily } from "./res.js";
 import type { AnyNamespace } from "./res-atlas.js";
 import type { ResLayoutType } from "./res-layout.js";
 import { type AnyResMatrix, tryGetResMatrixDescriptor } from "./res-matrix.js";
+import type { AnyResModule } from "./res-module.js";
 import { getResPlugDescriptor } from "./res-plug.js";
 
 type ResOriginType = "resource" | "res-matrix";
@@ -34,7 +34,7 @@ export interface ResDescriptor {
 }
 
 export function createResDescriptor(
-  module: AnyModule,
+  module: AnyResModule,
   namespace: AnyNamespace,
   locale: AnyLocale | undefined,
   resLayoutType: ResLayoutType

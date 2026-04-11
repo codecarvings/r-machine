@@ -1,74 +1,79 @@
 import { describe, expect, it, vi } from "vitest";
-import { type AnyModule, createModuleLoader, type ModuleLoaderFn, validateModule } from "../../src/core/module.js";
-import type { PathResolver } from "../../src/core/res-layout.js";
+import type { ResPathResolver } from "../../src/core/res-layout.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
+import {
+  type AnyResModule,
+  createResModuleLoader,
+  type ResModuleLoaderFn,
+  validateResModule,
+} from "../../src/core/res-module.js";
 import type { AnyResPlug } from "../../src/core/res-plug.js";
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "../../src/errors/index.js";
 
-// Minimal, realistic AnyModule factory — keeps tests readable and lets us assert
+// Minimal, realistic AnyResModule factory — keeps tests readable and lets us assert
 // on identity when we care about "same promise / same object".
-function makeModule(tag: string): AnyModule {
+function makeModule(tag: string): AnyResModule {
   return { r: { tag } };
 }
 
-describe("createModuleLoader", () => {
+describe("createResModuleLoader", () => {
   describe("delegation contract", () => {
-    it("computes the path via resolvePath and forwards it to loadModuleFn along with the original (namespace, locale)", async () => {
-      const resolvePath = vi.fn<PathResolver>((ns, locale) => `${ns}@${locale ?? "∅"}`);
+    it("computes the path via resolveResPath and forwards it to loadModuleFn along with the original (namespace, locale)", async () => {
+      const resolveResPath = vi.fn<ResPathResolver>((ns, locale) => `${ns}@${locale ?? "∅"}`);
       const module = makeModule("ok");
-      const loadModuleFn = vi.fn<ModuleLoaderFn>(async () => module);
+      const loadModuleFn = vi.fn<ResModuleLoaderFn>(async () => module);
 
-      const loadModule = createModuleLoader(resolvePath, loadModuleFn);
+      const loadModule = createResModuleLoader(resolveResPath, loadModuleFn);
       await loadModule("app/home", "en-US");
 
-      expect(resolvePath).toHaveBeenCalledTimes(1);
-      expect(resolvePath).toHaveBeenCalledWith("app/home", "en-US");
+      expect(resolveResPath).toHaveBeenCalledTimes(1);
+      expect(resolveResPath).toHaveBeenCalledWith("app/home", "en-US");
       expect(loadModuleFn).toHaveBeenCalledTimes(1);
       expect(loadModuleFn).toHaveBeenCalledWith("app/home@en-US", "app/home", "en-US");
     });
 
-    it("passes `undefined` locale through verbatim to both resolvePath and loadModuleFn", async () => {
+    it("passes `undefined` locale through verbatim to both resolveResPath and loadModuleFn", async () => {
       // Critical for gear/dynamic-shell layouts, which legitimately accept an
       // undefined locale. The loader must not coerce undefined into a string.
-      const resolvePath = vi.fn<PathResolver>((ns) => ns);
-      const loadModuleFn = vi.fn<ModuleLoaderFn>(async () => makeModule("ok"));
+      const resolveResPath = vi.fn<ResPathResolver>((ns) => ns);
+      const loadModuleFn = vi.fn<ResModuleLoaderFn>(async () => makeModule("ok"));
 
-      const loadModule = createModuleLoader(resolvePath, loadModuleFn);
+      const loadModule = createResModuleLoader(resolveResPath, loadModuleFn);
       await loadModule("app", undefined);
 
-      expect(resolvePath).toHaveBeenCalledWith("app", undefined);
+      expect(resolveResPath).toHaveBeenCalledWith("app", undefined);
       expect(loadModuleFn).toHaveBeenCalledWith("app", "app", undefined);
       // Positional check: undefined must occupy arg index 2 (not be dropped).
       expect(loadModuleFn.mock.calls[0]?.length).toBe(3);
       expect(loadModuleFn.mock.calls[0]?.[2]).toBeUndefined();
     });
 
-    it("invokes resolvePath strictly before loadModuleFn", async () => {
+    it("invokes resolveResPath strictly before loadModuleFn", async () => {
       const order: string[] = [];
-      const resolvePath: PathResolver = (ns) => {
-        order.push("resolvePath");
+      const resolveResPath: ResPathResolver = (ns) => {
+        order.push("resolveResPath");
         return ns;
       };
-      const loadModuleFn: ModuleLoaderFn = async () => {
+      const loadModuleFn: ResModuleLoaderFn = async () => {
         order.push("loadModuleFn");
         return makeModule("ok");
       };
 
-      const loadModule = createModuleLoader(resolvePath, loadModuleFn);
+      const loadModule = createResModuleLoader(resolveResPath, loadModuleFn);
       await loadModule("app", undefined);
 
-      expect(order).toEqual(["resolvePath", "loadModuleFn"]);
+      expect(order).toEqual(["resolveResPath", "loadModuleFn"]);
     });
 
-    it("does not call loadModuleFn if resolvePath is never invoked (lazy at call-time, not at factory-time)", () => {
-      // Constructing the loader must have zero side effects: resolvePath and
+    it("does not call loadModuleFn if resolveResPath is never invoked (lazy at call-time, not at factory-time)", () => {
+      // Constructing the loader must have zero side effects: resolveResPath and
       // loadModuleFn should only run once the returned loader is actually called.
-      const resolvePath = vi.fn<PathResolver>((ns) => ns);
-      const loadModuleFn = vi.fn<ModuleLoaderFn>(async () => makeModule("ok"));
+      const resolveResPath = vi.fn<ResPathResolver>((ns) => ns);
+      const loadModuleFn = vi.fn<ResModuleLoaderFn>(async () => makeModule("ok"));
 
-      createModuleLoader(resolvePath, loadModuleFn);
+      createResModuleLoader(resolveResPath, loadModuleFn);
 
-      expect(resolvePath).not.toHaveBeenCalled();
+      expect(resolveResPath).not.toHaveBeenCalled();
       expect(loadModuleFn).not.toHaveBeenCalled();
     });
   });
@@ -78,11 +83,11 @@ describe("createModuleLoader", () => {
       // The source function is intentionally non-async: it returns whatever
       // loadModuleFn returns. Re-wrapping would defeat that and introduce an
       // extra microtask, so we assert referential equality of the promise itself.
-      const promise: Promise<AnyModule> = Promise.resolve(makeModule("ok"));
-      const resolvePath: PathResolver = (ns) => ns;
-      const loadModuleFn: ModuleLoaderFn = () => promise;
+      const promise: Promise<AnyResModule> = Promise.resolve(makeModule("ok"));
+      const resolveResPath: ResPathResolver = (ns) => ns;
+      const loadModuleFn: ResModuleLoaderFn = () => promise;
 
-      const loadModule = createModuleLoader(resolvePath, loadModuleFn);
+      const loadModule = createResModuleLoader(resolveResPath, loadModuleFn);
       const result = loadModule("app", undefined);
 
       expect(result).toBe(promise);
@@ -91,10 +96,10 @@ describe("createModuleLoader", () => {
 
     it("resolves to the exact module object produced by loadModuleFn (no cloning)", async () => {
       const module = makeModule("singleton");
-      const resolvePath: PathResolver = (ns) => ns;
-      const loadModuleFn: ModuleLoaderFn = async () => module;
+      const resolveResPath: ResPathResolver = (ns) => ns;
+      const loadModuleFn: ResModuleLoaderFn = async () => module;
 
-      const loadModule = createModuleLoader(resolvePath, loadModuleFn);
+      const loadModule = createResModuleLoader(resolveResPath, loadModuleFn);
       const result = await loadModule("app", undefined);
 
       expect(result).toBe(module);
@@ -103,17 +108,17 @@ describe("createModuleLoader", () => {
   });
 
   describe("error propagation", () => {
-    it("propagates synchronous throws from resolvePath synchronously (without calling loadModuleFn)", () => {
-      // resolvePath is synchronous by contract, and the loader body is not
+    it("propagates synchronous throws from resolveResPath synchronously (without calling loadModuleFn)", () => {
+      // resolveResPath is synchronous by contract, and the loader body is not
       // async, so a throw here surfaces synchronously — not as a rejected
       // promise. We document that precisely.
-      const boom = new Error("resolvePath failed");
-      const resolvePath: PathResolver = () => {
+      const boom = new Error("resolveResPath failed");
+      const resolveResPath: ResPathResolver = () => {
         throw boom;
       };
-      const loadModuleFn = vi.fn<ModuleLoaderFn>(async () => makeModule("unused"));
+      const loadModuleFn = vi.fn<ResModuleLoaderFn>(async () => makeModule("unused"));
 
-      const loadModule = createModuleLoader(resolvePath, loadModuleFn);
+      const loadModule = createResModuleLoader(resolveResPath, loadModuleFn);
 
       try {
         loadModule("app", undefined);
@@ -129,12 +134,12 @@ describe("createModuleLoader", () => {
       // and returns whatever it gives back. A poorly-behaved implementation
       // that throws synchronously must not be swallowed.
       const boom = new Error("sync throw from loader");
-      const resolvePath: PathResolver = (ns) => ns;
+      const resolveResPath: ResPathResolver = (ns) => ns;
       const loadModuleFn = (() => {
         throw boom;
-      }) as unknown as ModuleLoaderFn;
+      }) as unknown as ResModuleLoaderFn;
 
-      const loadModule = createModuleLoader(resolvePath, loadModuleFn);
+      const loadModule = createResModuleLoader(resolveResPath, loadModuleFn);
 
       try {
         loadModule("app", undefined);
@@ -146,30 +151,30 @@ describe("createModuleLoader", () => {
 
     it("surfaces rejections from loadModuleFn as rejections of the returned promise", async () => {
       const boom = new Error("async failure");
-      const resolvePath: PathResolver = (ns) => ns;
-      const loadModuleFn: ModuleLoaderFn = async () => {
+      const resolveResPath: ResPathResolver = (ns) => ns;
+      const loadModuleFn: ResModuleLoaderFn = async () => {
         throw boom;
       };
 
-      const loadModule = createModuleLoader(resolvePath, loadModuleFn);
+      const loadModule = createResModuleLoader(resolveResPath, loadModuleFn);
 
       await expect(loadModule("app", undefined)).rejects.toBe(boom);
     });
   });
 
   describe("statelessness across calls", () => {
-    it("invokes resolvePath and loadModuleFn once per call, with the call-site arguments", async () => {
-      const resolvePath = vi.fn<PathResolver>((ns, locale) => `${ns}/${locale ?? "∅"}`);
-      const loadModuleFn = vi.fn<ModuleLoaderFn>(async (path) => makeModule(path));
+    it("invokes resolveResPath and loadModuleFn once per call, with the call-site arguments", async () => {
+      const resolveResPath = vi.fn<ResPathResolver>((ns, locale) => `${ns}/${locale ?? "∅"}`);
+      const loadModuleFn = vi.fn<ResModuleLoaderFn>(async (path) => makeModule(path));
 
-      const loadModule = createModuleLoader(resolvePath, loadModuleFn);
+      const loadModule = createResModuleLoader(resolveResPath, loadModuleFn);
 
       await loadModule("app", "en-US");
       await loadModule("app", "it-IT");
       await loadModule("app/admin", undefined);
 
-      expect(resolvePath).toHaveBeenCalledTimes(3);
-      expect(resolvePath.mock.calls).toEqual([
+      expect(resolveResPath).toHaveBeenCalledTimes(3);
+      expect(resolveResPath.mock.calls).toEqual([
         ["app", "en-US"],
         ["app", "it-IT"],
         ["app/admin", undefined],
@@ -186,23 +191,23 @@ describe("createModuleLoader", () => {
     it("does not cache or dedupe: two identical calls invoke the dependencies twice", async () => {
       // The loader is a thin adapter — memoization is a concern of higher layers.
       // This test pins that contract so future refactors do not silently add a cache.
-      const resolvePath = vi.fn<PathResolver>((ns) => ns);
-      const loadModuleFn = vi.fn<ModuleLoaderFn>(async () => makeModule("ok"));
+      const resolveResPath = vi.fn<ResPathResolver>((ns) => ns);
+      const loadModuleFn = vi.fn<ResModuleLoaderFn>(async () => makeModule("ok"));
 
-      const loadModule = createModuleLoader(resolvePath, loadModuleFn);
+      const loadModule = createResModuleLoader(resolveResPath, loadModuleFn);
       await loadModule("app", "en-US");
       await loadModule("app", "en-US");
 
-      expect(resolvePath).toHaveBeenCalledTimes(2);
+      expect(resolveResPath).toHaveBeenCalledTimes(2);
       expect(loadModuleFn).toHaveBeenCalledTimes(2);
     });
 
     it("returns a fresh promise per call even when loadModuleFn is implemented by closing over a single module", async () => {
       const module = makeModule("shared");
-      const resolvePath: PathResolver = (ns) => ns;
-      const loadModuleFn: ModuleLoaderFn = async () => module;
+      const resolveResPath: ResPathResolver = (ns) => ns;
+      const loadModuleFn: ResModuleLoaderFn = async () => module;
 
-      const loadModule = createModuleLoader(resolvePath, loadModuleFn);
+      const loadModule = createResModuleLoader(resolveResPath, loadModuleFn);
       const p1 = loadModule("app", undefined);
       const p2 = loadModule("app", undefined);
 
@@ -215,10 +220,10 @@ describe("createModuleLoader", () => {
   describe("result-shape pass-through", () => {
     it("accepts any AnyResOrigin shape that loadModuleFn returns (plain resource)", async () => {
       const resource = { greeting: "hi", nested: { n: 1 } };
-      const resolvePath: PathResolver = (ns) => ns;
-      const loadModuleFn: ModuleLoaderFn = async () => ({ r: resource });
+      const resolveResPath: ResPathResolver = (ns) => ns;
+      const loadModuleFn: ResModuleLoaderFn = async () => ({ r: resource });
 
-      const loadModule = createModuleLoader(resolvePath, loadModuleFn);
+      const loadModule = createResModuleLoader(resolveResPath, loadModuleFn);
       const result = await loadModule("app", undefined);
 
       expect(result.r).toBe(resource);
@@ -229,10 +234,10 @@ describe("createModuleLoader", () => {
       // travels through untouched. We use a plausible matrix-ish object here
       // (factory + plug) without actually importing ResMatrix's brand.
       const pkgLike = { factory: async () => ({}), plug: {} };
-      const resolvePath: PathResolver = (ns) => ns;
-      const loadModuleFn: ModuleLoaderFn = async () => ({ r: pkgLike }) as unknown as AnyModule;
+      const resolveResPath: ResPathResolver = (ns) => ns;
+      const loadModuleFn: ResModuleLoaderFn = async () => ({ r: pkgLike }) as unknown as AnyResModule;
 
-      const loadModule = createModuleLoader(resolvePath, loadModuleFn);
+      const loadModule = createResModuleLoader(resolveResPath, loadModuleFn);
       const result = await loadModule("app", undefined);
 
       expect(result.r).toBe(pkgLike);
@@ -242,28 +247,28 @@ describe("createModuleLoader", () => {
   describe("dependency isolation", () => {
     it("does not inspect or mutate the namespace/locale arguments it forwards", async () => {
       // Guards against accidental string manipulation inside the loader.
-      const resolvePath = vi.fn<PathResolver>((ns, locale) => `${ns}|${locale}`);
-      const loadModuleFn = vi.fn<ModuleLoaderFn>(async () => makeModule("ok"));
+      const resolveResPath = vi.fn<ResPathResolver>((ns, locale) => `${ns}|${locale}`);
+      const loadModuleFn = vi.fn<ResModuleLoaderFn>(async () => makeModule("ok"));
 
       const ns = "app/home";
       const locale = "en-US";
 
-      const loadModule = createModuleLoader(resolvePath, loadModuleFn);
+      const loadModule = createResModuleLoader(resolveResPath, loadModuleFn);
       await loadModule(ns, locale);
 
       // Same primitive values, at the same positions.
-      expect(resolvePath.mock.calls[0]?.[0]).toBe(ns);
-      expect(resolvePath.mock.calls[0]?.[1]).toBe(locale);
+      expect(resolveResPath.mock.calls[0]?.[0]).toBe(ns);
+      expect(resolveResPath.mock.calls[0]?.[1]).toBe(locale);
       expect(loadModuleFn.mock.calls[0]?.[1]).toBe(ns);
       expect(loadModuleFn.mock.calls[0]?.[2]).toBe(locale);
     });
 
-    it("uses the path produced by resolvePath verbatim, even when it differs from the namespace (shell layout)", async () => {
+    it("uses the path produced by resolveResPath verbatim, even when it differs from the namespace (shell layout)", async () => {
       // Simulates a shell-style path resolver that appends the locale.
-      const resolvePath: PathResolver = (ns, locale) => `${ns}/${locale}`;
-      const loadModuleFn = vi.fn<ModuleLoaderFn>(async () => makeModule("ok"));
+      const resolveResPath: ResPathResolver = (ns, locale) => `${ns}/${locale}`;
+      const loadModuleFn = vi.fn<ResModuleLoaderFn>(async () => makeModule("ok"));
 
-      const loadModule = createModuleLoader(resolvePath, loadModuleFn);
+      const loadModule = createResModuleLoader(resolveResPath, loadModuleFn);
       await loadModule("app", "it-IT");
 
       expect(loadModuleFn).toHaveBeenCalledWith("app/it-IT", "app", "it-IT");
@@ -271,10 +276,10 @@ describe("createModuleLoader", () => {
   });
 });
 
-describe("validateModule", () => {
+describe("validateResModule", () => {
   describe("happy paths — returns null", () => {
     it("returns null when `r` is a raw resource object", () => {
-      expect(validateModule({ r: { greeting: "hi" } })).toBeNull();
+      expect(validateResModule({ r: { greeting: "hi" } })).toBeNull();
     });
 
     it("returns null when `r` is a ResMatrix", () => {
@@ -284,25 +289,25 @@ describe("validateModule", () => {
         {} as AnyResPlug
       );
 
-      expect(validateModule({ r: mat })).toBeNull();
+      expect(validateResModule({ r: mat })).toBeNull();
     });
 
     it("accepts a module whose `r` is an empty object (the smallest valid raw resource)", () => {
-      expect(validateModule({ r: {} })).toBeNull();
+      expect(validateResModule({ r: {} })).toBeNull();
     });
 
     it("ignores extra own properties on the module envelope (only `r` is required)", () => {
       // The interface doesn't forbid extras; the validator shouldn't either.
       // Future metadata fields can be added by the loader without breaking
       // the contract.
-      expect(validateModule({ r: { ok: true }, extra: 1, meta: "kept" })).toBeNull();
+      expect(validateResModule({ r: { ok: true }, extra: 1, meta: "kept" })).toBeNull();
     });
 
     it("accepts an `r` that is a frozen object, with a frozen envelope", () => {
       const frozen = Object.freeze({ greeting: "hi" });
       const input = Object.freeze({ r: frozen });
 
-      expect(validateModule(input)).toBeNull();
+      expect(validateResModule(input)).toBeNull();
     });
   });
 
@@ -314,7 +319,7 @@ describe("validateModule", () => {
       { label: "number", value: 42, typeToken: "number" },
       { label: "boolean", value: true, typeToken: "boolean" },
     ])("rejects $label at the top level with an RMachineResolveError", ({ value, typeToken }) => {
-      const result = validateModule(value);
+      const result = validateResModule(value);
 
       expect(result).toBeInstanceOf(RMachineResolveError);
       const error = result as RMachineResolveError;
@@ -325,14 +330,14 @@ describe("validateModule", () => {
 
     it("rejects a function at the top level (functions are not valid module envelopes)", () => {
       // `typeof (() => {}) === "function"`, not "object" — guard pins this.
-      const result = validateModule(() => ({ r: {} }));
+      const result = validateResModule(() => ({ r: {} }));
 
       expect(result).toBeInstanceOf(RMachineResolveError);
       expect((result as RMachineResolveError).message).toContain("function");
     });
 
     it("rejects an object without the `r` property with a dedicated message", () => {
-      const result = validateModule({ notR: "wrong key" });
+      const result = validateResModule({ notR: "wrong key" });
 
       expect(result).toBeInstanceOf(RMachineResolveError);
       const error = result as RMachineResolveError;
@@ -343,7 +348,7 @@ describe("validateModule", () => {
 
   describe("invalid `r`", () => {
     it("rejects `{ r: null }` — null is the classic footgun the guard must catch", () => {
-      const result = validateModule({ r: null });
+      const result = validateResModule({ r: null });
 
       expect(result).toBeInstanceOf(RMachineResolveError);
       const error = result as RMachineResolveError;
@@ -355,7 +360,7 @@ describe("validateModule", () => {
     it("rejects `{ r: undefined }` even though the key is technically present", () => {
       // `"r" in input` is true, but the value is `undefined` — the guard
       // must still reject this as a non-origin.
-      const result = validateModule({ r: undefined });
+      const result = validateResModule({ r: undefined });
 
       expect(result).toBeInstanceOf(RMachineResolveError);
       expect((result as RMachineResolveError).message).toContain("undefined");
@@ -368,7 +373,7 @@ describe("validateModule", () => {
       { label: "symbol", value: Symbol("x"), typeToken: "symbol" },
       { label: "bigint", value: 1n, typeToken: "bigint" },
     ])("rejects `{ r: $label }` with a message that names the offending type", ({ value, typeToken }) => {
-      const result = validateModule({ r: value });
+      const result = validateResModule({ r: value });
 
       expect(result).toBeInstanceOf(RMachineResolveError);
       const error = result as RMachineResolveError;
@@ -377,7 +382,7 @@ describe("validateModule", () => {
     });
 
     it("rejects `{ r: () => {} }` — functions do not satisfy typeof === 'object'", () => {
-      const result = validateModule({ r: () => ({}) });
+      const result = validateResModule({ r: () => ({}) });
 
       expect(result).toBeInstanceOf(RMachineResolveError);
       expect((result as RMachineResolveError).message).toContain("function");
@@ -390,7 +395,7 @@ describe("validateModule", () => {
       const input = { r, extra: 42 };
       const snapshot = { ...input };
 
-      validateModule(input);
+      validateResModule(input);
 
       expect(input).toEqual(snapshot);
       expect(input.r).toBe(r);
@@ -400,7 +405,7 @@ describe("validateModule", () => {
       const input = { r: null, extra: 42 };
       const snapshot = { ...input };
 
-      validateModule(input);
+      validateResModule(input);
 
       expect(input).toEqual(snapshot);
     });
@@ -408,8 +413,8 @@ describe("validateModule", () => {
     it("returns a fresh RMachineResolveError per failing call (errors must not be shared)", () => {
       // Sharing an error object across calls would break stack-trace fidelity
       // and make logs impossible to correlate with the call site.
-      const e1 = validateModule(null);
-      const e2 = validateModule(null);
+      const e1 = validateResModule(null);
+      const e2 = validateResModule(null);
 
       expect(e1).toBeInstanceOf(RMachineResolveError);
       expect(e2).toBeInstanceOf(RMachineResolveError);
@@ -420,11 +425,11 @@ describe("validateModule", () => {
       // The validator's contract is to RETURN errors, not throw them. A
       // caller wiring it into a larger validation chain must be able to rely
       // on this — an unexpected throw would break `if (result instanceof …)`.
-      expect(() => validateModule(null)).not.toThrow();
-      expect(() => validateModule(undefined)).not.toThrow();
-      expect(() => validateModule({ r: null })).not.toThrow();
-      expect(() => validateModule({})).not.toThrow();
-      expect(() => validateModule({ r: {} })).not.toThrow();
+      expect(() => validateResModule(null)).not.toThrow();
+      expect(() => validateResModule(undefined)).not.toThrow();
+      expect(() => validateResModule({ r: null })).not.toThrow();
+      expect(() => validateResModule({})).not.toThrow();
+      expect(() => validateResModule({ r: {} })).not.toThrow();
     });
   });
 });

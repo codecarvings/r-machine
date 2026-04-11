@@ -1,9 +1,9 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyModule } from "../../src/core/module.js";
 import type { AnyResOrigin, ResFamily } from "../../src/core/res.js";
 import type { AnyNamespace } from "../../src/core/res-atlas.js";
 import { createResDescriptor, type ResDescriptor } from "../../src/core/res-descriptor.js";
 import type { ResLayoutType } from "../../src/core/res-layout.js";
+import type { AnyResModule } from "../../src/core/res-module.js";
 import type { AnyLocale } from "../../src/locale/locale.js";
 
 describe("ResDescriptor", () => {
@@ -79,8 +79,8 @@ describe("ResDescriptor", () => {
 });
 
 describe("createResDescriptor — signature", () => {
-  it("takes (AnyModule, AnyNamespace, AnyLocale | undefined, ResLayoutType) in this exact order", () => {
-    expectTypeOf(createResDescriptor).parameter(0).toEqualTypeOf<AnyModule>();
+  it("takes (AnyResModule, AnyNamespace, AnyLocale | undefined, ResLayoutType) in this exact order", () => {
+    expectTypeOf(createResDescriptor).parameter(0).toEqualTypeOf<AnyResModule>();
     expectTypeOf(createResDescriptor).parameter(1).toEqualTypeOf<AnyNamespace>();
     expectTypeOf(createResDescriptor).parameter(2).toEqualTypeOf<AnyLocale | undefined>();
     expectTypeOf(createResDescriptor).parameter(3).toEqualTypeOf<ResLayoutType>();
@@ -88,7 +88,7 @@ describe("createResDescriptor — signature", () => {
 
   it("has exactly four required positional parameters — no optional tail, no rest", () => {
     expectTypeOf<Parameters<typeof createResDescriptor>>().toEqualTypeOf<
-      [module: AnyModule, namespace: AnyNamespace, locale: AnyLocale | undefined, resourceLayoutType: ResLayoutType]
+      [module: AnyResModule, namespace: AnyNamespace, locale: AnyLocale | undefined, resourceLayoutType: ResLayoutType]
     >();
   });
 
@@ -100,7 +100,7 @@ describe("createResDescriptor — signature", () => {
     // Even when we pass the narrowest possible literal, the return stays
     // ResDescriptor — the function is intentionally non-generic to keep
     // call sites from having to unwrap discriminated variants.
-    const module: AnyModule = { r: { key: "val" } };
+    const module: AnyResModule = { r: { key: "val" } };
     const d1 = createResDescriptor(module, "ns", undefined, "gear");
     const d2 = createResDescriptor(module, "ns", "en-US", "shell");
     const d3 = createResDescriptor(module, "ns", "en-US", "dynamic-shell");
@@ -110,24 +110,24 @@ describe("createResDescriptor — signature", () => {
   });
 
   it("requires the locale argument to be passed explicitly (undefined is a value, not an omission)", () => {
-    const module: AnyModule = { r: {} };
+    const module: AnyResModule = { r: {} };
     // @ts-expect-error — locale is required even when undefined
     createResDescriptor(module, "ns", "gear");
     // Baseline: explicit undefined is accepted.
     createResDescriptor(module, "ns", undefined, "gear");
   });
 
-  it("rejects a module that does not satisfy AnyModule", () => {
+  it("rejects a module that does not satisfy AnyResModule", () => {
     // @ts-expect-error — missing `r`
     createResDescriptor({}, "ns", undefined, "gear");
     // @ts-expect-error — `r` must be a resource origin, not a primitive
     createResDescriptor({ r: "nope" }, "ns", undefined, "gear");
-    // @ts-expect-error — null is not an AnyModule
+    // @ts-expect-error — null is not an AnyResModule
     createResDescriptor(null, "ns", undefined, "gear");
   });
 
   it("rejects a namespace that is not a string", () => {
-    const module: AnyModule = { r: {} };
+    const module: AnyResModule = { r: {} };
     // @ts-expect-error — number is not AnyNamespace
     createResDescriptor(module, 42, undefined, "gear");
     // @ts-expect-error — symbol is not AnyNamespace
@@ -135,7 +135,7 @@ describe("createResDescriptor — signature", () => {
   });
 
   it("rejects a locale that is neither string nor undefined", () => {
-    const module: AnyModule = { r: {} };
+    const module: AnyResModule = { r: {} };
     // @ts-expect-error — number is not a valid locale
     createResDescriptor(module, "ns", 0, "gear");
     // @ts-expect-error — null is explicitly excluded (only undefined is allowed for "no locale")
@@ -143,7 +143,7 @@ describe("createResDescriptor — signature", () => {
   });
 
   it("rejects a resourceLayoutType that is not a canonical layout literal", () => {
-    const module: AnyModule = { r: {} };
+    const module: AnyResModule = { r: {} };
     // @ts-expect-error — "custom" is not a ResLayoutType
     createResDescriptor(module, "ns", undefined, "custom");
     // @ts-expect-error — capitalized variant is not a ResLayoutType
@@ -153,7 +153,7 @@ describe("createResDescriptor — signature", () => {
   });
 
   it("accepts every canonical layout literal at the call site", () => {
-    const module: AnyModule = { r: {} };
+    const module: AnyResModule = { r: {} };
     createResDescriptor(module, "ns", undefined, "gear");
     createResDescriptor(module, "ns", "en-US", "shell");
     createResDescriptor(module, "ns", "en-US", "dynamic-shell");

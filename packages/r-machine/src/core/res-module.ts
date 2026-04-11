@@ -15,42 +15,45 @@ import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { AnyResOrigin } from "./res.js";
 import type { AnyNamespace } from "./res-atlas.js";
-import type { PathResolver } from "./res-layout.js";
+import type { ResPathResolver } from "./res-layout.js";
 
-export interface AnyModule {
+export interface AnyResModule {
   readonly r: AnyResOrigin;
 }
 
-export type ModuleLoaderFn = (
+export type ResModuleLoaderFn = (
   path: string,
   namespace: AnyNamespace,
   locale: AnyLocale | undefined
-) => Promise<AnyModule>;
+) => Promise<AnyResModule>;
 
-export type ModuleLoader = (namespace: AnyNamespace, locale: AnyLocale | undefined) => Promise<AnyModule>;
+export type ResModuleLoader = (namespace: AnyNamespace, locale: AnyLocale | undefined) => Promise<AnyResModule>;
 
-export function createModuleLoader(resolvePath: PathResolver, loadModuleFn: ModuleLoaderFn): ModuleLoader {
-  return function loadModule(namespace, locale) {
-    const path = resolvePath(namespace, locale);
-    return loadModuleFn(path, namespace, locale);
+export function createResModuleLoader(
+  resolveResPath: ResPathResolver,
+  loadResModuleFn: ResModuleLoaderFn
+): ResModuleLoader {
+  return function loadResModule(namespace, locale) {
+    const path = resolveResPath(namespace, locale);
+    return loadResModuleFn(path, namespace, locale);
   };
 }
 
-export function validateModule(input: unknown): RMachineResolveError | null {
+export function validateResModule(input: unknown): RMachineResolveError | null {
   if (typeof input !== "object" || input === null) {
     return new RMachineResolveError(
       ERR_RESOLVE_FAILED,
-      `Invalid module - expected an object, got ${input === null ? "null" : typeof input}.`
+      `Invalid resource module - expected an object, got ${input === null ? "null" : typeof input}.`
     );
   }
   if (!("r" in input)) {
-    return new RMachineResolveError(ERR_RESOLVE_FAILED, `Invalid module - missing required property "r".`);
+    return new RMachineResolveError(ERR_RESOLVE_FAILED, `Invalid resource module - missing required property "r".`);
   }
   const r = (input as { r: unknown }).r;
   if (typeof r !== "object" || r === null) {
     return new RMachineResolveError(
       ERR_RESOLVE_FAILED,
-      `Invalid module - property "r" is not a valid resource origin (expected a non-null object, got ${r === null ? "null" : typeof r}).`
+      `Invalid resource module - property "r" is not a valid resource origin (expected a non-null object, got ${r === null ? "null" : typeof r}).`
     );
   }
   return null;

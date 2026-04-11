@@ -1,11 +1,11 @@
 import { describe, expectTypeOf, it } from "vitest";
 import {
   type AnyResLayout,
-  createPathResolver,
-  createResLayoutResolver,
-  type PathResolver,
-  type ResLayoutResolver,
+  createResLayoutTypeResolver,
+  createResPathResolver,
   type ResLayoutType,
+  type ResLayoutTypeResolver,
+  type ResPathResolver,
 } from "../../src/core/res-layout.js";
 import type { AnyLocale } from "../../src/locale/locale.js";
 
@@ -53,21 +53,21 @@ describe("AnyResLayout", () => {
   });
 });
 
-describe("ResLayoutResolver", () => {
+describe("ResLayoutTypeResolver", () => {
   it("takes a namespace string and returns a layout type or undefined", () => {
-    expectTypeOf<ResLayoutResolver>().parameter(0).toEqualTypeOf<string>();
-    expectTypeOf<ResLayoutResolver>().returns.toEqualTypeOf<ResLayoutType | undefined>();
+    expectTypeOf<ResLayoutTypeResolver>().parameter(0).toEqualTypeOf<string>();
+    expectTypeOf<ResLayoutTypeResolver>().returns.toEqualTypeOf<ResLayoutType | undefined>();
   });
 
   it("return type always includes undefined (misses are representable)", () => {
-    expectTypeOf<undefined>().toExtend<ReturnType<ResLayoutResolver>>();
+    expectTypeOf<undefined>().toExtend<ReturnType<ResLayoutTypeResolver>>();
   });
 });
 
-describe("createResLayoutResolver", () => {
-  it("accepts an AnyResLayout and returns a ResLayoutResolver", () => {
-    expectTypeOf(createResLayoutResolver).parameter(0).toEqualTypeOf<AnyResLayout>();
-    expectTypeOf(createResLayoutResolver).returns.toEqualTypeOf<ResLayoutResolver>();
+describe("createResLayoutTypeResolver", () => {
+  it("accepts an AnyResLayout and returns a ResLayoutTypeResolver", () => {
+    expectTypeOf(createResLayoutTypeResolver).parameter(0).toEqualTypeOf<AnyResLayout>();
+    expectTypeOf(createResLayoutTypeResolver).returns.toEqualTypeOf<ResLayoutTypeResolver>();
   });
 
   it("does not narrow the return type based on the literal input (runtime lookup is string-keyed)", () => {
@@ -75,29 +75,29 @@ describe("createResLayoutResolver", () => {
     // literal, the returned function still accepts any namespace string and
     // still may return undefined. This guards against accidentally tightening
     // the API into a closed key set.
-    const resolve = createResLayoutResolver({ app: "gear" } as const);
-    expectTypeOf(resolve).toEqualTypeOf<ResLayoutResolver>();
+    const resolve = createResLayoutTypeResolver({ app: "gear" } as const);
+    expectTypeOf(resolve).toEqualTypeOf<ResLayoutTypeResolver>();
     expectTypeOf(resolve).parameter(0).toEqualTypeOf<string>();
     expectTypeOf(resolve).returns.toEqualTypeOf<ResLayoutType | undefined>();
   });
 
   it("rejects layouts whose values are not layout types", () => {
     // @ts-expect-error — "not-a-layout" is not assignable to ResLayoutType
-    createResLayoutResolver({ app: "not-a-layout" });
+    createResLayoutTypeResolver({ app: "not-a-layout" });
     // @ts-expect-error — numbers are not layout types
-    createResLayoutResolver({ app: 42 });
+    createResLayoutTypeResolver({ app: 42 });
   });
 });
 
-describe("PathResolver", () => {
+describe("ResPathResolver", () => {
   it("takes (namespace, locale | undefined) and returns a string", () => {
-    expectTypeOf<PathResolver>().parameter(0).toEqualTypeOf<string>();
-    expectTypeOf<PathResolver>().parameter(1).toEqualTypeOf<AnyLocale | undefined>();
-    expectTypeOf<PathResolver>().returns.toEqualTypeOf<string>();
+    expectTypeOf<ResPathResolver>().parameter(0).toEqualTypeOf<string>();
+    expectTypeOf<ResPathResolver>().parameter(1).toEqualTypeOf<AnyLocale | undefined>();
+    expectTypeOf<ResPathResolver>().returns.toEqualTypeOf<string>();
   });
 
   it("does not allow omitting the locale argument (undefined must be passed explicitly)", () => {
-    const resolve: PathResolver = (ns) => ns;
+    const resolve: ResPathResolver = (ns) => ns;
     // @ts-expect-error — locale parameter is required even when undefined
     resolve("app");
     // Baseline: explicit undefined is accepted.
@@ -105,48 +105,48 @@ describe("PathResolver", () => {
   });
 
   it("returns a plain string, never undefined or a layout type", () => {
-    expectTypeOf<ReturnType<PathResolver>>().toEqualTypeOf<string>();
-    expectTypeOf<undefined>().not.toExtend<ReturnType<PathResolver>>();
+    expectTypeOf<ReturnType<ResPathResolver>>().toEqualTypeOf<string>();
+    expectTypeOf<undefined>().not.toExtend<ReturnType<ResPathResolver>>();
   });
 });
 
-describe("createPathResolver", () => {
-  it("takes a ResLayoutResolver and returns a PathResolver", () => {
-    expectTypeOf(createPathResolver).parameter(0).toEqualTypeOf<ResLayoutResolver>();
-    expectTypeOf(createPathResolver).returns.toEqualTypeOf<PathResolver>();
+describe("createResPathResolver", () => {
+  it("takes a ResLayoutTypeResolver and returns a ResPathResolver", () => {
+    expectTypeOf(createResPathResolver).parameter(0).toEqualTypeOf<ResLayoutTypeResolver>();
+    expectTypeOf(createResPathResolver).returns.toEqualTypeOf<ResPathResolver>();
   });
 
   it("accepts a compatible inline resolver function", () => {
     const inline = (ns: string): ResLayoutType | undefined => (ns === "app" ? "gear" : undefined);
-    const resolvePath = createPathResolver(inline);
-    expectTypeOf(resolvePath).toEqualTypeOf<PathResolver>();
+    const resolveResPath = createResPathResolver(inline);
+    expectTypeOf(resolveResPath).toEqualTypeOf<ResPathResolver>();
   });
 
   it("rejects a function whose parameter type is incompatible with a namespace string", () => {
     // @ts-expect-error — number is not assignable to AnyNamespace (string)
-    createPathResolver((ns: number) => (ns === 0 ? "gear" : undefined));
+    createResPathResolver((ns: number) => (ns === 0 ? "gear" : undefined));
   });
 
   it("rejects a function whose return type is not ResLayoutType | undefined", () => {
     // @ts-expect-error — "custom" is not a valid ResLayoutType
-    createPathResolver((_ns: string) => "custom" as const);
+    createResPathResolver((_ns: string) => "custom" as const);
     // @ts-expect-error — returning a number violates the contract
-    createPathResolver((_ns: string) => 42);
+    createResPathResolver((_ns: string) => 42);
   });
 });
 
 describe("end-to-end inference", () => {
-  it("chains createResLayoutResolver into createPathResolver without extra annotations", () => {
-    const resolvePath = createPathResolver(
-      createResLayoutResolver({
+  it("chains createResLayoutTypeResolver into createResPathResolver without extra annotations", () => {
+    const resolveResPath = createResPathResolver(
+      createResLayoutTypeResolver({
         app: "gear",
         "app/settings": "shell",
         "app/live": "dynamic-shell",
       })
     );
-    expectTypeOf(resolvePath).toEqualTypeOf<PathResolver>();
+    expectTypeOf(resolveResPath).toEqualTypeOf<ResPathResolver>();
 
-    const result = resolvePath("app/settings", "en-US");
+    const result = resolveResPath("app/settings", "en-US");
     expectTypeOf(result).toEqualTypeOf<string>();
   });
 });

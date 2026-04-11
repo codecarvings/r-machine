@@ -26,13 +26,13 @@ export interface AnyResLayout {
 
 type LayoutEntry = readonly [prefix: string, type: ResLayoutType];
 
-export type ResLayoutResolver = (namespace: AnyNamespace) => ResLayoutType | undefined;
+export type ResLayoutTypeResolver = (namespace: AnyNamespace) => ResLayoutType | undefined;
 
-export function createResLayoutResolver(layout: AnyResLayout): ResLayoutResolver {
+export function createResLayoutTypeResolver(layout: AnyResLayout): ResLayoutTypeResolver {
   const entries: readonly LayoutEntry[] = Object.entries(layout).sort(([a], [b]) => b.length - a.length);
   const cache = new Map<string, ResLayoutType | undefined>();
 
-  return function resolveResLayout(namespace) {
+  return function resolveResLayoutType(namespace) {
     if (cache.has(namespace)) return cache.get(namespace);
     const type = entries.find(([prefix]) => isPrefixMatch(namespace, prefix))?.[1];
     cache.set(namespace, type);
@@ -47,13 +47,13 @@ function isPrefixMatch(namespace: string, prefix: string): boolean {
 
 // #endregion
 
-// #region PathResolver
+// #region ResPathResolver
 
-export type PathResolver = (namespace: AnyNamespace, locale: AnyLocale | undefined) => string;
+export type ResPathResolver = (namespace: AnyNamespace, locale: AnyLocale | undefined) => string;
 
-export function createPathResolver(resolveResLayout: ResLayoutResolver): PathResolver {
-  return function resolvePath(namespace, locale) {
-    const layoutType = resolveResLayout(namespace);
+export function createResPathResolver(resolveResLayoutType: ResLayoutTypeResolver): ResPathResolver {
+  return function resolveResPath(namespace, locale) {
+    const layoutType = resolveResLayoutType(namespace);
     switch (layoutType) {
       case "gear":
       case "dynamic-shell":
@@ -62,14 +62,14 @@ export function createPathResolver(resolveResLayout: ResLayoutResolver): PathRes
         if (locale === undefined) {
           throw new RMachineResolveError(
             ERR_RESOLVE_FAILED,
-            `Unable to resolve path for namespace "${namespace}" - locale is required for "shell" layout.`
+            `Unable to resolve resource path for namespace "${namespace}" - locale is required for "shell" layout.`
           );
         }
         return `${namespace}/${locale}`;
       default:
         throw new RMachineResolveError(
           ERR_RESOLVE_FAILED,
-          `Unable to resolve path for namespace "${namespace}" - no matching resource layout.`
+          `Unable to resolve resource path for namespace "${namespace}" - no matching resource layout.`
         );
     }
   };
