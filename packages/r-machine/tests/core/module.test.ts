@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { type AnyModule, createModuleLoader, type ModuleLoaderFn, validateModule } from "../../src/core/module.js";
+import type { PathResolver } from "../../src/core/res-layout.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
-import type { PathResolver } from "../../src/core/resource-layout.js";
 import type { AnyResourcePlug } from "../../src/core/resource-plug.js";
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "../../src/errors/index.js";
 

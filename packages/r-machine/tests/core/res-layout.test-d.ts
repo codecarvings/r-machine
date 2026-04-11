@@ -1,46 +1,46 @@
 import { describe, expectTypeOf, it } from "vitest";
 import {
-  type AnyResourceLayout,
+  type AnyResLayout,
   createPathResolver,
-  createResourceLayoutResolver,
+  createResLayoutResolver,
   type PathResolver,
-  type ResourceLayoutResolver,
-  type ResourceLayoutType,
-} from "../../src/core/resource-layout.js";
+  type ResLayoutResolver,
+  type ResLayoutType,
+} from "../../src/core/res-layout.js";
 import type { AnyLocale } from "../../src/locale/locale.js";
 
-describe("ResourceLayoutType", () => {
+describe("ResLayoutType", () => {
   it("is the exact union of the three canonical layout literals", () => {
-    expectTypeOf<ResourceLayoutType>().toEqualTypeOf<"gear" | "shell" | "dynamic-shell">();
+    expectTypeOf<ResLayoutType>().toEqualTypeOf<"gear" | "shell" | "dynamic-shell">();
   });
 
   it("does not widen to string", () => {
-    expectTypeOf<ResourceLayoutType>().not.toEqualTypeOf<string>();
-    expectTypeOf<string>().not.toExtend<ResourceLayoutType>();
+    expectTypeOf<ResLayoutType>().not.toEqualTypeOf<string>();
+    expectTypeOf<string>().not.toExtend<ResLayoutType>();
   });
 });
 
-describe("AnyResourceLayout", () => {
-  it("indexes into ResourceLayoutType for any string key", () => {
-    expectTypeOf<AnyResourceLayout[string]>().toEqualTypeOf<ResourceLayoutType>();
+describe("AnyResLayout", () => {
+  it("indexes into ResLayoutType for any string key", () => {
+    expectTypeOf<AnyResLayout[string]>().toEqualTypeOf<ResLayoutType>();
   });
 
   it("accepts the three canonical layout types as values", () => {
-    expectTypeOf<"gear">().toExtend<ResourceLayoutType>();
-    expectTypeOf<"shell">().toExtend<ResourceLayoutType>();
-    expectTypeOf<"dynamic-shell">().toExtend<ResourceLayoutType>();
+    expectTypeOf<"gear">().toExtend<ResLayoutType>();
+    expectTypeOf<"shell">().toExtend<ResLayoutType>();
+    expectTypeOf<"dynamic-shell">().toExtend<ResLayoutType>();
   });
 
   it("rejects unrelated string literals as values", () => {
-    expectTypeOf<"not-a-layout">().not.toExtend<ResourceLayoutType>();
-    expectTypeOf<"Gear">().not.toExtend<ResourceLayoutType>();
-    expectTypeOf<string>().not.toExtend<ResourceLayoutType>();
+    expectTypeOf<"not-a-layout">().not.toExtend<ResLayoutType>();
+    expectTypeOf<"Gear">().not.toExtend<ResLayoutType>();
+    expectTypeOf<string>().not.toExtend<ResLayoutType>();
   });
 
   it("does not accept non-string values", () => {
-    expectTypeOf<number>().not.toExtend<ResourceLayoutType>();
-    expectTypeOf<null>().not.toExtend<ResourceLayoutType>();
-    expectTypeOf<undefined>().not.toExtend<ResourceLayoutType>();
+    expectTypeOf<number>().not.toExtend<ResLayoutType>();
+    expectTypeOf<null>().not.toExtend<ResLayoutType>();
+    expectTypeOf<undefined>().not.toExtend<ResLayoutType>();
   });
 
   it("accepts an object literal whose values are layout types", () => {
@@ -48,26 +48,26 @@ describe("AnyResourceLayout", () => {
       app: "gear",
       "app/settings": "shell",
       "app/live": "dynamic-shell",
-    } as const satisfies AnyResourceLayout;
-    expectTypeOf(layout).toExtend<AnyResourceLayout>();
+    } as const satisfies AnyResLayout;
+    expectTypeOf(layout).toExtend<AnyResLayout>();
   });
 });
 
-describe("ResourceLayoutResolver", () => {
+describe("ResLayoutResolver", () => {
   it("takes a namespace string and returns a layout type or undefined", () => {
-    expectTypeOf<ResourceLayoutResolver>().parameter(0).toEqualTypeOf<string>();
-    expectTypeOf<ResourceLayoutResolver>().returns.toEqualTypeOf<ResourceLayoutType | undefined>();
+    expectTypeOf<ResLayoutResolver>().parameter(0).toEqualTypeOf<string>();
+    expectTypeOf<ResLayoutResolver>().returns.toEqualTypeOf<ResLayoutType | undefined>();
   });
 
   it("return type always includes undefined (misses are representable)", () => {
-    expectTypeOf<undefined>().toExtend<ReturnType<ResourceLayoutResolver>>();
+    expectTypeOf<undefined>().toExtend<ReturnType<ResLayoutResolver>>();
   });
 });
 
-describe("createResourceLayoutResolver", () => {
-  it("accepts an AnyResourceLayout and returns a ResourceLayoutResolver", () => {
-    expectTypeOf(createResourceLayoutResolver).parameter(0).toEqualTypeOf<AnyResourceLayout>();
-    expectTypeOf(createResourceLayoutResolver).returns.toEqualTypeOf<ResourceLayoutResolver>();
+describe("createResLayoutResolver", () => {
+  it("accepts an AnyResLayout and returns a ResLayoutResolver", () => {
+    expectTypeOf(createResLayoutResolver).parameter(0).toEqualTypeOf<AnyResLayout>();
+    expectTypeOf(createResLayoutResolver).returns.toEqualTypeOf<ResLayoutResolver>();
   });
 
   it("does not narrow the return type based on the literal input (runtime lookup is string-keyed)", () => {
@@ -75,17 +75,17 @@ describe("createResourceLayoutResolver", () => {
     // literal, the returned function still accepts any namespace string and
     // still may return undefined. This guards against accidentally tightening
     // the API into a closed key set.
-    const resolve = createResourceLayoutResolver({ app: "gear" } as const);
-    expectTypeOf(resolve).toEqualTypeOf<ResourceLayoutResolver>();
+    const resolve = createResLayoutResolver({ app: "gear" } as const);
+    expectTypeOf(resolve).toEqualTypeOf<ResLayoutResolver>();
     expectTypeOf(resolve).parameter(0).toEqualTypeOf<string>();
-    expectTypeOf(resolve).returns.toEqualTypeOf<ResourceLayoutType | undefined>();
+    expectTypeOf(resolve).returns.toEqualTypeOf<ResLayoutType | undefined>();
   });
 
   it("rejects layouts whose values are not layout types", () => {
-    // @ts-expect-error — "not-a-layout" is not assignable to ResourceLayoutType
-    createResourceLayoutResolver({ app: "not-a-layout" });
+    // @ts-expect-error — "not-a-layout" is not assignable to ResLayoutType
+    createResLayoutResolver({ app: "not-a-layout" });
     // @ts-expect-error — numbers are not layout types
-    createResourceLayoutResolver({ app: 42 });
+    createResLayoutResolver({ app: 42 });
   });
 });
 
@@ -111,13 +111,13 @@ describe("PathResolver", () => {
 });
 
 describe("createPathResolver", () => {
-  it("takes a ResourceLayoutResolver and returns a PathResolver", () => {
-    expectTypeOf(createPathResolver).parameter(0).toEqualTypeOf<ResourceLayoutResolver>();
+  it("takes a ResLayoutResolver and returns a PathResolver", () => {
+    expectTypeOf(createPathResolver).parameter(0).toEqualTypeOf<ResLayoutResolver>();
     expectTypeOf(createPathResolver).returns.toEqualTypeOf<PathResolver>();
   });
 
   it("accepts a compatible inline resolver function", () => {
-    const inline = (ns: string): ResourceLayoutType | undefined => (ns === "app" ? "gear" : undefined);
+    const inline = (ns: string): ResLayoutType | undefined => (ns === "app" ? "gear" : undefined);
     const resolvePath = createPathResolver(inline);
     expectTypeOf(resolvePath).toEqualTypeOf<PathResolver>();
   });
@@ -127,8 +127,8 @@ describe("createPathResolver", () => {
     createPathResolver((ns: number) => (ns === 0 ? "gear" : undefined));
   });
 
-  it("rejects a function whose return type is not ResourceLayoutType | undefined", () => {
-    // @ts-expect-error — "custom" is not a valid ResourceLayoutType
+  it("rejects a function whose return type is not ResLayoutType | undefined", () => {
+    // @ts-expect-error — "custom" is not a valid ResLayoutType
     createPathResolver((_ns: string) => "custom" as const);
     // @ts-expect-error — returning a number violates the contract
     createPathResolver((_ns: string) => 42);
@@ -136,9 +136,9 @@ describe("createPathResolver", () => {
 });
 
 describe("end-to-end inference", () => {
-  it("chains createResourceLayoutResolver into createPathResolver without extra annotations", () => {
+  it("chains createResLayoutResolver into createPathResolver without extra annotations", () => {
     const resolvePath = createPathResolver(
-      createResourceLayoutResolver({
+      createResLayoutResolver({
         app: "gear",
         "app/settings": "shell",
         "app/live": "dynamic-shell",

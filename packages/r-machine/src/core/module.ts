@@ -13,9 +13,9 @@
 
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
+import type { PathResolver } from "./res-layout.js";
 import type { AnyResourceOrigin } from "./resource.js";
 import type { AnyNamespace } from "./resource-atlas.js";
-import type { PathResolver } from "./resource-layout.js";
 
 export interface AnyModule {
   readonly r: AnyResourceOrigin;

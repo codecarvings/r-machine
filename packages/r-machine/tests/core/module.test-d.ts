@@ -6,9 +6,9 @@ import {
   type ModuleLoaderFn,
   validateModule,
 } from "../../src/core/module.js";
+import type { PathResolver } from "../../src/core/res-layout.js";
 import type { AnyResource, AnyResourceOrigin } from "../../src/core/resource.js";
 import type { AnyNamespace } from "../../src/core/resource-atlas.js";
-import type { PathResolver } from "../../src/core/resource-layout.js";
 import type { RMachineResolveError } from "../../src/errors/index.js";
 import type { AnyLocale } from "../../src/locale/locale.js";
 

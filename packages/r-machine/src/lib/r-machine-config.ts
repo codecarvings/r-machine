@@ -24,7 +24,7 @@ import {
   type LocaleList,
   validateCanonicalUnicodeLocaleId,
 } from "#r-machine/locale";
-import type { AnyResourceLayout } from "../core/resource-layout.js";
+import type { AnyResLayout } from "../core/res-layout.js";
 
 // The generic parameter LL is used to ensure that the defaultLocale is one of the locales in the list
 export interface RMachineConfigParams<
@@ -38,7 +38,7 @@ export interface RMachineConfigParams<
   readonly locales: LL;
   readonly defaultLocale: LL[number];
   readonly load: ModuleLoaderFn;
-  readonly layout: AnyResourceLayout;
+  readonly layout: AnyResLayout;
   readonly gearKit?: GKA;
   readonly shellKit?: SKA;
   readonly gateKit?: XKA;
@@ -53,7 +53,7 @@ export interface RMachineConfig<
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly load: ModuleLoaderFn;
-  readonly layout: AnyResourceLayout;
+  readonly layout: AnyResLayout;
   readonly kit: KA;
 }
 

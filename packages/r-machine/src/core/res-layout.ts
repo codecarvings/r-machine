@@ -16,23 +16,23 @@ import type { AnyLocale } from "#r-machine/locale";
 import type { ResourceFamily } from "./resource.js";
 import type { AnyNamespace } from "./resource-atlas.js";
 
-// #region ResourceLayout
+// #region ResLayout
 
-export type ResourceLayoutType = ResourceFamily | "dynamic-shell";
+export type ResLayoutType = ResourceFamily | "dynamic-shell";
 
-export interface AnyResourceLayout {
-  readonly [namespacePrefix: string]: ResourceLayoutType;
+export interface AnyResLayout {
+  readonly [namespacePrefix: string]: ResLayoutType;
 }
 
-type LayoutEntry = readonly [prefix: string, type: ResourceLayoutType];
+type LayoutEntry = readonly [prefix: string, type: ResLayoutType];
 
-export type ResourceLayoutResolver = (namespace: AnyNamespace) => ResourceLayoutType | undefined;
+export type ResLayoutResolver = (namespace: AnyNamespace) => ResLayoutType | undefined;
 
-export function createResourceLayoutResolver(layout: AnyResourceLayout): ResourceLayoutResolver {
+export function createResLayoutResolver(layout: AnyResLayout): ResLayoutResolver {
   const entries: readonly LayoutEntry[] = Object.entries(layout).sort(([a], [b]) => b.length - a.length);
-  const cache = new Map<string, ResourceLayoutType | undefined>();
+  const cache = new Map<string, ResLayoutType | undefined>();
 
-  return function resolveResourceLayout(namespace) {
+  return function resolveResLayout(namespace) {
     if (cache.has(namespace)) return cache.get(namespace);
     const type = entries.find(([prefix]) => isPrefixMatch(namespace, prefix))?.[1];
     cache.set(namespace, type);
@@ -51,9 +51,9 @@ function isPrefixMatch(namespace: string, prefix: string): boolean {
 
 export type PathResolver = (namespace: AnyNamespace, locale: AnyLocale | undefined) => string;
 
-export function createPathResolver(resolveResourceLayout: ResourceLayoutResolver): PathResolver {
+export function createPathResolver(resolveResLayout: ResLayoutResolver): PathResolver {
   return function resolvePath(namespace, locale) {
-    const layoutType = resolveResourceLayout(namespace);
+    const layoutType = resolveResLayout(namespace);
     switch (layoutType) {
       case "gear":
       case "dynamic-shell":

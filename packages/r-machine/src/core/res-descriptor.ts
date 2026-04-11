@@ -14,41 +14,41 @@
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { AnyModule } from "./module.js";
+import type { ResLayoutType } from "./res-layout.js";
 import { type AnyResMatrix, tryGetResMatrixDescriptor } from "./res-matrix.js";
 import type { AnyResourceOrigin, ResourceFamily } from "./resource.js";
 import type { AnyNamespace } from "./resource-atlas.js";
-import type { ResourceLayoutType } from "./resource-layout.js";
 import { getResourcePlugDescriptor } from "./resource-plug.js";
 
-type ResourceOriginType = "resource" | "res-matrix";
+type ResOriginType = "resource" | "res-matrix";
 
-export interface ResourceDescriptor {
+export interface ResDescriptor {
   readonly namespace: AnyNamespace;
   readonly locale: AnyLocale | undefined;
   readonly family: ResourceFamily;
   readonly isReactive: boolean;
   readonly isVertex: boolean;
   readonly deps: AnyNamespace[];
-  readonly originType: ResourceOriginType;
+  readonly originType: ResOriginType;
   readonly origin: AnyResourceOrigin;
 }
 
-export function createResourceDescriptor(
+export function createResDescriptor(
   module: AnyModule,
   namespace: AnyNamespace,
   locale: AnyLocale | undefined,
-  resourceLayoutType: ResourceLayoutType
-): ResourceDescriptor {
+  resLayoutType: ResLayoutType
+): ResDescriptor {
   const origin = module.r;
   const matrixDescriptor = tryGetResMatrixDescriptor(origin);
 
   if (matrixDescriptor !== undefined) {
     const { family, isReactive, isVertex } = matrixDescriptor;
-    const layoutFamily: ResourceFamily = resourceLayoutType === "dynamic-shell" ? "shell" : resourceLayoutType;
+    const layoutFamily: ResourceFamily = resLayoutType === "dynamic-shell" ? "shell" : resLayoutType;
     if (family !== layoutFamily) {
       throw new RMachineResolveError(
         ERR_RESOLVE_FAILED,
-        `Unable to build descriptor for namespace "${namespace}" - matrix family "${family}" does not match layout "${resourceLayoutType}".`
+        `Unable to build descriptor for namespace "${namespace}" - matrix family "${family}" does not match layout "${resLayoutType}".`
       );
     }
     const { deps } = getResourcePlugDescriptor((origin as AnyResMatrix).plug);
@@ -64,7 +64,7 @@ export function createResourceDescriptor(
     };
   }
 
-  if (resourceLayoutType === "dynamic-shell") {
+  if (resLayoutType === "dynamic-shell") {
     throw new RMachineResolveError(
       ERR_RESOLVE_FAILED,
       `Unable to build descriptor for namespace "${namespace}" - layout "dynamic-shell" requires a shell factory, got a raw resource.`
@@ -74,7 +74,7 @@ export function createResourceDescriptor(
   return {
     namespace,
     locale,
-    family: resourceLayoutType,
+    family: resLayoutType,
     isReactive: false,
     isVertex: false,
     deps: [],
