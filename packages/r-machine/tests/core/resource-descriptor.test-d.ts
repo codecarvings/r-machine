@@ -26,7 +26,7 @@ describe("ResourceDescriptor", () => {
       isReactive: boolean;
       isVertex: boolean;
       deps: string[];
-      originType: "resource" | "resource-package";
+      originType: "resource" | "res-matrix";
       origin: AnyResourceOrigin;
     };
     expectTypeOf<ResourceDescriptor>().not.toEqualTypeOf<Writable>();
@@ -68,7 +68,7 @@ describe("ResourceDescriptor", () => {
   });
 
   it("types `originType` as the closed union of the two canonical origin kinds", () => {
-    expectTypeOf<ResourceDescriptor["originType"]>().toEqualTypeOf<"resource" | "resource-package">();
+    expectTypeOf<ResourceDescriptor["originType"]>().toEqualTypeOf<"resource" | "res-matrix">();
     expectTypeOf<string>().not.toExtend<ResourceDescriptor["originType"]>();
     expectTypeOf<"dynamic-shell">().not.toExtend<ResourceDescriptor["originType"]>();
   });

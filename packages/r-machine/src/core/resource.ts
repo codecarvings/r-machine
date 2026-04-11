@@ -11,10 +11,10 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourcePackage } from "./resource-package.js";
+import type { AnyResMatrix } from "./res-matrix.js";
 
 export type AnyResource = Record<string, unknown> & object;
 
-export type AnyResourceOrigin = AnyResourcePackage | AnyResource;
+export type AnyResourceOrigin = AnyResMatrix | AnyResource;
 
 export type ResourceFamily = "gear" | "shell";

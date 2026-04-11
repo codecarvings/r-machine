@@ -11,9 +11,9 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceOrigin, ResourcePackage } from "#r-machine/core";
+import type { AnyResourceOrigin, ResMatrix } from "#r-machine/core";
 
-type ExtractResource<O extends AnyResourceOrigin> = O extends ResourcePackage<infer R, any> ? R : O;
+type ExtractResource<O extends AnyResourceOrigin> = O extends ResMatrix<infer R, any> ? R : O;
 
 // Re-exported from setup.ts as RShape
 declare const r: unique symbol;

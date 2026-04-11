@@ -14,32 +14,32 @@
 import type { AnyResource, AnyResourceOrigin, ResourceFamily } from "./resource.js";
 import type { AnyResourcePlug } from "./resource-plug.js";
 
-export interface ResourcePackageDescriptor {
+export interface ResMatrixDescriptor {
   readonly family: ResourceFamily;
   readonly isReactive: boolean;
   readonly isVertex: boolean;
 }
 
-const resourcePackageDescriptor: unique symbol = Symbol("resourcePackageDescriptor");
-export interface ResourcePackage<R extends AnyResource, P extends AnyResourcePlug> {
-  readonly [resourcePackageDescriptor]: ResourcePackageDescriptor;
+const resMatrixDescriptor: unique symbol = Symbol("resMatrixDescriptor");
+export interface ResMatrix<R extends AnyResource, P extends AnyResourcePlug> {
+  readonly [resMatrixDescriptor]: ResMatrixDescriptor;
   readonly factory: () => Promise<R>;
   readonly plug: P;
 }
-export type AnyResourcePackage = ResourcePackage<AnyResource, AnyResourcePlug>;
+export type AnyResMatrix = ResMatrix<AnyResource, AnyResourcePlug>;
 
-export function createResourcePackage<R extends AnyResource, P extends AnyResourcePlug>(
-  descriptor: ResourcePackageDescriptor,
+export function createResMatrix<R extends AnyResource, P extends AnyResourcePlug>(
+  descriptor: ResMatrixDescriptor,
   factory: () => Promise<R>,
   plug: P
-): ResourcePackage<R, P> {
+): ResMatrix<R, P> {
   return {
-    [resourcePackageDescriptor]: descriptor,
+    [resMatrixDescriptor]: descriptor,
     factory,
     plug,
   };
 }
 
-export function tryGetResourcePackageDescriptor(origin: AnyResourceOrigin): ResourcePackageDescriptor | undefined {
-  return (origin as Partial<AnyResourcePackage>)[resourcePackageDescriptor];
+export function tryGetResMatrixDescriptor(origin: AnyResourceOrigin): ResMatrixDescriptor | undefined {
+  return (origin as Partial<AnyResMatrix>)[resMatrixDescriptor];
 }

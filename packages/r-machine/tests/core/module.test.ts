@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { type AnyModule, createModuleLoader, type ModuleLoaderFn, validateModule } from "../../src/core/module.js";
+import { createResMatrix } from "../../src/core/res-matrix.js";
 import type { PathResolver } from "../../src/core/resource-layout.js";
-import { createResourcePackage } from "../../src/core/resource-package.js";
 import type { AnyResourcePlug } from "../../src/core/resource-plug.js";
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "../../src/errors/index.js";
 
@@ -224,10 +224,10 @@ describe("createModuleLoader", () => {
       expect(result.r).toBe(resource);
     });
 
-    it("accepts an AnyResourceOrigin shape that is a package-like object (opaque to the loader)", async () => {
+    it("accepts an AnyResourceOrigin shape that is a matrix-like object (opaque to the loader)", async () => {
       // The loader does not inspect `r`; whatever loadModuleFn hands back
-      // travels through untouched. We use a plausible package-ish object here
-      // (factory + plug) without actually importing ResourcePackage's brand.
+      // travels through untouched. We use a plausible matrix-ish object here
+      // (factory + plug) without actually importing ResMatrix's brand.
       const pkgLike = { factory: async () => ({}), plug: {} };
       const resolvePath: PathResolver = (ns) => ns;
       const loadModuleFn: ModuleLoaderFn = async () => ({ r: pkgLike }) as unknown as AnyModule;
@@ -277,14 +277,14 @@ describe("validateModule", () => {
       expect(validateModule({ r: { greeting: "hi" } })).toBeNull();
     });
 
-    it("returns null when `r` is a ResourcePackage", () => {
-      const pkg = createResourcePackage(
+    it("returns null when `r` is a ResMatrix", () => {
+      const mat = createResMatrix(
         { family: "gear", isReactive: false, isVertex: false },
         async () => ({}),
         {} as AnyResourcePlug
       );
 
-      expect(validateModule({ r: pkg })).toBeNull();
+      expect(validateModule({ r: mat })).toBeNull();
     });
 
     it("accepts a module whose `r` is an empty object (the smallest valid raw resource)", () => {

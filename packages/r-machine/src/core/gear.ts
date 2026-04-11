@@ -13,11 +13,11 @@
 
 import type { CmdComposer } from "./cmd.js";
 import type { RelayComposer } from "./relay.js";
+import type { ResMatrix } from "./res-matrix.js";
 import type { AnyResource } from "./resource.js";
 import type { AnyResourceAtlas } from "./resource-atlas.js";
 import type { NamespaceList, SurfaceList } from "./resource-list.js";
 import type { NamespaceMap, SurfaceMap } from "./resource-map.js";
-import type { ResourcePackage } from "./resource-package.js";
 import type { ResourceListPlug, ResourceMapPlug } from "./resource-plug.js";
 
 export type GearCtx<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>> = {} & (keyof KA extends never
@@ -46,10 +46,10 @@ export type GearMapComposer<RA extends AnyResourceAtlas, KA extends NamespaceMap
   R extends AnyResource,
 >(
   factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => R | Promise<R>
-) => ResourcePackage<R, ResourceMapPlug<RA, KA, NM>>;
+) => ResMatrix<R, ResourceMapPlug<RA, KA, NM>>;
 
 export type GearListComposer<RA extends AnyResourceAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = <
   R extends AnyResource,
 >(
   factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => R | Promise<R>
-) => ResourcePackage<R, ResourceListPlug<RA, KA, NL>>;
+) => ResMatrix<R, ResourceListPlug<RA, KA, NL>>;

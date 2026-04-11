@@ -13,11 +13,11 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import type { GearCtx } from "./gear.js";
+import type { ResMatrix } from "./res-matrix.js";
 import type { AnyResource } from "./resource.js";
 import type { AnyResourceAtlas } from "./resource-atlas.js";
 import type { NamespaceList, SurfaceList } from "./resource-list.js";
 import type { NamespaceMap, SurfaceMap } from "./resource-map.js";
-import type { ResourcePackage } from "./resource-package.js";
 import type { ResourceListPlug, ResourceMapPlug } from "./resource-plug.js";
 
 type ShellCtx<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = GearCtx<RA, KA> & {
@@ -47,7 +47,7 @@ export type ShellMapComposer<
   NM extends NamespaceMap<RA>,
 > = <R extends AnyResource>(
   factory: (plugin: ShellMapPlugin<RA, L, KA, NM>) => R | Promise<R>
-) => ResourcePackage<R, ResourceMapPlug<RA, KA, NM>>;
+) => ResMatrix<R, ResourceMapPlug<RA, KA, NM>>;
 
 export type ShellListComposer<
   RA extends AnyResourceAtlas,
@@ -56,4 +56,4 @@ export type ShellListComposer<
   NL extends NamespaceList<RA>,
 > = <R extends AnyResource>(
   factory: (plugin: GearListPlugin<RA, L, KA, NL>) => R | Promise<R>
-) => ResourcePackage<R, ResourceListPlug<RA, KA, NL>>;
+) => ResMatrix<R, ResourceListPlug<RA, KA, NL>>;
