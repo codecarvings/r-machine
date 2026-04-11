@@ -13,12 +13,12 @@
 
 import type { CmdComposer } from "./cmd.js";
 import type { RelayComposer } from "./relay.js";
+import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList, SurfaceList } from "./res-list.js";
 import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
-import type { AnyResource } from "./resource.js";
-import type { ResourceListPlug, ResourceMapPlug } from "./resource-plug.js";
+import type { ResListPlug, ResMapPlug } from "./res-plug.js";
 
 export type GearCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>> = {} & (keyof KA extends never
   ? {}
@@ -43,13 +43,13 @@ export type GearListPlugin<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, 
 ];
 
 export type GearMapComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = <
-  R extends AnyResource,
+  R extends AnyRes,
 >(
   factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => R | Promise<R>
-) => ResMatrix<R, ResourceMapPlug<RA, KA, NM>>;
+) => ResMatrix<R, ResMapPlug<RA, KA, NM>>;
 
 export type GearListComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = <
-  R extends AnyResource,
+  R extends AnyRes,
 >(
   factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => R | Promise<R>
-) => ResMatrix<R, ResourceListPlug<RA, KA, NL>>;
+) => ResMatrix<R, ResListPlug<RA, KA, NL>>;

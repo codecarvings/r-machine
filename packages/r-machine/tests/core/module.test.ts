@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { type AnyModule, createModuleLoader, type ModuleLoaderFn, validateModule } from "../../src/core/module.js";
 import type { PathResolver } from "../../src/core/res-layout.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
-import type { AnyResourcePlug } from "../../src/core/resource-plug.js";
+import type { AnyResPlug } from "../../src/core/res-plug.js";
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "../../src/errors/index.js";
 
 // Minimal, realistic AnyModule factory — keeps tests readable and lets us assert
@@ -213,7 +213,7 @@ describe("createModuleLoader", () => {
   });
 
   describe("result-shape pass-through", () => {
-    it("accepts any AnyResourceOrigin shape that loadModuleFn returns (plain resource)", async () => {
+    it("accepts any AnyResOrigin shape that loadModuleFn returns (plain resource)", async () => {
       const resource = { greeting: "hi", nested: { n: 1 } };
       const resolvePath: PathResolver = (ns) => ns;
       const loadModuleFn: ModuleLoaderFn = async () => ({ r: resource });
@@ -224,7 +224,7 @@ describe("createModuleLoader", () => {
       expect(result.r).toBe(resource);
     });
 
-    it("accepts an AnyResourceOrigin shape that is a matrix-like object (opaque to the loader)", async () => {
+    it("accepts an AnyResOrigin shape that is a matrix-like object (opaque to the loader)", async () => {
       // The loader does not inspect `r`; whatever loadModuleFn hands back
       // travels through untouched. We use a plausible matrix-ish object here
       // (factory + plug) without actually importing ResMatrix's brand.
@@ -281,7 +281,7 @@ describe("validateModule", () => {
       const mat = createResMatrix(
         { family: "gear", isReactive: false, isVertex: false },
         async () => ({}),
-        {} as AnyResourcePlug
+        {} as AnyResPlug
       );
 
       expect(validateModule({ r: mat })).toBeNull();

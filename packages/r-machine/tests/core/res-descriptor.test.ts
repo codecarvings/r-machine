@@ -1,27 +1,27 @@
 import { describe, expect, it } from "vitest";
 import type { AnyModule } from "../../src/core/module.js";
+import type { AnyRes, ResFamily } from "../../src/core/res.js";
 import { createResDescriptor } from "../../src/core/res-descriptor.js";
 import { type AnyResMatrix, createResMatrix } from "../../src/core/res-matrix.js";
-import type { AnyResource, ResourceFamily } from "../../src/core/resource.js";
-import type { AnyResourcePlug } from "../../src/core/resource-plug.js";
+import type { AnyResPlug } from "../../src/core/res-plug.js";
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "../../src/errors/index.js";
 
 // --- helpers -----------------------------------------------------------------
 
-type MatrixDescriptor = { family: ResourceFamily; isReactive: boolean; isVertex: boolean };
+type MatrixDescriptor = { family: ResFamily; isReactive: boolean; isVertex: boolean };
 
 // Builds a realistic matrix via the public factory. `plug` and `factory` are
 // sentinel values that we later assert are never touched by
 // createResDescriptor.
-function makeMatrix(descriptor: MatrixDescriptor, resource: AnyResource = {}): AnyResMatrix {
-  return createResMatrix(descriptor, async () => resource, {} as AnyResourcePlug);
+function makeMatrix(descriptor: MatrixDescriptor, resource: AnyRes = {}): AnyResMatrix {
+  return createResMatrix(descriptor, async () => resource, {} as AnyResPlug);
 }
 
-function makeMatrixModule(descriptor: MatrixDescriptor, resource?: AnyResource): AnyModule {
+function makeMatrixModule(descriptor: MatrixDescriptor, resource?: AnyRes): AnyModule {
   return { r: makeMatrix(descriptor, resource) };
 }
 
-function makeRawModule(resource: AnyResource = { greeting: "hi" }): AnyModule {
+function makeRawModule(resource: AnyRes = { greeting: "hi" }): AnyModule {
   return { r: resource };
 }
 
@@ -160,7 +160,7 @@ describe("createResDescriptor", () => {
     });
   });
 
-  describe("raw AnyResource origin", () => {
+  describe("raw AnyRes origin", () => {
     it("builds a gear descriptor from a raw resource with default static flags and empty deps", () => {
       const module = makeRawModule({ greeting: "hi" });
 
@@ -206,7 +206,7 @@ describe("createResDescriptor", () => {
       // The brand symbol is module-private to res-matrix.ts, so raw
       // resources have no way to mimic a matrix. This pins the invariant:
       // anything that did not come from createResMatrix is raw.
-      const rawLikely: AnyResource = { factory: "surprise", plug: "gotcha" };
+      const rawLikely: AnyRes = { factory: "surprise", plug: "gotcha" };
 
       const d = createResDescriptor({ r: rawLikely }, "app", undefined, "gear");
 
@@ -226,7 +226,7 @@ describe("createResDescriptor", () => {
     });
 
     it("preserves the exact `origin` reference for raw resources", () => {
-      const resource: AnyResource = { a: 1, nested: { b: 2 } };
+      const resource: AnyRes = { a: 1, nested: { b: 2 } };
 
       const d = createResDescriptor({ r: resource }, "app", undefined, "gear");
 
@@ -267,7 +267,7 @@ describe("createResDescriptor", () => {
       const mat = createResMatrix(
         { family: "gear", isReactive: false, isVertex: false },
         async () => ({}),
-        {} as AnyResourcePlug
+        {} as AnyResPlug
       );
       Object.defineProperty(mat, "factory", {
         get() {
@@ -286,7 +286,7 @@ describe("createResDescriptor", () => {
     it("does not mutate the matrix descriptor object that was passed to createResMatrix", () => {
       const descriptor: MatrixDescriptor = { family: "shell", isReactive: true, isVertex: false };
       const frozen = Object.freeze({ ...descriptor });
-      const mat = createResMatrix(frozen, async () => ({}), {} as AnyResourcePlug);
+      const mat = createResMatrix(frozen, async () => ({}), {} as AnyResPlug);
 
       const d = createResDescriptor({ r: mat }, "app", "en-US", "shell");
 
@@ -298,7 +298,7 @@ describe("createResDescriptor", () => {
     });
 
     it("does not mutate the module envelope", () => {
-      const raw: AnyResource = { a: 1 };
+      const raw: AnyRes = { a: 1 };
       const module: AnyModule = Object.freeze({ r: raw });
 
       const d = createResDescriptor(module, "app", undefined, "gear");

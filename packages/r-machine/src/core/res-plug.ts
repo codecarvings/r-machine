@@ -16,10 +16,10 @@ import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
 
-type PlugKind = "map" | "list";
+type ResPlugKind = "map" | "list";
 
-interface ResourcePlugDescriptor<
-  K extends PlugKind,
+interface ResPlugDescriptor<
+  K extends ResPlugKind,
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NS extends NamespaceMap<RA> | NamespaceList<RA>,
@@ -29,42 +29,42 @@ interface ResourcePlugDescriptor<
   readonly defaultState: S;
 }
 
-const resourcePlugDescriptor = Symbol("resourcePlugDescriptor");
-interface ResourcePlug<
-  K extends PlugKind,
+const resPlugDescriptor = Symbol("resPlugDescriptor");
+interface ResPlug<
+  K extends ResPlugKind,
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NS extends NamespaceMap<RA> | NamespaceList<RA>,
   S extends AnyState,
 > {
-  readonly [resourcePlugDescriptor]: ResourcePlugDescriptor<K, RA, KA, NS, S>;
+  readonly [resPlugDescriptor]: ResPlugDescriptor<K, RA, KA, NS, S>;
 }
 
-export function getResourcePlugDescriptor<P extends AnyResourcePlug>(plug: P): P[typeof resourcePlugDescriptor] {
-  return plug[resourcePlugDescriptor];
+export function getResPlugDescriptor<P extends AnyResPlug>(plug: P): P[typeof resPlugDescriptor] {
+  return plug[resPlugDescriptor];
 }
 
-export type AnyResourcePlug = ResourcePlug<any, any, any, any, any>;
+export type AnyResPlug = ResPlug<any, any, any, any, any>;
 
 declare const noState: unique symbol;
-export interface ResourceMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>
-  extends ResourcePlug<"map", RA, KA, NM, typeof noState> {}
+export interface ResMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>
+  extends ResPlug<"map", RA, KA, NM, typeof noState> {}
 
-export interface ResourceListPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>>
-  extends ResourcePlug<"list", RA, KA, NL, typeof noState> {}
+export interface ResListPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>>
+  extends ResPlug<"list", RA, KA, NL, typeof noState> {}
 
 export type AnyState = unknown; // Record<PropertyKey, unknown> & object;
 
-export interface StatefulResourceMapPlug<
+export interface StatefulResMapPlug<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
-> extends ResourcePlug<"map", RA, KA, NM, S> {}
+> extends ResPlug<"map", RA, KA, NM, S> {}
 
-export interface StatefulResourceListPlug<
+export interface StatefulResListPlug<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
   S extends AnyState,
-> extends ResourcePlug<"list", RA, KA, NL, S> {}
+> extends ResPlug<"list", RA, KA, NL, S> {}

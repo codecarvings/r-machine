@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyState } from "./resource-plug.js";
+import type { AnyState } from "./res-plug.js";
 
 type BuiltinAtomic =
   | Date

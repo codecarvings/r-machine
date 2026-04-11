@@ -6,33 +6,33 @@ import {
   type ModuleLoaderFn,
   validateModule,
 } from "../../src/core/module.js";
+import type { AnyRes, AnyResOrigin } from "../../src/core/res.js";
 import type { AnyNamespace } from "../../src/core/res-atlas.js";
 import type { PathResolver } from "../../src/core/res-layout.js";
-import type { AnyResource, AnyResourceOrigin } from "../../src/core/resource.js";
 import type { RMachineResolveError } from "../../src/errors/index.js";
 import type { AnyLocale } from "../../src/locale/locale.js";
 
 describe("AnyModule", () => {
-  it("exposes an `r` field typed as AnyResourceOrigin", () => {
-    expectTypeOf<AnyModule["r"]>().toEqualTypeOf<AnyResourceOrigin>();
+  it("exposes an `r` field typed as AnyResOrigin", () => {
+    expectTypeOf<AnyModule["r"]>().toEqualTypeOf<AnyResOrigin>();
   });
 
   it("marks `r` as readonly (assignment is disallowed at the type level)", () => {
     // A mutable-`r` view is NOT assignable to AnyModule's readonly shape in the
     // checker's variance rules when we compare the `Required<Writable>` form.
-    type Writable = { r: AnyResourceOrigin };
-    type ReadOnly = { readonly r: AnyResourceOrigin };
+    type Writable = { r: AnyResOrigin };
+    type ReadOnly = { readonly r: AnyResOrigin };
     expectTypeOf<AnyModule>().toEqualTypeOf<ReadOnly>();
     // Sanity: the writable form is structurally assignable to AnyModule
     // (readonly is covariant for reads), but AnyModule itself is the readonly form.
     expectTypeOf<Writable>().toExtend<AnyModule>();
   });
 
-  it("accepts a plain AnyResource as `r`", () => {
-    const resource: AnyResource = { key: "value" };
+  it("accepts a plain AnyRes as `r`", () => {
+    const resource: AnyRes = { key: "value" };
     const m: AnyModule = { r: resource };
     expectTypeOf(m).toExtend<AnyModule>();
-    expectTypeOf(m.r).toEqualTypeOf<AnyResourceOrigin>();
+    expectTypeOf(m.r).toEqualTypeOf<AnyResOrigin>();
   });
 
   it("rejects modules missing the `r` field", () => {
@@ -42,13 +42,13 @@ describe("AnyModule", () => {
   });
 
   it("rejects modules whose `r` is not a resource origin (primitive)", () => {
-    // @ts-expect-error — string is not assignable to AnyResourceOrigin
+    // @ts-expect-error — string is not assignable to AnyResOrigin
     const m: AnyModule = { r: "not-a-resource" };
     void m;
   });
 
   it("rejects modules whose `r` is null", () => {
-    // @ts-expect-error — null is not assignable to AnyResourceOrigin
+    // @ts-expect-error — null is not assignable to AnyResOrigin
     const m: AnyModule = { r: null };
     void m;
   });
@@ -251,7 +251,7 @@ describe("validateModule — signature", () => {
     validateModule({ r: null });
     validateModule({ r: "nope" });
     validateModule({ r: {} });
-    const valid: AnyResource = { greeting: "hi" };
+    const valid: AnyRes = { greeting: "hi" };
     validateModule({ r: valid });
   });
 });

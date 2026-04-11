@@ -1,9 +1,9 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyModule } from "../../src/core/module.js";
+import type { AnyResOrigin, ResFamily } from "../../src/core/res.js";
 import type { AnyNamespace } from "../../src/core/res-atlas.js";
 import { createResDescriptor, type ResDescriptor } from "../../src/core/res-descriptor.js";
 import type { ResLayoutType } from "../../src/core/res-layout.js";
-import type { AnyResourceOrigin, ResourceFamily } from "../../src/core/resource.js";
 import type { AnyLocale } from "../../src/locale/locale.js";
 
 describe("ResDescriptor", () => {
@@ -22,12 +22,12 @@ describe("ResDescriptor", () => {
     type Writable = {
       namespace: AnyNamespace;
       locale: AnyLocale | undefined;
-      family: ResourceFamily;
+      family: ResFamily;
       isReactive: boolean;
       isVertex: boolean;
       deps: string[];
       originType: "resource" | "res-matrix";
-      origin: AnyResourceOrigin;
+      origin: AnyResOrigin;
     };
     expectTypeOf<ResDescriptor>().not.toEqualTypeOf<Writable>();
     // Sanity: the writable twin is still structurally assignable to the
@@ -46,10 +46,10 @@ describe("ResDescriptor", () => {
     expectTypeOf<AnyLocale>().toExtend<ResDescriptor["locale"]>();
   });
 
-  it("types `family` as ResourceFamily and intentionally excludes `dynamic-shell`", () => {
+  it("types `family` as ResFamily and intentionally excludes `dynamic-shell`", () => {
     // The descriptor is post-resolution: layout "dynamic-shell" collapses to
     // family "shell" at build time, so the family union never sees it.
-    expectTypeOf<ResDescriptor["family"]>().toEqualTypeOf<ResourceFamily>();
+    expectTypeOf<ResDescriptor["family"]>().toEqualTypeOf<ResFamily>();
     expectTypeOf<ResDescriptor["family"]>().toEqualTypeOf<"gear" | "shell">();
     expectTypeOf<"dynamic-shell">().not.toExtend<ResDescriptor["family"]>();
   });
@@ -73,8 +73,8 @@ describe("ResDescriptor", () => {
     expectTypeOf<"dynamic-shell">().not.toExtend<ResDescriptor["originType"]>();
   });
 
-  it("types `origin` as the full AnyResourceOrigin union (package | raw resource)", () => {
-    expectTypeOf<ResDescriptor["origin"]>().toEqualTypeOf<AnyResourceOrigin>();
+  it("types `origin` as the full AnyResOrigin union (package | raw resource)", () => {
+    expectTypeOf<ResDescriptor["origin"]>().toEqualTypeOf<AnyResOrigin>();
   });
 });
 

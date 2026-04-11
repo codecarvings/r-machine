@@ -14,16 +14,27 @@
 import type { ActionBrand } from "./action.js";
 import type { GetterBrand } from "./getter.js";
 import type { RelayBrand } from "./relay.js";
+import type { AnyResMatrix } from "./res-matrix.js";
 
-type AnyReactiveResourceItem = ActionBrand | GetterBrand | RelayBrand | ((...args: any[]) => any);
-export interface AnyReactiveResource {
-  [key: string]: AnyReactiveResourceItem;
+export type AnyRes = Record<string, unknown> & object;
+
+export type AnyResOrigin = AnyResMatrix | AnyRes;
+
+export type ResFamily = "gear" | "shell";
+
+// #region Reactive Resource
+
+type AnyReactiveResItem = ActionBrand | GetterBrand | RelayBrand | ((...args: any[]) => any);
+export interface AnyReactiveRes {
+  [key: string]: AnyReactiveResItem;
 }
 
-export type RejectAsyncValueProperties<R> = {
+export type RejectAsyncValueProps<R> = {
   readonly [K in keyof R]: R[K] extends (...args: any[]) => Promise<void>
     ? R[K]
     : R[K] extends (...args: any[]) => Promise<any>
       ? never
       : R[K];
 };
+
+// #endregion

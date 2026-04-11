@@ -13,12 +13,12 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import type { GearCtx } from "./gear.js";
+import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList, SurfaceList } from "./res-list.js";
 import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
-import type { AnyResource } from "./resource.js";
-import type { ResourceListPlug, ResourceMapPlug } from "./resource-plug.js";
+import type { ResListPlug, ResMapPlug } from "./res-plug.js";
 
 type ShellCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = GearCtx<RA, KA> & {
   readonly locale: L;
@@ -45,15 +45,15 @@ export type ShellMapComposer<
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-> = <R extends AnyResource>(
+> = <R extends AnyRes>(
   factory: (plugin: ShellMapPlugin<RA, L, KA, NM>) => R | Promise<R>
-) => ResMatrix<R, ResourceMapPlug<RA, KA, NM>>;
+) => ResMatrix<R, ResMapPlug<RA, KA, NM>>;
 
 export type ShellListComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> = <R extends AnyResource>(
+> = <R extends AnyRes>(
   factory: (plugin: GearListPlugin<RA, L, KA, NL>) => R | Promise<R>
-) => ResMatrix<R, ResourceListPlug<RA, KA, NL>>;
+) => ResMatrix<R, ResListPlug<RA, KA, NL>>;

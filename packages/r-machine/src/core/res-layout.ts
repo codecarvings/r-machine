@@ -13,12 +13,12 @@
 
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
+import type { ResFamily } from "./res.js";
 import type { AnyNamespace } from "./res-atlas.js";
-import type { ResourceFamily } from "./resource.js";
 
 // #region ResLayout
 
-export type ResLayoutType = ResourceFamily | "dynamic-shell";
+export type ResLayoutType = ResFamily | "dynamic-shell";
 
 export interface AnyResLayout {
   readonly [namespacePrefix: string]: ResLayoutType;

@@ -13,12 +13,12 @@
 
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
+import type { AnyResOrigin } from "./res.js";
 import type { AnyNamespace } from "./res-atlas.js";
 import type { PathResolver } from "./res-layout.js";
-import type { AnyResourceOrigin } from "./resource.js";
 
 export interface AnyModule {
-  readonly r: AnyResourceOrigin;
+  readonly r: AnyResOrigin;
 }
 
 export type ModuleLoaderFn = (

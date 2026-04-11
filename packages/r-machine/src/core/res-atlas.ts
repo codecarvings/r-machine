@@ -14,7 +14,7 @@
 export type AnyNamespace = string;
 
 export interface AnyResAtlas {
-  readonly [namespace: AnyNamespace]: any; // Do not use AnyResource - It breaks token system
+  readonly [namespace: AnyNamespace]: any; // Do not use AnyRes - It breaks token system
 }
 
 export type Namespace<RA extends AnyResAtlas> = Extract<keyof RA, AnyNamespace>;

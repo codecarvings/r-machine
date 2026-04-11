@@ -11,12 +11,12 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceOrigin, ResMatrix } from "#r-machine/core";
+import type { AnyResOrigin, ResMatrix } from "#r-machine/core";
 
-type ExtractResource<O extends AnyResourceOrigin> = O extends ResMatrix<infer R, any> ? R : O;
+type ExtractResource<O extends AnyResOrigin> = O extends ResMatrix<infer R, any> ? R : O;
 
 // Re-exported from setup.ts as RShape
 declare const r: unique symbol;
-export type BrandedResource<RF extends AnyResourceOrigin> = ExtractResource<RF> & {
+export type BrandedResource<RF extends AnyResOrigin> = ExtractResource<RF> & {
   readonly [r]?: undefined; // Allow nominal typing for resources
 };

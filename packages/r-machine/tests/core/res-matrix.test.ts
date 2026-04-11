@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
+import type { AnyRes } from "../../src/core/res.js";
 import {
   type AnyResMatrix,
   createResMatrix,
   type ResMatrixDescriptor,
   tryGetResMatrixDescriptor,
 } from "../../src/core/res-matrix.js";
-import type { AnyResource } from "../../src/core/resource.js";
-import type { AnyResourcePlug } from "../../src/core/resource-plug.js";
+import type { AnyResPlug } from "../../src/core/res-plug.js";
 
 // --- helpers -----------------------------------------------------------------
 
@@ -16,7 +16,7 @@ function makeDescriptor(overrides: Partial<ResMatrixDescriptor> = {}): ResMatrix
 
 // A sentinel plug — we only care that the exact reference survives round-trip
 // through createResMatrix without being cloned or wrapped.
-const sentinelPlug = {} as AnyResourcePlug;
+const sentinelPlug = {} as AnyResPlug;
 
 // --- createResMatrix ---------------------------------------------------------
 
@@ -118,7 +118,7 @@ describe("createResMatrix", () => {
     it("never calls the factory at construction time", () => {
       // The factory is for lazy resolution — invoking it here would pull in
       // the resource eagerly and defeat the entire async-loading design.
-      const factory = vi.fn(async () => ({ greeting: "hi" }) satisfies AnyResource);
+      const factory = vi.fn(async () => ({ greeting: "hi" }) satisfies AnyRes);
 
       createResMatrix(makeDescriptor(), factory, sentinelPlug);
 
@@ -126,7 +126,7 @@ describe("createResMatrix", () => {
     });
 
     it("stores the exact factory reference (no wrapping, no binding)", () => {
-      const factory = async () => ({ a: 1 }) satisfies AnyResource;
+      const factory = async () => ({ a: 1 }) satisfies AnyRes;
       const mat = createResMatrix(makeDescriptor(), factory, sentinelPlug);
 
       expect(mat.factory).toBe(factory);
@@ -136,7 +136,7 @@ describe("createResMatrix", () => {
       // A factory that throws when called must not affect createResMatrix,
       // because createResMatrix should never call it.
       const boom = new Error("factory must not be called");
-      const throwingFactory = async (): Promise<AnyResource> => {
+      const throwingFactory = async (): Promise<AnyRes> => {
         throw boom;
       };
 
@@ -166,8 +166,8 @@ describe("tryGetResMatrixDescriptor", () => {
     expect(tryGetResMatrixDescriptor(mat)).toBe(descriptor);
   });
 
-  it("returns undefined for a plain AnyResource with no brand symbol", () => {
-    const raw: AnyResource = { greeting: "hi", count: 3 };
+  it("returns undefined for a plain AnyRes with no brand symbol", () => {
+    const raw: AnyRes = { greeting: "hi", count: 3 };
 
     expect(tryGetResMatrixDescriptor(raw)).toBeUndefined();
   });
@@ -175,7 +175,7 @@ describe("tryGetResMatrixDescriptor", () => {
   it("returns undefined for an empty object", () => {
     // Minimal raw resource — the symbol key is unreachable from outside this
     // module, so the guard must return undefined.
-    const raw: AnyResource = {};
+    const raw: AnyRes = {};
 
     expect(tryGetResMatrixDescriptor(raw)).toBeUndefined();
   });
@@ -184,7 +184,7 @@ describe("tryGetResMatrixDescriptor", () => {
     // Defensive regression: a raw resource that happens to have a `factory`
     // or `plug` property must NOT be misidentified as a matrix. The brand
     // symbol is the single source of truth.
-    const raw: AnyResource = { factory: "not a factory", plug: "not a plug" };
+    const raw: AnyRes = { factory: "not a factory", plug: "not a plug" };
 
     expect(tryGetResMatrixDescriptor(raw)).toBeUndefined();
   });
@@ -192,7 +192,7 @@ describe("tryGetResMatrixDescriptor", () => {
   it("returns undefined for a resource carrying an unrelated symbol key", () => {
     // Another module's symbol must never be mistaken for ours.
     const otherSymbol = Symbol("other");
-    const raw = { [otherSymbol]: { family: "gear" } } as unknown as AnyResource;
+    const raw = { [otherSymbol]: { family: "gear" } } as unknown as AnyRes;
 
     expect(tryGetResMatrixDescriptor(raw)).toBeUndefined();
   });

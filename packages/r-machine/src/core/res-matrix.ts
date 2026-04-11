@@ -11,24 +11,24 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResource, AnyResourceOrigin, ResourceFamily } from "./resource.js";
-import type { AnyResourcePlug } from "./resource-plug.js";
+import type { AnyRes, AnyResOrigin, ResFamily } from "./res.js";
+import type { AnyResPlug } from "./res-plug.js";
 
 export interface ResMatrixDescriptor {
-  readonly family: ResourceFamily;
+  readonly family: ResFamily;
   readonly isReactive: boolean;
   readonly isVertex: boolean;
 }
 
 const resMatrixDescriptor: unique symbol = Symbol("resMatrixDescriptor");
-export interface ResMatrix<R extends AnyResource, P extends AnyResourcePlug> {
+export interface ResMatrix<R extends AnyRes, P extends AnyResPlug> {
   readonly [resMatrixDescriptor]: ResMatrixDescriptor;
   readonly factory: () => Promise<R>;
   readonly plug: P;
 }
-export type AnyResMatrix = ResMatrix<AnyResource, AnyResourcePlug>;
+export type AnyResMatrix = ResMatrix<AnyRes, AnyResPlug>;
 
-export function createResMatrix<R extends AnyResource, P extends AnyResourcePlug>(
+export function createResMatrix<R extends AnyRes, P extends AnyResPlug>(
   descriptor: ResMatrixDescriptor,
   factory: () => Promise<R>,
   plug: P
@@ -40,6 +40,6 @@ export function createResMatrix<R extends AnyResource, P extends AnyResourcePlug
   };
 }
 
-export function tryGetResMatrixDescriptor(origin: AnyResourceOrigin): ResMatrixDescriptor | undefined {
+export function tryGetResMatrixDescriptor(origin: AnyResOrigin): ResMatrixDescriptor | undefined {
   return (origin as Partial<AnyResMatrix>)[resMatrixDescriptor];
 }
