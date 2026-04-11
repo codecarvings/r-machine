@@ -11,4 +11,4 @@
  * contact: licensing@codecarvings.com
  */
 
-export class ResourceManager {}
+export class ResBuilder {}

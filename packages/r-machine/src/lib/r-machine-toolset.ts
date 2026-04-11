@@ -11,10 +11,10 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, Forge, Namespace, ResourceKit } from "#r-machine/core";
+import type { AnyResourceAtlas, Forge, Namespace, ResKit } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
-export interface RMachineToolset<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends ResourceKit<RA>> {
+export interface RMachineToolset<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends ResKit<RA>> {
   readonly Forge: Forge<RA, L, KA>;
   readonly localized: LocalizerHelper<RA>;
 }

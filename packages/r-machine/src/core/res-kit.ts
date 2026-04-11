@@ -14,7 +14,7 @@
 import type { AnyResourceAtlas } from "./resource-atlas.js";
 import type { ExplicitNamespaceMap } from "./resource-map.js";
 
-export interface ResourceKit<
+export interface ResKit<
   RA extends AnyResourceAtlas,
   GKA extends ExplicitNamespaceMap<RA> = {},
   SKA extends ExplicitNamespaceMap<RA> = {},

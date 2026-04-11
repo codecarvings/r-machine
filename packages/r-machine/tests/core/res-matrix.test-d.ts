@@ -64,9 +64,7 @@ describe("ResMatrix", () => {
       factory: () => Promise<R>;
       plug: P;
     };
-    expectTypeOf<ResMatrix<AnyResource, AnyResourcePlug>>().not.toEqualTypeOf<
-      Writable<AnyResource, AnyResourcePlug>
-    >();
+    expectTypeOf<ResMatrix<AnyResource, AnyResourcePlug>>().not.toEqualTypeOf<Writable<AnyResource, AnyResourcePlug>>();
   });
 
   it("does NOT expose `descriptor` as a public field (the symbol key replaced it)", () => {

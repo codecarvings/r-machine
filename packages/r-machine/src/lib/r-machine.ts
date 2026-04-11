@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, ExplicitNamespaceMap, ResourceKit } from "#r-machine/core";
+import type { AnyResourceAtlas, ExplicitNamespaceMap, ResKit } from "#r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
@@ -23,7 +23,7 @@ import {
 } from "./r-machine-config.js";
 import type { RMachineToolset } from "./r-machine-toolset.js";
 
-export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends ResourceKit<RA>> {
+export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends ResKit<RA>> {
   constructor(config: RMachineConfig<RA, L, KA>) {
     const configError = validateRMachineConfig(config);
     if (configError) {
@@ -58,8 +58,8 @@ export class RMachine<RA extends AnyResourceAtlas, L extends AnyLocale, KA exten
     GKA extends ExplicitNamespaceMap<RA> = {},
     SKA extends ExplicitNamespaceMap<RA> = {},
     XKA extends ExplicitNamespaceMap<RA> = {},
-  >(config: RMachineConfigParams<RA, LL, GKA, SKA, XKA>): RMachine<RA, LL[number], ResourceKit<RA, GKA, SKA, XKA>> {
-    return new RMachine<RA, LL[number], ResourceKit<RA, GKA, SKA, XKA>>(config as any);
+  >(config: RMachineConfigParams<RA, LL, GKA, SKA, XKA>): RMachine<RA, LL[number], ResKit<RA, GKA, SKA, XKA>> {
+    return new RMachine<RA, LL[number], ResKit<RA, GKA, SKA, XKA>>(config as any);
   }
 }
 

@@ -5,7 +5,7 @@ import type { AnyLocale } from "#r-machine/locale";
 import { RMachine } from "../../src/lib/r-machine.js";
 import { Strategy } from "../../src/strategy/strategy.js";
 
-interface TestResourceKit {
+interface TestResKit {
   gear: {};
   shell: {};
   gate: {};
@@ -13,7 +13,7 @@ interface TestResourceKit {
 
 function createSpyStrategyClass<RA extends AnyResourceAtlas, L extends AnyLocale, C>() {
   const validateConfigSpy = vi.fn();
-  class SpyStrategy extends Strategy<RA, L, TestResourceKit, C> {
+  class SpyStrategy extends Strategy<RA, L, TestResKit, C> {
     protected override validateConfig(): void {
       validateConfigSpy();
     }
@@ -21,25 +21,15 @@ function createSpyStrategyClass<RA extends AnyResourceAtlas, L extends AnyLocale
   return { SpyStrategy, validateConfigSpy };
 }
 
-class ThrowingStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<
-  RA,
-  L,
-  TestResourceKit,
-  C
-> {
+class ThrowingStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, TestResKit, C> {
   protected override validateConfig(): void {
     throw new Error("Validation failed");
   }
 }
 
-class DefaultStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<
-  RA,
-  L,
-  TestResourceKit,
-  C
-> {}
+class DefaultStrategy<RA extends AnyResourceAtlas, L extends AnyLocale, C> extends Strategy<RA, L, TestResKit, C> {}
 
-const testConfig: RMachineConfig<AnyResourceAtlas, string, TestResourceKit> = {
+const testConfig: RMachineConfig<AnyResourceAtlas, string, TestResKit> = {
   resourceAtlas: {},
   locales: ["en", "it"],
   defaultLocale: "en",
@@ -49,7 +39,7 @@ const testConfig: RMachineConfig<AnyResourceAtlas, string, TestResourceKit> = {
 };
 
 function createTestRMachine() {
-  return new RMachine<AnyResourceAtlas, string, TestResourceKit>(testConfig);
+  return new RMachine<AnyResourceAtlas, string, TestResKit>(testConfig);
 }
 
 describe("Strategy", () => {

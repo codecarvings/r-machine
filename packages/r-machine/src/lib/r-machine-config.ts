@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, ExplicitNamespaceMap, ModuleLoaderFn, ResourceKit } from "#r-machine/core";
+import type { AnyResourceAtlas, ExplicitNamespaceMap, ModuleLoaderFn, ResKit } from "#r-machine/core";
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
@@ -47,7 +47,7 @@ export interface RMachineConfigParams<
 export interface RMachineConfig<
   RA extends AnyResourceAtlas,
   L extends AnyLocale,
-  KA extends ResourceKit<RA, any, any, any>,
+  KA extends ResKit<RA, any, any, any>,
 > {
   readonly resourceAtlas: RA;
   readonly locales: LocaleList<L>;
