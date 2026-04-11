@@ -1,24 +1,24 @@
 import { describe, expect, it } from "vitest";
 import type { AnyRes, ResFamily } from "../../src/core/res.js";
-import { createResDescriptor } from "../../src/core/res-descriptor.js";
 import { type AnyResMatrix, createResMatrix } from "../../src/core/res-matrix.js";
 import type { AnyResModule } from "../../src/core/res-module.js";
 import type { AnyResPlug } from "../../src/core/res-plug.js";
+import { createResPod } from "../../src/core/res-pod.js";
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "../../src/errors/index.js";
 
 // --- helpers -----------------------------------------------------------------
 
-type MatrixDescriptor = { family: ResFamily; isReactive: boolean; isVertex: boolean };
+type MatrixData = { family: ResFamily; isReactive: boolean; isVertex: boolean };
 
 // Builds a realistic matrix via the public factory. `plug` and `factory` are
 // sentinel values that we later assert are never touched by
-// createResDescriptor.
-function makeMatrix(descriptor: MatrixDescriptor, resource: AnyRes = {}): AnyResMatrix {
-  return createResMatrix(descriptor, async () => resource, {} as AnyResPlug);
+// createResPod.
+function makeMatrix(data: MatrixData, resource: AnyRes = {}): AnyResMatrix {
+  return createResMatrix(data, async () => resource, {} as AnyResPlug);
 }
 
-function makeMatrixModule(descriptor: MatrixDescriptor, resource?: AnyRes): AnyResModule {
-  return { r: makeMatrix(descriptor, resource) };
+function makeMatrixModule(data: MatrixData, resource?: AnyRes): AnyResModule {
+  return { r: makeMatrix(data, resource) };
 }
 
 function makeRawModule(resource: AnyRes = { greeting: "hi" }): AnyResModule {
@@ -32,7 +32,7 @@ function makeRawModule(resource: AnyRes = { greeting: "hi" }): AnyResModule {
 function captureResolveError(fn: () => unknown): RMachineResolveError {
   try {
     fn();
-    expect.unreachable("expected createResDescriptor to throw an RMachineResolveError");
+    expect.unreachable("expected createResPod to throw an RMachineResolveError");
   } catch (error) {
     expect(error).toBeInstanceOf(RMachineResolveError);
     return error as RMachineResolveError;
@@ -43,13 +43,13 @@ function captureResolveError(fn: () => unknown): RMachineResolveError {
 
 // --- tests -------------------------------------------------------------------
 
-describe("createResDescriptor", () => {
+describe("createResPod", () => {
   describe("ResMatrix origin — happy paths", () => {
-    it("produces a gear descriptor that copies family and flags verbatim from the matrix descriptor", () => {
+    it("produces a gear data that copies family and flags verbatim from the matrix data", () => {
       // This pins the "matrix is the source of truth for family/flags" contract.
       const module = makeMatrixModule({ family: "gear", isReactive: false, isVertex: true });
 
-      const d = createResDescriptor(module, "app/home", undefined, "gear");
+      const d = createResPod(module, "app/home", undefined, "gear");
 
       expect(d).toEqual({
         namespace: "app/home",
@@ -57,16 +57,16 @@ describe("createResDescriptor", () => {
         family: "gear",
         isReactive: false,
         isVertex: true,
-        deps: [],
+        plugData: undefined,
         originType: "res-matrix",
         origin: module.r,
       });
     });
 
-    it("produces a shell descriptor and carries a concrete locale through verbatim", () => {
+    it("produces a shell data and carries a concrete locale through verbatim", () => {
       const module = makeMatrixModule({ family: "shell", isReactive: true, isVertex: false });
 
-      const d = createResDescriptor(module, "app/profile", "it-IT", "shell");
+      const d = createResPod(module, "app/profile", "it-IT", "shell");
 
       expect(d.family).toBe("shell");
       expect(d.isReactive).toBe(true);
@@ -82,7 +82,7 @@ describe("createResDescriptor", () => {
       // be valid under this layout with no further coercion.
       const module = makeMatrixModule({ family: "shell", isReactive: true, isVertex: false });
 
-      const d = createResDescriptor(module, "app/live", "en-US", "dynamic-shell");
+      const d = createResPod(module, "app/live", "en-US", "dynamic-shell");
 
       expect(d.family).toBe("shell");
       expect(d.isReactive).toBe(true);
@@ -94,13 +94,13 @@ describe("createResDescriptor", () => {
       { isReactive: true, isVertex: false },
       { isReactive: false, isVertex: true },
       { isReactive: true, isVertex: true },
-    ])("propagates every (isReactive, isVertex) combination from the matrix descriptor %j", (flags) => {
+    ])("propagates every (isReactive, isVertex) combination from the matrix data %j", (flags) => {
       // A table test is justified here: the function has no branching on these
       // flags, but we want to guarantee *none* is ever inverted, zeroed, or
       // cross-wired by a future refactor.
       const module = makeMatrixModule({ family: "gear", ...flags });
 
-      const d = createResDescriptor(module, "app", undefined, "gear");
+      const d = createResPod(module, "app", undefined, "gear");
 
       expect(d.isReactive).toBe(flags.isReactive);
       expect(d.isVertex).toBe(flags.isVertex);
@@ -111,7 +111,7 @@ describe("createResDescriptor", () => {
     it("throws RMachineResolveError when a gear matrix is used under a shell layout", () => {
       const module = makeMatrixModule({ family: "gear", isReactive: false, isVertex: false });
 
-      const error = captureResolveError(() => createResDescriptor(module, "app/home", "en-US", "shell"));
+      const error = captureResolveError(() => createResPod(module, "app/home", "en-US", "shell"));
 
       expect(error.code).toBe(ERR_RESOLVE_FAILED);
       // Message must name the namespace, the offending family, and the layout
@@ -126,7 +126,7 @@ describe("createResDescriptor", () => {
       // must be rejected, not just one.
       const module = makeMatrixModule({ family: "shell", isReactive: false, isVertex: false });
 
-      const error = captureResolveError(() => createResDescriptor(module, "app/home", undefined, "gear"));
+      const error = captureResolveError(() => createResPod(module, "app/home", undefined, "gear"));
 
       expect(error.code).toBe(ERR_RESOLVE_FAILED);
       expect(error.message).toContain('"shell"');
@@ -136,7 +136,7 @@ describe("createResDescriptor", () => {
     it("throws when a gear matrix is used under a dynamic-shell layout (dynamic-shell collapses to shell, not gear)", () => {
       const module = makeMatrixModule({ family: "gear", isReactive: false, isVertex: false });
 
-      const error = captureResolveError(() => createResDescriptor(module, "app/live", undefined, "dynamic-shell"));
+      const error = captureResolveError(() => createResPod(module, "app/live", undefined, "dynamic-shell"));
 
       expect(error.code).toBe(ERR_RESOLVE_FAILED);
       expect(error.message).toContain('"gear"');
@@ -150,7 +150,7 @@ describe("createResDescriptor", () => {
       // config.
       const module = makeMatrixModule({ family: "gear", isReactive: false, isVertex: false });
 
-      const error = captureResolveError(() => createResDescriptor(module, "app", undefined, "dynamic-shell"));
+      const error = captureResolveError(() => createResPod(module, "app", undefined, "dynamic-shell"));
 
       expect(error.message).toContain("dynamic-shell");
       // It should NOT report a bare "shell" without the "dynamic-" prefix —
@@ -161,10 +161,10 @@ describe("createResDescriptor", () => {
   });
 
   describe("raw AnyRes origin", () => {
-    it("builds a gear descriptor from a raw resource with default static flags and empty deps", () => {
+    it("builds a gear data from a raw resource with default static flags and no plugData", () => {
       const module = makeRawModule({ greeting: "hi" });
 
-      const d = createResDescriptor(module, "app/home", undefined, "gear");
+      const d = createResPod(module, "app/home", undefined, "gear");
 
       expect(d).toEqual({
         namespace: "app/home",
@@ -172,30 +172,30 @@ describe("createResDescriptor", () => {
         family: "gear",
         isReactive: false,
         isVertex: false,
-        deps: [],
+        plugData: undefined,
         originType: "resource",
         origin: module.r,
       });
     });
 
-    it("builds a shell descriptor from a raw resource when the layout is shell, forwarding the locale", () => {
+    it("builds a shell data from a raw resource when the layout is shell, forwarding the locale", () => {
       const module = makeRawModule({ greeting: "ciao" });
 
-      const d = createResDescriptor(module, "app/home", "it-IT", "shell");
+      const d = createResPod(module, "app/home", "it-IT", "shell");
 
       expect(d.family).toBe("shell");
       expect(d.locale).toBe("it-IT");
       expect(d.originType).toBe("resource");
       expect(d.isReactive).toBe(false);
       expect(d.isVertex).toBe(false);
-      expect(d.deps).toEqual([]);
+      expect(d.plugData).toBeUndefined();
       expect(d.origin).toBe(module.r);
     });
 
     it("throws when a raw resource is used under a dynamic-shell layout (matrices are required)", () => {
       const module = makeRawModule();
 
-      const error = captureResolveError(() => createResDescriptor(module, "app/live", "en-US", "dynamic-shell"));
+      const error = captureResolveError(() => createResPod(module, "app/live", "en-US", "dynamic-shell"));
 
       expect(error.code).toBe(ERR_RESOLVE_FAILED);
       expect(error.message).toContain("app/live");
@@ -208,7 +208,7 @@ describe("createResDescriptor", () => {
       // anything that did not come from createResMatrix is raw.
       const rawLikely: AnyRes = { factory: "surprise", plug: "gotcha" };
 
-      const d = createResDescriptor({ r: rawLikely }, "app", undefined, "gear");
+      const d = createResPod({ r: rawLikely }, "app", undefined, "gear");
 
       expect(d.originType).toBe("resource");
       expect(d.family).toBe("gear");
@@ -220,7 +220,7 @@ describe("createResDescriptor", () => {
     it("preserves the exact `origin` reference for matrices (no cloning, no proxy wrapping)", () => {
       const mat = makeMatrix({ family: "gear", isReactive: false, isVertex: false });
 
-      const d = createResDescriptor({ r: mat }, "app", undefined, "gear");
+      const d = createResPod({ r: mat }, "app", undefined, "gear");
 
       expect(d.origin).toBe(mat);
     });
@@ -228,42 +228,28 @@ describe("createResDescriptor", () => {
     it("preserves the exact `origin` reference for raw resources", () => {
       const resource: AnyRes = { a: 1, nested: { b: 2 } };
 
-      const d = createResDescriptor({ r: resource }, "app", undefined, "gear");
+      const d = createResPod({ r: resource }, "app", undefined, "gear");
 
       expect(d.origin).toBe(resource);
     });
 
-    it("returns a fresh descriptor object per call (no memoization of the result)", () => {
+    it("returns a fresh data object per call (no memoization of the result)", () => {
       const module = makeRawModule();
 
-      const d1 = createResDescriptor(module, "app", undefined, "gear");
-      const d2 = createResDescriptor(module, "app", undefined, "gear");
+      const d1 = createResPod(module, "app", undefined, "gear");
+      const d2 = createResPod(module, "app", undefined, "gear");
 
       expect(d1).not.toBe(d2);
       expect(d1).toEqual(d2);
     });
 
-    it("returns a fresh `deps` array per call so that caller-side mutation cannot leak between descriptors", () => {
-      // The TODO notes that `deps` will eventually be extracted from the plug;
-      // until then, a shared-reference bug would be silent but dangerous. This
-      // test fails as soon as someone inadvertently introduces a module-level
-      // constant and reuses it.
-      const module = makeRawModule();
-
-      const d1 = createResDescriptor(module, "app", undefined, "gear");
-      const d2 = createResDescriptor(module, "app", undefined, "gear");
-
-      expect(d1.deps).not.toBe(d2.deps);
-      d1.deps.push("leak");
-      expect(d2.deps).toEqual([]);
-    });
-
-    it("does not read the matrix's `factory` or `plug` — only the matrix descriptor is consulted", () => {
+    it("does not read the matrix's `factory` — it stays untouched until resolution time", () => {
       // The factory is expensive (may do network/disk IO); reading it here
-      // would break the invariant that descriptor construction is pure and
-      // synchronous. `plug` is similarly not yet used. We enforce both by
-      // replacing both fields with getters that throw on access, AFTER the
-      // matrix is built via the public factory.
+      // would break the invariant that data construction is pure and
+      // synchronous. We enforce this by replacing it with a getter that
+      // throws on access, AFTER the matrix is built via the public factory.
+      // `plug` IS read on purpose (plugData is extracted from it), so it
+      // is not part of this invariant.
       const mat = createResMatrix(
         { family: "gear", isReactive: false, isVertex: false },
         async () => ({}),
@@ -271,24 +257,19 @@ describe("createResDescriptor", () => {
       );
       Object.defineProperty(mat, "factory", {
         get() {
-          throw new Error("factory must not be read during descriptor construction");
-        },
-      });
-      Object.defineProperty(mat, "plug", {
-        get() {
-          throw new Error("plug must not be read during descriptor construction");
+          throw new Error("factory must not be read during data construction");
         },
       });
 
-      expect(() => createResDescriptor({ r: mat }, "app", undefined, "gear")).not.toThrow();
+      expect(() => createResPod({ r: mat }, "app", undefined, "gear")).not.toThrow();
     });
 
-    it("does not mutate the matrix descriptor object that was passed to createResMatrix", () => {
-      const descriptor: MatrixDescriptor = { family: "shell", isReactive: true, isVertex: false };
-      const frozen = Object.freeze({ ...descriptor });
+    it("does not mutate the matrix data object that was passed to createResMatrix", () => {
+      const data: MatrixData = { family: "shell", isReactive: true, isVertex: false };
+      const frozen = Object.freeze({ ...data });
       const mat = createResMatrix(frozen, async () => ({}), {} as AnyResPlug);
 
-      const d = createResDescriptor({ r: mat }, "app", "en-US", "shell");
+      const d = createResPod({ r: mat }, "app", "en-US", "shell");
 
       // Frozen source is still frozen; values still match; d's values are
       // decoupled copies, so they can coexist.
@@ -301,23 +282,23 @@ describe("createResDescriptor", () => {
       const raw: AnyRes = { a: 1 };
       const module: AnyResModule = Object.freeze({ r: raw });
 
-      const d = createResDescriptor(module, "app", undefined, "gear");
+      const d = createResPod(module, "app", undefined, "gear");
 
       expect(Object.isFrozen(module)).toBe(true);
       expect(module.r).toBe(raw);
       expect(d.origin).toBe(raw);
     });
 
-    it("builds distinct descriptors from the same module when called with different (namespace, locale, layout)", () => {
+    it("builds distinct data objects from the same module when called with different (namespace, locale, layout)", () => {
       // The same loaded module can legitimately be described under multiple
       // contexts (e.g. the same shell under two locales). Each call should
-      // produce an independent descriptor that still points at the shared
+      // produce an independent data object that still points at the shared
       // origin — critical for any caching layer built on top.
       const mat = makeMatrix({ family: "shell", isReactive: false, isVertex: false });
       const module: AnyResModule = { r: mat };
 
-      const dIt = createResDescriptor(module, "app", "it-IT", "shell");
-      const dEn = createResDescriptor(module, "app", "en-US", "shell");
+      const dIt = createResPod(module, "app", "it-IT", "shell");
+      const dEn = createResPod(module, "app", "en-US", "shell");
 
       expect(dIt.origin).toBe(mat);
       expect(dEn.origin).toBe(mat);
@@ -332,7 +313,7 @@ describe("createResDescriptor", () => {
       const module = makeRawModule();
       const ns = "app/settings/profile/日本語";
 
-      const d = createResDescriptor(module, ns, undefined, "gear");
+      const d = createResPod(module, ns, undefined, "gear");
 
       expect(d.namespace).toBe(ns);
     });
@@ -341,7 +322,7 @@ describe("createResDescriptor", () => {
       // The function should not editorialise: validation is the caller's job.
       const module = makeRawModule();
 
-      const d = createResDescriptor(module, "", undefined, "gear");
+      const d = createResPod(module, "", undefined, "gear");
 
       expect(d.namespace).toBe("");
     });
@@ -350,7 +331,7 @@ describe("createResDescriptor", () => {
       const module = makeMatrixModule({ family: "shell", isReactive: false, isVertex: false });
 
       for (const locale of ["en-US", "it-IT", "en-US-POSIX", "zh-Hant-TW", ""]) {
-        const d = createResDescriptor(module, "app", locale, "shell");
+        const d = createResPod(module, "app", locale, "shell");
         expect(d.locale).toBe(locale);
       }
     });
@@ -361,7 +342,7 @@ describe("createResDescriptor", () => {
       const module = makeRawModule();
       let threw = false;
       try {
-        createResDescriptor(module, "app", undefined, "dynamic-shell");
+        createResPod(module, "app", undefined, "dynamic-shell");
       } catch {
         threw = true;
       }

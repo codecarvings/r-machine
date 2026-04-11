@@ -11,60 +11,52 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { BasePlugDescriptor } from "./base-plug.js";
+import type { PlugData, PlugDataProvider, PlugMode } from "./plug-data.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
 
-type ResPlugKind = "map" | "list";
-
-interface ResPlugDescriptor<
-  K extends ResPlugKind,
+interface ResPlugData<
+  M extends PlugMode,
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NS extends NamespaceMap<RA> | NamespaceList<RA>,
-  S extends AnyState,
-> extends BasePlugDescriptor<RA, KA, NS> {
-  readonly kind: K;
-  readonly defaultState: S;
-}
+> extends PlugData<"res", M, RA, KA, NS> {}
 
-const resPlugDescriptor = Symbol("resPlugDescriptor");
-interface ResPlug<
-  K extends ResPlugKind,
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NS extends NamespaceMap<RA> | NamespaceList<RA>,
-  S extends AnyState,
-> {
-  readonly [resPlugDescriptor]: ResPlugDescriptor<K, RA, KA, NS, S>;
-}
-
-export function getResPlugDescriptor<P extends AnyResPlug>(plug: P): P[typeof resPlugDescriptor] {
-  return plug[resPlugDescriptor];
-}
-
-export type AnyResPlug = ResPlug<any, any, any, any, any>;
-
-declare const noState: unique symbol;
 export interface ResMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>
-  extends ResPlug<"map", RA, KA, NM, typeof noState> {}
+  extends PlugDataProvider<ResPlugData<"map", RA, KA, NM>> {}
 
 export interface ResListPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>>
-  extends ResPlug<"list", RA, KA, NL, typeof noState> {}
+  extends PlugDataProvider<ResPlugData<"list", RA, KA, NL>> {}
 
 export type AnyState = unknown; // Record<PropertyKey, unknown> & object;
+
+export interface StateResPlugData<
+  M extends PlugMode,
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA> | NamespaceList<RA>,
+  S extends AnyState,
+> extends ResPlugData<M, RA, KA, NM> {
+  readonly defaultState: S;
+}
 
 export interface StatefulResMapPlug<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
-> extends ResPlug<"map", RA, KA, NM, S> {}
+> extends PlugDataProvider<StateResPlugData<"map", RA, KA, NM, S>> {}
 
 export interface StatefulResListPlug<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
   S extends AnyState,
-> extends ResPlug<"list", RA, KA, NL, S> {}
+> extends PlugDataProvider<StateResPlugData<"list", RA, KA, NL, S>> {}
+
+export type AnyResPlug =
+  | ResMapPlug<any, any, any>
+  | ResListPlug<any, any, any>
+  | StatefulResMapPlug<any, any, any, any>
+  | StatefulResListPlug<any, any, any, any>;

@@ -13,52 +13,52 @@
 
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
+import { type AnyPlugData, getPlugData } from "./plug-data.js";
 import type { AnyResOrigin, ResFamily } from "./res.js";
 import type { AnyNamespace } from "./res-atlas.js";
 import type { ResLayoutType } from "./res-layout.js";
-import { type AnyResMatrix, tryGetResMatrixDescriptor } from "./res-matrix.js";
+import { type AnyResMatrix, tryGetResMatrixData } from "./res-matrix.js";
 import type { AnyResModule } from "./res-module.js";
-import { getResPlugDescriptor } from "./res-plug.js";
 
 type ResOriginType = "resource" | "res-matrix";
 
-export interface ResDescriptor {
+export interface ResPod {
   readonly namespace: AnyNamespace;
   readonly locale: AnyLocale | undefined;
   readonly family: ResFamily;
   readonly isReactive: boolean;
   readonly isVertex: boolean;
-  readonly deps: AnyNamespace[];
+  readonly plugData: AnyPlugData | undefined;
   readonly originType: ResOriginType;
   readonly origin: AnyResOrigin;
 }
 
-export function createResDescriptor(
+export function createResPod(
   module: AnyResModule,
   namespace: AnyNamespace,
   locale: AnyLocale | undefined,
   resLayoutType: ResLayoutType
-): ResDescriptor {
+): ResPod {
   const origin = module.r;
-  const matrixDescriptor = tryGetResMatrixDescriptor(origin);
+  const matrixData = tryGetResMatrixData(origin);
 
-  if (matrixDescriptor !== undefined) {
-    const { family, isReactive, isVertex } = matrixDescriptor;
+  if (matrixData !== undefined) {
+    const { family, isReactive, isVertex } = matrixData;
     const layoutFamily: ResFamily = resLayoutType === "dynamic-shell" ? "shell" : resLayoutType;
     if (family !== layoutFamily) {
       throw new RMachineResolveError(
         ERR_RESOLVE_FAILED,
-        `Unable to build descriptor for namespace "${namespace}" - matrix family "${family}" does not match layout "${resLayoutType}".`
+        `Unable to build resource pod for namespace "${namespace}" - matrix family "${family}" does not match layout type "${resLayoutType}".`
       );
     }
-    const { deps } = getResPlugDescriptor((origin as AnyResMatrix).plug);
+    const plugData = getPlugData((origin as AnyResMatrix).plug);
     return {
       namespace,
       locale,
       family,
       isReactive,
       isVertex,
-      deps,
+      plugData,
       originType: "res-matrix",
       origin,
     };
@@ -67,7 +67,7 @@ export function createResDescriptor(
   if (resLayoutType === "dynamic-shell") {
     throw new RMachineResolveError(
       ERR_RESOLVE_FAILED,
-      `Unable to build descriptor for namespace "${namespace}" - layout "dynamic-shell" requires a shell factory, got a raw resource.`
+      `Unable to build resource pod for namespace "${namespace}" - layout "dynamic-shell" requires a shell factory, got a raw resource.`
     );
   }
 
@@ -77,7 +77,7 @@ export function createResDescriptor(
     family: resLayoutType,
     isReactive: false,
     isVertex: false,
-    deps: [],
+    plugData: undefined,
     originType: "resource",
     origin,
   };

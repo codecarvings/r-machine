@@ -15,12 +15,40 @@ import type { AnyNamespace, AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
 
-export interface BasePlugDescriptor<
+export type PlugArea = "res" | "gate";
+export type PlugMode = "map" | "list";
+
+export interface PlugData<
+  A extends PlugArea,
+  M extends PlugMode,
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NS extends NamespaceMap<RA> | NamespaceList<RA>,
 > {
+  readonly area: A;
+  readonly mode: M;
   readonly kit: KA;
   readonly namespaces: NS;
   readonly deps: AnyNamespace[];
+}
+export type AnyPlugData = PlugData<any, any, any, any, any>;
+
+const plugData = Symbol("plugData");
+export interface PlugDataProvider<PD extends AnyPlugData> {
+  readonly [plugData]: PD;
+}
+
+export type AnyPlugDataProvider = PlugDataProvider<any>;
+
+export function getPlugData<P extends AnyPlugDataProvider>(plug: P): P[typeof plugData] {
+  return plug[plugData];
+}
+
+export function createPlugDataProvider<B extends object, PD extends AnyPlugData>(
+  base: B,
+  data: PD
+): B & PlugDataProvider<PD> {
+  return Object.assign({}, base, {
+    [plugData]: data,
+  });
 }

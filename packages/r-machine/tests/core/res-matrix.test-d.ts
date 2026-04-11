@@ -4,35 +4,35 @@ import {
   type AnyResMatrix,
   createResMatrix,
   type ResMatrix,
-  type ResMatrixDescriptor,
-  tryGetResMatrixDescriptor,
+  type ResMatrixData,
+  tryGetResMatrixData,
 } from "../../src/core/res-matrix.js";
 import type { AnyResPlug } from "../../src/core/res-plug.js";
 
-describe("ResMatrixDescriptor", () => {
+describe("ResMatrixData", () => {
   it("has exactly the declared fields — no implicit additions", () => {
-    type Keys = keyof ResMatrixDescriptor;
+    type Keys = keyof ResMatrixData;
     expectTypeOf<Keys>().toEqualTypeOf<"family" | "isReactive" | "isVertex">();
   });
 
   it("types `family` as ResFamily (gear | shell), excluding dynamic-shell", () => {
-    // The descriptor is the post-resolution artefact; `dynamic-shell` is a
+    // The data is the post-resolution artefact; `dynamic-shell` is a
     // *layout* concept and must not leak into the family at this level.
-    expectTypeOf<ResMatrixDescriptor["family"]>().toEqualTypeOf<ResFamily>();
-    expectTypeOf<ResMatrixDescriptor["family"]>().toEqualTypeOf<"gear" | "shell">();
-    expectTypeOf<"dynamic-shell">().not.toExtend<ResMatrixDescriptor["family"]>();
+    expectTypeOf<ResMatrixData["family"]>().toEqualTypeOf<ResFamily>();
+    expectTypeOf<ResMatrixData["family"]>().toEqualTypeOf<"gear" | "shell">();
+    expectTypeOf<"dynamic-shell">().not.toExtend<ResMatrixData["family"]>();
   });
 
   it("types the boolean flags as plain booleans (not widened, not literal)", () => {
-    expectTypeOf<ResMatrixDescriptor["isReactive"]>().toEqualTypeOf<boolean>();
-    expectTypeOf<ResMatrixDescriptor["isVertex"]>().toEqualTypeOf<boolean>();
+    expectTypeOf<ResMatrixData["isReactive"]>().toEqualTypeOf<boolean>();
+    expectTypeOf<ResMatrixData["isVertex"]>().toEqualTypeOf<boolean>();
   });
 
   it("marks every field as readonly (writable twin is not assignable)", () => {
     type Writable = { family: ResFamily; isReactive: boolean; isVertex: boolean };
-    expectTypeOf<ResMatrixDescriptor>().not.toEqualTypeOf<Writable>();
+    expectTypeOf<ResMatrixData>().not.toEqualTypeOf<Writable>();
     // Sanity: the writable form is still structurally assignable.
-    expectTypeOf<Writable>().toExtend<ResMatrixDescriptor>();
+    expectTypeOf<Writable>().toExtend<ResMatrixData>();
   });
 });
 
@@ -51,9 +51,11 @@ describe("ResMatrix", () => {
   });
 
   it("exposes `plug` as the exact P type passed in", () => {
-    interface MyPlug extends AnyResPlug {
-      readonly marker: "my-plug";
-    }
+    // `AnyResPlug` is a union of concrete plug shapes, so we cannot declare
+    // a derived plug via `interface extends` — we use an intersection type
+    // alias instead, which distributes over the union and preserves the
+    // `[plugData]` symbol key each member carries.
+    type MyPlug = AnyResPlug & { readonly marker: "my-plug" };
     type Specific = ResMatrix<AnyRes, MyPlug>;
     expectTypeOf<Specific["plug"]>().toEqualTypeOf<MyPlug>();
   });
@@ -67,11 +69,11 @@ describe("ResMatrix", () => {
     expectTypeOf<ResMatrix<AnyRes, AnyResPlug>>().not.toEqualTypeOf<Writable<AnyRes, AnyResPlug>>();
   });
 
-  it("does NOT expose `descriptor` as a public field (the symbol key replaced it)", () => {
-    // Regression guard: the old shape had a `descriptor` field; the refactor
-    // collapsed brand + descriptor into a single symbol-keyed slot. If this
+  it("does NOT expose `data` as a public field (the symbol key replaced it)", () => {
+    // Regression guard: the old shape had a `data` field; the refactor
+    // collapsed brand + data into a single symbol-keyed slot. If this
     // ever comes back, the type should start showing the field here.
-    expectTypeOf<"descriptor">().not.toExtend<keyof ResMatrix<AnyRes, AnyResPlug>>();
+    expectTypeOf<"data">().not.toExtend<keyof ResMatrix<AnyRes, AnyResPlug>>();
   });
 });
 
@@ -86,8 +88,8 @@ describe("AnyResMatrix", () => {
 });
 
 describe("createResMatrix — signature", () => {
-  it("takes (descriptor, factory, plug) in this exact order with the declared parameter types", () => {
-    expectTypeOf(createResMatrix).parameter(0).toEqualTypeOf<ResMatrixDescriptor>();
+  it("takes (data, factory, plug) in this exact order with the declared parameter types", () => {
+    expectTypeOf(createResMatrix).parameter(0).toEqualTypeOf<ResMatrixData>();
     // parameter(1) is generic-dependent; we check via the full parameter tuple below.
     expectTypeOf(createResMatrix).parameter(2).toExtend<AnyResPlug>();
   });
@@ -97,23 +99,21 @@ describe("createResMatrix — signature", () => {
     // Using the `AnyRes`/`AnyResPlug` instantiation because a bare
     // reference to the generic function widens unpredictably in Parameters<>.
     type Args = Parameters<typeof createResMatrix<AnyRes, AnyResPlug>>;
-    expectTypeOf<Args>().toEqualTypeOf<
-      [descriptor: ResMatrixDescriptor, factory: () => Promise<AnyRes>, plug: AnyResPlug]
-    >();
+    expectTypeOf<Args>().toEqualTypeOf<[data: ResMatrixData, factory: () => Promise<AnyRes>, plug: AnyResPlug]>();
   });
 
   it("returns a ResMatrix<R, P> that preserves both generic parameters at the call site", () => {
     interface MyResource extends AnyRes {
       readonly greeting: string;
     }
-    interface MyPlug extends AnyResPlug {
-      readonly marker: "my-plug";
-    }
-    const descriptor: ResMatrixDescriptor = { family: "gear", isReactive: false, isVertex: false };
+    // Type alias (not interface) because `AnyResPlug` is a union — see the
+    // earlier `exposes plug as the exact P type` test for the rationale.
+    type MyPlug = AnyResPlug & { readonly marker: "my-plug" };
+    const data: ResMatrixData = { family: "gear", isReactive: false, isVertex: false };
     const factory = async (): Promise<MyResource> => ({ greeting: "hi" });
     const plug = {} as MyPlug;
 
-    const mat = createResMatrix(descriptor, factory, plug);
+    const mat = createResMatrix(data, factory, plug);
 
     // The return type must preserve BOTH generic parameters — neither
     // widened to AnyRes nor dropped to AnyResMatrix.
@@ -133,14 +133,14 @@ describe("createResMatrix — signature", () => {
     expectTypeOf(mat).toExtend<AnyResMatrix>();
   });
 
-  it("rejects a descriptor whose family is not a ResFamily literal", () => {
+  it("rejects a data whose family is not a ResFamily literal", () => {
     // @ts-expect-error — "dynamic-shell" is a layout, not a family
     createResMatrix({ family: "dynamic-shell", isReactive: false, isVertex: false }, async () => ({}), {});
     // @ts-expect-error — arbitrary strings are not valid families
     createResMatrix({ family: "custom", isReactive: false, isVertex: false }, async () => ({}), {});
   });
 
-  it("rejects a descriptor missing required fields", () => {
+  it("rejects a data missing required fields", () => {
     // @ts-expect-error — isVertex is required
     createResMatrix({ family: "gear", isReactive: false }, async () => ({}), {});
     // @ts-expect-error — isReactive is required
@@ -155,24 +155,24 @@ describe("createResMatrix — signature", () => {
   });
 
   it("rejects a factory that takes arguments (it must be nullary)", () => {
-    const descriptor: ResMatrixDescriptor = { family: "gear", isReactive: false, isVertex: false };
+    const data: ResMatrixData = { family: "gear", isReactive: false, isVertex: false };
     // @ts-expect-error — extra parameters are not permitted
-    createResMatrix(descriptor, async (arg: string) => ({ arg }), {});
+    createResMatrix(data, async (arg: string) => ({ arg }), {});
   });
 });
 
-describe("tryGetResMatrixDescriptor — signature", () => {
-  it("takes an AnyResOrigin and returns ResMatrixDescriptor | undefined", () => {
-    expectTypeOf(tryGetResMatrixDescriptor).parameter(0).toEqualTypeOf<AnyResOrigin>();
-    expectTypeOf(tryGetResMatrixDescriptor).returns.toEqualTypeOf<ResMatrixDescriptor | undefined>();
+describe("tryGetResMatrixData — signature", () => {
+  it("takes an AnyResOrigin and returns ResMatrixData | undefined", () => {
+    expectTypeOf(tryGetResMatrixData).parameter(0).toEqualTypeOf<AnyResOrigin>();
+    expectTypeOf(tryGetResMatrixData).returns.toEqualTypeOf<ResMatrixData | undefined>();
   });
 
   it("has exactly one required positional parameter", () => {
-    expectTypeOf<Parameters<typeof tryGetResMatrixDescriptor>>().toEqualTypeOf<[origin: AnyResOrigin]>();
+    expectTypeOf<Parameters<typeof tryGetResMatrixData>>().toEqualTypeOf<[origin: AnyResOrigin]>();
   });
 
   it("always includes undefined in the return type (absence must be representable)", () => {
-    expectTypeOf<undefined>().toExtend<ReturnType<typeof tryGetResMatrixDescriptor>>();
+    expectTypeOf<undefined>().toExtend<ReturnType<typeof tryGetResMatrixData>>();
   });
 
   it("accepts both variants of AnyResOrigin at the call site", () => {
@@ -183,7 +183,7 @@ describe("tryGetResMatrixDescriptor — signature", () => {
     );
     const raw: AnyRes = { greeting: "hi" };
 
-    expectTypeOf(tryGetResMatrixDescriptor(mat)).toEqualTypeOf<ResMatrixDescriptor | undefined>();
-    expectTypeOf(tryGetResMatrixDescriptor(raw)).toEqualTypeOf<ResMatrixDescriptor | undefined>();
+    expectTypeOf(tryGetResMatrixData(mat)).toEqualTypeOf<ResMatrixData | undefined>();
+    expectTypeOf(tryGetResMatrixData(raw)).toEqualTypeOf<ResMatrixData | undefined>();
   });
 });

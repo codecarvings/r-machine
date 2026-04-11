@@ -3,14 +3,14 @@ import type { AnyRes } from "../../src/core/res.js";
 import {
   type AnyResMatrix,
   createResMatrix,
-  type ResMatrixDescriptor,
-  tryGetResMatrixDescriptor,
+  type ResMatrixData,
+  tryGetResMatrixData,
 } from "../../src/core/res-matrix.js";
 import type { AnyResPlug } from "../../src/core/res-plug.js";
 
 // --- helpers -----------------------------------------------------------------
 
-function makeDescriptor(overrides: Partial<ResMatrixDescriptor> = {}): ResMatrixDescriptor {
+function makeData(overrides: Partial<ResMatrixData> = {}): ResMatrixData {
   return { family: "gear", isReactive: false, isVertex: false, ...overrides };
 }
 
@@ -24,73 +24,73 @@ describe("createResMatrix", () => {
   describe("shape of the returned matrix", () => {
     it("returns an object that exposes factory and plug as own properties", () => {
       const factory = async () => ({});
-      const mat = createResMatrix(makeDescriptor(), factory, sentinelPlug);
+      const mat = createResMatrix(makeData(), factory, sentinelPlug);
 
       expect(mat.factory).toBe(factory);
       expect(mat.plug).toBe(sentinelPlug);
     });
 
-    it("stores the descriptor under an internal key retrievable via tryGetResMatrixDescriptor", () => {
+    it("stores the data under an internal key retrievable via tryGetResMatrixData", () => {
       // The symbol key is module-private, so the only legitimate way to read
-      // the descriptor back is through the dedicated accessor. This test pins
+      // the data back is through the dedicated accessor. This test pins
       // that contract: construct + read must round-trip exactly.
-      const descriptor = makeDescriptor({ family: "shell", isReactive: true, isVertex: true });
-      const mat = createResMatrix(descriptor, async () => ({}), sentinelPlug);
+      const data = makeData({ family: "shell", isReactive: true, isVertex: true });
+      const mat = createResMatrix(data, async () => ({}), sentinelPlug);
 
-      expect(tryGetResMatrixDescriptor(mat)).toBe(descriptor);
+      expect(tryGetResMatrixData(mat)).toBe(data);
     });
 
-    it("does not surface the descriptor as a `descriptor` own property on the returned object", () => {
+    it("does not surface the data as a `data` own property on the returned object", () => {
       // Regression guard: the interface deliberately dropped the old
-      // `descriptor` field when the symbol key took over. Keeping a public
+      // `data` field when the symbol key took over. Keeping a public
       // mirror would defeat the encapsulation — callers must go through
-      // tryGetResMatrixDescriptor.
-      const mat = createResMatrix(makeDescriptor(), async () => ({}), sentinelPlug);
+      // tryGetResMatrixData.
+      const mat = createResMatrix(makeData(), async () => ({}), sentinelPlug);
 
-      expect("descriptor" in mat).toBe(false);
+      expect("data" in mat).toBe(false);
     });
 
     it("lists exactly two string-keyed own properties: `factory` and `plug`", () => {
-      // No accidental extras leaking into the public surface. The descriptor
+      // No accidental extras leaking into the public surface. The data
       // lives under a symbol key and must not appear in Object.keys().
-      const mat = createResMatrix(makeDescriptor(), async () => ({}), sentinelPlug);
+      const mat = createResMatrix(makeData(), async () => ({}), sentinelPlug);
 
       expect(Object.keys(mat).sort()).toEqual(["factory", "plug"]);
     });
   });
 
   describe("identity and non-mutation", () => {
-    it("stores the descriptor by reference — no clone, no defensive copy", () => {
-      // We rely on this to keep descriptor construction O(1) and to let
+    it("stores the data by reference — no clone, no defensive copy", () => {
+      // We rely on this to keep data construction O(1) and to let
       // callers compare by identity if they ever need to dedupe.
-      const descriptor = makeDescriptor({ family: "shell" });
-      const mat = createResMatrix(descriptor, async () => ({}), sentinelPlug);
+      const data = makeData({ family: "shell" });
+      const mat = createResMatrix(data, async () => ({}), sentinelPlug);
 
-      expect(tryGetResMatrixDescriptor(mat)).toBe(descriptor);
+      expect(tryGetResMatrixData(mat)).toBe(data);
     });
 
-    it("does not mutate the descriptor argument", () => {
-      const descriptor = makeDescriptor({ family: "shell", isReactive: true, isVertex: false });
-      const snapshot = { ...descriptor };
+    it("does not mutate the data argument", () => {
+      const data = makeData({ family: "shell", isReactive: true, isVertex: false });
+      const snapshot = { ...data }; // shallow snapshot is enough since the fields are primitives
 
-      createResMatrix(descriptor, async () => ({}), sentinelPlug);
+      createResMatrix(data, async () => ({}), sentinelPlug);
 
-      expect(descriptor).toEqual(snapshot);
+      expect(data).toEqual(snapshot);
     });
 
-    it("does not freeze the descriptor argument (freezing is the caller's choice)", () => {
-      const descriptor = makeDescriptor();
+    it("does not freeze the data argument (freezing is the caller's choice)", () => {
+      const data = makeData();
 
-      createResMatrix(descriptor, async () => ({}), sentinelPlug);
+      createResMatrix(data, async () => ({}), sentinelPlug);
 
-      expect(Object.isFrozen(descriptor)).toBe(false);
+      expect(Object.isFrozen(data)).toBe(false);
     });
 
-    it("accepts a frozen descriptor and preserves its frozen state end-to-end", () => {
-      const frozen = Object.freeze(makeDescriptor({ family: "shell" }));
+    it("accepts a frozen data and preserves its frozen state end-to-end", () => {
+      const frozen = Object.freeze(makeData({ family: "shell" }));
 
       const mat = createResMatrix(frozen, async () => ({}), sentinelPlug);
-      const retrieved = tryGetResMatrixDescriptor(mat);
+      const retrieved = tryGetResMatrixData(mat);
 
       expect(retrieved).toBe(frozen);
       expect(Object.isFrozen(retrieved)).toBe(true);
@@ -98,19 +98,19 @@ describe("createResMatrix", () => {
 
     it("produces distinct matrix objects on every call, even with the same arguments", () => {
       // The factory must not memoize — two call sites that happen to pass the
-      // same descriptor/factory/plug should still get independent matrices
+      // same data/factory/plug should still get independent matrices
       // so they can be tracked, cached, or disposed independently.
-      const descriptor = makeDescriptor();
+      const data = makeData();
       const factory = async () => ({});
 
-      const m1 = createResMatrix(descriptor, factory, sentinelPlug);
-      const m2 = createResMatrix(descriptor, factory, sentinelPlug);
+      const m1 = createResMatrix(data, factory, sentinelPlug);
+      const m2 = createResMatrix(data, factory, sentinelPlug);
 
       expect(m1).not.toBe(m2);
       // But the pieces they share are still identity-equal.
       expect(m1.factory).toBe(m2.factory);
       expect(m1.plug).toBe(m2.plug);
-      expect(tryGetResMatrixDescriptor(m1)).toBe(tryGetResMatrixDescriptor(m2));
+      expect(tryGetResMatrixData(m1)).toBe(tryGetResMatrixData(m2));
     });
   });
 
@@ -120,14 +120,14 @@ describe("createResMatrix", () => {
       // the resource eagerly and defeat the entire async-loading design.
       const factory = vi.fn(async () => ({ greeting: "hi" }) satisfies AnyRes);
 
-      createResMatrix(makeDescriptor(), factory, sentinelPlug);
+      createResMatrix(makeData(), factory, sentinelPlug);
 
       expect(factory).not.toHaveBeenCalled();
     });
 
     it("stores the exact factory reference (no wrapping, no binding)", () => {
       const factory = async () => ({ a: 1 }) satisfies AnyRes;
-      const mat = createResMatrix(makeDescriptor(), factory, sentinelPlug);
+      const mat = createResMatrix(makeData(), factory, sentinelPlug);
 
       expect(mat.factory).toBe(factory);
     });
@@ -140,19 +140,19 @@ describe("createResMatrix", () => {
         throw boom;
       };
 
-      expect(() => createResMatrix(makeDescriptor(), throwingFactory, sentinelPlug)).not.toThrow();
+      expect(() => createResMatrix(makeData(), throwingFactory, sentinelPlug)).not.toThrow();
     });
   });
 });
 
-// --- tryGetResMatrixDescriptor ----------------------------------------------
+// --- tryGetResMatrixData ----------------------------------------------
 
-describe("tryGetResMatrixDescriptor", () => {
-  it("returns the descriptor for a matrix built via createResMatrix", () => {
-    const descriptor = makeDescriptor({ family: "shell", isReactive: true, isVertex: true });
-    const mat = createResMatrix(descriptor, async () => ({}), sentinelPlug);
+describe("tryGetResMatrixData", () => {
+  it("returns the data for a matrix built via createResMatrix", () => {
+    const data = makeData({ family: "shell", isReactive: true, isVertex: true });
+    const mat = createResMatrix(data, async () => ({}), sentinelPlug);
 
-    expect(tryGetResMatrixDescriptor(mat)).toEqual({
+    expect(tryGetResMatrixData(mat)).toEqual({
       family: "shell",
       isReactive: true,
       isVertex: true,
@@ -160,16 +160,16 @@ describe("tryGetResMatrixDescriptor", () => {
   });
 
   it("returns the exact same reference stored at construction time (identity round-trip)", () => {
-    const descriptor = makeDescriptor();
-    const mat = createResMatrix(descriptor, async () => ({}), sentinelPlug);
+    const data = makeData();
+    const mat = createResMatrix(data, async () => ({}), sentinelPlug);
 
-    expect(tryGetResMatrixDescriptor(mat)).toBe(descriptor);
+    expect(tryGetResMatrixData(mat)).toBe(data);
   });
 
   it("returns undefined for a plain AnyRes with no brand symbol", () => {
     const raw: AnyRes = { greeting: "hi", count: 3 };
 
-    expect(tryGetResMatrixDescriptor(raw)).toBeUndefined();
+    expect(tryGetResMatrixData(raw)).toBeUndefined();
   });
 
   it("returns undefined for an empty object", () => {
@@ -177,7 +177,7 @@ describe("tryGetResMatrixDescriptor", () => {
     // module, so the guard must return undefined.
     const raw: AnyRes = {};
 
-    expect(tryGetResMatrixDescriptor(raw)).toBeUndefined();
+    expect(tryGetResMatrixData(raw)).toBeUndefined();
   });
 
   it("returns undefined for a resource whose own string keys coincidentally look matrix-ish", () => {
@@ -186,7 +186,7 @@ describe("tryGetResMatrixDescriptor", () => {
     // symbol is the single source of truth.
     const raw: AnyRes = { factory: "not a factory", plug: "not a plug" };
 
-    expect(tryGetResMatrixDescriptor(raw)).toBeUndefined();
+    expect(tryGetResMatrixData(raw)).toBeUndefined();
   });
 
   it("returns undefined for a resource carrying an unrelated symbol key", () => {
@@ -194,24 +194,24 @@ describe("tryGetResMatrixDescriptor", () => {
     const otherSymbol = Symbol("other");
     const raw = { [otherSymbol]: { family: "gear" } } as unknown as AnyRes;
 
-    expect(tryGetResMatrixDescriptor(raw)).toBeUndefined();
+    expect(tryGetResMatrixData(raw)).toBeUndefined();
   });
 });
 
-// --- integration: createResMatrix ⇄ tryGetResMatrixDescriptor ----------------
+// --- integration: createResMatrix ⇄ tryGetResMatrixData ----------------
 
-describe("createResMatrix ⇄ tryGetResMatrixDescriptor round-trip", () => {
+describe("createResMatrix ⇄ tryGetResMatrixData round-trip", () => {
   it("treats the matrix as assignable to AnyResMatrix at the type level", () => {
     // Lightweight sanity check that the generic signature does not leak into
     // anything incompatible with AnyResMatrix (the erased variant used
     // throughout the runtime).
-    const mat: AnyResMatrix = createResMatrix(makeDescriptor(), async () => ({}), sentinelPlug);
+    const mat: AnyResMatrix = createResMatrix(makeData(), async () => ({}), sentinelPlug);
 
-    expect(tryGetResMatrixDescriptor(mat)).toBeDefined();
+    expect(tryGetResMatrixData(mat)).toBeDefined();
   });
 
   it("round-trips every canonical family/flag combination without drift", () => {
-    const cases: ResMatrixDescriptor[] = [
+    const cases: ResMatrixData[] = [
       { family: "gear", isReactive: false, isVertex: false },
       { family: "gear", isReactive: false, isVertex: true },
       { family: "gear", isReactive: true, isVertex: false },
@@ -222,9 +222,9 @@ describe("createResMatrix ⇄ tryGetResMatrixDescriptor round-trip", () => {
       { family: "shell", isReactive: true, isVertex: true },
     ];
 
-    for (const descriptor of cases) {
-      const mat = createResMatrix(descriptor, async () => ({}), sentinelPlug);
-      expect(tryGetResMatrixDescriptor(mat)).toEqual(descriptor);
+    for (const data of cases) {
+      const mat = createResMatrix(data, async () => ({}), sentinelPlug);
+      expect(tryGetResMatrixData(mat)).toEqual(data);
     }
   });
 });

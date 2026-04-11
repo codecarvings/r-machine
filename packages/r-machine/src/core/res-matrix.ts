@@ -14,32 +14,32 @@
 import type { AnyRes, AnyResOrigin, ResFamily } from "./res.js";
 import type { AnyResPlug } from "./res-plug.js";
 
-export interface ResMatrixDescriptor {
+export interface ResMatrixData {
   readonly family: ResFamily;
   readonly isReactive: boolean;
   readonly isVertex: boolean;
 }
 
-const resMatrixDescriptor: unique symbol = Symbol("resMatrixDescriptor");
+const resMatrixData: unique symbol = Symbol("resMatrixData");
 export interface ResMatrix<R extends AnyRes, P extends AnyResPlug> {
-  readonly [resMatrixDescriptor]: ResMatrixDescriptor;
+  readonly [resMatrixData]: ResMatrixData;
   readonly factory: () => Promise<R>;
   readonly plug: P;
 }
 export type AnyResMatrix = ResMatrix<AnyRes, AnyResPlug>;
 
 export function createResMatrix<R extends AnyRes, P extends AnyResPlug>(
-  descriptor: ResMatrixDescriptor,
+  data: ResMatrixData,
   factory: () => Promise<R>,
   plug: P
 ): ResMatrix<R, P> {
   return {
-    [resMatrixDescriptor]: descriptor,
+    [resMatrixData]: data,
     factory,
     plug,
   };
 }
 
-export function tryGetResMatrixDescriptor(origin: AnyResOrigin): ResMatrixDescriptor | undefined {
-  return (origin as Partial<AnyResMatrix>)[resMatrixDescriptor];
+export function tryGetResMatrixData(origin: AnyResOrigin): ResMatrixData | undefined {
+  return (origin as Partial<AnyResMatrix>)[resMatrixData];
 }
