@@ -14,10 +14,10 @@
 import type { AnyLocale } from "#r-machine/locale";
 import type { GearCtx } from "./gear.js";
 import type { AnyResAtlas } from "./res-atlas.js";
+import type { NamespaceList, SurfaceList } from "./res-list.js";
+import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { AnyResource } from "./resource.js";
-import type { NamespaceList, SurfaceList } from "./resource-list.js";
-import type { NamespaceMap, SurfaceMap } from "./resource-map.js";
 import type { ResourceListPlug, ResourceMapPlug } from "./resource-plug.js";
 
 type ShellCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = GearCtx<RA, KA> & {

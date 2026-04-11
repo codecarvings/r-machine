@@ -12,7 +12,7 @@
  */
 
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { ExplicitNamespaceMap } from "./resource-map.js";
+import type { ExplicitNamespaceMap } from "./res-map.js";
 
 export interface ResKit<
   RA extends AnyResAtlas,

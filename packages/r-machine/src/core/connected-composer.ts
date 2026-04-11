@@ -16,8 +16,8 @@ import type { GearListComposer, GearMapComposer } from "./gear.js";
 import type { ReactiveConnectedListComposer, ReactiveConnectedMapComposer } from "./reactive-composer.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResKit } from "./res-kit.js";
-import type { NamespaceList } from "./resource-list.js";
-import type { NamespaceMap } from "./resource-map.js";
+import type { NamespaceList } from "./res-list.js";
+import type { NamespaceMap } from "./res-map.js";
 import type { ShellListComposer, ShellMapComposer } from "./shell.js";
 
 export interface ConnectedComposer<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>> {

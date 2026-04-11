@@ -16,7 +16,7 @@ export type { Forge } from "./forge.js";
 export type { ModuleLoaderFn } from "./module.js";
 export { type AnyResAtlas, type Namespace, namespaceSymbol, type Token } from "./res-atlas.js";
 export type { ResKit } from "./res-kit.js";
+export type { ExplicitNamespaceMap } from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";
 export type { AnyResource, AnyResourceOrigin } from "./resource.js";
-export type { ExplicitNamespaceMap } from "./resource-map.js";
 export type { Surface } from "./surface.js";

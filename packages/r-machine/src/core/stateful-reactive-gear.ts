@@ -16,9 +16,9 @@ import type { GearCtx, GearCursor } from "./gear.js";
 import type { DefaultGetter, GetterComposer } from "./getter.js";
 import type { AnyReactiveResource, RejectAsyncValueProperties } from "./reactive-resource.js";
 import type { AnyResAtlas } from "./res-atlas.js";
+import type { NamespaceList, SurfaceList } from "./res-list.js";
+import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
-import type { NamespaceList, SurfaceList } from "./resource-list.js";
-import type { NamespaceMap, SurfaceMap } from "./resource-map.js";
 import type { AnyState, StatefulResourceListPlug, StatefulResourceMapPlug } from "./resource-plug.js";
 
 type StatefulReactiveGearCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, S extends AnyState> = GearCtx<

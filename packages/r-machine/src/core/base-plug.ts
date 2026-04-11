@@ -12,8 +12,8 @@
  */
 
 import type { AnyNamespace, AnyResAtlas } from "./res-atlas.js";
-import type { NamespaceList } from "./resource-list.js";
-import type { NamespaceMap } from "./resource-map.js";
+import type { NamespaceList } from "./res-list.js";
+import type { NamespaceMap } from "./res-map.js";
 
 export interface BasePlugDescriptor<
   RA extends AnyResAtlas,
