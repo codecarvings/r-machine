@@ -1,5 +1,5 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyPlugData } from "../../src/core/plug-data.js";
+import type { AnyPlugHead } from "../../src/core/plug.js";
 import type { AnyResOrigin, ResFamily } from "../../src/core/res.js";
 import type { AnyNamespace } from "../../src/core/res-atlas.js";
 import type { ResLayoutType } from "../../src/core/res-layout.js";
@@ -13,7 +13,7 @@ describe("ResPod", () => {
     // this test, making drift impossible to smuggle in silently.
     type Keys = keyof ResPod;
     expectTypeOf<Keys>().toEqualTypeOf<
-      "namespace" | "locale" | "family" | "isReactive" | "isVertex" | "plugData" | "originType" | "origin"
+      "namespace" | "locale" | "family" | "isReactive" | "isVertex" | "plugHead" | "originType" | "origin"
     >();
   });
 
@@ -26,7 +26,7 @@ describe("ResPod", () => {
       family: ResFamily;
       isReactive: boolean;
       isVertex: boolean;
-      plugData: AnyPlugData | undefined;
+      plugHead: AnyPlugHead | undefined;
       originType: "resource" | "res-matrix";
       origin: AnyResOrigin;
     };
@@ -60,13 +60,13 @@ describe("ResPod", () => {
     expectTypeOf<ResPod["isVertex"]>().toEqualTypeOf<boolean>();
   });
 
-  it("types `plugData` as AnyPlugData | undefined (raw resources have no plug)", () => {
+  it("types `plugHead` as AnyPlugHead | undefined (raw resources have no plug)", () => {
     // Matrix origins carry the plug data extracted from the plug at pod
     // build time; raw resources have no plug, so `undefined` must be a
     // representable absence, not a sentinel empty object.
-    expectTypeOf<ResPod["plugData"]>().toEqualTypeOf<AnyPlugData | undefined>();
-    expectTypeOf<undefined>().toExtend<ResPod["plugData"]>();
-    expectTypeOf<AnyPlugData>().toExtend<ResPod["plugData"]>();
+    expectTypeOf<ResPod["plugHead"]>().toEqualTypeOf<AnyPlugHead | undefined>();
+    expectTypeOf<undefined>().toExtend<ResPod["plugHead"]>();
+    expectTypeOf<AnyPlugHead>().toExtend<ResPod["plugHead"]>();
   });
 
   it("types `originType` as the closed union of the two canonical origin kinds", () => {

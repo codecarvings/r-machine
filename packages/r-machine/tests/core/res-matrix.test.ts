@@ -3,14 +3,14 @@ import type { AnyRes } from "../../src/core/res.js";
 import {
   type AnyResMatrix,
   createResMatrix,
-  type ResMatrixData,
-  tryGetResMatrixData,
+  type ResMatrixMeta,
+  tryGetResMatrixMeta,
 } from "../../src/core/res-matrix.js";
 import type { AnyResPlug } from "../../src/core/res-plug.js";
 
 // --- helpers -----------------------------------------------------------------
 
-function makeData(overrides: Partial<ResMatrixData> = {}): ResMatrixData {
+function makeMeta(overrides: Partial<ResMatrixMeta> = {}): ResMatrixMeta {
   return { family: "gear", isReactive: false, isVertex: false, ...overrides };
 }
 
@@ -24,73 +24,72 @@ describe("createResMatrix", () => {
   describe("shape of the returned matrix", () => {
     it("returns an object that exposes factory and plug as own properties", () => {
       const factory = async () => ({});
-      const mat = createResMatrix(makeData(), factory, sentinelPlug);
+      const mat = createResMatrix(makeMeta(), factory, sentinelPlug);
 
       expect(mat.factory).toBe(factory);
       expect(mat.plug).toBe(sentinelPlug);
     });
 
-    it("stores the data under an internal key retrievable via tryGetResMatrixData", () => {
+    it("stores the meta under an internal key retrievable via tryGetResMatrixMeta", () => {
       // The symbol key is module-private, so the only legitimate way to read
-      // the data back is through the dedicated accessor. This test pins
+      // the meta back is through the dedicated accessor. This test pins
       // that contract: construct + read must round-trip exactly.
-      const data = makeData({ family: "shell", isReactive: true, isVertex: true });
-      const mat = createResMatrix(data, async () => ({}), sentinelPlug);
+      const meta = makeMeta({ family: "shell", isReactive: true, isVertex: true });
+      const mat = createResMatrix(meta, async () => ({}), sentinelPlug);
 
-      expect(tryGetResMatrixData(mat)).toBe(data);
+      expect(tryGetResMatrixMeta(mat)).toBe(meta);
     });
 
-    it("does not surface the data as a `data` own property on the returned object", () => {
-      // Regression guard: the interface deliberately dropped the old
-      // `data` field when the symbol key took over. Keeping a public
-      // mirror would defeat the encapsulation — callers must go through
-      // tryGetResMatrixData.
-      const mat = createResMatrix(makeData(), async () => ({}), sentinelPlug);
+    it("does not surface the meta as a `meta` own property on the returned object", () => {
+      // Regression guard: the interface deliberately keeps the meta under a
+      // symbol key. A public mirror would defeat the encapsulation — callers
+      // must go through tryGetResMatrixMeta.
+      const mat = createResMatrix(makeMeta(), async () => ({}), sentinelPlug);
 
-      expect("data" in mat).toBe(false);
+      expect("meta" in mat).toBe(false);
     });
 
     it("lists exactly two string-keyed own properties: `factory` and `plug`", () => {
-      // No accidental extras leaking into the public surface. The data
+      // No accidental extras leaking into the public surface. The meta
       // lives under a symbol key and must not appear in Object.keys().
-      const mat = createResMatrix(makeData(), async () => ({}), sentinelPlug);
+      const mat = createResMatrix(makeMeta(), async () => ({}), sentinelPlug);
 
       expect(Object.keys(mat).sort()).toEqual(["factory", "plug"]);
     });
   });
 
   describe("identity and non-mutation", () => {
-    it("stores the data by reference — no clone, no defensive copy", () => {
-      // We rely on this to keep data construction O(1) and to let
+    it("stores the meta by reference — no clone, no defensive copy", () => {
+      // We rely on this to keep meta construction O(1) and to let
       // callers compare by identity if they ever need to dedupe.
-      const data = makeData({ family: "shell" });
-      const mat = createResMatrix(data, async () => ({}), sentinelPlug);
+      const meta = makeMeta({ family: "shell" });
+      const mat = createResMatrix(meta, async () => ({}), sentinelPlug);
 
-      expect(tryGetResMatrixData(mat)).toBe(data);
+      expect(tryGetResMatrixMeta(mat)).toBe(meta);
     });
 
-    it("does not mutate the data argument", () => {
-      const data = makeData({ family: "shell", isReactive: true, isVertex: false });
-      const snapshot = { ...data }; // shallow snapshot is enough since the fields are primitives
+    it("does not mutate the meta argument", () => {
+      const meta = makeMeta({ family: "shell", isReactive: true, isVertex: false });
+      const snapshot = { ...meta }; // shallow snapshot is enough since the fields are primitives
 
-      createResMatrix(data, async () => ({}), sentinelPlug);
+      createResMatrix(meta, async () => ({}), sentinelPlug);
 
-      expect(data).toEqual(snapshot);
+      expect(meta).toEqual(snapshot);
     });
 
-    it("does not freeze the data argument (freezing is the caller's choice)", () => {
-      const data = makeData();
+    it("does not freeze the meta argument (freezing is the caller's choice)", () => {
+      const meta = makeMeta();
 
-      createResMatrix(data, async () => ({}), sentinelPlug);
+      createResMatrix(meta, async () => ({}), sentinelPlug);
 
-      expect(Object.isFrozen(data)).toBe(false);
+      expect(Object.isFrozen(meta)).toBe(false);
     });
 
-    it("accepts a frozen data and preserves its frozen state end-to-end", () => {
-      const frozen = Object.freeze(makeData({ family: "shell" }));
+    it("accepts a frozen meta and preserves its frozen state end-to-end", () => {
+      const frozen = Object.freeze(makeMeta({ family: "shell" }));
 
       const mat = createResMatrix(frozen, async () => ({}), sentinelPlug);
-      const retrieved = tryGetResMatrixData(mat);
+      const retrieved = tryGetResMatrixMeta(mat);
 
       expect(retrieved).toBe(frozen);
       expect(Object.isFrozen(retrieved)).toBe(true);
@@ -98,19 +97,19 @@ describe("createResMatrix", () => {
 
     it("produces distinct matrix objects on every call, even with the same arguments", () => {
       // The factory must not memoize — two call sites that happen to pass the
-      // same data/factory/plug should still get independent matrices
+      // same meta/factory/plug should still get independent matrices
       // so they can be tracked, cached, or disposed independently.
-      const data = makeData();
+      const meta = makeMeta();
       const factory = async () => ({});
 
-      const m1 = createResMatrix(data, factory, sentinelPlug);
-      const m2 = createResMatrix(data, factory, sentinelPlug);
+      const m1 = createResMatrix(meta, factory, sentinelPlug);
+      const m2 = createResMatrix(meta, factory, sentinelPlug);
 
       expect(m1).not.toBe(m2);
       // But the pieces they share are still identity-equal.
       expect(m1.factory).toBe(m2.factory);
       expect(m1.plug).toBe(m2.plug);
-      expect(tryGetResMatrixData(m1)).toBe(tryGetResMatrixData(m2));
+      expect(tryGetResMatrixMeta(m1)).toBe(tryGetResMatrixMeta(m2));
     });
   });
 
@@ -120,14 +119,14 @@ describe("createResMatrix", () => {
       // the resource eagerly and defeat the entire async-loading design.
       const factory = vi.fn(async () => ({ greeting: "hi" }) satisfies AnyRes);
 
-      createResMatrix(makeData(), factory, sentinelPlug);
+      createResMatrix(makeMeta(), factory, sentinelPlug);
 
       expect(factory).not.toHaveBeenCalled();
     });
 
     it("stores the exact factory reference (no wrapping, no binding)", () => {
       const factory = async () => ({ a: 1 }) satisfies AnyRes;
-      const mat = createResMatrix(makeData(), factory, sentinelPlug);
+      const mat = createResMatrix(makeMeta(), factory, sentinelPlug);
 
       expect(mat.factory).toBe(factory);
     });
@@ -140,19 +139,19 @@ describe("createResMatrix", () => {
         throw boom;
       };
 
-      expect(() => createResMatrix(makeData(), throwingFactory, sentinelPlug)).not.toThrow();
+      expect(() => createResMatrix(makeMeta(), throwingFactory, sentinelPlug)).not.toThrow();
     });
   });
 });
 
-// --- tryGetResMatrixData ----------------------------------------------
+// --- tryGetResMatrixMeta ----------------------------------------------
 
-describe("tryGetResMatrixData", () => {
-  it("returns the data for a matrix built via createResMatrix", () => {
-    const data = makeData({ family: "shell", isReactive: true, isVertex: true });
-    const mat = createResMatrix(data, async () => ({}), sentinelPlug);
+describe("tryGetResMatrixMeta", () => {
+  it("returns the meta for a matrix built via createResMatrix", () => {
+    const meta = makeMeta({ family: "shell", isReactive: true, isVertex: true });
+    const mat = createResMatrix(meta, async () => ({}), sentinelPlug);
 
-    expect(tryGetResMatrixData(mat)).toEqual({
+    expect(tryGetResMatrixMeta(mat)).toEqual({
       family: "shell",
       isReactive: true,
       isVertex: true,
@@ -160,16 +159,16 @@ describe("tryGetResMatrixData", () => {
   });
 
   it("returns the exact same reference stored at construction time (identity round-trip)", () => {
-    const data = makeData();
-    const mat = createResMatrix(data, async () => ({}), sentinelPlug);
+    const meta = makeMeta();
+    const mat = createResMatrix(meta, async () => ({}), sentinelPlug);
 
-    expect(tryGetResMatrixData(mat)).toBe(data);
+    expect(tryGetResMatrixMeta(mat)).toBe(meta);
   });
 
   it("returns undefined for a plain AnyRes with no brand symbol", () => {
     const raw: AnyRes = { greeting: "hi", count: 3 };
 
-    expect(tryGetResMatrixData(raw)).toBeUndefined();
+    expect(tryGetResMatrixMeta(raw)).toBeUndefined();
   });
 
   it("returns undefined for an empty object", () => {
@@ -177,7 +176,7 @@ describe("tryGetResMatrixData", () => {
     // module, so the guard must return undefined.
     const raw: AnyRes = {};
 
-    expect(tryGetResMatrixData(raw)).toBeUndefined();
+    expect(tryGetResMatrixMeta(raw)).toBeUndefined();
   });
 
   it("returns undefined for a resource whose own string keys coincidentally look matrix-ish", () => {
@@ -186,7 +185,7 @@ describe("tryGetResMatrixData", () => {
     // symbol is the single source of truth.
     const raw: AnyRes = { factory: "not a factory", plug: "not a plug" };
 
-    expect(tryGetResMatrixData(raw)).toBeUndefined();
+    expect(tryGetResMatrixMeta(raw)).toBeUndefined();
   });
 
   it("returns undefined for a resource carrying an unrelated symbol key", () => {
@@ -194,24 +193,24 @@ describe("tryGetResMatrixData", () => {
     const otherSymbol = Symbol("other");
     const raw = { [otherSymbol]: { family: "gear" } } as unknown as AnyRes;
 
-    expect(tryGetResMatrixData(raw)).toBeUndefined();
+    expect(tryGetResMatrixMeta(raw)).toBeUndefined();
   });
 });
 
-// --- integration: createResMatrix ⇄ tryGetResMatrixData ----------------
+// --- integration: createResMatrix ⇄ tryGetResMatrixMeta ----------------
 
-describe("createResMatrix ⇄ tryGetResMatrixData round-trip", () => {
+describe("createResMatrix ⇄ tryGetResMatrixMeta round-trip", () => {
   it("treats the matrix as assignable to AnyResMatrix at the type level", () => {
     // Lightweight sanity check that the generic signature does not leak into
     // anything incompatible with AnyResMatrix (the erased variant used
     // throughout the runtime).
-    const mat: AnyResMatrix = createResMatrix(makeData(), async () => ({}), sentinelPlug);
+    const mat: AnyResMatrix = createResMatrix(makeMeta(), async () => ({}), sentinelPlug);
 
-    expect(tryGetResMatrixData(mat)).toBeDefined();
+    expect(tryGetResMatrixMeta(mat)).toBeDefined();
   });
 
   it("round-trips every canonical family/flag combination without drift", () => {
-    const cases: ResMatrixData[] = [
+    const cases: ResMatrixMeta[] = [
       { family: "gear", isReactive: false, isVertex: false },
       { family: "gear", isReactive: false, isVertex: true },
       { family: "gear", isReactive: true, isVertex: false },
@@ -222,9 +221,9 @@ describe("createResMatrix ⇄ tryGetResMatrixData round-trip", () => {
       { family: "shell", isReactive: true, isVertex: true },
     ];
 
-    for (const data of cases) {
-      const mat = createResMatrix(data, async () => ({}), sentinelPlug);
-      expect(tryGetResMatrixData(mat)).toEqual(data);
+    for (const meta of cases) {
+      const mat = createResMatrix(meta, async () => ({}), sentinelPlug);
+      expect(tryGetResMatrixMeta(mat)).toEqual(meta);
     }
   });
 });

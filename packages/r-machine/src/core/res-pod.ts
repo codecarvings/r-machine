@@ -13,11 +13,11 @@
 
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
-import { type AnyPlugData, getPlugData } from "./plug-data.js";
+import { type AnyPlugHead, getPlugHead } from "./plug.js";
 import type { AnyResOrigin, ResFamily } from "./res.js";
 import type { AnyNamespace } from "./res-atlas.js";
 import type { ResLayoutType } from "./res-layout.js";
-import { type AnyResMatrix, tryGetResMatrixData } from "./res-matrix.js";
+import { type AnyResMatrix, tryGetResMatrixMeta } from "./res-matrix.js";
 import type { AnyResModule } from "./res-module.js";
 
 type ResOriginType = "resource" | "res-matrix";
@@ -28,7 +28,7 @@ export interface ResPod {
   readonly family: ResFamily;
   readonly isReactive: boolean;
   readonly isVertex: boolean;
-  readonly plugData: AnyPlugData | undefined;
+  readonly plugHead: AnyPlugHead | undefined;
   readonly originType: ResOriginType;
   readonly origin: AnyResOrigin;
 }
@@ -40,10 +40,10 @@ export function createResPod(
   resLayoutType: ResLayoutType
 ): ResPod {
   const origin = module.r;
-  const matrixData = tryGetResMatrixData(origin);
+  const matrixMeta = tryGetResMatrixMeta(origin);
 
-  if (matrixData !== undefined) {
-    const { family, isReactive, isVertex } = matrixData;
+  if (matrixMeta !== undefined) {
+    const { family, isReactive, isVertex } = matrixMeta;
     const layoutFamily: ResFamily = resLayoutType === "dynamic-shell" ? "shell" : resLayoutType;
     if (family !== layoutFamily) {
       throw new RMachineResolveError(
@@ -51,14 +51,14 @@ export function createResPod(
         `Unable to build resource pod for namespace "${namespace}" - matrix family "${family}" does not match layout type "${resLayoutType}".`
       );
     }
-    const plugData = getPlugData((origin as AnyResMatrix).plug);
+    const plugHead = getPlugHead((origin as AnyResMatrix).plug);
     return {
       namespace,
       locale,
       family,
       isReactive,
       isVertex,
-      plugData,
+      plugHead,
       originType: "res-matrix",
       origin,
     };
@@ -77,7 +77,7 @@ export function createResPod(
     family: resLayoutType,
     isReactive: false,
     isVertex: false,
-    plugData: undefined,
+    plugHead: undefined,
     originType: "resource",
     origin,
   };

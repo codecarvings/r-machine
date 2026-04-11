@@ -11,33 +11,33 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { PlugData, PlugDataProvider, PlugMode } from "./plug-data.js";
+import type { PlugBody, PlugHead, PlugMode } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
 
-interface ResPlugData<
+interface ResPlugHead<
   M extends PlugMode,
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NS extends NamespaceMap<RA> | NamespaceList<RA>,
-> extends PlugData<"res", M, RA, KA, NS> {}
+> extends PlugHead<"res", M, RA, KA, NS> {}
 
 export interface ResMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>
-  extends PlugDataProvider<ResPlugData<"map", RA, KA, NM>> {}
+  extends PlugBody<ResPlugHead<"map", RA, KA, NM>> {}
 
 export interface ResListPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>>
-  extends PlugDataProvider<ResPlugData<"list", RA, KA, NL>> {}
+  extends PlugBody<ResPlugHead<"list", RA, KA, NL>> {}
 
 export type AnyState = unknown; // Record<PropertyKey, unknown> & object;
 
-export interface StateResPlugData<
+export interface StatefulResPlugHead<
   M extends PlugMode,
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA> | NamespaceList<RA>,
   S extends AnyState,
-> extends ResPlugData<M, RA, KA, NM> {
+> extends ResPlugHead<M, RA, KA, NM> {
   readonly defaultState: S;
 }
 
@@ -46,14 +46,14 @@ export interface StatefulResMapPlug<
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
-> extends PlugDataProvider<StateResPlugData<"map", RA, KA, NM, S>> {}
+> extends PlugBody<StatefulResPlugHead<"map", RA, KA, NM, S>> {}
 
 export interface StatefulResListPlug<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
   S extends AnyState,
-> extends PlugDataProvider<StateResPlugData<"list", RA, KA, NL, S>> {}
+> extends PlugBody<StatefulResPlugHead<"list", RA, KA, NL, S>> {}
 
 export type AnyResPlug =
   | ResMapPlug<any, any, any>

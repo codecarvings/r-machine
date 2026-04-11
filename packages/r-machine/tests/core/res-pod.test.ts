@@ -57,7 +57,7 @@ describe("createResPod", () => {
         family: "gear",
         isReactive: false,
         isVertex: true,
-        plugData: undefined,
+        plugHead: undefined,
         originType: "res-matrix",
         origin: module.r,
       });
@@ -161,7 +161,7 @@ describe("createResPod", () => {
   });
 
   describe("raw AnyRes origin", () => {
-    it("builds a gear data from a raw resource with default static flags and no plugData", () => {
+    it("builds a gear data from a raw resource with default static flags and no plugHead", () => {
       const module = makeRawModule({ greeting: "hi" });
 
       const d = createResPod(module, "app/home", undefined, "gear");
@@ -172,7 +172,7 @@ describe("createResPod", () => {
         family: "gear",
         isReactive: false,
         isVertex: false,
-        plugData: undefined,
+        plugHead: undefined,
         originType: "resource",
         origin: module.r,
       });
@@ -188,7 +188,7 @@ describe("createResPod", () => {
       expect(d.originType).toBe("resource");
       expect(d.isReactive).toBe(false);
       expect(d.isVertex).toBe(false);
-      expect(d.plugData).toBeUndefined();
+      expect(d.plugHead).toBeUndefined();
       expect(d.origin).toBe(module.r);
     });
 
@@ -248,7 +248,7 @@ describe("createResPod", () => {
       // would break the invariant that data construction is pure and
       // synchronous. We enforce this by replacing it with a getter that
       // throws on access, AFTER the matrix is built via the public factory.
-      // `plug` IS read on purpose (plugData is extracted from it), so it
+      // `plug` IS read on purpose (plugHead is extracted from it), so it
       // is not part of this invariant.
       const mat = createResMatrix(
         { family: "gear", isReactive: false, isVertex: false },

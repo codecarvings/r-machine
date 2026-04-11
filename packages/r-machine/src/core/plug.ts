@@ -18,7 +18,7 @@ import type { NamespaceMap } from "./res-map.js";
 export type PlugArea = "res" | "gate";
 export type PlugMode = "map" | "list";
 
-export interface PlugData<
+export interface PlugHead<
   A extends PlugArea,
   M extends PlugMode,
   RA extends AnyResAtlas,
@@ -31,24 +31,21 @@ export interface PlugData<
   readonly namespaces: NS;
   readonly deps: AnyNamespace[];
 }
-export type AnyPlugData = PlugData<any, any, any, any, any>;
+export type AnyPlugHead = PlugHead<any, any, any, any, any>;
 
-const plugData = Symbol("plugData");
-export interface PlugDataProvider<PD extends AnyPlugData> {
-  readonly [plugData]: PD;
+const plugHead = Symbol("plugHead");
+export interface PlugBody<PH extends AnyPlugHead> {
+  readonly [plugHead]: PH;
 }
 
-export type AnyPlugDataProvider = PlugDataProvider<any>;
+export type AnyPlugBody = PlugBody<AnyPlugHead>;
 
-export function getPlugData<P extends AnyPlugDataProvider>(plug: P): P[typeof plugData] {
-  return plug[plugData];
+export function getPlugHead<P extends AnyPlugBody>(plug: P): P[typeof plugHead] {
+  return plug[plugHead];
 }
 
-export function createPlugDataProvider<B extends object, PD extends AnyPlugData>(
-  base: B,
-  data: PD
-): B & PlugDataProvider<PD> {
+export function createPlugHeadProvider<B extends object, PH extends AnyPlugHead>(base: B, data: PH): B & PlugBody<PH> {
   return Object.assign({}, base, {
-    [plugData]: data,
+    [plugHead]: data,
   });
 }
