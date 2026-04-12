@@ -4,7 +4,6 @@ import { describe, expectTypeOf, it } from "vitest";
 import type {
   PartialReactStandardStrategyConfig,
   ReactBareRMachine,
-  ReactBareStrategy,
   ReactBareToolset,
   ReactImpl,
   ReactStandardStrategyConfig,
@@ -13,7 +12,6 @@ import type {
   ReactToolset,
 } from "../../src/core/index.js";
 import { createReactBareToolset, createReactToolset } from "../../src/core/index.js";
-import type { ReactBareStrategy as OriginalReactBareStrategy } from "../../src/core/react-bare-strategy.js";
 import type {
   ReactBareRMachine as OriginalReactBareRMachine,
   ReactBareToolset as OriginalReactBareToolset,
@@ -32,12 +30,6 @@ import type {
 import { createReactToolset as originalCreateReactToolset } from "../../src/core/react-toolset.js";
 
 describe("core barrel exports", () => {
-  it("re-exports ReactBareStrategy identical to the original", () => {
-    expectTypeOf<ReactBareStrategy<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>>().toEqualTypeOf<
-      OriginalReactBareStrategy<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>
-    >();
-  });
-
   it("re-exports createReactBareToolset identical to the original", () => {
     expectTypeOf(createReactBareToolset).toEqualTypeOf(originalCreateReactBareToolset);
   });

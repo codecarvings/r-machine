@@ -11,15 +11,15 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, NamespaceMap } from "r-machine";
+import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { Strategy } from "r-machine/strategy";
 import { createReactToolset, type ReactImpl, type ReactToolset } from "./react-toolset.js";
 
 export abstract class ReactStrategyCore<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends ResKit<RA>,
   C,
 > extends Strategy<RA, L, KA, C> {
   protected abstract createImpl(): Promise<ReactImpl<L>>;

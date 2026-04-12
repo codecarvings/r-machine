@@ -1,14 +1,13 @@
 import { Calendar, Hash, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Formatters } from "@/r-machine/formatters";
-import { useLocale, useR } from "@/r-machine/toolset";
+import { Plug } from "@/r-machine/toolset";
 import FeatureBox from "./FeatureBox";
 
+export const plug = Plug("shell/features/intl_demo");
 export default function IntlDemo() {
-  const r = useR("features/intl_demo");
-  const locale = useLocale();
-  const { time } = Formatters.get(locale);
+  const [comp, $] = plug.use();
+  const { time } = $.kit.fmt;
 
   // Live clock
   const [now, setNow] = useState(() => new Date());
@@ -24,38 +23,38 @@ export default function IntlDemo() {
     <section className="container mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
       <div className="max-w-6xl mx-auto">
         <div className="text-center space-y-4 mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{r.sectionTitle}</h2>
-          <p className="text-lg text-muted-foreground">{r.sectionSubtitle}</p>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{comp.sectionTitle}</h2>
+          <p className="text-lg text-muted-foreground">{comp.sectionSubtitle}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* Date formatting */}
           <FeatureBox
-            badge={r.dateTime.badge}
-            title={r.dateTime.label}
+            badge={comp.dateTime.badge}
+            title={comp.dateTime.label}
             icon={<Calendar className="size-5 text-stone-600 group-hover:text-red-600" />}
           >
             <div className="text-2xl font-mono font-bold text-foreground mb-1.5">{time(now)}</div>
-            <div className="text-xs text-muted-foreground">{r.dateTime.caption(now)}</div>
+            <div className="text-xs text-muted-foreground">{comp.dateTime.caption(now)}</div>
           </FeatureBox>
 
           {/* Number & Currency formatting */}
           <FeatureBox
-            badge={r.number.badge}
-            title={r.number.label}
+            badge={comp.number.badge}
+            title={comp.number.label}
             icon={<Hash className="size-5 text-stone-600 group-hover:text-red-600" />}
           >
-            <div className="text-lg leading-relaxed text-foreground">{r.number.description(1234.56)}</div>
+            <div className="text-lg leading-relaxed text-foreground">{comp.number.description(1234.56)}</div>
           </FeatureBox>
 
           {/* Plural rules */}
           <FeatureBox
-            badge={r.plural.badge}
-            title={r.plural.label}
+            badge={comp.plural.badge}
+            title={comp.plural.label}
             icon={<Users className="size-5 text-stone-600 group-hover:text-red-600" />}
           >
             <div className="text-lg leading-relaxed text-foreground">
-              <r.plural.Items count={count} />
+              <comp.plural.Items count={count} />
             </div>
             <div className="flex gap-2 mt-3">
               <Button size="sm" variant="outline" onClick={() => setCount(Math.max(0, count - 1))}>

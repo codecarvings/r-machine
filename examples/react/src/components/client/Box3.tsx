@@ -1,13 +1,13 @@
-import { useR } from "@/r-machine/toolset";
+import { Plug } from "@/r-machine/toolset";
 import FeatureBox from "./FeatureBox";
 
+export const plug = Plug("shell/features/box_3");
 export default function Box3() {
-  // Load the required localized resource
-  const r = useR("features/box_3");
+  const [box3] = plug.use();
 
   return (
-    <FeatureBox badge={r.badge} title={r.title}>
-      {r.description}
+    <FeatureBox badge={box3.badge} title={box3.title}>
+      {box3.description}
     </FeatureBox>
   );
 }

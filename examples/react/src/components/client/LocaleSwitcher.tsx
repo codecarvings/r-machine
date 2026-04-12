@@ -8,27 +8,27 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Locale } from "@/r-machine/setup";
-import { useLocale, useSetLocale } from "@/r-machine/toolset";
+import { Plug } from "@/r-machine/toolset";
 
 const localeItems = {
   en: { name: "English" },
   it: { name: "Italiano" },
 } as const;
 
+export const plug = Plug();
 export function LocaleSwitcher() {
   // Get the current locale and the function to change it
-  const locale = useLocale();
-  const setLocale = useSetLocale();
+  const { $ } = plug.use();
 
-  const currentLocaleItem = localeItems[locale as keyof typeof localeItems];
+  const currentLocaleItem = localeItems[$.locale];
   const setLocaleAfterMenuClose = useCallback(
     (newLocale: Locale) => {
       setTimeout(() => {
         // Delay setting the locale to allow the dropdown to close smoothly
-        setLocale(newLocale);
+        $.setLocale(newLocale);
       }, 200);
     },
-    [setLocale]
+    [$.setLocale]
   );
 
   return (

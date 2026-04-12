@@ -11,7 +11,6 @@
  * contact: licensing@codecarvings.com
  */
 
-export { ReactBareStrategy } from "./react-bare-strategy.js";
 export {
   createReactBareToolset,
   type ReactBareRMachine,

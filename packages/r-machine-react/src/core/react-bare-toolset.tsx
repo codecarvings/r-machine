@@ -13,25 +13,24 @@
 
 "use client";
 
-import type { AnyResourceAtlas, Namespace, NamespaceList, NamespaceMap, RList, RMachine } from "r-machine";
+// THIS IS THE BARE TOOLSET USED BY:
+// - REACT TOOLSET
+// - NEXT CLIENT TOOLSET
+
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, GatePlugComposer, ResKit } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
-import { createContext, useCallback, useContext, useMemo } from "react";
-import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "#r-machine/react/errors";
+import { createContext, useMemo } from "react";
 
-type SetLocale<L extends AnyLocale> = (newLocale: L) => Promise<void>;
+// TODO: WP
+// type SetLocale<L extends AnyLocale> = (newLocale: L) => Promise<void>;
 type WriteLocale<L extends AnyLocale> = (newLocale: L) => void | Promise<void>;
 
-export interface ReactBareToolset<RA extends AnyResourceAtlas, L extends AnyLocale, _KA extends NamespaceMap<RA>> {
+export interface ReactBareToolset<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>> {
   readonly ReactRMachine: ReactBareRMachine<L>;
-  readonly useLocale: () => L;
-  // Performance optimization: do not use the same approach as useState ([state, setState])
-  // because with required hooks (e.g. useRouter)
-  // the setter function should be recreated on every render to capture the latest context.
-  readonly useSetLocale: () => SetLocale<L>;
-  readonly useR: <N extends Namespace<RA>>(namespace: N) => RA[N];
-  readonly useRKit: <NL extends NamespaceList<RA>>(...namespaces: NL) => RList<RA, NL>;
+  readonly Plug: GatePlugComposer<RA, L, KA["gate"]>;
 }
 
 export interface ReactBareRMachine<L extends AnyLocale> {
@@ -49,15 +48,15 @@ interface ReactBareToolsetContext<L extends AnyLocale> {
   readonly writeLocale: WriteLocale<L> | undefined;
 }
 
-export async function createReactBareToolset<
-  RA extends AnyResourceAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
->(rMachine: RMachine<RA, L, KA>): Promise<ReactBareToolset<RA, L, KA>> {
+export async function createReactBareToolset<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>>(
+  rMachine: RMachine<RA, L, KA>
+): Promise<ReactBareToolset<RA, L, KA>> {
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const Context = createContext<ReactBareToolsetContext<L> | null>(null);
   Context.displayName = "ReactBareToolsetContext";
+
+  /*
   function useReactToolsetContext(): ReactBareToolsetContext<L> {
     const context = useContext(Context);
     if (context === null) {
@@ -66,6 +65,7 @@ export async function createReactBareToolset<
 
     return context;
   }
+  */
 
   function ReactRMachine({ locale, writeLocale, children }: ReactBareRMachineProps<L>) {
     const value = useMemo<ReactBareToolsetContext<L>>(() => {
@@ -92,6 +92,10 @@ export async function createReactBareToolset<
     return locale as L | undefined;
   };
 
+  // TODO: WP
+  const Plug: any = undefined!;
+
+  /*
   function useLocale(): L {
     return useReactToolsetContext().locale;
   }
@@ -143,12 +147,10 @@ export async function createReactBareToolset<
     }
     return rList as RList<RA, NL>;
   }
+  */
 
   return {
     ReactRMachine,
-    useLocale,
-    useSetLocale,
-    useR,
-    useRKit,
+    Plug,
   };
 }

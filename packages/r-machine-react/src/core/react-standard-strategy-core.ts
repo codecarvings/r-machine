@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, NamespaceMap } from "r-machine";
+import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { createReactStandardImpl } from "./react-standard.impl.js";
@@ -32,9 +32,9 @@ const defaultConfig: ReactStandardStrategyConfig = {
 };
 
 export abstract class ReactStandardStrategyCore<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends ResKit<RA>,
 > extends ReactStrategyCore<RA, L, KA, ReactStandardStrategyConfig> {
   static readonly defaultConfig = defaultConfig;
 

@@ -11,14 +11,15 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { type PartialReactStandardStrategyConfig, ReactStandardStrategyCore } from "#r-machine/react/core";
 
 export class ReactStandardStrategy<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends ResKit<RA>,
 > extends ReactStandardStrategyCore<RA, L, KA> {
   constructor(rMachine: RMachine<RA, L, KA>);
   constructor(rMachine: RMachine<RA, L, KA>, config: PartialReactStandardStrategyConfig);

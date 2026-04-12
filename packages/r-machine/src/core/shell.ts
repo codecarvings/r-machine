@@ -12,7 +12,7 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
-import type { PlugBody, PluginCtx } from "./plug.js";
+import type { LocaleAwarePluginCtx, PlugBody } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList, SurfaceList } from "./res-list.js";
@@ -20,16 +20,12 @@ import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { ResPlugHead } from "./res-plug.js";
 
-type ShellPluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = PluginCtx<RA, KA> & {
-  readonly locale: L;
-};
-
 interface ShellMapPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-> extends PlugBody<ResPlugHead<"map", RA, KA, NM, ShellPluginCtx<RA, L, KA>>> {}
+> extends PlugBody<ResPlugHead<"map", RA, KA, NM, LocaleAwarePluginCtx<RA, L, KA>>> {}
 
 type ShellMapPlugin<
   RA extends AnyResAtlas,
@@ -37,7 +33,7 @@ type ShellMapPlugin<
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
 > = SurfaceMap<RA, Omit<NM, "$">> & {
-  readonly $: ShellPluginCtx<RA, L, KA>;
+  readonly $: LocaleAwarePluginCtx<RA, L, KA>;
 } & SurfaceMap<RA, Omit<KA, keyof NM>>;
 
 interface ShellListPlug<
@@ -45,14 +41,14 @@ interface ShellListPlug<
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> extends PlugBody<ResPlugHead<"list", RA, KA, NL, ShellPluginCtx<RA, L, KA>>> {}
+> extends PlugBody<ResPlugHead<"list", RA, KA, NL, LocaleAwarePluginCtx<RA, L, KA>>> {}
 
 type ShellListPlugin<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> = [...SurfaceList<RA, NL>, ShellPluginCtx<RA, L, KA>];
+> = [...SurfaceList<RA, NL>, LocaleAwarePluginCtx<RA, L, KA>];
 
 export type ShellMapComposer<
   RA extends AnyResAtlas,

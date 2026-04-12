@@ -11,18 +11,19 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
-import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
-import { createContext, type ReactNode, use, useContext, useMemo, useState } from "react";
-import { ERR_CONTEXT_NOT_FOUND } from "#r-machine/react/errors";
+import { createContext, type ReactNode, use, useMemo, useState } from "react";
 import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils";
 import { createReactBareToolset, type ReactBareToolset } from "./react-bare-toolset.js";
 
-// THIS IS THE BASE TOOLSET ALSO USED BY THE REACT STANDARD STRATEGY
+// THIS IS THE TOOLSET USED BY:
+// - REACT STRATEGY CORE
+// - REACT STANDARD STRATEGY
 // DO NOT RENAME
 
-export type ReactToolset<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = Omit<
+export type ReactToolset<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>> = Omit<
   ReactBareToolset<RA, L, KA>,
   "ReactRMachine"
 > & {
@@ -44,7 +45,7 @@ export interface ReactImpl<L extends AnyLocale> {
 
 type ReactToolsetContext<L extends AnyLocale> = [L, (newLocale: L) => void];
 
-export async function createReactToolset<RA extends AnyResourceAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>>(
+export async function createReactToolset<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>>(
   rMachine: RMachine<RA, L, KA>,
   impl: ReactImpl<L>
 ): Promise<ReactToolset<RA, L, KA>> {
@@ -53,6 +54,8 @@ export async function createReactToolset<RA extends AnyResourceAtlas, L extends 
   const Context = createContext<ReactToolsetContext<L> | null>(null);
   Context.displayName = "ReactToolsetContext";
 
+  // TODO: WP
+  /*
   function useReactToolsetContext(): ReactToolsetContext<L> {
     const context = useContext(Context);
     if (context === null) {
@@ -85,6 +88,7 @@ export async function createReactToolset<RA extends AnyResourceAtlas, L extends 
 
     return (newLocale: L) => setLocale(newLocale, context);
   }
+  */
 
   function InternalReactRMachine({
     initialLocaleOrPromise,
@@ -129,6 +133,5 @@ export async function createReactToolset<RA extends AnyResourceAtlas, L extends 
   return {
     ...otherTools,
     ReactRMachine,
-    useSetLocale,
   };
 }

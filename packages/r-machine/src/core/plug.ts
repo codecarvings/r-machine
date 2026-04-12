@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { AnyLocale } from "#r-machine/locale";
 import type { AnyNamespace, AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap, SurfaceMap } from "./res-map.js";
@@ -21,6 +22,13 @@ export type PlugMode = "map" | "list";
 export type PluginCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>> = {} & (keyof KA extends never
   ? {}
   : { readonly kit: SurfaceMap<RA, KA> });
+
+export type LocaleAwarePluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = PluginCtx<
+  RA,
+  KA
+> & {
+  readonly locale: L;
+};
 
 declare const resAtlas: unique symbol;
 declare const ctx: unique symbol;
@@ -71,10 +79,10 @@ type PlugData<PH extends AnyPlugHead> = PH["mode"] extends "map"
     : never;
 
 export const plugHeadSymbol = Symbol("plugHead");
-export const plugResolveDataSymbol = Symbol("plugResolveData");
+export const plugResolveSymbol = Symbol("plugResolve");
 export interface PlugBody<PH extends AnyPlugHead> {
   readonly [plugHeadSymbol]: PH;
-  [plugResolveDataSymbol]: () => PlugData<PH>;
+  [plugResolveSymbol]: () => PlugData<PH>;
 }
 
 export type AnyPlugBody = PlugBody<AnyPlugHead>;

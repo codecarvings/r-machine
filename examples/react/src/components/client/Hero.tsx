@@ -2,11 +2,11 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GitHubMark from "@/gfx/github-mark.svg";
 import RMachineLogo from "@/gfx/r-machine.logo.svg";
-import { useR } from "@/r-machine/toolset";
+import { Plug } from "@/r-machine/toolset";
 
+export const plug = Plug("shell/landing-page");
 export default function Hero() {
-  // Load the required localized resource
-  const r = useR("landing-page");
+  const [page] = plug.use();
 
   return (
     <section className="relative w-full py-12 sm:py-16 lg:py-20 bg-linear-to-br from-gray-200 via-gray-100 to-slate-100">
@@ -32,9 +32,9 @@ export default function Hero() {
             {/* Content on the left for large screens */}
             <div className="flex-1 text-center lg:text-left space-y-6 lg:order-1">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
-                {r.hero.title}
+                {page.hero.title}
               </h1>
-              <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">{r.hero.subtitle}</p>
+              <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">{page.hero.subtitle}</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center lg:items-start">
                 <a
                   href="https://r-machine.codecarvings.com/"
@@ -44,13 +44,13 @@ export default function Hero() {
                 >
                   <Button size="lg" className="gap-2 text-base">
                     <ArrowRight className="size-4" />
-                    {r.hero.cta.primary}
+                    {page.hero.cta.primary}
                   </Button>
                 </a>
                 <a href="https://github.com/codecarvings/r-machine" target="_blank" rel="noopener noreferrer">
                   <Button size="lg" variant="outline" className="gap-2 text-base">
                     <img src={GitHubMark} alt="GitHub Logo" className="size-4" />
-                    {r.hero.cta.secondary}
+                    {page.hero.cta.secondary}
                   </Button>
                 </a>
               </div>
