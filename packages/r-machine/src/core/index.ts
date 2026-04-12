@@ -23,7 +23,6 @@ export {
   type PlugHead,
   type PlugMode,
   plugHeadSymbol,
-  plugMockDataSymbol,
   plugResolveDataSymbol as plugResolveSymbol,
 } from "./plug.js";
 export type { AnyRes, AnyResOrigin } from "./res.js";

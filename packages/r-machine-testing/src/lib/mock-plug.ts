@@ -19,9 +19,12 @@ import {
   type ExtractResAtlas,
   type PartialSurfaceMap,
   type PlugBody,
-  plugMockDataSymbol,
   plugResolveSymbol,
 } from "r-machine/core";
+import { RMachineUsageError } from "r-machine/errors";
+import { ERR_PLUG_ALREADY_MOCKED } from "#r-machine/testing/errors";
+
+const plugMockSymbol = Symbol("plugMock");
 
 interface MockPlug {
   <PH extends AnyMapPlugHead>(plug: PlugBody<PH>, data: MockPlugMapData<PH>): () => void;
@@ -30,12 +33,20 @@ interface MockPlug {
 
 export const mockPlug: MockPlug = <PH extends AnyPlugHead>(
   plug: PlugBody<PH>,
-  data: MockPlugMapData<PH> | MockPlugListData<PH>
+  _data: MockPlugMapData<PH> | MockPlugListData<PH>
 ): (() => void) => {
-  const stdData = plug[plugResolveSymbol]!();
-  plug[plugMockDataSymbol] = Object.assign({}, stdData, data); // TODO: WP - partial deep merge for map and list
+  const prevResolve = plug[plugResolveSymbol];
+  if ((prevResolve as any)[plugMockSymbol]) {
+    throw new RMachineUsageError(ERR_PLUG_ALREADY_MOCKED, "Plug is already mocked.");
+  }
+
+  // TODO: use data to build the mock resolve function
+  const resolve = (() => undefined!) as typeof prevResolve;
+  (resolve as any)[plugMockSymbol] = true;
+
+  plug[plugResolveSymbol] = resolve;
   return () => {
-    plug[plugMockDataSymbol] = undefined;
+    plug[plugResolveSymbol] = prevResolve;
   };
 };
 

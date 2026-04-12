@@ -5,6 +5,7 @@
     "outDir": ".",
     "customConditions": ["@r-machine/source"],
     "paths": {
+      "#r-machine/testing/errors": ["./src/errors"],
       "#r-machine/testing": ["./src/lib"]
     }
   }

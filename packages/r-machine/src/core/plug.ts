@@ -72,11 +72,9 @@ type PlugData<PH extends AnyPlugHead> = PH["mode"] extends "map"
 
 export const plugHeadSymbol = Symbol("plugHead");
 export const plugResolveDataSymbol = Symbol("plugResolveData");
-export const plugMockDataSymbol = Symbol("plugMockData");
 export interface PlugBody<PH extends AnyPlugHead> {
   readonly [plugHeadSymbol]: PH;
-  readonly [plugResolveDataSymbol]: () => PlugData<PH>;
-  [plugMockDataSymbol]?: unknown;
+  [plugResolveDataSymbol]: () => PlugData<PH>;
 }
 
 export type AnyPlugBody = PlugBody<AnyPlugHead>;
