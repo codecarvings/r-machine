@@ -23,11 +23,11 @@ interface ResPlugHead<
   NS extends NamespaceMap<RA> | NamespaceList<RA>,
 > extends PlugHead<"res", M, RA, KA, NS> {}
 
-export interface ResMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>
-  extends PlugBody<ResPlugHead<"map", RA, KA, NM>> {}
+export interface ResMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>, PI>
+  extends PlugBody<ResPlugHead<"map", RA, KA, NM>, PI> {}
 
-export interface ResListPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>>
-  extends PlugBody<ResPlugHead<"list", RA, KA, NL>> {}
+export interface ResListPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>, PI>
+  extends PlugBody<ResPlugHead<"list", RA, KA, NL>, PI> {}
 
 export type AnyState = unknown; // Record<PropertyKey, unknown> & object;
 
@@ -46,17 +46,19 @@ export interface StatefulResMapPlug<
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
-> extends PlugBody<StatefulResPlugHead<"map", RA, KA, NM, S>> {}
+  PI,
+> extends PlugBody<StatefulResPlugHead<"map", RA, KA, NM, S>, PI> {}
 
 export interface StatefulResListPlug<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
   S extends AnyState,
-> extends PlugBody<StatefulResPlugHead<"list", RA, KA, NL, S>> {}
+  PI,
+> extends PlugBody<StatefulResPlugHead<"list", RA, KA, NL, S>, PI> {}
 
 export type AnyResPlug =
-  | ResMapPlug<any, any, any>
-  | ResListPlug<any, any, any>
-  | StatefulResMapPlug<any, any, any, any>
-  | StatefulResListPlug<any, any, any, any>;
+  | ResMapPlug<any, any, any, any>
+  | ResListPlug<any, any, any, any>
+  | StatefulResMapPlug<any, any, any, any, any>
+  | StatefulResListPlug<any, any, any, any, any>;

@@ -13,7 +13,7 @@
 
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
-import { type AnyPlugHead, getPlugHead } from "./plug.js";
+import { type AnyPlugHead, plugHeadSymbol } from "./plug.js";
 import type { AnyResOrigin, ResFamily } from "./res.js";
 import type { AnyNamespace } from "./res-atlas.js";
 import type { ResLayoutType } from "./res-layout.js";
@@ -51,7 +51,7 @@ export function createResPod(
         `Unable to build resource pod for namespace "${namespace}" - matrix family "${family}" does not match layout type "${resLayoutType}".`
       );
     }
-    const plugHead = getPlugHead((origin as AnyResMatrix).plug);
+    const plugHead = (origin as AnyResMatrix).plug[plugHeadSymbol];
     return {
       namespace,
       locale,

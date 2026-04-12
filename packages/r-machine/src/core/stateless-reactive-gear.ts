@@ -11,14 +11,13 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { GearCursor, GearListPlugin, GearMapPlugin } from "./gear.js";
+import type { GearCursor, GearListPlug, GearListPlugin, GearMapPlug, GearMapPlugin } from "./gear.js";
 import type { StatelessGetterComposer } from "./getter.js";
 import type { AnyReactiveRes, RejectAsyncValueProps } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
-import type { ResListPlug, ResMapPlug } from "./res-plug.js";
 
 interface StatelessReactiveGearCursor extends GearCursor {
   readonly getter: StatelessGetterComposer;
@@ -30,7 +29,7 @@ export type StatelessReactiveGearMapComposer<
   NM extends NamespaceMap<RA>,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
   factory: (plugin: GearMapPlugin<RA, KA, NM>, _: StatelessReactiveGearCursor) => R | Promise<R>
-) => ResMatrix<R, ResMapPlug<RA, KA, NM>>;
+) => ResMatrix<R, GearMapPlug<RA, KA, NM>>;
 
 export type StatelessReactiveGearListComposer<
   RA extends AnyResAtlas,
@@ -38,4 +37,4 @@ export type StatelessReactiveGearListComposer<
   NL extends NamespaceList<RA>,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
   factory: (plugin: GearListPlugin<RA, KA, NL>, _: StatelessReactiveGearCursor) => R | Promise<R>
-) => ResMatrix<R, ResListPlug<RA, KA, NL>>;
+) => ResMatrix<R, GearListPlug<RA, KA, NL>>;

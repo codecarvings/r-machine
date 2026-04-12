@@ -29,6 +29,9 @@ export interface GearCursor {
   readonly cmd: CmdComposer;
 }
 
+export interface GearMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>
+  extends ResMapPlug<RA, KA, NM, GearMapPlugin<RA, KA, NM>> {}
+
 export type GearMapPlugin<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
@@ -36,6 +39,9 @@ export type GearMapPlugin<
 > = SurfaceMap<RA, Omit<NM, "$">> & {
   readonly $: GearCtx<RA, KA>;
 } & SurfaceMap<RA, Omit<KA, keyof NM>>;
+
+export interface GearListPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>>
+  extends ResListPlug<RA, KA, NL, GearListPlugin<RA, KA, NL>> {}
 
 export type GearListPlugin<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = [
   ...SurfaceList<RA, NL>,
@@ -46,10 +52,10 @@ export type GearMapComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>,
   R extends AnyRes,
 >(
   factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => R | Promise<R>
-) => ResMatrix<R, ResMapPlug<RA, KA, NM>>;
+) => ResMatrix<R, GearMapPlug<RA, KA, NM>>;
 
 export type GearListComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = <
   R extends AnyRes,
 >(
   factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => R | Promise<R>
-) => ResMatrix<R, ResListPlug<RA, KA, NL>>;
+) => ResMatrix<R, GearListPlug<RA, KA, NL>>;

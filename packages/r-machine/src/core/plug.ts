@@ -32,20 +32,36 @@ export interface PlugHead<
   readonly deps: AnyNamespace[];
 }
 export type AnyPlugHead = PlugHead<any, any, any, any, any>;
+export type AnyMapPlugHead = PlugHead<any, "map", any, any, any>;
+export type AnyListPlugHead = PlugHead<any, "list", any, any, any>;
 
-const plugHead = Symbol("plugHead");
-export interface PlugBody<PH extends AnyPlugHead> {
-  readonly [plugHead]: PH;
+export const plugHeadSymbol = Symbol("plugHead");
+export const plugMockDataSymbol = Symbol("plugMockData");
+export interface PlugBody<PH extends AnyPlugHead, PI> {
+  readonly [plugHeadSymbol]: PH;
+  readonly [plugMockDataSymbol]?: PI;
 }
 
-export type AnyPlugBody = PlugBody<AnyPlugHead>;
+export type AnyPlugBody = PlugBody<AnyPlugHead, unknown>;
 
-export function getPlugHead<P extends AnyPlugBody>(plug: P): P[typeof plugHead] {
-  return plug[plugHead];
+interface MockPlug {
+  <PH extends AnyMapPlugHead, PI>(plug: PlugBody<PH, PI>): PI;
+  <PH extends AnyListPlugHead, PI>(plug: PlugBody<PH, PI>): PI;
 }
 
-export function createPlugHeadProvider<B extends object, PH extends AnyPlugHead>(base: B, data: PH): B & PlugBody<PH> {
-  return Object.assign({}, base, {
-    [plugHead]: data,
-  });
+export const mockPlug: MockPlug = undefined!;
+
+/*
+interface MockPlugMapData<PH extends AnyMapPlugHead, PI> {
+  deps: PH["namespaces"];
+  $: {
+    kit: PI["$"]["kit"];
+  };
 }
+*/
+
+/*
+type TupleToObject<T extends readonly unknown[]> = {
+  [K in keyof T as K extends `${number}` ? K : never]: T[K];
+};
+*/

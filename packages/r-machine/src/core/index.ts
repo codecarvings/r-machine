@@ -13,6 +13,7 @@
 
 export type { Atomic } from "./action.js";
 export type { Forge } from "./forge.js";
+export { type AnyPlugHead, type PlugBody, type PlugHead, type PlugMode, plugHeadSymbol } from "./plug.js";
 export type { AnyRes, AnyResOrigin } from "./res.js";
 export { type AnyResAtlas, type Namespace, namespaceSymbol, type Token } from "./res-atlas.js";
 export type { ResKit } from "./res-kit.js";

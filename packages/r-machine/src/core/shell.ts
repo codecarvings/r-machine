@@ -24,6 +24,13 @@ type ShellCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceM
   readonly locale: L;
 };
 
+interface ShellMapPlug<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+> extends ResMapPlug<RA, KA, NM, ShellMapPlugin<RA, L, KA, NM>> {}
+
 type ShellMapPlugin<
   RA extends AnyResAtlas,
   L extends AnyLocale,
@@ -33,7 +40,14 @@ type ShellMapPlugin<
   readonly $: ShellCtx<RA, L, KA>;
 } & SurfaceMap<RA, Omit<KA, keyof NM>>;
 
-type GearListPlugin<
+interface ShellListPlug<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+> extends ResListPlug<RA, KA, NL, ShellListPlugin<RA, L, KA, NL>> {}
+
+type ShellListPlugin<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
@@ -47,7 +61,7 @@ export type ShellMapComposer<
   NM extends NamespaceMap<RA>,
 > = <R extends AnyRes>(
   factory: (plugin: ShellMapPlugin<RA, L, KA, NM>) => R | Promise<R>
-) => ResMatrix<R, ResMapPlug<RA, KA, NM>>;
+) => ResMatrix<R, ShellMapPlug<RA, L, KA, NM>>;
 
 export type ShellListComposer<
   RA extends AnyResAtlas,
@@ -55,5 +69,5 @@ export type ShellListComposer<
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
 > = <R extends AnyRes>(
-  factory: (plugin: GearListPlugin<RA, L, KA, NL>) => R | Promise<R>
-) => ResMatrix<R, ResListPlug<RA, KA, NL>>;
+  factory: (plugin: ShellListPlugin<RA, L, KA, NL>) => R | Promise<R>
+) => ResMatrix<R, ShellListPlug<RA, L, KA, NL>>;

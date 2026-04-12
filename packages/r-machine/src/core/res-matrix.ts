@@ -20,9 +20,9 @@ export interface ResMatrixMeta {
   readonly isVertex: boolean;
 }
 
-const resMatrixMeta: unique symbol = Symbol("resMatrixMeta");
+const resMatrixMetaSymbol: unique symbol = Symbol("resMatrixMeta");
 export interface ResMatrix<R extends AnyRes, P extends AnyResPlug> {
-  readonly [resMatrixMeta]: ResMatrixMeta;
+  readonly [resMatrixMetaSymbol]: ResMatrixMeta;
   readonly factory: () => Promise<R>;
   readonly plug: P;
 }
@@ -34,12 +34,12 @@ export function createResMatrix<R extends AnyRes, P extends AnyResPlug>(
   plug: P
 ): ResMatrix<R, P> {
   return {
-    [resMatrixMeta]: meta,
+    [resMatrixMetaSymbol]: meta,
     factory,
     plug,
   };
 }
 
 export function tryGetResMatrixMeta(origin: AnyResOrigin): ResMatrixMeta | undefined {
-  return (origin as Partial<AnyResMatrix>)[resMatrixMeta];
+  return (origin as Partial<AnyResMatrix>)[resMatrixMetaSymbol];
 }
