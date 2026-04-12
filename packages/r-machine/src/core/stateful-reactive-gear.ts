@@ -12,16 +12,19 @@
  */
 
 import type { ActionComposer, DefaultAction } from "./action.js";
-import type { GearCtx, GearCursor } from "./gear.js";
+import type { GearCursor } from "./gear.js";
 import type { DefaultGetter, GetterComposer } from "./getter.js";
+import type { PlugBody, PluginCtx, PlugMode } from "./plug.js";
 import type { AnyReactiveRes, RejectAsyncValueProps } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList, SurfaceList } from "./res-list.js";
 import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
-import type { AnyState, StatefulResListPlug, StatefulResMapPlug } from "./res-plug.js";
+import type { ResPlugHead } from "./res-plug.js";
 
-type StatefulReactiveGearCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, S extends AnyState> = GearCtx<
+export type AnyState = unknown; // Record<PropertyKey, unknown> & object;
+
+type StatefulReactiveGearCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, S extends AnyState> = PluginCtx<
   RA,
   KA
 > & {
@@ -34,12 +37,23 @@ interface StatefulReactiveGearCursor<S extends AnyState> extends GearCursor {
   readonly action: ActionComposer<S>;
 }
 
+interface StatefulReactiveGearPlugHead<
+  M extends PlugMode,
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA> | NamespaceList<RA>,
+  CTX extends StatefulReactiveGearCtx<RA, KA, S>,
+  S extends AnyState,
+> extends ResPlugHead<M, RA, KA, NM, CTX> {
+  readonly defaultState: S;
+}
+
 interface StatefulReactiveGearMapPlug<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
-> extends StatefulResMapPlug<RA, KA, NM, S, StatefulReactiveGearMapPlugin<RA, KA, NM, S>> {}
+> extends PlugBody<StatefulReactiveGearPlugHead<"map", RA, KA, NM, StatefulReactiveGearCtx<RA, KA, S>, S>> {}
 
 type StatefulReactiveGearMapPlugin<
   RA extends AnyResAtlas,
@@ -55,7 +69,7 @@ interface StatefulReactiveGearListPlug<
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
   S extends AnyState,
-> extends StatefulResListPlug<RA, KA, NL, S, StatefulReactiveGearListPlugin<RA, KA, NL, S>> {}
+> extends PlugBody<StatefulReactiveGearPlugHead<"list", RA, KA, NL, StatefulReactiveGearCtx<RA, KA, S>, S>> {}
 
 type StatefulReactiveGearListPlugin<
   RA extends AnyResAtlas,

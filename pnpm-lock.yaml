@@ -362,6 +362,9 @@ importers:
         specifier: workspace:*
         version: link:../../packages/r-machine
     devDependencies:
+      '@r-machine/testing':
+        specifier: workspace:*
+        version: link:../../packages/r-machine-testing
       '@types/node':
         specifier: ^24.12.0
         version: 24.12.0

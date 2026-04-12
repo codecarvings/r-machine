@@ -13,11 +13,23 @@
 
 export type { Atomic } from "./action.js";
 export type { Forge } from "./forge.js";
-export { type AnyPlugHead, type PlugBody, type PlugHead, type PlugMode, plugHeadSymbol } from "./plug.js";
+export {
+  type AnyListPlugHead,
+  type AnyMapPlugHead,
+  type AnyPlugHead,
+  type ExtractCtx,
+  type ExtractResAtlas,
+  type PlugBody,
+  type PlugHead,
+  type PlugMode,
+  plugHeadSymbol,
+  plugMockDataSymbol,
+  plugResolveDataSymbol as plugResolveSymbol,
+} from "./plug.js";
 export type { AnyRes, AnyResOrigin } from "./res.js";
 export { type AnyResAtlas, type Namespace, namespaceSymbol, type Token } from "./res-atlas.js";
 export type { ResKit } from "./res-kit.js";
-export type { ExplicitNamespaceMap } from "./res-map.js";
+export type { ExplicitNamespaceMap, PartialSurfaceMap } from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";
 export type { ResModuleLoaderFn } from "./res-module.js";
 export type { Surface } from "./surface.js";

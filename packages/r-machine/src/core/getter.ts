@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyState } from "./res-plug.js";
+import type { AnyState } from "./stateful-reactive-gear.js";
 
 declare const getterBrand: unique symbol;
 export interface GetterBrand {

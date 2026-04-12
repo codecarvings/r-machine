@@ -13,55 +13,70 @@
 
 import type { AnyNamespace, AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
-import type { NamespaceMap } from "./res-map.js";
+import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 
 export type PlugArea = "res" | "gate";
 export type PlugMode = "map" | "list";
 
+export type PluginCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>> = {} & (keyof KA extends never
+  ? {}
+  : { readonly kit: SurfaceMap<RA, KA> });
+
+declare const resAtlas: unique symbol;
+declare const ctx: unique symbol;
 export interface PlugHead<
   A extends PlugArea,
   M extends PlugMode,
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NS extends NamespaceMap<RA> | NamespaceList<RA>,
+  CTX extends PluginCtx<RA, KA>,
 > {
   readonly area: A;
   readonly mode: M;
   readonly kit: KA;
   readonly namespaces: NS;
   readonly deps: AnyNamespace[];
+  readonly [resAtlas]: RA;
+  readonly [ctx]: CTX;
 }
-export type AnyPlugHead = PlugHead<any, any, any, any, any>;
-export type AnyMapPlugHead = PlugHead<any, "map", any, any, any>;
-export type AnyListPlugHead = PlugHead<any, "list", any, any, any>;
+export type AnyPlugHead = PlugHead<any, any, any, any, any, any>;
+export type AnyMapPlugHead = PlugHead<any, "map", any, any, any, any>;
+export type AnyListPlugHead = PlugHead<any, "list", any, any, any, any>;
 
-export const plugHeadSymbol = Symbol("plugHead");
-export const plugMockDataSymbol = Symbol("plugMockData");
-export interface PlugBody<PH extends AnyPlugHead, PI> {
-  readonly [plugHeadSymbol]: PH;
-  readonly [plugMockDataSymbol]?: PI;
-}
+export type ExtractResAtlas<PH extends AnyPlugHead> = PH[typeof resAtlas];
+export type ExtractCtx<PH extends AnyPlugHead> = PH[typeof ctx];
 
-export type AnyPlugBody = PlugBody<AnyPlugHead, unknown>;
-
-interface MockPlug {
-  <PH extends AnyMapPlugHead, PI>(plug: PlugBody<PH, PI>): PI;
-  <PH extends AnyListPlugHead, PI>(plug: PlugBody<PH, PI>): PI;
+interface PlugMapData<PH extends AnyMapPlugHead> {
+  readonly $: PH[typeof resAtlas];
+  readonly map: SurfaceMap<PH[typeof resAtlas], Omit<PH["namespaces"], "$">>;
 }
 
-export const mockPlug: MockPlug = undefined!;
-
-/*
-interface MockPlugMapData<PH extends AnyMapPlugHead, PI> {
-  deps: PH["namespaces"];
-  $: {
-    kit: PI["$"]["kit"];
-  };
-}
-*/
-
-/*
 type TupleToObject<T extends readonly unknown[]> = {
   [K in keyof T as K extends `${number}` ? K : never]: T[K];
 };
-*/
+
+interface PlugListData<PH extends AnyListPlugHead> {
+  readonly $: PH[typeof resAtlas];
+  readonly list: SurfaceMap<
+    PH[typeof resAtlas],
+    Omit<TupleToObject<PH["namespaces"] extends readonly unknown[] ? PH["namespaces"] : never>, "$">
+  >;
+}
+
+type PlugData<PH extends AnyPlugHead> = PH["mode"] extends "map"
+  ? PlugMapData<PH & AnyMapPlugHead>
+  : PH["mode"] extends "list"
+    ? PlugListData<PH & AnyListPlugHead>
+    : never;
+
+export const plugHeadSymbol = Symbol("plugHead");
+export const plugResolveDataSymbol = Symbol("plugResolveData");
+export const plugMockDataSymbol = Symbol("plugMockData");
+export interface PlugBody<PH extends AnyPlugHead> {
+  readonly [plugHeadSymbol]: PH;
+  readonly [plugResolveDataSymbol]: () => PlugData<PH>;
+  [plugMockDataSymbol]?: unknown;
+}
+
+export type AnyPlugBody = PlugBody<AnyPlugHead>;

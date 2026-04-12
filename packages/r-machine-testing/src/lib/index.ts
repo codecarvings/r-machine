@@ -1,1 +1,1 @@
-export {};
+export { mockPlug } from "./mock-plug.js";

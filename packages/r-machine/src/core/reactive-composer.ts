@@ -16,8 +16,11 @@ import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResKit } from "./res-kit.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
-import type { AnyState } from "./res-plug.js";
-import type { StatefulReactiveGearListComposer, StatefulReactiveGearMapComposer } from "./stateful-reactive-gear.js";
+import type {
+  AnyState,
+  StatefulReactiveGearListComposer,
+  StatefulReactiveGearMapComposer,
+} from "./stateful-reactive-gear.js";
 import type { StatelessReactiveGearListComposer, StatelessReactiveGearMapComposer } from "./stateless-reactive-gear.js";
 
 export interface ReactiveComposer<RA extends AnyResAtlas, KA extends ResKit<RA>> {

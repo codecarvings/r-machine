@@ -11,54 +11,18 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { PlugBody, PlugHead, PlugMode } from "./plug.js";
+import type { PlugBody, PlugHead, PluginCtx, PlugMode } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
 
-interface ResPlugHead<
+export interface ResPlugHead<
   M extends PlugMode,
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NS extends NamespaceMap<RA> | NamespaceList<RA>,
-> extends PlugHead<"res", M, RA, KA, NS> {}
+  CTX extends PluginCtx<RA, KA>,
+> extends PlugHead<"res", M, RA, KA, NS, CTX> {}
 
-export interface ResMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>, PI>
-  extends PlugBody<ResPlugHead<"map", RA, KA, NM>, PI> {}
-
-export interface ResListPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>, PI>
-  extends PlugBody<ResPlugHead<"list", RA, KA, NL>, PI> {}
-
-export type AnyState = unknown; // Record<PropertyKey, unknown> & object;
-
-export interface StatefulResPlugHead<
-  M extends PlugMode,
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA> | NamespaceList<RA>,
-  S extends AnyState,
-> extends ResPlugHead<M, RA, KA, NM> {
-  readonly defaultState: S;
-}
-
-export interface StatefulResMapPlug<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
-  S extends AnyState,
-  PI,
-> extends PlugBody<StatefulResPlugHead<"map", RA, KA, NM, S>, PI> {}
-
-export interface StatefulResListPlug<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-  S extends AnyState,
-  PI,
-> extends PlugBody<StatefulResPlugHead<"list", RA, KA, NL, S>, PI> {}
-
-export type AnyResPlug =
-  | ResMapPlug<any, any, any, any>
-  | ResListPlug<any, any, any, any>
-  | StatefulResMapPlug<any, any, any, any, any>
-  | StatefulResListPlug<any, any, any, any, any>;
+type AnyResPlugHead = ResPlugHead<any, any, any, any, any>;
+export type AnyResPlug = PlugBody<AnyResPlugHead>;

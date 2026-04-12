@@ -12,17 +12,14 @@
  */
 
 import type { CmdComposer } from "./cmd.js";
+import type { PlugBody, PluginCtx } from "./plug.js";
 import type { RelayComposer } from "./relay.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList, SurfaceList } from "./res-list.js";
 import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
-import type { ResListPlug, ResMapPlug } from "./res-plug.js";
-
-export type GearCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>> = {} & (keyof KA extends never
-  ? {}
-  : { readonly kit: SurfaceMap<RA, KA> });
+import type { ResPlugHead } from "./res-plug.js";
 
 export interface GearCursor {
   readonly relay: RelayComposer;
@@ -30,22 +27,22 @@ export interface GearCursor {
 }
 
 export interface GearMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>
-  extends ResMapPlug<RA, KA, NM, GearMapPlugin<RA, KA, NM>> {}
+  extends PlugBody<ResPlugHead<"map", RA, KA, NM, PluginCtx<RA, KA>>> {}
 
 export type GearMapPlugin<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
 > = SurfaceMap<RA, Omit<NM, "$">> & {
-  readonly $: GearCtx<RA, KA>;
+  readonly $: PluginCtx<RA, KA>;
 } & SurfaceMap<RA, Omit<KA, keyof NM>>;
 
 export interface GearListPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>>
-  extends ResListPlug<RA, KA, NL, GearListPlugin<RA, KA, NL>> {}
+  extends PlugBody<ResPlugHead<"list", RA, KA, NL, PluginCtx<RA, KA>>> {}
 
 export type GearListPlugin<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = [
   ...SurfaceList<RA, NL>,
-  GearCtx<RA, KA>,
+  PluginCtx<RA, KA>,
 ];
 
 export type GearMapComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = <
