@@ -1,3 +1,5 @@
+import type { RShape } from "@/r-machine/setup";
+
 export const r = {
   page1: {
     title: "Static Page 1",
@@ -11,4 +13,4 @@ export const r = {
   },
 };
 
-export type R_ExampleStatic = typeof r;
+export type Shell_ExampleStatic = RShape<typeof r>;

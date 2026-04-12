@@ -3,19 +3,28 @@ import { ofType, RMachine, type RMachineLocale } from "r-machine";
 import { PathAtlas } from "./path-atlas";
 import type { ResourceAtlas } from "./resource-atlas";
 
-export const { rMachine, R } = RMachine.create({
+const rMachine = RMachine.create({
   resourceAtlas: ofType<ResourceAtlas>(),
   locales: ["en", "it"],
   defaultLocale: "en",
-  load: (namespace, locale) => import(`./resources/${namespace}/${locale}`),
-  kit: {
-    landingPage: "landing-page", // TODO: WIP
+  load: (path) => import(path),
+  layout: {
+    gear: "gear",
+    shell: "shell",
+    "shell/lib": "dynamic-shell",
+  },
+  shellKit: {
+    fmt: "shell/lib/fmt",
+  },
+  gateKit: {
+    fmt: "shell/lib/fmt",
   },
 });
 
+export const { Forge, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
+export type { BrandedResource as RShape } from "r-machine";
 
-// Step 4: setup the strategy
 export const strategy = new NextAppPathStrategy(rMachine, {
   PathAtlas,
   cookie: "on",

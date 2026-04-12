@@ -13,7 +13,8 @@
 
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
@@ -24,9 +25,9 @@ import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core
 const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
 
 export async function createNextAppFlatServerImpl<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends ResKit<RA>,
   C extends AnyNextAppFlatStrategyConfig,
 >(
   rMachine: RMachine<RA, L, KA>,

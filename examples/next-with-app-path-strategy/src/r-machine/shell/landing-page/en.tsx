@@ -1,4 +1,4 @@
-import type { RShape } from "r-machine";
+import type { RShape } from "@/r-machine/setup";
 
 export const r = {
   hero: {
@@ -16,4 +16,4 @@ export const r = {
   },
 };
 
-export type R_LandingPage = RShape<typeof r>;
+export type Shell_LandingPage = RShape<typeof r>;

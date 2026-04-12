@@ -1,6 +1,6 @@
-import type { R_Navigation } from "./en";
+import { localized } from "@/r-machine/setup";
 
-export const r: R_Navigation = {
+export const r = localized("shell/navigation", {
   home: "Home",
   exampleStatic: {
     label: "Route Statiche",
@@ -17,5 +17,4 @@ export const r: R_Navigation = {
     label: "Route Dinamiche",
     description: "Route con parametro [slug]",
   },
-};
-
+});

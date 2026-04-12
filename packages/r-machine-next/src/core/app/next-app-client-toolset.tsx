@@ -13,23 +13,24 @@
 
 "use client";
 
-import { createReactBareToolset, type ReactBareToolset } from "@r-machine/react/core";
-import { usePathname, useRouter } from "next/navigation";
-import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
-import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
+import { createReactBareToolset } from "@r-machine/react/core";
+import type { usePathname, useRouter } from "next/navigation";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { type ReactNode, useEffect } from "react";
 import type { AnyPathAtlasProvider, BoundPathComposer } from "#r-machine/next/core";
+import type { NextClientPlugComposer } from "../next-plug.js";
 
-export type NextAppClientToolset<
-  RA extends AnyResourceAtlas,
+export interface NextAppClientToolset<
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends ResKit<RA>,
   PAP extends AnyPathAtlasProvider,
-> = Omit<ReactBareToolset<RA, L, KA>, "ReactRMachine"> & {
+> {
   readonly NextClientRMachine: NextAppClientRMachine<L>;
-  readonly usePathComposer: () => BoundPathComposer<PAP>;
-};
+  readonly ClientPlug: NextClientPlugComposer<RA, L, KA["gate"], PAP>;
+}
 
 export type NextAppClientRMachine<L extends AnyLocale> = (props: NextAppClientRMachineProps<L>) => ReactNode;
 interface NextAppClientRMachineProps<L extends AnyLocale> {
@@ -50,13 +51,17 @@ export interface NextAppClientImpl<L extends AnyLocale> {
 }
 
 export async function createNextAppClientToolset<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends ResKit<RA>,
   PAP extends AnyPathAtlasProvider,
 >(rMachine: RMachine<RA, L, KA>, impl: NextAppClientImpl<L>): Promise<NextAppClientToolset<RA, L, KA, PAP>> {
-  const { ReactRMachine, useLocale, ...otherTools } = await createReactBareToolset(rMachine);
+  const { ReactRMachine } = await createReactBareToolset(rMachine);
 
+  // TODO: WP
+  const ClientPlug: any = undefined!;
+
+  /*
   async function setLocale(
     locale: L,
     newLocale: L,
@@ -77,6 +82,7 @@ export async function createNextAppClientToolset<
     }
   }
 
+
   function useSetLocale(): ReturnType<ReactBareToolset<RA, L, KA>["useSetLocale"]> {
     const locale = useLocale();
     const router = useRouter();
@@ -84,6 +90,9 @@ export async function createNextAppClientToolset<
 
     return (newLocale: L) => setLocale(locale, newLocale, pathname, router);
   }
+
+  const usePathComposer = impl.createUsePathComposer(useLocale);
+  */
 
   function NextClientRMachine({ locale, children }: NextAppClientRMachineProps<L>) {
     useEffect(() => {
@@ -94,13 +103,8 @@ export async function createNextAppClientToolset<
     return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
   }
 
-  const usePathComposer = impl.createUsePathComposer(useLocale);
-
   return {
-    ...otherTools,
-    useLocale,
-    useSetLocale,
-    usePathComposer,
     NextClientRMachine,
+    ClientPlug,
   };
 }

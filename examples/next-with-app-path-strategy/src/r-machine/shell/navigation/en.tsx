@@ -1,4 +1,4 @@
-import type { RShape } from "r-machine";
+import type { RShape } from "@/r-machine/setup";
 
 export const r = {
   home: "Home",
@@ -19,4 +19,4 @@ export const r = {
   },
 };
 
-export type R_Navigation = RShape<typeof r>;
+export type Shell_Navigation = RShape<typeof r>;

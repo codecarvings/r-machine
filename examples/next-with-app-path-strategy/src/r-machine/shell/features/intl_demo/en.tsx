@@ -1,9 +1,7 @@
-import type { RShape } from "r-machine";
-import { Formatters } from "@/r-machine/formatters";
-import { R } from "@/r-machine/setup";
+import { Forge, type RShape } from "@/r-machine/setup";
 
-export const r = R.define(($) => {
-  const { date, number, currency, plural } = Formatters.get($.locale);
+export const r = Forge.shell(($) => {
+  const { date, number, currency, plural } = $.fmt;
 
   return {
     sectionTitle: "Locale-Aware Formatting",
@@ -42,4 +40,4 @@ export const r = R.define(($) => {
   };
 });
 
-export type R_Features_IntlDemo = RShape<typeof r>;
+export type Shell_Features_IntlDemo = RShape<typeof r>;

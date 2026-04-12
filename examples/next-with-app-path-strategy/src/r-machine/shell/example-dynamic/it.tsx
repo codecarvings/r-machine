@@ -1,6 +1,6 @@
-import type { R_ExampleDynamic } from "./en";
+import { localized } from "@/r-machine/setup";
 
-export const r: R_ExampleDynamic = {
+export const r = localized("shell/example-dynamic", {
   list: {
     title: "Route Dinamiche",
     description: "Questa pagina elenca elementi con slug dinamici",
@@ -15,5 +15,4 @@ export const r: R_ExampleDynamic = {
     backLink: "Torna alla lista",
     feature: "Parametro dinamico [slug] estratto dai params URL",
   },
-};
-
+});

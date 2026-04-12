@@ -11,7 +11,8 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { AnyPathAtlasProvider } from "#r-machine/next/core";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
@@ -23,9 +24,9 @@ import {
 } from "./next-app-server-toolset.js";
 
 export interface NextAppNoProxyServerToolset<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends ResKit<RA>,
   PAP extends AnyPathAtlasProvider,
   LK extends string,
 > extends Omit<NextAppServerToolset<RA, L, KA, PAP, LK>, "rMachineProxy"> {
@@ -47,9 +48,9 @@ export interface NextAppNoProxyServerImpl<L extends AnyLocale, LK extends string
 }
 
 export async function createNextAppNoProxyServerToolset<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends ResKit<RA>,
   PAP extends AnyPathAtlasProvider,
   LK extends string,
 >(
@@ -57,21 +58,23 @@ export async function createNextAppNoProxyServerToolset<
   impl: NextAppNoProxyServerImpl<L, LK>,
   NextClientRMachine: NextAppClientRMachine<L>
 ): Promise<NextAppNoProxyServerToolset<RA, L, KA, PAP, LK>> {
-  const {
-    rMachineProxy: _rMachineProxy,
-    setLocale,
-    ...otherTools
-  } = await createNextAppServerToolset<RA, L, KA, PAP, LK>(rMachine, impl, NextClientRMachine);
+  const { rMachineProxy: _rMachineProxy, ...otherTools } = await createNextAppServerToolset<RA, L, KA, PAP, LK>(
+    rMachine,
+    impl,
+    NextClientRMachine
+  );
 
   // Use dynamic import to bypass the "next/headers" import issue in pages/ directory
   // You're importing a component that needs "next/headers". That only works in a Server Component which is not supported in the pages/ directory. Read more: https://nextjs.org/docs/app/building-your-application/rendering/server-components
-  const { cookies, headers } = await import("next/headers");
+  // TODO: WP - UNCOMMENT
+  // const { cookies, headers } = await import("next/headers");
 
-  const routeHandlers = await impl.createRouteHandlers(cookies, headers, setLocale);
+  // TODO: WP
+  // const routeHandlers = await impl.createRouteHandlers(cookies, headers, setLocale);
+  const routeHandlers: any = undefined!;
 
   return {
     ...otherTools,
-    setLocale,
     routeHandlers,
   };
 }

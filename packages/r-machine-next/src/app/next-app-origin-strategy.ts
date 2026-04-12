@@ -11,7 +11,8 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { AnyPathAtlasProvider } from "#r-machine/next/core";
 import {
@@ -21,9 +22,9 @@ import {
 } from "#r-machine/next/core/app";
 
 export class NextAppOriginStrategy<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends ResKit<RA>,
   PAP extends AnyPathAtlasProvider = InstanceType<typeof NextAppOriginStrategyCore.defaultConfig.PathAtlas>,
   LK extends string = typeof NextAppOriginStrategyCore.defaultConfig.localeKey,
 > extends NextAppOriginStrategyCore<RA, L, KA, NextAppOriginStrategyConfig<PAP, LK>> {

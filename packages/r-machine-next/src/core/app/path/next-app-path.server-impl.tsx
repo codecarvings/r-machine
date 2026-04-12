@@ -13,7 +13,8 @@
 
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ResKit } from "r-machine/core";
 import { RMachineConfigError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
@@ -31,9 +32,9 @@ const default_autoDL_matcher_explicit: RegExp | null = defaultPathMatcher; // Au
 const default_implicit_matcher: RegExp | null = defaultPathMatcher; // Implicit for all standard paths
 
 export async function createNextAppPathServerImpl<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends ResKit<RA>,
   C extends AnyNextAppPathStrategyConfig,
 >(
   rMachine: RMachine<RA, L, KA>,

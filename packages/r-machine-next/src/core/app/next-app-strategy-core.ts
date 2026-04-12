@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, NamespaceMap } from "r-machine";
+import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { Strategy, type SwitchableOption } from "r-machine/strategy";
 import type { AnyPathAtlasProvider, ExtendedPathAtlasProvider, PathAtlasProviderCtor } from "#r-machine/next/core";
@@ -47,9 +47,9 @@ const defaultConfig: NextAppStrategyConfig<DefaultPathAtlas, typeof defaultLocal
 };
 
 export abstract class NextAppStrategyCore<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends ResKit<RA>,
   C extends AnyNextAppStrategyConfig,
 > extends Strategy<RA, L, KA, C> {
   static readonly defaultConfig = defaultConfig;

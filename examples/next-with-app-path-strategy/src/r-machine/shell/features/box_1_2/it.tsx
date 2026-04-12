@@ -1,6 +1,6 @@
-import type { R_Features_Box_1_2 } from "./en";
+import { localized } from "@/r-machine/setup";
 
-export const r: R_Features_Box_1_2 = {
+export const r = localized("shell/features/box_1_2", {
   box1: {
     title: "Traduzioni Type-Safe",
     description: (
@@ -25,5 +25,4 @@ export const r: R_Features_Box_1_2 = {
     ),
     badge: "Performance",
   },
-};
-
+});

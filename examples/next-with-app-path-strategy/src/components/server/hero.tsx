@@ -2,10 +2,11 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import GitHubMark from "@/gfx/github-mark.svg";
 import RMachineLogo from "@/gfx/r-machine.logo.svg";
-import { pickR } from "@/r-machine/server-toolset";
+import { ServerPlug } from "@/r-machine/server-toolset";
 
+export const plug = ServerPlug("shell/landing-page");
 export default async function Hero() {
-  const r = await pickR("landing-page");
+  const [page] = await plug.use();
 
   return (
     <section className="relative w-full py-12 sm:py-16 lg:py-20 bg-linear-to-br from-gray-200 via-gray-100 to-slate-100">
@@ -32,14 +33,14 @@ export default async function Hero() {
             {/* Content on the left for large screens */}
             <div className="flex-1 text-center lg:text-left space-y-6 lg:order-1">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
-                {r.hero.title}
+                {page.hero.title}
               </h1>
-              <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">{r.hero.subtitle}</p>
+              <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">{page.hero.subtitle}</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center lg:items-start">
                 <a href="https://github.com/codecarvings/r-machine" target="_blank" rel="noopener noreferrer">
                   <Button size="lg" variant="outline" className="gap-2 text-base">
                     <Image src={GitHubMark} alt="GitHub Logo" className="size-4" />
-                    {r.hero.cta.secondary}
+                    {page.hero.cta.secondary}
                   </Button>
                 </a>
               </div>

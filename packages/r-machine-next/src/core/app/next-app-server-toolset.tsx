@@ -12,20 +12,21 @@
  */
 
 import { notFound } from "next/navigation";
-import type { AnyResourceAtlas, Namespace, NamespaceList, NamespaceMap, RList, RMachine } from "r-machine";
-import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ResKit } from "r-machine/core";
+import { RMachineUsageError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
 import type { AnyPathAtlasProvider, BoundPathComposer, RMachineProxy } from "#r-machine/next/core";
-import { ERR_LOCALE_BIND_CONFLICT, ERR_LOCALE_UNDETERMINED } from "#r-machine/next/errors";
+import { ERR_LOCALE_BIND_CONFLICT } from "#r-machine/next/errors";
 import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
+import type { NextServerPlugComposer } from "../next-plug.js";
 import type { NextAppClientRMachine } from "./next-app-client-toolset.js";
-import { localeHeaderName } from "./next-app-strategy-core.js";
 
 export interface NextAppServerToolset<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  _KA extends NamespaceMap<RA>,
+  KA extends ResKit<RA>,
   PAP extends AnyPathAtlasProvider,
   LK extends string,
 > {
@@ -33,11 +34,7 @@ export interface NextAppServerToolset<
   readonly NextServerRMachine: NextAppServerRMachine;
   readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
   readonly bindLocale: BindLocale<L, LK>;
-  readonly getLocale: () => Promise<L>;
-  readonly setLocale: (newLocale: L) => Promise<void>;
-  readonly pickR: <N extends Namespace<RA>>(namespace: N) => Promise<RA[N]>;
-  readonly pickRKit: <NL extends NamespaceList<RA>>(...namespaces: NL) => Promise<RList<RA, NL>>;
-  readonly getPathComposer: BoundPathComposerSupplier<PAP>;
+  readonly ServerPlug: NextServerPlugComposer<RA, L, KA["gate"], PAP, LK>;
 }
 
 type BoundPathComposerSupplier<PAP extends AnyPathAtlasProvider> = () => Promise<BoundPathComposer<PAP>>;
@@ -73,8 +70,8 @@ export interface NextAppServerImpl<L extends AnyLocale, LK extends string> {
 export type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
 
 interface BindLocale<L extends AnyLocale, LK extends string> {
-  (locale: AnyLocale): L;
   <P extends RMachineParams<LK>>(params: Promise<P>): Promise<P>;
+  (locale: AnyLocale): L;
 }
 
 interface NextAppServerRMachineContext<L extends AnyLocale> {
@@ -84,9 +81,9 @@ interface NextAppServerRMachineContext<L extends AnyLocale> {
 }
 
 export async function createNextAppServerToolset<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends ResKit<RA>,
   PAP extends AnyPathAtlasProvider,
   LK extends string,
 >(
@@ -94,14 +91,19 @@ export async function createNextAppServerToolset<
   impl: NextAppServerImpl<L, LK>,
   NextClientRMachine: NextAppClientRMachine<L>
 ): Promise<NextAppServerToolset<RA, L, KA, PAP, LK>> {
+  // TODO: WP
+  const getLocale: any = undefined!;
+
   const localeKey = impl.localeKey as LK;
-  const { autoLocaleBinding } = impl;
+  // TODO: WP - UNCOMMENT
+  // const { autoLocaleBinding } = impl;
 
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   // Use dynamic import to bypass the "next/headers" import issue in pages/ directory
   // You're importing a component that needs "next/headers". That only works in a Server Component which is not supported in the pages/ directory. Read more: https://nextjs.org/docs/app/building-your-application/rendering/server-components
-  const { cookies, headers } = await import("next/headers");
+  // TODO: WP - UNCOMMENT
+  // const { cookies, headers } = await import("next/headers");
 
   const rMachineProxy = await impl.createProxy();
   const generateLocaleStaticParams = await impl.createLocaleStaticParamsGenerator();
@@ -162,6 +164,11 @@ export async function createNextAppServerToolset<
       return syncBindLocale(locale);
     }
   }
+
+  // TODO: WP
+  const ServerPlug: any = undefined!;
+
+  /*
 
   function getSafeLocale(): L | Promise<L> {
     const context = getContext();
@@ -263,16 +270,13 @@ export async function createNextAppServerToolset<
   }
 
   const getPathComposer = await impl.createBoundPathComposerSupplier(getLocale);
+  */
 
   return {
     rMachineProxy,
     NextServerRMachine,
     generateLocaleStaticParams: generateLocaleStaticParams,
     bindLocale: bindLocale as BindLocale<L, LK>,
-    getLocale,
-    setLocale,
-    pickR,
-    pickRKit,
-    getPathComposer,
+    ServerPlug,
   };
 }

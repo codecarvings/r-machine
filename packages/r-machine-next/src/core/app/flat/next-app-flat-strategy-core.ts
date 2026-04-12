@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResourceAtlas, NamespaceMap } from "r-machine";
+import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { type CookieDeclaration, defaultCookieDeclaration } from "r-machine/strategy/web";
 import {
@@ -61,9 +61,9 @@ const defaultConfig: NextAppFlatStrategyConfig<
 };
 
 export abstract class NextAppFlatStrategyCore<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends ResKit<RA>,
   C extends AnyNextAppFlatStrategyConfig,
 > extends NextAppStrategyCore<RA, L, KA, C> {
   static override readonly defaultConfig = defaultConfig;

@@ -1,11 +1,10 @@
-import { Formatters } from "@/r-machine/formatters";
-import { R } from "@/r-machine/setup";
-import type { R_Features_IntlDemo } from "./en";
+import { Forge, localized } from "@/r-machine/setup";
 
-export const r = R.withType<R_Features_IntlDemo>().define(($) => {
-  const { date, number, currency, plural } = Formatters.get($.locale);
 
-  return {
+export const r = Forge.shell(($) => {
+  const { date, number, currency, plural } = $.fmt;
+
+  return localized("shell/features/intl_demo", {
     sectionTitle: "Formattazione Locale-Aware",
     sectionSubtitle:
       "Crea le tue funzioni di formattazione personalizzate con l'API nativa Intl e condividile tra tutti i tuoi file risorsa.",
@@ -35,5 +34,5 @@ export const r = R.withType<R_Features_IntlDemo>().define(($) => {
         </span>
       ),
     },
-  };
+  });
 };

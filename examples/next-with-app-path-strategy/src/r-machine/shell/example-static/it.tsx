@@ -1,6 +1,6 @@
-import type { R_ExampleStatic } from "./en";
+import type { Shell_ExampleStatic } from "./en";
 
-export const r: R_ExampleStatic = {
+export const r: Shell_ExampleStatic = {
   page1: {
     title: "Pagina Statica 1",
     description: "Questa pagina dimostra una route statica annidata a 2 livelli: /example-static/page-1",
@@ -12,4 +12,3 @@ export const r: R_ExampleStatic = {
     feature: "Usa getPathComposer() per generare link locale-aware",
   },
 };
-

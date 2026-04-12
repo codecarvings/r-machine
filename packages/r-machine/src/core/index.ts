@@ -38,7 +38,8 @@ export {
 export type { AnyRes, AnyResOrigin } from "./res.js";
 export { type AnyResAtlas, type Namespace, namespaceSymbol, type Token } from "./res-atlas.js";
 export type { ResKit } from "./res-kit.js";
-export type { ExplicitNamespaceMap, NamespaceMap, PartialSurfaceMap } from "./res-map.js";
+export type { NamespaceList, SurfaceList } from "./res-list.js";
+export type { ExplicitNamespaceMap, NamespaceMap, PartialSurfaceMap, SurfaceMap } from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";
 export type { ResModuleLoaderFn } from "./res-module.js";
 export type { Surface } from "./surface.js";

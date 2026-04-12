@@ -1,4 +1,4 @@
-import type { RShape } from "r-machine";
+import type { RShape } from "@/r-machine/setup";
 
 export const r = {
   title: (locale: string) => `[${locale}] - R-Machine ⧹ Examples ⧹ Next App ⧹ Path Strategy`,
@@ -14,4 +14,4 @@ export const r = {
   },
 };
 
-export type R_Common = RShape<typeof r>;
+export type Shell_Common = RShape<typeof r>;

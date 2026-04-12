@@ -1,16 +1,13 @@
-import { FormattersSeed } from "r-machine";
-import type { Locale } from "./setup";
+import { Forge, type Locale, type RShape } from "@/r-machine/setup";
 
 const currencyByLocale: Record<Locale, string> = {
   en: "USD",
   it: "EUR",
 };
 
-// Place here any formatting functions that depend on the locale, such as date, time, number, or plural formatting.
-// ---
-// Declaring formatters as a named class gives a readable type name (Formatters)
-// instead of the verbose generic type that FormattersSeed.create() would infer.
-export class Formatters extends FormattersSeed.create((locale: Locale) => {
+export const r = Forge.shell((plugin) => {
+  const locale = plugin.$.locale;
+
   const dateLongFmt = new Intl.DateTimeFormat(locale, { dateStyle: "long" });
   const dateShortFmt = new Intl.DateTimeFormat(locale, { dateStyle: "short" });
   const timeFmt = new Intl.DateTimeFormat(locale, { timeStyle: "medium" });
@@ -33,8 +30,7 @@ export class Formatters extends FormattersSeed.create((locale: Locale) => {
       const rule = pluralRules.select(count);
       return `${count} ${rule === "one" ? one : other}`;
     },
-
-    // You can also add here any other locale-dependent values that you want to share across your resources
-    appName: "🚀 R-Machine 😊",
   };
-}) {}
+});
+
+export type Shell_Lib_Fmt = RShape<typeof r>;

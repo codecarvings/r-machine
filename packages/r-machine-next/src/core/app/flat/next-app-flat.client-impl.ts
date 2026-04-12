@@ -12,7 +12,8 @@
  */
 
 import Cookies from "js-cookie";
-import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { setCookie } from "#r-machine/next/internal";
@@ -20,9 +21,9 @@ import type { NextAppClientImpl } from "../next-app-client-toolset.js";
 import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core.js";
 
 export async function createNextAppFlatClientImpl<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends ResKit<RA>,
   C extends AnyNextAppFlatStrategyConfig,
 >(
   _rMachine: RMachine<RA, L, KA>,

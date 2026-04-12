@@ -4,28 +4,28 @@ import type { Metadata } from "next";
 import ContentLoading from "@/components/server/content-loading";
 import Footer from "@/components/server/footer";
 import Header from "@/components/server/header";
-import { bindLocale, generateLocaleStaticParams, NextServerRMachine, pickR } from "@/r-machine/server-toolset";
+import { bindLocale, generateLocaleStaticParams, NextServerRMachine, ServerPlug } from "@/r-machine/server-toolset";
 
 // Pre-render the static params for all locales
 export const generateStaticParams = generateLocaleStaticParams;
 export const dynamicParams = false;
 
 // Generate dynamic metadata based on the locale
+export const metaPlug = ServerPlug("shell/common");
 export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Promise<Metadata> {
   const { locale } = await bindLocale(params);
-  const r = await pickR("common");
+  const [common] = await metaPlug.use();
 
   return {
-    title: r.title(locale),
+    title: common.title(locale),
   };
 }
 
+export const pagePlug = ServerPlug("shell/common");
 export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
   // Bind the locale based on the route parameter
   const { locale } = await bindLocale(params);
-
-  // Load the required localized resources
-  const r = await pickR("common");
+  const [common] = await pagePlug.use();
 
   return (
     <html lang={locale}>
@@ -35,7 +35,7 @@ export default async function LocaleLayout({ params, children }: LayoutProps<"/[
             <div className="min-h-screen bg-background">
               <Header />
               {children}
-              <Footer r={r.footer} />
+              <Footer r={common.footer} />
             </div>
           </DelayedSuspense>
         </NextServerRMachine>

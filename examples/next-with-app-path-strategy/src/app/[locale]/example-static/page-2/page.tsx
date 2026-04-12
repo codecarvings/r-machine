@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { bindLocale, getPathComposer, pickRKit } from "@/r-machine/server-toolset";
+import { bindLocale, ServerPlug } from "@/r-machine/server-toolset";
 
+export const plug = ServerPlug("shell/example-static", "shell/navigation");
 export default async function Page2({ params }: PageProps<"/[locale]/example-static/page-2">) {
   await bindLocale(params);
-  const [rStatic, rNav] = await pickRKit("example-static", "navigation");
-  const getPath = await getPathComposer();
+  const [rStatic, rNav, $] = await plug.use();
 
   return (
     <section className="container mx-auto px-4 py-16">
@@ -20,10 +20,10 @@ export default async function Page2({ params }: PageProps<"/[locale]/example-sta
             <p className="text-sm text-muted-foreground">{rStatic.page2.feature}</p>
             <div className="flex gap-2">
               <Button variant="outline" asChild>
-                <Link href={getPath("/")}>{rNav.home}</Link>
+                <Link href={$.getPath("/")}>{rNav.home}</Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link href={getPath("/example-static/page-1")}>{rNav.exampleStatic.page1.label}</Link>
+                <Link href={$.getPath("/example-static/page-1")}>{rNav.exampleStatic.page1.label}</Link>
               </Button>
             </div>
           </CardContent>
