@@ -19,21 +19,17 @@ import type { AnyPathComposer } from "../../../_fixtures/test-types.js";
 // Mocks
 // ---------------------------------------------------------------------------
 
+const mockGetCookie = vi.fn<(name: string) => string | undefined>();
 const mockSetCookie = vi.fn();
 
-vi.mock("#r-machine/next/internal", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("#r-machine/next/internal")>();
+vi.mock("r-machine/strategy/web", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("r-machine/strategy/web")>();
   return {
     ...actual,
+    getCookie: (name: string) => mockGetCookie(name),
     setCookie: (...args: unknown[]) => mockSetCookie(...args),
   };
 });
-
-const mockCookiesGet = vi.fn<(name: string) => string | undefined>();
-
-vi.mock("js-cookie", () => ({
-  default: { get: (name: string) => mockCookiesGet(name) },
-}));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -92,27 +88,27 @@ describe("createNextAppFlatClientImpl", () => {
   describe("onLoad", () => {
     it("syncs cookie to the current locale when mismatched", async () => {
       const { impl } = await createImpl();
-      mockCookiesGet.mockReturnValue("it");
+      mockGetCookie.mockReturnValue("it");
 
       impl.onLoad!("en");
 
-      expect(mockCookiesGet).toHaveBeenCalledWith("NEXT_LOCALE");
+      expect(mockGetCookie).toHaveBeenCalledWith("NEXT_LOCALE");
       expect(mockSetCookie).toHaveBeenCalledWith("NEXT_LOCALE", "en", expect.objectContaining({ path: "/" }));
     });
 
     it("skips cookie update when locale already matches", async () => {
       const { impl } = await createImpl();
-      mockCookiesGet.mockReturnValue("en");
+      mockGetCookie.mockReturnValue("en");
 
       impl.onLoad!("en");
 
-      expect(mockCookiesGet).toHaveBeenCalledWith("NEXT_LOCALE");
+      expect(mockGetCookie).toHaveBeenCalledWith("NEXT_LOCALE");
       expect(mockSetCookie).not.toHaveBeenCalled();
     });
 
     it("initializes cookie with the current locale when not yet set", async () => {
       const { impl } = await createImpl();
-      mockCookiesGet.mockReturnValue(undefined);
+      mockGetCookie.mockReturnValue(undefined);
 
       impl.onLoad!("en");
 
@@ -121,11 +117,11 @@ describe("createNextAppFlatClientImpl", () => {
 
     it("reads and writes using the custom cookie name from config", async () => {
       const { impl } = await createImpl({ cookieOverrides: { name: "MY_LOCALE" } });
-      mockCookiesGet.mockReturnValue("it");
+      mockGetCookie.mockReturnValue("it");
 
       impl.onLoad!("en");
 
-      expect(mockCookiesGet).toHaveBeenCalledWith("MY_LOCALE");
+      expect(mockGetCookie).toHaveBeenCalledWith("MY_LOCALE");
       expect(mockSetCookie).toHaveBeenCalledWith("MY_LOCALE", "en", expect.objectContaining({ path: "/" }));
     });
   });

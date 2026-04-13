@@ -1,5 +1,10 @@
 import { describe, expectTypeOf, it } from "vitest";
-import { type CookieDeclaration, defaultCookieDeclaration } from "../../../src/strategy/web/web-options.js";
+import {
+  type CookieDeclaration,
+  defaultCookieDeclaration,
+  getCookie,
+  setCookie,
+} from "../../../src/strategy/web/cookie.js";
 
 describe("CookieDeclaration", () => {
   it("should be an object type", () => {
@@ -82,5 +87,19 @@ describe("defaultCookieDeclaration", () => {
 
   it("should have path property matching CookieDeclaration type", () => {
     expectTypeOf(defaultCookieDeclaration).toHaveProperty("path").toEqualTypeOf<string | undefined>();
+  });
+});
+
+describe("getCookie", () => {
+  it("accepts a string name and returns string | undefined", () => {
+    expectTypeOf(getCookie).toEqualTypeOf<(name: string) => string | undefined>();
+  });
+});
+
+describe("setCookie", () => {
+  it("accepts name, value, and config without the 'name' field", () => {
+    expectTypeOf(setCookie).toEqualTypeOf<
+      (name: string, value: string, config: Omit<CookieDeclaration, "name">) => void
+    >();
   });
 });

@@ -7,7 +7,6 @@ import { createMockMachine } from "../_fixtures/mock-machine.js";
 // Mocks — external deps required by dynamically imported modules
 // ---------------------------------------------------------------------------
 
-vi.mock("js-cookie", () => ({ default: { get: vi.fn() } }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("next/server", () => ({
   NextResponse: { rewrite: vi.fn(), next: vi.fn() },

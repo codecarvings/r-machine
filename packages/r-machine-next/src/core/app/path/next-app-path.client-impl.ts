@@ -11,13 +11,11 @@
  * contact: licensing@codecarvings.com
  */
 
-import Cookies from "js-cookie";
 import type { RMachine } from "r-machine";
 import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
-import { defaultCookieDeclaration } from "r-machine/strategy/web";
+import { defaultCookieDeclaration, getCookie, setCookie } from "r-machine/strategy/web";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
-import { setCookie } from "#r-machine/next/internal";
 import type { NextAppClientImpl } from "../next-app-client-toolset.js";
 import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
 
@@ -34,7 +32,7 @@ export async function createNextAppPathClientImpl<RA extends AnyResAtlas, L exte
   let onLoad: NextAppClientImpl<L>["onLoad"];
   if (cookieSw) {
     onLoad = (locale) => {
-      const cookieLocale = Cookies.get(cookieName!);
+      const cookieLocale = getCookie(cookieName!);
       if (locale !== cookieLocale) {
         // 1) Set cookie on load (required when not using the proxy)
         setCookie(cookieName!, locale, cookieConfig);

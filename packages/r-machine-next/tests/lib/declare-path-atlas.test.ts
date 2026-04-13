@@ -35,5 +35,4 @@ describe("declarePathAtlas", () => {
     const declaredB = declarePathAtlas();
     expect(declaredA).not.toBe(declaredB);
   });
-
 });
