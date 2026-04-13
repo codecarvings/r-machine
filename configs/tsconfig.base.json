@@ -4,6 +4,7 @@
     "lib": ["es2020", "dom"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "ignoreDeprecations": "6.0", // Temporary workaround due to ZShy
     "jsx": "react-jsx",
 
     "strict": true,

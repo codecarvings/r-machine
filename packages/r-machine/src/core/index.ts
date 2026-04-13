@@ -12,6 +12,7 @@
  */
 
 export type { Atomic } from "./action.js";
+export type { GateWire, VertexMap } from "./engine/gate-wire.js";
 export type { Forge } from "./forge.js";
 export type {
   GateListPlug,
