@@ -1,10 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  buildPathAtlasSegmentTree,
-  getSegmentData,
-  HrefMapper,
-  type MappedHrefResult,
-} from "../../src/core/href-mapper.js";
+import { buildSegmentNodeTree, getSegmentData, HrefMapper, type MappedHrefResult } from "../../src/core/href-mapper.js";
 import type { AnyPathAtlas } from "../../src/core/path-atlas.js";
 import { createMockAtlas } from "../_fixtures/_helpers.js";
 
@@ -30,13 +25,13 @@ describe("getSegmentData", () => {
   });
 });
 
-describe("buildPathAtlasSegmentTree", () => {
+describe("buildSegmentNodeTree", () => {
   const locales = ["en", "it", "fr"];
   const defaultLocale = "en";
 
   describe("translations", () => {
     it("uses segment name as default translation for all locales", () => {
-      const tree = buildPathAtlasSegmentTree("about", {}, locales, defaultLocale);
+      const tree = buildSegmentNodeTree("about", {}, locales, defaultLocale);
 
       expect(tree.kind).toBe("static");
       expect(tree.paramKey).toBeUndefined();
@@ -49,7 +44,7 @@ describe("buildPathAtlasSegmentTree", () => {
     });
 
     it("applies locale-specific translations", () => {
-      const tree = buildPathAtlasSegmentTree("about", { it: "/chi-siamo", fr: "/apropos" }, locales, defaultLocale);
+      const tree = buildSegmentNodeTree("about", { it: "/chi-siamo", fr: "/apropos" }, locales, defaultLocale);
 
       expect(tree.translations).toEqual({
         en: "about",
@@ -59,7 +54,7 @@ describe("buildPathAtlasSegmentTree", () => {
     });
 
     it("falls back to segment name for locales without translations", () => {
-      const tree = buildPathAtlasSegmentTree("contact", { it: "/contatti" }, locales, defaultLocale);
+      const tree = buildSegmentNodeTree("contact", { it: "/contatti" }, locales, defaultLocale);
 
       expect(tree.translations.en).toBe("contact");
       expect(tree.translations.it).toBe("contatti");
@@ -67,7 +62,7 @@ describe("buildPathAtlasSegmentTree", () => {
     });
 
     it("preserves segment name in child translations for all locales by default", () => {
-      const tree = buildPathAtlasSegmentTree("root", { "/special-page": {} }, locales, defaultLocale);
+      const tree = buildSegmentNodeTree("root", { "/special-page": {} }, locales, defaultLocale);
 
       expect(tree.children["special-page"].translations).toEqual({
         en: "special-page",
@@ -77,7 +72,7 @@ describe("buildPathAtlasSegmentTree", () => {
     });
 
     it("handles both translations and children on the same segment", () => {
-      const tree = buildPathAtlasSegmentTree(
+      const tree = buildSegmentNodeTree(
         "blog",
         {
           it: "/blog",
@@ -97,12 +92,7 @@ describe("buildPathAtlasSegmentTree", () => {
 
   describe("children", () => {
     it("builds child segments with translations", () => {
-      const tree = buildPathAtlasSegmentTree(
-        "about",
-        { "/team": { it: "/staff" }, "/contact": {} },
-        locales,
-        defaultLocale
-      );
+      const tree = buildSegmentNodeTree("about", { "/team": { it: "/staff" }, "/contact": {} }, locales, defaultLocale);
 
       expect(tree.children).toHaveProperty("team");
       expect(tree.children).toHaveProperty("contact");
@@ -111,28 +101,28 @@ describe("buildPathAtlasSegmentTree", () => {
     });
 
     it("builds dynamic segment children", () => {
-      const tree = buildPathAtlasSegmentTree("products", { "/[id]": {} }, locales, defaultLocale);
+      const tree = buildSegmentNodeTree("products", { "/[id]": {} }, locales, defaultLocale);
 
       expect(tree.children["[id]"].kind).toBe("dynamic");
       expect(tree.children["[id]"].paramKey).toBe("id");
     });
 
     it("builds catch-all segment children", () => {
-      const tree = buildPathAtlasSegmentTree("docs", { "/[...slug]": {} }, locales, defaultLocale);
+      const tree = buildSegmentNodeTree("docs", { "/[...slug]": {} }, locales, defaultLocale);
 
       expect(tree.children["[...slug]"].kind).toBe("catchAll");
       expect(tree.children["[...slug]"].paramKey).toBe("slug");
     });
 
     it("builds optional catch-all segment children", () => {
-      const tree = buildPathAtlasSegmentTree("docs", { "/[[...path]]": {} }, locales, defaultLocale);
+      const tree = buildSegmentNodeTree("docs", { "/[[...path]]": {} }, locales, defaultLocale);
 
       expect(tree.children["[[...path]]"].kind).toBe("optionalCatchAll");
       expect(tree.children["[[...path]]"].paramKey).toBe("path");
     });
 
     it("builds mixed static and dynamic children", () => {
-      const tree = buildPathAtlasSegmentTree(
+      const tree = buildSegmentNodeTree(
         "account",
         {
           "/overview": { it: "/panoramica" },
@@ -155,7 +145,7 @@ describe("buildPathAtlasSegmentTree", () => {
 
   describe("nesting", () => {
     it("builds nested tree structure", () => {
-      const tree = buildPathAtlasSegmentTree(
+      const tree = buildSegmentNodeTree(
         "",
         {
           "/products": {
@@ -175,7 +165,7 @@ describe("buildPathAtlasSegmentTree", () => {
     });
 
     it("builds deeply nested tree (4 levels)", () => {
-      const tree = buildPathAtlasSegmentTree(
+      const tree = buildSegmentNodeTree(
         "",
         {
           "/api": {
@@ -200,7 +190,7 @@ describe("buildPathAtlasSegmentTree", () => {
     });
 
     it("builds multiple dynamic segments at different levels", () => {
-      const tree = buildPathAtlasSegmentTree(
+      const tree = buildSegmentNodeTree(
         "shop",
         {
           "/[category]": {
@@ -224,7 +214,7 @@ describe("buildPathAtlasSegmentTree", () => {
 
   describe("edge cases", () => {
     it("builds root segment with undefined kind", () => {
-      const tree = buildPathAtlasSegmentTree("", {}, locales, defaultLocale);
+      const tree = buildSegmentNodeTree("", {}, locales, defaultLocale);
 
       expect(tree.kind).toBeUndefined();
       expect(tree.paramKey).toBeUndefined();
@@ -232,7 +222,7 @@ describe("buildPathAtlasSegmentTree", () => {
     });
 
     it("handles single locale configuration", () => {
-      const tree = buildPathAtlasSegmentTree("about", {}, ["en"], "en");
+      const tree = buildSegmentNodeTree("about", {}, ["en"], "en");
 
       expect(tree.translations).toEqual({ en: "about" });
     });

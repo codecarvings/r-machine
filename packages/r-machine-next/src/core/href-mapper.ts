@@ -12,7 +12,7 @@
  */
 
 import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
-import type { AnyPathAtlas } from "#r-machine/next/core";
+import type { AnyPathAtlas, AnySegment } from "#r-machine/next/core";
 
 type SegmentKind = "static" | "dynamic" | "catchAll" | "optionalCatchAll";
 
@@ -21,23 +21,23 @@ interface SegmentData {
   readonly paramKey: string | undefined;
 }
 
-export interface PathAtlasSegment extends SegmentData {
+export interface SegmentNode extends SegmentData {
   readonly translations: {
     readonly [locale: AnyLocale]: string;
   };
   readonly children: {
-    [key: string]: PathAtlasSegment;
+    [key: string]: SegmentNode;
   };
 }
 
 export interface MappedSegment {
-  readonly decl: boolean;
+  readonly declared: boolean;
   readonly segment: string;
   readonly kind: SegmentKind;
 }
 
 export interface MappedPath {
-  readonly decl: boolean;
+  readonly declared: boolean;
   readonly dynamic: boolean;
   readonly segments: MappedSegment[];
 }
@@ -63,12 +63,12 @@ export function getSegmentData(segment: string): SegmentData {
   return { kind, paramKey };
 }
 
-export function buildPathAtlasSegmentTree(
+export function buildSegmentNodeTree(
   segment: string,
-  decl: object,
+  source: AnySegment,
   locales: AnyLocaleList,
   defaultLocale: AnyLocale
-): PathAtlasSegment {
+): SegmentNode {
   const { kind, paramKey } = getSegmentData(segment);
 
   const translations: { [locale: AnyLocale]: string } = {};
@@ -76,16 +76,15 @@ export function buildPathAtlasSegmentTree(
     translations[locale] = segment;
   }
 
-  const children: { [key: string]: PathAtlasSegment } = {};
-  for (const key in decl) {
+  const children: { [key: string]: SegmentNode } = {};
+  for (const key in source) {
     if (key.startsWith("/")) {
-      // Segment declaration
-      const childDecl = (decl as Record<string, object>)[key];
-      const childSegment = key.slice(1);
-      children[childSegment] = buildPathAtlasSegmentTree(childSegment, childDecl, locales, defaultLocale);
+      const childSegment = source[key] as AnySegment;
+      const childKey = key.slice(1);
+      children[childKey] = buildSegmentNodeTree(childKey, childSegment, locales, defaultLocale);
     } else {
-      const translationDecl: string = (decl as Record<string, string>)[key];
-      const translation = translationDecl.slice(1);
+      const translationValue = source[key] as string;
+      const translation = translationValue.slice(1);
       translations[key] = translation;
     }
   }
@@ -111,14 +110,14 @@ export abstract class HrefMapper<F extends HrefMapperFn> {
     readonly locales: AnyLocaleList,
     readonly defaultLocale: AnyLocale
   ) {
-    this.segmentDataTree = buildPathAtlasSegmentTree("", this.atlas.segment, this.locales, this.defaultLocale);
+    this.segmentTree = buildSegmentNodeTree("", this.atlas.segment, this.locales, this.defaultLocale);
     locales.forEach((locale) => {
       this.caches[locale] = new Map<string, MappedHrefResult>();
       this.mappedPathCaches[locale] = new Map<string, MappedPath>();
     });
   }
 
-  protected readonly segmentDataTree: PathAtlasSegment;
+  protected readonly segmentTree: SegmentNode;
   protected readonly adapter: HrefMapperAdapter | undefined;
   protected readonly caches: { [locale: AnyLocale]: Map<string, MappedHrefResult> } = {};
   protected readonly mappedPathCaches: { [locale: AnyLocale]: Map<string, MappedPath> } = {};

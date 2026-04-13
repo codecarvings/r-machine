@@ -5,9 +5,10 @@ import type {
   MappedHrefResult,
   MappedPath,
   MappedSegment,
-  PathAtlasSegment,
+  SegmentNode,
 } from "../../src/core/href-mapper.js";
-import { buildPathAtlasSegmentTree, getSegmentData } from "../../src/core/href-mapper.js";
+import { buildSegmentNodeTree, getSegmentData } from "../../src/core/href-mapper.js";
+import type { AnySegment } from "../../src/core/path-atlas.js";
 
 describe("getSegmentData", () => {
   it("accepts a segment string and returns SegmentData", () => {
@@ -20,21 +21,21 @@ describe("getSegmentData", () => {
   });
 });
 
-describe("buildPathAtlasSegmentTree", () => {
-  it("builds a PathAtlasSegment tree from declaration inputs", () => {
-    expectTypeOf(buildPathAtlasSegmentTree).toEqualTypeOf<
-      (segment: string, decl: object, locales: readonly string[], defaultLocale: string) => PathAtlasSegment
+describe("buildSegmentNodeTree", () => {
+  it("builds a SegmentNode tree from declaration inputs", () => {
+    expectTypeOf(buildSegmentNodeTree).toEqualTypeOf<
+      (segment: string, source: AnySegment, locales: readonly string[], defaultLocale: string) => SegmentNode
     >();
   });
 });
 
-describe("PathAtlasSegment", () => {
+describe("SegmentNode", () => {
   it("defines a recursive segment tree with translations", () => {
-    expectTypeOf<PathAtlasSegment>().toEqualTypeOf<{
+    expectTypeOf<SegmentNode>().toEqualTypeOf<{
       readonly kind: "static" | "dynamic" | "catchAll" | "optionalCatchAll" | undefined;
       readonly paramKey: string | undefined;
       readonly translations: { readonly [locale: string]: string };
-      readonly children: { [key: string]: PathAtlasSegment };
+      readonly children: { [key: string]: SegmentNode };
     }>();
   });
 });
@@ -42,7 +43,7 @@ describe("PathAtlasSegment", () => {
 describe("MappedSegment", () => {
   it("describes a single mapped path segment", () => {
     expectTypeOf<MappedSegment>().toEqualTypeOf<{
-      readonly decl: boolean;
+      readonly declared: boolean;
       readonly segment: string;
       readonly kind: "static" | "dynamic" | "catchAll" | "optionalCatchAll";
     }>();
@@ -52,7 +53,7 @@ describe("MappedSegment", () => {
 describe("MappedPath", () => {
   it("aggregates mapped segments with declaration and dynamic flags", () => {
     expectTypeOf<MappedPath>().toEqualTypeOf<{
-      readonly decl: boolean;
+      readonly declared: boolean;
       readonly dynamic: boolean;
       readonly segments: MappedSegment[];
     }>();

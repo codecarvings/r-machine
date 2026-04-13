@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { AnyPathAtlas } from "../../src/core/path-atlas.js";
+import type { AnyPathAtlas, AnySegment } from "../../src/core/path-atlas.js";
 import { buildPathAtlas } from "../../src/core/path-atlas.js";
 
-function createPathAtlasClass(segment: object): new () => AnyPathAtlas {
+function createPathAtlasClass(segment: AnySegment): new () => AnyPathAtlas {
   return class {
     readonly segment = segment;
   };
 }
 
-function build(segment: object, allowTranslation = true) {
+function build(segment: AnySegment, allowTranslation = true) {
   return buildPathAtlas(createPathAtlasClass(segment), allowTranslation);
 }
 

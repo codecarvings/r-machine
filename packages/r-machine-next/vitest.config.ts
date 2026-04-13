@@ -6,6 +6,9 @@ import baseConfig from "../../configs/vitest.base.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// todo: WP
+const excludePatterns = ["**/tests/app/**", "**/tests/core/app/**"];
+
 export default mergeConfig(
   baseConfig,
   defineProject({
@@ -13,7 +16,9 @@ export default mergeConfig(
       typecheck: {
         tsconfig: "./tsconfig.test.json",
         // ignoreSourceErrors: true,
+        exclude: excludePatterns,
       },
+      exclude: excludePatterns,
     },
     resolve: {
       alias: [

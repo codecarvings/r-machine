@@ -19,7 +19,7 @@ import {
   type MappedHrefResult,
   type MappedPath,
   type MappedSegment,
-  type PathAtlasSegment,
+  type SegmentNode,
 } from "./href-mapper.js";
 
 type HrefCanonicalizerFn = (locale: AnyLocale, path: string) => MappedHrefResult;
@@ -30,7 +30,7 @@ export class HrefCanonicalizer extends HrefMapper<HrefCanonicalizerFn> {
     let mappedPath = mappedPathCache.get(path);
     if (mappedPath === undefined) {
       mappedPath = this.internalCompute(locale, path);
-      if (mappedPath.decl) {
+      if (mappedPath.declared) {
         mappedPathCache.set(path, mappedPath);
       }
     }
@@ -48,20 +48,20 @@ export class HrefCanonicalizer extends HrefMapper<HrefCanonicalizerFn> {
 
     const inSegments = path.split("/").filter((s) => s.length !== 0);
     if (inSegments.length === 0) {
-      return { decl: true, dynamic: false, segments: [] };
+      return { declared: true, dynamic: false, segments: [] };
     }
 
     const outSegments: MappedSegment[] = [];
-    let pathDecl = true;
+    let pathDeclared = true;
     let dynamicFound = false;
 
-    let curSegment: PathAtlasSegment | undefined = this.segmentDataTree;
+    let curSegment: SegmentNode | undefined = this.segmentTree;
 
     const populateOutSegments = (deep: number) => {
       const inSegment = inSegments[deep];
 
-      let matchedChild: { canonical: string; child: PathAtlasSegment } | undefined;
-      let dynamicChild: { canonical: string; child: PathAtlasSegment } | undefined;
+      let matchedChild: { canonical: string; child: SegmentNode } | undefined;
+      let dynamicChild: { canonical: string; child: SegmentNode } | undefined;
 
       if (curSegment) {
         for (const canonicalKey in curSegment.children) {
@@ -77,22 +77,22 @@ export class HrefCanonicalizer extends HrefMapper<HrefCanonicalizerFn> {
 
       if (matchedChild !== undefined) {
         curSegment = matchedChild.child;
-        outSegments.push({ decl: true, segment: matchedChild.canonical, kind: "static" });
+        outSegments.push({ declared: true, segment: matchedChild.canonical, kind: "static" });
       } else if (dynamicChild !== undefined) {
         curSegment = dynamicChild.child;
         dynamicFound = true;
 
         if (dynamicChild.child.kind === "catchAll" || dynamicChild.child.kind === "optionalCatchAll") {
           for (let i = deep; i < inSegments.length; i++) {
-            outSegments.push({ decl: true, segment: inSegments[i], kind: dynamicChild.child.kind });
+            outSegments.push({ declared: true, segment: inSegments[i], kind: dynamicChild.child.kind });
           }
           return;
         }
-        outSegments.push({ decl: true, segment: inSegment, kind: dynamicChild.child.kind! });
+        outSegments.push({ declared: true, segment: inSegment, kind: dynamicChild.child.kind! });
       } else {
         curSegment = undefined;
-        outSegments.push({ decl: false, segment: inSegment, kind: "static" });
-        pathDecl = false;
+        outSegments.push({ declared: false, segment: inSegment, kind: "static" });
+        pathDeclared = false;
       }
 
       if (deep < inSegments.length - 1) {
@@ -103,7 +103,7 @@ export class HrefCanonicalizer extends HrefMapper<HrefCanonicalizerFn> {
     populateOutSegments(0);
 
     return {
-      decl: pathDecl,
+      declared: pathDeclared,
       dynamic: dynamicFound,
       segments: outSegments,
     };

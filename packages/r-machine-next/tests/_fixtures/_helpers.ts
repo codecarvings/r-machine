@@ -1,6 +1,6 @@
-import type { AnyPathAtlas } from "../../src/core/path-atlas.js";
+import type { AnyPathAtlas, AnySegment } from "../../src/core/path-atlas.js";
 
-export function createMockAtlas(segment: object = {}): AnyPathAtlas {
+export function createMockAtlas(segment: AnySegment = {}): AnyPathAtlas {
   return { segment };
 }
 

@@ -3,6 +3,7 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type {
   AnyPathAtlas,
+  AnySegment,
   AnySegmentEntryKey,
   BuiltPathAtlas,
   PathAtlasCtor,
@@ -33,8 +34,8 @@ describe("AnySegmentEntryKey", () => {
 });
 
 describe("AnyPathAtlas", () => {
-  it("has a readonly segment property of type object", () => {
-    expectTypeOf<AnyPathAtlas["segment"]>().toEqualTypeOf<object>();
+  it("has a readonly segment property of type AnySegment", () => {
+    expectTypeOf<AnyPathAtlas["segment"]>().toEqualTypeOf<AnySegment>();
   });
 });
 

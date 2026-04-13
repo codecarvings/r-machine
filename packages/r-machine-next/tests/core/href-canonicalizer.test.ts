@@ -16,17 +16,17 @@ describe("getCanonicalizedHref", () => {
 
   it("joins multiple segments with /", () => {
     const result = getCanonicalizedHref([
-      { decl: true, segment: "about", kind: "static" as const },
-      { decl: true, segment: "team", kind: "static" as const },
+      { declared: true, segment: "about", kind: "static" as const },
+      { declared: true, segment: "team", kind: "static" as const },
     ]);
     expect(result).toBe("/about/team");
   });
 
-  it("only reads segment property, ignores kind and decl", () => {
+  it("only reads segment property, ignores kind and declared", () => {
     const result = getCanonicalizedHref([
-      { decl: true, segment: "about", kind: "static" as const },
-      { decl: false, segment: "unknown", kind: "dynamic" as const },
-      { decl: true, segment: "hello%20world", kind: "catchAll" as const },
+      { declared: true, segment: "about", kind: "static" as const },
+      { declared: false, segment: "unknown", kind: "dynamic" as const },
+      { declared: true, segment: "hello%20world", kind: "catchAll" as const },
     ]);
     expect(result).toBe("/about/unknown/hello%20world");
   });

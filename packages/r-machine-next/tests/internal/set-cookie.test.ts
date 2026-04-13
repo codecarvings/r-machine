@@ -16,9 +16,12 @@ afterEach(() => {
 });
 
 describe("setCookie", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("converts maxAge (seconds) to an expires Date", () => {
-    const now = new Date("2026-01-15T12:00:00Z");
-    vi.setSystemTime(now);
+    vi.setSystemTime(new Date("2026-01-15T12:00:00Z"));
 
     const config: Config = { maxAge: 3600 };
     setCookie("locale", "en", config);
@@ -30,8 +33,6 @@ describe("setCookie", () => {
       secure: undefined,
       sameSite: undefined,
     });
-
-    vi.useRealTimers();
   });
 
   it("defaults path to '/' when not specified", () => {
@@ -53,8 +54,7 @@ describe("setCookie", () => {
   });
 
   it("sets expires to now when maxAge is 0 (immediate expiry)", () => {
-    const now = new Date("2026-01-15T12:00:00Z");
-    vi.setSystemTime(now);
+    vi.setSystemTime(new Date("2026-01-15T12:00:00Z"));
 
     setCookie("locale", "en", { maxAge: 0 });
 
@@ -63,8 +63,6 @@ describe("setCookie", () => {
       "en",
       expect.objectContaining({ expires: new Date("2026-01-15T12:00:00Z") })
     );
-
-    vi.useRealTimers();
   });
 
   it("forwards domain, secure, and sameSite", () => {
