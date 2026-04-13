@@ -2,16 +2,16 @@
 
 import { describe, expectTypeOf, it } from "vitest";
 import type {
-  AnyPathAtlasProvider,
+  AnyPathAtlasDeclaration,
   AnySegmentKey,
-  ExtendedPathAtlasProvider,
+  BuiltPathAtlasDeclaration,
   NonTranslatableSegmentDecl,
-  PathAtlasProviderCtor,
+  PathAtlasDeclarationCtor,
   TranslatableSegmentDecl,
 } from "../../src/core/path-atlas.js";
-import { buildPathAtlas } from "../../src/core/path-atlas.js";
+import { buildPathAtlasDeclaration } from "../../src/core/path-atlas.js";
 
-type TestAtlas = AnyPathAtlasProvider & { readonly decl: { "/about": {} } };
+type TestAtlas = AnyPathAtlasDeclaration & { readonly decl: { "/about": {} } };
 
 describe("AnySegmentKey", () => {
   it("is the template literal type `/${string}`", () => {
@@ -32,38 +32,40 @@ describe("AnySegmentKey", () => {
   });
 });
 
-describe("AnyPathAtlasProvider", () => {
+describe("AnyPathAtlasDeclaration", () => {
   it("has a readonly decl property of type object", () => {
-    expectTypeOf<AnyPathAtlasProvider["decl"]>().toEqualTypeOf<object>();
+    expectTypeOf<AnyPathAtlasDeclaration["decl"]>().toEqualTypeOf<object>();
   });
 });
 
-describe("PathAtlasProviderCtor", () => {
-  it("is a constructor that returns PAP", () => {
-    expectTypeOf<PathAtlasProviderCtor<TestAtlas>>().toEqualTypeOf<new () => TestAtlas>();
+describe("PathAtlasDeclarationCtor", () => {
+  it("is a constructor that returns PAD", () => {
+    expectTypeOf<PathAtlasDeclarationCtor<TestAtlas>>().toEqualTypeOf<new () => TestAtlas>();
   });
 });
 
-describe("ExtendedPathAtlasProvider", () => {
-  it("intersects PAP with containsTranslations boolean", () => {
-    expectTypeOf<ExtendedPathAtlasProvider<TestAtlas>>().toEqualTypeOf<TestAtlas & { containsTranslations: boolean }>();
+describe("BuiltPathAtlasDeclaration", () => {
+  it("intersects PAD with containsTranslations boolean", () => {
+    expectTypeOf<BuiltPathAtlasDeclaration<TestAtlas>>().toEqualTypeOf<TestAtlas & { containsTranslations: boolean }>();
   });
 });
 
-describe("buildPathAtlas", () => {
-  it("returns ExtendedPathAtlasProvider for a given PathAtlas type", () => {
+describe("buildPathAtlasDeclaration", () => {
+  it("returns BuiltPathAtlasDeclaration for a given PathAtlas type", () => {
     const ctor = class {
       decl = {};
-    } as unknown as PathAtlasProviderCtor<AnyPathAtlasProvider>;
-    expectTypeOf(buildPathAtlas(ctor, true)).toEqualTypeOf<ExtendedPathAtlasProvider<AnyPathAtlasProvider>>();
+    } as unknown as PathAtlasDeclarationCtor<AnyPathAtlasDeclaration>;
+    expectTypeOf(buildPathAtlasDeclaration(ctor, true)).toEqualTypeOf<
+      BuiltPathAtlasDeclaration<AnyPathAtlasDeclaration>
+    >();
   });
 
   it("preserves the specific PathAtlas type in the result", () => {
-    interface SpecificAtlas extends AnyPathAtlasProvider {
+    interface SpecificAtlas extends AnyPathAtlasDeclaration {
       readonly decl: { "/about": {} };
     }
-    const ctor = {} as PathAtlasProviderCtor<SpecificAtlas>;
-    expectTypeOf(buildPathAtlas(ctor, false)).toEqualTypeOf<ExtendedPathAtlasProvider<SpecificAtlas>>();
+    const ctor = {} as PathAtlasDeclarationCtor<SpecificAtlas>;
+    expectTypeOf(buildPathAtlasDeclaration(ctor, false)).toEqualTypeOf<BuiltPathAtlasDeclaration<SpecificAtlas>>();
   });
 });
 

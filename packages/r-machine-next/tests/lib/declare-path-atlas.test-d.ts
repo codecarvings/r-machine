@@ -1,14 +1,14 @@
 /** biome-ignore-all lint/suspicious/noTemplateCurlyInString: This is intentional for the tests */
 
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyPathAtlasProvider, NonTranslatableSegmentDecl } from "../../src/core/index.js";
-import { PathAtlasSeed } from "../../src/lib/path-atlas-seed.js";
+import type { AnyPathAtlasDeclaration, NonTranslatableSegmentDecl } from "../../src/core/index.js";
+import { declarePathAtlas } from "../../src/lib/declare-path-atlas.js";
 
-describe("PathAtlasSeed", () => {
-  describe("create", () => {
+describe("declarePathAtlas", () => {
+  describe("as", () => {
     describe("instance decl type", () => {
       it("returns {} for an empty declaration", () => {
-        const Ctor = PathAtlasSeed.create({});
+        const Ctor = declarePathAtlas().as({});
         expectTypeOf(new Ctor().decl).toBeObject();
       });
 
@@ -21,23 +21,23 @@ describe("PathAtlasSeed", () => {
           "/help": { "/[[...slug]]": {} },
           "/api": { "/v1": { "/users": { "/profile": {} } } },
         } as const;
-        expectTypeOf(new (PathAtlasSeed.create(decl))().decl).toEqualTypeOf(decl);
+        expectTypeOf(new (declarePathAtlas().as(decl))().decl).toEqualTypeOf(decl);
       });
 
       it("infers the exact literal type of the argument", () => {
-        const Ctor = PathAtlasSeed.create({ "/about": {}, "/contact": {} });
+        const Ctor = declarePathAtlas().as({ "/about": {}, "/contact": {} });
         expectTypeOf(new Ctor().decl).toEqualTypeOf<{ readonly "/about": {}; readonly "/contact": {} }>();
       });
 
       it("preserves nested structure in the return type", () => {
-        const Ctor = PathAtlasSeed.create({ "/about": { "/team": { "/leads": {} } } });
+        const Ctor = declarePathAtlas().as({ "/about": { "/team": { "/leads": {} } } });
         expectTypeOf(new Ctor().decl).toEqualTypeOf<{
           readonly "/about": { readonly "/team": { readonly "/leads": {} } };
         }>();
       });
 
       it("preserves translation values in the return type", () => {
-        const Ctor = PathAtlasSeed.create({
+        const Ctor = declarePathAtlas().as({
           "/about": { en: "/about-en", it: "/chi-siamo" },
         });
         expectTypeOf(new Ctor().decl).toEqualTypeOf<{
@@ -46,16 +46,16 @@ describe("PathAtlasSeed", () => {
       });
     });
 
-    describe("satisfies AnyPathAtlasProvider", () => {
-      it("instance satisfies AnyPathAtlasProvider", () => {
-        const Ctor = PathAtlasSeed.create({ "/about": {} });
-        expectTypeOf(new Ctor()).toExtend<AnyPathAtlasProvider>();
+    describe("satisfies AnyPathAtlasDeclaration", () => {
+      it("instance satisfies AnyPathAtlasDeclaration", () => {
+        const Ctor = declarePathAtlas().as({ "/about": {} });
+        expectTypeOf(new Ctor()).toExtend<AnyPathAtlasDeclaration>();
       });
     });
 
     describe("extensibility", () => {
       it("returned class is extensible", () => {
-        const Base = PathAtlasSeed.create({ "/about": {} });
+        const Base = declarePathAtlas().as({ "/about": {} });
         class MyAtlas extends Base {}
         expectTypeOf(new MyAtlas().decl).toEqualTypeOf<{ readonly "/about": {} }>();
       });
@@ -64,55 +64,55 @@ describe("PathAtlasSeed", () => {
 
   describe("valid declarations", () => {
     it("accepts deeply nested segments", () => {
-      PathAtlasSeed.create({
+      declarePathAtlas().as({
         "/api": { "/v1": { "/users": { "/profile": { "/settings": {} } } } },
       });
     });
 
     it("accepts a dynamic segment", () => {
-      PathAtlasSeed.create({ "/[id]": {} });
+      declarePathAtlas().as({ "/[id]": {} });
     });
 
     it("accepts a dynamic segment with child segments", () => {
-      PathAtlasSeed.create({
+      declarePathAtlas().as({
         "/[id]": { "/posts": {}, "/comments": {} },
       });
     });
 
     it("accepts nested dynamic segments", () => {
-      PathAtlasSeed.create({
+      declarePathAtlas().as({
         "/users": { "/[userId]": { "/posts": { "/[postId]": {} } } },
       });
     });
 
     it("accepts a catch-all segment with an empty object", () => {
-      PathAtlasSeed.create({ "/[...slug]": {} });
+      declarePathAtlas().as({ "/[...slug]": {} });
     });
 
     it("accepts an optional catch-all segment with an empty object", () => {
-      PathAtlasSeed.create({ "/[[...slug]]": {} });
+      declarePathAtlas().as({ "/[[...slug]]": {} });
     });
 
     it("accepts catch-all nested inside a static segment", () => {
-      PathAtlasSeed.create({
+      declarePathAtlas().as({
         "/docs": { "/[...slug]": {} },
       });
     });
 
     it("accepts optional catch-all nested inside a static segment", () => {
-      PathAtlasSeed.create({
+      declarePathAtlas().as({
         "/help": { "/[[...slug]]": {} },
       });
     });
 
     it("accepts translations inside static child segments (via TranslatableSegmentDecl)", () => {
-      PathAtlasSeed.create({
+      declarePathAtlas().as({
         "/about": { en: "/about-en", it: "/chi-siamo" },
       });
     });
 
     it("accepts translations alongside child segments inside static segments", () => {
-      PathAtlasSeed.create({
+      declarePathAtlas().as({
         "/about": {
           en: "/about-en",
           it: "/chi-siamo",
@@ -122,7 +122,7 @@ describe("PathAtlasSeed", () => {
     });
 
     it("accepts translations at multiple nesting levels", () => {
-      PathAtlasSeed.create({
+      declarePathAtlas().as({
         "/about": {
           en: "/about-en",
           it: "/chi-siamo",
@@ -136,7 +136,7 @@ describe("PathAtlasSeed", () => {
     });
 
     it("accepts a dynamic segment inside a translated static segment", () => {
-      PathAtlasSeed.create({
+      declarePathAtlas().as({
         "/products": {
           en: "/products-en",
           it: "/prodotti",
@@ -146,7 +146,7 @@ describe("PathAtlasSeed", () => {
     });
 
     it("accepts a catch-all inside a translated static segment", () => {
-      PathAtlasSeed.create({
+      declarePathAtlas().as({
         "/docs": {
           en: "/documentation",
           it: "/documentazione",
@@ -263,31 +263,31 @@ describe("PathAtlasSeed", () => {
     });
   });
 
-  describe("for<L>().create — locale-constrained declarations", () => {
+  describe("declarePathAtlas<L>().as — locale-constrained declarations", () => {
     type Locale = "en" | "it";
 
     describe("valid declarations", () => {
       it("accepts translations with configured locales", () => {
-        PathAtlasSeed.for<Locale>().create({
+        declarePathAtlas<Locale>().as({
           "/about": { en: "/about-en", it: "/chi-siamo" },
         });
       });
 
       it("accepts a subset of configured locales", () => {
-        PathAtlasSeed.for<Locale>().create({
+        declarePathAtlas<Locale>().as({
           "/about": { en: "/about-en" },
         });
       });
 
       it("accepts segments without translations", () => {
-        PathAtlasSeed.for<Locale>().create({
+        declarePathAtlas<Locale>().as({
           "/about": {},
           "/contact": {},
         });
       });
 
       it("accepts translations at multiple nesting levels", () => {
-        PathAtlasSeed.for<Locale>().create({
+        declarePathAtlas<Locale>().as({
           "/about": {
             en: "/about-en",
             it: "/chi-siamo",
@@ -300,7 +300,7 @@ describe("PathAtlasSeed", () => {
       });
 
       it("accepts dynamic segments alongside constrained translations", () => {
-        PathAtlasSeed.for<Locale>().create({
+        declarePathAtlas<Locale>().as({
           "/products": {
             en: "/products-en",
             it: "/prodotti",
@@ -323,8 +323,8 @@ describe("PathAtlasSeed", () => {
     });
 
     describe("backward compatibility", () => {
-      it("without for<L>(), any locale is accepted (L defaults to string)", () => {
-        PathAtlasSeed.create({
+      it("without locale constraint, any locale is accepted (L defaults to AnyLocale)", () => {
+        declarePathAtlas().as({
           "/about": { en: "/about-en", fr: "/a-propos", de: "/ueber-uns" },
         });
       });
@@ -332,7 +332,7 @@ describe("PathAtlasSeed", () => {
 
     describe("type inference", () => {
       it("preserves the exact literal type of the declaration", () => {
-        const Ctor = PathAtlasSeed.for<Locale>().create({
+        const Ctor = declarePathAtlas<Locale>().as({
           "/about": { en: "/about-en", it: "/chi-siamo" },
         });
         expectTypeOf(new Ctor().decl).toEqualTypeOf<{
@@ -340,13 +340,13 @@ describe("PathAtlasSeed", () => {
         }>();
       });
 
-      it("instance satisfies AnyPathAtlasProvider", () => {
-        const Ctor = PathAtlasSeed.for<Locale>().create({ "/about": {} });
-        expectTypeOf(new Ctor()).toExtend<AnyPathAtlasProvider>();
+      it("instance satisfies AnyPathAtlasDeclaration", () => {
+        const Ctor = declarePathAtlas<Locale>().as({ "/about": {} });
+        expectTypeOf(new Ctor()).toExtend<AnyPathAtlasDeclaration>();
       });
 
       it("returned class is extensible", () => {
-        const Base = PathAtlasSeed.for<Locale>().create({ "/about": {} });
+        const Base = declarePathAtlas<Locale>().as({ "/about": {} });
         class MyAtlas extends Base {}
         expectTypeOf(new MyAtlas().decl).toEqualTypeOf<{ readonly "/about": {} }>();
       });

@@ -1,7 +1,7 @@
 import type { NamespaceMap, RMachine } from "r-machine";
 import type { SwitchableOption } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyPathAtlasProvider, PathAtlasProviderCtor } from "#r-machine/next/core";
+import type { AnyPathAtlasDeclaration, PathAtlasDeclarationCtor } from "#r-machine/next/core";
 import type { NextAppClientRMachine, NextAppClientToolset } from "../../../src/core/app/next-app-client-toolset.js";
 import type { NextAppServerToolset } from "../../../src/core/app/next-app-server-toolset.js";
 import type {
@@ -36,8 +36,8 @@ describe("DefaultPathAtlas", () => {
     expectTypeOf<DefaultPathAtlas>().toHaveProperty("decl");
   });
 
-  it("satisfies AnyPathAtlasProvider", () => {
-    expectTypeOf<DefaultPathAtlas>().toExtend<AnyPathAtlasProvider>();
+  it("satisfies AnyPathAtlasDeclaration", () => {
+    expectTypeOf<DefaultPathAtlas>().toExtend<AnyPathAtlasDeclaration>();
   });
 
   it("is constructable with no arguments", () => {
@@ -57,8 +57,8 @@ describe("NextAppStrategyConfig", () => {
     expectTypeOf<Keys>().toEqualTypeOf<"PathAtlas" | "localeKey" | "autoLocaleBinding" | "basePath">();
   });
 
-  it("PathAtlas is PathAtlasProviderCtor<PAP>", () => {
-    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasProviderCtor<TranslatedPathAtlas>>();
+  it("PathAtlas is PathAtlasDeclarationCtor<PAD>", () => {
+    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasDeclarationCtor<TranslatedPathAtlas>>();
   });
 
   it("localeKey is the literal string type", () => {
@@ -109,8 +109,8 @@ describe("PartialNextAppStrategyConfig", () => {
     expectTypeOf<{}>().toExtend<Config>();
   });
 
-  it("PathAtlas accepts PathAtlasProviderCtor<PAP>", () => {
-    expectTypeOf<PathAtlasProviderCtor<TranslatedPathAtlas>>().toExtend<NonNullable<Config["PathAtlas"]>>();
+  it("PathAtlas accepts PathAtlasDeclarationCtor<PAD>", () => {
+    expectTypeOf<PathAtlasDeclarationCtor<TranslatedPathAtlas>>().toExtend<NonNullable<Config["PathAtlas"]>>();
   });
 
   it("localeKey accepts the literal string type", () => {
@@ -169,7 +169,7 @@ describe("NextAppStrategyCore", () => {
     expectTypeOf<Core["createServerToolset"]>().parameter(0).toEqualTypeOf<NextAppClientRMachine<TestLocale>>();
   });
 
-  it("createServerToolset returns Promise<NextAppServerToolset<RA, L, PAP, LK>>", () => {
+  it("createServerToolset returns Promise<NextAppServerToolset<RA, L, PAD, LK>>", () => {
     expectTypeOf<Core["createServerToolset"]>().returns.toEqualTypeOf<
       Promise<NextAppServerToolset<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, DefaultPathAtlas, "locale">>
     >();

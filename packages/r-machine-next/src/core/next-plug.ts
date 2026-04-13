@@ -24,7 +24,7 @@ import type {
 } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { BoundPathComposer } from "./path.js";
-import type { AnyPathAtlasProvider } from "./path-atlas.js";
+import type { AnyPathAtlasDeclaration } from "./path-atlas.js";
 
 interface NextPlugHead<
   M extends PlugMode,
@@ -32,25 +32,25 @@ interface NextPlugHead<
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NS extends NamespaceMap<RA> | NamespaceList<RA>,
-  CTX extends NextPluginCtx<RA, L, KA, AnyPathAtlasProvider>,
+  CTX extends NextPluginCtx<RA, L, KA, AnyPathAtlasDeclaration>,
 > extends GatePlugHead<M, RA, L, KA, NS, CTX> {}
 
 type NextPluginCtx<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
-  PAP extends AnyPathAtlasProvider,
+  PAD extends AnyPathAtlasDeclaration,
 > = GatePluginCtx<RA, L, KA> & {
-  readonly getPath: BoundPathComposer<PAP>;
+  readonly getPath: BoundPathComposer<PAD>;
 };
 
 type NextParamsPluginCtx<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
-  PAP extends AnyPathAtlasProvider,
+  PAD extends AnyPathAtlasDeclaration,
   P extends Record<string, string>,
-> = NextPluginCtx<RA, L, KA, PAP> & {
+> = NextPluginCtx<RA, L, KA, PAD> & {
   readonly params: P;
 };
 
@@ -59,9 +59,9 @@ interface NextClientMapPlug<
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-  PAP extends AnyPathAtlasProvider,
-> extends PlugBody<NextPlugHead<"map", RA, L, KA, NM, NextPluginCtx<RA, L, KA, PAP>>> {
-  use(): NextMapPlugin<RA, L, KA, NM, PAP>;
+  PAD extends AnyPathAtlasDeclaration,
+> extends PlugBody<NextPlugHead<"map", RA, L, KA, NM, NextPluginCtx<RA, L, KA, PAD>>> {
+  use(): NextMapPlugin<RA, L, KA, NM, PAD>;
 }
 
 type RMachineParams<LK extends string> = {
@@ -73,15 +73,15 @@ interface NextServerMapPlug<
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-  PAP extends AnyPathAtlasProvider,
+  PAD extends AnyPathAtlasDeclaration,
   LK extends string,
-> extends PlugBody<NextPlugHead<"map", RA, L, KA, NM, NextPluginCtx<RA, L, KA, PAP>>> {
-  use(): Promise<NextMapPlugin<RA, L, KA, NM, PAP>>;
+> extends PlugBody<NextPlugHead<"map", RA, L, KA, NM, NextPluginCtx<RA, L, KA, PAD>>> {
+  use(): Promise<NextMapPlugin<RA, L, KA, NM, PAD>>;
   use<P extends RMachineParams<LK>>(
     params: Promise<P>,
     bindLocale?: boolean
-  ): Promise<NextParamsMapPlugin<RA, L, KA, NM, PAP, P>>;
-  use(locale: AnyLocale, bindLocale?: boolean): Promise<NextMapPlugin<RA, L, KA, NM, PAP>>;
+  ): Promise<NextParamsMapPlugin<RA, L, KA, NM, PAD, P>>;
+  use(locale: AnyLocale, bindLocale?: boolean): Promise<NextMapPlugin<RA, L, KA, NM, PAD>>;
 }
 
 type NextMapPlugin<
@@ -89,9 +89,9 @@ type NextMapPlugin<
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-  PAP extends AnyPathAtlasProvider,
+  PAD extends AnyPathAtlasDeclaration,
 > = SurfaceMap<RA, Omit<NM, "$">> & {
-  readonly $: NextPluginCtx<RA, L, KA, PAP>;
+  readonly $: NextPluginCtx<RA, L, KA, PAD>;
 } & SurfaceMap<RA, Omit<KA, keyof NM>>;
 
 type NextParamsMapPlugin<
@@ -99,10 +99,10 @@ type NextParamsMapPlugin<
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-  PAP extends AnyPathAtlasProvider,
+  PAD extends AnyPathAtlasDeclaration,
   P extends Record<string, string>,
 > = SurfaceMap<RA, Omit<NM, "$">> & {
-  readonly $: NextParamsPluginCtx<RA, L, KA, PAP, P>;
+  readonly $: NextParamsPluginCtx<RA, L, KA, PAD, P>;
 } & SurfaceMap<RA, Omit<KA, keyof NM>>;
 
 interface NextClientListPlug<
@@ -110,9 +110,9 @@ interface NextClientListPlug<
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-  PAP extends AnyPathAtlasProvider,
-> extends PlugBody<NextPlugHead<"list", RA, L, KA, NL, NextPluginCtx<RA, L, KA, PAP>>> {
-  use(): NextListPlugin<RA, L, KA, NL, PAP>;
+  PAD extends AnyPathAtlasDeclaration,
+> extends PlugBody<NextPlugHead<"list", RA, L, KA, NL, NextPluginCtx<RA, L, KA, PAD>>> {
+  use(): NextListPlugin<RA, L, KA, NL, PAD>;
 }
 
 interface NextServerListPlug<
@@ -120,15 +120,15 @@ interface NextServerListPlug<
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-  PAP extends AnyPathAtlasProvider,
+  PAD extends AnyPathAtlasDeclaration,
   LK extends string,
-> extends PlugBody<NextPlugHead<"list", RA, L, KA, NL, NextPluginCtx<RA, L, KA, PAP>>> {
-  use(): Promise<NextListPlugin<RA, L, KA, NL, PAP>>;
+> extends PlugBody<NextPlugHead<"list", RA, L, KA, NL, NextPluginCtx<RA, L, KA, PAD>>> {
+  use(): Promise<NextListPlugin<RA, L, KA, NL, PAD>>;
   use<P extends RMachineParams<LK>>(
     params: Promise<P>,
     bindLocale?: boolean
-  ): Promise<NextParamsListPlugin<RA, L, KA, NL, PAP, P>>;
-  use(params: AnyLocale, bindLocale?: boolean): Promise<NextListPlugin<RA, L, KA, NL, PAP>>;
+  ): Promise<NextParamsListPlugin<RA, L, KA, NL, PAD, P>>;
+  use(params: AnyLocale, bindLocale?: boolean): Promise<NextListPlugin<RA, L, KA, NL, PAD>>;
 }
 
 type NextListPlugin<
@@ -136,37 +136,37 @@ type NextListPlugin<
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-  PAP extends AnyPathAtlasProvider,
-> = [...SurfaceList<RA, NL>, NextPluginCtx<RA, L, KA, PAP>];
+  PAD extends AnyPathAtlasDeclaration,
+> = [...SurfaceList<RA, NL>, NextPluginCtx<RA, L, KA, PAD>];
 
 type NextParamsListPlugin<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-  PAP extends AnyPathAtlasProvider,
+  PAD extends AnyPathAtlasDeclaration,
   P extends Record<string, string>,
-> = [...SurfaceList<RA, NL>, NextParamsPluginCtx<RA, L, KA, PAP, P>];
+> = [...SurfaceList<RA, NL>, NextParamsPluginCtx<RA, L, KA, PAD, P>];
 
 export interface NextClientPlugComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
-  PAP extends AnyPathAtlasProvider,
+  PAD extends AnyPathAtlasDeclaration,
 > {
-  (): NextClientMapPlug<RA, L, KA, {}, PAP>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): NextClientListPlug<RA, L, KA, NL, PAP>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): NextClientMapPlug<RA, L, KA, NM, PAP>;
+  (): NextClientMapPlug<RA, L, KA, {}, PAD>;
+  <NL extends NamespaceList<RA>>(...namespaces: NL): NextClientListPlug<RA, L, KA, NL, PAD>;
+  <NM extends NamespaceMap<RA>>(namespaces: NM): NextClientMapPlug<RA, L, KA, NM, PAD>;
 }
 
 export interface NextServerPlugComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
-  PAP extends AnyPathAtlasProvider,
+  PAD extends AnyPathAtlasDeclaration,
   LK extends string,
 > {
-  (): NextServerMapPlug<RA, L, KA, {}, PAP, LK>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): NextServerListPlug<RA, L, KA, NL, PAP, LK>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): NextServerMapPlug<RA, L, KA, NM, PAP, LK>;
+  (): NextServerMapPlug<RA, L, KA, {}, PAD, LK>;
+  <NL extends NamespaceList<RA>>(...namespaces: NL): NextServerListPlug<RA, L, KA, NL, PAD, LK>;
+  <NM extends NamespaceMap<RA>>(namespaces: NM): NextServerMapPlug<RA, L, KA, NM, PAD, LK>;
 }

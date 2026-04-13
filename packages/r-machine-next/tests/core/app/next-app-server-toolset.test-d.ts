@@ -2,7 +2,7 @@ import type { NamespaceMap, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyPathAtlasProvider, BoundPathComposer, RMachineProxy } from "#r-machine/next/core";
+import type { AnyPathAtlasDeclaration, BoundPathComposer, RMachineProxy } from "#r-machine/next/core";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
 import type { NextAppClientRMachine } from "../../../src/core/app/next-app-client-toolset.js";
 import type {
@@ -139,7 +139,7 @@ describe("NextAppServerToolset", () => {
     toolset.setLocale("fr");
   });
 
-  it("getPathComposer returns Promise<BoundPathComposer<PAP>>", () => {
+  it("getPathComposer returns Promise<BoundPathComposer<PAD>>", () => {
     expectTypeOf<Toolset["getPathComposer"]>().toEqualTypeOf<() => Promise<BoundPathComposer<TranslatedPathAtlas>>>();
   });
 
@@ -224,10 +224,10 @@ describe("NextAppServerToolset", () => {
     >();
   });
 
-  it("different PAP produce different path composers", () => {
+  it("different PAD produce different path composers", () => {
     type OtherPathAtlas = { readonly decl: { readonly "/contact": {} } };
-    type PathAtlasFromToolset = Toolset["getPathComposer"] extends () => Promise<BoundPathComposer<infer PAP>>
-      ? PAP
+    type PathAtlasFromToolset = Toolset["getPathComposer"] extends () => Promise<BoundPathComposer<infer PAD>>
+      ? PAD
       : never;
     type OtherPathAtlasFromToolset = NextAppServerToolset<
       TestAtlas,
@@ -235,8 +235,8 @@ describe("NextAppServerToolset", () => {
       NamespaceMap<TestAtlas>,
       OtherPathAtlas,
       "locale"
-    >["getPathComposer"] extends () => Promise<BoundPathComposer<infer PAP>>
-      ? PAP
+    >["getPathComposer"] extends () => Promise<BoundPathComposer<infer PAD>>
+      ? PAD
       : never;
     expectTypeOf<PathAtlasFromToolset>().not.toEqualTypeOf<OtherPathAtlasFromToolset>();
   });
@@ -343,7 +343,7 @@ describe("NextAppServerImpl", () => {
   });
 
   it("createBoundPathComposerSupplier returns a supplier or its Promise", () => {
-    type Supplier = () => Promise<BoundPathComposer<AnyPathAtlasProvider>>;
+    type Supplier = () => Promise<BoundPathComposer<AnyPathAtlasDeclaration>>;
     expectTypeOf<NextAppServerImpl<TestLocale, "locale">["createBoundPathComposerSupplier"]>().returns.toEqualTypeOf<
       Supplier | Promise<Supplier>
     >();

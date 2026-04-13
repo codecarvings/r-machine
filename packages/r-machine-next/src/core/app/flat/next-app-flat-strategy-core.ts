@@ -15,8 +15,8 @@ import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { type CookieDeclaration, defaultCookieDeclaration } from "r-machine/strategy/web";
 import {
-  type AnyPathAtlasProvider,
-  buildPathAtlas,
+  type AnyPathAtlasDeclaration,
+  buildPathAtlasDeclaration,
   HrefCanonicalizer,
   HrefTranslator,
   type PathParamMap,
@@ -31,22 +31,22 @@ import {
 } from "../next-app-strategy-core.js";
 
 // Locale not available for flat strategy since locale is stored in the cookie
-interface HrefHelper<PAP extends AnyPathAtlasProvider> {
-  readonly getPath: PathComposer<PAP>;
+interface HrefHelper<PAD extends AnyPathAtlasDeclaration> {
+  readonly getPath: PathComposer<PAD>;
 }
-type PathComposer<PAP extends AnyPathAtlasProvider> = <P extends PathSelector<PAP>, O extends PathParamMap<P>>(
+type PathComposer<PAD extends AnyPathAtlasDeclaration> = <P extends PathSelector<PAD>, O extends PathParamMap<P>>(
   path: P,
   ...args: [keyof PathParamMap<P>] extends [never] ? [params?: PathParams<P, O>] : [params: PathParams<P, O>]
 ) => string;
 
-export interface NextAppFlatStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string>
-  extends NextAppStrategyConfig<PAP, LK> {
+export interface NextAppFlatStrategyConfig<PAD extends AnyPathAtlasDeclaration, LK extends string>
+  extends NextAppStrategyConfig<PAD, LK> {
   readonly cookie: CookieDeclaration;
   readonly pathMatcher: RegExp | null;
 }
 export type AnyNextAppFlatStrategyConfig = NextAppFlatStrategyConfig<any, any>;
-export interface PartialNextAppFlatStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string>
-  extends PartialNextAppStrategyConfig<PAP, LK> {
+export interface PartialNextAppFlatStrategyConfig<PAD extends AnyPathAtlasDeclaration, LK extends string>
+  extends PartialNextAppStrategyConfig<PAD, LK> {
   readonly cookie?: CookieDeclaration;
   readonly pathMatcher?: RegExp | null;
 }
@@ -68,7 +68,7 @@ export abstract class NextAppFlatStrategyCore<
 > extends NextAppStrategyCore<RA, L, KA, C> {
   static override readonly defaultConfig = defaultConfig;
 
-  protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, false);
+  protected readonly pathAtlas = buildPathAtlasDeclaration(this.config.PathAtlas, false);
   protected readonly pathTranslator = new HrefTranslator(
     this.pathAtlas,
     this.rMachine.locales,

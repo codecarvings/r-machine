@@ -19,17 +19,17 @@ import type { RMachine } from "r-machine";
 import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { type ReactNode, useEffect } from "react";
-import type { AnyPathAtlasProvider, BoundPathComposer } from "#r-machine/next/core";
+import type { AnyPathAtlasDeclaration, BoundPathComposer } from "#r-machine/next/core";
 import type { NextClientPlugComposer } from "../next-plug.js";
 
 export interface NextAppClientToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends ResKit<RA>,
-  PAP extends AnyPathAtlasProvider,
+  PAD extends AnyPathAtlasDeclaration,
 > {
   readonly NextClientRMachine: NextAppClientRMachine<L>;
-  readonly ClientPlug: NextClientPlugComposer<RA, L, KA["gate"], PAP>;
+  readonly ClientPlug: NextClientPlugComposer<RA, L, KA["gate"], PAD>;
 }
 
 export type NextAppClientRMachine<L extends AnyLocale> = (props: NextAppClientRMachineProps<L>) => ReactNode;
@@ -47,15 +47,15 @@ export interface NextAppClientImpl<L extends AnyLocale> {
     pathname: ReturnType<typeof usePathname>,
     router: ReturnType<typeof useRouter>
   ) => void | Promise<void>;
-  createUsePathComposer: (useLocale: () => L) => () => BoundPathComposer<AnyPathAtlasProvider>;
+  createUsePathComposer: (useLocale: () => L) => () => BoundPathComposer<AnyPathAtlasDeclaration>;
 }
 
 export async function createNextAppClientToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends ResKit<RA>,
-  PAP extends AnyPathAtlasProvider,
->(rMachine: RMachine<RA, L, KA>, impl: NextAppClientImpl<L>): Promise<NextAppClientToolset<RA, L, KA, PAP>> {
+  PAD extends AnyPathAtlasDeclaration,
+>(rMachine: RMachine<RA, L, KA>, impl: NextAppClientImpl<L>): Promise<NextAppClientToolset<RA, L, KA, PAD>> {
   const { ReactRMachine } = await createReactBareToolset(rMachine);
 
   // TODO: WP

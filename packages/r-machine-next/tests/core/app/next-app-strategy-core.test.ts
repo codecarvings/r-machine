@@ -1,6 +1,6 @@
 import type { NamespaceMap, RMachine } from "r-machine";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ExtendedPathAtlasProvider } from "#r-machine/next/core";
+import type { BuiltPathAtlasDeclaration } from "#r-machine/next/core";
 import type { NextAppClientImpl, NextAppClientRMachine } from "../../../src/core/app/next-app-client-toolset.js";
 import type { NextAppServerImpl } from "../../../src/core/app/next-app-server-toolset.js";
 import {
@@ -54,7 +54,7 @@ function createTestStrategy() {
     protected readonly pathAtlas = {
       decl: {},
       containsTranslations: false,
-    } as ExtendedPathAtlasProvider<DefaultPathAtlas>;
+    } as BuiltPathAtlasDeclaration<DefaultPathAtlas>;
 
     protected async createClientImpl(): Promise<NextAppClientImpl<TestLocale>> {
       return mockClientImpl;

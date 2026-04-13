@@ -91,25 +91,25 @@ export type TranslatableSegmentDecl<T, L extends AnyLocale = AnyLocale> = {
 // --- Provider ---
 export type AnyPathAtlas = object;
 
-export interface PathAtlasProvider<PA extends AnyPathAtlas> {
+export interface PathAtlasDeclaration<PA extends AnyPathAtlas> {
   readonly decl: PA;
 }
-export type AnyPathAtlasProvider = PathAtlasProvider<AnyPathAtlas>;
+export type AnyPathAtlasDeclaration = PathAtlasDeclaration<AnyPathAtlas>;
 
 // --- Provider Ctor ---
-export interface PathAtlasProviderCtor<PAP extends AnyPathAtlasProvider> {
-  new (): PAP;
+export interface PathAtlasDeclarationCtor<PAD extends AnyPathAtlasDeclaration> {
+  new (): PAD;
 }
-export type AnyPathAtlasProviderCtor = PathAtlasProviderCtor<AnyPathAtlasProvider>;
+export type AnyPathAtlasDeclarationCtor = PathAtlasDeclarationCtor<AnyPathAtlasDeclaration>;
 
-// --- Extended ---
-export type ExtendedPathAtlasProvider<PAP extends AnyPathAtlasProvider> = PAP & { containsTranslations: boolean };
+// --- Built ---
+export type BuiltPathAtlasDeclaration<PAD extends AnyPathAtlasDeclaration> = PAD & { containsTranslations: boolean };
 
 // Build and validate PathAtlas
-export function buildPathAtlas<PAP extends AnyPathAtlasProvider>(
-  ctor: PathAtlasProviderCtor<PAP>,
+export function buildPathAtlasDeclaration<PAD extends AnyPathAtlasDeclaration>(
+  ctor: PathAtlasDeclarationCtor<PAD>,
   allowTranslation: boolean
-): ExtendedPathAtlasProvider<PAP> {
+): BuiltPathAtlasDeclaration<PAD> {
   const instance = new ctor();
   const context: ValidationContext = { foundTranslation: false };
   validatePathAtlasDecl(instance.decl, "", allowTranslation, context);
