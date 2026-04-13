@@ -1,15 +1,15 @@
 /** biome-ignore-all lint/suspicious/noTemplateCurlyInString: This is intentional for the tests */
 
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyPathAtlasDeclaration, NonTranslatableSegmentDecl } from "../../src/core/index.js";
+import type { AnyPathAtlas, Segment } from "../../src/core/index.js";
 import { declarePathAtlas } from "../../src/lib/declare-path-atlas.js";
 
 describe("declarePathAtlas", () => {
   describe("as", () => {
-    describe("instance decl type", () => {
+    describe("instance segment type", () => {
       it("returns {} for an empty declaration", () => {
         const Ctor = declarePathAtlas().as({});
-        expectTypeOf(new Ctor().decl).toBeObject();
+        expectTypeOf(new Ctor().segment).toBeObject();
       });
 
       it("returns the const-inferred type for a typed declaration", () => {
@@ -21,17 +21,17 @@ describe("declarePathAtlas", () => {
           "/help": { "/[[...slug]]": {} },
           "/api": { "/v1": { "/users": { "/profile": {} } } },
         } as const;
-        expectTypeOf(new (declarePathAtlas().as(decl))().decl).toEqualTypeOf(decl);
+        expectTypeOf(new (declarePathAtlas().as(decl))().segment).toEqualTypeOf(decl);
       });
 
       it("infers the exact literal type of the argument", () => {
         const Ctor = declarePathAtlas().as({ "/about": {}, "/contact": {} });
-        expectTypeOf(new Ctor().decl).toEqualTypeOf<{ readonly "/about": {}; readonly "/contact": {} }>();
+        expectTypeOf(new Ctor().segment).toEqualTypeOf<{ readonly "/about": {}; readonly "/contact": {} }>();
       });
 
       it("preserves nested structure in the return type", () => {
         const Ctor = declarePathAtlas().as({ "/about": { "/team": { "/leads": {} } } });
-        expectTypeOf(new Ctor().decl).toEqualTypeOf<{
+        expectTypeOf(new Ctor().segment).toEqualTypeOf<{
           readonly "/about": { readonly "/team": { readonly "/leads": {} } };
         }>();
       });
@@ -40,16 +40,16 @@ describe("declarePathAtlas", () => {
         const Ctor = declarePathAtlas().as({
           "/about": { en: "/about-en", it: "/chi-siamo" },
         });
-        expectTypeOf(new Ctor().decl).toEqualTypeOf<{
+        expectTypeOf(new Ctor().segment).toEqualTypeOf<{
           readonly "/about": { readonly en: "/about-en"; readonly it: "/chi-siamo" };
         }>();
       });
     });
 
-    describe("satisfies AnyPathAtlasDeclaration", () => {
-      it("instance satisfies AnyPathAtlasDeclaration", () => {
+    describe("satisfies AnyPathAtlas", () => {
+      it("instance satisfies AnyPathAtlas", () => {
         const Ctor = declarePathAtlas().as({ "/about": {} });
-        expectTypeOf(new Ctor()).toExtend<AnyPathAtlasDeclaration>();
+        expectTypeOf(new Ctor()).toExtend<AnyPathAtlas>();
       });
     });
 
@@ -57,7 +57,7 @@ describe("declarePathAtlas", () => {
       it("returned class is extensible", () => {
         const Base = declarePathAtlas().as({ "/about": {} });
         class MyAtlas extends Base {}
-        expectTypeOf(new MyAtlas().decl).toEqualTypeOf<{ readonly "/about": {} }>();
+        expectTypeOf(new MyAtlas().segment).toEqualTypeOf<{ readonly "/about": {} }>();
       });
     });
   });
@@ -105,7 +105,7 @@ describe("declarePathAtlas", () => {
       });
     });
 
-    it("accepts translations inside static child segments (via TranslatableSegmentDecl)", () => {
+    it("accepts translations inside static child segments (via TranslatableSegment)", () => {
       declarePathAtlas().as({
         "/about": { en: "/about-en", it: "/chi-siamo" },
       });
@@ -159,107 +159,107 @@ describe("declarePathAtlas", () => {
   describe("invalid declarations", () => {
     it("rejects a key not matching /${string} at root level", () => {
       type Decl = { about: {} };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects multiple invalid keys at root level", () => {
       type Decl = { about: {}; contact: {} };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects a translation key at root level", () => {
       type Decl = { en: "/about" };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects the empty segment key /", () => {
       type Decl = { "/": {} };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects a non-object segment value (string)", () => {
       type Decl = { "/about": "hello" };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects a non-object segment value (number)", () => {
       type Decl = { "/about": 42 };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects a non-object segment value (boolean)", () => {
       type Decl = { "/about": true };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects a non-object segment value (null)", () => {
       type Decl = { "/about": null };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects a catch-all segment with child segments", () => {
       type Decl = { "/[...slug]": { "/child": {} } };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects an optional catch-all segment with child segments", () => {
       type Decl = { "/[[...slug]]": { "/child": {} } };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects translations inside dynamic segments", () => {
       type Decl = { "/[id]": { en: "/id-en" } };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects translations inside catch-all segments", () => {
       type Decl = { "/[...slug]": { en: "/slug-en" } };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects translations inside optional catch-all segments", () => {
       type Decl = { "/[[...slug]]": { en: "/slug-en" } };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects invalid keys nested inside a static segment", () => {
       type Decl = { "/about": { team: {} } };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects non-object values in nested segments", () => {
       type Decl = { "/about": { "/team": "hello" } };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects translation values not matching /${string} in child segments", () => {
       type Decl = { "/about": { en: "about-en" } };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects a non-object dynamic segment value", () => {
       type Decl = { "/[id]": "string" };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects the empty segment key / in nested context", () => {
       type Decl = { "/about": { "/": {} } };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects a catch-all segment with nested catch-all", () => {
       type Decl = { "/[...slug]": { "/[...nested]": {} } };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects a dynamic segment with a non-object nested value", () => {
       type Decl = { "/[id]": { "/posts": 42 } };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
 
     it("rejects mixed valid and invalid keys at root", () => {
       type Decl = { "/valid": {}; invalid: {} };
-      expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl>>();
+      expectTypeOf<Decl>().not.toExtend<Segment<Decl>>();
     });
   });
 
@@ -313,12 +313,12 @@ describe("declarePathAtlas", () => {
     describe("invalid declarations", () => {
       it("rejects translations with unconfigured locales", () => {
         type Decl = { "/about": { en: "/about-en"; fr: "/a-propos" } };
-        expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl, Locale>>();
+        expectTypeOf<Decl>().not.toExtend<Segment<Decl, Locale>>();
       });
 
       it("rejects unconfigured locales in nested segments", () => {
         type Decl = { "/about": { "/team": { de: "/team-de" } } };
-        expectTypeOf<Decl>().not.toExtend<NonTranslatableSegmentDecl<Decl, Locale>>();
+        expectTypeOf<Decl>().not.toExtend<Segment<Decl, Locale>>();
       });
     });
 
@@ -335,20 +335,20 @@ describe("declarePathAtlas", () => {
         const Ctor = declarePathAtlas<Locale>().as({
           "/about": { en: "/about-en", it: "/chi-siamo" },
         });
-        expectTypeOf(new Ctor().decl).toEqualTypeOf<{
+        expectTypeOf(new Ctor().segment).toEqualTypeOf<{
           readonly "/about": { readonly en: "/about-en"; readonly it: "/chi-siamo" };
         }>();
       });
 
-      it("instance satisfies AnyPathAtlasDeclaration", () => {
+      it("instance satisfies AnyPathAtlas", () => {
         const Ctor = declarePathAtlas<Locale>().as({ "/about": {} });
-        expectTypeOf(new Ctor()).toExtend<AnyPathAtlasDeclaration>();
+        expectTypeOf(new Ctor()).toExtend<AnyPathAtlas>();
       });
 
       it("returned class is extensible", () => {
         const Base = declarePathAtlas<Locale>().as({ "/about": {} });
         class MyAtlas extends Base {}
-        expectTypeOf(new MyAtlas().decl).toEqualTypeOf<{ readonly "/about": {} }>();
+        expectTypeOf(new MyAtlas().segment).toEqualTypeOf<{ readonly "/about": {} }>();
       });
     });
   });

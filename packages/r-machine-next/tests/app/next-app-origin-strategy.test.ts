@@ -25,7 +25,7 @@ const minimalConfig = {
 };
 
 class TranslatedPathAtlas {
-  readonly decl = {
+  readonly segment = {
     "/about": { it: "/chi-siamo" },
     "/products": { it: "/prodotti", "/[id]": {} },
   };

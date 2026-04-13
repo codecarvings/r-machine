@@ -2,7 +2,7 @@ import type { NamespaceMap, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyPathAtlasDeclaration, BoundPathComposer, RMachineProxy } from "#r-machine/next/core";
+import type { AnyPathAtlas, BoundPathComposer, RMachineProxy } from "#r-machine/next/core";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
 import type { NextAppClientRMachine } from "../../../src/core/app/next-app-client-toolset.js";
 import type {
@@ -225,7 +225,7 @@ describe("NextAppServerToolset", () => {
   });
 
   it("different PAD produce different path composers", () => {
-    type OtherPathAtlas = { readonly decl: { readonly "/contact": {} } };
+    type OtherPathAtlas = { readonly segment: { readonly "/contact": {} } };
     type PathAtlasFromToolset = Toolset["getPathComposer"] extends () => Promise<BoundPathComposer<infer PAD>>
       ? PAD
       : never;
@@ -343,7 +343,7 @@ describe("NextAppServerImpl", () => {
   });
 
   it("createBoundPathComposerSupplier returns a supplier or its Promise", () => {
-    type Supplier = () => Promise<BoundPathComposer<AnyPathAtlasDeclaration>>;
+    type Supplier = () => Promise<BoundPathComposer<AnyPathAtlas>>;
     expectTypeOf<NextAppServerImpl<TestLocale, "locale">["createBoundPathComposerSupplier"]>().returns.toEqualTypeOf<
       Supplier | Promise<Supplier>
     >();

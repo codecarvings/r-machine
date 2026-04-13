@@ -1,23 +1,23 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type {
   AnyPathAtlas,
-  AnyPathAtlasDeclaration,
-  AnyPathAtlasDeclarationCtor,
+  AnyPathAtlasCtor,
+  AnySegment,
   BoundPathComposer,
-  BuiltPathAtlasDeclaration,
+  BuiltPathAtlas,
   HrefCanonicalizer,
   HrefMapper,
   HrefTranslator,
-  NonTranslatableSegmentDecl,
-  PathAtlasDeclaration,
-  PathAtlasDeclarationCtor,
+  PathAtlas,
+  PathAtlasCtor,
   PathParamMap,
   PathParams,
   PathSelector,
   RMachineProxy,
-  TranslatableSegmentDecl,
+  Segment,
+  TranslatableSegment,
 } from "../../src/core/index.js";
-import { buildPathAtlasDeclaration } from "../../src/core/index.js";
+import { buildPathAtlas } from "../../src/core/index.js";
 
 // Barrel test: uses a single it() to verify export completeness only. Type shape tests belong in dedicated files.
 describe("core barrel exports", () => {
@@ -28,32 +28,32 @@ describe("core barrel exports", () => {
 
     expectTypeOf<HrefTranslator>().toBeObject();
 
-    expectTypeOf(buildPathAtlasDeclaration).toBeFunction();
+    expectTypeOf(buildPathAtlas).toBeFunction();
+
+    expectTypeOf<AnySegment>().toBeObject();
 
     expectTypeOf<AnyPathAtlas>().toBeObject();
+    expectTypeOf<AnyPathAtlas>().toHaveProperty("segment");
 
-    expectTypeOf<AnyPathAtlasDeclaration>().toBeObject();
-    expectTypeOf<AnyPathAtlasDeclaration>().toHaveProperty("decl");
+    expectTypeOf<BoundPathComposer<AnyPathAtlas>>().toBeFunction();
 
-    expectTypeOf<BoundPathComposer<AnyPathAtlasDeclaration>>().toBeFunction();
+    expectTypeOf<BuiltPathAtlas<AnyPathAtlas>>().toBeObject();
 
-    expectTypeOf<BuiltPathAtlasDeclaration<AnyPathAtlasDeclaration>>().toBeObject();
+    expectTypeOf<AnyPathAtlasCtor>().toBeConstructibleWith();
 
-    expectTypeOf<AnyPathAtlasDeclarationCtor>().toBeConstructibleWith();
+    expectTypeOf<PathAtlas<AnySegment>>().toBeObject();
 
-    expectTypeOf<PathAtlasDeclaration<AnyPathAtlas>>().toBeObject();
-
-    expectTypeOf<PathAtlasDeclarationCtor<AnyPathAtlasDeclaration>>().toBeConstructibleWith();
+    expectTypeOf<PathAtlasCtor<AnyPathAtlas>>().toBeConstructibleWith();
 
     expectTypeOf<PathParamMap<"/">>().toBeObject();
 
     expectTypeOf<PathParams<"/", PathParamMap<"/">>>().toBeObject();
 
-    expectTypeOf<PathSelector<AnyPathAtlasDeclaration>>().toExtend<string>();
+    expectTypeOf<PathSelector<AnyPathAtlas>>().toExtend<string>();
 
-    expectTypeOf<NonTranslatableSegmentDecl<{}>>().toBeObject();
+    expectTypeOf<Segment<{}>>().toBeObject();
 
-    expectTypeOf<TranslatableSegmentDecl<{}>>().toBeObject();
+    expectTypeOf<TranslatableSegment<{}>>().toBeObject();
 
     expectTypeOf<RMachineProxy>().toBeFunction();
   });

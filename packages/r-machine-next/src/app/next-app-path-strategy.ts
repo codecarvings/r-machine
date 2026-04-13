@@ -14,7 +14,7 @@
 import type { RMachine } from "r-machine";
 import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
-import type { AnyPathAtlasDeclaration } from "#r-machine/next/core";
+import type { AnyPathAtlas } from "#r-machine/next/core";
 import {
   type NextAppPathStrategyConfig,
   NextAppPathStrategyCore,
@@ -25,15 +25,15 @@ export class NextAppPathStrategy<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends ResKit<RA>,
-  PAD extends AnyPathAtlasDeclaration = InstanceType<typeof NextAppPathStrategyCore.defaultConfig.PathAtlas>,
+  PA extends AnyPathAtlas = InstanceType<typeof NextAppPathStrategyCore.defaultConfig.PathAtlas>,
   LK extends string = typeof NextAppPathStrategyCore.defaultConfig.localeKey,
-> extends NextAppPathStrategyCore<RA, L, KA, NextAppPathStrategyConfig<PAD, LK>> {
+> extends NextAppPathStrategyCore<RA, L, KA, NextAppPathStrategyConfig<PA, LK>> {
   constructor(rMachine: RMachine<RA, L, KA>);
-  constructor(rMachine: RMachine<RA, L, KA>, config: PartialNextAppPathStrategyConfig<PAD, LK>);
-  constructor(rMachine: RMachine<RA, L, KA>, config: PartialNextAppPathStrategyConfig<PAD, LK> = {}) {
+  constructor(rMachine: RMachine<RA, L, KA>, config: PartialNextAppPathStrategyConfig<PA, LK>);
+  constructor(rMachine: RMachine<RA, L, KA>, config: PartialNextAppPathStrategyConfig<PA, LK> = {}) {
     super(rMachine, {
       ...NextAppPathStrategyCore.defaultConfig,
       ...config,
-    } as NextAppPathStrategyConfig<PAD, LK>);
+    } as NextAppPathStrategyConfig<PA, LK>);
   }
 }

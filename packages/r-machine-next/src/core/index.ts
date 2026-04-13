@@ -22,13 +22,14 @@ export type {
 } from "./path.js";
 export {
   type AnyPathAtlas,
-  type AnyPathAtlasDeclaration,
-  type AnyPathAtlasDeclarationCtor,
-  type BuiltPathAtlasDeclaration,
-  buildPathAtlasDeclaration,
-  type NonTranslatableSegmentDecl,
-  type PathAtlasDeclaration,
-  type PathAtlasDeclarationCtor,
-  type TranslatableSegmentDecl,
+  type AnyPathAtlasCtor,
+  type AnySegment,
+  type AnySegmentEntryKey,
+  type BuiltPathAtlas,
+  buildPathAtlas,
+  type PathAtlas,
+  type PathAtlasCtor,
+  type Segment,
+  type TranslatableSegment,
 } from "./path-atlas.js";
 export type { RMachineProxy } from "./proxy.js";

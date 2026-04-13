@@ -12,7 +12,7 @@
  */
 
 import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
-import type { AnyPathAtlasDeclaration } from "#r-machine/next/core";
+import type { AnyPathAtlas } from "#r-machine/next/core";
 
 type SegmentKind = "static" | "dynamic" | "catchAll" | "optionalCatchAll";
 
@@ -107,11 +107,11 @@ export type HrefMapperFn = (locale: AnyLocale, path: string, ...args: any[]) => 
 
 export abstract class HrefMapper<F extends HrefMapperFn> {
   constructor(
-    protected readonly atlas: AnyPathAtlasDeclaration,
+    protected readonly atlas: AnyPathAtlas,
     readonly locales: AnyLocaleList,
     readonly defaultLocale: AnyLocale
   ) {
-    this.segmentDataTree = buildPathAtlasSegmentTree("", this.atlas.decl, this.locales, this.defaultLocale);
+    this.segmentDataTree = buildPathAtlasSegmentTree("", this.atlas.segment, this.locales, this.defaultLocale);
     locales.forEach((locale) => {
       this.caches[locale] = new Map<string, MappedHrefResult>();
       this.mappedPathCaches[locale] = new Map<string, MappedPath>();

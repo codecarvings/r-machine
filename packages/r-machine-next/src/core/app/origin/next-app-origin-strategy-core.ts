@@ -15,8 +15,8 @@ import type { AnyResAtlas, ResKit } from "r-machine/core";
 import { RMachineConfigError } from "r-machine/errors";
 import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
 import {
-  type AnyPathAtlasDeclaration,
-  buildPathAtlasDeclaration,
+  type AnyPathAtlas,
+  buildPathAtlas,
   HrefCanonicalizer,
   HrefTranslator,
   type PathParamMap,
@@ -31,20 +31,20 @@ import {
   type PartialNextAppStrategyConfig,
 } from "../next-app-strategy-core.js";
 
-interface HrefHelper<L extends AnyLocale, PAD extends AnyPathAtlasDeclaration> {
-  readonly getPath: PathComposer<L, PAD>;
-  readonly getUrl: UrlComposer<L, PAD>;
+interface HrefHelper<L extends AnyLocale, PA extends AnyPathAtlas> {
+  readonly getPath: PathComposer<L, PA>;
+  readonly getUrl: UrlComposer<L, PA>;
 }
-type PathComposer<L extends AnyLocale, PAD extends AnyPathAtlasDeclaration> = <
-  P extends PathSelector<PAD>,
+type PathComposer<L extends AnyLocale, PA extends AnyPathAtlas> = <
+  P extends PathSelector<PA>,
   O extends PathParamMap<P>,
 >(
   locale: L,
   path: P,
   ...args: [keyof PathParamMap<P>] extends [never] ? [params?: PathParams<P, O>] : [params: PathParams<P, O>]
 ) => string;
-type UrlComposer<L extends AnyLocale, PAD extends AnyPathAtlasDeclaration> = <
-  P extends PathSelector<PAD>,
+type UrlComposer<L extends AnyLocale, PA extends AnyPathAtlas> = <
+  P extends PathSelector<PA>,
   O extends PathParamMap<P>,
 >(
   locale: L,
@@ -56,14 +56,14 @@ export type LocaleOriginMap = {
   readonly [locale: AnyLocale]: string | string[];
 };
 
-export interface NextAppOriginStrategyConfig<PAD extends AnyPathAtlasDeclaration, LK extends string>
-  extends NextAppStrategyConfig<PAD, LK> {
+export interface NextAppOriginStrategyConfig<PA extends AnyPathAtlas, LK extends string>
+  extends NextAppStrategyConfig<PA, LK> {
   readonly localeOriginMap: LocaleOriginMap;
   readonly pathMatcher: RegExp | null;
 }
 export type AnyNextAppOriginStrategyConfig = NextAppOriginStrategyConfig<any, any>;
-export interface PartialNextAppOriginStrategyConfig<PAD extends AnyPathAtlasDeclaration, LK extends string>
-  extends PartialNextAppStrategyConfig<PAD, LK> {
+export interface PartialNextAppOriginStrategyConfig<PA extends AnyPathAtlas, LK extends string>
+  extends PartialNextAppStrategyConfig<PA, LK> {
   readonly localeOriginMap: LocaleOriginMap; // Required
   readonly pathMatcher?: RegExp | null;
 }
@@ -85,7 +85,7 @@ export abstract class NextAppOriginStrategyCore<
 > extends NextAppStrategyCore<RA, L, KA, C> {
   static override readonly defaultConfig = defaultConfig;
 
-  protected readonly pathAtlas = buildPathAtlasDeclaration(this.config.PathAtlas, true);
+  protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, true);
   protected readonly pathTranslator = new HrefTranslator(
     this.pathAtlas,
     this.rMachine.locales,
@@ -133,7 +133,7 @@ export abstract class NextAppOriginStrategyCore<
 
 export class NextAppOriginStrategyUrlTranslator extends HrefTranslator {
   constructor(
-    atlas: AnyPathAtlasDeclaration,
+    atlas: AnyPathAtlas,
     locales: AnyLocaleList,
     defaultLocale: AnyLocale,
     protected readonly localeOriginMap: LocaleOriginMap

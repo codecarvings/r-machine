@@ -14,7 +14,7 @@
 import type { RMachine } from "r-machine";
 import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
-import type { AnyPathAtlasDeclaration } from "#r-machine/next/core";
+import type { AnyPathAtlas } from "#r-machine/next/core";
 import type { CookiesFn, HeadersFn } from "#r-machine/next/internal";
 import type { NextAppClientRMachine } from "./next-app-client-toolset.js";
 import {
@@ -27,9 +27,9 @@ export interface NextAppNoProxyServerToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends ResKit<RA>,
-  PAD extends AnyPathAtlasDeclaration,
+  PA extends AnyPathAtlas,
   LK extends string,
-> extends Omit<NextAppServerToolset<RA, L, KA, PAD, LK>, "rMachineProxy"> {
+> extends Omit<NextAppServerToolset<RA, L, KA, PA, LK>, "rMachineProxy"> {
   readonly routeHandlers: routeHandlers;
 }
 
@@ -51,14 +51,14 @@ export async function createNextAppNoProxyServerToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends ResKit<RA>,
-  PAD extends AnyPathAtlasDeclaration,
+  PA extends AnyPathAtlas,
   LK extends string,
 >(
   rMachine: RMachine<RA, L, KA>,
   impl: NextAppNoProxyServerImpl<L, LK>,
   NextClientRMachine: NextAppClientRMachine<L>
-): Promise<NextAppNoProxyServerToolset<RA, L, KA, PAD, LK>> {
-  const { rMachineProxy: _rMachineProxy, ...otherTools } = await createNextAppServerToolset<RA, L, KA, PAD, LK>(
+): Promise<NextAppNoProxyServerToolset<RA, L, KA, PA, LK>> {
+  const { rMachineProxy: _rMachineProxy, ...otherTools } = await createNextAppServerToolset<RA, L, KA, PA, LK>(
     rMachine,
     impl,
     NextClientRMachine

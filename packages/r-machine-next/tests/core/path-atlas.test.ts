@@ -1,18 +1,18 @@
 import { describe, expect, it } from "vitest";
-import type { AnyPathAtlasDeclaration } from "../../src/core/path-atlas.js";
-import { buildPathAtlasDeclaration } from "../../src/core/path-atlas.js";
+import type { AnyPathAtlas } from "../../src/core/path-atlas.js";
+import { buildPathAtlas } from "../../src/core/path-atlas.js";
 
-function createPathAtlasClass(decl: object): new () => AnyPathAtlasDeclaration {
+function createPathAtlasClass(segment: object): new () => AnyPathAtlas {
   return class {
-    readonly decl = decl;
+    readonly segment = segment;
   };
 }
 
-function build(decl: object, allowTranslation = true) {
-  return buildPathAtlasDeclaration(createPathAtlasClass(decl), allowTranslation);
+function build(segment: object, allowTranslation = true) {
+  return buildPathAtlas(createPathAtlasClass(segment), allowTranslation);
 }
 
-describe("buildPathAtlasDeclaration", () => {
+describe("buildPathAtlas", () => {
   describe("valid declarations", () => {
     it.each([
       ["empty declaration", {}],
@@ -51,7 +51,7 @@ describe("buildPathAtlasDeclaration", () => {
 
     it("reports correct number of top-level segments", () => {
       const atlas = build({ "/about": {}, "/contact": {}, "/products": {} });
-      expect(Object.keys(atlas.decl)).toHaveLength(3);
+      expect(Object.keys(atlas.segment)).toHaveLength(3);
     });
   });
 
@@ -259,12 +259,12 @@ describe("buildPathAtlasDeclaration", () => {
   describe("edge cases", () => {
     it("treats malformed dynamic-like segments as static", () => {
       const atlas = build({ "/[incomplete": {}, "/incomplete]": {} });
-      expect(Object.keys(atlas.decl)).toHaveLength(2);
+      expect(Object.keys(atlas.segment)).toHaveLength(2);
     });
 
     it("returns the same instance that was created", () => {
       const PAD = createPathAtlasClass({ "/about": {} });
-      const atlas = buildPathAtlasDeclaration(PAD, true);
+      const atlas = buildPathAtlas(PAD, true);
       expect(atlas).toBeInstanceOf(PAD);
     });
   });
@@ -330,11 +330,11 @@ describe("buildPathAtlasDeclaration", () => {
     });
 
     it("preserves original PathAtlas instance properties", () => {
-      const decl = { "/about": { it: "/chi-siamo" } };
-      const PAD = createPathAtlasClass(decl);
-      const atlas = buildPathAtlasDeclaration(PAD, true);
+      const seg = { "/about": { it: "/chi-siamo" } };
+      const PAD = createPathAtlasClass(seg);
+      const atlas = buildPathAtlas(PAD, true);
       expect(atlas).toBeInstanceOf(PAD);
-      expect(atlas.decl).toEqual(decl);
+      expect(atlas.segment).toEqual(seg);
       expect(atlas.containsTranslations).toBe(true);
     });
   });

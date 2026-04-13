@@ -127,7 +127,7 @@ describe("NextAppOriginStrategyCore", () => {
     it("creates pathAtlas from config.PathAtlas", () => {
       const { strategy } = createTestStrategy();
       expect((strategy as any).pathAtlas).toBeDefined();
-      expect((strategy as any).pathAtlas.decl).toEqual({});
+      expect((strategy as any).pathAtlas.segment).toEqual({});
     });
 
     it("creates pathTranslator as HrefTranslator", () => {

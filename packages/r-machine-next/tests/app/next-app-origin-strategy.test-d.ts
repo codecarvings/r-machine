@@ -1,6 +1,6 @@
 import type { NamespaceMap, RMachine } from "r-machine";
 import { describe, expectTypeOf, it } from "vitest";
-import type { PathAtlasDeclarationCtor } from "#r-machine/next/core";
+import type { PathAtlasCtor } from "#r-machine/next/core";
 import type {
   NextAppClientToolset,
   NextAppServerToolset,
@@ -66,7 +66,7 @@ describe("NextAppOriginStrategy", () => {
     it("PAD defaults to defaultConfig PathAtlas constructor", () => {
       expectTypeOf<
         NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>["config"]["PathAtlas"]
-      >().toEqualTypeOf<PathAtlasDeclarationCtor<DefaultPA>>();
+      >().toEqualTypeOf<PathAtlasCtor<DefaultPA>>();
     });
 
     it("LK defaults to defaultConfig localeKey", () => {
@@ -89,7 +89,7 @@ describe("NextAppOriginStrategy", () => {
           NamespaceMap<TestAtlas>,
           TranslatedPathAtlas
         >["config"]["PathAtlas"]
-      >().toEqualTypeOf<PathAtlasDeclarationCtor<TranslatedPathAtlas>>();
+      >().toEqualTypeOf<PathAtlasCtor<TranslatedPathAtlas>>();
     });
 
     it("custom LK is reflected in config.localeKey", () => {
@@ -257,8 +257,8 @@ describe("NextAppOriginStrategy", () => {
       type _Invalid = NextAppOriginStrategy<string, TestLocale>;
     });
 
-    it("rejects non-AnyPathAtlasDeclaration as PAD", () => {
-      // @ts-expect-error - string does not satisfy AnyPathAtlasDeclaration
+    it("rejects non-AnyPathAtlas as PAD", () => {
+      // @ts-expect-error - string does not satisfy AnyPathAtlas
       type _Invalid = NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, string>;
     });
 

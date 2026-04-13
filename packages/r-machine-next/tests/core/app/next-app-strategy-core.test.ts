@@ -1,6 +1,6 @@
 import type { NamespaceMap, RMachine } from "r-machine";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { BuiltPathAtlasDeclaration } from "#r-machine/next/core";
+import type { BuiltPathAtlas } from "#r-machine/next/core";
 import type { NextAppClientImpl, NextAppClientRMachine } from "../../../src/core/app/next-app-client-toolset.js";
 import type { NextAppServerImpl } from "../../../src/core/app/next-app-server-toolset.js";
 import {
@@ -52,9 +52,9 @@ function createTestStrategy() {
 
   class TestStrategy extends NextAppStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TestConfig> {
     protected readonly pathAtlas = {
-      decl: {},
+      segment: {},
       containsTranslations: false,
-    } as BuiltPathAtlasDeclaration<DefaultPathAtlas>;
+    } as BuiltPathAtlas<DefaultPathAtlas>;
 
     protected async createClientImpl(): Promise<NextAppClientImpl<TestLocale>> {
       return mockClientImpl;
@@ -95,9 +95,9 @@ describe("DefaultPathAtlas", () => {
     expect(atlas).toBeInstanceOf(DefaultPathAtlas);
   });
 
-  it("has an empty decl property", () => {
+  it("has an empty segment property", () => {
     const atlas = new DefaultPathAtlas();
-    expect(atlas.decl).toEqual({});
+    expect(atlas.segment).toEqual({});
   });
 });
 

@@ -1,7 +1,7 @@
-import type { AnyPathAtlasDeclaration } from "../../src/core/path-atlas.js";
+import type { AnyPathAtlas } from "../../src/core/path-atlas.js";
 
-export function createMockAtlas(decl: object = {}): AnyPathAtlasDeclaration {
-  return { decl };
+export function createMockAtlas(segment: object = {}): AnyPathAtlas {
+  return { segment };
 }
 
 export const aboutAtlas = createMockAtlas({
@@ -41,18 +41,18 @@ export const docsWithOptionalCatchAllAtlas = createMockAtlas({
 });
 
 export class SimplePathAtlas {
-  readonly decl = {};
+  readonly segment = {};
 }
 
 export class DynamicPathAtlas {
-  readonly decl = {
+  readonly segment = {
     "/about": {},
     "/products": { "/[id]": {} },
   };
 }
 
 export class TranslatedPathAtlas {
-  readonly decl = {
+  readonly segment = {
     "/about": { it: "/chi-siamo" },
     "/products": { it: "/prodotti", "/[id]": {} },
   };

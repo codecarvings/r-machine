@@ -17,7 +17,7 @@ import type { AnyResAtlas, ResKit } from "r-machine/core";
 import { RMachineUsageError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
-import type { AnyPathAtlasDeclaration, BoundPathComposer, RMachineProxy } from "#r-machine/next/core";
+import type { AnyPathAtlas, BoundPathComposer, RMachineProxy } from "#r-machine/next/core";
 import { ERR_LOCALE_BIND_CONFLICT } from "#r-machine/next/errors";
 import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { NextServerPlugComposer } from "../next-plug.js";
@@ -27,17 +27,17 @@ export interface NextAppServerToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends ResKit<RA>,
-  PAD extends AnyPathAtlasDeclaration,
+  PA extends AnyPathAtlas,
   LK extends string,
 > {
   readonly rMachineProxy: RMachineProxy;
   readonly NextServerRMachine: NextAppServerRMachine;
   readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
   readonly bindLocale: BindLocale<L, LK>;
-  readonly ServerPlug: NextServerPlugComposer<RA, L, KA["gate"], PAD, LK>;
+  readonly ServerPlug: NextServerPlugComposer<RA, L, KA["gate"], PA, LK>;
 }
 
-type BoundPathComposerSupplier<PAD extends AnyPathAtlasDeclaration> = () => Promise<BoundPathComposer<PAD>>;
+type BoundPathComposerSupplier<PA extends AnyPathAtlas> = () => Promise<BoundPathComposer<PA>>;
 
 type RMachineParams<LK extends string> = {
   [P in LK]: AnyLocale;
@@ -64,7 +64,7 @@ export interface NextAppServerImpl<L extends AnyLocale, LK extends string> {
   readonly createProxy: () => RMachineProxy | Promise<RMachineProxy>;
   readonly createBoundPathComposerSupplier: (
     getLocale: () => Promise<L>
-  ) => BoundPathComposerSupplier<AnyPathAtlasDeclaration> | Promise<BoundPathComposerSupplier<AnyPathAtlasDeclaration>>;
+  ) => BoundPathComposerSupplier<AnyPathAtlas> | Promise<BoundPathComposerSupplier<AnyPathAtlas>>;
 }
 
 export type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
@@ -84,13 +84,13 @@ export async function createNextAppServerToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends ResKit<RA>,
-  PAD extends AnyPathAtlasDeclaration,
+  PA extends AnyPathAtlas,
   LK extends string,
 >(
   rMachine: RMachine<RA, L, KA>,
   impl: NextAppServerImpl<L, LK>,
   NextClientRMachine: NextAppClientRMachine<L>
-): Promise<NextAppServerToolset<RA, L, KA, PAD, LK>> {
+): Promise<NextAppServerToolset<RA, L, KA, PA, LK>> {
   // TODO: WP
   const getLocale: any = undefined!;
 

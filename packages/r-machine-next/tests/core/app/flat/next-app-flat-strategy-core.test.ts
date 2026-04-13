@@ -121,7 +121,7 @@ describe("NextAppFlatStrategyCore", () => {
     it("instantiates the path atlas from config", () => {
       const { strategy } = createTestStrategy();
       expect((strategy as any).pathAtlas).toBeDefined();
-      expect((strategy as any).pathAtlas.decl).toEqual({});
+      expect((strategy as any).pathAtlas.segment).toEqual({});
     });
 
     it("initializes an HrefTranslator for path translation", () => {

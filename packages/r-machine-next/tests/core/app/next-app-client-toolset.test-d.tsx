@@ -1,7 +1,7 @@
 import type { NamespaceMap, RMachine } from "r-machine";
 import type { ReactNode } from "react";
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyPathAtlasDeclaration, BoundPathComposer } from "#r-machine/next/core";
+import type { AnyPathAtlas, BoundPathComposer } from "#r-machine/next/core";
 import type {
   NextAppClientImpl,
   NextAppClientRMachine,
@@ -140,7 +140,7 @@ describe("NextAppClientToolset", () => {
   });
 
   it("different PAD produce different path selectors", () => {
-    type OtherPathAtlas = { readonly decl: { readonly "/contact": {} } };
+    type OtherPathAtlas = { readonly segment: { readonly "/contact": {} } };
     type PathSelector = NextAppClientToolset<
       TestAtlas,
       TestLocale,
@@ -227,7 +227,7 @@ describe("NextAppClientImpl", () => {
       .parameter(0)
       .toEqualTypeOf<() => TestLocale>();
     expectTypeOf<NextAppClientImpl<TestLocale>["createUsePathComposer"]>().returns.toEqualTypeOf<
-      () => BoundPathComposer<AnyPathAtlasDeclaration>
+      () => BoundPathComposer<AnyPathAtlas>
     >();
   });
 });

@@ -12,27 +12,18 @@
  */
 
 import type { AnyLocale } from "r-machine/locale";
-import type {
-  AnyPathAtlas,
-  NonTranslatableSegmentDecl,
-  PathAtlasDeclaration,
-  PathAtlasDeclarationCtor,
-} from "#r-machine/next/core";
+import type { AnySegment, PathAtlas, PathAtlasCtor, Segment } from "#r-machine/next/core";
 
 interface DeclaredPathAtlas<L extends AnyLocale> {
-  as<const PA extends AnyPathAtlas>(
-    decl: NonTranslatableSegmentDecl<PA, L>
-  ): PathAtlasDeclarationCtor<PathAtlasDeclaration<PA>>;
+  as<const S extends AnySegment>(tree: Segment<S, L>): PathAtlasCtor<PathAtlas<S>>;
 }
 
 export function declarePathAtlas<L extends AnyLocale = AnyLocale>(): DeclaredPathAtlas<L> {
   return {
-    as<const PA extends AnyPathAtlas>(
-      decl: NonTranslatableSegmentDecl<PA, L>
-    ): PathAtlasDeclarationCtor<PathAtlasDeclaration<PA>> {
+    as<const S extends AnySegment>(tree: Segment<S, L>): PathAtlasCtor<PathAtlas<S>> {
       return class {
-        readonly decl = decl;
-      } as PathAtlasDeclarationCtor<PathAtlasDeclaration<PA>>;
+        readonly segment = tree;
+      } as PathAtlasCtor<PathAtlas<S>>;
     },
   };
 }

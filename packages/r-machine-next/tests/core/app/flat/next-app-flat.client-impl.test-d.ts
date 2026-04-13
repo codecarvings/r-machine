@@ -1,12 +1,7 @@
 import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
-import type {
-  AnyPathAtlasDeclaration,
-  BoundPathComposer,
-  HrefCanonicalizer,
-  HrefTranslator,
-} from "#r-machine/next/core";
+import type { AnyPathAtlas, BoundPathComposer, HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import type { NextAppClientImpl } from "#r-machine/next/core/app";
 import { createNextAppFlatClientImpl } from "../../../../src/core/app/flat/next-app-flat.client-impl.js";
 import type { AnyNextAppFlatStrategyConfig } from "../../../../src/core/app/flat/next-app-flat-strategy-core.js";
@@ -79,6 +74,6 @@ describe("NextAppClientImpl property types", () => {
     type Fn = NextAppClientImpl<AnyLocale>["createUsePathComposer"];
     expectTypeOf<Fn>().toBeFunction();
     expectTypeOf<Fn>().parameter(0).toEqualTypeOf<() => string>();
-    expectTypeOf<ReturnType<Fn>>().toEqualTypeOf<() => BoundPathComposer<AnyPathAtlasDeclaration>>();
+    expectTypeOf<ReturnType<Fn>>().toEqualTypeOf<() => BoundPathComposer<AnyPathAtlas>>();
   });
 });
