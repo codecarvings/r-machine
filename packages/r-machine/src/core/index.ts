@@ -43,6 +43,5 @@ export type { NamespaceList, SurfaceList } from "./res-list.js";
 export type { ExplicitNamespaceMap, NamespaceMap, PartialSurfaceMap, SurfaceMap } from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";
 export type { ResModuleLoaderFn } from "./res-module.js";
-export { resTagSymbol } from "./res-tag.js";
 export type { Surface } from "./surface.js";
-export type { AnyVertexGear, VertexGearMap, VertexGearTag } from "./vertex-gear.js";
+export { type AnyVertexGear, type VertexGearMap, type VertexGearTagData, vertexGearTagSymbol } from "./vertex-gear.js";

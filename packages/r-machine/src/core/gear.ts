@@ -11,7 +11,6 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { VertexGearTag } from "#r-machine/core";
 import type { CmdComposer } from "./cmd.js";
 import type { PlugBody, PluginCtx } from "./plug.js";
 import type { RelayComposer } from "./relay.js";
@@ -21,9 +20,6 @@ import type { NamespaceList, SurfaceList } from "./res-list.js";
 import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { ResPlugHead } from "./res-plug.js";
-import type { ResTag, TaggedRes } from "./res-tag.js";
-
-export interface GearTag extends ResTag<"gear"> {}
 
 export interface GearCursor {
   readonly relay: RelayComposer;
@@ -53,16 +49,16 @@ export type GearMapComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-  T extends GearTag | VertexGearTag,
+  T = unknown,
 > = <R extends AnyRes>(
   factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => R | Promise<R>
-) => ResMatrix<TaggedRes<R, T>, GearMapPlug<RA, KA, NM>>;
+) => ResMatrix<R & T, GearMapPlug<RA, KA, NM>>;
 
 export type GearListComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-  T extends GearTag | VertexGearTag,
+  T = unknown,
 > = <R extends AnyRes>(
   factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => R | Promise<R>
-) => ResMatrix<TaggedRes<R, T>, GearListPlug<RA, KA, NL>>;
+) => ResMatrix<R & T, GearListPlug<RA, KA, NL>>;

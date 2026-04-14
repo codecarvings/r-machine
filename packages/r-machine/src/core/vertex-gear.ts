@@ -11,15 +11,18 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyRes } from "#r-machine/core";
 import type { AnyNamespace } from "./res-atlas.js";
-import type { ResTag, TaggedRes } from "./res-tag.js";
 
-export interface VertexGearTag extends ResTag<"vertex-gear"> {
+export interface VertexGearTagData {
   readonly namespace: AnyNamespace;
   readonly genId: number;
 }
 
-export type AnyVertexGear = TaggedRes<AnyRes, VertexGearTag>;
+export const vertexGearTagSymbol = Symbol("vertexGearTag");
+export interface VertexGearTag {
+  [vertexGearTagSymbol]: VertexGearTagData;
+}
+
+export type AnyVertexGear = VertexGearTag;
 
 export type VertexGearMap = Record<AnyNamespace, number>;

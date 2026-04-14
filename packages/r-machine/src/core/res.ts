@@ -21,7 +21,6 @@ export type AnyRes = Record<string, unknown> & object;
 export type AnyResOrigin = AnyResMatrix | AnyRes;
 
 export type ResFamily = "gear" | "shell";
-export type ResOrder = "gear" | "vertex-gear" | "shell";
 
 // #region Reactive Resource
 

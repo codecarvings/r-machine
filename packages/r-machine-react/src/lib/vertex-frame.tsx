@@ -13,7 +13,7 @@
 
 "use client";
 
-import { type AnyVertexGear, resTagSymbol, type VertexGearMap, type VertexGearTag } from "r-machine/core";
+import { type AnyVertexGear, type VertexGearMap, type VertexGearTagData, vertexGearTagSymbol } from "r-machine/core";
 import { createContext, type ReactNode, useContext, useRef } from "react";
 
 const Context = createContext<VertexGearMap | undefined>(undefined);
@@ -24,15 +24,19 @@ interface VertexFrameProps {
   readonly children: ReactNode;
 }
 
-function toMap(length: number, gear: AnyVertexGear | AnyVertexGear[]): VertexGearMap {
+function buildValue(
+  parent: VertexGearMap | undefined,
+  length: number,
+  gear: AnyVertexGear | AnyVertexGear[]
+): VertexGearMap {
   if (length === -1) {
-    const tag = (gear as AnyVertexGear)[resTagSymbol];
-    return { [tag.namespace]: tag.genId };
+    const tag = (gear as AnyVertexGear)[vertexGearTagSymbol]!;
+    return parent ? { ...parent, [tag.namespace]: tag.genId } : { [tag.namespace]: tag.genId };
   }
-  const map: VertexGearMap = {};
+  const map: VertexGearMap = parent ? { ...parent } : {};
   for (let i = 0; i < length; i++) {
     const g = (gear as AnyVertexGear[])[i];
-    const tag = g[resTagSymbol];
+    const tag = g[vertexGearTagSymbol]!;
     map[tag.namespace] = tag.genId;
   }
   return map;
@@ -41,7 +45,7 @@ function toMap(length: number, gear: AnyVertexGear | AnyVertexGear[]): VertexGea
 interface Data {
   parentMap: VertexGearMap | undefined;
   length: number;
-  tags: VertexGearTag | VertexGearTag[];
+  tags: VertexGearTagData | VertexGearTagData[];
 }
 
 export function VertexFrame({ gear, children }: VertexFrameProps) {
@@ -62,22 +66,22 @@ export function VertexFrame({ gear, children }: VertexFrameProps) {
     update = true;
   } else if (isArray) {
     for (let i = 0; i < current.length; i++) {
-      if ((current.tags as VertexGearTag[])[i] !== gear[i][resTagSymbol]) {
+      if ((current.tags as VertexGearTagData[])[i] !== gear[i][vertexGearTagSymbol]) {
         update = true;
         break;
       }
     }
   } else {
-    update = (current.tags as VertexGearTag) !== gear[resTagSymbol];
+    update = (current.tags as VertexGearTagData) !== gear[vertexGearTagSymbol];
   }
 
   if (update) {
     data.current = {
       parentMap,
       length,
-      tags: isArray ? gear.map((g) => g[resTagSymbol]) : gear[resTagSymbol],
+      tags: isArray ? gear.map((g) => g[vertexGearTagSymbol]!) : gear[vertexGearTagSymbol]!,
     };
-    value.current = parentMap ? { ...parentMap, ...toMap(length, gear) } : toMap(length, gear);
+    value.current = buildValue(parentMap, length, gear);
   }
 
   return <Context.Provider value={value.current}>{children}</Context.Provider>;

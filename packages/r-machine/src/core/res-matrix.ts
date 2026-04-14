@@ -11,9 +11,9 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { AnyRes } from "#r-machine/core";
 import type { AnyResOrigin, ResFamily } from "./res.js";
 import type { AnyResPlug } from "./res-plug.js";
-import type { AnyTaggedRes } from "./res-tag.js";
 
 export interface ResMatrixMeta {
   readonly family: ResFamily;
@@ -22,14 +22,16 @@ export interface ResMatrixMeta {
 }
 
 const resMatrixMetaSymbol: unique symbol = Symbol("resMatrixMeta");
-export interface ResMatrix<R extends AnyTaggedRes, P extends AnyResPlug> {
+export interface ResMatrix<R, P extends AnyResPlug> {
   readonly [resMatrixMetaSymbol]: ResMatrixMeta;
   readonly factory: () => Promise<R>;
   readonly plug: P;
 }
-export type AnyResMatrix = ResMatrix<AnyTaggedRes, AnyResPlug>;
 
-export function createResMatrix<R extends AnyTaggedRes, P extends AnyResPlug>(
+// Cannot use ResMatrix<AnyRes, ...> because of VertexGearTag
+export type AnyResMatrix = ResMatrix<any, any>;
+
+export function createResMatrix<R extends AnyRes, P extends AnyResPlug>(
   meta: ResMatrixMeta,
   factory: () => Promise<R>,
   plug: P

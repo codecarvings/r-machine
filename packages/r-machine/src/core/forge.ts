@@ -13,18 +13,18 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import type { ConnectedComposer } from "./connected-composer.js";
-import type { GearMapComposer, GearTag } from "./gear.js";
-import type { VertexGearTag } from "./index.js";
+import type { GearMapComposer } from "./gear.js";
 import type { ReactiveComposer } from "./reactive-composer.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResKit } from "./res-kit.js";
 import type { ShellMapComposer } from "./shell.js";
+import type { VertexGearTag } from "./vertex-gear.js";
 
 export interface Forge<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>> {
   readonly connected: ConnectedComposer<RA, L, KA>;
   readonly reactive: ReactiveComposer<RA, KA>;
 
-  readonly gear: GearMapComposer<RA, KA["gear"], {}, GearTag>;
+  readonly gear: GearMapComposer<RA, KA["gear"], {}>;
   readonly vertexGear: GearMapComposer<RA, KA["gear"], {}, VertexGearTag>;
   readonly shell: ShellMapComposer<RA, L, KA["shell"], {}>;
 }

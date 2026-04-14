@@ -19,9 +19,6 @@ import type { NamespaceList, SurfaceList } from "./res-list.js";
 import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { ResPlugHead } from "./res-plug.js";
-import type { ResTag, TaggedRes } from "./res-tag.js";
-
-export interface ShellTag extends ResTag<"shell"> {}
 
 interface ShellMapPlug<
   RA extends AnyResAtlas,
@@ -60,7 +57,7 @@ export type ShellMapComposer<
   NM extends NamespaceMap<RA>,
 > = <R extends AnyRes>(
   factory: (plugin: ShellMapPlugin<RA, L, KA, NM>) => R | Promise<R>
-) => ResMatrix<TaggedRes<R, ShellTag>, ShellMapPlug<RA, L, KA, NM>>;
+) => ResMatrix<R, ShellMapPlug<RA, L, KA, NM>>;
 
 export type ShellListComposer<
   RA extends AnyResAtlas,
@@ -69,4 +66,4 @@ export type ShellListComposer<
   NL extends NamespaceList<RA>,
 > = <R extends AnyRes>(
   factory: (plugin: ShellListPlugin<RA, L, KA, NL>) => R | Promise<R>
-) => ResMatrix<TaggedRes<R, ShellTag>, ShellListPlug<RA, L, KA, NL>>;
+) => ResMatrix<R, ShellListPlug<RA, L, KA, NL>>;

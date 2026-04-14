@@ -13,7 +13,7 @@ describe("RMachineUsageError", () => {
 
   it("should be constructable with code, message, and optional innerError", () => {
     expectTypeOf(RMachineUsageError).constructorParameters.toEqualTypeOf<
-      [code: string, message: string, innerError?: Error]
+      [code: string, message: string, innerError?: Error | undefined]
     >();
   });
 

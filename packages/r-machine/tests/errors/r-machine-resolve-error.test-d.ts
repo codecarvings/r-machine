@@ -13,7 +13,7 @@ describe("RMachineResolveError", () => {
 
   it("should be constructable with code, message, and optional innerError", () => {
     expectTypeOf(RMachineResolveError).constructorParameters.toEqualTypeOf<
-      [code: string, message: string, innerError?: Error]
+      [code: string, message: string, innerError?: Error | undefined]
     >();
   });
 

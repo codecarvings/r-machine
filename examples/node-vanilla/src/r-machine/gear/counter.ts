@@ -5,7 +5,7 @@ export const r = Forge.connected({
   prova: "gear/aggregator",
 })
   .reactive(0)
-  .gear(({ $ }, _) => {
+  .vertexGear(({ $ }, _) => {
     return {
       increment: _.action(() => $.state + 1),
       decrement: _.action(() => $.state - 1),
@@ -19,11 +19,11 @@ export type Gear_Counter = RShape<typeof r>;
 mockPlug(r.plug, {
   $: {
     defaultState: 21,
-    state: 33,
+    state: 21,
   },
   map: {
     prova: {
-      mySum: 54,
+      mySum: 42,
     },
   },
 });
