@@ -27,16 +27,14 @@ export type StatelessReactiveGearMapComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-  T = unknown,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
   factory: (plugin: GearMapPlugin<RA, KA, NM>, _: StatelessReactiveGearCursor) => R | Promise<R>
-) => ResMatrix<R & T, GearMapPlug<RA, KA, NM>>;
+) => ResMatrix<R, GearMapPlug<RA, KA, NM>>;
 
 export type StatelessReactiveGearListComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-  T = unknown,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
   factory: (plugin: GearListPlugin<RA, KA, NL>, _: StatelessReactiveGearCursor) => R | Promise<R>
-) => ResMatrix<R & T, GearListPlug<RA, KA, NL>>;
+) => ResMatrix<R, GearListPlug<RA, KA, NL>>;

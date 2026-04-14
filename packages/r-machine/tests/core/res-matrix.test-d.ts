@@ -79,7 +79,7 @@ describe("ResMatrix", () => {
 
 describe("AnyResMatrix", () => {
   it("is structurally equal to ResMatrix<any, any>", () => {
-    expectTypeOf<AnyResMatrix>().toEqualTypeOf<ResMatrix<any, any>>();
+    expectTypeOf<AnyResMatrix>().toEqualTypeOf<ResMatrix<AnyRes, AnyResPlug>>();
   });
 
   it("is a member of AnyResOrigin", () => {

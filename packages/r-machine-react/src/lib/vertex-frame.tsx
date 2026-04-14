@@ -13,39 +13,34 @@
 
 "use client";
 
-import { type AnyVertexGear, type VertexGearMap, type VertexGearTagData, vertexGearTagSymbol } from "r-machine/core";
+import { type AnyRes, type VertexGearMap, type VertexGearTag, vertexGearTagSymbol } from "r-machine/core";
+import { RMachineUsageError } from "r-machine/errors";
 import { createContext, type ReactNode, useContext, useRef } from "react";
+import { ERR_INVALID_VERTEX_GEAR } from "../errors/error-codes.js";
 
 const Context = createContext<VertexGearMap | undefined>(undefined);
 Context.displayName = "VertexFrameContext";
 
 interface VertexFrameProps {
-  readonly gear: AnyVertexGear | AnyVertexGear[];
+  readonly gear: AnyRes | AnyRes[];
   readonly children: ReactNode;
 }
 
-function buildValue(
-  parent: VertexGearMap | undefined,
-  length: number,
-  gear: AnyVertexGear | AnyVertexGear[]
-): VertexGearMap {
-  if (length === -1) {
-    const tag = (gear as AnyVertexGear)[vertexGearTagSymbol]!;
-    return parent ? { ...parent, [tag.namespace]: tag.genId } : { [tag.namespace]: tag.genId };
-  }
-  const map: VertexGearMap = parent ? { ...parent } : {};
-  for (let i = 0; i < length; i++) {
-    const g = (gear as AnyVertexGear[])[i];
-    const tag = g[vertexGearTagSymbol]!;
-    map[tag.namespace] = tag.genId;
-  }
-  return map;
+interface AnyVertexGear {
+  [vertexGearTagSymbol]: VertexGearTag;
 }
 
 interface Data {
   parentMap: VertexGearMap | undefined;
   length: number;
-  tags: VertexGearTagData | VertexGearTagData[];
+  tags: VertexGearTag | VertexGearTag[];
+}
+
+function validateGear(gear: any) {
+  const tag = gear[vertexGearTagSymbol];
+  if (!tag) {
+    throw new RMachineUsageError(ERR_INVALID_VERTEX_GEAR, "VertexFrame: Provided gear is not a valid vertex gear.");
+  }
 }
 
 export function VertexFrame({ gear, children }: VertexFrameProps) {
@@ -59,6 +54,13 @@ export function VertexFrame({ gear, children }: VertexFrameProps) {
   let update = false;
   const current = data.current;
   if (current === undefined) {
+    if (isArray) {
+      for (let i = 0; i < length; i++) {
+        validateGear(gear[i]);
+      }
+    } else {
+      validateGear(gear);
+    }
     update = true;
   } else if (current.parentMap !== parentMap) {
     update = true;
@@ -66,22 +68,35 @@ export function VertexFrame({ gear, children }: VertexFrameProps) {
     update = true;
   } else if (isArray) {
     for (let i = 0; i < current.length; i++) {
-      if ((current.tags as VertexGearTagData[])[i] !== gear[i][vertexGearTagSymbol]) {
+      if ((current.tags as VertexGearTag[])[i] !== (gear[i] as unknown as AnyVertexGear)[vertexGearTagSymbol]) {
         update = true;
         break;
       }
     }
   } else {
-    update = (current.tags as VertexGearTagData) !== gear[vertexGearTagSymbol];
+    update = (current.tags as VertexGearTag) !== (gear as unknown as AnyVertexGear)[vertexGearTagSymbol];
   }
 
   if (update) {
     data.current = {
       parentMap,
       length,
-      tags: isArray ? gear.map((g) => g[vertexGearTagSymbol]!) : gear[vertexGearTagSymbol]!,
+      tags: isArray
+        ? gear.map((g) => (g as unknown as AnyVertexGear)[vertexGearTagSymbol])
+        : (gear as unknown as AnyVertexGear)[vertexGearTagSymbol],
     };
-    value.current = buildValue(parentMap, length, gear);
+
+    if (length === -1) {
+      const tag = (gear as unknown as AnyVertexGear)[vertexGearTagSymbol]!;
+      value.current = parentMap ? { ...parentMap, [tag.namespace]: tag.genId } : { [tag.namespace]: tag.genId };
+    } else {
+      const map: VertexGearMap = parentMap ? { ...parentMap } : {};
+      for (let i = 0; i < length; i++) {
+        const tag = (gear as AnyVertexGear[])[i][vertexGearTagSymbol];
+        map[tag.namespace] = tag.genId;
+      }
+      value.current = map;
+    }
   }
 
   return <Context.Provider value={value.current}>{children}</Context.Provider>;

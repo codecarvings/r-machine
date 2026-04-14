@@ -13,16 +13,12 @@
 
 import type { AnyNamespace } from "./res-atlas.js";
 
-export interface VertexGearTagData {
+// Cannot use typing because symbol will appear in the intellisense of the resource
+
+export interface VertexGearTag {
   readonly namespace: AnyNamespace;
   readonly genId: number;
 }
-
 export const vertexGearTagSymbol = Symbol("vertexGearTag");
-export interface VertexGearTag {
-  [vertexGearTagSymbol]: VertexGearTagData;
-}
-
-export type AnyVertexGear = VertexGearTag;
 
 export type VertexGearMap = Record<AnyNamespace, number>;
