@@ -17,6 +17,7 @@ import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
 import {
   cloneRMachineConfig,
+  convertParamsToConfig,
   type RMachineConfig,
   type RMachineConfigParams,
   validateRMachineConfig,
@@ -63,7 +64,7 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, KA extends Re
     SKA extends ExplicitNamespaceMap<RA> = {},
     XKA extends ExplicitNamespaceMap<RA> = {},
   >(config: RMachineConfigParams<RA, LL, GKA, SKA, XKA>): RMachine<RA, LL[number], ResKit<RA, GKA, SKA, XKA>> {
-    return new RMachine<RA, LL[number], ResKit<RA, GKA, SKA, XKA>>(config as any);
+    return new RMachine<RA, LL[number], ResKit<RA, GKA, SKA, XKA>>(convertParamsToConfig(config));
   }
 }
 

@@ -16,7 +16,7 @@
 import { type AnyRes, type VertexGearMap, type VertexGearTag, vertexGearTagSymbol } from "r-machine/core";
 import { RMachineUsageError } from "r-machine/errors";
 import { createContext, type ReactNode, useContext, useRef } from "react";
-import { ERR_INVALID_VERTEX_GEAR } from "../errors/error-codes.js";
+import { ERR_INVALID_VERTEX_GEAR } from "#r-machine/react/errors";
 
 const Context = createContext<VertexGearMap | undefined>(undefined);
 Context.displayName = "VertexFrameContext";

@@ -53,6 +53,27 @@ export interface RMachineConfig<RA extends AnyResAtlas, L extends AnyLocale, KA 
   readonly kit: KA;
 }
 
+export function convertParamsToConfig<
+  RA extends AnyResAtlas,
+  LL extends AnyLocaleList,
+  GKA extends ExplicitNamespaceMap<RA>,
+  SKA extends ExplicitNamespaceMap<RA>,
+  XKA extends ExplicitNamespaceMap<RA>,
+>(params: RMachineConfigParams<RA, LL, GKA, SKA, XKA>): RMachineConfig<RA, LL[number], ResKit<RA, GKA, SKA, XKA>> {
+  return {
+    resourceAtlas: params.resourceAtlas,
+    locales: [...params.locales],
+    defaultLocale: params.defaultLocale,
+    load: params.load,
+    layout: params.layout,
+    kit: {
+      gear: params.gearKit ?? ({} as GKA),
+      shell: params.shellKit ?? ({} as SKA),
+      gate: params.gateKit ?? ({} as XKA),
+    },
+  };
+}
+
 export function validateRMachineConfig(config: RMachineConfig<any, any, any>): RMachineConfigError | null {
   if (!config.locales.length) {
     return new RMachineConfigError(ERR_NO_LOCALES, "No locales provided.");

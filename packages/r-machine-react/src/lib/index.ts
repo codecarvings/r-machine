@@ -11,5 +11,5 @@
  * contact: licensing@codecarvings.com
  */
 
+export { useVertexFrame, VertexFrame } from "../core/vertex-frame.js";
 export { ReactStandardStrategy } from "./react-standard-strategy.js";
-export { useVertexFrame, VertexFrame } from "./vertex-frame.js";

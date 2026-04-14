@@ -23,6 +23,7 @@ import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import { createContext, useMemo } from "react";
+import { useVertexFrame } from "./vertex-frame.js";
 
 // TODO: WP
 // type SetLocale<L extends AnyLocale> = (newLocale: L) => Promise<void>;
@@ -93,7 +94,16 @@ export async function createReactBareToolset<RA extends AnyResAtlas, L extends A
   };
 
   // TODO: WP
-  const Plug: any = undefined!;
+  const Plug: any = (...args: any[]) => {
+    return {
+      use: () => {
+        // biome-ignore lint/correctness/useHookAtTopLevel: Intentional - This is a plug, not a React component
+        const frame = useVertexFrame();
+        console.log("Plug used with frame:", frame);
+        console.log("Plug args:", args);
+      },
+    };
+  };
 
   /*
   function useLocale(): L {
