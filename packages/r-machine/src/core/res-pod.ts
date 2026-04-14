@@ -16,7 +16,7 @@ import type { AnyLocale } from "#r-machine/locale";
 import { type AnyPlugHead, plugHeadSymbol } from "./plug.js";
 import type { AnyResOrigin, ResFamily } from "./res.js";
 import type { AnyNamespace } from "./res-atlas.js";
-import type { ResLayoutType } from "./res-layout.js";
+import type { ResLayoutEntryType } from "./res-layout.js";
 import { type AnyResMatrix, tryGetResMatrixMeta } from "./res-matrix.js";
 import type { AnyResModule } from "./res-module.js";
 
@@ -37,18 +37,18 @@ export function createResPod(
   module: AnyResModule,
   namespace: AnyNamespace,
   locale: AnyLocale | undefined,
-  resLayoutType: ResLayoutType
+  resLayoutEntryType: ResLayoutEntryType
 ): ResPod {
   const origin = module.r;
   const matrixMeta = tryGetResMatrixMeta(origin);
 
   if (matrixMeta !== undefined) {
     const { family, isReactive, isVertex } = matrixMeta;
-    const layoutFamily: ResFamily = resLayoutType === "dynamic-shell" ? "shell" : resLayoutType;
+    const layoutFamily: ResFamily = resLayoutEntryType === "dynamic-shell" ? "shell" : resLayoutEntryType;
     if (family !== layoutFamily) {
       throw new RMachineResolveError(
         ERR_RESOLVE_FAILED,
-        `Unable to build resource pod for namespace "${namespace}" - matrix family "${family}" does not match layout type "${resLayoutType}".`
+        `Unable to build resource pod for namespace "${namespace}" - matrix family "${family}" does not match layout type "${resLayoutEntryType}".`
       );
     }
     const plugHead = (origin as AnyResMatrix).plug[plugHeadSymbol];
@@ -64,7 +64,7 @@ export function createResPod(
     };
   }
 
-  if (resLayoutType === "dynamic-shell") {
+  if (resLayoutEntryType === "dynamic-shell") {
     throw new RMachineResolveError(
       ERR_RESOLVE_FAILED,
       `Unable to build resource pod for namespace "${namespace}" - layout "dynamic-shell" requires a shell factory, got a raw resource.`
@@ -74,7 +74,7 @@ export function createResPod(
   return {
     namespace,
     locale,
-    family: resLayoutType,
+    family: resLayoutEntryType,
     isReactive: false,
     isVertex: false,
     plugHead: undefined,

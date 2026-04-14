@@ -11,8 +11,9 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { VertexGearTag } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
-import type { GearListComposer, GearMapComposer } from "./gear.js";
+import type { GearListComposer, GearMapComposer, GearTag } from "./gear.js";
 import type { ReactiveConnectedListComposer, ReactiveConnectedMapComposer } from "./reactive-composer.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResKit } from "./res-kit.js";
@@ -34,8 +35,8 @@ interface ConnectedMapComposer<
 > {
   readonly reactive: ReactiveConnectedMapComposer<RA, KA, NM>;
 
-  readonly gear: GearMapComposer<RA, KA["gear"], NM>;
-  readonly vertexGear: GearMapComposer<RA, KA["gear"], NM>;
+  readonly gear: GearMapComposer<RA, KA["gear"], NM, GearTag>;
+  readonly vertexGear: GearMapComposer<RA, KA["gear"], NM, VertexGearTag>;
   readonly shell: ShellMapComposer<RA, L, KA["shell"], NM>;
 }
 
@@ -47,7 +48,7 @@ interface ConnectedListComposer<
 > {
   readonly reactive: ReactiveConnectedListComposer<RA, KA, NL>;
 
-  readonly gear: GearListComposer<RA, KA["gear"], NL>;
-  readonly vertexGear: GearListComposer<RA, KA["gear"], NL>;
+  readonly gear: GearListComposer<RA, KA["gear"], NL, GearTag>;
+  readonly vertexGear: GearListComposer<RA, KA["gear"], NL, VertexGearTag>;
   readonly shell: ShellListComposer<RA, L, KA["shell"], NL>;
 }

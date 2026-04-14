@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyPlugHead, AnyResAtlas, ExplicitNamespaceMap, GateWire, ResKit, VertexMap } from "#r-machine/core";
+import type { AnyPlugHead, AnyResAtlas, ExplicitNamespaceMap, GateWire, ResKit, VertexGearMap } from "#r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
@@ -51,7 +51,7 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, KA extends Re
     return undefined!; // TODO: WIP;
   }
 
-  getGateWire(_plugHead: AnyPlugHead, _locale: L, _vertexMap?: VertexMap | undefined): GateWire {
+  getGateWire(_plugHead: AnyPlugHead, _locale: L, _vertexGearMap?: VertexGearMap | undefined): GateWire {
     return undefined!; // TODO: WIP;
   }
 

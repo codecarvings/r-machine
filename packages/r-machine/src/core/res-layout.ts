@@ -13,24 +13,23 @@
 
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
-import type { ResFamily } from "./res.js";
 import type { AnyNamespace } from "./res-atlas.js";
 
 // #region ResLayout
 
-export type ResLayoutType = ResFamily | "dynamic-shell";
+export type ResLayoutEntryType = "gear" | "shell" | "dynamic-shell";
 
 export interface AnyResLayout {
-  readonly [namespacePrefix: string]: ResLayoutType;
+  readonly [namespacePrefix: string]: ResLayoutEntryType;
 }
 
-type LayoutEntry = readonly [prefix: string, type: ResLayoutType];
+type LayoutEntry = readonly [prefix: string, type: ResLayoutEntryType];
 
-export type ResLayoutTypeResolver = (namespace: AnyNamespace) => ResLayoutType | undefined;
+export type ResLayoutEntryTypeResolver = (namespace: AnyNamespace) => ResLayoutEntryType | undefined;
 
-export function createResLayoutTypeResolver(layout: AnyResLayout): ResLayoutTypeResolver {
+export function createResLayoutEntryTypeResolver(layout: AnyResLayout): ResLayoutEntryTypeResolver {
   const entries: readonly LayoutEntry[] = Object.entries(layout).sort(([a], [b]) => b.length - a.length);
-  const cache = new Map<string, ResLayoutType | undefined>();
+  const cache = new Map<string, ResLayoutEntryType | undefined>();
 
   return function resolveResLayoutType(namespace) {
     if (cache.has(namespace)) return cache.get(namespace);
@@ -51,7 +50,7 @@ function isPrefixMatch(namespace: string, prefix: string): boolean {
 
 export type ResPathResolver = (namespace: AnyNamespace, locale: AnyLocale | undefined) => string;
 
-export function createResPathResolver(resolveResLayoutType: ResLayoutTypeResolver): ResPathResolver {
+export function createResPathResolver(resolveResLayoutType: ResLayoutEntryTypeResolver): ResPathResolver {
   return function resolveResPath(namespace, locale) {
     const layoutType = resolveResLayoutType(namespace);
     switch (layoutType) {

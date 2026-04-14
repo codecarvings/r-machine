@@ -16,7 +16,8 @@ import type { AnyResOrigin, ResMatrix } from "#r-machine/core";
 type ExtractResource<O extends AnyResOrigin> = O extends ResMatrix<infer R, any> ? R : O;
 
 // Re-exported from setup.ts as RShape
+interface R {
+  [r]?: undefined; // Allow nominal typing for resources
+}
 declare const r: unique symbol;
-export type BrandedResource<RF extends AnyResOrigin> = ExtractResource<RF> & {
-  readonly [r]?: undefined; // Allow nominal typing for resources
-};
+export type BrandedResource<RO extends AnyResOrigin> = ExtractResource<RO> & R;

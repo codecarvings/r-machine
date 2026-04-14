@@ -12,3 +12,4 @@
  */
 
 export { ReactStandardStrategy } from "./react-standard-strategy.js";
+export { useVertexFrame, VertexFrame } from "./vertex-frame.js";

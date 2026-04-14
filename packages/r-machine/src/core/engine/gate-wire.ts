@@ -12,12 +12,11 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
-
-export type VertexMap = Record<string, number>;
+import type { VertexGearMap } from "../vertex-gear.js";
 
 export interface GateWire {
   getSnapshot: () => unknown | Promise<unknown>;
   subscribe: (callback: () => void) => () => void;
   commitTracking: () => void;
-  updateRequest: (locale: AnyLocale, vertexMap?: VertexMap | undefined) => void;
+  updateRequest: (locale: AnyLocale, vertexGearMap?: VertexGearMap | undefined) => void;
 }

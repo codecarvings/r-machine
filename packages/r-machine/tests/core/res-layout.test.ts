@@ -1,27 +1,27 @@
 import { describe, expect, it } from "vitest";
 import {
   type AnyResLayout,
-  createResLayoutTypeResolver,
+  createResLayoutEntryTypeResolver,
   createResPathResolver,
-  type ResLayoutTypeResolver,
+  type ResLayoutEntryTypeResolver,
 } from "../../src/core/res-layout.js";
 import { ERR_RESOLVE_FAILED } from "../../src/errors/error-codes.js";
 import { RMachineResolveError } from "../../src/errors/r-machine-resolve-error.js";
 
-describe("createResLayoutTypeResolver", () => {
+describe("createResLayoutEntryTypeResolver", () => {
   describe("exact-match semantics", () => {
     it("resolves when the namespace equals a registered prefix", () => {
-      const resolve = createResLayoutTypeResolver({ app: "gear" });
+      const resolve = createResLayoutEntryTypeResolver({ app: "gear" });
       expect(resolve("app")).toBe("gear");
     });
 
     it("returns undefined when no prefix matches", () => {
-      const resolve = createResLayoutTypeResolver({ app: "gear" });
+      const resolve = createResLayoutEntryTypeResolver({ app: "gear" });
       expect(resolve("other")).toBeUndefined();
     });
 
     it("returns undefined for an empty layout regardless of namespace", () => {
-      const resolve = createResLayoutTypeResolver({});
+      const resolve = createResLayoutEntryTypeResolver({});
       expect(resolve("")).toBeUndefined();
       expect(resolve("anything")).toBeUndefined();
       expect(resolve("a/b/c")).toBeUndefined();
@@ -30,27 +30,27 @@ describe("createResLayoutTypeResolver", () => {
 
   describe("path-boundary prefix matching", () => {
     it("matches a child namespace only at a '/' boundary", () => {
-      const resolve = createResLayoutTypeResolver({ app: "gear" });
+      const resolve = createResLayoutEntryTypeResolver({ app: "gear" });
       expect(resolve("app/home")).toBe("gear");
       expect(resolve("app/deeply/nested/key")).toBe("gear");
     });
 
     it("does not treat a longer namespace that merely starts with the prefix as a match", () => {
       // Classic boundary bug: "app" must NOT match "application".
-      const resolve = createResLayoutTypeResolver({ app: "gear" });
+      const resolve = createResLayoutEntryTypeResolver({ app: "gear" });
       expect(resolve("application")).toBeUndefined();
       expect(resolve("apps")).toBeUndefined();
       expect(resolve("app-extra")).toBeUndefined();
     });
 
     it("does not match when the namespace is strictly shorter than the prefix", () => {
-      const resolve = createResLayoutTypeResolver({ "app/home": "gear" });
+      const resolve = createResLayoutEntryTypeResolver({ "app/home": "gear" });
       expect(resolve("app")).toBeUndefined();
       expect(resolve("app/hom")).toBeUndefined();
     });
 
     it("requires the character immediately after the prefix to be '/', not any other separator", () => {
-      const resolve = createResLayoutTypeResolver({ app: "gear" });
+      const resolve = createResLayoutEntryTypeResolver({ app: "gear" });
       expect(resolve("app.home")).toBeUndefined();
       expect(resolve("app:home")).toBeUndefined();
       expect(resolve("app_home")).toBeUndefined();
@@ -59,7 +59,7 @@ describe("createResLayoutTypeResolver", () => {
 
   describe("longest-prefix-wins precedence", () => {
     it("picks the most specific (longest) matching prefix over a shorter one", () => {
-      const resolve = createResLayoutTypeResolver({
+      const resolve = createResLayoutEntryTypeResolver({
         app: "gear",
         "app/settings": "shell",
       });
@@ -69,11 +69,11 @@ describe("createResLayoutTypeResolver", () => {
     });
 
     it("is independent of the declaration order in the input object", () => {
-      const shortFirst = createResLayoutTypeResolver({
+      const shortFirst = createResLayoutEntryTypeResolver({
         app: "gear",
         "app/settings": "shell",
       });
-      const longFirst = createResLayoutTypeResolver({
+      const longFirst = createResLayoutEntryTypeResolver({
         "app/settings": "shell",
         app: "gear",
       });
@@ -83,7 +83,7 @@ describe("createResLayoutTypeResolver", () => {
     });
 
     it("selects the deepest prefix across three overlapping levels", () => {
-      const resolve = createResLayoutTypeResolver({
+      const resolve = createResLayoutEntryTypeResolver({
         a: "gear",
         "a/b": "shell",
         "a/b/c": "dynamic-shell",
@@ -99,7 +99,7 @@ describe("createResLayoutTypeResolver", () => {
 
   describe("layout-type coverage", () => {
     it("returns each of the three layout types verbatim", () => {
-      const resolve = createResLayoutTypeResolver({
+      const resolve = createResLayoutEntryTypeResolver({
         g: "gear",
         s: "shell",
         d: "dynamic-shell",
@@ -113,7 +113,7 @@ describe("createResLayoutTypeResolver", () => {
   describe("input-snapshot semantics", () => {
     it("ignores mutations to the layout object performed after resolver creation", () => {
       const layout: Record<string, "gear" | "shell" | "dynamic-shell"> = { app: "gear" };
-      const resolve = createResLayoutTypeResolver(layout);
+      const resolve = createResLayoutEntryTypeResolver(layout);
 
       // Mutate input after creation.
       layout.app = "shell";
@@ -130,7 +130,7 @@ describe("createResLayoutTypeResolver", () => {
       const layout = Object.create(proto) as AnyResLayout & { own: "shell" };
       (layout as Record<string, "shell">).own = "shell";
 
-      const resolve = createResLayoutTypeResolver(layout);
+      const resolve = createResLayoutEntryTypeResolver(layout);
       expect(resolve("own")).toBe("shell");
       expect(resolve("inherited")).toBeUndefined();
     });
@@ -138,7 +138,7 @@ describe("createResLayoutTypeResolver", () => {
 
   describe("caching behavior", () => {
     it("returns a stable, equal result for repeated lookups of the same namespace", () => {
-      const resolve = createResLayoutTypeResolver({ app: "gear", "app/settings": "shell" });
+      const resolve = createResLayoutEntryTypeResolver({ app: "gear", "app/settings": "shell" });
       for (let i = 0; i < 3; i++) {
         expect(resolve("app/settings/theme")).toBe("shell");
         expect(resolve("app/home")).toBe("gear");
@@ -154,20 +154,20 @@ describe("createResLayoutTypeResolver", () => {
       // is observable: the answer is stable, and it matches what we'd get from
       // a fresh resolver with the same (unchanged) input.
       const layout = { app: "gear" } as const;
-      const resolve = createResLayoutTypeResolver(layout);
+      const resolve = createResLayoutEntryTypeResolver(layout);
 
       expect(resolve("unknown")).toBeUndefined();
       expect(resolve("unknown")).toBeUndefined();
       expect(resolve("unknown")).toBeUndefined();
 
       // Cross-check against a freshly-built resolver over the same input.
-      const fresh = createResLayoutTypeResolver(layout);
+      const fresh = createResLayoutEntryTypeResolver(layout);
       expect(fresh("unknown")).toBeUndefined();
     });
 
     it("uses a cache that is private per resolver instance", () => {
-      const a = createResLayoutTypeResolver({ app: "gear" });
-      const b = createResLayoutTypeResolver({ app: "shell" });
+      const a = createResLayoutEntryTypeResolver({ app: "gear" });
+      const b = createResLayoutEntryTypeResolver({ app: "shell" });
       expect(a("app")).toBe("gear");
       expect(b("app")).toBe("shell");
       // Second round: if they shared a cache, one would contaminate the other.
@@ -181,20 +181,20 @@ describe("createResLayoutTypeResolver", () => {
       // This documents the (quirky) behavior of isPrefixMatch when prefix === "".
       // The boundary rule requires namespace[0] === "/", so "app" is NOT matched
       // by an empty prefix even though it technically "starts with" "".
-      const resolve = createResLayoutTypeResolver({ "": "gear" });
+      const resolve = createResLayoutEntryTypeResolver({ "": "gear" });
       expect(resolve("")).toBe("gear");
       expect(resolve("/anything")).toBe("gear");
       expect(resolve("app")).toBeUndefined();
     });
 
     it("handles single-segment prefixes with trailing-slash namespaces", () => {
-      const resolve = createResLayoutTypeResolver({ app: "gear" });
+      const resolve = createResLayoutEntryTypeResolver({ app: "gear" });
       // "app/" = "app" + "/" boundary + "" — valid per isPrefixMatch.
       expect(resolve("app/")).toBe("gear");
     });
 
     it("matches a deeply-nested prefix exactly and at boundaries only", () => {
-      const resolve = createResLayoutTypeResolver({ "a/b/c": "shell" });
+      const resolve = createResLayoutEntryTypeResolver({ "a/b/c": "shell" });
       expect(resolve("a/b/c")).toBe("shell");
       expect(resolve("a/b/c/d")).toBe("shell");
       expect(resolve("a/b/cd")).toBeUndefined();
@@ -207,7 +207,7 @@ describe("createResPathResolver", () => {
   // Small helper to build a resolver paired with an explicit layout, so each
   // test states its premise in one place.
   function withLayout(layout: AnyResLayout) {
-    const layoutResolver = createResLayoutTypeResolver(layout);
+    const layoutResolver = createResLayoutEntryTypeResolver(layout);
     return createResPathResolver(layoutResolver);
   }
 
@@ -311,7 +311,7 @@ describe("createResPathResolver", () => {
   describe("delegation to the layout resolver", () => {
     it("delegates to the supplied resolver exactly once per call", () => {
       const calls: string[] = [];
-      const spy: ResLayoutTypeResolver = (ns) => {
+      const spy: ResLayoutEntryTypeResolver = (ns) => {
         calls.push(ns);
         return ns === "app" ? "gear" : undefined;
       };
@@ -327,8 +327,8 @@ describe("createResPathResolver", () => {
     it("honors whatever layout type the injected resolver returns, even without caching", () => {
       // A fresh (uncached) resolver still drives correct dispatch. This guards
       // against accidental coupling between createResPathResolver and the cache
-      // inside createResLayoutTypeResolver.
-      const manual: ResLayoutTypeResolver = (ns) => {
+      // inside createResLayoutEntryTypeResolver.
+      const manual: ResLayoutEntryTypeResolver = (ns) => {
         if (ns === "g") return "gear";
         if (ns === "s") return "shell";
         if (ns === "d") return "dynamic-shell";

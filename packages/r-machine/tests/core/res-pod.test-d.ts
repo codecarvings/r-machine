@@ -2,7 +2,7 @@ import { describe, expectTypeOf, it } from "vitest";
 import type { AnyPlugHead } from "../../src/core/plug.js";
 import type { AnyResOrigin, ResFamily } from "../../src/core/res.js";
 import type { AnyNamespace } from "../../src/core/res-atlas.js";
-import type { ResLayoutType } from "../../src/core/res-layout.js";
+import type { ResLayoutEntryType } from "../../src/core/res-layout.js";
 import type { AnyResModule } from "../../src/core/res-module.js";
 import { createResPod, type ResPod } from "../../src/core/res-pod.js";
 import type { AnyLocale } from "../../src/locale/locale.js";
@@ -85,12 +85,17 @@ describe("createResPod — signature", () => {
     expectTypeOf(createResPod).parameter(0).toEqualTypeOf<AnyResModule>();
     expectTypeOf(createResPod).parameter(1).toEqualTypeOf<AnyNamespace>();
     expectTypeOf(createResPod).parameter(2).toEqualTypeOf<AnyLocale | undefined>();
-    expectTypeOf(createResPod).parameter(3).toEqualTypeOf<ResLayoutType>();
+    expectTypeOf(createResPod).parameter(3).toEqualTypeOf<ResLayoutEntryType>();
   });
 
   it("has exactly four required positional parameters — no optional tail, no rest", () => {
     expectTypeOf<Parameters<typeof createResPod>>().toEqualTypeOf<
-      [module: AnyResModule, namespace: AnyNamespace, locale: AnyLocale | undefined, resourceLayoutType: ResLayoutType]
+      [
+        module: AnyResModule,
+        namespace: AnyNamespace,
+        locale: AnyLocale | undefined,
+        resourceLayoutType: ResLayoutEntryType,
+      ]
     >();
   });
 

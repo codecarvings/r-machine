@@ -11,8 +11,9 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyRes, AnyResOrigin, ResFamily } from "./res.js";
+import type { AnyResOrigin, ResFamily } from "./res.js";
 import type { AnyResPlug } from "./res-plug.js";
+import type { AnyTaggedRes } from "./res-tag.js";
 
 export interface ResMatrixMeta {
   readonly family: ResFamily;
@@ -21,14 +22,14 @@ export interface ResMatrixMeta {
 }
 
 const resMatrixMetaSymbol: unique symbol = Symbol("resMatrixMeta");
-export interface ResMatrix<R extends AnyRes, P extends AnyResPlug> {
+export interface ResMatrix<R extends AnyTaggedRes, P extends AnyResPlug> {
   readonly [resMatrixMetaSymbol]: ResMatrixMeta;
   readonly factory: () => Promise<R>;
   readonly plug: P;
 }
-export type AnyResMatrix = ResMatrix<AnyRes, AnyResPlug>;
+export type AnyResMatrix = ResMatrix<AnyTaggedRes, AnyResPlug>;
 
-export function createResMatrix<R extends AnyRes, P extends AnyResPlug>(
+export function createResMatrix<R extends AnyTaggedRes, P extends AnyResPlug>(
   meta: ResMatrixMeta,
   factory: () => Promise<R>,
   plug: P

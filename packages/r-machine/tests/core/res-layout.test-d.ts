@@ -1,46 +1,46 @@
 import { describe, expectTypeOf, it } from "vitest";
 import {
   type AnyResLayout,
-  createResLayoutTypeResolver,
+  createResLayoutEntryTypeResolver,
   createResPathResolver,
-  type ResLayoutType,
-  type ResLayoutTypeResolver,
+  type ResLayoutEntryType,
+  type ResLayoutEntryTypeResolver,
   type ResPathResolver,
 } from "../../src/core/res-layout.js";
 import type { AnyLocale } from "../../src/locale/locale.js";
 
-describe("ResLayoutType", () => {
+describe("ResLayoutEntryType", () => {
   it("is the exact union of the three canonical layout literals", () => {
-    expectTypeOf<ResLayoutType>().toEqualTypeOf<"gear" | "shell" | "dynamic-shell">();
+    expectTypeOf<ResLayoutEntryType>().toEqualTypeOf<"gear" | "shell" | "dynamic-shell">();
   });
 
   it("does not widen to string", () => {
-    expectTypeOf<ResLayoutType>().not.toEqualTypeOf<string>();
-    expectTypeOf<string>().not.toExtend<ResLayoutType>();
+    expectTypeOf<ResLayoutEntryType>().not.toEqualTypeOf<string>();
+    expectTypeOf<string>().not.toExtend<ResLayoutEntryType>();
   });
 });
 
 describe("AnyResLayout", () => {
-  it("indexes into ResLayoutType for any string key", () => {
-    expectTypeOf<AnyResLayout[string]>().toEqualTypeOf<ResLayoutType>();
+  it("indexes into ResLayoutEntryType for any string key", () => {
+    expectTypeOf<AnyResLayout[string]>().toEqualTypeOf<ResLayoutEntryType>();
   });
 
   it("accepts the three canonical layout types as values", () => {
-    expectTypeOf<"gear">().toExtend<ResLayoutType>();
-    expectTypeOf<"shell">().toExtend<ResLayoutType>();
-    expectTypeOf<"dynamic-shell">().toExtend<ResLayoutType>();
+    expectTypeOf<"gear">().toExtend<ResLayoutEntryType>();
+    expectTypeOf<"shell">().toExtend<ResLayoutEntryType>();
+    expectTypeOf<"dynamic-shell">().toExtend<ResLayoutEntryType>();
   });
 
   it("rejects unrelated string literals as values", () => {
-    expectTypeOf<"not-a-layout">().not.toExtend<ResLayoutType>();
-    expectTypeOf<"Gear">().not.toExtend<ResLayoutType>();
-    expectTypeOf<string>().not.toExtend<ResLayoutType>();
+    expectTypeOf<"not-a-layout">().not.toExtend<ResLayoutEntryType>();
+    expectTypeOf<"Gear">().not.toExtend<ResLayoutEntryType>();
+    expectTypeOf<string>().not.toExtend<ResLayoutEntryType>();
   });
 
   it("does not accept non-string values", () => {
-    expectTypeOf<number>().not.toExtend<ResLayoutType>();
-    expectTypeOf<null>().not.toExtend<ResLayoutType>();
-    expectTypeOf<undefined>().not.toExtend<ResLayoutType>();
+    expectTypeOf<number>().not.toExtend<ResLayoutEntryType>();
+    expectTypeOf<null>().not.toExtend<ResLayoutEntryType>();
+    expectTypeOf<undefined>().not.toExtend<ResLayoutEntryType>();
   });
 
   it("accepts an object literal whose values are layout types", () => {
@@ -55,19 +55,19 @@ describe("AnyResLayout", () => {
 
 describe("ResLayoutTypeResolver", () => {
   it("takes a namespace string and returns a layout type or undefined", () => {
-    expectTypeOf<ResLayoutTypeResolver>().parameter(0).toEqualTypeOf<string>();
-    expectTypeOf<ResLayoutTypeResolver>().returns.toEqualTypeOf<ResLayoutType | undefined>();
+    expectTypeOf<ResLayoutEntryTypeResolver>().parameter(0).toEqualTypeOf<string>();
+    expectTypeOf<ResLayoutEntryTypeResolver>().returns.toEqualTypeOf<ResLayoutEntryType | undefined>();
   });
 
   it("return type always includes undefined (misses are representable)", () => {
-    expectTypeOf<undefined>().toExtend<ReturnType<ResLayoutTypeResolver>>();
+    expectTypeOf<undefined>().toExtend<ReturnType<ResLayoutEntryTypeResolver>>();
   });
 });
 
-describe("createResLayoutTypeResolver", () => {
+describe("createResLayoutEntryTypeResolver", () => {
   it("accepts an AnyResLayout and returns a ResLayoutTypeResolver", () => {
-    expectTypeOf(createResLayoutTypeResolver).parameter(0).toEqualTypeOf<AnyResLayout>();
-    expectTypeOf(createResLayoutTypeResolver).returns.toEqualTypeOf<ResLayoutTypeResolver>();
+    expectTypeOf(createResLayoutEntryTypeResolver).parameter(0).toEqualTypeOf<AnyResLayout>();
+    expectTypeOf(createResLayoutEntryTypeResolver).returns.toEqualTypeOf<ResLayoutEntryTypeResolver>();
   });
 
   it("does not narrow the return type based on the literal input (runtime lookup is string-keyed)", () => {
@@ -75,17 +75,17 @@ describe("createResLayoutTypeResolver", () => {
     // literal, the returned function still accepts any namespace string and
     // still may return undefined. This guards against accidentally tightening
     // the API into a closed key set.
-    const resolve = createResLayoutTypeResolver({ app: "gear" } as const);
-    expectTypeOf(resolve).toEqualTypeOf<ResLayoutTypeResolver>();
+    const resolve = createResLayoutEntryTypeResolver({ app: "gear" } as const);
+    expectTypeOf(resolve).toEqualTypeOf<ResLayoutEntryTypeResolver>();
     expectTypeOf(resolve).parameter(0).toEqualTypeOf<string>();
-    expectTypeOf(resolve).returns.toEqualTypeOf<ResLayoutType | undefined>();
+    expectTypeOf(resolve).returns.toEqualTypeOf<ResLayoutEntryType | undefined>();
   });
 
   it("rejects layouts whose values are not layout types", () => {
     // @ts-expect-error — "not-a-layout" is not assignable to ResLayoutType
-    createResLayoutTypeResolver({ app: "not-a-layout" });
+    createResLayoutEntryTypeResolver({ app: "not-a-layout" });
     // @ts-expect-error — numbers are not layout types
-    createResLayoutTypeResolver({ app: 42 });
+    createResLayoutEntryTypeResolver({ app: 42 });
   });
 });
 
@@ -112,12 +112,12 @@ describe("ResPathResolver", () => {
 
 describe("createResPathResolver", () => {
   it("takes a ResLayoutTypeResolver and returns a ResPathResolver", () => {
-    expectTypeOf(createResPathResolver).parameter(0).toEqualTypeOf<ResLayoutTypeResolver>();
+    expectTypeOf(createResPathResolver).parameter(0).toEqualTypeOf<ResLayoutEntryTypeResolver>();
     expectTypeOf(createResPathResolver).returns.toEqualTypeOf<ResPathResolver>();
   });
 
   it("accepts a compatible inline resolver function", () => {
-    const inline = (ns: string): ResLayoutType | undefined => (ns === "app" ? "gear" : undefined);
+    const inline = (ns: string): ResLayoutEntryType | undefined => (ns === "app" ? "gear" : undefined);
     const resolveResPath = createResPathResolver(inline);
     expectTypeOf(resolveResPath).toEqualTypeOf<ResPathResolver>();
   });
@@ -136,9 +136,9 @@ describe("createResPathResolver", () => {
 });
 
 describe("end-to-end inference", () => {
-  it("chains createResLayoutTypeResolver into createResPathResolver without extra annotations", () => {
+  it("chains createResLayoutEntryTypeResolver into createResPathResolver without extra annotations", () => {
     const resolveResPath = createResPathResolver(
-      createResLayoutTypeResolver({
+      createResLayoutEntryTypeResolver({
         app: "gear",
         "app/settings": "shell",
         "app/live": "dynamic-shell",
