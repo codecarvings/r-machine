@@ -13,21 +13,21 @@
 
 "use client";
 
-import { getVertexGearTag, type VertexGearMap, type VertexGearRes, type VertexGearTag } from "r-machine/core";
+import { type AnyVertexGear, getVertexGearTag, type VertexGearMap, type VertexGearTagData } from "r-machine/core";
 import { createContext, type ReactNode, useContext, useRef } from "react";
 
 const Context = createContext<VertexGearMap | undefined>(undefined);
 Context.displayName = "VertexFrameContext";
 
 interface VertexFrameProps {
-  readonly gear: VertexGearRes | VertexGearRes[];
+  readonly gear: AnyVertexGear | AnyVertexGear[];
   readonly children: ReactNode;
 }
 
 interface Data {
   parentMap: VertexGearMap | undefined;
   length: number;
-  tags: VertexGearTag | VertexGearTag[];
+  tags: VertexGearTagData | VertexGearTagData[];
 }
 
 export function VertexFrame({ gear, children }: VertexFrameProps) {
@@ -48,15 +48,15 @@ export function VertexFrame({ gear, children }: VertexFrameProps) {
     update = true;
   } else if (isArray) {
     for (let i = 0; i < current.length; i++) {
-      const newTag = getVertexGearTag(gear[i] as unknown as VertexGearRes);
-      if ((current.tags as VertexGearTag[])[i] !== newTag) {
+      const newTag = getVertexGearTag(gear[i] as unknown as AnyVertexGear);
+      if ((current.tags as VertexGearTagData[])[i] !== newTag) {
         update = true;
         break;
       }
     }
   } else {
-    const newTag = getVertexGearTag(gear as unknown as VertexGearRes);
-    update = (current.tags as VertexGearTag) !== newTag;
+    const newTag = getVertexGearTag(gear as unknown as AnyVertexGear);
+    update = (current.tags as VertexGearTagData) !== newTag;
   }
 
   if (update) {
@@ -64,17 +64,17 @@ export function VertexFrame({ gear, children }: VertexFrameProps) {
       parentMap,
       length,
       tags: isArray
-        ? gear.map((g) => getVertexGearTag(g as unknown as VertexGearRes))
-        : getVertexGearTag(gear as unknown as VertexGearRes),
+        ? gear.map((g) => getVertexGearTag(g as unknown as AnyVertexGear))
+        : getVertexGearTag(gear as unknown as AnyVertexGear),
     };
 
     if (length === -1) {
-      const tag = getVertexGearTag(gear as unknown as VertexGearRes)!;
+      const tag = getVertexGearTag(gear as unknown as AnyVertexGear)!;
       value.current = parentMap ? { ...parentMap, [tag.namespace]: tag.genId } : { [tag.namespace]: tag.genId };
     } else {
       const map: VertexGearMap = parentMap ? { ...parentMap } : {};
       for (let i = 0; i < length; i++) {
-        const tag = getVertexGearTag((gear as VertexGearRes[])[i]);
+        const tag = getVertexGearTag((gear as AnyVertexGear[])[i]);
         map[tag.namespace] = tag.genId;
       }
       value.current = map;

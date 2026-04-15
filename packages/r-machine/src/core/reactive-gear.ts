@@ -12,6 +12,6 @@
  */
 
 declare const reactiveGearSymbol: unique symbol;
-export interface ReactiveGearRes {
+export interface ReactiveGearTag {
   readonly [reactiveGearSymbol]: typeof reactiveGearSymbol;
 }

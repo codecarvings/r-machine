@@ -22,7 +22,7 @@ export interface ResMatrixMeta {
 }
 
 const resMatrixMetaSymbol: unique symbol = Symbol("resMatrixMeta");
-// Cannot use ResMatrix<R extends AnyRes, ...> because of VertexGearTag
+// Cannot use ResMatrix<R extends AnyRes, ...> because of res tags
 export interface ResMatrix<R, P extends AnyResPlug> {
   readonly [resMatrixMetaSymbol]: ResMatrixMeta;
   readonly factory: () => Promise<R>;

@@ -13,7 +13,7 @@
 
 export type { Atomic } from "./action.js";
 export type { GateWire } from "./engine/gate-wire.js";
-export type { Forge } from "./forge.js";
+export { createForge, type Forge } from "./forge.js";
 export type {
   GateListPlug,
   GateListPlugin,
@@ -52,4 +52,9 @@ export type {
 export type { ResMatrix } from "./res-matrix.js";
 export type { ResModuleLoaderFn } from "./res-module.js";
 export type { Surface } from "./surface.js";
-export { getVertexGearTag, type VertexGearMap, type VertexGearRes, type VertexGearTag } from "./vertex-gear.js";
+export {
+  type AnyVertexGear,
+  getVertexGearTag,
+  type VertexGearMap,
+  type VertexGearTagData,
+} from "./vertex-gear.js";
