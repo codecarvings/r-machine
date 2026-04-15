@@ -45,4 +45,4 @@ export type { ExplicitNamespaceMap, NamespaceMap, PartialSurfaceMap, SurfaceMap 
 export type { ResMatrix } from "./res-matrix.js";
 export type { ResModuleLoaderFn } from "./res-module.js";
 export type { Surface } from "./surface.js";
-export { type VertexGearMap, type VertexGearTag, vertexGearTagSymbol } from "./vertex-gear.js";
+export { getVertexGearTag, type VertexGearMap, type VertexGearRes, type VertexGearTag } from "./vertex-gear.js";

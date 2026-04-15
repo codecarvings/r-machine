@@ -45,14 +45,20 @@ export type GearListPlugin<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, 
   PluginCtx<RA, KA>,
 ];
 
-export type GearMapComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = <
-  R extends AnyRes,
->(
+export type GearMapComposer<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+  T = unknown,
+> = <R extends AnyRes>(
   factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => R | Promise<R>
-) => ResMatrix<R, GearMapPlug<RA, KA, NM>>;
+) => ResMatrix<R & T, GearMapPlug<RA, KA, NM>>;
 
-export type GearListComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = <
-  R extends AnyRes,
->(
+export type GearListComposer<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+  T = unknown,
+> = <R extends AnyRes>(
   factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => R | Promise<R>
-) => ResMatrix<R, GearListPlug<RA, KA, NL>>;
+) => ResMatrix<R & T, GearListPlug<RA, KA, NL>>;
