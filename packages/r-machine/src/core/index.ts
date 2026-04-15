@@ -22,6 +22,7 @@ export type {
   GatePlugComposer,
   GatePlugHead,
   GatePluginCtx,
+  SolidGatePlugComposer,
 } from "./gate-plug.js";
 export {
   type AnyListPlugHead,
@@ -40,8 +41,14 @@ export {
 export type { AnyRes, AnyResOrigin } from "./res.js";
 export { type AnyResAtlas, createToken, type Namespace, type Token } from "./res-atlas.js";
 export type { ResKit } from "./res-kit.js";
-export type { NamespaceList, SurfaceList } from "./res-list.js";
-export type { ExplicitNamespaceMap, NamespaceMap, PartialSurfaceMap, SurfaceMap } from "./res-map.js";
+export type { NamespaceList, SolidNamespaceList, SurfaceList } from "./res-list.js";
+export type {
+  ExplicitNamespaceMap,
+  NamespaceMap,
+  PartialSurfaceMap,
+  SolidNamespaceMap,
+  SurfaceMap,
+} from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";
 export type { ResModuleLoaderFn } from "./res-module.js";
 export type { Surface } from "./surface.js";

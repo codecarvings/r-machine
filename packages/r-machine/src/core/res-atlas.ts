@@ -11,6 +11,9 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { ReactiveGearRes } from "./reactive-gear.js";
+import type { VertexGearRes } from "./vertex-gear.js";
+
 export type AnyNamespace = string;
 
 export interface AnyResAtlas {
@@ -18,6 +21,9 @@ export interface AnyResAtlas {
 }
 
 export type Namespace<RA extends AnyResAtlas> = Extract<keyof RA, AnyNamespace>;
+export type SolidNamespace<RA extends AnyResAtlas> = {
+  [K in Namespace<RA>]: RA[K] extends ReactiveGearRes | VertexGearRes ? never : K;
+}[Namespace<RA>];
 
 const namespaceSymbol = Symbol("namespace");
 export interface Token<N extends string> {
@@ -25,6 +31,7 @@ export interface Token<N extends string> {
 }
 
 export type NamespaceRef<RA extends AnyResAtlas> = Namespace<RA> | Token<Namespace<RA>>;
+export type SolidNamespaceRef<RA extends AnyResAtlas> = SolidNamespace<RA> | Token<SolidNamespace<RA>>;
 
 export type ExtractNamespace<T extends NamespaceRef<any>> = T extends Token<infer N> ? N : T;
 

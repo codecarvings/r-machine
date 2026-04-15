@@ -19,6 +19,8 @@ import type {
   NamespaceMap,
   PlugBody,
   PlugMode,
+  SolidNamespaceList,
+  SolidNamespaceMap,
   SurfaceList,
   SurfaceMap,
 } from "r-machine/core";
@@ -167,6 +169,6 @@ export interface NextServerPlugComposer<
   LK extends string,
 > {
   (): NextServerMapPlug<RA, L, KA, {}, PA, LK>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): NextServerListPlug<RA, L, KA, NL, PA, LK>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): NextServerMapPlug<RA, L, KA, NM, PA, LK>;
+  <NL extends SolidNamespaceList<RA>>(...namespaces: NL): NextServerListPlug<RA, L, KA, NL, PA, LK>;
+  <NM extends SolidNamespaceMap<RA>>(namespaces: NM): NextServerMapPlug<RA, L, KA, NM, PA, LK>;
 }

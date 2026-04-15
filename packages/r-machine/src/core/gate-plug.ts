@@ -15,8 +15,8 @@ import type { LocaleAwarePluginCtx } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 import type { PlugBody, PlugHead, PlugMode } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { NamespaceList, SurfaceList } from "./res-list.js";
-import type { NamespaceMap, SurfaceMap } from "./res-map.js";
+import type { NamespaceList, SolidNamespaceList, SurfaceList } from "./res-list.js";
+import type { NamespaceMap, SolidNamespaceMap, SurfaceMap } from "./res-map.js";
 
 export interface GatePlugHead<
   M extends PlugMode,
@@ -91,4 +91,10 @@ export interface GatePlugComposer<RA extends AnyResAtlas, L extends AnyLocale, K
   (): GateMapPlug<RA, L, KA, {}>;
   <NL extends NamespaceList<RA>>(...namespaces: NL): GateListPlug<RA, L, KA, NL>;
   <NM extends NamespaceMap<RA>>(namespaces: NM): GateMapPlug<RA, L, KA, NM>;
+}
+
+export interface SolidGatePlugComposer<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
+  (): GateMapPlug<RA, L, KA, {}>;
+  <NL extends SolidNamespaceList<RA>>(...namespaces: NL): GateListPlug<RA, L, KA, NL>;
+  <NM extends SolidNamespaceMap<RA>>(namespaces: NM): GateMapPlug<RA, L, KA, NM>;
 }
