@@ -19,7 +19,7 @@ export interface AnyResAtlas {
 
 export type Namespace<RA extends AnyResAtlas> = Extract<keyof RA, AnyNamespace>;
 
-export const namespaceSymbol = Symbol("namespace");
+const namespaceSymbol = Symbol("namespace");
 export interface Token<N extends string> {
   readonly [namespaceSymbol]: N;
 }
@@ -27,3 +27,15 @@ export interface Token<N extends string> {
 export type NamespaceRef<RA extends AnyResAtlas> = Namespace<RA> | Token<Namespace<RA>>;
 
 export type ExtractNamespace<T extends NamespaceRef<any>> = T extends Token<infer N> ? N : T;
+
+export function getNamespace<T extends NamespaceRef<any>>(tokenOrNamespace: T): ExtractNamespace<T> {
+  if (typeof tokenOrNamespace === "string") {
+    return tokenOrNamespace as ExtractNamespace<T>;
+  } else {
+    return tokenOrNamespace[namespaceSymbol] as ExtractNamespace<T>;
+  }
+}
+
+export function createToken<N extends AnyNamespace>(namespace: N): Token<N> {
+  return { [namespaceSymbol]: namespace };
+}

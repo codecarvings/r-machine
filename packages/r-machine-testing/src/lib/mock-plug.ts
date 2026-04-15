@@ -17,9 +17,10 @@ import {
   type AnyPlugHead,
   type ExtractCtx,
   type ExtractResAtlas,
+  getPlugResolve,
   type PartialSurfaceMap,
   type PlugBody,
-  plugResolveSymbol,
+  setPlugResolve,
 } from "r-machine/core";
 import { RMachineUsageError } from "r-machine/errors";
 import { ERR_PLUG_ALREADY_MOCKED } from "#r-machine/testing/errors";
@@ -35,7 +36,7 @@ export const mockPlug: MockPlug = <PH extends AnyPlugHead>(
   plug: PlugBody<PH>,
   _data: MockPlugMapData<PH> | MockPlugListData<PH>
 ): (() => void) => {
-  const prevResolve = plug[plugResolveSymbol];
+  const prevResolve = getPlugResolve(plug);
   if ((prevResolve as any)[plugMockSymbol]) {
     throw new RMachineUsageError(ERR_PLUG_ALREADY_MOCKED, "Plug is already mocked.");
   }
@@ -44,9 +45,9 @@ export const mockPlug: MockPlug = <PH extends AnyPlugHead>(
   const resolve = (() => undefined!) as typeof prevResolve;
   (resolve as any)[plugMockSymbol] = true;
 
-  plug[plugResolveSymbol] = resolve;
+  setPlugResolve(plug, resolve);
   return () => {
-    plug[plugResolveSymbol] = prevResolve;
+    setPlugResolve(plug, prevResolve);
   };
 };
 

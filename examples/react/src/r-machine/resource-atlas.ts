@@ -1,4 +1,4 @@
-import { createTokenBuilder } from "r-machine";
+import { getTokenBuilder } from "r-machine";
 import type { Gear_ShoppingCart } from "./gear/shopping-cart";
 import type { Shell_Common } from "./shell/common/en";
 import type { Shell_Features_Box_1_2 } from "./shell/features/box_1_2/en";
@@ -19,6 +19,6 @@ export type ResourceAtlas = {
   "shell/lib/fmt": Shell_Lib_Fmt;
 };
 
-const token = createTokenBuilder<ResourceAtlas>();
+const token = getTokenBuilder<ResourceAtlas>();
 export const cart = token("gear/shopping-cart");
 export const fmt = token("shell/lib/fmt");

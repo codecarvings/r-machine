@@ -29,15 +29,16 @@ export {
   type AnyPlugHead,
   type ExtractCtx,
   type ExtractResAtlas,
+  getPlugHead,
+  getPlugResolve,
   type LocaleAwarePluginCtx,
   type PlugBody,
   type PlugHead,
   type PlugMode,
-  plugHeadSymbol,
-  plugResolveSymbol,
+  setPlugResolve,
 } from "./plug.js";
 export type { AnyRes, AnyResOrigin } from "./res.js";
-export { type AnyResAtlas, type Namespace, namespaceSymbol, type Token } from "./res-atlas.js";
+export { type AnyResAtlas, createToken, type Namespace, type Token } from "./res-atlas.js";
 export type { ResKit } from "./res-kit.js";
 export type { NamespaceList, SurfaceList } from "./res-list.js";
 export type { ExplicitNamespaceMap, NamespaceMap, PartialSurfaceMap, SurfaceMap } from "./res-map.js";

@@ -78,11 +78,22 @@ type PlugData<PH extends AnyPlugHead> = PH["mode"] extends "map"
     ? PlugListData<PH & AnyListPlugHead>
     : never;
 
-export const plugHeadSymbol = Symbol("plugHead");
-export const plugResolveSymbol = Symbol("plugResolve");
+const plugHeadSymbol = Symbol("plugHead");
+const plugResolveSymbol = Symbol("plugResolve");
 export interface PlugBody<PH extends AnyPlugHead> {
   readonly [plugHeadSymbol]: PH;
   [plugResolveSymbol]: () => PlugData<PH>;
 }
 
 export type AnyPlugBody = PlugBody<AnyPlugHead>;
+
+export function getPlugHead<H extends AnyPlugHead>(plug: PlugBody<H>): H {
+  return plug[plugHeadSymbol];
+}
+
+export function getPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>): () => PlugData<H> {
+  return plug[plugResolveSymbol];
+}
+export function setPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>, resolve: () => PlugData<H>): void {
+  plug[plugResolveSymbol] = resolve;
+}

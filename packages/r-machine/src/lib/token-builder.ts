@@ -11,10 +11,10 @@
  * contact: licensing@codecarvings.com
  */
 
-import { type AnyResAtlas, type Namespace, namespaceSymbol, type Token } from "#r-machine/core";
+import { type AnyResAtlas, createToken, type Namespace, type Token } from "#r-machine/core";
 
 type TokenBuilder<RA extends AnyResAtlas> = <N extends Namespace<RA>>(namespace: N) => Token<N>;
 
-export function createTokenBuilder<RA extends AnyResAtlas>(): TokenBuilder<RA> {
-  return <N extends Namespace<RA>>(ns: N) => ({ [namespaceSymbol]: ns });
+export function getTokenBuilder<RA extends AnyResAtlas>(): TokenBuilder<RA> {
+  return createToken;
 }

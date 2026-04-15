@@ -1,4 +1,4 @@
-import { createTokenBuilder } from "r-machine";
+import { getTokenBuilder } from "r-machine";
 import type { Gear_Aggregator } from "./gear/aggregator";
 import type { Gear_Config } from "./gear/config";
 import type { Gear_Counter } from "./gear/counter";
@@ -18,5 +18,5 @@ export type ResourceAtlas = {
   "shell/lib/fmt": Shell_Lib_Fmt;
 };
 
-const token = createTokenBuilder<ResourceAtlas>();
+const token = getTokenBuilder<ResourceAtlas>();
 export const cart = token("gear/shopping-cart");
