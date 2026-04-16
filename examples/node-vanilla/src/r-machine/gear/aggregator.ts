@@ -12,11 +12,11 @@ export const r = Forge.connected("gear/counter", "gear/shopping-cart")
 
 export type Gear_Aggregator = RShape<typeof r>;
 
-mockPlug(r.plug, {
-  $: {},
-  list: {
-    0: {
-      myCount: 33,
-    },
+mockPlug(r.plug).with({
+  "0": {
+    myCount: () => 42,
+  },
+  "1": {
+    totalItems: () => 3,
   },
 });

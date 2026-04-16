@@ -18,54 +18,79 @@ import {
   type ExtractCtx,
   type ExtractResAtlas,
   getPlugResolve,
-  type PartialSurfaceMap,
   type PlugBody,
   setPlugResolve,
 } from "r-machine/core";
 import { RMachineUsageError } from "r-machine/errors";
 import { ERR_PLUG_ALREADY_MOCKED } from "#r-machine/testing/errors";
+import type { MockableSurfaceMap } from "./mockable-surface.js";
 
 const plugMockSymbol = Symbol("plugMock");
 
-interface MockPlug {
-  <PH extends AnyMapPlugHead>(plug: PlugBody<PH>, data: MockPlugMapData<PH>): () => void;
-  <PH extends AnyListPlugHead>(plug: PlugBody<PH>, data: MockPlugListData<PH>): () => void;
+type ResetPlug = () => void;
+
+interface MapMockPlug<PH extends AnyMapPlugHead> {
+  with(data: MockPlugMapData<PH>): ResetPlug;
 }
 
-export const mockPlug: MockPlug = <PH extends AnyPlugHead>(
-  plug: PlugBody<PH>,
-  _data: MockPlugMapData<PH> | MockPlugListData<PH>
-): (() => void) => {
-  const prevResolve = getPlugResolve(plug);
-  if ((prevResolve as any)[plugMockSymbol]) {
-    throw new RMachineUsageError(ERR_PLUG_ALREADY_MOCKED, "Plug is already mocked.");
-  }
+interface ListMockPlug<PH extends AnyListPlugHead> {
+  with(data: MockPlugListData<PH>): ResetPlug;
+}
 
-  // TODO: use data to build the mock resolve function
-  const resolve = (() => undefined!) as typeof prevResolve;
-  (resolve as any)[plugMockSymbol] = true;
+interface MockPlug {
+  <PH extends AnyMapPlugHead>(plug: PlugBody<PH>): MapMockPlug<PH>;
+  <PH extends AnyListPlugHead>(plug: PlugBody<PH>): ListMockPlug<PH>;
+}
 
-  setPlugResolve(plug, resolve);
-  return () => {
-    setPlugResolve(plug, prevResolve);
+export const mockPlug: MockPlug = <PH extends AnyPlugHead>(plug: PlugBody<PH>): MapMockPlug<PH> | ListMockPlug<PH> => {
+  return {
+    with: (_data: MockPlugMapData<PH> | MockPlugListData<PH>) => {
+      const prevResolve = getPlugResolve(plug);
+      if ((prevResolve as any)[plugMockSymbol]) {
+        throw new RMachineUsageError(ERR_PLUG_ALREADY_MOCKED, "Plug is already mocked.");
+      }
+
+      // TODO: use data to build the mock resolve function
+      const resolve = (() => undefined!) as typeof prevResolve;
+      (resolve as any)[plugMockSymbol] = true;
+
+      setPlugResolve(plug, resolve);
+      return () => {
+        setPlugResolve(plug, prevResolve);
+      };
+    },
   };
 };
 
-interface MockPlugMapData<PH extends AnyMapPlugHead> {
-  $?: Partial<ExtractCtx<PH>>;
-  map?: PartialSurfaceMap<ExtractResAtlas<PH>, Omit<PH["namespaces"], "$">>;
-}
+type MockPlugMapDataDeps<PH extends AnyMapPlugHead> = MockableSurfaceMap<
+  ExtractResAtlas<PH>,
+  Omit<PH["namespaces"], "$">
+>;
 
 type TupleToObject<T extends readonly unknown[]> = {
   [K in keyof T as K extends `${number}` ? K : never]: T[K];
 };
 
-interface MockPlugListData<PH extends AnyListPlugHead> {
-  $?: Partial<ExtractCtx<PH>>;
-  list?: Partial<
-    PartialSurfaceMap<
-      ExtractResAtlas<PH>,
-      Omit<TupleToObject<PH["namespaces"] extends readonly unknown[] ? PH["namespaces"] : never>, "$">
-    >
-  >;
-}
+type MockPlugListDeps<PH extends AnyListPlugHead> = MockableSurfaceMap<
+  ExtractResAtlas<PH>,
+  Omit<TupleToObject<PH["namespaces"] extends readonly unknown[] ? PH["namespaces"] : never>, "$">
+>;
+
+/*
+type MockPlugMapData<PH extends AnyMapPlugHead> = (keyof ExtractCtx<PH> extends never
+  ? { $?: Record<string, never> }
+  : { $?: Partial<ExtractCtx<PH>> }) &
+  (keyof MockPlugMapDataDeps<PH> extends never ? { map?: Record<string, never> } : { map?: MockPlugMapDataDeps<PH> });
+*/
+
+type MockCtxContent<PH extends AnyPlugHead> = {
+  [K in keyof ExtractCtx<PH>]?: K extends "kit"
+    ? MockableSurfaceMap<ExtractResAtlas<PH>, PH["kit"]>
+    : ExtractCtx<PH>[K];
+};
+
+type MockCtx<PH extends AnyPlugHead> = keyof ExtractCtx<PH> extends never ? Record<string, never> : MockCtxContent<PH>;
+
+type MockPlugMapData<PH extends AnyMapPlugHead> = { $?: MockCtx<PH> } & MockPlugMapDataDeps<PH>;
+
+type MockPlugListData<PH extends AnyListPlugHead> = { $?: MockCtx<PH> } & MockPlugListDeps<PH>;

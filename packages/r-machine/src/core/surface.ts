@@ -11,11 +11,12 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { Action } from "./action.js";
 import type { Getter } from "./getter.js";
 import type { RelayBrand } from "./relay.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 
-type SurfaceItem<I> = I extends Getter<infer V> ? V : I extends RelayBrand ? never : I;
+type SurfaceItem<I> = I extends Getter<infer V> ? V : I extends Action<infer F> ? F : I extends RelayBrand ? never : I;
 
 export type Surface<R extends AnyResAtlas> = {
   readonly [K in keyof R as K extends `$${string}` ? never : K]: SurfaceItem<R[K]>;

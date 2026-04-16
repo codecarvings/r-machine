@@ -56,7 +56,7 @@ export type ExtractResAtlas<PH extends AnyPlugHead> = PH[typeof resAtlas];
 export type ExtractCtx<PH extends AnyPlugHead> = PH[typeof ctx];
 
 interface PlugMapData<PH extends AnyMapPlugHead> {
-  readonly $: PH[typeof resAtlas];
+  readonly $: PH[typeof ctx];
   readonly map: SurfaceMap<PH[typeof resAtlas], Omit<PH["namespaces"], "$">>;
 }
 
@@ -65,7 +65,7 @@ type TupleToObject<T extends readonly unknown[]> = {
 };
 
 interface PlugListData<PH extends AnyListPlugHead> {
-  readonly $: PH[typeof resAtlas];
+  readonly $: PH[typeof ctx];
   readonly list: SurfaceMap<
     PH[typeof resAtlas],
     Omit<TupleToObject<PH["namespaces"] extends readonly unknown[] ? PH["namespaces"] : never>, "$">
@@ -73,9 +73,9 @@ interface PlugListData<PH extends AnyListPlugHead> {
 }
 
 type PlugData<PH extends AnyPlugHead> = PH["mode"] extends "map"
-  ? PlugMapData<PH & AnyMapPlugHead>
+  ? PlugMapData<PH>
   : PH["mode"] extends "list"
-    ? PlugListData<PH & AnyListPlugHead>
+    ? PlugListData<PH>
     : never;
 
 const plugHeadSymbol = Symbol("plugHead");

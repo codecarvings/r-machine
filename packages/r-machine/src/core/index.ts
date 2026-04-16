@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-export type { Atomic } from "./action.js";
+export type { Action, Atomic } from "./action.js";
 export type { GateWire } from "./engine/gate-wire.js";
 export { createForge, type Forge } from "./forge.js";
 export type {
@@ -24,6 +24,7 @@ export type {
   GatePluginCtx,
   SolidGatePlugComposer,
 } from "./gate-plug.js";
+export type { Getter } from "./getter.js";
 export {
   type AnyListPlugHead,
   type AnyMapPlugHead,
@@ -38,14 +39,14 @@ export {
   type PlugMode,
   setPlugResolve,
 } from "./plug.js";
+export type { RelayBrand } from "./relay.js";
 export type { AnyRes, AnyResOrigin } from "./res.js";
-export { type AnyResAtlas, createToken, type Namespace, type Token } from "./res-atlas.js";
+export { type AnyResAtlas, createToken, type ExtractNamespace, type Namespace, type Token } from "./res-atlas.js";
 export type { ResKit } from "./res-kit.js";
 export type { NamespaceList, SolidNamespaceList, SurfaceList } from "./res-list.js";
 export type {
   ExplicitNamespaceMap,
   NamespaceMap,
-  PartialSurfaceMap,
   SolidNamespaceMap,
   SurfaceMap,
 } from "./res-map.js";

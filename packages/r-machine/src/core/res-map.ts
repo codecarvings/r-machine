@@ -28,11 +28,5 @@ export type SolidNamespaceMap<RA extends AnyResAtlas> = {
 };
 
 export type SurfaceMap<RA extends AnyResAtlas, NM extends NamespaceMap<RA>> = {
-  // TODO: WP
   readonly [K in keyof NM]: Surface<RA[ExtractNamespace<NM[K]>]>;
-};
-
-export type PartialSurfaceMap<RA extends AnyResAtlas, NM extends NamespaceMap<RA>> = {
-  // TODO: WP
-  readonly [K in keyof NM]?: Partial<Surface<RA[ExtractNamespace<NM[K]>]>>;
 };
