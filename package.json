@@ -23,6 +23,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
     "test:e2e:ui": "playwright test --config e2e/playwright.config.ts --ui",
+    "size": "size-limit",
+    "size:why": "size-limit --why --save-bundle ./size-limit",
     "prepare": "husky",
     "dev": "tsx --conditions @r-machine/source",
     "dev:play": "pnpm dev play.tsx",
@@ -43,10 +45,63 @@
       "prettier --ignore-unknown --write"
     ]
   },
+  "size-limit": [
+    {
+      "name": "r-machine",
+      "path": "packages/r-machine/lib/index.js"
+    },
+    {
+      "name": "@r-machine/react",
+      "path": "packages/r-machine-react/lib/index.js",
+      "ignore": [
+        "r-machine",
+        "react"
+      ]
+    },
+    {
+      "name": "r-machine/next - App flat strategy",
+      "path": "packages/r-machine-next/app/flat/index.js",
+      "ignore": [
+        "r-machine",
+        "@r-machine/react",
+        "react",
+        "next",
+        "next/headers",
+        "next/navigation",
+        "next/server"
+      ]
+    },
+    {
+      "name": "r-machine/next - App origin strategy",
+      "path": "packages/r-machine-next/app/origin/index.js",
+      "ignore": [
+        "r-machine",
+        "@r-machine/react",
+        "react",
+        "next",
+        "next/headers",
+        "next/navigation",
+        "next/server"
+      ]
+    },
+    {
+      "name": "r-machine/next - App path strategy",
+      "path": "packages/r-machine-next/app/path/index.js",
+      "ignore": [
+        "r-machine",
+        "@r-machine/react",
+        "react",
+        "next",
+        "next/headers",
+        "next/navigation",
+        "next/server"
+      ]
+    }
+  ],
   "pnpm": {
     "overrides": {
-      "react": "19.2.4",
-      "react-dom": "19.2.4"
+      "react": "19.2.5",
+      "react-dom": "19.2.5"
     }
   },
   "devDependencies": {
@@ -55,6 +110,8 @@
     "@playwright/test": "^1.59.1",
     "@r-machine/next": "workspace:*",
     "@r-machine/react": "workspace:*",
+    "@size-limit/esbuild-why": "^12.1.0",
+    "@size-limit/preset-small-lib": "^12.1.0",
     "@testing-library/react": "^16.3.2",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^24.12.2",
@@ -71,6 +128,7 @@
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "semver": "^7.7.4",
+    "size-limit": "^12.1.0",
     "tsx": "^4.21.0",
     "typescript": "~6.0.2",
     "vitest": "^4.1.4",
