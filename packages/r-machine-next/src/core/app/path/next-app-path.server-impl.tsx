@@ -19,10 +19,9 @@ import { RMachineConfigError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
+import { localeHeaderName, type NextAppNoProxyServerImpl } from "#r-machine/next/core/app";
 import { ERR_FEATURE_REQUIRES_PROXY } from "#r-machine/next/errors";
 import { defaultPathMatcher, type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
-import type { NextAppNoProxyServerImpl } from "../next-app-no-proxy-server-toolset.js";
-import { localeHeaderName } from "../next-app-strategy-core.js";
 import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
 
 const sccPathHeaderName = "x-rm-sccpath"; // Static Canonical Content Path

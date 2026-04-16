@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { defaultPathMatcher } from "#r-machine/next/internal";
-import { NextAppOriginStrategy } from "../../src/app/next-app-origin-strategy.js";
+import { NextAppOriginStrategy } from "../../src/app/origin/next-app-origin-strategy.js";
 import { DynamicPathAtlas } from "../_fixtures/_helpers.js";
 import { createMockMachine } from "../_fixtures/mock-machine.js";
 

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { NextAppPathStrategy } from "../../src/app/next-app-path-strategy.js";
+import { NextAppPathStrategy } from "../../src/app/path/next-app-path-strategy.js";
 import { DynamicPathAtlas, TranslatedPathAtlas } from "../_fixtures/_helpers.js";
 import { createMockMachine } from "../_fixtures/mock-machine.js";
 

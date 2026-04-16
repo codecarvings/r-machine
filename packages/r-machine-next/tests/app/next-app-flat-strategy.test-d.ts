@@ -2,16 +2,11 @@ import type { NamespaceMap, RMachine } from "r-machine";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import { describe, expectTypeOf, it } from "vitest";
 import type { PathAtlasCtor } from "#r-machine/next/core";
-import type {
-  NextAppClientRMachine,
-  NextAppClientToolset,
-  NextAppFlatStrategyConfig,
-  NextAppServerToolset,
-  PartialNextAppFlatStrategyConfig,
-} from "#r-machine/next/core/app";
+import type { NextAppClientRMachine, NextAppClientToolset, NextAppServerToolset } from "#r-machine/next/core/app";
+import type { NextAppFlatStrategyConfig, PartialNextAppFlatStrategyConfig } from "#r-machine/next/core/app/flat";
 // biome-ignore lint/style/useImportType: value import needed to derive default types via typeof
-import { NextAppFlatStrategyCore } from "#r-machine/next/core/app";
-import type { NextAppFlatStrategy } from "../../src/app/next-app-flat-strategy.js";
+import { NextAppFlatStrategyCore } from "#r-machine/next/core/app/flat";
+import type { NextAppFlatStrategy } from "../../src/app/flat/next-app-flat-strategy.js";
 import type { SimplePathAtlas, TestLocale, TranslatedPathAtlas } from "../_fixtures/constants.js";
 import type { TestAtlas } from "../_fixtures/mock-machine.js";
 

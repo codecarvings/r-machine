@@ -1,7 +1,7 @@
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { defaultPathMatcher } from "#r-machine/next/internal";
-import { NextAppFlatStrategy } from "../../src/app/next-app-flat-strategy.js";
+import { NextAppFlatStrategy } from "../../src/app/flat/next-app-flat-strategy.js";
 import { DynamicPathAtlas } from "../_fixtures/_helpers.js";
 import { createMockMachine } from "../_fixtures/mock-machine.js";
 

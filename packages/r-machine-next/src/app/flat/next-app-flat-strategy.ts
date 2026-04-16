@@ -19,7 +19,7 @@ import {
   type NextAppFlatStrategyConfig,
   NextAppFlatStrategyCore,
   type PartialNextAppFlatStrategyConfig,
-} from "#r-machine/next/core/app";
+} from "#r-machine/next/core/app/flat";
 
 export class NextAppFlatStrategy<
   RA extends AnyResAtlas,

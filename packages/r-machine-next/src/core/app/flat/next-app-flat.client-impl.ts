@@ -16,7 +16,7 @@ import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { getCookie, setCookie } from "r-machine/strategy/web";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
-import type { NextAppClientImpl } from "../next-app-client-toolset.js";
+import type { NextAppClientImpl } from "#r-machine/next/core/app";
 import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core.js";
 
 export async function createNextAppFlatClientImpl<

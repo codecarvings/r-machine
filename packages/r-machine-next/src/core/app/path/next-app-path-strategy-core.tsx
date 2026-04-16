@@ -25,14 +25,15 @@ import {
   type PathParams,
   type PathSelector,
 } from "#r-machine/next/core";
-import { ERR_INVALID_STRATEGY_CONFIG } from "#r-machine/next/errors";
-import type { NextAppClientRMachine } from "../next-app-client-toolset.js";
-import type { NextAppNoProxyServerImpl, NextAppNoProxyServerToolset } from "../next-app-no-proxy-server-toolset.js";
 import {
+  type NextAppClientRMachine,
+  type NextAppNoProxyServerImpl,
+  type NextAppNoProxyServerToolset,
   type NextAppStrategyConfig,
   NextAppStrategyCore,
   type PartialNextAppStrategyConfig,
-} from "../next-app-strategy-core.js";
+} from "#r-machine/next/core/app";
+import { ERR_INVALID_STRATEGY_CONFIG } from "#r-machine/next/errors";
 
 /* NextAppPathStrategy - Cookies
  * If cookies are enabled, cookies can be set in 4 different ways:

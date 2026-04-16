@@ -19,7 +19,7 @@ import {
   type NextAppOriginStrategyConfig,
   NextAppOriginStrategyCore,
   type PartialNextAppOriginStrategyConfig,
-} from "#r-machine/next/core/app";
+} from "#r-machine/next/core/app/origin";
 
 export class NextAppOriginStrategy<
   RA extends AnyResAtlas,

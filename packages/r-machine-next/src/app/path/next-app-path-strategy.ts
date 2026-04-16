@@ -19,7 +19,7 @@ import {
   type NextAppPathStrategyConfig,
   NextAppPathStrategyCore,
   type PartialNextAppPathStrategyConfig,
-} from "#r-machine/next/core/app";
+} from "#r-machine/next/core/app/path";
 
 export class NextAppPathStrategy<
   RA extends AnyResAtlas,

@@ -7,11 +7,11 @@ import type {
   NextAppClientToolset,
   NextAppNoProxyServerToolset,
   NextAppServerToolset,
-  PartialNextAppPathStrategyConfig,
 } from "#r-machine/next/core/app";
+import type { PartialNextAppPathStrategyConfig } from "#r-machine/next/core/app/path";
 // biome-ignore lint/style/useImportType: value import needed to derive default types via typeof
-import { NextAppPathStrategyCore } from "#r-machine/next/core/app";
-import { NextAppPathStrategy } from "../../src/app/next-app-path-strategy.js";
+import { NextAppPathStrategyCore } from "#r-machine/next/core/app/path";
+import { NextAppPathStrategy } from "../../src/app/path/next-app-path-strategy.js";
 import type { SimplePathAtlas, TestLocale, TranslatedPathAtlas } from "../_fixtures/constants.js";
 import type { TestAtlas } from "../_fixtures/mock-machine.js";
 

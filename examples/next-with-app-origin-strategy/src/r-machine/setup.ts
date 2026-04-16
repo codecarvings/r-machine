@@ -1,4 +1,4 @@
-import { NextAppOriginStrategy } from "@r-machine/next/app";
+import { NextAppOriginStrategy } from "@r-machine/next/app/origin";
 import { ofType, RMachine, type RMachineLocale } from "r-machine";
 import { PathAtlas } from "./path-atlas";
 import type { ResourceAtlas } from "./resource-atlas";

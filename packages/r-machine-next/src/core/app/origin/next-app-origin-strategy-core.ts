@@ -23,13 +23,13 @@ import {
   type PathParams,
   type PathSelector,
 } from "#r-machine/next/core";
-import { ERR_INVALID_STRATEGY_CONFIG } from "#r-machine/next/errors";
-import { defaultPathMatcher } from "#r-machine/next/internal";
 import {
   type NextAppStrategyConfig,
   NextAppStrategyCore,
   type PartialNextAppStrategyConfig,
-} from "../next-app-strategy-core.js";
+} from "#r-machine/next/core/app";
+import { ERR_INVALID_STRATEGY_CONFIG } from "#r-machine/next/errors";
+import { defaultPathMatcher } from "#r-machine/next/internal";
 
 interface HrefHelper<L extends AnyLocale, PA extends AnyPathAtlas> {
   readonly getPath: PathComposer<L, PA>;

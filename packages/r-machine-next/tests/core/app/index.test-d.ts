@@ -1,28 +1,15 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type {
-  AnyNextAppFlatStrategyConfig,
-  AnyNextAppOriginStrategyConfig,
-  AnyNextAppPathStrategyConfig,
   AnyNextAppStrategyConfig,
-  LocaleOriginMap,
   NextAppClientImpl,
   NextAppClientRMachine,
   NextAppClientToolset,
-  NextAppFlatStrategyCore,
   NextAppNoProxyServerImpl,
   NextAppNoProxyServerToolset,
-  NextAppOriginStrategyCore,
-  NextAppOriginStrategyUrlTranslator,
-  NextAppPathStrategyCore,
-  NextAppPathStrategyPathCanonicalizer,
-  NextAppPathStrategyPathTranslator,
   NextAppServerImpl,
   NextAppServerRMachine,
   NextAppServerToolset,
   NextAppStrategyCore,
-  PartialNextAppFlatStrategyConfig,
-  PartialNextAppOriginStrategyConfig,
-  PartialNextAppPathStrategyConfig,
   PartialNextAppStrategyConfig,
 } from "../../../src/core/app/index.js";
 import {
@@ -38,18 +25,6 @@ describe("core/app barrel exports", () => {
     expectTypeOf(localeHeaderName).toBeString();
 
     expectTypeOf<NextAppStrategyCore<any, any, any, any>>().toBeObject();
-
-    expectTypeOf<NextAppFlatStrategyCore<any, any, any, any>>().toBeObject();
-
-    expectTypeOf<NextAppOriginStrategyCore<any, any, any, any>>().toBeObject();
-
-    expectTypeOf<NextAppOriginStrategyUrlTranslator>().toBeObject();
-
-    expectTypeOf<NextAppPathStrategyCore<any, any, any, any>>().toBeObject();
-
-    expectTypeOf<NextAppPathStrategyPathTranslator>().toBeObject();
-
-    expectTypeOf<NextAppPathStrategyPathCanonicalizer>().toBeObject();
 
     expectTypeOf(createNextAppClientToolset).toBeFunction();
 
@@ -76,19 +51,5 @@ describe("core/app barrel exports", () => {
     expectTypeOf<NextAppNoProxyServerImpl<any, any>>().toBeObject();
 
     expectTypeOf<NextAppNoProxyServerToolset<any, any, any, any, any>>().toBeObject();
-
-    expectTypeOf<AnyNextAppFlatStrategyConfig>().toBeObject();
-
-    expectTypeOf<PartialNextAppFlatStrategyConfig<any, any>>().toBeObject();
-
-    expectTypeOf<LocaleOriginMap>().toBeObject();
-
-    expectTypeOf<AnyNextAppOriginStrategyConfig>().toBeObject();
-
-    expectTypeOf<PartialNextAppOriginStrategyConfig<any, any>>().toBeObject();
-
-    expectTypeOf<AnyNextAppPathStrategyConfig>().toBeObject();
-
-    expectTypeOf<PartialNextAppPathStrategyConfig<any, any>>().toBeObject();
   });
 });

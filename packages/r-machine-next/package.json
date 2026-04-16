@@ -50,7 +50,12 @@
       "./errors": "./src/errors/index.ts",
       "./core": "./src/core/index.ts",
       "./core/app": "./src/core/app/index.ts",
-      "./app": "./src/app/index.ts",
+      "./core/app/flat": "./src/core/app/flat/index.ts",
+      "./core/app/origin": "./src/core/app/origin/index.ts",
+      "./core/app/path": "./src/core/app/path/index.ts",
+      "./app/flat": "./src/app/flat/index.ts",
+      "./app/origin": "./src/app/origin/index.ts",
+      "./app/path": "./src/app/path/index.ts",
       ".": "./src/lib/index.ts"
     },
     "conditions": {
@@ -76,11 +81,41 @@
       "import": "./core/app/index.js",
       "require": "./core/app/index.cjs"
     },
-    "./app": {
-      "@r-machine/source": "./src/app/index.ts",
-      "types": "./app/index.d.cts",
-      "import": "./app/index.js",
-      "require": "./app/index.cjs"
+    "./core/app/flat": {
+      "@r-machine/source": "./src/core/app/flat/index.ts",
+      "types": "./core/app/flat/index.d.cts",
+      "import": "./core/app/flat/index.js",
+      "require": "./core/app/flat/index.cjs"
+    },
+    "./core/app/origin": {
+      "@r-machine/source": "./src/core/app/origin/index.ts",
+      "types": "./core/app/origin/index.d.cts",
+      "import": "./core/app/origin/index.js",
+      "require": "./core/app/origin/index.cjs"
+    },
+    "./core/app/path": {
+      "@r-machine/source": "./src/core/app/path/index.ts",
+      "types": "./core/app/path/index.d.cts",
+      "import": "./core/app/path/index.js",
+      "require": "./core/app/path/index.cjs"
+    },
+    "./app/flat": {
+      "@r-machine/source": "./src/app/flat/index.ts",
+      "types": "./app/flat/index.d.cts",
+      "import": "./app/flat/index.js",
+      "require": "./app/flat/index.cjs"
+    },
+    "./app/origin": {
+      "@r-machine/source": "./src/app/origin/index.ts",
+      "types": "./app/origin/index.d.cts",
+      "import": "./app/origin/index.js",
+      "require": "./app/origin/index.cjs"
+    },
+    "./app/path": {
+      "@r-machine/source": "./src/app/path/index.ts",
+      "types": "./app/path/index.d.cts",
+      "import": "./app/path/index.js",
+      "require": "./app/path/index.cjs"
     },
     ".": {
       "@r-machine/source": "./src/lib/index.ts",
@@ -105,15 +140,40 @@
       "types": "./core/app/index.d.cts",
       "default": "./core/app/index.js"
     },
+    "#r-machine/next/core/app/flat": {
+      "@r-machine/source": "./src/core/app/flat/index.ts",
+      "types": "./core/app/flat/index.d.cts",
+      "default": "./core/app/flat/index.js"
+    },
+    "#r-machine/next/core/app/origin": {
+      "@r-machine/source": "./src/core/app/origin/index.ts",
+      "types": "./core/app/origin/index.d.cts",
+      "default": "./core/app/origin/index.js"
+    },
+    "#r-machine/next/core/app/path": {
+      "@r-machine/source": "./src/core/app/path/index.ts",
+      "types": "./core/app/path/index.d.cts",
+      "default": "./core/app/path/index.js"
+    },
     "#r-machine/next/errors": {
       "@r-machine/source": "./src/errors/index.ts",
       "types": "./errors/index.d.cts",
       "default": "./errors/index.js"
     },
-    "#r-machine/next/app": {
-      "@r-machine/source": "./src/app/index.ts",
-      "types": "./app/index.d.cts",
-      "default": "./app/index.js"
+    "#r-machine/next/app/flat": {
+      "@r-machine/source": "./src/app/flat/index.ts",
+      "types": "./app/flat/index.d.cts",
+      "default": "./app/flat/index.js"
+    },
+    "#r-machine/next/app/origin": {
+      "@r-machine/source": "./src/app/origin/index.ts",
+      "types": "./app/origin/index.d.cts",
+      "default": "./app/origin/index.js"
+    },
+    "#r-machine/next/app/path": {
+      "@r-machine/source": "./src/app/path/index.ts",
+      "types": "./app/path/index.d.cts",
+      "default": "./app/path/index.js"
     },
     "#r-machine/next": {
       "@r-machine/source": "./src/lib/index.ts",

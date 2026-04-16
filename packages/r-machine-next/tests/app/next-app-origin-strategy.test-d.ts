@@ -1,14 +1,11 @@
 import type { NamespaceMap, RMachine } from "r-machine";
 import { describe, expectTypeOf, it } from "vitest";
 import type { PathAtlasCtor } from "#r-machine/next/core";
-import type {
-  NextAppClientToolset,
-  NextAppServerToolset,
-  PartialNextAppOriginStrategyConfig,
-} from "#r-machine/next/core/app";
+import type { NextAppClientToolset, NextAppServerToolset } from "#r-machine/next/core/app";
+import type { PartialNextAppOriginStrategyConfig } from "#r-machine/next/core/app/origin";
 // biome-ignore lint/style/useImportType: value import needed to derive default types via typeof
-import { NextAppOriginStrategyCore } from "#r-machine/next/core/app";
-import { NextAppOriginStrategy } from "../../src/app/next-app-origin-strategy.js";
+import { NextAppOriginStrategyCore } from "#r-machine/next/core/app/origin";
+import { NextAppOriginStrategy } from "../../src/app/origin/next-app-origin-strategy.js";
 import type { SimplePathAtlas, TestLocale, TranslatedPathAtlas } from "../_fixtures/constants.js";
 import type { TestAtlas } from "../_fixtures/mock-machine.js";
 

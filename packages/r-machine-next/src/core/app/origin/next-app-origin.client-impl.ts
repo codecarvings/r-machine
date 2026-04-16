@@ -15,7 +15,7 @@ import type { RMachine } from "r-machine";
 import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
-import type { NextAppClientImpl } from "../next-app-client-toolset.js";
+import type { NextAppClientImpl } from "#r-machine/next/core/app";
 import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-core.js";
 
 export async function createNextAppOriginClientImpl<

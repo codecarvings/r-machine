@@ -1,4 +1,4 @@
-import { NextAppFlatStrategy } from "@r-machine/next/app";
+import { NextAppFlatStrategy } from "@r-machine/next/app/flat";
 import { ofType, RMachine, type RMachineLocale } from "r-machine";
 import { PathAtlas } from "./path-atlas";
 import type { ResourceAtlas } from "./resource-atlas";

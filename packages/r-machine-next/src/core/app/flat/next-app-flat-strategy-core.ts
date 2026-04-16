@@ -23,12 +23,12 @@ import {
   type PathParams,
   type PathSelector,
 } from "#r-machine/next/core";
-import { defaultPathMatcher } from "#r-machine/next/internal";
 import {
   type NextAppStrategyConfig,
   NextAppStrategyCore,
   type PartialNextAppStrategyConfig,
-} from "../next-app-strategy-core.js";
+} from "#r-machine/next/core/app";
+import { defaultPathMatcher } from "#r-machine/next/internal";
 
 // Locale not available for flat strategy since locale is stored in the cookie
 interface HrefHelper<PA extends AnyPathAtlas> {

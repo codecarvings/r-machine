@@ -17,9 +17,8 @@ import type { RMachine } from "r-machine";
 import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
+import { localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
 import { type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
-import type { NextAppServerImpl } from "../next-app-server-toolset.js";
-import { localeHeaderName } from "../next-app-strategy-core.js";
 import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core.js";
 
 const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
