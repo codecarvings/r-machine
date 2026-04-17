@@ -21,6 +21,11 @@ import type { NamespaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
+declare const statelessReactiveGearSymbol: unique symbol;
+export interface StatelessReactiveGearTag {
+  readonly [statelessReactiveGearSymbol]?: typeof statelessReactiveGearSymbol;
+}
+
 interface StatelessReactiveGearCursor extends GearCursor {
   readonly getter: StatelessGetterComposer;
 }
@@ -64,7 +69,7 @@ export type StatelessReactiveGearMapComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-  T = unknown,
+  T,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
   factory: (plugin: StatelessReactiveGearMapPlugin<RA, KA, NM>, _: StatelessReactiveGearCursor) => R | Promise<R>
 ) => ResMatrix<R & T, StatelessReactiveGearMapPlug<RA, KA, NM>>;
@@ -73,7 +78,7 @@ export type StatelessReactiveGearListComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-  T = unknown,
+  T,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
   factory: (plugin: StatelessReactiveGearListPlugin<RA, KA, NL>, _: StatelessReactiveGearCursor) => R | Promise<R>
 ) => ResMatrix<R & T, StatelessReactiveGearListPlug<RA, KA, NL>>;

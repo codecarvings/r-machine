@@ -24,6 +24,11 @@ import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
 export type AnyState = unknown; // Record<PropertyKey, unknown> & object;
 
+declare const statefulReactiveGearSymbol: unique symbol;
+export interface StatefulReactiveGearTag {
+  readonly [statefulReactiveGearSymbol]?: typeof statefulReactiveGearSymbol;
+}
+
 interface StatefulReactiveGearCursor<S extends AnyState> extends GearCursor {
   readonly getter: GetterComposer<S>;
   readonly action: ActionComposer<S>;
@@ -110,7 +115,7 @@ export interface StatefulReactiveGearMapComposer<
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
-  T = unknown,
+  T,
 > {
   <const D extends StateDef>(
     factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => D | Promise<D>
@@ -126,7 +131,7 @@ export interface StatefulReactiveGearListComposer<
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
   S extends AnyState,
-  T = unknown,
+  T,
 > {
   <const D extends StateDef>(
     factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => D | Promise<D>

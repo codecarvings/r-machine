@@ -1,0 +1,7 @@
+{
+  "files.exclude": {
+    "packages": true,
+    "examples": true
+  },
+  "biome.enabled": false
+}

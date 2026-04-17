@@ -12,7 +12,7 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
-import type { GearListComposer, GearMapComposer } from "./gear.js";
+import type { GearListComposer, GearMapComposer, GearTag } from "./gear.js";
 import { createGearListComposer, createGearMapComposer } from "./gear-composer.js";
 import {
   createReactiveConnectedListComposer,
@@ -43,7 +43,7 @@ interface ConnectedMapComposer<
 > {
   readonly reactive: ReactiveConnectedMapComposer<RA, KA, NM>;
 
-  readonly gear: GearMapComposer<RA, KA["gear"], NM>;
+  readonly gear: GearMapComposer<RA, KA["gear"], NM, GearTag>;
   readonly vertexGear: GearMapComposer<RA, KA["gear"], NM, VertexGearTag>;
   readonly shell: ShellMapComposer<RA, L, KA["shell"], NM>;
 }
@@ -56,7 +56,7 @@ interface ConnectedListComposer<
 > {
   readonly reactive: ReactiveConnectedListComposer<RA, KA, NL>;
 
-  readonly gear: GearListComposer<RA, KA["gear"], NL>;
+  readonly gear: GearListComposer<RA, KA["gear"], NL, GearTag>;
   readonly vertexGear: GearListComposer<RA, KA["gear"], NL, VertexGearTag>;
   readonly shell: ShellListComposer<RA, L, KA["shell"], NL>;
 }
@@ -84,7 +84,7 @@ function createConnectedMapComposer<
   NM extends NamespaceMap<RA>,
 >(provider: ResWireProvider, namespaces: NM): ConnectedMapComposer<RA, L, KA, NM> {
   let reactive: ReactiveConnectedMapComposer<RA, KA, NM> | undefined;
-  let gear: GearMapComposer<RA, KA["gear"], NM> | undefined;
+  let gear: GearMapComposer<RA, KA["gear"], NM, GearTag> | undefined;
   let vertexGear: GearMapComposer<RA, KA["gear"], NM, VertexGearTag> | undefined;
   let shell: ShellMapComposer<RA, L, KA["shell"], NM> | undefined;
 
@@ -97,7 +97,7 @@ function createConnectedMapComposer<
     },
     get gear() {
       if (gear === undefined) {
-        gear = createGearMapComposer<RA, KA["gear"], NM>(provider, namespaces, false);
+        gear = createGearMapComposer<RA, KA["gear"], NM, GearTag>(provider, namespaces, false);
       }
       return gear;
     },
@@ -123,7 +123,7 @@ function createConnectedListComposer<
   NL extends NamespaceList<RA>,
 >(provider: ResWireProvider, namespaces: NL): ConnectedListComposer<RA, L, KA, NL> {
   let reactive: ReactiveConnectedListComposer<RA, KA, NL> | undefined;
-  let gear: GearListComposer<RA, KA["gear"], NL> | undefined;
+  let gear: GearListComposer<RA, KA["gear"], NL, GearTag> | undefined;
   let vertexGear: GearListComposer<RA, KA["gear"], NL, VertexGearTag> | undefined;
   let shell: ShellListComposer<RA, L, KA["shell"], NL> | undefined;
 
@@ -136,7 +136,7 @@ function createConnectedListComposer<
     },
     get gear() {
       if (gear === undefined) {
-        gear = createGearListComposer<RA, KA["gear"], NL>(provider, namespaces, false);
+        gear = createGearListComposer<RA, KA["gear"], NL, GearTag>(provider, namespaces, false);
       }
       return gear;
     },

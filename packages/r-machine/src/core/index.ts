@@ -48,6 +48,7 @@ export type {
 } from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";
 export type { ResModuleLoaderFn } from "./res-module.js";
+export type { ShellTag } from "./shell.js";
 export type { Surface } from "./surface.js";
 export {
   type AnyVertexGear,

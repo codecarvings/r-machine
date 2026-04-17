@@ -40,7 +40,7 @@ export function createGearMapComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-  T = unknown,
+  T,
 >(provider: ResWireProvider, namespaces: NM, isVertex: boolean): GearMapComposer<RA, KA, NM, T> {
   type Head = ResMapPlugHead<"gear", RA, KA, NM, PluginCtx<RA, KA>>;
   const head = {
@@ -65,7 +65,7 @@ export function createGearListComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-  T = unknown,
+  T,
 >(provider: ResWireProvider, namespaces: NL, isVertex: boolean): GearListComposer<RA, KA, NL, T> {
   type Head = ResListPlugHead<"gear", RA, KA, NL, PluginCtx<RA, KA>>;
   const head = {

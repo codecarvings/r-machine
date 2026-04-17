@@ -11,7 +11,6 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { ReactiveGearTag } from "./reactive-gear.js";
 import {
   createStatefulReactiveGearListComposer,
   createStatefulReactiveGearMapComposer,
@@ -27,8 +26,13 @@ import type {
   AnyState,
   StatefulReactiveGearListComposer,
   StatefulReactiveGearMapComposer,
+  StatefulReactiveGearTag,
 } from "./stateful-reactive-gear.js";
-import type { StatelessReactiveGearListComposer, StatelessReactiveGearMapComposer } from "./stateless-reactive-gear.js";
+import type {
+  StatelessReactiveGearListComposer,
+  StatelessReactiveGearMapComposer,
+  StatelessReactiveGearTag,
+} from "./stateless-reactive-gear.js";
 import type { VertexGearTag } from "./vertex-gear.js";
 
 export interface ReactiveComposer<RA extends AnyResAtlas, KA extends ResKit<RA>> {
@@ -37,13 +41,13 @@ export interface ReactiveComposer<RA extends AnyResAtlas, KA extends ResKit<RA>>
 }
 
 type StatefulReactiveComposer<RA extends AnyResAtlas, KA extends ResKit<RA>, S extends AnyState> = {
-  readonly gear: StatefulReactiveGearMapComposer<RA, KA["gear"], {}, S, ReactiveGearTag>;
-  readonly vertexGear: StatefulReactiveGearMapComposer<RA, KA["gear"], {}, S, ReactiveGearTag & VertexGearTag>;
+  readonly gear: StatefulReactiveGearMapComposer<RA, KA["gear"], {}, S, StatefulReactiveGearTag>;
+  readonly vertexGear: StatefulReactiveGearMapComposer<RA, KA["gear"], {}, S, StatefulReactiveGearTag & VertexGearTag>;
 };
 
 type StatelessReactiveComposer<RA extends AnyResAtlas, KA extends ResKit<RA>> = {
-  readonly gear: StatelessReactiveGearMapComposer<RA, KA["gear"], {}, ReactiveGearTag>;
-  readonly vertexGear: StatelessReactiveGearMapComposer<RA, KA["gear"], {}, ReactiveGearTag & VertexGearTag>;
+  readonly gear: StatelessReactiveGearMapComposer<RA, KA["gear"], {}, StatelessReactiveGearTag>;
+  readonly vertexGear: StatelessReactiveGearMapComposer<RA, KA["gear"], {}, StatelessReactiveGearTag & VertexGearTag>;
 };
 
 export interface ReactiveConnectedMapComposer<
@@ -61,8 +65,8 @@ type StatefulReactiveConnectedMapComposer<
   NM extends NamespaceMap<RA>,
   S extends AnyState,
 > = {
-  readonly gear: StatefulReactiveGearMapComposer<RA, KA["gear"], NM, S, ReactiveGearTag>;
-  readonly vertexGear: StatefulReactiveGearMapComposer<RA, KA["gear"], NM, S, ReactiveGearTag & VertexGearTag>;
+  readonly gear: StatefulReactiveGearMapComposer<RA, KA["gear"], NM, S, StatefulReactiveGearTag>;
+  readonly vertexGear: StatefulReactiveGearMapComposer<RA, KA["gear"], NM, S, StatefulReactiveGearTag & VertexGearTag>;
 };
 
 type StatelessReactiveConnectedMapComposer<
@@ -70,8 +74,8 @@ type StatelessReactiveConnectedMapComposer<
   KA extends ResKit<RA>,
   NM extends NamespaceMap<RA>,
 > = {
-  readonly gear: StatelessReactiveGearMapComposer<RA, KA["gear"], NM, ReactiveGearTag>;
-  readonly vertexGear: StatelessReactiveGearMapComposer<RA, KA["gear"], NM, ReactiveGearTag & VertexGearTag>;
+  readonly gear: StatelessReactiveGearMapComposer<RA, KA["gear"], NM, StatelessReactiveGearTag>;
+  readonly vertexGear: StatelessReactiveGearMapComposer<RA, KA["gear"], NM, StatelessReactiveGearTag & VertexGearTag>;
 };
 
 export interface ReactiveConnectedListComposer<
@@ -89,8 +93,8 @@ type StatefulReactiveConnectedListComposer<
   NL extends NamespaceList<RA>,
   S extends AnyState,
 > = {
-  readonly gear: StatefulReactiveGearListComposer<RA, KA["gear"], NL, S, ReactiveGearTag>;
-  readonly vertexGear: StatefulReactiveGearListComposer<RA, KA["gear"], NL, S, ReactiveGearTag & VertexGearTag>;
+  readonly gear: StatefulReactiveGearListComposer<RA, KA["gear"], NL, S, StatefulReactiveGearTag>;
+  readonly vertexGear: StatefulReactiveGearListComposer<RA, KA["gear"], NL, S, StatefulReactiveGearTag & VertexGearTag>;
 };
 
 type StatelessReactiveConnectedListComposer<
@@ -98,8 +102,8 @@ type StatelessReactiveConnectedListComposer<
   KA extends ResKit<RA>,
   NL extends NamespaceList<RA>,
 > = {
-  readonly gear: StatelessReactiveGearListComposer<RA, KA["gear"], NL, ReactiveGearTag>;
-  readonly vertexGear: StatelessReactiveGearListComposer<RA, KA["gear"], NL, ReactiveGearTag & VertexGearTag>;
+  readonly gear: StatelessReactiveGearListComposer<RA, KA["gear"], NL, StatelessReactiveGearTag>;
+  readonly vertexGear: StatelessReactiveGearListComposer<RA, KA["gear"], NL, StatelessReactiveGearTag & VertexGearTag>;
 };
 
 export function createReactiveComposer<RA extends AnyResAtlas, KA extends ResKit<RA>>(
@@ -108,14 +112,30 @@ export function createReactiveComposer<RA extends AnyResAtlas, KA extends ResKit
   return ((...args: [] | [AnyState]) => {
     if (args.length === 0) {
       return {
-        gear: createStatelessReactiveGearMapComposer<RA, KA["gear"], {}>(provider, {}, false),
-        vertexGear: createStatelessReactiveGearMapComposer<RA, KA["gear"], {}>(provider, {}, true),
+        gear: createStatelessReactiveGearMapComposer<RA, KA["gear"], {}, StatelessReactiveGearTag>(provider, {}, false),
+        vertexGear: createStatelessReactiveGearMapComposer<
+          RA,
+          KA["gear"],
+          {},
+          StatelessReactiveGearTag & VertexGearTag
+        >(provider, {}, true),
       };
     }
     const [state] = args;
     return {
-      gear: createStatefulReactiveGearMapComposer<RA, KA["gear"], {}, AnyState>(provider, {}, state, false),
-      vertexGear: createStatefulReactiveGearMapComposer<RA, KA["gear"], {}, AnyState>(provider, {}, state, true),
+      gear: createStatefulReactiveGearMapComposer<RA, KA["gear"], {}, AnyState, StatefulReactiveGearTag>(
+        provider,
+        {},
+        state,
+        false
+      ),
+      vertexGear: createStatefulReactiveGearMapComposer<
+        RA,
+        KA["gear"],
+        {},
+        AnyState,
+        StatefulReactiveGearTag & VertexGearTag
+      >(provider, {}, state, true),
     };
   }) as ReactiveComposer<RA, KA>;
 }
@@ -128,19 +148,34 @@ export function createReactiveConnectedMapComposer<
   return ((...args: [] | [AnyState]) => {
     if (args.length === 0) {
       return {
-        gear: createStatelessReactiveGearMapComposer<RA, KA["gear"], NM>(provider, namespaces, false),
-        vertexGear: createStatelessReactiveGearMapComposer<RA, KA["gear"], NM>(provider, namespaces, true),
+        gear: createStatelessReactiveGearMapComposer<RA, KA["gear"], NM, StatelessReactiveGearTag>(
+          provider,
+          namespaces,
+          false
+        ),
+        vertexGear: createStatelessReactiveGearMapComposer<
+          RA,
+          KA["gear"],
+          NM,
+          StatelessReactiveGearTag & VertexGearTag
+        >(provider, namespaces, true),
       };
     }
     const [state] = args;
     return {
-      gear: createStatefulReactiveGearMapComposer<RA, KA["gear"], NM, AnyState>(provider, namespaces, state, false),
-      vertexGear: createStatefulReactiveGearMapComposer<RA, KA["gear"], NM, AnyState>(
+      gear: createStatefulReactiveGearMapComposer<RA, KA["gear"], NM, AnyState, StatefulReactiveGearTag>(
         provider,
         namespaces,
         state,
-        true
+        false
       ),
+      vertexGear: createStatefulReactiveGearMapComposer<
+        RA,
+        KA["gear"],
+        NM,
+        AnyState,
+        StatefulReactiveGearTag & VertexGearTag
+      >(provider, namespaces, state, true),
     };
   }) as ReactiveConnectedMapComposer<RA, KA, NM>;
 }
@@ -153,19 +188,34 @@ export function createReactiveConnectedListComposer<
   return ((...args: [] | [AnyState]) => {
     if (args.length === 0) {
       return {
-        gear: createStatelessReactiveGearListComposer<RA, KA["gear"], NL>(provider, namespaces, false),
-        vertexGear: createStatelessReactiveGearListComposer<RA, KA["gear"], NL>(provider, namespaces, true),
+        gear: createStatelessReactiveGearListComposer<RA, KA["gear"], NL, StatelessReactiveGearTag>(
+          provider,
+          namespaces,
+          false
+        ),
+        vertexGear: createStatelessReactiveGearListComposer<
+          RA,
+          KA["gear"],
+          NL,
+          StatelessReactiveGearTag & VertexGearTag
+        >(provider, namespaces, true),
       };
     }
     const [state] = args;
     return {
-      gear: createStatefulReactiveGearListComposer<RA, KA["gear"], NL, AnyState>(provider, namespaces, state, false),
-      vertexGear: createStatefulReactiveGearListComposer<RA, KA["gear"], NL, AnyState>(
+      gear: createStatefulReactiveGearListComposer<RA, KA["gear"], NL, AnyState, StatefulReactiveGearTag>(
         provider,
         namespaces,
         state,
-        true
+        false
       ),
+      vertexGear: createStatefulReactiveGearListComposer<
+        RA,
+        KA["gear"],
+        NL,
+        AnyState,
+        StatefulReactiveGearTag & VertexGearTag
+      >(provider, namespaces, state, true),
     };
   }) as ReactiveConnectedListComposer<RA, KA, NL>;
 }

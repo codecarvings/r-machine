@@ -13,7 +13,7 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import { type ConnectedComposer, createConnectedComposer } from "./connected-composer.js";
-import type { GearMapComposer } from "./gear.js";
+import type { GearMapComposer, GearTag } from "./gear.js";
 import { createGearMapComposer } from "./gear-composer.js";
 import { createReactiveComposer, type ReactiveComposer } from "./reactive-composer.js";
 import type { AnyResAtlas } from "./res-atlas.js";
@@ -27,7 +27,7 @@ export interface Forge<RA extends AnyResAtlas, L extends AnyLocale, KA extends R
   readonly connected: ConnectedComposer<RA, L, KA>;
   readonly reactive: ReactiveComposer<RA, KA>;
 
-  readonly gear: GearMapComposer<RA, KA["gear"], {}>;
+  readonly gear: GearMapComposer<RA, KA["gear"], {}, GearTag>;
   readonly vertexGear: GearMapComposer<RA, KA["gear"], {}, VertexGearTag>;
   readonly shell: ShellMapComposer<RA, L, KA["shell"], {}>;
 }
@@ -38,7 +38,7 @@ export function createForge<RA extends AnyResAtlas, L extends AnyLocale, KA exte
   return {
     connected: createConnectedComposer<RA, L, KA>(resWireProvider),
     reactive: createReactiveComposer<RA, KA>(resWireProvider),
-    gear: createGearMapComposer<RA, KA["gear"], {}>(resWireProvider, {}, false),
+    gear: createGearMapComposer<RA, KA["gear"], {}, GearTag>(resWireProvider, {}, false),
     vertexGear: createGearMapComposer<RA, KA["gear"], {}, VertexGearTag>(resWireProvider, {}, true),
     shell: createShellMapComposer<RA, L, KA["shell"], {}>(resWireProvider, {}),
   };

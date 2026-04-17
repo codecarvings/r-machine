@@ -21,6 +21,11 @@ import type { NamespaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
+declare const gearSymbol: unique symbol;
+export interface GearTag {
+  readonly [gearSymbol]?: typeof gearSymbol;
+}
+
 export interface GearCursor {
   readonly relay: RelayComposer;
   readonly cmd: CmdComposer;
@@ -60,20 +65,14 @@ interface GearMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM ex
 interface GearListPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>>
   extends PlugBody<GearListPlugHead<RA, KA, NL>> {}
 
-export type GearMapComposer<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
-  T = unknown,
-> = <R extends AnyRes>(
+export type GearMapComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>, T> = <
+  R extends AnyRes,
+>(
   factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => R | Promise<R>
 ) => ResMatrix<R & T, GearMapPlug<RA, KA, NM>>;
 
-export type GearListComposer<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-  T = unknown,
-> = <R extends AnyRes>(
+export type GearListComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>, T> = <
+  R extends AnyRes,
+>(
   factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => R | Promise<R>
 ) => ResMatrix<R & T, GearListPlug<RA, KA, NL>>;

@@ -81,7 +81,7 @@ export function createStatefulReactiveGearMapComposer<
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
-  T = unknown,
+  T,
 >(
   provider: ResWireProvider,
   namespaces: NM,
@@ -124,7 +124,7 @@ export function createStatefulReactiveGearListComposer<
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
   S extends AnyState,
-  T = unknown,
+  T,
 >(
   provider: ResWireProvider,
   namespaces: NL,
@@ -178,7 +178,7 @@ export function createStatelessReactiveGearMapComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-  T = unknown,
+  T,
 >(provider: ResWireProvider, namespaces: NM, isVertex: boolean): StatelessReactiveGearMapComposer<RA, KA, NM, T> {
   type Head = ResMapPlugHead<"gear", RA, KA, NM, PluginCtx<RA, KA>>;
   const head = {
@@ -203,7 +203,7 @@ export function createStatelessReactiveGearListComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-  T = unknown,
+  T,
 >(provider: ResWireProvider, namespaces: NL, isVertex: boolean): StatelessReactiveGearListComposer<RA, KA, NL, T> {
   type Head = ResListPlugHead<"gear", RA, KA, NL, PluginCtx<RA, KA>>;
   const head = {
