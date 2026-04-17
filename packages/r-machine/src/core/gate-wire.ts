@@ -12,7 +12,10 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
-import type { VertexGearMap } from "../vertex-gear.js";
+import type { AnyResAtlas } from "./res-atlas.js";
+import type { NamespaceList } from "./res-list.js";
+import type { NamespaceMap } from "./res-map.js";
+import type { VertexGearMap } from "./vertex-gear.js";
 
 export interface GateWire {
   getPlugin: () => unknown | Promise<unknown>;
@@ -20,3 +23,9 @@ export interface GateWire {
   commitTracking: () => void;
   updateRequest: (locale: AnyLocale, vertexGearMap?: VertexGearMap | undefined) => void;
 }
+
+export type GateWireConnector = (locale: AnyLocale, vertexGearMap?: VertexGearMap | undefined) => GateWire;
+
+export type GateWireProvider = (
+  namespaces: NamespaceMap<AnyResAtlas> | NamespaceList<AnyResAtlas>
+) => GateWireConnector;

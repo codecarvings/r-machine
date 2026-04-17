@@ -86,15 +86,26 @@ export type ExtractPlugin<PH extends AnyPlugHead> = PH extends AnyMapPlugHead
     ? ListPlugin<PH[typeof resAtlas], PH["namespaces"], PH[typeof ctx]>
     : never;
 
+type PlugLocale<PH extends AnyPlugHead> = PH extends { readonly locale: infer L } ? L : undefined;
+
 const plugHeadSymbol = Symbol("plugHead");
+const plugLocaleSymbol = Symbol("plugLocale");
 const plugResolveSymbol = Symbol("plugResolve");
 export interface PlugBody<PH extends AnyPlugHead> {
   readonly [plugHeadSymbol]: PH;
+  [plugLocaleSymbol]: PlugLocale<PH>;
   [plugResolveSymbol]: () => ExtractPlugin<PH>;
 }
 
 export function getPlugHead<H extends AnyPlugHead>(plug: PlugBody<H>): H {
   return plug[plugHeadSymbol];
+}
+
+export function getPlugLocale<H extends AnyPlugHead>(plug: PlugBody<H>): PlugLocale<H> {
+  return plug[plugLocaleSymbol];
+}
+export function setPlugLocale<H extends AnyPlugHead>(plug: PlugBody<H>, locale: PlugLocale<H>): void {
+  plug[plugLocaleSymbol] = locale;
 }
 
 export function getPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>): () => ExtractPlugin<H> {

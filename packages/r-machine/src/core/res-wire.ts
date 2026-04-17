@@ -12,14 +12,18 @@
  */
 
 import type { NamespaceList } from "#r-machine/core";
-import type { ResFamily } from "../res.js";
-import type { AnyResAtlas } from "../res-atlas.js";
-import type { NamespaceMap } from "../res-map.js";
+import type { AnyLocale } from "#r-machine/locale";
+import type { ResFamily } from "./res.js";
+import type { AnyResAtlas } from "./res-atlas.js";
+import type { NamespaceMap } from "./res-map.js";
 
 export interface ResWire {
   getPlugin: () => unknown;
 }
 
-export interface ResWireProvider {
-  getResWire(family: ResFamily, namespaces: NamespaceMap<AnyResAtlas> | NamespaceList<AnyResAtlas>): ResWire;
-}
+export type ResWireConnector = (locale: AnyLocale | undefined) => ResWire;
+
+export type ResWireProvider = (
+  family: ResFamily,
+  namespaces: NamespaceMap<AnyResAtlas> | NamespaceList<AnyResAtlas>
+) => ResWireConnector;

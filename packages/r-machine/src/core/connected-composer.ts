@@ -18,6 +18,7 @@ import { type AnyResAtlas, isNamespace } from "./res-atlas.js";
 import type { ResKit } from "./res-kit.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
+import type { ResWireProvider } from "./res-wire.js";
 import type { ShellListComposer, ShellMapComposer } from "./shell.js";
 import type { VertexGearTag } from "./vertex-gear.js";
 
@@ -53,11 +54,9 @@ interface ConnectedListComposer<
   readonly shell: ShellListComposer<RA, L, KA["shell"], NL>;
 }
 
-export function createConnectedComposer<
-  RA extends AnyResAtlas,
-  L extends AnyLocale,
-  KA extends ResKit<RA>,
->(): ConnectedComposer<RA, L, KA> {
+export function createConnectedComposer<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>>(
+  _resWireProvider: ResWireProvider
+): ConnectedComposer<RA, L, KA> {
   function connected(...args: any[]): any {
     const length = args.length;
     if (length === 0) {

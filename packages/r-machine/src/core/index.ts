@@ -12,13 +12,13 @@
  */
 
 export type { Action, Atomic } from "./action.js";
-export type { GateWire } from "./engine/gate-wire.js";
 export { createForge, type Forge } from "./forge.js";
 export type {
   GateListPlugHead,
   GateMapPlugHead,
   GatePluginCtx,
 } from "./gate-plug.js";
+export type { GateWire } from "./gate-wire.js";
 export type { Getter } from "./getter.js";
 export {
   type AnyListPlugHead,

@@ -59,7 +59,7 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, KA extends Re
   }
 
   createToolset(): RMachineToolset<RA, L, KA> {
-    const Forge = createForge<RA, L, KA>();
+    const Forge = createForge<RA, L, KA>(undefined!);
     return { Forge, localized: localized };
   }
 
