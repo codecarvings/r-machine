@@ -13,7 +13,7 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import type { AnyNamespace, AnyResAtlas } from "./res-atlas.js";
-import type { NamespaceList } from "./res-list.js";
+import type { NamespaceList, SurfaceList } from "./res-list.js";
 import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 
 export type PlugArea = "res" | "gate";
@@ -30,70 +30,75 @@ export type LocaleAwarePluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KA
   readonly locale: L;
 };
 
+export type MapPlugin<RA extends AnyResAtlas, NM extends NamespaceMap<RA>, CTX> = SurfaceMap<RA, Omit<NM, "$">> & {
+  $: CTX;
+} & (CTX extends { readonly kit: infer KA } ? Omit<KA, keyof NM> : {});
+
+export type ListPlugin<RA extends AnyResAtlas, NL extends NamespaceList<RA>, CTX> = [...SurfaceList<RA, NL>, CTX];
+
 declare const resAtlas: unique symbol;
 declare const ctx: unique symbol;
-export interface PlugHead<
+interface BasePlugHead<
   A extends PlugArea,
-  M extends PlugMode,
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
-  NS extends NamespaceMap<RA> | NamespaceList<RA>,
   CTX extends PluginCtx<RA, KA>,
 > {
   readonly area: A;
-  readonly mode: M;
   readonly kit: KA;
-  readonly namespaces: NS;
   readonly deps: AnyNamespace[];
   readonly [resAtlas]: RA;
   readonly [ctx]: CTX;
 }
-export type AnyPlugHead = PlugHead<any, any, any, any, any, any>;
-export type AnyMapPlugHead = PlugHead<any, "map", any, any, any, any>;
-export type AnyListPlugHead = PlugHead<any, "list", any, any, any, any>;
+
+export interface MapPlugHead<
+  A extends PlugArea,
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+  CTX extends PluginCtx<RA, KA>,
+> extends BasePlugHead<A, RA, KA, CTX> {
+  readonly mode: "map";
+  readonly namespaces: NM;
+}
+export type AnyMapPlugHead = MapPlugHead<any, any, any, any, any>;
+
+export interface ListPlugHead<
+  A extends PlugArea,
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+  CTX extends PluginCtx<RA, KA>,
+> extends BasePlugHead<A, RA, KA, CTX> {
+  readonly mode: "list";
+  readonly namespaces: NL;
+}
+export type AnyListPlugHead = ListPlugHead<any, any, any, any, any>;
+
+export type AnyPlugHead = AnyMapPlugHead | AnyListPlugHead;
 
 export type ExtractResAtlas<PH extends AnyPlugHead> = PH[typeof resAtlas];
 export type ExtractCtx<PH extends AnyPlugHead> = PH[typeof ctx];
-
-interface PlugMapData<PH extends AnyMapPlugHead> {
-  readonly $: PH[typeof ctx];
-  readonly map: SurfaceMap<PH[typeof resAtlas], Omit<PH["namespaces"], "$">>;
-}
-
-type TupleToObject<T extends readonly unknown[]> = {
-  [K in keyof T as K extends `${number}` ? K : never]: T[K];
-};
-
-interface PlugListData<PH extends AnyListPlugHead> {
-  readonly $: PH[typeof ctx];
-  readonly list: SurfaceMap<
-    PH[typeof resAtlas],
-    Omit<TupleToObject<PH["namespaces"] extends readonly unknown[] ? PH["namespaces"] : never>, "$">
-  >;
-}
-
-type PlugData<PH extends AnyPlugHead> = PH["mode"] extends "map"
-  ? PlugMapData<PH>
-  : PH["mode"] extends "list"
-    ? PlugListData<PH>
+export type ExtractPlugin<PH extends AnyPlugHead> = PH extends AnyMapPlugHead
+  ? MapPlugin<PH[typeof resAtlas], PH["namespaces"], PH[typeof ctx]>
+  : PH extends AnyListPlugHead
+    ? ListPlugin<PH[typeof resAtlas], PH["namespaces"], PH[typeof ctx]>
     : never;
 
 const plugHeadSymbol = Symbol("plugHead");
 const plugResolveSymbol = Symbol("plugResolve");
 export interface PlugBody<PH extends AnyPlugHead> {
   readonly [plugHeadSymbol]: PH;
-  [plugResolveSymbol]: () => PlugData<PH>;
+  [plugResolveSymbol]: () => ExtractPlugin<PH>;
 }
-
-export type AnyPlugBody = PlugBody<AnyPlugHead>;
 
 export function getPlugHead<H extends AnyPlugHead>(plug: PlugBody<H>): H {
   return plug[plugHeadSymbol];
 }
 
-export function getPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>): () => PlugData<H> {
+export function getPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>): () => ExtractPlugin<H> {
   return plug[plugResolveSymbol];
 }
-export function setPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>, resolve: () => PlugData<H>): void {
+export function setPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>, resolve: () => ExtractPlugin<H>): void {
   plug[plugResolveSymbol] = resolve;
 }

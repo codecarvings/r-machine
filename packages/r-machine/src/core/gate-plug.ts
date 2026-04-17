@@ -11,21 +11,11 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { LocaleAwarePluginCtx } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
-import type { PlugBody, PlugHead, PlugMode } from "./plug.js";
+import type { ListPlugHead, LocaleAwarePluginCtx, MapPlugHead } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { NamespaceList, SolidNamespaceList, SurfaceList } from "./res-list.js";
-import type { NamespaceMap, SolidNamespaceMap, SurfaceMap } from "./res-map.js";
-
-export interface GatePlugHead<
-  M extends PlugMode,
-  RA extends AnyResAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NS extends NamespaceMap<RA> | NamespaceList<RA>,
-  CTX extends GatePluginCtx<RA, L, KA>,
-> extends PlugHead<"gate", M, RA, KA, NS, CTX> {}
+import type { NamespaceList } from "./res-list.js";
+import type { NamespaceMap } from "./res-map.js";
 
 export type GatePluginCtx<
   RA extends AnyResAtlas,
@@ -35,66 +25,18 @@ export type GatePluginCtx<
   readonly setLocale: (newLocale: L) => Promise<void>;
 };
 
-export interface GateMapPlug<
+export interface GateMapPlugHead<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-> extends PlugBody<GatePlugHead<"map", RA, L, KA, NM, GatePluginCtx<RA, L, KA>>> {
-  use(): GateMapPlugin<RA, L, KA, NM>;
-}
+  CTX extends GatePluginCtx<RA, L, KA>,
+> extends MapPlugHead<"gate", RA, KA, NM, CTX> {}
 
-export interface AsyncGateMapPlug<
-  RA extends AnyResAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
-> extends PlugBody<GatePlugHead<"map", RA, L, KA, NM, GatePluginCtx<RA, L, KA>>> {
-  use(): Promise<GateMapPlugin<RA, L, KA, NM>>;
-}
-
-export type GateMapPlugin<
-  RA extends AnyResAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
-> = SurfaceMap<RA, Omit<NM, "$">> & {
-  readonly $: GatePluginCtx<RA, L, KA>;
-} & SurfaceMap<RA, Omit<KA, keyof NM>>;
-
-export interface GateListPlug<
+export interface GateListPlugHead<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> extends PlugBody<GatePlugHead<"list", RA, L, KA, NL, GatePluginCtx<RA, L, KA>>> {
-  use(): GateListPlugin<RA, L, KA, NL>;
-}
-
-export interface AsyncGateListPlug<
-  RA extends AnyResAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-> extends PlugBody<GatePlugHead<"list", RA, L, KA, NL, GatePluginCtx<RA, L, KA>>> {
-  use(): Promise<GateListPlugin<RA, L, KA, NL>>;
-}
-
-export type GateListPlugin<
-  RA extends AnyResAtlas,
-  L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-> = [...SurfaceList<RA, NL>, GatePluginCtx<RA, L, KA>];
-
-export interface GatePlugComposer<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
-  (): GateMapPlug<RA, L, KA, {}>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): GateListPlug<RA, L, KA, NL>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): GateMapPlug<RA, L, KA, NM>;
-}
-
-export interface SolidGatePlugComposer<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
-  (): GateMapPlug<RA, L, KA, {}>;
-  <NL extends SolidNamespaceList<RA>>(...namespaces: NL): GateListPlug<RA, L, KA, NL>;
-  <NM extends SolidNamespaceMap<RA>>(namespaces: NM): GateMapPlug<RA, L, KA, NM>;
-}
+  CTX extends GatePluginCtx<RA, L, KA>,
+> extends ListPlugHead<"gate", RA, KA, NL, CTX> {}

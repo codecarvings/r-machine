@@ -27,6 +27,7 @@ export type SolidNamespaceMap<RA extends AnyResAtlas> = {
   readonly [k: string]: SolidNamespaceRef<RA>;
 };
 
+// -readonly as SurfaceList
 export type SurfaceMap<RA extends AnyResAtlas, NM extends NamespaceMap<RA>> = {
-  readonly [K in keyof NM]: Surface<RA[ExtractNamespace<NM[K]>]>;
+  -readonly [K in keyof NM]: Surface<RA[ExtractNamespace<NM[K]>]>;
 };

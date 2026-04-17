@@ -15,7 +15,6 @@ export default mergeConfig(
     test: {
       typecheck: {
         tsconfig: "./tsconfig.test.json",
-        // ignoreSourceErrors: true,
         exclude: excludePatterns,
       },
       exclude: excludePatterns,

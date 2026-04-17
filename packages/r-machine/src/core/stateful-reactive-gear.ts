@@ -14,15 +14,20 @@
 import type { ActionComposer, DefaultAction } from "./action.js";
 import type { GearCursor } from "./gear.js";
 import type { DefaultGetter, GetterComposer } from "./getter.js";
-import type { PlugBody, PluginCtx, PlugMode } from "./plug.js";
+import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
 import type { AnyReactiveRes, RejectAsyncValueProps } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { NamespaceList, SurfaceList } from "./res-list.js";
-import type { NamespaceMap, SurfaceMap } from "./res-map.js";
+import type { NamespaceList } from "./res-list.js";
+import type { NamespaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
-import type { ResPlugHead } from "./res-plug.js";
+import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
 export type AnyState = unknown; // Record<PropertyKey, unknown> & object;
+
+interface StatefulReactiveGearCursor<S extends AnyState> extends GearCursor {
+  readonly getter: GetterComposer<S>;
+  readonly action: ActionComposer<S>;
+}
 
 type StatefulReactiveGearCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, S extends AnyState> = PluginCtx<
   RA,
@@ -32,19 +37,37 @@ type StatefulReactiveGearCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>
   readonly defaultState: S;
 };
 
-interface StatefulReactiveGearCursor<S extends AnyState> extends GearCursor {
-  readonly getter: GetterComposer<S>;
-  readonly action: ActionComposer<S>;
-}
-
-interface StatefulReactiveGearPlugHead<
-  M extends PlugMode,
+type StatefulReactiveGearMapPlugin<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA> | NamespaceList<RA>,
+  NM extends NamespaceMap<RA>,
+  S extends AnyState,
+> = MapPlugin<RA, NM, StatefulReactiveGearCtx<RA, KA, S>>;
+
+type StatefulReactiveGearListPlugin<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+  S extends AnyState,
+> = ListPlugin<RA, NL, StatefulReactiveGearCtx<RA, KA, S>>;
+
+interface StatefulReactiveGearMapPlugHead<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
   CTX extends StatefulReactiveGearCtx<RA, KA, S>,
   S extends AnyState,
-> extends ResPlugHead<M, RA, KA, NM, CTX> {
+> extends ResMapPlugHead<RA, KA, NM, CTX> {
+  readonly defaultState: S;
+}
+
+interface StatefulReactiveGearListPlugHead<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+  CTX extends StatefulReactiveGearCtx<RA, KA, S>,
+  S extends AnyState,
+> extends ResListPlugHead<RA, KA, NL, CTX> {
   readonly defaultState: S;
 }
 
@@ -53,30 +76,14 @@ interface StatefulReactiveGearMapPlug<
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
-> extends PlugBody<StatefulReactiveGearPlugHead<"map", RA, KA, NM, StatefulReactiveGearCtx<RA, KA, S>, S>> {}
-
-type StatefulReactiveGearMapPlugin<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
-  S extends AnyState,
-> = SurfaceMap<RA, Omit<NM, "$">> & {
-  readonly $: StatefulReactiveGearCtx<RA, KA, S>;
-} & SurfaceMap<RA, Omit<KA, keyof NM>>;
+> extends PlugBody<StatefulReactiveGearMapPlugHead<RA, KA, NM, StatefulReactiveGearCtx<RA, KA, S>, S>> {}
 
 interface StatefulReactiveGearListPlug<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
   S extends AnyState,
-> extends PlugBody<StatefulReactiveGearPlugHead<"list", RA, KA, NL, StatefulReactiveGearCtx<RA, KA, S>, S>> {}
-
-type StatefulReactiveGearListPlugin<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-  S extends AnyState,
-> = [...SurfaceList<RA, NL>, StatefulReactiveGearCtx<RA, KA, S>];
+> extends PlugBody<StatefulReactiveGearListPlugHead<RA, KA, NL, StatefulReactiveGearCtx<RA, KA, S>, S>> {}
 
 type ReadableReactiveGearResource<S extends AnyState, G extends string> = { [P in G]: DefaultGetter<S> };
 type WritableReactiveGearResource<S extends AnyState, G extends string, A extends string> = {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ofType } from "../../lib/type.js";
+import { ofType } from "../../lib/of-type.js";
 
 describe("ofType", () => {
   it("returns undefined at runtime", () => {

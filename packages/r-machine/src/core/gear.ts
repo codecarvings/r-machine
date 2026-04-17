@@ -12,38 +12,52 @@
  */
 
 import type { CmdComposer } from "./cmd.js";
-import type { PlugBody, PluginCtx } from "./plug.js";
+import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
 import type { RelayComposer } from "./relay.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { NamespaceList, SurfaceList } from "./res-list.js";
-import type { NamespaceMap, SurfaceMap } from "./res-map.js";
+import type { NamespaceList } from "./res-list.js";
+import type { NamespaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
-import type { ResPlugHead } from "./res-plug.js";
+import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
 export interface GearCursor {
   readonly relay: RelayComposer;
   readonly cmd: CmdComposer;
 }
 
-export interface GearMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>
-  extends PlugBody<ResPlugHead<"map", RA, KA, NM, PluginCtx<RA, KA>>> {}
+type GatePluginCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>> = PluginCtx<RA, KA>;
 
-export type GearMapPlugin<
+type GearMapPlugin<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = MapPlugin<
+  RA,
+  NM,
+  GatePluginCtx<RA, KA>
+>;
+
+type GearListPlugin<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = ListPlugin<
+  RA,
+  NL,
+  GatePluginCtx<RA, KA>
+>;
+
+type GearMapPlugHead<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = ResMapPlugHead<
+  RA,
+  KA,
+  NM,
+  GatePluginCtx<RA, KA>
+>;
+
+type GearListPlugHead<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
-> = SurfaceMap<RA, Omit<NM, "$">> & {
-  readonly $: PluginCtx<RA, KA>;
-} & SurfaceMap<RA, Omit<KA, keyof NM>>;
+  NL extends NamespaceList<RA>,
+> = ResListPlugHead<RA, KA, NL, GatePluginCtx<RA, KA>>;
 
-export interface GearListPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>>
-  extends PlugBody<ResPlugHead<"list", RA, KA, NL, PluginCtx<RA, KA>>> {}
+interface GearMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>
+  extends PlugBody<GearMapPlugHead<RA, KA, NM>> {}
 
-export type GearListPlugin<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = [
-  ...SurfaceList<RA, NL>,
-  PluginCtx<RA, KA>,
-];
+interface GearListPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>>
+  extends PlugBody<GearListPlugHead<RA, KA, NL>> {}
 
 export type GearMapComposer<
   RA extends AnyResAtlas,

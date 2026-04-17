@@ -20,7 +20,7 @@ import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { type ReactNode, useEffect } from "react";
 import type { AnyPathAtlas, BoundPathComposer } from "#r-machine/next/core";
-import type { NextClientPlugComposer } from "../next-plug.js";
+import type { NextClientPlugComposer } from "../next-client-plug.js";
 
 export interface NextAppClientToolset<
   RA extends AnyResAtlas,

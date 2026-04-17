@@ -1,4 +1,4 @@
-import type { NamespaceMap, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { MockInstance } from "vitest";
@@ -23,7 +23,7 @@ export function createMockMachine(
     hybridPickR?: (locale: string, namespace: string) => unknown;
     hybridPickRKit?: (locale: string, ...namespaces: string[]) => unknown;
   } = {}
-): RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>> {
+): RMachine<TestAtlas, AnyLocale, { gear: {}; shell: {}; gate: {} }> {
   return {
     defaultLocale: overrides.defaultLocale ?? "en",
     localeHelper: {
@@ -38,7 +38,7 @@ export function createMockMachine(
     },
     hybridPickR: vi.fn(overrides.hybridPickR ?? (() => ({ greeting: "hello" }))),
     hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
-  } as unknown as RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>;
+  } as unknown as RMachine<TestAtlas, AnyLocale, { gear: {}; shell: {}; gate: {} }>;
 }
 
 /**
@@ -57,6 +57,6 @@ export function createMockMachine(
  * inference, while this helper provides typed access to the underlying vi.fn()
  * mocks for assertion purposes only.
  */
-export function spies(machine: RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>): MockMachineSpies {
+export function spies(machine: RMachine<TestAtlas, AnyLocale, { gear: {}; shell: {}; gate: {} }>): MockMachineSpies {
   return machine as unknown as MockMachineSpies;
 }

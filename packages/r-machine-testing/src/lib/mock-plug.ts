@@ -23,7 +23,7 @@ import {
 } from "r-machine/core";
 import { RMachineUsageError } from "r-machine/errors";
 import { ERR_PLUG_ALREADY_MOCKED } from "#r-machine/testing/errors";
-import type { MockableSurfaceMap } from "./mockable-surface.js";
+import type { MockSurfaceMap } from "./mock-surface.js";
 
 const plugMockSymbol = Symbol("plugMock");
 
@@ -42,9 +42,9 @@ interface MockPlug {
   <PH extends AnyListPlugHead>(plug: PlugBody<PH>): ListMockPlug<PH>;
 }
 
-export const mockPlug: MockPlug = <PH extends AnyPlugHead>(plug: PlugBody<PH>): MapMockPlug<PH> | ListMockPlug<PH> => {
+export const mockPlug: MockPlug = (plug: PlugBody<AnyPlugHead>) => {
   return {
-    with: (_data: MockPlugMapData<PH> | MockPlugListData<PH>) => {
+    with: (_data: MockPlugMapData<AnyMapPlugHead> | MockPlugListData<AnyListPlugHead>) => {
       const prevResolve = getPlugResolve(plug);
       if ((prevResolve as any)[plugMockSymbol]) {
         throw new RMachineUsageError(ERR_PLUG_ALREADY_MOCKED, "Plug is already mocked.");
@@ -62,31 +62,19 @@ export const mockPlug: MockPlug = <PH extends AnyPlugHead>(plug: PlugBody<PH>): 
   };
 };
 
-type MockPlugMapDataDeps<PH extends AnyMapPlugHead> = MockableSurfaceMap<
-  ExtractResAtlas<PH>,
-  Omit<PH["namespaces"], "$">
->;
+type MockPlugMapDataDeps<PH extends AnyMapPlugHead> = MockSurfaceMap<ExtractResAtlas<PH>, Omit<PH["namespaces"], "$">>;
 
 type TupleToObject<T extends readonly unknown[]> = {
   [K in keyof T as K extends `${number}` ? K : never]: T[K];
 };
 
-type MockPlugListDeps<PH extends AnyListPlugHead> = MockableSurfaceMap<
+type MockPlugListDeps<PH extends AnyListPlugHead> = MockSurfaceMap<
   ExtractResAtlas<PH>,
   Omit<TupleToObject<PH["namespaces"] extends readonly unknown[] ? PH["namespaces"] : never>, "$">
 >;
 
-/*
-type MockPlugMapData<PH extends AnyMapPlugHead> = (keyof ExtractCtx<PH> extends never
-  ? { $?: Record<string, never> }
-  : { $?: Partial<ExtractCtx<PH>> }) &
-  (keyof MockPlugMapDataDeps<PH> extends never ? { map?: Record<string, never> } : { map?: MockPlugMapDataDeps<PH> });
-*/
-
 type MockCtxContent<PH extends AnyPlugHead> = {
-  [K in keyof ExtractCtx<PH>]?: K extends "kit"
-    ? MockableSurfaceMap<ExtractResAtlas<PH>, PH["kit"]>
-    : ExtractCtx<PH>[K];
+  [K in keyof ExtractCtx<PH>]?: K extends "kit" ? MockSurfaceMap<ExtractResAtlas<PH>, PH["kit"]> : ExtractCtx<PH>[K];
 };
 
 type MockCtx<PH extends AnyPlugHead> = keyof ExtractCtx<PH> extends never ? Record<string, never> : MockCtxContent<PH>;

@@ -11,17 +11,54 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { GearCursor, GearListPlug, GearListPlugin, GearMapPlug, GearMapPlugin } from "./gear.js";
+import type { GearCursor } from "./gear.js";
 import type { StatelessGetterComposer } from "./getter.js";
+import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
 import type { AnyReactiveRes, RejectAsyncValueProps } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
+import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
 interface StatelessReactiveGearCursor extends GearCursor {
   readonly getter: StatelessGetterComposer;
 }
+
+type StatelessReactiveGearPluginCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>> = PluginCtx<RA, KA>;
+
+type StatelessReactiveGearMapPlugin<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+> = MapPlugin<RA, NM, StatelessReactiveGearPluginCtx<RA, KA>>;
+
+type StatelessReactiveGearListPlugin<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+> = ListPlugin<RA, NL, StatelessReactiveGearPluginCtx<RA, KA>>;
+
+type StatelessReactiveGearMapPlugHead<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+> = ResMapPlugHead<RA, KA, NM, StatelessReactiveGearPluginCtx<RA, KA>>;
+
+type StatelessReactiveGearListPlugHead<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+> = ResListPlugHead<RA, KA, NL, StatelessReactiveGearPluginCtx<RA, KA>>;
+
+interface StatelessReactiveGearMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>
+  extends PlugBody<StatelessReactiveGearMapPlugHead<RA, KA, NM>> {}
+
+interface StatelessReactiveGearListPlug<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+> extends PlugBody<StatelessReactiveGearListPlugHead<RA, KA, NL>> {}
 
 export type StatelessReactiveGearMapComposer<
   RA extends AnyResAtlas,
@@ -29,8 +66,8 @@ export type StatelessReactiveGearMapComposer<
   NM extends NamespaceMap<RA>,
   T = unknown,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
-  factory: (plugin: GearMapPlugin<RA, KA, NM>, _: StatelessReactiveGearCursor) => R | Promise<R>
-) => ResMatrix<R & T, GearMapPlug<RA, KA, NM>>;
+  factory: (plugin: StatelessReactiveGearMapPlugin<RA, KA, NM>, _: StatelessReactiveGearCursor) => R | Promise<R>
+) => ResMatrix<R & T, StatelessReactiveGearMapPlug<RA, KA, NM>>;
 
 export type StatelessReactiveGearListComposer<
   RA extends AnyResAtlas,
@@ -38,5 +75,5 @@ export type StatelessReactiveGearListComposer<
   NL extends NamespaceList<RA>,
   T = unknown,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
-  factory: (plugin: GearListPlugin<RA, KA, NL>, _: StatelessReactiveGearCursor) => R | Promise<R>
-) => ResMatrix<R & T, GearListPlug<RA, KA, NL>>;
+  factory: (plugin: StatelessReactiveGearListPlugin<RA, KA, NL>, _: StatelessReactiveGearCursor) => R | Promise<R>
+) => ResMatrix<R & T, StatelessReactiveGearListPlug<RA, KA, NL>>;

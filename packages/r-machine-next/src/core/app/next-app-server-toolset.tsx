@@ -20,7 +20,7 @@ import { cache, type ReactNode } from "react";
 import type { AnyPathAtlas, BoundPathComposer, RMachineProxy } from "#r-machine/next/core";
 import { ERR_LOCALE_BIND_CONFLICT } from "#r-machine/next/errors";
 import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
-import type { NextServerPlugComposer } from "../next-plug.js";
+import type { NextServerPlugComposer } from "../next-server-plug.js";
 import type { NextAppClientRMachine } from "./next-app-client-toolset.js";
 
 export interface NextAppServerToolset<

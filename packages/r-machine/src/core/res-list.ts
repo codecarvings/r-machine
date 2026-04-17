@@ -18,6 +18,7 @@ export type NamespaceList<RA extends AnyResAtlas> = readonly NamespaceRef<RA>[];
 
 export type SolidNamespaceList<RA extends AnyResAtlas> = readonly SolidNamespaceRef<RA>[];
 
+// -readonly required to allow tuple spreading
 export type SurfaceList<RA extends AnyResAtlas, NL extends NamespaceList<RA>> = {
-  readonly [I in keyof NL]: Surface<RA[ExtractNamespace<NL[I]>]>;
+  -readonly [I in keyof NL]: Surface<RA[ExtractNamespace<NL[I]>]>;
 };

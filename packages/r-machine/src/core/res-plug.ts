@@ -11,18 +11,26 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { PlugBody, PlugHead, PluginCtx, PlugMode } from "./plug.js";
+import type { ListPlugHead, MapPlugHead, PlugBody, PluginCtx } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
 
-export interface ResPlugHead<
-  M extends PlugMode,
+export interface ResMapPlugHead<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
-  NS extends NamespaceMap<RA> | NamespaceList<RA>,
+  NM extends NamespaceMap<RA>,
   CTX extends PluginCtx<RA, KA>,
-> extends PlugHead<"res", M, RA, KA, NS, CTX> {}
+> extends MapPlugHead<"res", RA, KA, NM, CTX> {}
+type AnyResMapPlugHead = ResMapPlugHead<any, any, any, any>;
 
-type AnyResPlugHead = ResPlugHead<any, any, any, any, any>;
+export interface ResListPlugHead<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+  CTX extends PluginCtx<RA, KA>,
+> extends ListPlugHead<"res", RA, KA, NL, CTX> {}
+type AnyResListPlugHead = ResListPlugHead<any, any, any, any>;
+
+type AnyResPlugHead = AnyResMapPlugHead | AnyResListPlugHead;
 export type AnyResPlug = PlugBody<AnyResPlugHead>;

@@ -15,14 +15,9 @@ export type { Action, Atomic } from "./action.js";
 export type { GateWire } from "./engine/gate-wire.js";
 export { createForge, type Forge } from "./forge.js";
 export type {
-  GateListPlug,
-  GateListPlugin,
-  GateMapPlug,
-  GateMapPlugin,
-  GatePlugComposer,
-  GatePlugHead,
+  GateListPlugHead,
+  GateMapPlugHead,
   GatePluginCtx,
-  SolidGatePlugComposer,
 } from "./gate-plug.js";
 export type { Getter } from "./getter.js";
 export {
@@ -33,9 +28,9 @@ export {
   type ExtractResAtlas,
   getPlugHead,
   getPlugResolve,
-  type LocaleAwarePluginCtx,
+  type ListPlugin,
+  type MapPlugin,
   type PlugBody,
-  type PlugHead,
   type PlugMode,
   setPlugResolve,
 } from "./plug.js";

@@ -13,13 +13,13 @@
 
 import type { Action, AnyResAtlas, ExtractNamespace, Getter, NamespaceMap, RelayBrand } from "r-machine/core";
 
-type MockableSurfaceItem<I> =
+type MockSurfaceItem<I> =
   I extends Getter<infer V> ? () => V : I extends Action<infer F> ? F : I extends RelayBrand ? never : I;
 
-type MockableSurface<R extends AnyResAtlas> = {
-  readonly [K in keyof R as K extends `$${string}` ? never : K]: MockableSurfaceItem<R[K]>;
+type MockSurface<R extends AnyResAtlas> = {
+  [K in keyof R as K extends `$${string}` ? never : K]?: MockSurfaceItem<R[K]>;
 };
 
-export type MockableSurfaceMap<RA extends AnyResAtlas, NM extends NamespaceMap<RA>> = {
-  readonly [K in keyof NM]?: Partial<MockableSurface<RA[ExtractNamespace<NM[K]>]>>;
+export type MockSurfaceMap<RA extends AnyResAtlas, NM extends NamespaceMap<RA>> = {
+  [K in keyof NM]?: MockSurface<RA[ExtractNamespace<NM[K]>]>;
 };
