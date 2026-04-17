@@ -97,6 +97,16 @@ export interface PlugBody<PH extends AnyPlugHead> {
   [plugResolveSymbol]: () => ExtractPlugin<PH>;
 }
 
+export function createPlug<H extends AnyPlugHead>(head: H): PlugBody<H> {
+  return {
+    [plugHeadSymbol]: head,
+    [plugLocaleSymbol]: undefined as PlugLocale<H>,
+    [plugResolveSymbol]: (() => {
+      throw new Error("Plug resolve not set");
+    }) as () => ExtractPlugin<H>,
+  };
+}
+
 export function getPlugHead<H extends AnyPlugHead>(plug: PlugBody<H>): H {
   return plug[plugHeadSymbol];
 }

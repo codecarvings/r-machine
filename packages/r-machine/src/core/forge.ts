@@ -14,11 +14,13 @@
 import type { AnyLocale } from "#r-machine/locale";
 import { type ConnectedComposer, createConnectedComposer } from "./connected-composer.js";
 import type { GearMapComposer } from "./gear.js";
-import type { ReactiveComposer } from "./reactive-composer.js";
+import { createGearMapComposer } from "./gear-composer.js";
+import { createReactiveComposer, type ReactiveComposer } from "./reactive-composer.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResKit } from "./res-kit.js";
 import type { ResWireProvider } from "./res-wire.js";
 import type { ShellMapComposer } from "./shell.js";
+import { createShellMapComposer } from "./shell-composer.js";
 import type { VertexGearTag } from "./vertex-gear.js";
 
 export interface Forge<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>> {
@@ -33,13 +35,11 @@ export interface Forge<RA extends AnyResAtlas, L extends AnyLocale, KA extends R
 export function createForge<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>>(
   resWireProvider: ResWireProvider
 ): Forge<RA, L, KA> {
-  let connected: ConnectedComposer<RA, L, KA> | undefined;
   return {
-    get connected() {
-      if (connected === undefined) {
-        connected = createConnectedComposer<RA, L, KA>(resWireProvider);
-      }
-      return connected;
-    },
-  } as Forge<RA, L, KA>;
+    connected: createConnectedComposer<RA, L, KA>(resWireProvider),
+    reactive: createReactiveComposer<RA, KA>(resWireProvider),
+    gear: createGearMapComposer<RA, KA["gear"], {}>(resWireProvider, {}, false),
+    vertexGear: createGearMapComposer<RA, KA["gear"], {}, VertexGearTag>(resWireProvider, {}, true),
+    shell: createShellMapComposer<RA, L, KA["shell"], {}>(resWireProvider, {}),
+  };
 }

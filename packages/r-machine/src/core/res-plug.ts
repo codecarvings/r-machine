@@ -39,5 +39,5 @@ export interface ResListPlugHead<
 }
 type AnyResListPlugHead = ResListPlugHead<ResFamily, any, any, any, any>;
 
-type AnyResPlugHead = AnyResMapPlugHead | AnyResListPlugHead;
+export type AnyResPlugHead = AnyResMapPlugHead | AnyResListPlugHead;
 export type AnyResPlug = PlugBody<AnyResPlugHead>;

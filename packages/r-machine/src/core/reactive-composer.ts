@@ -12,10 +12,17 @@
  */
 
 import type { ReactiveGearTag } from "./reactive-gear.js";
+import {
+  createStatefulReactiveGearListComposer,
+  createStatefulReactiveGearMapComposer,
+  createStatelessReactiveGearListComposer,
+  createStatelessReactiveGearMapComposer,
+} from "./reactive-gear-composer.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResKit } from "./res-kit.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
+import type { ResWireProvider } from "./res-wire.js";
 import type {
   AnyState,
   StatefulReactiveGearListComposer,
@@ -94,3 +101,71 @@ type StatelessReactiveConnectedListComposer<
   readonly gear: StatelessReactiveGearListComposer<RA, KA["gear"], NL, ReactiveGearTag>;
   readonly vertexGear: StatelessReactiveGearListComposer<RA, KA["gear"], NL, ReactiveGearTag & VertexGearTag>;
 };
+
+export function createReactiveComposer<RA extends AnyResAtlas, KA extends ResKit<RA>>(
+  provider: ResWireProvider
+): ReactiveComposer<RA, KA> {
+  return ((...args: [] | [AnyState]) => {
+    if (args.length === 0) {
+      return {
+        gear: createStatelessReactiveGearMapComposer<RA, KA["gear"], {}>(provider, {}, false),
+        vertexGear: createStatelessReactiveGearMapComposer<RA, KA["gear"], {}>(provider, {}, true),
+      };
+    }
+    const [state] = args;
+    return {
+      gear: createStatefulReactiveGearMapComposer<RA, KA["gear"], {}, AnyState>(provider, {}, state, false),
+      vertexGear: createStatefulReactiveGearMapComposer<RA, KA["gear"], {}, AnyState>(provider, {}, state, true),
+    };
+  }) as ReactiveComposer<RA, KA>;
+}
+
+export function createReactiveConnectedMapComposer<
+  RA extends AnyResAtlas,
+  KA extends ResKit<RA>,
+  NM extends NamespaceMap<RA>,
+>(provider: ResWireProvider, namespaces: NM): ReactiveConnectedMapComposer<RA, KA, NM> {
+  return ((...args: [] | [AnyState]) => {
+    if (args.length === 0) {
+      return {
+        gear: createStatelessReactiveGearMapComposer<RA, KA["gear"], NM>(provider, namespaces, false),
+        vertexGear: createStatelessReactiveGearMapComposer<RA, KA["gear"], NM>(provider, namespaces, true),
+      };
+    }
+    const [state] = args;
+    return {
+      gear: createStatefulReactiveGearMapComposer<RA, KA["gear"], NM, AnyState>(provider, namespaces, state, false),
+      vertexGear: createStatefulReactiveGearMapComposer<RA, KA["gear"], NM, AnyState>(
+        provider,
+        namespaces,
+        state,
+        true
+      ),
+    };
+  }) as ReactiveConnectedMapComposer<RA, KA, NM>;
+}
+
+export function createReactiveConnectedListComposer<
+  RA extends AnyResAtlas,
+  KA extends ResKit<RA>,
+  NL extends NamespaceList<RA>,
+>(provider: ResWireProvider, namespaces: NL): ReactiveConnectedListComposer<RA, KA, NL> {
+  return ((...args: [] | [AnyState]) => {
+    if (args.length === 0) {
+      return {
+        gear: createStatelessReactiveGearListComposer<RA, KA["gear"], NL>(provider, namespaces, false),
+        vertexGear: createStatelessReactiveGearListComposer<RA, KA["gear"], NL>(provider, namespaces, true),
+      };
+    }
+    const [state] = args;
+    return {
+      gear: createStatefulReactiveGearListComposer<RA, KA["gear"], NL, AnyState>(provider, namespaces, state, false),
+      vertexGear: createStatefulReactiveGearListComposer<RA, KA["gear"], NL, AnyState>(
+        provider,
+        namespaces,
+        state,
+        true
+      ),
+    };
+  }) as ReactiveConnectedListComposer<RA, KA, NL>;
+}
