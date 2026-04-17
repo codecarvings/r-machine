@@ -41,6 +41,7 @@ type GearListPlugin<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL exte
 >;
 
 type GearMapPlugHead<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = ResMapPlugHead<
+  "gear",
   RA,
   KA,
   NM,
@@ -51,7 +52,7 @@ type GearListPlugHead<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> = ResListPlugHead<RA, KA, NL, GatePluginCtx<RA, KA>>;
+> = ResListPlugHead<"gear", RA, KA, NL, GatePluginCtx<RA, KA>>;
 
 interface GearMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>
   extends PlugBody<GearMapPlugHead<RA, KA, NM>> {}

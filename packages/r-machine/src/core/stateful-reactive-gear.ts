@@ -57,7 +57,7 @@ interface StatefulReactiveGearMapPlugHead<
   NM extends NamespaceMap<RA>,
   CTX extends StatefulReactiveGearCtx<RA, KA, S>,
   S extends AnyState,
-> extends ResMapPlugHead<RA, KA, NM, CTX> {
+> extends ResMapPlugHead<"gear", RA, KA, NM, CTX> {
   readonly defaultState: S;
 }
 
@@ -67,7 +67,7 @@ interface StatefulReactiveGearListPlugHead<
   NL extends NamespaceList<RA>,
   CTX extends StatefulReactiveGearCtx<RA, KA, S>,
   S extends AnyState,
-> extends ResListPlugHead<RA, KA, NL, CTX> {
+> extends ResListPlugHead<"gear", RA, KA, NL, CTX> {
   readonly defaultState: S;
 }
 

@@ -15,7 +15,7 @@ import type { AnyLocale } from "#r-machine/locale";
 import type { VertexGearMap } from "../vertex-gear.js";
 
 export interface GateWire {
-  getSnapshot: () => unknown | Promise<unknown>;
+  getPlugin: () => unknown | Promise<unknown>;
   subscribe: (callback: () => void) => () => void;
   commitTracking: () => void;
   updateRequest: (locale: AnyLocale, vertexGearMap?: VertexGearMap | undefined) => void;

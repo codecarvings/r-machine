@@ -12,7 +12,7 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
-import type { AnyNamespace, AnyResAtlas } from "./res-atlas.js";
+import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList, SurfaceList } from "./res-list.js";
 import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 
@@ -37,6 +37,7 @@ export type MapPlugin<RA extends AnyResAtlas, NM extends NamespaceMap<RA>, CTX> 
 export type ListPlugin<RA extends AnyResAtlas, NL extends NamespaceList<RA>, CTX> = [...SurfaceList<RA, NL>, CTX];
 
 declare const resAtlas: unique symbol;
+declare const kit: unique symbol;
 declare const ctx: unique symbol;
 interface BasePlugHead<
   A extends PlugArea,
@@ -45,9 +46,8 @@ interface BasePlugHead<
   CTX extends PluginCtx<RA, KA>,
 > {
   readonly area: A;
-  readonly kit: KA;
-  readonly deps: AnyNamespace[];
   readonly [resAtlas]: RA;
+  readonly [kit]: KA;
   readonly [ctx]: CTX;
 }
 
@@ -78,6 +78,7 @@ export type AnyListPlugHead = ListPlugHead<any, any, any, any, any>;
 export type AnyPlugHead = AnyMapPlugHead | AnyListPlugHead;
 
 export type ExtractResAtlas<PH extends AnyPlugHead> = PH[typeof resAtlas];
+export type ExtractKit<PH extends AnyPlugHead> = PH[typeof kit];
 export type ExtractCtx<PH extends AnyPlugHead> = PH[typeof ctx];
 export type ExtractPlugin<PH extends AnyPlugHead> = PH extends AnyMapPlugHead
   ? MapPlugin<PH[typeof resAtlas], PH["namespaces"], PH[typeof ctx]>

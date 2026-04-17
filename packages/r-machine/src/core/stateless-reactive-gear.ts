@@ -43,13 +43,13 @@ type StatelessReactiveGearMapPlugHead<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-> = ResMapPlugHead<RA, KA, NM, StatelessReactiveGearPluginCtx<RA, KA>>;
+> = ResMapPlugHead<"gear", RA, KA, NM, StatelessReactiveGearPluginCtx<RA, KA>>;
 
 type StatelessReactiveGearListPlugHead<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> = ResListPlugHead<RA, KA, NL, StatelessReactiveGearPluginCtx<RA, KA>>;
+> = ResListPlugHead<"gear", RA, KA, NL, StatelessReactiveGearPluginCtx<RA, KA>>;
 
 interface StatelessReactiveGearMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>
   extends PlugBody<StatelessReactiveGearMapPlugHead<RA, KA, NM>> {}

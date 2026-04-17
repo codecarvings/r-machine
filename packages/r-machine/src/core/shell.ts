@@ -45,14 +45,14 @@ type ShellMapPlugHead<
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-> = ResMapPlugHead<RA, KA, NM, ShellPluginCtx<RA, L, KA>>;
+> = ResMapPlugHead<"shell", RA, KA, NM, ShellPluginCtx<RA, L, KA>>;
 
 type ShellListPlugHead<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> = ResListPlugHead<RA, KA, NL, ShellPluginCtx<RA, L, KA>>;
+> = ResListPlugHead<"shell", RA, KA, NL, ShellPluginCtx<RA, L, KA>>;
 
 interface ShellMapPlug<
   RA extends AnyResAtlas,

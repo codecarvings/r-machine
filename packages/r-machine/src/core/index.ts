@@ -25,6 +25,7 @@ export {
   type AnyMapPlugHead,
   type AnyPlugHead,
   type ExtractCtx,
+  type ExtractKit,
   type ExtractResAtlas,
   getPlugHead,
   getPlugResolve,
