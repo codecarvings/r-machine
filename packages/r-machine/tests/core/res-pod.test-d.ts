@@ -27,7 +27,7 @@ describe("ResPod", () => {
       isReactive: boolean;
       isVertex: boolean;
       plugHead: AnyPlugHead | undefined;
-      originType: "resource" | "res-matrix";
+      originType: "raw" | "res-matrix";
       origin: AnyResOrigin;
     };
     expectTypeOf<ResPod>().not.toEqualTypeOf<Writable>();
@@ -70,7 +70,7 @@ describe("ResPod", () => {
   });
 
   it("types `originType` as the closed union of the two canonical origin kinds", () => {
-    expectTypeOf<ResPod["originType"]>().toEqualTypeOf<"resource" | "res-matrix">();
+    expectTypeOf<ResPod["originType"]>().toEqualTypeOf<"raw" | "res-matrix">();
     expectTypeOf<string>().not.toExtend<ResPod["originType"]>();
     expectTypeOf<"dynamic-shell">().not.toExtend<ResPod["originType"]>();
   });

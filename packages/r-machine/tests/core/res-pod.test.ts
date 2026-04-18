@@ -161,22 +161,9 @@ describe("createResPod", () => {
   });
 
   describe("raw AnyRes origin", () => {
-    it("builds a gear data from a raw resource with default static flags and no plugHead", () => {
-      const module = makeRawModule({ greeting: "hi" });
-
-      const d = createResPod(module, "app/home", undefined, "gear");
-
-      expect(d).toEqual({
-        namespace: "app/home",
-        locale: undefined,
-        family: "gear",
-        isReactive: false,
-        isVertex: false,
-        plugHead: undefined,
-        originType: "resource",
-        origin: module.r,
-      });
-    });
+    // Contract: only the "shell" layout admits a raw resource. Gear,
+    // vertex-gear, and dynamic-shell all require a matrix factory — the raw
+    // form has no way to carry the required brands or locale bundling.
 
     it("builds a shell data from a raw resource when the layout is shell, forwarding the locale", () => {
       const module = makeRawModule({ greeting: "ciao" });
@@ -185,11 +172,31 @@ describe("createResPod", () => {
 
       expect(d.family).toBe("shell");
       expect(d.locale).toBe("it-IT");
-      expect(d.originType).toBe("resource");
+      expect(d.originType).toBe("raw");
       expect(d.isReactive).toBe(false);
       expect(d.isVertex).toBe(false);
       expect(d.plugHead).toBeUndefined();
       expect(d.origin).toBe(module.r);
+    });
+
+    it("throws when a raw resource is used under a gear layout (matrices are required)", () => {
+      const module = makeRawModule();
+
+      const error = captureResolveError(() => createResPod(module, "app/home", undefined, "gear"));
+
+      expect(error.code).toBe(ERR_RESOLVE_FAILED);
+      expect(error.message).toContain("app/home");
+      expect(error.message).toContain('"gear"');
+    });
+
+    it("throws when a raw resource is used under a vertex-gear layout (matrices are required)", () => {
+      const module = makeRawModule();
+
+      const error = captureResolveError(() => createResPod(module, "app/root", undefined, "vertex-gear"));
+
+      expect(error.code).toBe(ERR_RESOLVE_FAILED);
+      expect(error.message).toContain("app/root");
+      expect(error.message).toContain('"vertex-gear"');
     });
 
     it("throws when a raw resource is used under a dynamic-shell layout (matrices are required)", () => {
@@ -202,16 +209,17 @@ describe("createResPod", () => {
       expect(error.message).toContain("dynamic-shell");
     });
 
-    it("treats a plain object with no special keys as a raw resource", () => {
+    it("treats a plain object with no special keys as a raw resource (only valid under shell)", () => {
       // The brand symbol is module-private to res-matrix.ts, so raw
       // resources have no way to mimic a matrix. This pins the invariant:
-      // anything that did not come from createResMatrix is raw.
+      // anything that did not come from createResMatrix is raw. Raw is now
+      // admitted only under the "shell" layout.
       const rawLikely: AnyRes = { factory: "surprise", plug: "gotcha" };
 
-      const d = createResPod({ r: rawLikely }, "app", undefined, "gear");
+      const d = createResPod({ r: rawLikely }, "app", "en-US", "shell");
 
-      expect(d.originType).toBe("resource");
-      expect(d.family).toBe("gear");
+      expect(d.originType).toBe("raw");
+      expect(d.family).toBe("shell");
       expect(d.origin).toBe(rawLikely);
     });
   });
@@ -228,7 +236,7 @@ describe("createResPod", () => {
     it("preserves the exact `origin` reference for raw resources", () => {
       const resource: AnyRes = { a: 1, nested: { b: 2 } };
 
-      const d = createResPod({ r: resource }, "app", undefined, "gear");
+      const d = createResPod({ r: resource }, "app", "en-US", "shell");
 
       expect(d.origin).toBe(resource);
     });
@@ -236,8 +244,8 @@ describe("createResPod", () => {
     it("returns a fresh data object per call (no memoization of the result)", () => {
       const module = makeRawModule();
 
-      const d1 = createResPod(module, "app", undefined, "gear");
-      const d2 = createResPod(module, "app", undefined, "gear");
+      const d1 = createResPod(module, "app", "en-US", "shell");
+      const d2 = createResPod(module, "app", "en-US", "shell");
 
       expect(d1).not.toBe(d2);
       expect(d1).toEqual(d2);
@@ -282,7 +290,7 @@ describe("createResPod", () => {
       const raw: AnyRes = { a: 1 };
       const module: AnyResModule = Object.freeze({ r: raw });
 
-      const d = createResPod(module, "app", undefined, "gear");
+      const d = createResPod(module, "app", "en-US", "shell");
 
       expect(Object.isFrozen(module)).toBe(true);
       expect(module.r).toBe(raw);
@@ -313,7 +321,7 @@ describe("createResPod", () => {
       const module = makeRawModule();
       const ns = "app/settings/profile/日本語";
 
-      const d = createResPod(module, ns, undefined, "gear");
+      const d = createResPod(module, ns, "en-US", "shell");
 
       expect(d.namespace).toBe(ns);
     });
@@ -322,7 +330,7 @@ describe("createResPod", () => {
       // The function should not editorialise: validation is the caller's job.
       const module = makeRawModule();
 
-      const d = createResPod(module, "", undefined, "gear");
+      const d = createResPod(module, "", "en-US", "shell");
 
       expect(d.namespace).toBe("");
     });

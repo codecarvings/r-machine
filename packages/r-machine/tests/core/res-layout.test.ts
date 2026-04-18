@@ -98,13 +98,15 @@ describe("createResLayoutEntryTypeResolver", () => {
   });
 
   describe("layout-type coverage", () => {
-    it("returns each of the three layout types verbatim", () => {
+    it("returns each of the four layout types verbatim", () => {
       const resolve = createResLayoutEntryTypeResolver({
         g: "gear",
+        v: "vertex-gear",
         s: "shell",
         d: "dynamic-shell",
       });
       expect(resolve("g")).toBe("gear");
+      expect(resolve("v")).toBe("vertex-gear");
       expect(resolve("s")).toBe("shell");
       expect(resolve("d")).toBe("dynamic-shell");
     });
@@ -224,6 +226,21 @@ describe("createResPathResolver", () => {
     });
   });
 
+  describe("vertex-gear layout", () => {
+    it("returns the namespace unchanged when locale is undefined", () => {
+      const resolveResPath = withLayout({ app: "vertex-gear" });
+      expect(resolveResPath("app", undefined)).toBe("app");
+    });
+
+    it("ignores the locale and still returns the namespace when one is provided", () => {
+      // Vertex gears never vary by locale — the path resolver must not
+      // append the locale, same as regular gears.
+      const resolveResPath = withLayout({ app: "vertex-gear" });
+      expect(resolveResPath("app", "en-US")).toBe("app");
+      expect(resolveResPath("app/home", "it-IT")).toBe("app/home");
+    });
+  });
+
   describe("dynamic-shell layout", () => {
     it("returns the namespace unchanged when locale is undefined", () => {
       const resolveResPath = withLayout({ app: "dynamic-shell" });
@@ -330,6 +347,7 @@ describe("createResPathResolver", () => {
       // inside createResLayoutEntryTypeResolver.
       const manual: ResLayoutEntryTypeResolver = (ns) => {
         if (ns === "g") return "gear";
+        if (ns === "v") return "vertex-gear";
         if (ns === "s") return "shell";
         if (ns === "d") return "dynamic-shell";
         return undefined;
@@ -337,6 +355,7 @@ describe("createResPathResolver", () => {
       const resolveResPath = createResPathResolver(manual);
 
       expect(resolveResPath("g", "en")).toBe("g");
+      expect(resolveResPath("v", "en")).toBe("v");
       expect(resolveResPath("s", "en")).toBe("s/en");
       expect(resolveResPath("d", "en")).toBe("d");
     });

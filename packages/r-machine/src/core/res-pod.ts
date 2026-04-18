@@ -20,7 +20,7 @@ import type { ResLayoutEntryType } from "./res-layout.js";
 import { type AnyResMatrix, tryGetResMatrixMeta } from "./res-matrix.js";
 import type { AnyResModule } from "./res-module.js";
 
-type ResOriginType = "resource" | "res-matrix";
+type ResOriginType = "raw" | "res-matrix";
 
 export interface ResPod {
   readonly namespace: AnyNamespace;
@@ -64,21 +64,26 @@ export function createResPod(
     };
   }
 
-  if (resLayoutEntryType === "dynamic-shell") {
+  // Only "shell" admits raw resources. Everything else (gear, vertex-gear,
+  // dynamic-shell) must come from a matrix factory — the raw form has no
+  // way to carry the required brands (GearTag / VertexGearTag / locale
+  // bundling for dynamic-shell) and attempting to use it would silently
+  // break downstream consumers that rely on those brands.
+  if (resLayoutEntryType !== "shell") {
     throw new RMachineResolveError(
       ERR_RESOLVE_FAILED,
-      `Unable to build resource pod for namespace "${namespace}" - layout "dynamic-shell" requires a shell factory, got a raw resource.`
+      `Unable to build resource pod for namespace "${namespace}" - layout "${resLayoutEntryType}" requires a matrix factory, got a raw resource.`
     );
   }
 
   return {
     namespace,
     locale,
-    family: resLayoutEntryType,
+    family: "shell",
     isReactive: false,
     isVertex: false,
     plugHead: undefined,
-    originType: "resource",
+    originType: "raw",
     origin,
   };
 }

@@ -86,6 +86,7 @@ export function createResPathResolver(resolveResLayoutType: ResLayoutEntryTypeRe
     const layoutType = resolveResLayoutType(namespace);
     switch (layoutType) {
       case "gear":
+      case "vertex-gear":
       case "dynamic-shell":
         return namespace;
       case "shell":
