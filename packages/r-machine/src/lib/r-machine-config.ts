@@ -11,7 +11,16 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { ResEquipment, ResModuleLoaderFn } from "#r-machine/core";
+import type {
+  AnyResAtlas,
+  AnyResAtlasClass,
+  BridgeGearNamespace,
+  GateKit,
+  GearKit,
+  ResEquipment,
+  ResModuleLoaderFn,
+  ShellKit,
+} from "#r-machine/core";
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
@@ -25,81 +34,59 @@ import {
   validateCanonicalUnicodeLocaleId,
 } from "#r-machine/locale";
 import type { AnyResLayout } from "../core/res-layout.js";
-import type {
-  AnyResAtlasClass,
-  AnyResAtlasInstance,
-  BridgeGearNamespace,
-  GateKit,
-  GearKit,
-  ShellKit,
-  ValidBridgeGears,
-} from "./resource-atlas.js";
 
 export interface RMachineConfigParams<
-  CLASS extends AnyResAtlasClass,
+  RAC extends AnyResAtlasClass,
   LL extends AnyLocaleList,
-  BG extends readonly BridgeGearNamespace<InstanceType<CLASS>>[],
-  GKA extends GearKit<InstanceType<CLASS>>,
-  SKA extends ShellKit<InstanceType<CLASS>, BG>,
-  XKA extends GateKit<InstanceType<CLASS>>,
+  BG extends BridgeGearNamespace<InstanceType<RAC>>,
+  GKA extends GearKit<InstanceType<RAC>>,
+  SKA extends ShellKit<InstanceType<RAC>, BG>,
+  XKA extends GateKit<InstanceType<RAC>>,
 > {
-  readonly ResourceAtlas: CLASS;
+  readonly ResourceAtlas: RAC;
   readonly locales: LL;
   readonly defaultLocale: LL[number];
   readonly load: ResModuleLoaderFn;
-  // Compile-time validation via intersection with ValidBridgeGears:
-  // rejects non-gear prefixes and reactive gears with branded error messages.
-  // Runtime storage is the raw tuple (no runtime check — principle: type-first).
-  readonly bridgeGears?: BG & ValidBridgeGears<InstanceType<CLASS>, BG>;
+  readonly bridgeGears?: BG;
   readonly gearKit?: GKA;
   readonly shellKit?: SKA;
   readonly gateKit?: XKA;
 }
 
 export interface RMachineConfig<
-  ATLAS extends AnyResAtlasInstance,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  K extends ResEquipment<ATLAS["res"], any, any, any, any>,
+  E extends ResEquipment<RA, any, any, any, any>,
 > {
-  // Phantom type: carries the instance's rich type (gear/shell/res sub-maps)
-  // for downstream generic threading. The runtime value stored here is the
-  // atlas class itself (cast to the instance type) — nothing is instantiated.
-  readonly resourceAtlas: ATLAS;
+  readonly resourceAtlas: RA;
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly load: ResModuleLoaderFn;
-  // Extracted once from the atlas class's static `layout`. Kept as a dedicated
-  // field for runtime access (path resolver, family classification) without
-  // needing to read through the phantom `resourceAtlas` at runtime.
   readonly layout: AnyResLayout;
-  // The bundled namespace-wiring info (kits + bridgeGears).
-  readonly kit: K;
+  readonly equipment: E;
 }
 
 export function convertParamsToConfig<
-  CLASS extends AnyResAtlasClass,
+  RAC extends AnyResAtlasClass,
   LL extends AnyLocaleList,
-  BG extends readonly BridgeGearNamespace<InstanceType<CLASS>>[],
-  GKA extends GearKit<InstanceType<CLASS>>,
-  SKA extends ShellKit<InstanceType<CLASS>, BG>,
-  XKA extends GateKit<InstanceType<CLASS>>,
+  BG extends BridgeGearNamespace<InstanceType<RAC>>,
+  GKA extends GearKit<InstanceType<RAC>>,
+  SKA extends ShellKit<InstanceType<RAC>, BG>,
+  XKA extends GateKit<InstanceType<RAC>>,
 >(
-  params: RMachineConfigParams<CLASS, LL, BG, GKA, SKA, XKA>
-): RMachineConfig<InstanceType<CLASS>, LL[number], ResEquipment<InstanceType<CLASS>["res"], GKA, SKA, XKA, BG>> {
+  params: RMachineConfigParams<RAC, LL, BG, GKA, SKA, XKA>
+): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>["res"], BG, GKA, SKA, XKA>> {
   return {
-    // Runtime value: the class reference. Type-level: the instance (phantom).
-    // The cast is safe because nothing reads runtime fields off this — access
-    // goes through `layout` below or through per-resource resolution.
-    resourceAtlas: params.ResourceAtlas as unknown as InstanceType<CLASS>,
+    resourceAtlas: params.ResourceAtlas as InstanceType<RAC>,
     locales: [...params.locales],
     defaultLocale: params.defaultLocale,
     load: params.load,
     layout: params.ResourceAtlas.layout,
-    kit: {
-      gear: params.gearKit ?? ({} as GKA),
-      shell: params.shellKit ?? ({} as SKA),
-      gate: params.gateKit ?? ({} as XKA),
+    equipment: {
       bridgeGears: (params.bridgeGears ?? ([] as readonly unknown[])) as BG,
+      gearKit: params.gearKit ?? ({} as GKA),
+      shellKit: params.shellKit ?? ({} as SKA),
+      gateKit: params.gateKit ?? ({} as XKA),
     },
   };
 }
@@ -140,11 +127,11 @@ export function cloneRMachineConfig<C extends RMachineConfig<any, any, any>>(con
     ...config,
     locales: Object.freeze([...config.locales]) as LocaleList<C["defaultLocale"]>,
     layout: { ...config.layout },
-    kit: {
-      gear: { ...config.kit.gear },
-      shell: { ...config.kit.shell },
-      gate: { ...config.kit.gate },
-      bridgeGears: Object.freeze([...config.kit.bridgeGears]) as C["kit"]["bridgeGears"],
+    equipment: {
+      bridgeGears: Object.freeze([...config.equipment.bridgeGears]) as C["equipment"]["bridgeGears"],
+      gear: { ...config.equipment.gear },
+      shell: { ...config.equipment.shell },
+      gate: { ...config.equipment.gate },
     },
   };
 }

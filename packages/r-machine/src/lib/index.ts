@@ -13,23 +13,12 @@
 
 export type { BrandedResource } from "./branded-resource.js";
 export {
+  defaultLayout,
+  defineLayout,
+} from "./layout.js";
+export {
   RMachine,
   type RMachineLocale,
 } from "./r-machine.js";
 export type { RMachineConfig, RMachineConfigParams } from "./r-machine-config.js";
-export {
-  type AnyResAtlasClass,
-  type AnyResAtlasInstance,
-  type BridgeGearNamespace,
-  defaultLayout,
-  defineLayout,
-  type GateKit,
-  type GearKit,
-  type ResAtlasBuilder,
-  type ResAtlasClass,
-  type ResAtlasInstance,
-  type ShellKit,
-  type ValidBridgeGearItem,
-  type ValidBridgeGears,
-} from "./resource-atlas.js";
 export { getTokenBuilder } from "./token-builder.js";

@@ -11,14 +11,13 @@
  * contact: licensing@codecarvings.com
  */
 
-import { type AnyResAtlas, createToken, type Namespace, type Token } from "#r-machine/core";
-import type { AnyResAtlasClass } from "./resource-atlas.js";
+import { type AnyResAtlasClass, type AnyResDomain, createToken, type Namespace, type Token } from "#r-machine/core";
 
-type TokenBuilder<RA extends AnyResAtlas> = <N extends Namespace<RA>>(namespace: N) => Token<N>;
+type TokenBuilder<RD extends AnyResDomain> = <N extends Namespace<RD>>(namespace: N) => Token<N>;
 
-export function getTokenBuilder<CLASS extends AnyResAtlasClass>(
-  ResourceAtlasClass: CLASS
-): TokenBuilder<InstanceType<CLASS>["res"]> {
+export function getTokenBuilder<RAC extends AnyResAtlasClass>(
+  ResourceAtlasClass: RAC
+): TokenBuilder<InstanceType<RAC>["res"]> {
   void ResourceAtlasClass;
   return createToken;
 }

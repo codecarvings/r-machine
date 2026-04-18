@@ -95,17 +95,17 @@ export interface PathAtlas<S extends AnySegment> {
 }
 export type AnyPathAtlas = PathAtlas<AnySegment>;
 
-// --- Path Atlas Ctor ---
-export interface PathAtlasCtor<PA extends AnyPathAtlas> {
+// --- Path Atlas Class ---
+export interface PathAtlasClass<PA extends AnyPathAtlas> {
   new (): PA;
 }
-export type AnyPathAtlasCtor = PathAtlasCtor<AnyPathAtlas>;
+export type AnyPathAtlasClass = PathAtlasClass<AnyPathAtlas>;
 
 // Build and validate PathAtlas
 export type BuiltPathAtlas<PA extends AnyPathAtlas> = PA & { containsTranslations: boolean };
 
 export function buildPathAtlas<PA extends AnyPathAtlas>(
-  ctor: PathAtlasCtor<PA>,
+  ctor: PathAtlasClass<PA>,
   allowTranslation: boolean
 ): BuiltPathAtlas<PA> {
   const instance = new ctor();

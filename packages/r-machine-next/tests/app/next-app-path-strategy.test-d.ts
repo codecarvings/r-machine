@@ -1,7 +1,7 @@
 import type { NamespaceMap, RMachine } from "r-machine";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import { describe, expectTypeOf, it } from "vitest";
-import type { PathAtlasCtor } from "#r-machine/next/core";
+import type { PathAtlasClass } from "#r-machine/next/core";
 import type {
   NextAppClientRMachine,
   NextAppClientToolset,
@@ -60,7 +60,7 @@ describe("NextAppPathStrategy", () => {
     it("PAD defaults to defaultConfig PathAtlas instance", () => {
       expectTypeOf<
         NextAppPathStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>["config"]["PathAtlas"]
-      >().toEqualTypeOf<PathAtlasCtor<DefaultPA>>();
+      >().toEqualTypeOf<PathAtlasClass<DefaultPA>>();
     });
 
     it("LK defaults to defaultConfig localeKey", () => {
@@ -198,7 +198,7 @@ describe("NextAppPathStrategy", () => {
     it("custom PAD is wired through to config.PathAtlas", () => {
       expectTypeOf<
         NextAppPathStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>["config"]["PathAtlas"]
-      >().toEqualTypeOf<PathAtlasCtor<TranslatedPathAtlas>>();
+      >().toEqualTypeOf<PathAtlasClass<TranslatedPathAtlas>>();
     });
 
     it("custom LK is reflected in config.localeKey", () => {

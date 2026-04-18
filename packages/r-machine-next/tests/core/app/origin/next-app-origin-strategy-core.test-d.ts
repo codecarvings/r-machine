@@ -1,7 +1,7 @@
 import type { NamespaceMap, RMachine } from "r-machine";
 import type { SwitchableOption } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyPathAtlas, HrefTranslator, PathAtlasCtor, PathParamMap, PathSelector } from "#r-machine/next/core";
+import type { AnyPathAtlas, HrefTranslator, PathAtlasClass, PathParamMap, PathSelector } from "#r-machine/next/core";
 import type {
   AnyNextAppOriginStrategyConfig,
   LocaleOriginMap,
@@ -54,8 +54,8 @@ describe("NextAppOriginStrategyConfig", () => {
     >();
   });
 
-  it("PathAtlas is PathAtlasCtor<PAD>", () => {
-    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasCtor<SimplePathAtlas>>();
+  it("PathAtlas is PathAtlasClass<PAD>", () => {
+    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasClass<SimplePathAtlas>>();
   });
 
   it("localeKey is the literal string type", () => {

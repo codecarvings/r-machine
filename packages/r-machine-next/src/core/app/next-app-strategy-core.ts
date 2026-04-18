@@ -14,21 +14,21 @@
 import type { AnyResAtlas, ResKit } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { Strategy, type SwitchableOption } from "r-machine/strategy";
-import type { AnyPathAtlas, BuiltPathAtlas, PathAtlasCtor } from "#r-machine/next/core";
+import type { AnyPathAtlas, BuiltPathAtlas, PathAtlasClass } from "#r-machine/next/core";
 import type { NextAppClientImpl, NextAppClientRMachine, NextAppClientToolset } from "./next-app-client-toolset.js";
 import type { NextAppServerImpl, NextAppServerToolset } from "./next-app-server-toolset.js";
 
 export const localeHeaderName = "x-rm-locale";
 
 export interface NextAppStrategyConfig<PA extends AnyPathAtlas, LK extends string> {
-  readonly PathAtlas: PathAtlasCtor<PA>;
+  readonly PathAtlas: PathAtlasClass<PA>;
   readonly localeKey: LK;
   readonly autoLocaleBinding: SwitchableOption;
   readonly basePath: string;
 }
 export type AnyNextAppStrategyConfig = NextAppStrategyConfig<any, any>;
 export interface PartialNextAppStrategyConfig<PA extends AnyPathAtlas, LK extends string> {
-  readonly PathAtlas?: PathAtlasCtor<PA>;
+  readonly PathAtlas?: PathAtlasClass<PA>;
   readonly localeKey?: LK;
   readonly autoLocaleBinding?: SwitchableOption;
   readonly basePath?: string;

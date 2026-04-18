@@ -1,7 +1,7 @@
 import type { NamespaceMap, RMachine } from "r-machine";
 import type { SwitchableOption } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyPathAtlas, PathAtlasCtor } from "#r-machine/next/core";
+import type { AnyPathAtlas, PathAtlasClass } from "#r-machine/next/core";
 import type { NextAppClientRMachine, NextAppClientToolset } from "../../../src/core/app/next-app-client-toolset.js";
 import type { NextAppServerToolset } from "../../../src/core/app/next-app-server-toolset.js";
 import type {
@@ -57,8 +57,8 @@ describe("NextAppStrategyConfig", () => {
     expectTypeOf<Keys>().toEqualTypeOf<"PathAtlas" | "localeKey" | "autoLocaleBinding" | "basePath">();
   });
 
-  it("PathAtlas is PathAtlasCtor<PAD>", () => {
-    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasCtor<TranslatedPathAtlas>>();
+  it("PathAtlas is PathAtlasClass<TranslatedPathAtlas>", () => {
+    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasClass<TranslatedPathAtlas>>();
   });
 
   it("localeKey is the literal string type", () => {
@@ -109,8 +109,8 @@ describe("PartialNextAppStrategyConfig", () => {
     expectTypeOf<{}>().toExtend<Config>();
   });
 
-  it("PathAtlas accepts PathAtlasCtor<PAD>", () => {
-    expectTypeOf<PathAtlasCtor<TranslatedPathAtlas>>().toExtend<NonNullable<Config["PathAtlas"]>>();
+  it("PathAtlas accepts PathAtlasClass<PAD>", () => {
+    expectTypeOf<PathAtlasClass<TranslatedPathAtlas>>().toExtend<NonNullable<Config["PathAtlas"]>>();
   });
 
   it("localeKey accepts the literal string type", () => {

@@ -22,13 +22,13 @@ export type {
 } from "./path.js";
 export {
   type AnyPathAtlas,
-  type AnyPathAtlasCtor,
+  type AnyPathAtlasClass,
   type AnySegment,
   type AnySegmentEntryKey,
   type BuiltPathAtlas,
   buildPathAtlas,
   type PathAtlas,
-  type PathAtlasCtor,
+  type PathAtlasClass,
   type Segment,
   type TranslatableSegment,
 } from "./path-atlas.js";

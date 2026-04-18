@@ -1,6 +1,6 @@
 import type { NamespaceMap, RMachine } from "r-machine";
 import { describe, expectTypeOf, it } from "vitest";
-import type { PathAtlasCtor } from "#r-machine/next/core";
+import type { PathAtlasClass } from "#r-machine/next/core";
 import type { NextAppClientToolset, NextAppServerToolset } from "#r-machine/next/core/app";
 import type { PartialNextAppOriginStrategyConfig } from "#r-machine/next/core/app/origin";
 // biome-ignore lint/style/useImportType: value import needed to derive default types via typeof
@@ -63,7 +63,7 @@ describe("NextAppOriginStrategy", () => {
     it("PAD defaults to defaultConfig PathAtlas constructor", () => {
       expectTypeOf<
         NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>["config"]["PathAtlas"]
-      >().toEqualTypeOf<PathAtlasCtor<DefaultPA>>();
+      >().toEqualTypeOf<PathAtlasClass<DefaultPA>>();
     });
 
     it("LK defaults to defaultConfig localeKey", () => {
@@ -86,7 +86,7 @@ describe("NextAppOriginStrategy", () => {
           NamespaceMap<TestAtlas>,
           TranslatedPathAtlas
         >["config"]["PathAtlas"]
-      >().toEqualTypeOf<PathAtlasCtor<TranslatedPathAtlas>>();
+      >().toEqualTypeOf<PathAtlasClass<TranslatedPathAtlas>>();
     });
 
     it("custom LK is reflected in config.localeKey", () => {

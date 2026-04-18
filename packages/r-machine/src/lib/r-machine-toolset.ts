@@ -11,25 +11,29 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { GearComposer, Namespace, ResEquipment, ShellComposer, VertexGearTag } from "#r-machine/core";
+import type {
+  AnyResAtlas,
+  AnyResDomain,
+  GearComposer,
+  Namespace,
+  ResEquipment,
+  ShellComposer,
+  VertexGearTag,
+} from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
-import type { AnyResAtlasInstance } from "./resource-atlas.js";
 
 export interface RMachineToolset<
-  ATLAS extends AnyResAtlasInstance,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  K extends ResEquipment<ATLAS["res"], any, any, any, any>,
+  E extends ResEquipment<RA, any, any, any, any>,
 > {
-  readonly Gear: GearComposer<ATLAS, K["gear"]>;
-  readonly VertexGear: GearComposer<ATLAS, K["gear"], VertexGearTag>;
-  readonly Shell: ShellComposer<ATLAS, L, K["shell"], K["bridgeGears"]>;
-  readonly localized: LocalizerHelper<ATLAS>;
+  readonly Gear: GearComposer<RA, E["gearKit"]>;
+  readonly VertexGear: GearComposer<RA, E["gearKit"], VertexGearTag>;
+  readonly Shell: ShellComposer<RA, L, E["shellKit"], E["bridgeGears"]>;
+  readonly localized: LocalizerHelper<RA["shell"]>;
 }
 
-type LocalizerHelper<ATLAS extends AnyResAtlasInstance> = <
-  N extends Namespace<ATLAS["res"]>,
-  const R extends ATLAS["res"][N],
->(
+type LocalizerHelper<RD extends AnyResDomain> = <N extends Namespace<RD>, const R extends RD[N]>(
   namespace: N,
-  shell: R & Record<Exclude<keyof R, keyof ATLAS["res"][N]>, never>
+  shell: R & Record<Exclude<keyof R, keyof RD[N]>, never>
 ) => R;

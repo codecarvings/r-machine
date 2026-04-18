@@ -6,7 +6,7 @@ import type {
   AnySegment,
   AnySegmentEntryKey,
   BuiltPathAtlas,
-  PathAtlasCtor,
+  PathAtlasClass,
   Segment,
   TranslatableSegment,
 } from "../../src/core/path-atlas.js";
@@ -39,9 +39,9 @@ describe("AnyPathAtlas", () => {
   });
 });
 
-describe("PathAtlasCtor", () => {
+describe("PathAtlasClass", () => {
   it("is a constructor that returns PAD", () => {
-    expectTypeOf<PathAtlasCtor<TestAtlas>>().toEqualTypeOf<new () => TestAtlas>();
+    expectTypeOf<PathAtlasClass<TestAtlas>>().toEqualTypeOf<new () => TestAtlas>();
   });
 });
 
@@ -55,7 +55,7 @@ describe("buildPathAtlas", () => {
   it("returns BuiltPathAtlas for a given PathAtlas type", () => {
     const ctor = class {
       segment = {};
-    } as unknown as PathAtlasCtor<AnyPathAtlas>;
+    } as unknown as PathAtlasClass<AnyPathAtlas>;
     expectTypeOf(buildPathAtlas(ctor, true)).toEqualTypeOf<BuiltPathAtlas<AnyPathAtlas>>();
   });
 
@@ -65,7 +65,7 @@ describe("buildPathAtlas", () => {
     }
     const ctor = class {
       readonly segment = { "/about": {} };
-    } as unknown as PathAtlasCtor<SpecificAtlas>;
+    } as unknown as PathAtlasClass<SpecificAtlas>;
     expectTypeOf(buildPathAtlas(ctor, false)).toEqualTypeOf<BuiltPathAtlas<SpecificAtlas>>();
   });
 });

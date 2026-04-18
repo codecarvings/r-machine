@@ -25,15 +25,10 @@ export interface ShellTag {
   readonly [shellSymbol]?: typeof shellSymbol;
 }
 
-// Maps a bridgeGear tuple to a namespace-map shape suitable for SurfaceMap.
-// Each tuple element becomes both the key name and the namespace reference.
 type BridgeMap<BG extends readonly string[]> = {
   readonly [K in BG[number]]: K;
 };
 
-// When BG is non-empty, the shell plugin context exposes `bridge` — a record
-// of surfaces, one per declared bridgeGear namespace. Empty tuples collapse
-// to `{}` so no-bridge shells don't carry the field at all.
 type BridgeCtx<RA extends AnyResAtlas, BG extends readonly string[]> = BG extends readonly []
   ? {}
   : { readonly bridge: SurfaceMap<RA, BridgeMap<BG> & NamespaceMap<RA>> };

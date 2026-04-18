@@ -11,11 +11,23 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyPlugHead, AnyRes, GateWire, ResEquipment, VertexGearMap } from "#r-machine/core";
+import type {
+  AnyNamespace,
+  AnyPlugHead,
+  AnyRes,
+  AnyResAtlas,
+  AnyResAtlasClass,
+  BridgeGearNamespace,
+  GateKit,
+  GateWire,
+  GearKit,
+  ResEquipment,
+  ShellKit,
+  VertexGearMap,
+} from "#r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
-import type { AnyNamespace } from "../core/res-atlas.js";
 import {
   cloneRMachineConfig,
   convertParamsToConfig,
@@ -24,21 +36,9 @@ import {
   validateRMachineConfig,
 } from "./r-machine-config.js";
 import type { RMachineToolset } from "./r-machine-toolset.js";
-import type {
-  AnyResAtlasClass,
-  AnyResAtlasInstance,
-  BridgeGearNamespace,
-  GateKit,
-  GearKit,
-  ShellKit,
-} from "./resource-atlas.js";
 
-export class RMachine<
-  ATLAS extends AnyResAtlasInstance,
-  L extends AnyLocale,
-  K extends ResEquipment<ATLAS["res"], any, any, any, any>,
-> {
-  constructor(config: RMachineConfig<ATLAS, L, K>) {
+export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends ResEquipment<RA, any, any, any, any>> {
+  constructor(config: RMachineConfig<RA, L, E>) {
     const configError = validateRMachineConfig(config);
     if (configError) {
       throw configError;
@@ -52,7 +52,7 @@ export class RMachine<
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly localeHelper: LocaleHelper<L>;
-  protected readonly config: RMachineConfig<ATLAS, L, K>;
+  protected readonly config: RMachineConfig<RA, L, E>;
 
   protected validateLocaleForPick(locale: L) {
     const error = this.localeHelper.validateLocale(locale);
@@ -61,7 +61,7 @@ export class RMachine<
     }
   }
 
-  createToolset(): RMachineToolset<ATLAS, L, K> {
+  createToolset(): RMachineToolset<RA, L, E> {
     const Gear = undefined!; // TODO: WIP;
     const VertexGear = undefined!; // TODO: WIP;
     const Shell = undefined!; // TODO: WIP;
@@ -73,16 +73,16 @@ export class RMachine<
   }
 
   static create<
-    CLASS extends AnyResAtlasClass,
+    RAC extends AnyResAtlasClass,
     const LL extends AnyLocaleList,
-    const BG extends readonly BridgeGearNamespace<InstanceType<CLASS>>[] = readonly [],
-    GKA extends GearKit<InstanceType<CLASS>> = {},
-    SKA extends ShellKit<InstanceType<CLASS>, BG> = {},
-    XKA extends GateKit<InstanceType<CLASS>> = {},
+    const BG extends BridgeGearNamespace<InstanceType<RAC>> = readonly [],
+    GKA extends GearKit<InstanceType<RAC>> = {},
+    SKA extends ShellKit<InstanceType<RAC>, BG> = {},
+    XKA extends GateKit<InstanceType<RAC>> = {},
   >(
-    config: RMachineConfigParams<CLASS, LL, BG, GKA, SKA, XKA>
-  ): RMachine<InstanceType<CLASS>, LL[number], ResEquipment<InstanceType<CLASS>["res"], GKA, SKA, XKA, BG>> {
-    return new RMachine<InstanceType<CLASS>, LL[number], ResEquipment<InstanceType<CLASS>["res"], GKA, SKA, XKA, BG>>(
+    config: RMachineConfigParams<RAC, LL, BG, GKA, SKA, XKA>
+  ): RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BG, GKA, SKA, XKA>> {
+    return new RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BG, GKA, SKA, XKA>>(
       convertParamsToConfig(config)
     );
   }

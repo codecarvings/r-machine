@@ -11,13 +11,13 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, ExtractNamespace, Namespace, NamespaceRef, SolidNamespaceRef } from "./res-atlas.js";
+import type { AnyResAtlas, ExtractNamespace, NamespaceRef, SolidNamespaceRef } from "./res-atlas.js";
 import type { Surface } from "./surface.js";
 
 // Required for explicit namespace definitions to avoid circular type references
-export type ExplicitNamespaceMap<RA extends AnyResAtlas> = {
-  readonly [k: string]: Namespace<RA>;
-};
+// export type ExplicitNamespaceMap<RA extends AnyResAtlas> = {
+//   readonly [k: string]: Namespace<RA>;
+// };
 
 export type NamespaceMap<RA extends AnyResAtlas> = {
   readonly [k: string]: NamespaceRef<RA>;

@@ -1,6 +1,6 @@
 import { Gear, type RShape } from "../setup";
 
-export const r = Gear.deps("gear/counter", "gear/shopping-cart", "prova")
+export const r = Gear.deps("gear/counter", "gear/shopping-cart")
   .reactive()
   .define(([counter, cart], _) => {
     return {

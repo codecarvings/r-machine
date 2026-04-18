@@ -18,11 +18,11 @@ import type { AnyLocale } from "#r-machine/locale";
 export abstract class Strategy<
   ATLAS extends AnyResAtlasInstance,
   L extends AnyLocale,
-  K extends ResEquipment<ATLAS["res"], any, any, any, any>,
+  E extends ResEquipment<ATLAS["res"], any, any, any, any>,
   C,
 > {
   constructor(
-    readonly rMachine: RMachine<ATLAS, L, K>,
+    readonly rMachine: RMachine<ATLAS, L, E>,
     readonly config: C
   ) {
     this.validateConfig();

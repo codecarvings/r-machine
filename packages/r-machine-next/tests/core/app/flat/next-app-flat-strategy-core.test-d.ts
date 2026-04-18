@@ -2,7 +2,7 @@ import type { NamespaceMap, RMachine } from "r-machine";
 import type { SwitchableOption } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import { describe, expectTypeOf, it } from "vitest";
-import type { PathAtlasCtor } from "#r-machine/next/core";
+import type { PathAtlasClass } from "#r-machine/next/core";
 import type {
   AnyNextAppFlatStrategyConfig,
   NextAppFlatStrategyConfig,
@@ -26,8 +26,8 @@ describe("NextAppFlatStrategyConfig", () => {
     >();
   });
 
-  it("PathAtlas is PathAtlasCtor<PAD>", () => {
-    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasCtor<SimplePathAtlas>>();
+  it("PathAtlas is PathAtlasClass<SimplePathAtlas>", () => {
+    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasClass<SimplePathAtlas>>();
   });
 
   it("localeKey is the literal string type", () => {

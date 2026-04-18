@@ -1,7 +1,7 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type {
   AnyPathAtlas,
-  AnyPathAtlasCtor,
+  AnyPathAtlasClass,
   AnySegment,
   BoundPathComposer,
   BuiltPathAtlas,
@@ -9,7 +9,7 @@ import type {
   HrefMapper,
   HrefTranslator,
   PathAtlas,
-  PathAtlasCtor,
+  PathAtlasClass,
   PathParamMap,
   PathParams,
   PathSelector,
@@ -39,11 +39,11 @@ describe("core barrel exports", () => {
 
     expectTypeOf<BuiltPathAtlas<AnyPathAtlas>>().toBeObject();
 
-    expectTypeOf<AnyPathAtlasCtor>().toBeConstructibleWith();
+    expectTypeOf<AnyPathAtlasClass>().toBeConstructibleWith();
 
     expectTypeOf<PathAtlas<AnySegment>>().toBeObject();
 
-    expectTypeOf<PathAtlasCtor<AnyPathAtlas>>().toBeConstructibleWith();
+    expectTypeOf<PathAtlasClass<AnyPathAtlas>>().toBeConstructibleWith();
 
     expectTypeOf<PathParamMap<"/">>().toBeObject();
 

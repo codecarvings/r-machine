@@ -12,18 +12,31 @@
  */
 
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { ExplicitNamespaceList } from "./res-list.js";
-import type { ExplicitNamespaceMap } from "./res-map.js";
+import type { Namespace } from "./res-domain.js";
 
 export interface ResEquipment<
   RA extends AnyResAtlas,
-  GKA extends ExplicitNamespaceMap<RA> = {},
-  SKA extends ExplicitNamespaceMap<RA> = {},
-  XKA extends ExplicitNamespaceMap<RA> = {},
-  BG extends ExplicitNamespaceList<RA> = [],
+  BG extends BridgeGearNamespace<RA> = [],
+  GKA extends GearKit<RA> = {},
+  SKA extends ShellKit<RA, BG> = {},
+  XKA extends GateKit<RA> = {},
 > {
-  readonly gear: GKA;
-  readonly shell: SKA;
-  readonly gate: XKA;
   readonly bridgeGears: BG;
+  readonly gearKit: GKA;
+  readonly shellKit: SKA;
+  readonly gateKit: XKA;
 }
+
+export type BridgeGearNamespace<RA extends AnyResAtlas> = readonly Namespace<RA["gear"]>[];
+
+export type GearKit<RA extends AnyResAtlas> = {
+  readonly [key: string]: Namespace<RA["gear"]>;
+};
+
+export type ShellKit<RA extends AnyResAtlas, BG extends BridgeGearNamespace<RA>> = {
+  readonly [key: string]: Namespace<RA["shell"]> | BG[number];
+};
+
+export type GateKit<RA extends AnyResAtlas> = {
+  readonly [key: string]: Namespace<RA["res"]>;
+};

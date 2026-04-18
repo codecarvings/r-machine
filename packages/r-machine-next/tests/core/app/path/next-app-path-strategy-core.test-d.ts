@@ -6,7 +6,7 @@ import type {
   AnyPathAtlas,
   HrefCanonicalizer,
   HrefTranslator,
-  PathAtlasCtor,
+  PathAtlasClass,
   PathParamMap,
   PathSelector,
 } from "#r-machine/next/core";
@@ -49,8 +49,8 @@ describe("NextAppPathStrategyConfig", () => {
     >();
   });
 
-  it("PathAtlas is PathAtlasCtor<PAD>", () => {
-    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasCtor<SimplePathAtlas>>();
+  it("PathAtlas is PathAtlasClass<PAD>", () => {
+    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasClass<SimplePathAtlas>>();
   });
 
   it("localeKey is the literal string type", () => {
@@ -111,7 +111,7 @@ describe("AnyNextAppPathStrategyConfig", () => {
   });
 
   it("generic-dependent properties widen to any", () => {
-    expectTypeOf<AnyNextAppPathStrategyConfig["PathAtlas"]>().toEqualTypeOf<PathAtlasCtor<any>>();
+    expectTypeOf<AnyNextAppPathStrategyConfig["PathAtlas"]>().toEqualTypeOf<PathAtlasClass<any>>();
     expectTypeOf<AnyNextAppPathStrategyConfig["localeKey"]>().toBeAny();
   });
 });

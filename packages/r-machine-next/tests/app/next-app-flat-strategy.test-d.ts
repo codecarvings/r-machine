@@ -1,7 +1,7 @@
 import type { NamespaceMap, RMachine } from "r-machine";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import { describe, expectTypeOf, it } from "vitest";
-import type { PathAtlasCtor } from "#r-machine/next/core";
+import type { PathAtlasClass } from "#r-machine/next/core";
 import type { NextAppClientRMachine, NextAppClientToolset, NextAppServerToolset } from "#r-machine/next/core/app";
 import type { NextAppFlatStrategyConfig, PartialNextAppFlatStrategyConfig } from "#r-machine/next/core/app/flat";
 // biome-ignore lint/style/useImportType: value import needed to derive default types via typeof
@@ -121,7 +121,7 @@ describe("NextAppFlatStrategy", () => {
     it("custom PAD is wired through to config.PathAtlas", () => {
       expectTypeOf<
         NextAppFlatStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, TranslatedPathAtlas>["config"]["PathAtlas"]
-      >().toEqualTypeOf<PathAtlasCtor<TranslatedPathAtlas>>();
+      >().toEqualTypeOf<PathAtlasClass<TranslatedPathAtlas>>();
     });
 
     it("custom LK is reflected in config.localeKey", () => {
