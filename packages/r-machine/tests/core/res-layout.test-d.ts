@@ -10,8 +10,8 @@ import {
 import type { AnyLocale } from "../../src/locale/locale.js";
 
 describe("ResLayoutEntryType", () => {
-  it("is the exact union of the three canonical layout literals", () => {
-    expectTypeOf<ResLayoutEntryType>().toEqualTypeOf<"gear" | "shell" | "dynamic-shell">();
+  it("is the exact union of the four canonical layout literals", () => {
+    expectTypeOf<ResLayoutEntryType>().toEqualTypeOf<"gear" | "vertex-gear" | "shell" | "dynamic-shell">();
   });
 
   it("does not widen to string", () => {
@@ -25,8 +25,9 @@ describe("AnyResLayout", () => {
     expectTypeOf<AnyResLayout[string]>().toEqualTypeOf<ResLayoutEntryType>();
   });
 
-  it("accepts the three canonical layout types as values", () => {
+  it("accepts the four canonical layout types as values", () => {
     expectTypeOf<"gear">().toExtend<ResLayoutEntryType>();
+    expectTypeOf<"vertex-gear">().toExtend<ResLayoutEntryType>();
     expectTypeOf<"shell">().toExtend<ResLayoutEntryType>();
     expectTypeOf<"dynamic-shell">().toExtend<ResLayoutEntryType>();
   });

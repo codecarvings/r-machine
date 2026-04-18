@@ -18,4 +18,13 @@ export {
   type RMachineLocale,
 } from "./r-machine.js";
 export type { RMachineConfig, RMachineConfigParams } from "./r-machine-config.js";
+export {
+  type AnyResAtlasClass,
+  type AnyResAtlasInstance,
+  defineLayout,
+  type ResAtlasBuilder,
+  type ResAtlasClass,
+  type ResAtlasInstance,
+  type RMachineTypeError,
+} from "./resource-atlas.js";
 export { getTokenBuilder } from "./token-builder.js";

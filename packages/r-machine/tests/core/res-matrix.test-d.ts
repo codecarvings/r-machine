@@ -15,11 +15,11 @@ describe("ResMatrixMeta", () => {
     expectTypeOf<Keys>().toEqualTypeOf<"family" | "isReactive" | "isVertex">();
   });
 
-  it("types `family` as ResFamily (gear | shell), excluding dynamic-shell", () => {
+  it("types `family` as ResFamily (gear | vertex-gear | shell), excluding dynamic-shell", () => {
     // The meta is the post-resolution artefact; `dynamic-shell` is a
     // *layout* concept and must not leak into the family at this level.
     expectTypeOf<ResMatrixMeta["family"]>().toEqualTypeOf<ResFamily>();
-    expectTypeOf<ResMatrixMeta["family"]>().toEqualTypeOf<"gear" | "shell">();
+    expectTypeOf<ResMatrixMeta["family"]>().toEqualTypeOf<"gear" | "vertex-gear" | "shell">();
     expectTypeOf<"dynamic-shell">().not.toExtend<ResMatrixMeta["family"]>();
   });
 

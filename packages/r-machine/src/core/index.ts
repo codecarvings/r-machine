@@ -39,6 +39,7 @@ export type { RelayBrand } from "./relay.js";
 export type { AnyRes, AnyResOrigin } from "./res.js";
 export { type AnyResAtlas, createToken, type ExtractNamespace, type Namespace, type Token } from "./res-atlas.js";
 export type { ResKit } from "./res-kit.js";
+export type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "./res-layout.js";
 export type { NamespaceList, SolidNamespaceList, SurfaceList } from "./res-list.js";
 export type {
   ExplicitNamespaceMap,

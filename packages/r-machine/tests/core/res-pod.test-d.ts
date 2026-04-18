@@ -51,7 +51,7 @@ describe("ResPod", () => {
     // The data is post-resolution: layout "dynamic-shell" collapses to
     // family "shell" at build time, so the family union never sees it.
     expectTypeOf<ResPod["family"]>().toEqualTypeOf<ResFamily>();
-    expectTypeOf<ResPod["family"]>().toEqualTypeOf<"gear" | "shell">();
+    expectTypeOf<ResPod["family"]>().toEqualTypeOf<"gear" | "vertex-gear" | "shell">();
     expectTypeOf<"dynamic-shell">().not.toExtend<ResPod["family"]>();
   });
 
