@@ -1,6 +1,6 @@
-import { Forge, type RShape } from "../setup";
+import { Gear, type RShape } from "../setup";
 
-export const r = Forge.reactive({ counter: 0 }).vertexGear(async ({ $ }, _) => {
+export const r = Gear.reactive({ counter: 0 }).define(async ({ $ }, _) => {
   const setSomeValue = _.action((value: number) => ({ counter: value }));
 
   const $myRelay = _.relay({

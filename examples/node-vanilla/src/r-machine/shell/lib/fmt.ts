@@ -1,6 +1,6 @@
-import { Forge, type RShape } from "@/r-machine/setup";
+import { type RShape, Shell } from "@/r-machine/setup";
 
-export const r = Forge.shell(({ $ }) => {
+export const r = Shell.define(({ $ }) => {
   return {
     locale: $.locale,
     number: (num: number) => num.toLocaleString(),

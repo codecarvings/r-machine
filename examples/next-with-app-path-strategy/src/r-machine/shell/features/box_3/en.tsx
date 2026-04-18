@@ -1,6 +1,6 @@
-import { Forge, type RShape } from "@/r-machine/setup";
+import { type RShape, Shell } from "@/r-machine/setup";
 
-export const r = Forge.shell(async () => {
+export const r = Shell.define(async () => {
   // Simulate a delay to force display of loading state
   await new Promise((resolve) => setTimeout(resolve, 2000));
 

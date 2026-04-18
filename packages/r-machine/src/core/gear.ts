@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { ResMatrix } from "#r-machine/core";
 import type { CmdComposer } from "./cmd.js";
 import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
 import type { RelayComposer } from "./relay.js";
@@ -18,7 +19,6 @@ import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
-import type { ResMatrix } from "./res-matrix.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
 declare const gearSymbol: unique symbol;
@@ -33,17 +33,17 @@ export interface GearCursor {
 
 type GatePluginCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>> = PluginCtx<RA, KA>;
 
-type GearMapPlugin<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = MapPlugin<
+export type GearMapPlugin<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = MapPlugin<
   RA,
   NM,
   GatePluginCtx<RA, KA>
 >;
 
-type GearListPlugin<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = ListPlugin<
-  RA,
-  NL,
-  GatePluginCtx<RA, KA>
->;
+export type GearListPlugin<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+> = ListPlugin<RA, NL, GatePluginCtx<RA, KA>>;
 
 type GearMapPlugHead<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = ResMapPlugHead<
   "gear",
@@ -65,14 +65,14 @@ interface GearMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM ex
 interface GearListPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>>
   extends PlugBody<GearListPlugHead<RA, KA, NL>> {}
 
-export type GearMapComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>, T> = <
+export type GearMapDefiner<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = <
   R extends AnyRes,
 >(
   factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => R | Promise<R>
-) => ResMatrix<R & T, GearMapPlug<RA, KA, NM>>;
+) => ResMatrix<R & GearTag, GearMapPlug<RA, KA, NM>>;
 
-export type GearListComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>, T> = <
+export type GearListDefiner<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = <
   R extends AnyRes,
 >(
   factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => R | Promise<R>
-) => ResMatrix<R & T, GearListPlug<RA, KA, NL>>;
+) => ResMatrix<R & GearTag, GearListPlug<RA, KA, NL>>;

@@ -1,9 +1,9 @@
 import { mockPlug } from "@r-machine/testing";
-import { Forge, type RShape } from "../setup";
+import { Gear, type RShape } from "../setup";
 
-export const r = Forge.connected("gear/counter", "gear/shopping-cart")
+export const r = Gear.deps("gear/counter", "gear/shopping-cart")
   .reactive()
-  .gear(([counter, cart], _) => {
+  .define(([counter, cart], _) => {
     return {
       mySum: _.getter("memoized", () => counter.myCount + cart.totalItems),
       doSomething: () => 21,

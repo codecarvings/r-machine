@@ -1,6 +1,6 @@
-import { Forge, type RShape } from "../setup";
+import { Gear, type RShape } from "../setup";
 
-export const r = Forge.gear(() => {
+export const r = Gear.define(() => {
   return {
     someData: true,
   };

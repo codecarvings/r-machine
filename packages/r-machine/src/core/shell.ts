@@ -73,7 +73,7 @@ interface ShellListPlug<
   NL extends NamespaceList<RA>,
 > extends PlugBody<ShellListPlugHead<RA, L, KA, NL>> {}
 
-export type ShellMapComposer<
+export type ShellMapDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
@@ -82,7 +82,7 @@ export type ShellMapComposer<
   factory: (plugin: ShellMapPlugin<RA, L, KA, NM>) => R | Promise<R>
 ) => ResMatrix<R & ShellTag, ShellMapPlug<RA, L, KA, NM>>;
 
-export type ShellListComposer<
+export type ShellListDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,

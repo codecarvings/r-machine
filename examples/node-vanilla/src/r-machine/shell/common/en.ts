@@ -1,7 +1,7 @@
 import { mockPlug } from "@r-machine/testing";
-import { Forge, type RShape } from "@/r-machine/setup";
+import { type RShape, Shell } from "@/r-machine/setup";
 
-export const r = Forge.connected().shell(({ fmt }) => {
+export const r = Shell.define(({ fmt }) => {
   return {
     greeting: `Hello ${fmt.number(21)}`,
     farewell: "Goodbye",

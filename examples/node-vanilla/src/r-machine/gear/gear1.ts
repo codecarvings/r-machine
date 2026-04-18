@@ -1,4 +1,4 @@
-import { Forge, type RShape } from "../setup";
+import { Gear, type RShape } from "../setup";
 
 interface User {
   name: string;
@@ -10,11 +10,11 @@ interface GearState {
   user: User | null;
 }
 
-export const r = Forge.reactive<GearState>({
+export const r = Gear.reactive<GearState>({
   loading: true,
   error: null,
   user: null,
-}).gear((plugin, _) => {
+}).define((plugin, _) => {
   const { $ } = plugin;
 
   const setLoading = _.action(() => ({ loading: true, error: null, user: null }));
@@ -41,4 +41,4 @@ export const r = Forge.reactive<GearState>({
   };
 });
 
-export type Gear_Aggregator = RShape<typeof r>;
+export type Gear_Gear1 = RShape<typeof r>;

@@ -110,7 +110,7 @@ type StateReactiveGearResource<S extends AnyState, D extends StateDef> = D exten
     ? ReadableReactiveGearResource<S, G>
     : never;
 
-export interface StatefulReactiveGearMapComposer<
+export interface StatefulReactiveGearMapDefiner<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
@@ -126,7 +126,7 @@ export interface StatefulReactiveGearMapComposer<
   ): ResMatrix<R & T, StatefulReactiveGearMapPlug<RA, KA, NM, S>>;
 }
 
-export interface StatefulReactiveGearListComposer<
+export interface StatefulReactiveGearListDefiner<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,

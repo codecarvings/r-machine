@@ -65,7 +65,7 @@ interface StatelessReactiveGearListPlug<
   NL extends NamespaceList<RA>,
 > extends PlugBody<StatelessReactiveGearListPlugHead<RA, KA, NL>> {}
 
-export type StatelessReactiveGearMapComposer<
+export type StatelessReactiveGearMapDefiner<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
@@ -74,7 +74,7 @@ export type StatelessReactiveGearMapComposer<
   factory: (plugin: StatelessReactiveGearMapPlugin<RA, KA, NM>, _: StatelessReactiveGearCursor) => R | Promise<R>
 ) => ResMatrix<R & T, StatelessReactiveGearMapPlug<RA, KA, NM>>;
 
-export type StatelessReactiveGearListComposer<
+export type StatelessReactiveGearListDefiner<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,

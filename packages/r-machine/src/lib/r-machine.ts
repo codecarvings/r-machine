@@ -11,15 +11,14 @@
  * contact: licensing@codecarvings.com
  */
 
-import {
-  type AnyPlugHead,
-  type AnyRes,
-  type AnyResAtlas,
-  createForge,
-  type ExplicitNamespaceMap,
-  type GateWire,
-  type ResKit,
-  type VertexGearMap,
+import type {
+  AnyPlugHead,
+  AnyRes,
+  AnyResAtlas,
+  ExplicitNamespaceMap,
+  GateWire,
+  ResKit,
+  VertexGearMap,
 } from "#r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
@@ -59,8 +58,9 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, KA extends Re
   }
 
   createToolset(): RMachineToolset<RA, L, KA> {
-    const Forge = createForge<RA, L, KA>(undefined!);
-    return { Forge, localized: localized };
+    const Gear = undefined!; // TODO: WIP;
+    const Shell = undefined!; // TODO: WIP;
+    return { Gear, Shell, localized: localized };
   }
 
   getGateWire(_plugHead: AnyPlugHead, _locale: L, _vertexGearMap?: VertexGearMap | undefined): GateWire {

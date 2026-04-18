@@ -1,6 +1,6 @@
-import { Forge, type RShape } from "../setup";
+import { Gear, type RShape } from "../setup";
 
-export const r = Forge.reactive({ items: [] as string[] }).gear((plugin, _) => {
+export const r = Gear.reactive({ items: [] as string[] }).define((plugin, _) => {
   const { $ } = plugin;
   return {
     addItem: _.action((item: string) => ({ items: [...$.state.items, item] })),

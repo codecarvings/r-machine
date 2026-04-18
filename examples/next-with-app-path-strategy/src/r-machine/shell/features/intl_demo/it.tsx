@@ -1,7 +1,6 @@
-import { Forge, localized } from "@/r-machine/setup";
+import { localized, Shell } from "@/r-machine/setup";
 
-
-export const r = Forge.shell(($) => {
+export const r = Shell.define(($) => {
   const { date, number, currency, plural } = $.fmt;
 
   return localized("shell/features/intl_demo", {

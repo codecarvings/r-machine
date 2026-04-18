@@ -12,13 +12,13 @@
  */
 
 export type { Action, Atomic } from "./action.js";
-export { createForge, type Forge } from "./forge.js";
 export type {
   GateListPlugHead,
   GateMapPlugHead,
   GatePluginCtx,
 } from "./gate-plug.js";
 export type { GateWire } from "./gate-wire.js";
+export type { GearComposer } from "./gear-composer.js";
 export type { Getter } from "./getter.js";
 export {
   type AnyListPlugHead,
@@ -49,6 +49,7 @@ export type {
 export type { ResMatrix } from "./res-matrix.js";
 export type { ResModuleLoaderFn } from "./res-module.js";
 export type { ShellTag } from "./shell.js";
+export type { ShellComposer } from "./shell-composer.js";
 export type { Surface } from "./surface.js";
 export {
   type AnyVertexGear,

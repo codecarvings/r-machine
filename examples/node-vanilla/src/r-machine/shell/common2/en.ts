@@ -1,6 +1,6 @@
-import { Forge, type RShape } from "@/r-machine/setup";
+import { type RShape, Shell } from "@/r-machine/setup";
 
-export const r = Forge.shell(({ fmt }) => ({
+export const r = Shell.define(({ fmt }) => ({
   greeting: `Hello world ${fmt.number(21)}`,
 }));
 
