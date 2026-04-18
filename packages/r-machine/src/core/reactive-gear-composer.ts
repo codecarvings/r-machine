@@ -18,30 +18,27 @@ import type {
   AnyState,
   StatefulReactiveGearListDefiner,
   StatefulReactiveGearMapDefiner,
-  StatefulReactiveGearTag,
 } from "./stateful-reactive-gear.js";
-import type {
-  StatelessReactiveGearListDefiner,
-  StatelessReactiveGearMapDefiner,
-  StatelessReactiveGearTag,
-} from "./stateless-reactive-gear.js";
+import type { StatelessReactiveGearListDefiner, StatelessReactiveGearMapDefiner } from "./stateless-reactive-gear.js";
 
 export interface ReactiveGearMapDepsComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
+  T,
 > {
-  <S extends AnyState>(state: S): StatefulReactiveGearMapComposer<RA, KA, NM, S, StatefulReactiveGearTag>;
-  (): StatelessReactiveGearMapComposer<RA, KA, NM, StatelessReactiveGearTag>;
+  <S extends AnyState>(state: S): StatefulReactiveGearMapComposer<RA, KA, NM, S, T>;
+  (): StatelessReactiveGearMapComposer<RA, KA, NM, T>;
 }
 
 export interface ReactiveGearListDepsComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
+  T,
 > {
-  <S extends AnyState>(state: S): StatefulReactiveGearListComposer<RA, KA, NL, S, StatefulReactiveGearTag>;
-  (): StatelessReactiveGearListComposer<RA, KA, NL, StatelessReactiveGearTag>;
+  <S extends AnyState>(state: S): StatefulReactiveGearListComposer<RA, KA, NL, S, T>;
+  (): StatelessReactiveGearListComposer<RA, KA, NL, T>;
 }
 
 interface StatefulReactiveGearMapComposer<

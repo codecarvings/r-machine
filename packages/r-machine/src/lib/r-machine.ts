@@ -59,8 +59,9 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, KA extends Re
 
   createToolset(): RMachineToolset<RA, L, KA> {
     const Gear = undefined!; // TODO: WIP;
+    const VertexGear = undefined!; // TODO: WIP;
     const Shell = undefined!; // TODO: WIP;
-    return { Gear, Shell, localized: localized };
+    return { Gear, VertexGear, Shell, localized };
   }
 
   getGateWire(_plugHead: AnyPlugHead, _locale: L, _vertexGearMap?: VertexGearMap | undefined): GateWire {

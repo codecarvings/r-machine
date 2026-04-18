@@ -11,11 +11,12 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, GearComposer, Namespace, ResKit, ShellComposer } from "#r-machine/core";
+import type { AnyResAtlas, GearComposer, Namespace, ResKit, ShellComposer, VertexGearTag } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
 export interface RMachineToolset<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>> {
   readonly Gear: GearComposer<RA, KA["gear"]>;
+  readonly VertexGear: GearComposer<RA, KA["gear"], VertexGearTag>;
   readonly Shell: ShellComposer<RA, L, KA["shell"]>;
   readonly localized: LocalizerHelper<RA>;
 }

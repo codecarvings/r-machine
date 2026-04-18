@@ -15,6 +15,7 @@ import type { ActionComposer, DefaultAction } from "./action.js";
 import type { GearCursor } from "./gear.js";
 import type { DefaultGetter, GetterComposer } from "./getter.js";
 import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
+import type { ReactiveGearTag } from "./reactive-gear.js";
 import type { AnyReactiveRes, RejectAsyncValueProps } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
@@ -23,11 +24,6 @@ import type { ResMatrix } from "./res-matrix.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
 export type AnyState = unknown; // Record<PropertyKey, unknown> & object;
-
-declare const statefulReactiveGearSymbol: unique symbol;
-export interface StatefulReactiveGearTag {
-  readonly [statefulReactiveGearSymbol]?: typeof statefulReactiveGearSymbol;
-}
 
 interface StatefulReactiveGearCursor<S extends AnyState> extends GearCursor {
   readonly getter: GetterComposer<S>;
@@ -119,11 +115,11 @@ export interface StatefulReactiveGearMapDefiner<
 > {
   <const D extends StateDef>(
     factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => D | Promise<D>
-  ): ResMatrix<StateReactiveGearResource<S, D> & T, StatefulReactiveGearMapPlug<RA, KA, NM, S>>;
+  ): ResMatrix<StateReactiveGearResource<S, D> & T & ReactiveGearTag, StatefulReactiveGearMapPlug<RA, KA, NM, S>>;
 
   <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
     factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => R | Promise<R>
-  ): ResMatrix<R & T, StatefulReactiveGearMapPlug<RA, KA, NM, S>>;
+  ): ResMatrix<R & T & ReactiveGearTag, StatefulReactiveGearMapPlug<RA, KA, NM, S>>;
 }
 
 export interface StatefulReactiveGearListDefiner<
@@ -135,9 +131,9 @@ export interface StatefulReactiveGearListDefiner<
 > {
   <const D extends StateDef>(
     factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => D | Promise<D>
-  ): ResMatrix<StateReactiveGearResource<S, D> & T, StatefulReactiveGearListPlug<RA, KA, NL, S>>;
+  ): ResMatrix<StateReactiveGearResource<S, D> & T & ReactiveGearTag, StatefulReactiveGearListPlug<RA, KA, NL, S>>;
 
   <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
     factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => R | Promise<R>
-  ): ResMatrix<R & T, StatefulReactiveGearListPlug<RA, KA, NL, S>>;
+  ): ResMatrix<R & T & ReactiveGearTag, StatefulReactiveGearListPlug<RA, KA, NL, S>>;
 }

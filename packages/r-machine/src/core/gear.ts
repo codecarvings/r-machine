@@ -65,14 +65,14 @@ interface GearMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM ex
 interface GearListPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>>
   extends PlugBody<GearListPlugHead<RA, KA, NL>> {}
 
-export type GearMapDefiner<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> = <
+export type GearMapDefiner<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>, T> = <
   R extends AnyRes,
 >(
   factory: (plugin: GearMapPlugin<RA, KA, NM>, _: GearCursor) => R | Promise<R>
-) => ResMatrix<R & GearTag, GearMapPlug<RA, KA, NM>>;
+) => ResMatrix<R & T, GearMapPlug<RA, KA, NM>>;
 
-export type GearListDefiner<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> = <
+export type GearListDefiner<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>, T> = <
   R extends AnyRes,
 >(
   factory: (plugin: GearListPlugin<RA, KA, NL>, _: GearCursor) => R | Promise<R>
-) => ResMatrix<R & GearTag, GearListPlug<RA, KA, NL>>;
+) => ResMatrix<R & T, GearListPlug<RA, KA, NL>>;

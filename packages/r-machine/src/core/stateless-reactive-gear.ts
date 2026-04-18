@@ -14,17 +14,13 @@
 import type { GearCursor } from "./gear.js";
 import type { StatelessGetterComposer } from "./getter.js";
 import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
+import type { ReactiveGearTag } from "./reactive-gear.js";
 import type { AnyReactiveRes, RejectAsyncValueProps } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
-
-declare const statelessReactiveGearSymbol: unique symbol;
-export interface StatelessReactiveGearTag {
-  readonly [statelessReactiveGearSymbol]?: typeof statelessReactiveGearSymbol;
-}
 
 interface StatelessReactiveGearCursor extends GearCursor {
   readonly getter: StatelessGetterComposer;
@@ -72,7 +68,7 @@ export type StatelessReactiveGearMapDefiner<
   T,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
   factory: (plugin: StatelessReactiveGearMapPlugin<RA, KA, NM>, _: StatelessReactiveGearCursor) => R | Promise<R>
-) => ResMatrix<R & T, StatelessReactiveGearMapPlug<RA, KA, NM>>;
+) => ResMatrix<R & T & ReactiveGearTag, StatelessReactiveGearMapPlug<RA, KA, NM>>;
 
 export type StatelessReactiveGearListDefiner<
   RA extends AnyResAtlas,
@@ -81,4 +77,4 @@ export type StatelessReactiveGearListDefiner<
   T,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
   factory: (plugin: StatelessReactiveGearListPlugin<RA, KA, NL>, _: StatelessReactiveGearCursor) => R | Promise<R>
-) => ResMatrix<R & T, StatelessReactiveGearListPlug<RA, KA, NL>>;
+) => ResMatrix<R & T & ReactiveGearTag, StatelessReactiveGearListPlug<RA, KA, NL>>;

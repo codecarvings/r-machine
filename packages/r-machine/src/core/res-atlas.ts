@@ -13,8 +13,7 @@
 
 import type { ShellTag } from "#r-machine/core";
 import type { GearTag } from "./gear.js";
-import type { StatefulReactiveGearTag } from "./stateful-reactive-gear.js";
-import type { StatelessReactiveGearTag } from "./stateless-reactive-gear.js";
+import type { ReactiveGearTag } from "./reactive-gear.js";
 import type { VertexGearTag } from "./vertex-gear.js";
 
 export type AnyNamespace = string;
@@ -25,20 +24,16 @@ export interface AnyResAtlas {
 
 export type Namespace<RA extends AnyResAtlas> = Extract<keyof RA, AnyNamespace>;
 
+export type GearNamespace<RA extends AnyResAtlas> = {
+  [K in Namespace<RA>]: RA[K] extends GearTag | ReactiveGearTag ? (RA[K] extends VertexGearTag ? never : K) : never;
+}[Namespace<RA>];
+
 export type ShellNamespace<RA extends AnyResAtlas> = {
   [K in Namespace<RA>]: RA[K] extends ShellTag ? K : never;
 }[Namespace<RA>];
 
-export type GearNamespace<RA extends AnyResAtlas> = {
-  [K in Namespace<RA>]: RA[K] extends GearTag | StatefulReactiveGearTag | StatelessReactiveGearTag
-    ? RA[K] extends VertexGearTag
-      ? never
-      : K
-    : never;
-}[Namespace<RA>];
-
 export type SolidNamespace<RA extends AnyResAtlas> = {
-  [K in Namespace<RA>]: RA[K] extends StatefulReactiveGearTag | StatelessReactiveGearTag | VertexGearTag ? never : K;
+  [K in Namespace<RA>]: RA[K] extends ReactiveGearTag | VertexGearTag ? never : K;
 }[Namespace<RA>];
 
 const namespaceSymbol = Symbol("namespace");
@@ -47,6 +42,8 @@ export interface Token<N extends string> {
 }
 
 export type NamespaceRef<RA extends AnyResAtlas> = Namespace<RA> | Token<Namespace<RA>>;
+export type GearNamespaceRef<RA extends AnyResAtlas> = GearNamespace<RA> | Token<GearNamespace<RA>>;
+export type ShellNamespaceRef<RA extends AnyResAtlas> = ShellNamespace<RA> | Token<ShellNamespace<RA>>;
 export type SolidNamespaceRef<RA extends AnyResAtlas> = SolidNamespace<RA> | Token<SolidNamespace<RA>>;
 
 export type ExtractNamespace<T extends NamespaceRef<any>> = T extends Token<infer N> ? N : T;

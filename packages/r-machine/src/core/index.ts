@@ -55,5 +55,6 @@ export {
   type AnyVertexGear,
   getVertexGearTag,
   type VertexGearMap,
+  type VertexGearTag,
   type VertexGearTagData,
 } from "./vertex-gear.js";

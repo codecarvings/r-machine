@@ -13,8 +13,8 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { NamespaceList } from "./res-list.js";
-import type { NamespaceMap } from "./res-map.js";
+import type { NamespaceList, ShellNamespaceList } from "./res-list.js";
+import type { NamespaceMap, ShellNamespaceMap } from "./res-map.js";
 import type { ShellListDefiner, ShellMapDefiner } from "./shell.js";
 
 export interface ShellComposer<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
@@ -24,8 +24,8 @@ export interface ShellComposer<RA extends AnyResAtlas, L extends AnyLocale, KA e
 
 interface ShellDepsComposer<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
   (): ShellMapDepsComposer<RA, L, KA, {}>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): ShellListDepsComposer<RA, L, KA, NL>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): ShellMapDepsComposer<RA, L, KA, NM>;
+  <NL extends ShellNamespaceList<RA>>(...namespaces: NL): ShellListDepsComposer<RA, L, KA, NL>;
+  <NM extends ShellNamespaceMap<RA>>(namespaces: NM): ShellMapDepsComposer<RA, L, KA, NM>;
 }
 
 interface ShellMapDepsComposer<

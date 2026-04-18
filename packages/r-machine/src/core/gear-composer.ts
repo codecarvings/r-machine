@@ -11,30 +11,45 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { GearListDefiner, GearMapDefiner } from "./gear.js";
+import type { GearListDefiner, GearMapDefiner, GearTag } from "./gear.js";
 import type { ReactiveGearListDepsComposer, ReactiveGearMapDepsComposer } from "./reactive-gear-composer.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { NamespaceList } from "./res-list.js";
-import type { NamespaceMap } from "./res-map.js";
+import type { GearNamespaceList, NamespaceList } from "./res-list.js";
+import type { GearNamespaceMap, NamespaceMap } from "./res-map.js";
+import type { VertexGearTag } from "./vertex-gear.js";
 
-export interface GearComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>> {
-  readonly deps: GearDepsComposer<RA, KA>;
-  readonly reactive: ReactiveGearMapDepsComposer<RA, KA, {}>;
-  readonly define: GearMapDefiner<RA, KA, {}>;
+export interface GearComposer<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  T extends GearTag | VertexGearTag = GearTag,
+> {
+  readonly deps: GearDepsComposer<RA, KA, T>;
+  readonly reactive: ReactiveGearMapDepsComposer<RA, KA, {}, T>;
+  readonly define: GearMapDefiner<RA, KA, {}, T>;
 }
 
-interface GearDepsComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>> {
-  (): GearMapDepsComposer<RA, KA, {}>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): GearListDepsComposer<RA, KA, NL>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): GearMapDepsComposer<RA, KA, NM>;
+interface GearDepsComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, T extends GearTag | VertexGearTag> {
+  (): GearMapDepsComposer<RA, KA, {}, T>;
+  <NL extends GearNamespaceList<RA>>(...namespaces: NL): GearListDepsComposer<RA, KA, NL, T>;
+  <NM extends GearNamespaceMap<RA>>(namespaces: NM): GearMapDepsComposer<RA, KA, NM, T>;
 }
 
-interface GearMapDepsComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> {
-  readonly reactive: ReactiveGearMapDepsComposer<RA, KA, NM>;
-  readonly define: GearMapDefiner<RA, KA, NM>;
+interface GearMapDepsComposer<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+  T extends GearTag | VertexGearTag,
+> {
+  readonly reactive: ReactiveGearMapDepsComposer<RA, KA, NM, T>;
+  readonly define: GearMapDefiner<RA, KA, NM, T>;
 }
 
-interface GearListDepsComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> {
-  readonly reactive: ReactiveGearListDepsComposer<RA, KA, NL>;
-  readonly define: GearListDefiner<RA, KA, NL>;
+interface GearListDepsComposer<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+  T extends GearTag | VertexGearTag,
+> {
+  readonly reactive: ReactiveGearListDepsComposer<RA, KA, NL, T>;
+  readonly define: GearListDefiner<RA, KA, NL, T>;
 }

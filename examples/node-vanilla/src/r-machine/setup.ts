@@ -19,6 +19,6 @@ const rMachine = RMachine.create({
   },
 });
 
-export const { Gear, Shell, localized } = rMachine.createToolset();
+export const { Gear, VertexGear, Shell, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";

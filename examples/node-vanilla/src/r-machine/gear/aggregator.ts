@@ -1,5 +1,5 @@
 import { mockPlug } from "@r-machine/testing";
-import { Gear, type RShape } from "../setup";
+import { Gear } from "../setup";
 
 export const r = Gear.deps("gear/counter", "gear/shopping-cart")
   .reactive()
@@ -10,10 +10,10 @@ export const r = Gear.deps("gear/counter", "gear/shopping-cart")
     };
   });
 
-export type Gear_Aggregator = RShape<typeof r>;
-
 mockPlug(r.plug).with({
   0: {
     myCount: () => 10,
   },
 });
+
+export type Gear_Aggregator = ReturnType<typeof r>;
