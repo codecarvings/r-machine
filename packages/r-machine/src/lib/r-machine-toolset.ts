@@ -11,17 +11,32 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, GearComposer, Namespace, ResKit, ShellComposer, VertexGearTag } from "#r-machine/core";
+import type { GearComposer, Namespace, ResKit, ShellComposer, VertexGearTag } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
+import type { AnyResAtlasInstance, BridgeGearNamespace } from "./resource-atlas.js";
 
-export interface RMachineToolset<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>> {
-  readonly Gear: GearComposer<RA, KA["gear"]>;
-  readonly VertexGear: GearComposer<RA, KA["gear"], VertexGearTag>;
-  readonly Shell: ShellComposer<RA, L, KA["shell"]>;
-  readonly localized: LocalizerHelper<RA>;
+// BG carries the bridgeGears tuple — consumed by the Shell composer in
+// step 5 to expose bridge surfaces in the shell plugin context. Defaults
+// to empty tuple so existing call sites without bridgeGears still work.
+export interface RMachineToolset<
+  ATLAS extends AnyResAtlasInstance,
+  L extends AnyLocale,
+  KA extends ResKit<ATLAS["res"]>,
+  BG extends readonly BridgeGearNamespace<ATLAS>[] = readonly [],
+> {
+  readonly Gear: GearComposer<ATLAS["res"], KA["gear"]>;
+  readonly VertexGear: GearComposer<ATLAS["res"], KA["gear"], VertexGearTag>;
+  readonly Shell: ShellComposer<ATLAS["res"], L, KA["shell"]>;
+  readonly localized: LocalizerHelper<ATLAS>;
+  // Phantom: BG is used for step-5 bridge surface typing. Kept as a reserved
+  // generic to avoid signature churn when the composers start consuming it.
+  readonly __bridgeGears?: BG;
 }
 
-type LocalizerHelper<RA extends AnyResAtlas> = <N extends Namespace<RA>, const R extends RA[N]>(
+type LocalizerHelper<ATLAS extends AnyResAtlasInstance> = <
+  N extends Namespace<ATLAS["res"]>,
+  const R extends ATLAS["res"][N],
+>(
   namespace: N,
-  shell: R & Record<Exclude<keyof R, keyof RA[N]>, never>
+  shell: R & Record<Exclude<keyof R, keyof ATLAS["res"][N]>, never>
 ) => R;

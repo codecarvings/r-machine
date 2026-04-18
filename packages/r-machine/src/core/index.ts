@@ -35,6 +35,7 @@ export {
   type PlugMode,
   setPlugResolve,
 } from "./plug.js";
+export type { ReactiveGearTag } from "./reactive-gear.js";
 export type { RelayBrand } from "./relay.js";
 export type { AnyRes, AnyResOrigin } from "./res.js";
 export { type AnyResAtlas, createToken, type ExtractNamespace, type Namespace, type Token } from "./res-atlas.js";

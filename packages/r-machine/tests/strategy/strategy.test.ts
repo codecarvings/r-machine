@@ -1,9 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
-import type { RMachineConfig } from "#r-machine";
-import type { AnyResAtlas } from "#r-machine/core";
+import type { AnyResAtlasInstance, RMachineConfig } from "#r-machine";
 import type { AnyLocale } from "#r-machine/locale";
 import { RMachine } from "../../src/lib/r-machine.js";
 import { Strategy } from "../../src/strategy/strategy.js";
+
+interface TestAtlas extends AnyResAtlasInstance {
+  readonly gear: {};
+  readonly shell: {};
+  readonly res: {};
+}
 
 interface TestResKit {
   gear: {};
@@ -11,9 +16,9 @@ interface TestResKit {
   gate: {};
 }
 
-function createSpyStrategyClass<RA extends AnyResAtlas, L extends AnyLocale, C>() {
+function createSpyStrategyClass<ATLAS extends AnyResAtlasInstance, L extends AnyLocale, C>() {
   const validateConfigSpy = vi.fn();
-  class SpyStrategy extends Strategy<RA, L, TestResKit, C> {
+  class SpyStrategy extends Strategy<ATLAS, L, TestResKit, C> {
     protected override validateConfig(): void {
       validateConfigSpy();
     }
@@ -21,25 +26,39 @@ function createSpyStrategyClass<RA extends AnyResAtlas, L extends AnyLocale, C>(
   return { SpyStrategy, validateConfigSpy };
 }
 
-class ThrowingStrategy<RA extends AnyResAtlas, L extends AnyLocale, C> extends Strategy<RA, L, TestResKit, C> {
+class ThrowingStrategy<ATLAS extends AnyResAtlasInstance, L extends AnyLocale, C> extends Strategy<
+  ATLAS,
+  L,
+  TestResKit,
+  C
+> {
   protected override validateConfig(): void {
     throw new Error("Validation failed");
   }
 }
 
-class DefaultStrategy<RA extends AnyResAtlas, L extends AnyLocale, C> extends Strategy<RA, L, TestResKit, C> {}
+class DefaultStrategy<ATLAS extends AnyResAtlasInstance, L extends AnyLocale, C> extends Strategy<
+  ATLAS,
+  L,
+  TestResKit,
+  C
+> {}
 
-const testConfig: RMachineConfig<AnyResAtlas, string, TestResKit> = {
-  resourceAtlas: {},
+const testConfig: RMachineConfig<TestAtlas, string, TestResKit> = {
+  // Phantom: the config's resourceAtlas is typed as the instance but at
+  // runtime holds whatever the caller passes (the class, or — in this test —
+  // a plain empty object). Cast to match the generic.
+  resourceAtlas: {} as unknown as TestAtlas,
   locales: ["en", "it"],
   defaultLocale: "en",
   load: async () => ({ r: {} }),
   layout: {},
+  bridgeGears: [],
   kit: { gear: {}, shell: {}, gate: {} },
 };
 
 function createTestRMachine() {
-  return new RMachine<AnyResAtlas, string, TestResKit>(testConfig);
+  return new RMachine<TestAtlas, string, TestResKit>(testConfig);
 }
 
 describe("Strategy", () => {

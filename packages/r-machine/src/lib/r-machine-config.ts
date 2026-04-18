@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, ExplicitNamespaceMap, ResKit, ResModuleLoaderFn } from "#r-machine/core";
+import type { ResKit, ResModuleLoaderFn } from "#r-machine/core";
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
@@ -25,47 +25,80 @@ import {
   validateCanonicalUnicodeLocaleId,
 } from "#r-machine/locale";
 import type { AnyResLayout } from "../core/res-layout.js";
+import type {
+  AnyResAtlasClass,
+  AnyResAtlasInstance,
+  BridgeGearNamespace,
+  GateKit,
+  GearKit,
+  ShellKit,
+  ValidBridgeGears,
+} from "./resource-atlas.js";
 
-// The generic parameter LL is used to ensure that the defaultLocale is one of the locales in the list
+// The generic parameter LL is used to ensure that the defaultLocale is one of the locales in the list.
+// BG carries the bridgeGears tuple through to downstream consumers (shell plugin context, toolset).
 export interface RMachineConfigParams<
-  RA extends AnyResAtlas,
+  CLASS extends AnyResAtlasClass,
   LL extends AnyLocaleList,
-  GKA extends ExplicitNamespaceMap<RA>,
-  SKA extends ExplicitNamespaceMap<RA>,
-  XKA extends ExplicitNamespaceMap<RA>,
+  BG extends readonly BridgeGearNamespace<InstanceType<CLASS>>[],
+  GKA extends GearKit<InstanceType<CLASS>>,
+  SKA extends ShellKit<InstanceType<CLASS>, BG>,
+  XKA extends GateKit<InstanceType<CLASS>>,
 > {
-  readonly resourceAtlas: RA;
+  readonly resourceAtlas: CLASS;
   readonly locales: LL;
   readonly defaultLocale: LL[number];
   readonly load: ResModuleLoaderFn;
-  readonly layout: AnyResLayout;
+  // Compile-time validation via intersection with ValidBridgeGears:
+  // rejects non-gear prefixes and reactive gears with branded error messages.
+  // Runtime storage is the raw tuple (no runtime check — principle: type-first).
+  readonly bridgeGears?: BG & ValidBridgeGears<InstanceType<CLASS>, BG>;
   readonly gearKit?: GKA;
   readonly shellKit?: SKA;
   readonly gateKit?: XKA;
 }
 
-export interface RMachineConfig<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA, any, any, any>> {
-  readonly resourceAtlas: RA;
+export interface RMachineConfig<
+  ATLAS extends AnyResAtlasInstance,
+  L extends AnyLocale,
+  KA extends ResKit<ATLAS["res"], any, any, any>,
+  BG extends readonly BridgeGearNamespace<ATLAS>[] = readonly [],
+> {
+  // Phantom type: carries the instance's rich type (gear/shell/res sub-maps)
+  // for downstream generic threading. The runtime value stored here is the
+  // atlas class itself (cast to the instance type) — nothing is instantiated.
+  readonly resourceAtlas: ATLAS;
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly load: ResModuleLoaderFn;
+  // Extracted once from the atlas class's static `layout`. Kept as a dedicated
+  // field for runtime access (path resolver, family classification) without
+  // needing to read through the phantom `resourceAtlas` at runtime.
   readonly layout: AnyResLayout;
+  readonly bridgeGears: BG;
   readonly kit: KA;
 }
 
 export function convertParamsToConfig<
-  RA extends AnyResAtlas,
+  CLASS extends AnyResAtlasClass,
   LL extends AnyLocaleList,
-  GKA extends ExplicitNamespaceMap<RA>,
-  SKA extends ExplicitNamespaceMap<RA>,
-  XKA extends ExplicitNamespaceMap<RA>,
->(params: RMachineConfigParams<RA, LL, GKA, SKA, XKA>): RMachineConfig<RA, LL[number], ResKit<RA, GKA, SKA, XKA>> {
+  BG extends readonly BridgeGearNamespace<InstanceType<CLASS>>[],
+  GKA extends GearKit<InstanceType<CLASS>>,
+  SKA extends ShellKit<InstanceType<CLASS>, BG>,
+  XKA extends GateKit<InstanceType<CLASS>>,
+>(
+  params: RMachineConfigParams<CLASS, LL, BG, GKA, SKA, XKA>
+): RMachineConfig<InstanceType<CLASS>, LL[number], ResKit<InstanceType<CLASS>["res"], GKA, SKA, XKA>, BG> {
   return {
-    resourceAtlas: params.resourceAtlas,
+    // Runtime value: the class reference. Type-level: the instance (phantom).
+    // The cast is safe because nothing reads runtime fields off this — access
+    // goes through `layout` below or through per-resource resolution.
+    resourceAtlas: params.resourceAtlas as unknown as InstanceType<CLASS>,
     locales: [...params.locales],
     defaultLocale: params.defaultLocale,
     load: params.load,
-    layout: params.layout,
+    layout: params.resourceAtlas.layout,
+    bridgeGears: (params.bridgeGears ?? ([] as readonly unknown[])) as BG,
     kit: {
       gear: params.gearKit ?? ({} as GKA),
       shell: params.shellKit ?? ({} as SKA),
@@ -74,7 +107,7 @@ export function convertParamsToConfig<
   };
 }
 
-export function validateRMachineConfig(config: RMachineConfig<any, any, any>): RMachineConfigError | null {
+export function validateRMachineConfig(config: RMachineConfig<any, any, any, any>): RMachineConfigError | null {
   if (!config.locales.length) {
     return new RMachineConfigError(ERR_NO_LOCALES, "No locales provided.");
   }
@@ -105,11 +138,12 @@ export function validateRMachineConfig(config: RMachineConfig<any, any, any>): R
   return null;
 }
 
-export function cloneRMachineConfig<C extends RMachineConfig<any, any, any>>(config: C): C {
+export function cloneRMachineConfig<C extends RMachineConfig<any, any, any, any>>(config: C): C {
   return {
     ...config,
     locales: Object.freeze([...config.locales]) as LocaleList<C["defaultLocale"]>,
     layout: { ...config.layout },
+    bridgeGears: Object.freeze([...config.bridgeGears]) as C["bridgeGears"],
     kit: {
       gear: { ...config.kit.gear },
       shell: { ...config.kit.shell },

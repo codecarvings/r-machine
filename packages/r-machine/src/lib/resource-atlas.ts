@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "#r-machine/core";
+import type { AnyResLayout, ReactiveGearTag, ResLayoutEntryType, ResolveLayoutType } from "#r-machine/core";
 
 // #region Type-error brand
 
@@ -101,6 +101,68 @@ export interface AnyResAtlasInstance {
   readonly shell: Record<string, any>;
   readonly res: Record<string, any>;
 }
+
+// #endregion
+
+// #region BridgeGears
+
+// Detects whether V carries the ReactiveGearTag brand.
+//
+// The tag interface uses an optional unique-symbol property, which means a
+// plain `V extends ReactiveGearTag` check always returns true (structural
+// subtyping treats missing optional properties as satisfied). We instead
+// check for presence of the symbol *key*: `keyof ReactiveGearTag` extracts
+// the unique symbol, and we verify it appears in `keyof V`. A non-reactive
+// gear lacks the symbol key entirely → returns false.
+export type IsReactiveGear<V> = keyof ReactiveGearTag extends keyof V ? true : false;
+
+// Namespace candidates accepted by bridgeGears: any gear namespace in the
+// atlas. Per-element validation (see ValidBridgeGearItem) further narrows
+// by rejecting reactive gears at compile time.
+export type BridgeGearNamespace<ATLAS extends AnyResAtlasInstance> = Extract<keyof ATLAS["gear"], string>;
+
+// Per-element validator for bridgeGears:
+// - If N is not a gear namespace → branded error "not a gear"
+// - If N is a reactive gear → branded error "cannot be declared as a bridge"
+// - Otherwise → pass through N verbatim
+export type ValidBridgeGearItem<ATLAS extends AnyResAtlasInstance, N> =
+  N extends BridgeGearNamespace<ATLAS>
+    ? IsReactiveGear<ATLAS["gear"][N]> extends true
+      ? RMachineTypeError<`Namespace '${N & string}' is a reactive gear and cannot be declared as a bridge. Bridge gears must be static.`>
+      : N
+    : RMachineTypeError<`Namespace '${N & string}' is not a valid gear namespace.`>;
+
+// Maps ValidBridgeGearItem over each element of BG. Applied as intersection
+// on the bridgeGears param: `bridgeGears?: BG & ValidBridgeGears<ATLAS, BG>`
+// — valid tuples pass through, invalid entries collapse to the branded
+// error type and surface in the TS diagnostic inline.
+export type ValidBridgeGears<ATLAS extends AnyResAtlasInstance, BG extends readonly string[]> = {
+  readonly [I in keyof BG]: ValidBridgeGearItem<ATLAS, BG[I]>;
+};
+
+// #endregion
+
+// #region Filtered kits
+
+// gearKit values must be gear namespaces (reactive gears allowed here — only
+// bridgeGears rejects reactive). Readonly string-keyed map (same shape as
+// ExplicitNamespaceMap but with narrower value constraint).
+export type GearKit<ATLAS extends AnyResAtlasInstance> = {
+  readonly [key: string]: Extract<keyof ATLAS["gear"], string>;
+};
+
+// shellKit values must be shell namespaces OR one of the namespaces
+// declared in bridgeGears (bridgeGears are already validated non-reactive
+// non-vertex via ValidBridgeGears).
+export type ShellKit<ATLAS extends AnyResAtlasInstance, BG extends readonly string[]> = {
+  readonly [key: string]: Extract<keyof ATLAS["shell"], string> | BG[number];
+};
+
+// gateKit is scope-framework (React/Next integrations) and accepts any
+// namespace of the atlas. No family filter.
+export type GateKit<ATLAS extends AnyResAtlasInstance> = {
+  readonly [key: string]: Extract<keyof ATLAS["res"], string>;
+};
 
 // #endregion
 
