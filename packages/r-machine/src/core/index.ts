@@ -39,7 +39,6 @@ export type { ReactiveGearTag } from "./reactive-gear.js";
 export type { RelayBrand } from "./relay.js";
 export type { AnyRes, AnyResOrigin } from "./res.js";
 export { type AnyResAtlas, createToken, type ExtractNamespace, type Namespace, type Token } from "./res-atlas.js";
-export type { ResKit } from "./res-kit.js";
 export type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "./res-layout.js";
 export type { NamespaceList, SolidNamespaceList, SurfaceList } from "./res-list.js";
 export type {
@@ -50,6 +49,7 @@ export type {
 } from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";
 export type { ResModuleLoaderFn } from "./res-module.js";
+export type { ResSet } from "./res-set.js";
 export type { ShellTag } from "./shell.js";
 export type { ShellComposer } from "./shell-composer.js";
 export type { Surface } from "./surface.js";

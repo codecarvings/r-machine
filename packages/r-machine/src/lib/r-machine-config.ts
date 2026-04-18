@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { ResKit, ResModuleLoaderFn } from "#r-machine/core";
+import type { ResModuleLoaderFn, ResSet } from "#r-machine/core";
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
@@ -36,7 +36,9 @@ import type {
 } from "./resource-atlas.js";
 
 // The generic parameter LL is used to ensure that the defaultLocale is one of the locales in the list.
-// BG carries the bridgeGears tuple through to downstream consumers (shell plugin context, toolset).
+// Params stay flat for DX — `gearKit`, `shellKit`, `gateKit`, `bridgeGears` are
+// separate top-level fields. `convertParamsToConfig` bundles them into the
+// single `ResSet` carrier used downstream.
 export interface RMachineConfigParams<
   CLASS extends AnyResAtlasClass,
   LL extends AnyLocaleList,
@@ -61,8 +63,7 @@ export interface RMachineConfigParams<
 export interface RMachineConfig<
   ATLAS extends AnyResAtlasInstance,
   L extends AnyLocale,
-  KA extends ResKit<ATLAS["res"], any, any, any>,
-  BG extends readonly BridgeGearNamespace<ATLAS>[] = readonly [],
+  K extends ResSet<ATLAS["res"], any, any, any, any>,
 > {
   // Phantom type: carries the instance's rich type (gear/shell/res sub-maps)
   // for downstream generic threading. The runtime value stored here is the
@@ -75,8 +76,8 @@ export interface RMachineConfig<
   // field for runtime access (path resolver, family classification) without
   // needing to read through the phantom `resourceAtlas` at runtime.
   readonly layout: AnyResLayout;
-  readonly bridgeGears: BG;
-  readonly kit: KA;
+  // The bundled namespace-wiring info (kits + bridgeGears).
+  readonly kit: K;
 }
 
 export function convertParamsToConfig<
@@ -88,7 +89,7 @@ export function convertParamsToConfig<
   XKA extends GateKit<InstanceType<CLASS>>,
 >(
   params: RMachineConfigParams<CLASS, LL, BG, GKA, SKA, XKA>
-): RMachineConfig<InstanceType<CLASS>, LL[number], ResKit<InstanceType<CLASS>["res"], GKA, SKA, XKA>, BG> {
+): RMachineConfig<InstanceType<CLASS>, LL[number], ResSet<InstanceType<CLASS>["res"], GKA, SKA, XKA, BG>> {
   return {
     // Runtime value: the class reference. Type-level: the instance (phantom).
     // The cast is safe because nothing reads runtime fields off this — access
@@ -98,16 +99,16 @@ export function convertParamsToConfig<
     defaultLocale: params.defaultLocale,
     load: params.load,
     layout: params.resourceAtlas.layout,
-    bridgeGears: (params.bridgeGears ?? ([] as readonly unknown[])) as BG,
     kit: {
       gear: params.gearKit ?? ({} as GKA),
       shell: params.shellKit ?? ({} as SKA),
       gate: params.gateKit ?? ({} as XKA),
+      bridgeGears: (params.bridgeGears ?? ([] as readonly unknown[])) as BG,
     },
   };
 }
 
-export function validateRMachineConfig(config: RMachineConfig<any, any, any, any>): RMachineConfigError | null {
+export function validateRMachineConfig(config: RMachineConfig<any, any, any>): RMachineConfigError | null {
   if (!config.locales.length) {
     return new RMachineConfigError(ERR_NO_LOCALES, "No locales provided.");
   }
@@ -138,16 +139,16 @@ export function validateRMachineConfig(config: RMachineConfig<any, any, any, any
   return null;
 }
 
-export function cloneRMachineConfig<C extends RMachineConfig<any, any, any, any>>(config: C): C {
+export function cloneRMachineConfig<C extends RMachineConfig<any, any, any>>(config: C): C {
   return {
     ...config,
     locales: Object.freeze([...config.locales]) as LocaleList<C["defaultLocale"]>,
     layout: { ...config.layout },
-    bridgeGears: Object.freeze([...config.bridgeGears]) as C["bridgeGears"],
     kit: {
       gear: { ...config.kit.gear },
       shell: { ...config.kit.shell },
       gate: { ...config.kit.gate },
+      bridgeGears: Object.freeze([...config.kit.bridgeGears]) as C["kit"]["bridgeGears"],
     },
   };
 }

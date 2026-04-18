@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyPlugHead, AnyRes, GateWire, ResKit, VertexGearMap } from "#r-machine/core";
+import type { AnyPlugHead, AnyRes, GateWire, ResSet, VertexGearMap } from "#r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
@@ -36,10 +36,9 @@ import type {
 export class RMachine<
   ATLAS extends AnyResAtlasInstance,
   L extends AnyLocale,
-  KA extends ResKit<ATLAS["res"]>,
-  BG extends readonly BridgeGearNamespace<ATLAS>[] = readonly [],
+  K extends ResSet<ATLAS["res"], any, any, any, any>,
 > {
-  constructor(config: RMachineConfig<ATLAS, L, KA, BG>) {
+  constructor(config: RMachineConfig<ATLAS, L, K>) {
     const configError = validateRMachineConfig(config);
     if (configError) {
       throw configError;
@@ -53,7 +52,7 @@ export class RMachine<
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly localeHelper: LocaleHelper<L>;
-  protected readonly config: RMachineConfig<ATLAS, L, KA, BG>;
+  protected readonly config: RMachineConfig<ATLAS, L, K>;
 
   protected validateLocaleForPick(locale: L) {
     const error = this.localeHelper.validateLocale(locale);
@@ -62,7 +61,7 @@ export class RMachine<
     }
   }
 
-  createToolset(): RMachineToolset<ATLAS, L, KA, BG> {
+  createToolset(): RMachineToolset<ATLAS, L, K> {
     const Gear = undefined!; // TODO: WIP;
     const VertexGear = undefined!; // TODO: WIP;
     const Shell = undefined!; // TODO: WIP;
@@ -73,7 +72,10 @@ export class RMachine<
     return undefined!; // TODO: WIP;
   }
 
-  // KA not "const KA" for DX purposes
+  // KA not "const KA" for DX purposes. Internal generics GKA/SKA/XKA/BG are
+  // inferred from the individual config fields; they're bundled into the
+  // single `K` (ResSet) at the return type so downstream consumers see a
+  // 3-generic RMachine surface.
   static create<
     CLASS extends AnyResAtlasClass,
     const LL extends AnyLocaleList,
@@ -83,15 +85,14 @@ export class RMachine<
     XKA extends GateKit<InstanceType<CLASS>> = {},
   >(
     config: RMachineConfigParams<CLASS, LL, BG, GKA, SKA, XKA>
-  ): RMachine<InstanceType<CLASS>, LL[number], ResKit<InstanceType<CLASS>["res"], GKA, SKA, XKA>, BG> {
-    return new RMachine<InstanceType<CLASS>, LL[number], ResKit<InstanceType<CLASS>["res"], GKA, SKA, XKA>, BG>(
+  ): RMachine<InstanceType<CLASS>, LL[number], ResSet<InstanceType<CLASS>["res"], GKA, SKA, XKA, BG>> {
+    return new RMachine<InstanceType<CLASS>, LL[number], ResSet<InstanceType<CLASS>["res"], GKA, SKA, XKA, BG>>(
       convertParamsToConfig(config)
     );
   }
 }
 
-export type RMachineLocale<RM extends RMachine<any, any, any, any>> =
-  RM extends RMachine<any, infer L, any, any> ? L : never;
+export type RMachineLocale<RM extends RMachine<any, any, any>> = RM extends RMachine<any, infer L, any> ? L : never;
 
 function localized<S extends AnyRes>(_namespace: AnyNamespace, shell: S): S {
   return shell;

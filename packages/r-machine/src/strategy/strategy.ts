@@ -12,17 +12,17 @@
  */
 
 import type { AnyResAtlasInstance, RMachine } from "#r-machine";
-import type { ResKit } from "#r-machine/core";
+import type { ResSet } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
 export abstract class Strategy<
   ATLAS extends AnyResAtlasInstance,
   L extends AnyLocale,
-  KA extends ResKit<ATLAS["res"]>,
+  K extends ResSet<ATLAS["res"], any, any, any, any>,
   C,
 > {
   constructor(
-    readonly rMachine: RMachine<ATLAS, L, KA>,
+    readonly rMachine: RMachine<ATLAS, L, K>,
     readonly config: C
   ) {
     this.validateConfig();

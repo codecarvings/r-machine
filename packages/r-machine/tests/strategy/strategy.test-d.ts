@@ -19,14 +19,15 @@ interface TestConfig {
   enabled: boolean;
 }
 
-interface TestResKit {
-  gear: {};
-  shell: {};
-  gate: {};
+interface TestResSet {
+  readonly gear: {};
+  readonly shell: {};
+  readonly gate: {};
+  readonly bridgeGears: readonly [];
 }
 
 // Concrete implementation for type testing
-class TestStrategy extends Strategy<TestAtlas, string, TestResKit, TestConfig> {}
+class TestStrategy extends Strategy<TestAtlas, string, TestResSet, TestConfig> {}
 
 describe("Strategy", () => {
   it("should be abstract and not directly constructable", () => {
@@ -35,7 +36,7 @@ describe("Strategy", () => {
   });
 
   it("should be constructable through subclasses", () => {
-    expectTypeOf(TestStrategy).toBeConstructibleWith({} as RMachine<TestAtlas, string, TestResKit>, {
+    expectTypeOf(TestStrategy).toBeConstructibleWith({} as RMachine<TestAtlas, string, TestResSet>, {
       option: "test",
       enabled: true,
     });
@@ -43,9 +44,9 @@ describe("Strategy", () => {
 
   it("rMachine property should be readonly RMachine<ATLAS, L, KA>", () => {
     expectTypeOf<TestStrategy>().toHaveProperty("rMachine");
-    expectTypeOf<TestStrategy["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, string, TestResKit>>();
+    expectTypeOf<TestStrategy["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, string, TestResSet>>();
 
-    const strategy = new TestStrategy({} as RMachine<TestAtlas, string, TestResKit>, {} as TestConfig);
+    const strategy = new TestStrategy({} as RMachine<TestAtlas, string, TestResSet>, {} as TestConfig);
     // @ts-expect-error - rMachine is readonly
     strategy.rMachine = {} as RMachine<TestAtlas, string, {}>;
   });
@@ -54,40 +55,40 @@ describe("Strategy", () => {
     expectTypeOf<TestStrategy>().toHaveProperty("config");
     expectTypeOf<TestStrategy["config"]>().toEqualTypeOf<TestConfig>();
 
-    const strategy = new TestStrategy({} as RMachine<TestAtlas, string, TestResKit>, {} as TestConfig);
+    const strategy = new TestStrategy({} as RMachine<TestAtlas, string, TestResSet>, {} as TestConfig);
     // @ts-expect-error - config is readonly
     strategy.config = {} as TestConfig;
   });
 
   it("constructor should accept RMachine and config parameters", () => {
     expectTypeOf(TestStrategy).constructorParameters.toEqualTypeOf<
-      [rMachine: RMachine<TestAtlas, string, TestResKit>, config: TestConfig]
+      [rMachine: RMachine<TestAtlas, string, TestResSet>, config: TestConfig]
     >();
   });
 
   it("validateConfig should be a protected method overridable in subclasses", () => {
-    class ValidatingStrategy extends Strategy<TestAtlas, string, TestResKit, TestConfig> {
+    class ValidatingStrategy extends Strategy<TestAtlas, string, TestResSet, TestConfig> {
       protected override validateConfig(): void {
         expectTypeOf(this.config).toEqualTypeOf<TestConfig>();
-        expectTypeOf(this.rMachine).toEqualTypeOf<RMachine<TestAtlas, string, TestResKit>>();
+        expectTypeOf(this.rMachine).toEqualTypeOf<RMachine<TestAtlas, string, TestResSet>>();
       }
     }
-    expectTypeOf<ValidatingStrategy>().toExtend<Strategy<TestAtlas, string, TestResKit, TestConfig>>();
+    expectTypeOf<ValidatingStrategy>().toExtend<Strategy<TestAtlas, string, TestResSet, TestConfig>>();
   });
 
   it("should propagate locale type L between Strategy and RMachine", () => {
-    class NarrowLocaleStrategy extends Strategy<TestAtlas, "en" | "it", TestResKit, TestConfig> {}
-    expectTypeOf<NarrowLocaleStrategy["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, "en" | "it", TestResKit>>();
+    class NarrowLocaleStrategy extends Strategy<TestAtlas, "en" | "it", TestResSet, TestConfig> {}
+    expectTypeOf<NarrowLocaleStrategy["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, "en" | "it", TestResSet>>();
   });
 });
 
 describe("Strategy with different config types", () => {
   it("should preserve config type for primitives, nullish, and union types", () => {
-    class StringConfig extends Strategy<AnyResAtlasInstance, string, TestResKit, string> {}
-    class NumberConfig extends Strategy<AnyResAtlasInstance, string, TestResKit, number> {}
-    class NullConfig extends Strategy<AnyResAtlasInstance, string, TestResKit, null> {}
-    class UndefinedConfig extends Strategy<AnyResAtlasInstance, string, TestResKit, undefined> {}
-    class UnionConfig extends Strategy<AnyResAtlasInstance, string, TestResKit, string | number> {}
+    class StringConfig extends Strategy<AnyResAtlasInstance, string, TestResSet, string> {}
+    class NumberConfig extends Strategy<AnyResAtlasInstance, string, TestResSet, number> {}
+    class NullConfig extends Strategy<AnyResAtlasInstance, string, TestResSet, null> {}
+    class UndefinedConfig extends Strategy<AnyResAtlasInstance, string, TestResSet, undefined> {}
+    class UnionConfig extends Strategy<AnyResAtlasInstance, string, TestResSet, string | number> {}
 
     expectTypeOf<StringConfig["config"]>().toEqualTypeOf<string>();
     expectTypeOf<NumberConfig["config"]>().toEqualTypeOf<number>();
@@ -100,21 +101,21 @@ describe("Strategy with different config types", () => {
 describe("Strategy type constraints", () => {
   it("ATLAS should reject types that do not extend AnyResAtlasInstance", () => {
     // @ts-expect-error - number does not extend AnyResAtlasInstance
-    class _InvalidATLAS extends Strategy<number, string, TestResKit, TestConfig> {}
+    class _InvalidATLAS extends Strategy<number, string, TestResSet, TestConfig> {}
   });
 
   it("L should reject types that do not extend AnyLocale", () => {
     // @ts-expect-error - number does not extend AnyLocale (string)
-    class _InvalidL extends Strategy<TestAtlas, number, TestResKit, TestConfig> {}
+    class _InvalidL extends Strategy<TestAtlas, number, TestResSet, TestConfig> {}
   });
 
   it("L should accept AnyLocale and string literal unions", () => {
-    expectTypeOf<Strategy<TestAtlas, AnyLocale, TestResKit, TestConfig>>().toBeObject();
-    expectTypeOf<Strategy<TestAtlas, "en" | "it", TestResKit, TestConfig>>().toBeObject();
+    expectTypeOf<Strategy<TestAtlas, AnyLocale, TestResSet, TestConfig>>().toBeObject();
+    expectTypeOf<Strategy<TestAtlas, "en" | "it", TestResSet, TestConfig>>().toBeObject();
   });
 
   it("Strategy instances should extend Strategy base type", () => {
-    expectTypeOf<TestStrategy>().toExtend<Strategy<TestAtlas, string, TestResKit, TestConfig>>();
+    expectTypeOf<TestStrategy>().toExtend<Strategy<TestAtlas, string, TestResSet, TestConfig>>();
   });
 
   it("different atlas instances should produce different Strategy types", () => {
@@ -123,28 +124,33 @@ describe("Strategy type constraints", () => {
       readonly shell: {};
       readonly res: { readonly other: { value: number } };
     }
-    class OtherStrategy extends Strategy<OtherAtlas, string, TestResKit, TestConfig> {}
+    class OtherStrategy extends Strategy<OtherAtlas, string, TestResSet, TestConfig> {}
 
     expectTypeOf<TestStrategy>().not.toEqualTypeOf<OtherStrategy>();
   });
 
   it("different config types should produce different Strategy types", () => {
-    class StringStrategy extends Strategy<TestAtlas, string, TestResKit, string> {}
-    class NumberStrategy extends Strategy<TestAtlas, string, TestResKit, number> {}
+    class StringStrategy extends Strategy<TestAtlas, string, TestResSet, string> {}
+    class NumberStrategy extends Strategy<TestAtlas, string, TestResSet, number> {}
 
     expectTypeOf<StringStrategy>().not.toEqualTypeOf<NumberStrategy>();
   });
 
   it("different locale types should produce different Strategy types", () => {
-    class EnOnlyStrategy extends Strategy<TestAtlas, "en", TestResKit, TestConfig> {}
-    class EnItStrategy extends Strategy<TestAtlas, "en" | "it", TestResKit, TestConfig> {}
+    class EnOnlyStrategy extends Strategy<TestAtlas, "en", TestResSet, TestConfig> {}
+    class EnItStrategy extends Strategy<TestAtlas, "en" | "it", TestResSet, TestConfig> {}
 
     expectTypeOf<EnOnlyStrategy>().not.toEqualTypeOf<EnItStrategy>();
   });
 
   it("should accept NamespaceMap as KA parameter", () => {
-    type TestKA = { gear: { readonly c: "common" }; shell: { readonly c: "common" }; gate: { readonly c: "common" } };
-    class KitStrategy extends Strategy<TestAtlas, string, TestKA, TestConfig> {}
-    expectTypeOf<KitStrategy["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, string, TestKA>>();
+    type TestK = {
+      readonly gear: { readonly c: "common" };
+      readonly shell: { readonly c: "common" };
+      readonly gate: { readonly c: "common" };
+      readonly bridgeGears: readonly [];
+    };
+    class KitStrategy extends Strategy<TestAtlas, string, TestK, TestConfig> {}
+    expectTypeOf<KitStrategy["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, string, TestK>>();
   });
 });
