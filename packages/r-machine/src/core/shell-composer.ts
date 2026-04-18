@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { RMachineTypeError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { AnyResAtlas, AnyResAtlasInstance, NamespaceRef } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
@@ -24,6 +25,21 @@ import type { ShellListDefiner, ShellMapDefiner } from "./shell.js";
 type ShellDepsNamespace<ATLAS extends AnyResAtlasInstance, BG extends readonly string[]> =
   | Extract<keyof ATLAS["shell"], string>
   | BG[number];
+
+// Valid namespace-ref set for Shell.deps: shell namespaces + bridgeGears.
+type ShellDepsNamespaceRef<ATLAS extends AnyResAtlasInstance, BG extends readonly string[]> = NamespaceRef<
+  Pick<ATLAS["res"], ShellDepsNamespace<ATLAS, BG> & keyof ATLAS["res"]>
+>;
+
+// Validator for a single `.deps(...)` item. If N is a shell namespace ref
+// or a declared bridgeGear, pass through; otherwise produce a branded error
+// whose message surfaces inline in the TS diagnostic.
+type ValidShellDepItem<ATLAS extends AnyResAtlasInstance, BG extends readonly string[], N> =
+  N extends ShellDepsNamespaceRef<ATLAS, BG>
+    ? N
+    : N extends string
+      ? RMachineTypeError<`Namespace '${N}' is not a valid shell namespace (and not declared in bridgeGears).`>
+      : RMachineTypeError<"This token does not reference a valid shell namespace (or declared bridgeGear).">;
 
 // A ShellComposer drives three .deps() overloads (none / list / map) plus a
 // direct .define. BG is the bridgeGears tuple: its members are added to the
@@ -46,15 +62,11 @@ interface ShellDepsComposer<
   BG extends readonly string[],
 > {
   (): ShellMapDepsComposer<ATLAS["res"], L, KA, {}, BG>;
-  <NL extends readonly NamespaceRef<Pick<ATLAS["res"], ShellDepsNamespace<ATLAS, BG> & keyof ATLAS["res"]>>[]>(
-    ...namespaces: NL
+  <const NL extends readonly NamespaceRef<ATLAS["res"]>[]>(
+    ...namespaces: { readonly [I in keyof NL]: ValidShellDepItem<ATLAS, BG, NL[I]> }
   ): ShellListDepsComposer<ATLAS["res"], L, KA, NL, BG>;
-  <
-    NM extends {
-      readonly [k: string]: NamespaceRef<Pick<ATLAS["res"], ShellDepsNamespace<ATLAS, BG> & keyof ATLAS["res"]>>;
-    },
-  >(
-    namespaces: NM
+  <const NM extends { readonly [k: string]: NamespaceRef<ATLAS["res"]> }>(
+    namespaces: { readonly [K in keyof NM]: ValidShellDepItem<ATLAS, BG, NM[K]> }
   ): ShellMapDepsComposer<ATLAS["res"], L, KA, NM, BG>;
 }
 

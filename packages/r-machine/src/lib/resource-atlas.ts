@@ -12,23 +12,12 @@
  */
 
 import type { AnyResAtlasInstance, AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "#r-machine/core";
+import type { RMachineTypeError } from "#r-machine/errors";
 
-// Re-exported from core so public `lib` consumers can keep importing
-// AnyResAtlasInstance from the top-level entrypoint. The canonical definition
-// lives in core/res-atlas.ts (composers in core need it and core may not
-// depend on lib).
-export type { AnyResAtlasInstance };
-
-// #region Type-error brand
-
-// Branded error helper surfaced in TypeScript diagnostics. When a constraint
-// resolves to RMachineTypeError<"…">, the message appears inline in the error,
-// making the failure self-explanatory instead of an opaque structural mismatch.
-export type RMachineTypeError<Msg extends string> = {
-  readonly __rMachineTypeError: Msg;
-};
-
-// #endregion
+// Re-exported from core so public `lib` consumers can keep importing these
+// identifiers from the top-level entrypoint. Canonical definitions live in
+// core/ (composers in core need them and core may not depend on lib).
+export type { AnyResAtlasInstance, RMachineTypeError };
 
 // #region Atlas shape helpers
 

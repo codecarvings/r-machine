@@ -22,4 +22,5 @@ export {
 export { RMachineConfigError } from "./r-machine-config-error.js";
 export { RMachineError } from "./r-machine-error.js";
 export { RMachineResolveError } from "./r-machine-resolve-error.js";
+export type { RMachineTypeError } from "./r-machine-type-error.js";
 export { RMachineUsageError } from "./r-machine-usage-error.js";

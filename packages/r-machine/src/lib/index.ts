@@ -28,7 +28,6 @@ export {
   type ResAtlasBuilder,
   type ResAtlasClass,
   type ResAtlasInstance,
-  type RMachineTypeError,
   type ShellKit,
   type ValidBridgeGearItem,
   type ValidBridgeGears,
