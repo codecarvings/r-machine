@@ -1,22 +1,18 @@
-import { ofType, RMachine, type RMachineLocale } from "r-machine";
-import type { ResourceAtlas } from "./resource-atlas";
+import { RMachine, type RMachineLocale } from "r-machine";
+import { ResourceAtlas } from "./resource-atlas";
 
 const rMachine = RMachine.create({
-  resourceAtlas: ofType<ResourceAtlas>(),
+  resourceAtlas: ResourceAtlas,
   locales: ["en", "it"],
   defaultLocale: "en",
   load: (path) => import(`./${path}.ts`),
-  layout: {
-    gear: "gear",
-    shell: "shell",
-    "shell/lib": "dynamic-shell",
-  },
   shellKit: {
     fmt: "shell/lib/fmt",
   },
   gateKit: {
     fmt: "shell/lib/fmt",
   },
+  bridgeGears: ["gear/counter"],
 });
 
 export const { Gear, VertexGear, Shell, localized } = rMachine.createToolset();

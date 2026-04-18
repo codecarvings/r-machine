@@ -11,7 +11,13 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResLayout, ReactiveGearTag, ResLayoutEntryType, ResolveLayoutType } from "#r-machine/core";
+import type { AnyResAtlasInstance, AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "#r-machine/core";
+
+// Re-exported from core so public `lib` consumers can keep importing
+// AnyResAtlasInstance from the top-level entrypoint. The canonical definition
+// lives in core/res-atlas.ts (composers in core need it and core may not
+// depend on lib).
+export type { AnyResAtlasInstance };
 
 // #region Type-error brand
 
@@ -38,11 +44,19 @@ type ResAtlasSubMap<LO extends AnyResLayout, A, T extends ResLayoutEntryType> = 
 // never a bare "gear") and its prefix must exist in LO. When either check
 // fails the offending entry resolves to an RMachineTypeError carrying a
 // readable message.
+//
+// The success branch returns `unknown` rather than `A[K]`. `A[K]` would be
+// an identity mapping (semantically equivalent: any value is assignable to
+// `unknown`), but it forces TS to evaluate `A[K]` during constraint checking,
+// which breaks when atlas entries transitively reference the atlas itself
+// (the common r-machine pattern: `Gear_Aggregator = ReturnType<typeof r>`
+// where `r` is typed through a composer parameterized on ResourceAtlas).
+// Returning `unknown` keeps the check purely at the key level.
 type ValidResAtlasShape<LO extends AnyResLayout, A> = {
   readonly [K in keyof A]: K extends `${string}/${string}`
     ? [ResolveLayoutType<LO, K & string>] extends [never]
       ? RMachineTypeError<`Namespace '${K & string}' has no matching prefix in the layout. Declare a prefix in defineLayout({...}) first.`>
-      : A[K]
+      : unknown
     : RMachineTypeError<`Namespace '${K & string}' must be a sub-path (e.g. 'gear/foo'), not a bare top-level key.`>;
 };
 
@@ -92,44 +106,37 @@ export type AnyResAtlasClass = (abstract new () => any) & {
   readonly layout: AnyResLayout;
 };
 
-// Base interface describing the instance shape. Used as a generic bound in
-// internal APIs that work on the instance (RMachine, composers, kits). The
-// instance carries the full precomputed bundle (sub-maps + res) — consumers
-// downstream from RMachine.create operate on this, not on the class.
-export interface AnyResAtlasInstance {
-  readonly gear: Record<string, any>;
-  readonly shell: Record<string, any>;
-  readonly res: Record<string, any>;
-}
+// `AnyResAtlasInstance` (the instance shape used as generic bound in
+// composers, kits, and RMachine) is defined in core/res-atlas.ts — core may
+// not depend on lib, so the canonical definition lives there. Re-exported at
+// the top of this file for lib consumers.
 
 // #endregion
 
 // #region BridgeGears
 
-// Detects whether V carries the ReactiveGearTag brand.
-//
-// The tag interface uses an optional unique-symbol property, which means a
-// plain `V extends ReactiveGearTag` check always returns true (structural
-// subtyping treats missing optional properties as satisfied). We instead
-// check for presence of the symbol *key*: `keyof ReactiveGearTag` extracts
-// the unique symbol, and we verify it appears in `keyof V`. A non-reactive
-// gear lacks the symbol key entirely → returns false.
-export type IsReactiveGear<V> = keyof ReactiveGearTag extends keyof V ? true : false;
-
 // Namespace candidates accepted by bridgeGears: any gear namespace in the
-// atlas. Per-element validation (see ValidBridgeGearItem) further narrows
-// by rejecting reactive gears at compile time.
+// atlas. Vertex-gears are already excluded by construction (ATLAS["gear"]
+// filters them out at the layout level).
 export type BridgeGearNamespace<ATLAS extends AnyResAtlasInstance> = Extract<keyof ATLAS["gear"], string>;
 
 // Per-element validator for bridgeGears:
 // - If N is not a gear namespace → branded error "not a gear"
-// - If N is a reactive gear → branded error "cannot be declared as a bridge"
 // - Otherwise → pass through N verbatim
+//
+// Note on reactive gears: historically this validator also rejected reactive
+// gears at compile time by inspecting the value's brand. That check required
+// `keyof ATLAS["res"][N]`, which forces TS to resolve the value type — a
+// structural trap under the common r-machine idiom `Gear_X = RShape<typeof r>`
+// where `r` is typed through composers on the atlas, creating a transitive
+// self-reference that TS cannot unfold when another part of the same config
+// (bridgeGears itself) triggers evaluation. We therefore drop the reactive
+// check: passing a reactive gear as a bridge is out of contract — behavior
+// is undefined, no runtime guard. Aligns with the project's type-first
+// principle ("bypassing types = unpredictable").
 export type ValidBridgeGearItem<ATLAS extends AnyResAtlasInstance, N> =
   N extends BridgeGearNamespace<ATLAS>
-    ? IsReactiveGear<ATLAS["gear"][N]> extends true
-      ? RMachineTypeError<`Namespace '${N & string}' is a reactive gear and cannot be declared as a bridge. Bridge gears must be static.`>
-      : N
+    ? N
     : RMachineTypeError<`Namespace '${N & string}' is not a valid gear namespace.`>;
 
 // Maps ValidBridgeGearItem over each element of BG. Applied as intersection

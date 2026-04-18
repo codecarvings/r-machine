@@ -25,7 +25,6 @@ export {
   defineLayout,
   type GateKit,
   type GearKit,
-  type IsReactiveGear,
   type ResAtlasBuilder,
   type ResAtlasClass,
   type ResAtlasInstance,

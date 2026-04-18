@@ -16,7 +16,7 @@ import type { ListPlugin, LocaleAwarePluginCtx, MapPlugin, PlugBody } from "./pl
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
-import type { NamespaceMap } from "./res-map.js";
+import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
@@ -25,68 +25,90 @@ export interface ShellTag {
   readonly [shellSymbol]?: typeof shellSymbol;
 }
 
-type ShellPluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = LocaleAwarePluginCtx<
-  RA,
-  L,
-  KA
->;
+// Maps a bridgeGear tuple to a namespace-map shape suitable for SurfaceMap.
+// Each tuple element becomes both the key name and the namespace reference.
+type BridgeMap<BG extends readonly string[]> = {
+  readonly [K in BG[number]]: K;
+};
+
+// When BG is non-empty, the shell plugin context exposes `bridge` — a record
+// of surfaces, one per declared bridgeGear namespace. Empty tuples collapse
+// to `{}` so no-bridge shells don't carry the field at all.
+type BridgeCtx<RA extends AnyResAtlas, BG extends readonly string[]> = BG extends readonly []
+  ? {}
+  : { readonly bridge: SurfaceMap<RA, BridgeMap<BG> & NamespaceMap<RA>> };
+
+type ShellPluginCtx<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KA extends NamespaceMap<RA>,
+  BG extends readonly string[],
+> = LocaleAwarePluginCtx<RA, L, KA> & BridgeCtx<RA, BG>;
 
 type ShellMapPlugin<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-> = MapPlugin<RA, NM, ShellPluginCtx<RA, L, KA>>;
+  BG extends readonly string[],
+> = MapPlugin<RA, NM, ShellPluginCtx<RA, L, KA, BG>>;
 
 type ShellListPlugin<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> = ListPlugin<RA, NL, ShellPluginCtx<RA, L, KA>>;
+  BG extends readonly string[],
+> = ListPlugin<RA, NL, ShellPluginCtx<RA, L, KA, BG>>;
 
 type ShellMapPlugHead<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-> = ResMapPlugHead<"shell", RA, KA, NM, ShellPluginCtx<RA, L, KA>>;
+  BG extends readonly string[],
+> = ResMapPlugHead<"shell", RA, KA, NM, ShellPluginCtx<RA, L, KA, BG>>;
 
 type ShellListPlugHead<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> = ResListPlugHead<"shell", RA, KA, NL, ShellPluginCtx<RA, L, KA>>;
+  BG extends readonly string[],
+> = ResListPlugHead<"shell", RA, KA, NL, ShellPluginCtx<RA, L, KA, BG>>;
 
 interface ShellMapPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
-> extends PlugBody<ShellMapPlugHead<RA, L, KA, NM>> {}
+  BG extends readonly string[],
+> extends PlugBody<ShellMapPlugHead<RA, L, KA, NM, BG>> {}
 
 interface ShellListPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
-> extends PlugBody<ShellListPlugHead<RA, L, KA, NL>> {}
+  BG extends readonly string[],
+> extends PlugBody<ShellListPlugHead<RA, L, KA, NL, BG>> {}
 
 export type ShellMapDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
+  BG extends readonly string[],
 > = <R extends AnyRes>(
-  factory: (plugin: ShellMapPlugin<RA, L, KA, NM>) => R | Promise<R>
-) => ResMatrix<R & ShellTag, ShellMapPlug<RA, L, KA, NM>>;
+  factory: (plugin: ShellMapPlugin<RA, L, KA, NM, BG>) => R | Promise<R>
+) => ResMatrix<R & ShellTag, ShellMapPlug<RA, L, KA, NM, BG>>;
 
 export type ShellListDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
+  BG extends readonly string[],
 > = <R extends AnyRes>(
-  factory: (plugin: ShellListPlugin<RA, L, KA, NL>) => R | Promise<R>
-) => ResMatrix<R & ShellTag, ShellListPlug<RA, L, KA, NL>>;
+  factory: (plugin: ShellListPlugin<RA, L, KA, NL, BG>) => R | Promise<R>
+) => ResMatrix<R & ShellTag, ShellListPlug<RA, L, KA, NL, BG>>;

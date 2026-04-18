@@ -1,6 +1,6 @@
 import { Gear, type RShape } from "../setup";
 
-export const r = Gear.define(() => {
+export const r = Gear.define(({ prova }) => {
   return {
     someData: true,
   };

@@ -6,7 +6,7 @@
  */
 
 import type { ReactiveGearTag } from "../src/core/index.js";
-import type { AnyResAtlasClass, IsReactiveGear, ValidBridgeGearItem } from "../src/lib/index.js";
+import type { AnyResAtlasClass, ValidBridgeGearItem } from "../src/lib/index.js";
 import { defineLayout } from "../src/lib/index.js";
 
 // Fake resource shapes — the point is type structure, not real instances.
@@ -117,32 +117,25 @@ const _vertexInGear: _GearMap["vertex/main"] = { kind: "vertex" };
 //   "gear": Gear_Counter; // ← Error contains "must be a sub-path"
 // }>() {}
 
-// 10) bridgeGears validation: IsReactiveGear detects ReactiveGearTag brand
-//     via keyof intersection (not structural `extends`, which would always
-//     pass because of the optional symbol property).
-type _IsReactiveOnRegular = IsReactiveGear<Gear_Counter>;
-//     ^? false
-type _IsReactiveOnReactive = IsReactiveGear<Gear_Live>;
-//     ^? true
-
-// Assertions at the type level.
-const _regularIsNotReactive: _IsReactiveOnRegular = false;
-const _reactiveIsReactive: _IsReactiveOnReactive = true;
-
-// 11) ValidBridgeGearItem outcomes for each case:
-//     - valid (non-reactive gear) → namespace passes through
-//     - reactive gear → branded error mentioning the namespace
+// 10) ValidBridgeGearItem outcomes:
+//     - valid (gear namespace) → namespace passes through
 //     - non-gear (shell, vertex, unknown) → branded error "is not a valid gear"
+//
+//     Note: reactive gears ARE accepted here at compile time — the historical
+//     reactive-brand check was removed because probing the gear's value type
+//     (to detect ReactiveGearTag via `keyof`) forces TS to resolve the type
+//     structurally, which cycles under the common `Gear_X = RShape<typeof r>`
+//     self-referential pattern. Passing a reactive gear as a bridge is out of
+//     contract; no runtime guard either.
 type _ValidBridge = ValidBridgeGearItem<InstanceType<typeof ResourceAtlas>, "gear/counter">;
 //     ^? "gear/counter"
-type _ReactiveBridge = ValidBridgeGearItem<InstanceType<typeof ResourceAtlas>, "gear/live">;
-//     ^? RMachineTypeError<`Namespace 'gear/live' is a reactive gear and cannot be declared as a bridge...`>
+type _ReactiveBridgeNowAccepted = ValidBridgeGearItem<InstanceType<typeof ResourceAtlas>, "gear/live">;
+//     ^? "gear/live"  (no longer rejected)
 type _ShellBridge = ValidBridgeGearItem<InstanceType<typeof ResourceAtlas>, "shell/common">;
 //     ^? RMachineTypeError<`Namespace 'shell/common' is not a valid gear namespace.`>
 
 const _validBridge: _ValidBridge = "gear/counter";
-// @ts-expect-error — reactive bridgeGear namespace collapses to a branded error, not the literal
-const _reactiveBridgeIsNotString: _ReactiveBridge = "gear/live";
+const _reactiveBridgePassesThrough: _ReactiveBridgeNowAccepted = "gear/live";
 // @ts-expect-error — shell is not a valid gear, branded error
 const _shellBridgeIsNotString: _ShellBridge = "shell/common";
 
@@ -162,10 +155,8 @@ export const _probes = {
   _gearResourceViaRes,
   _vertexInRes,
   _vertexInGear,
-  _regularIsNotReactive,
-  _reactiveIsReactive,
   _validBridge,
-  _reactiveBridgeIsNotString,
+  _reactiveBridgePassesThrough,
   _shellBridgeIsNotString,
 };
 export type _Exports = {

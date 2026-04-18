@@ -12,20 +12,50 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
-import type { AnyResAtlas } from "./res-atlas.js";
+import type { AnyResAtlas, AnyResAtlasInstance, NamespaceRef } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
 import type { ShellListDefiner, ShellMapDefiner } from "./shell.js";
 
-export interface ShellComposer<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
-  readonly deps: ShellDepsComposer<RA, L, KA>;
-  readonly define: ShellMapDefiner<RA, L, KA, {}>;
+// The union of namespaces accepted by `Shell.deps(...)`: all shell namespaces
+// from the atlas, plus any bridgeGear namespace declared in the config. The
+// filter is applied to `.deps()` only — surface resolution still uses
+// ATLAS["res"] so bridgeGear lookups (gear namespaces) resolve correctly.
+type ShellDepsNamespace<ATLAS extends AnyResAtlasInstance, BG extends readonly string[]> =
+  | Extract<keyof ATLAS["shell"], string>
+  | BG[number];
+
+// A ShellComposer drives three .deps() overloads (none / list / map) plus a
+// direct .define. BG is the bridgeGears tuple: its members are added to the
+// set of namespaces accepted by `.deps()` and surfaced as `bridge.*` in the
+// plugin context (see shell.ts BridgeCtx).
+export interface ShellComposer<
+  ATLAS extends AnyResAtlasInstance,
+  L extends AnyLocale,
+  KA extends NamespaceMap<ATLAS["res"]>,
+  BG extends readonly string[] = readonly [],
+> {
+  readonly deps: ShellDepsComposer<ATLAS, L, KA, BG>;
+  readonly define: ShellMapDefiner<ATLAS["res"], L, KA, {}, BG>;
 }
 
-interface ShellDepsComposer<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
-  (): ShellMapDepsComposer<RA, L, KA, {}>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): ShellListDepsComposer<RA, L, KA, NL>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): ShellMapDepsComposer<RA, L, KA, NM>;
+interface ShellDepsComposer<
+  ATLAS extends AnyResAtlasInstance,
+  L extends AnyLocale,
+  KA extends NamespaceMap<ATLAS["res"]>,
+  BG extends readonly string[],
+> {
+  (): ShellMapDepsComposer<ATLAS["res"], L, KA, {}, BG>;
+  <NL extends readonly NamespaceRef<Pick<ATLAS["res"], ShellDepsNamespace<ATLAS, BG> & keyof ATLAS["res"]>>[]>(
+    ...namespaces: NL
+  ): ShellListDepsComposer<ATLAS["res"], L, KA, NL, BG>;
+  <
+    NM extends {
+      readonly [k: string]: NamespaceRef<Pick<ATLAS["res"], ShellDepsNamespace<ATLAS, BG> & keyof ATLAS["res"]>>;
+    },
+  >(
+    namespaces: NM
+  ): ShellMapDepsComposer<ATLAS["res"], L, KA, NM, BG>;
 }
 
 interface ShellMapDepsComposer<
@@ -33,8 +63,9 @@ interface ShellMapDepsComposer<
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
+  BG extends readonly string[],
 > {
-  readonly define: ShellMapDefiner<RA, L, KA, NM>;
+  readonly define: ShellMapDefiner<RA, L, KA, NM, BG>;
 }
 
 interface ShellListDepsComposer<
@@ -42,6 +73,7 @@ interface ShellListDepsComposer<
   L extends AnyLocale,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
+  BG extends readonly string[],
 > {
-  readonly define: ShellListDefiner<RA, L, KA, NL>;
+  readonly define: ShellListDefiner<RA, L, KA, NL, BG>;
 }

@@ -7,6 +7,17 @@ export interface AnyResAtlas {
   readonly [namespace: AnyNamespace]: any; // Do not use AnyRes - It breaks token system
 }
 
+// Minimal shape of a resource-atlas instance produced by `defineLayout(...)<A>()`.
+// Lives here (core) rather than in lib/ so that composers in core can constrain
+// on it without importing from lib (core must not depend on lib).
+// The three sub-maps (`gear`, `shell`, `res`) are precomputed at class-build
+// time and consumed downstream for dep filtering / surface lookup.
+export interface AnyResAtlasInstance {
+  readonly gear: Record<AnyNamespace, any>;
+  readonly shell: Record<AnyNamespace, any>;
+  readonly res: AnyResAtlas;
+}
+
 export type Namespace<RA extends AnyResAtlas> = Extract<keyof RA, AnyNamespace>;
 
 export type SolidNamespace<RA extends AnyResAtlas> = {
