@@ -11,21 +11,10 @@
  * contact: licensing@codecarvings.com
  */
 
-import type {
-  AnyResAtlas,
-  ExtractNamespace,
-  GearNamespaceRef,
-  NamespaceRef,
-  ShellNamespaceRef,
-  SolidNamespaceRef,
-} from "./res-atlas.js";
+import type { AnyResAtlas, ExtractNamespace, NamespaceRef, SolidNamespaceRef } from "./res-atlas.js";
 import type { Surface } from "./surface.js";
 
 export type NamespaceList<RA extends AnyResAtlas> = readonly NamespaceRef<RA>[];
-
-export type GearNamespaceList<RA extends AnyResAtlas> = readonly GearNamespaceRef<RA>[];
-
-export type ShellNamespaceList<RA extends AnyResAtlas> = readonly ShellNamespaceRef<RA>[];
 
 export type SolidNamespaceList<RA extends AnyResAtlas> = readonly SolidNamespaceRef<RA>[];
 

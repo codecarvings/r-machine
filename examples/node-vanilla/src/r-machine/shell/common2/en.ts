@@ -1,6 +1,6 @@
 import { type RShape, Shell } from "@/r-machine/setup";
 
-export const r = Shell.deps("").define(({ fmt }) => ({
+export const r = Shell.deps().define(({ fmt }) => ({
   greeting: `Hello world ${fmt.number(21)}`,
 }));
 

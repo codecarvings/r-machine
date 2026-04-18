@@ -14,8 +14,8 @@
 import type { GearListDefiner, GearMapDefiner, GearTag } from "./gear.js";
 import type { ReactiveGearListDepsComposer, ReactiveGearMapDepsComposer } from "./reactive-gear-composer.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { GearNamespaceList, NamespaceList } from "./res-list.js";
-import type { GearNamespaceMap, NamespaceMap } from "./res-map.js";
+import type { NamespaceList } from "./res-list.js";
+import type { NamespaceMap } from "./res-map.js";
 import type { VertexGearTag } from "./vertex-gear.js";
 
 export interface GearComposer<
@@ -30,8 +30,8 @@ export interface GearComposer<
 
 interface GearDepsComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, T extends GearTag | VertexGearTag> {
   (): GearMapDepsComposer<RA, KA, {}, T>;
-  <NL extends GearNamespaceList<RA>>(...namespaces: NL): GearListDepsComposer<RA, KA, NL, T>;
-  <NM extends GearNamespaceMap<RA>>(namespaces: NM): GearMapDepsComposer<RA, KA, NM, T>;
+  <NL extends NamespaceList<RA>>(...namespaces: NL): GearListDepsComposer<RA, KA, NL, T>;
+  <NM extends NamespaceMap<RA>>(namespaces: NM): GearMapDepsComposer<RA, KA, NM, T>;
 }
 
 interface GearMapDepsComposer<
