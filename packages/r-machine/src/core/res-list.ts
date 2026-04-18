@@ -11,10 +11,13 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { Namespace } from "#r-machine/core";
 import type { AnyResAtlas, ExtractNamespace, NamespaceRef, SolidNamespaceRef } from "./res-atlas.js";
 import type { Surface } from "./surface.js";
 
 export type NamespaceList<RA extends AnyResAtlas> = readonly NamespaceRef<RA>[];
+
+export type ExplicitNamespaceList<RA extends AnyResAtlas> = readonly Namespace<RA>[];
 
 export type SolidNamespaceList<RA extends AnyResAtlas> = readonly SolidNamespaceRef<RA>[];
 

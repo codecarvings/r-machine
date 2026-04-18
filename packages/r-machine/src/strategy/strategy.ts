@@ -12,13 +12,13 @@
  */
 
 import type { AnyResAtlasInstance, RMachine } from "#r-machine";
-import type { ResSet } from "#r-machine/core";
+import type { ResEquipment } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
 export abstract class Strategy<
   ATLAS extends AnyResAtlasInstance,
   L extends AnyLocale,
-  K extends ResSet<ATLAS["res"], any, any, any, any>,
+  K extends ResEquipment<ATLAS["res"], any, any, any, any>,
   C,
 > {
   constructor(

@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyPlugHead, AnyRes, GateWire, ResSet, VertexGearMap } from "#r-machine/core";
+import type { AnyPlugHead, AnyRes, GateWire, ResEquipment, VertexGearMap } from "#r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
@@ -36,7 +36,7 @@ import type {
 export class RMachine<
   ATLAS extends AnyResAtlasInstance,
   L extends AnyLocale,
-  K extends ResSet<ATLAS["res"], any, any, any, any>,
+  K extends ResEquipment<ATLAS["res"], any, any, any, any>,
 > {
   constructor(config: RMachineConfig<ATLAS, L, K>) {
     const configError = validateRMachineConfig(config);
@@ -72,10 +72,6 @@ export class RMachine<
     return undefined!; // TODO: WIP;
   }
 
-  // KA not "const KA" for DX purposes. Internal generics GKA/SKA/XKA/BG are
-  // inferred from the individual config fields; they're bundled into the
-  // single `K` (ResSet) at the return type so downstream consumers see a
-  // 3-generic RMachine surface.
   static create<
     CLASS extends AnyResAtlasClass,
     const LL extends AnyLocaleList,
@@ -85,8 +81,8 @@ export class RMachine<
     XKA extends GateKit<InstanceType<CLASS>> = {},
   >(
     config: RMachineConfigParams<CLASS, LL, BG, GKA, SKA, XKA>
-  ): RMachine<InstanceType<CLASS>, LL[number], ResSet<InstanceType<CLASS>["res"], GKA, SKA, XKA, BG>> {
-    return new RMachine<InstanceType<CLASS>, LL[number], ResSet<InstanceType<CLASS>["res"], GKA, SKA, XKA, BG>>(
+  ): RMachine<InstanceType<CLASS>, LL[number], ResEquipment<InstanceType<CLASS>["res"], GKA, SKA, XKA, BG>> {
+    return new RMachine<InstanceType<CLASS>, LL[number], ResEquipment<InstanceType<CLASS>["res"], GKA, SKA, XKA, BG>>(
       convertParamsToConfig(config)
     );
   }

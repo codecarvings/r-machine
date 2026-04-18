@@ -12,7 +12,6 @@
  */
 
 export type { BrandedResource } from "./branded-resource.js";
-export { ofType } from "./of-type.js";
 export {
   RMachine,
   type RMachineLocale,
@@ -22,6 +21,7 @@ export {
   type AnyResAtlasClass,
   type AnyResAtlasInstance,
   type BridgeGearNamespace,
+  defaultLayout,
   defineLayout,
   type GateKit,
   type GearKit,

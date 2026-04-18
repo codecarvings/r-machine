@@ -175,30 +175,9 @@ export type GateKit<ATLAS extends AnyResAtlasInstance> = {
 
 // #region defineLayout
 
-// Callable returned by defineLayout: invoking `layout<A>()` produces the
-// atlas class; the same value also exposes each prefix → entry-type mapping
-// as a plain property for optional runtime introspection.
-export type ResAtlasBuilder<LO extends AnyResLayout> = LO &
-  (<const A extends ValidResAtlasShape<LO, A>>() => ResAtlasClass<LO, A>);
+export type ResAtlasBuilder<RL extends AnyResLayout> = RL &
+  (<const A extends ValidResAtlasShape<RL, A>>() => ResAtlasClass<RL, A>);
 
-/**
- * Declares the namespace layout for a resource atlas and returns a callable
- * that produces the atlas class.
- *
- * @example
- * ```ts
- * const layout = defineLayout({
- *   gear: "gear",
- *   shell: "shell",
- *   "shell/lib": "dynamic-shell",
- * });
- *
- * export class ResourceAtlas extends layout<{
- *   "gear/counter": Gear_Counter;
- *   "shell/common": Shell_Common;
- * }>() {}
- * ```
- */
 export function defineLayout<const LO extends AnyResLayout>(layout: LO): ResAtlasBuilder<LO> {
   function builder<const RA extends ValidResAtlasShape<LO, RA>>(): ResAtlasClass<LO, RA> {
     abstract class Base {
@@ -211,5 +190,12 @@ export function defineLayout<const LO extends AnyResLayout>(layout: LO): ResAtla
   }
   return Object.assign(builder, layout) as ResAtlasBuilder<LO>;
 }
+
+export const defaultLayout = defineLayout({
+  gear: "gear",
+  "gear/vertex": "vertex-gear",
+  shell: "shell",
+  "shell/lib": "dynamic-shell",
+});
 
 // #endregion

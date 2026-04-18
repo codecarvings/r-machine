@@ -12,9 +12,13 @@
  */
 
 import { type AnyResAtlas, createToken, type Namespace, type Token } from "#r-machine/core";
+import type { AnyResAtlasClass } from "./resource-atlas.js";
 
 type TokenBuilder<RA extends AnyResAtlas> = <N extends Namespace<RA>>(namespace: N) => Token<N>;
 
-export function getTokenBuilder<RA extends AnyResAtlas>(): TokenBuilder<RA> {
+export function getTokenBuilder<CLASS extends AnyResAtlasClass>(
+  ResourceAtlasClass: CLASS
+): TokenBuilder<InstanceType<CLASS>["res"]> {
+  void ResourceAtlasClass;
   return createToken;
 }

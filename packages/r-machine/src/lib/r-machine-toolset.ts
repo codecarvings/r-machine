@@ -11,19 +11,14 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { GearComposer, Namespace, ResSet, ShellComposer, VertexGearTag } from "#r-machine/core";
+import type { GearComposer, Namespace, ResEquipment, ShellComposer, VertexGearTag } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 import type { AnyResAtlasInstance } from "./resource-atlas.js";
 
-// K bundles kits + bridgeGears (see ResSet). The shell composer reads
-// K["bridgeGears"] to (a) widen its `.deps(...)` acceptance set and (b)
-// expose bridge surfaces in the shell plugin context. Gear and VertexGear
-// do not consume bridgeGears — vertex gears are filtered out at `.deps()`
-// by constraining against ATLAS["gear"] only.
 export interface RMachineToolset<
   ATLAS extends AnyResAtlasInstance,
   L extends AnyLocale,
-  K extends ResSet<ATLAS["res"], any, any, any, any>,
+  K extends ResEquipment<ATLAS["res"], any, any, any, any>,
 > {
   readonly Gear: GearComposer<ATLAS, K["gear"]>;
   readonly VertexGear: GearComposer<ATLAS, K["gear"], VertexGearTag>;

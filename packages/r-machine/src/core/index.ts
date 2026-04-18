@@ -46,6 +46,7 @@ export {
   type Namespace,
   type Token,
 } from "./res-atlas.js";
+export type { ResEquipment } from "./res-equipment.js";
 export type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "./res-layout.js";
 export type { NamespaceList, SolidNamespaceList, SurfaceList } from "./res-list.js";
 export type {
@@ -56,7 +57,6 @@ export type {
 } from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";
 export type { ResModuleLoaderFn } from "./res-module.js";
-export type { ResSet } from "./res-set.js";
 export type { ShellTag } from "./shell.js";
 export type { ShellComposer } from "./shell-composer.js";
 export type { Surface } from "./surface.js";

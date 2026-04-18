@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { ResModuleLoaderFn, ResSet } from "#r-machine/core";
+import type { ResEquipment, ResModuleLoaderFn } from "#r-machine/core";
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
@@ -35,10 +35,6 @@ import type {
   ValidBridgeGears,
 } from "./resource-atlas.js";
 
-// The generic parameter LL is used to ensure that the defaultLocale is one of the locales in the list.
-// Params stay flat for DX — `gearKit`, `shellKit`, `gateKit`, `bridgeGears` are
-// separate top-level fields. `convertParamsToConfig` bundles them into the
-// single `ResSet` carrier used downstream.
 export interface RMachineConfigParams<
   CLASS extends AnyResAtlasClass,
   LL extends AnyLocaleList,
@@ -47,7 +43,7 @@ export interface RMachineConfigParams<
   SKA extends ShellKit<InstanceType<CLASS>, BG>,
   XKA extends GateKit<InstanceType<CLASS>>,
 > {
-  readonly resourceAtlas: CLASS;
+  readonly ResourceAtlas: CLASS;
   readonly locales: LL;
   readonly defaultLocale: LL[number];
   readonly load: ResModuleLoaderFn;
@@ -63,7 +59,7 @@ export interface RMachineConfigParams<
 export interface RMachineConfig<
   ATLAS extends AnyResAtlasInstance,
   L extends AnyLocale,
-  K extends ResSet<ATLAS["res"], any, any, any, any>,
+  K extends ResEquipment<ATLAS["res"], any, any, any, any>,
 > {
   // Phantom type: carries the instance's rich type (gear/shell/res sub-maps)
   // for downstream generic threading. The runtime value stored here is the
@@ -89,16 +85,16 @@ export function convertParamsToConfig<
   XKA extends GateKit<InstanceType<CLASS>>,
 >(
   params: RMachineConfigParams<CLASS, LL, BG, GKA, SKA, XKA>
-): RMachineConfig<InstanceType<CLASS>, LL[number], ResSet<InstanceType<CLASS>["res"], GKA, SKA, XKA, BG>> {
+): RMachineConfig<InstanceType<CLASS>, LL[number], ResEquipment<InstanceType<CLASS>["res"], GKA, SKA, XKA, BG>> {
   return {
     // Runtime value: the class reference. Type-level: the instance (phantom).
     // The cast is safe because nothing reads runtime fields off this — access
     // goes through `layout` below or through per-resource resolution.
-    resourceAtlas: params.resourceAtlas as unknown as InstanceType<CLASS>,
+    resourceAtlas: params.ResourceAtlas as unknown as InstanceType<CLASS>,
     locales: [...params.locales],
     defaultLocale: params.defaultLocale,
     load: params.load,
-    layout: params.resourceAtlas.layout,
+    layout: params.ResourceAtlas.layout,
     kit: {
       gear: params.gearKit ?? ({} as GKA),
       shell: params.shellKit ?? ({} as SKA),

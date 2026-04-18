@@ -19,7 +19,7 @@ interface TestConfig {
   enabled: boolean;
 }
 
-interface TestResSet {
+interface TestResEquipment {
   readonly gear: {};
   readonly shell: {};
   readonly gate: {};
@@ -27,7 +27,7 @@ interface TestResSet {
 }
 
 // Concrete implementation for type testing
-class TestStrategy extends Strategy<TestAtlas, string, TestResSet, TestConfig> {}
+class TestStrategy extends Strategy<TestAtlas, string, TestResEquipment, TestConfig> {}
 
 describe("Strategy", () => {
   it("should be abstract and not directly constructable", () => {
@@ -36,7 +36,7 @@ describe("Strategy", () => {
   });
 
   it("should be constructable through subclasses", () => {
-    expectTypeOf(TestStrategy).toBeConstructibleWith({} as RMachine<TestAtlas, string, TestResSet>, {
+    expectTypeOf(TestStrategy).toBeConstructibleWith({} as RMachine<TestAtlas, string, TestResEquipment>, {
       option: "test",
       enabled: true,
     });
@@ -44,9 +44,9 @@ describe("Strategy", () => {
 
   it("rMachine property should be readonly RMachine<ATLAS, L, KA>", () => {
     expectTypeOf<TestStrategy>().toHaveProperty("rMachine");
-    expectTypeOf<TestStrategy["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, string, TestResSet>>();
+    expectTypeOf<TestStrategy["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, string, TestResEquipment>>();
 
-    const strategy = new TestStrategy({} as RMachine<TestAtlas, string, TestResSet>, {} as TestConfig);
+    const strategy = new TestStrategy({} as RMachine<TestAtlas, string, TestResEquipment>, {} as TestConfig);
     // @ts-expect-error - rMachine is readonly
     strategy.rMachine = {} as RMachine<TestAtlas, string, {}>;
   });
@@ -55,40 +55,42 @@ describe("Strategy", () => {
     expectTypeOf<TestStrategy>().toHaveProperty("config");
     expectTypeOf<TestStrategy["config"]>().toEqualTypeOf<TestConfig>();
 
-    const strategy = new TestStrategy({} as RMachine<TestAtlas, string, TestResSet>, {} as TestConfig);
+    const strategy = new TestStrategy({} as RMachine<TestAtlas, string, TestResEquipment>, {} as TestConfig);
     // @ts-expect-error - config is readonly
     strategy.config = {} as TestConfig;
   });
 
   it("constructor should accept RMachine and config parameters", () => {
     expectTypeOf(TestStrategy).constructorParameters.toEqualTypeOf<
-      [rMachine: RMachine<TestAtlas, string, TestResSet>, config: TestConfig]
+      [rMachine: RMachine<TestAtlas, string, TestResEquipment>, config: TestConfig]
     >();
   });
 
   it("validateConfig should be a protected method overridable in subclasses", () => {
-    class ValidatingStrategy extends Strategy<TestAtlas, string, TestResSet, TestConfig> {
+    class ValidatingStrategy extends Strategy<TestAtlas, string, TestResEquipment, TestConfig> {
       protected override validateConfig(): void {
         expectTypeOf(this.config).toEqualTypeOf<TestConfig>();
-        expectTypeOf(this.rMachine).toEqualTypeOf<RMachine<TestAtlas, string, TestResSet>>();
+        expectTypeOf(this.rMachine).toEqualTypeOf<RMachine<TestAtlas, string, TestResEquipment>>();
       }
     }
-    expectTypeOf<ValidatingStrategy>().toExtend<Strategy<TestAtlas, string, TestResSet, TestConfig>>();
+    expectTypeOf<ValidatingStrategy>().toExtend<Strategy<TestAtlas, string, TestResEquipment, TestConfig>>();
   });
 
   it("should propagate locale type L between Strategy and RMachine", () => {
-    class NarrowLocaleStrategy extends Strategy<TestAtlas, "en" | "it", TestResSet, TestConfig> {}
-    expectTypeOf<NarrowLocaleStrategy["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, "en" | "it", TestResSet>>();
+    class NarrowLocaleStrategy extends Strategy<TestAtlas, "en" | "it", TestResEquipment, TestConfig> {}
+    expectTypeOf<NarrowLocaleStrategy["rMachine"]>().toEqualTypeOf<
+      RMachine<TestAtlas, "en" | "it", TestResEquipment>
+    >();
   });
 });
 
 describe("Strategy with different config types", () => {
   it("should preserve config type for primitives, nullish, and union types", () => {
-    class StringConfig extends Strategy<AnyResAtlasInstance, string, TestResSet, string> {}
-    class NumberConfig extends Strategy<AnyResAtlasInstance, string, TestResSet, number> {}
-    class NullConfig extends Strategy<AnyResAtlasInstance, string, TestResSet, null> {}
-    class UndefinedConfig extends Strategy<AnyResAtlasInstance, string, TestResSet, undefined> {}
-    class UnionConfig extends Strategy<AnyResAtlasInstance, string, TestResSet, string | number> {}
+    class StringConfig extends Strategy<AnyResAtlasInstance, string, TestResEquipment, string> {}
+    class NumberConfig extends Strategy<AnyResAtlasInstance, string, TestResEquipment, number> {}
+    class NullConfig extends Strategy<AnyResAtlasInstance, string, TestResEquipment, null> {}
+    class UndefinedConfig extends Strategy<AnyResAtlasInstance, string, TestResEquipment, undefined> {}
+    class UnionConfig extends Strategy<AnyResAtlasInstance, string, TestResEquipment, string | number> {}
 
     expectTypeOf<StringConfig["config"]>().toEqualTypeOf<string>();
     expectTypeOf<NumberConfig["config"]>().toEqualTypeOf<number>();
@@ -101,21 +103,21 @@ describe("Strategy with different config types", () => {
 describe("Strategy type constraints", () => {
   it("ATLAS should reject types that do not extend AnyResAtlasInstance", () => {
     // @ts-expect-error - number does not extend AnyResAtlasInstance
-    class _InvalidATLAS extends Strategy<number, string, TestResSet, TestConfig> {}
+    class _InvalidATLAS extends Strategy<number, string, TestResEquipment, TestConfig> {}
   });
 
   it("L should reject types that do not extend AnyLocale", () => {
     // @ts-expect-error - number does not extend AnyLocale (string)
-    class _InvalidL extends Strategy<TestAtlas, number, TestResSet, TestConfig> {}
+    class _InvalidL extends Strategy<TestAtlas, number, TestResEquipment, TestConfig> {}
   });
 
   it("L should accept AnyLocale and string literal unions", () => {
-    expectTypeOf<Strategy<TestAtlas, AnyLocale, TestResSet, TestConfig>>().toBeObject();
-    expectTypeOf<Strategy<TestAtlas, "en" | "it", TestResSet, TestConfig>>().toBeObject();
+    expectTypeOf<Strategy<TestAtlas, AnyLocale, TestResEquipment, TestConfig>>().toBeObject();
+    expectTypeOf<Strategy<TestAtlas, "en" | "it", TestResEquipment, TestConfig>>().toBeObject();
   });
 
   it("Strategy instances should extend Strategy base type", () => {
-    expectTypeOf<TestStrategy>().toExtend<Strategy<TestAtlas, string, TestResSet, TestConfig>>();
+    expectTypeOf<TestStrategy>().toExtend<Strategy<TestAtlas, string, TestResEquipment, TestConfig>>();
   });
 
   it("different atlas instances should produce different Strategy types", () => {
@@ -124,21 +126,21 @@ describe("Strategy type constraints", () => {
       readonly shell: {};
       readonly res: { readonly other: { value: number } };
     }
-    class OtherStrategy extends Strategy<OtherAtlas, string, TestResSet, TestConfig> {}
+    class OtherStrategy extends Strategy<OtherAtlas, string, TestResEquipment, TestConfig> {}
 
     expectTypeOf<TestStrategy>().not.toEqualTypeOf<OtherStrategy>();
   });
 
   it("different config types should produce different Strategy types", () => {
-    class StringStrategy extends Strategy<TestAtlas, string, TestResSet, string> {}
-    class NumberStrategy extends Strategy<TestAtlas, string, TestResSet, number> {}
+    class StringStrategy extends Strategy<TestAtlas, string, TestResEquipment, string> {}
+    class NumberStrategy extends Strategy<TestAtlas, string, TestResEquipment, number> {}
 
     expectTypeOf<StringStrategy>().not.toEqualTypeOf<NumberStrategy>();
   });
 
   it("different locale types should produce different Strategy types", () => {
-    class EnOnlyStrategy extends Strategy<TestAtlas, "en", TestResSet, TestConfig> {}
-    class EnItStrategy extends Strategy<TestAtlas, "en" | "it", TestResSet, TestConfig> {}
+    class EnOnlyStrategy extends Strategy<TestAtlas, "en", TestResEquipment, TestConfig> {}
+    class EnItStrategy extends Strategy<TestAtlas, "en" | "it", TestResEquipment, TestConfig> {}
 
     expectTypeOf<EnOnlyStrategy>().not.toEqualTypeOf<EnItStrategy>();
   });

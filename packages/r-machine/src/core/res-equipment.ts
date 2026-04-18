@@ -12,18 +12,15 @@
  */
 
 import type { AnyResAtlas } from "./res-atlas.js";
+import type { ExplicitNamespaceList } from "./res-list.js";
 import type { ExplicitNamespaceMap } from "./res-map.js";
 
-// Bundled namespace-wiring info for RMachine: the three auto-injected kits
-// (gear / shell / gate) plus the bridgeGears tuple (gears allowed as shell
-// imports). Consolidated into a single type carrier so RMachine and its
-// downstream consumers (toolset, strategy) keep a 3-generic public surface.
-export interface ResSet<
+export interface ResEquipment<
   RA extends AnyResAtlas,
   GKA extends ExplicitNamespaceMap<RA> = {},
   SKA extends ExplicitNamespaceMap<RA> = {},
   XKA extends ExplicitNamespaceMap<RA> = {},
-  BG extends readonly Extract<keyof RA, string>[] = readonly [],
+  BG extends ExplicitNamespaceList<RA> = [],
 > {
   readonly gear: GKA;
   readonly shell: SKA;

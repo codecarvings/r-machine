@@ -10,7 +10,7 @@ interface TestAtlas extends AnyResAtlasInstance {
   readonly res: {};
 }
 
-interface TestResSet {
+interface TestResEquipment {
   readonly gear: {};
   readonly shell: {};
   readonly gate: {};
@@ -19,7 +19,7 @@ interface TestResSet {
 
 function createSpyStrategyClass<ATLAS extends AnyResAtlasInstance, L extends AnyLocale, C>() {
   const validateConfigSpy = vi.fn();
-  class SpyStrategy extends Strategy<ATLAS, L, TestResSet, C> {
+  class SpyStrategy extends Strategy<ATLAS, L, TestResEquipment, C> {
     protected override validateConfig(): void {
       validateConfigSpy();
     }
@@ -30,7 +30,7 @@ function createSpyStrategyClass<ATLAS extends AnyResAtlasInstance, L extends Any
 class ThrowingStrategy<ATLAS extends AnyResAtlasInstance, L extends AnyLocale, C> extends Strategy<
   ATLAS,
   L,
-  TestResSet,
+  TestResEquipment,
   C
 > {
   protected override validateConfig(): void {
@@ -41,11 +41,11 @@ class ThrowingStrategy<ATLAS extends AnyResAtlasInstance, L extends AnyLocale, C
 class DefaultStrategy<ATLAS extends AnyResAtlasInstance, L extends AnyLocale, C> extends Strategy<
   ATLAS,
   L,
-  TestResSet,
+  TestResEquipment,
   C
 > {}
 
-const testConfig: RMachineConfig<TestAtlas, string, TestResSet> = {
+const testConfig: RMachineConfig<TestAtlas, string, TestResEquipment> = {
   // Phantom: the config's resourceAtlas is typed as the instance but at
   // runtime holds whatever the caller passes (the class, or — in this test —
   // a plain empty object). Cast to match the generic.
@@ -58,7 +58,7 @@ const testConfig: RMachineConfig<TestAtlas, string, TestResSet> = {
 };
 
 function createTestRMachine() {
-  return new RMachine<TestAtlas, string, TestResSet>(testConfig);
+  return new RMachine<TestAtlas, string, TestResEquipment>(testConfig);
 }
 
 describe("Strategy", () => {
