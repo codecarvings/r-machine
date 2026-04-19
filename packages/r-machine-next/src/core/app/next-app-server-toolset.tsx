@@ -34,7 +34,7 @@ export interface NextAppServerToolset<
   readonly NextServerRMachine: NextAppServerRMachine;
   readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
   readonly bindLocale: BindLocale<L, LK>;
-  readonly ServerPlug: NextServerPlugDefiner<RA["res"], L, E["gateKit"], PA, LK>;
+  readonly ServerPlug: NextServerPlugDefiner<RA, L, E["gateKit"], PA, LK>;
 }
 
 type BoundPathComposerSupplier<PA extends AnyPathAtlas> = () => Promise<BoundPathComposer<PA>>;

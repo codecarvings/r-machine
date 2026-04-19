@@ -11,8 +11,6 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { ReactiveGearTag } from "./reactive-gear.js";
-
 export type AnyNamespace = string;
 
 export interface AnyResDomain {
@@ -20,10 +18,6 @@ export interface AnyResDomain {
 }
 
 export type Namespace<RD extends AnyResDomain> = Extract<keyof RD, AnyNamespace>;
-
-export type SolidNamespace<RD extends AnyResDomain> = {
-  [K in Namespace<RD>]: RD[K] extends ReactiveGearTag ? never : K;
-}[Namespace<RD>];
 
 const namespaceSymbol = Symbol("namespace");
 export interface Token<N extends string> {
@@ -33,7 +27,6 @@ export interface Token<N extends string> {
 export type TokenBuilder<RD extends AnyResDomain> = <N extends Namespace<RD>>(namespace: N) => Token<N>;
 
 export type NamespaceRef<RD extends AnyResDomain> = Namespace<RD> | Token<Namespace<RD>>;
-export type SolidNamespaceRef<RD extends AnyResDomain> = SolidNamespace<RD> | Token<SolidNamespace<RD>>;
 
 export type ExtractNamespace<T extends NamespaceRef<any>> = T extends Token<infer N> ? N : T;
 

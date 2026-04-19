@@ -1,5 +1,6 @@
 import type { RMachineTypeError } from "../errors/r-machine-type-error.js";
-import type { AnyResDomain, TokenBuilder } from "./res-domain.js";
+import type { ReactiveGearTag } from "./reactive-gear.js";
+import type { AnyResDomain, Namespace, Token, TokenBuilder } from "./res-domain.js";
 import type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "./res-layout.js";
 
 type ResAtlasSubMap<RL extends AnyResLayout, A, T extends ResLayoutEntryType> = {
@@ -51,3 +52,11 @@ export type AnyResAtlasClass = (abstract new () => AnyResAtlas) & {
   readonly [rawResAtlasShapeSymbol]: AnyResDomain;
   getTokenBuilder(...args: never[]): TokenBuilder<AnyResDomain>;
 };
+
+export type SolidNamespace<RA extends AnyResAtlas> =
+  | Namespace<RA["shell:*"]>
+  | {
+      [N in Namespace<RA["gear"]>]: RA["gear"][N] extends ReactiveGearTag ? never : N;
+    }[Namespace<RA["gear"]>];
+
+export type SolidNamespaceRef<RA extends AnyResAtlas> = SolidNamespace<RA> | Token<SolidNamespace<RA>>;

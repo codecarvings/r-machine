@@ -43,6 +43,8 @@ export type {
   AnyResAtlasClass,
   ResAtlas,
   ResAtlasClass,
+  SolidNamespace,
+  SolidNamespaceRef,
 } from "./res-atlas.js";
 export {
   type AnyNamespace,

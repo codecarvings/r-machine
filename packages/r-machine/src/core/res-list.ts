@@ -11,12 +11,13 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResDomain, ExtractNamespace, NamespaceRef, SolidNamespaceRef } from "./res-domain.js";
+import type { AnyResAtlas, SolidNamespaceRef } from "./res-atlas.js";
+import type { AnyResDomain, ExtractNamespace, NamespaceRef } from "./res-domain.js";
 import type { Surface } from "./surface.js";
 
 export type NamespaceList<RD extends AnyResDomain> = readonly NamespaceRef<RD>[];
 
-export type SolidNamespaceList<RD extends AnyResDomain> = readonly SolidNamespaceRef<RD>[];
+export type SolidNamespaceList<RA extends AnyResAtlas> = readonly SolidNamespaceRef<RA>[];
 
 // -readonly required to allow tuple spreading
 export type SurfaceList<RD extends AnyResDomain, NL extends NamespaceList<RD>> = {

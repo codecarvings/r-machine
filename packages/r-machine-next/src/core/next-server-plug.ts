@@ -12,6 +12,7 @@
  */
 
 import type {
+  AnyResAtlas,
   AnyResDomain,
   NamespaceList,
   NamespaceMap,
@@ -68,13 +69,13 @@ interface NextServerListPlug<
 }
 
 export interface NextServerPlugDefiner<
-  RD extends AnyResDomain,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RD>,
+  KA extends NamespaceMap<RA["res"]>,
   PA extends AnyPathAtlas,
   LK extends string,
 > {
-  (): NextServerMapPlug<RD, L, KA, {}, PA, LK>;
-  <NL extends SolidNamespaceList<RD>>(...namespaces: NL): NextServerListPlug<RD, L, KA, NL, PA, LK>;
-  <NM extends SolidNamespaceMap<RD>>(namespaces: NM): NextServerMapPlug<RD, L, KA, NM, PA, LK>;
+  (): NextServerMapPlug<RA["res"], L, KA, {}, PA, LK>;
+  <NL extends SolidNamespaceList<RA>>(...namespaces: NL): NextServerListPlug<RA["res"], L, KA, NL, PA, LK>;
+  <NM extends SolidNamespaceMap<RA>>(namespaces: NM): NextServerMapPlug<RA["res"], L, KA, NM, PA, LK>;
 }
