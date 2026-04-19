@@ -225,7 +225,7 @@ describe("createResPathResolver", () => {
     });
   });
 
-  describe("vertex-gear layout", () => {
+  describe("gear:vertex layout", () => {
     it("returns the namespace unchanged when locale is undefined", () => {
       const resolveResPath = withLayout({ "app/": "gear:vertex" });
       expect(resolveResPath("app", undefined)).toBe("app");

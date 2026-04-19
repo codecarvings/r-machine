@@ -15,14 +15,6 @@ describe("ResMatrixMeta", () => {
     expectTypeOf<Keys>().toEqualTypeOf<"family" | "isReactive">();
   });
 
-  it("types `family` as ResFamily (gear | vertex-gear | shell), excluding shell:mono", () => {
-    // The meta is the post-resolution artefact; `shell:mono` is a
-    // *layout* concept and must not leak into the family at this level.
-    expectTypeOf<ResMatrixMeta["family"]>().toEqualTypeOf<ResFamily>();
-    expectTypeOf<ResMatrixMeta["family"]>().toEqualTypeOf<"gear" | "vertex-gear" | "shell">();
-    expectTypeOf<"shell:mono">().not.toExtend<ResMatrixMeta["family"]>();
-  });
-
   it("types the boolean flags as plain booleans (not widened, not literal)", () => {
     expectTypeOf<ResMatrixMeta["isReactive"]>().toEqualTypeOf<boolean>();
   });

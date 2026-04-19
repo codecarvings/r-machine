@@ -51,7 +51,7 @@ describe("ResPod", () => {
     // The data is post-resolution: layout "shell:mono" collapses to
     // family "shell" at build time, so the family union never sees it.
     expectTypeOf<ResPod["family"]>().toEqualTypeOf<ResFamily>();
-    expectTypeOf<ResPod["family"]>().toEqualTypeOf<"gear" | "vertex-gear" | "shell">();
+    expectTypeOf<ResPod["family"]>().toEqualTypeOf<"gear" | "shell">();
     expectTypeOf<"shell:mono">().not.toExtend<ResPod["family"]>();
   });
 

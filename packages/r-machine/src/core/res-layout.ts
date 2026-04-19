@@ -23,9 +23,8 @@ export type ResLayoutEntryType = "gear" | "gear:vertex" | "shell" | "shell:mono"
 export function getResFamilyFromLayoutType(layoutType: ResLayoutEntryType): ResFamily {
   switch (layoutType) {
     case "gear":
-      return "gear";
     case "gear:vertex":
-      return "vertex-gear";
+      return "gear";
     case "shell":
     case "shell:mono":
       return "shell";

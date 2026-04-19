@@ -51,7 +51,7 @@ export function createResPod(
         `Unable to build resource pod for namespace "${namespace}" - matrix family "${family}" does not match layout entry type "${resLayoutEntryType}".`
       );
     }
-    const isVertex = family === "vertex-gear";
+    const isVertex = resLayoutEntryType === "gear:vertex";
     const plugHead = getPlugHead((origin as AnyResMatrix).plug);
     return {
       namespace,

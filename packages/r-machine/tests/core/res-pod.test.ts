@@ -161,9 +161,8 @@ describe("createResPod", () => {
   });
 
   describe("raw AnyRes origin", () => {
-    // Contract: only the "shell" layout admits a raw resource. Gear,
-    // vertex-gear, and shell:mono all require a matrix factory — the raw
-    // form has no way to carry the required brands or locale bundling.
+    // Contract: only the "gear" and the "shell" layout admits a raw resource.
+    // gear:vertex, and shell:mono all require a matrix factory.
 
     it("builds a shell data from a raw resource when the layout is shell, forwarding the locale", () => {
       const module = makeRawModule({ greeting: "ciao" });
@@ -179,6 +178,7 @@ describe("createResPod", () => {
       expect(d.origin).toBe(module.r);
     });
 
+    // TODO: OLD TESTS BELOW
     it("throws when a raw resource is used under a gear layout (matrices are required)", () => {
       const module = makeRawModule();
 
@@ -189,14 +189,14 @@ describe("createResPod", () => {
       expect(error.message).toContain('"gear"');
     });
 
-    it("throws when a raw resource is used under a vertex-gear layout (matrices are required)", () => {
+    it("throws when a raw resource is used under a gear:vertex layout (matrices are required)", () => {
       const module = makeRawModule();
 
       const error = captureResolveError(() => createResPod(module, "app/root", undefined, "gear:vertex"));
 
       expect(error.code).toBe(ERR_RESOLVE_FAILED);
       expect(error.message).toContain("app/root");
-      expect(error.message).toContain('"vertex-gear"');
+      expect(error.message).toContain('"gear:vertex"');
     });
 
     it("throws when a raw resource is used under a shell:mono layout (matrices are required)", () => {

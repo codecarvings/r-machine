@@ -22,7 +22,7 @@ export interface AnyResDomain {
 export type Namespace<RD extends AnyResDomain> = Extract<keyof RD, AnyNamespace>;
 
 export type SolidNamespace<RD extends AnyResDomain> = {
-  [K in Namespace<RD>]: RD[K] extends ReactiveGearTag | VertexGearTag ? never : K;
+  [K in Namespace<RD>]: RD[K] extends ReactiveGearTag ? never : K;
 }[Namespace<RD>];
 
 const namespaceSymbol = Symbol("namespace");
