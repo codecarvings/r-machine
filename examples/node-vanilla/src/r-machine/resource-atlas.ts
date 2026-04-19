@@ -25,7 +25,7 @@ type AtlasShape = {
   "shell/common": Shell_Common;
   "shell/common2": Shell_Common2;
   "shell/lib/fmt": Shell_Lib_Fmt;
-  "invalid/shell": Shell_Common;
+  prova: Shell_Common;
 };
 
 export class ResourceAtlas extends layout<AtlasShape>() {}

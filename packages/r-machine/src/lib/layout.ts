@@ -30,15 +30,15 @@ type ValidLayoutKeys<RL> = {
     : RMachineTypeError<`Layout key '${K & string}' must end with '/' to indicate a namespace prefix (e.g. 'gear/').`>;
 };
 
-type ResAtlasBuilder<RL extends AnyResLayout> = <const RA>() => ResAtlasClass<RL, FilterResAtlasKeys<RL, RA>>;
+type ResAtlasBuilder<RL extends AnyResLayout> = <const RA>() => ResAtlasClass<RL, FilterResAtlasKeys<RL, RA>, RA>;
 
 export function defineLayout<const RL extends AnyResLayout>(layout: RL & ValidLayoutKeys<RL>): ResAtlasBuilder<RL> {
-  function builder<const RA>(): ResAtlasClass<RL, FilterResAtlasKeys<RL, RA>> {
+  function builder<const RA>(): ResAtlasClass<RL, FilterResAtlasKeys<RL, RA>, RA> {
     // biome-ignore lint/complexity/noStaticOnlyClass: As per design
     abstract class ResourceAtlas {
       static readonly layout = layout;
     }
-    return ResourceAtlas as unknown as ResAtlasClass<RL, FilterResAtlasKeys<RL, RA>>;
+    return ResourceAtlas as unknown as ResAtlasClass<RL, FilterResAtlasKeys<RL, RA>, RA>;
   }
   return builder;
 }

@@ -20,10 +20,15 @@ export interface AnyResAtlas {
   readonly res: AnyResDomain;
 }
 
-export type ResAtlasClass<RL extends AnyResLayout, RD> = (abstract new () => ResAtlas<RL, RD>) & {
+declare const rawResAtlasShapeSymbol: unique symbol;
+export type ResAtlasClass<RL extends AnyResLayout, RD, RA = RD> = (abstract new () => ResAtlas<RL, RD>) & {
   readonly layout: RL;
+  readonly [rawResAtlasShapeSymbol]: RA;
 };
 
 export type AnyResAtlasClass = (abstract new () => AnyResAtlas) & {
   readonly layout: AnyResLayout;
+  readonly [rawResAtlasShapeSymbol]: AnyResDomain;
 };
+
+export type ExtractRawResAtlasShape<RAC> = RAC extends { readonly [rawResAtlasShapeSymbol]: infer R } ? R : never;

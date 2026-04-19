@@ -38,7 +38,13 @@ export {
 export type { ReactiveGearTag } from "./reactive-gear.js";
 export type { RelayBrand } from "./relay.js";
 export type { AnyRes, AnyResOrigin } from "./res.js";
-export type { AnyResAtlas, AnyResAtlasClass, ResAtlas, ResAtlasClass } from "./res-atlas.js";
+export type {
+  AnyResAtlas,
+  AnyResAtlasClass,
+  ExtractRawResAtlasShape as ExtractRawAtlasShape,
+  ResAtlas,
+  ResAtlasClass,
+} from "./res-atlas.js";
 export {
   type AnyNamespace,
   type AnyResDomain,
