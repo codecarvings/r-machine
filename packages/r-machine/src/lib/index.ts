@@ -18,4 +18,3 @@ export {
   type RMachineLocale,
 } from "./r-machine.js";
 export type { RMachineConfig, RMachineConfigParams } from "./r-machine-config.js";
-export { getTokenBuilder } from "./token-builder.js";

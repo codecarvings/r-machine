@@ -1,4 +1,4 @@
-import { defineLayout, getTokenBuilder } from "r-machine";
+import { defineLayout } from "r-machine";
 import type { Gear_Aggregator } from "./gear/aggregator";
 import type { Gear_Config } from "./gear/config";
 import type { Gear_Counter } from "./gear/counter";
@@ -25,10 +25,9 @@ type AtlasShape = {
   "shell/common": Shell_Common;
   "shell/common2": Shell_Common2;
   "shell/lib/fmt": Shell_Lib_Fmt;
-  prova: Shell_Common;
 };
 
 export class ResourceAtlas extends layout<AtlasShape>() {}
-const token = getTokenBuilder(ResourceAtlas);
+const token = ResourceAtlas.getTokenBuilder();
 
 export const cart = token("gear/shopping-cart");

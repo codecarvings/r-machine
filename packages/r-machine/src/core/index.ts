@@ -41,7 +41,6 @@ export type { AnyRes, AnyResOrigin } from "./res.js";
 export type {
   AnyResAtlas,
   AnyResAtlasClass,
-  ExtractRawResAtlasShape as ExtractRawAtlasShape,
   ResAtlas,
   ResAtlasClass,
 } from "./res-atlas.js";

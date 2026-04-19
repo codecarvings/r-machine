@@ -1,4 +1,5 @@
-import type { AnyResDomain } from "./res-domain.js";
+import type { RMachineTypeError } from "../errors/r-machine-type-error.js";
+import type { AnyResDomain, TokenBuilder } from "./res-domain.js";
 import type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "./res-layout.js";
 
 type ResAtlasSubMap<RL extends AnyResLayout, A, T extends ResLayoutEntryType> = {
@@ -20,15 +21,31 @@ export interface AnyResAtlas {
   readonly res: AnyResDomain;
 }
 
+export type DroppedAtlasKeys<RA, RD> = Exclude<keyof RA, keyof RD>;
+
 declare const rawResAtlasShapeSymbol: unique symbol;
-export type ResAtlasClass<RL extends AnyResLayout, RD, RA = RD> = (abstract new () => ResAtlas<RL, RD>) & {
+export type ResAtlasClass<RL extends AnyResLayout, RD extends AnyResDomain, RA = RD> = (abstract new () => ResAtlas<
+  RL,
+  RD
+>) & {
   readonly layout: RL;
   readonly [rawResAtlasShapeSymbol]: RA;
+
+  getTokenBuilder(
+    ..._atlas_error: [DroppedAtlasKeys<RA, RD>] extends [never]
+      ? []
+      : [
+          RMachineTypeError<`Invalid namespaces declared in atlas shape (dropped by layout filter): *** ${DroppedAtlasKeys<
+            RA,
+            RD
+          > &
+            string} ***`>,
+        ]
+  ): TokenBuilder<RD>;
 };
 
 export type AnyResAtlasClass = (abstract new () => AnyResAtlas) & {
   readonly layout: AnyResLayout;
   readonly [rawResAtlasShapeSymbol]: AnyResDomain;
+  getTokenBuilder(...args: never[]): TokenBuilder<AnyResDomain>;
 };
-
-export type ExtractRawResAtlasShape<RAC> = RAC extends { readonly [rawResAtlasShapeSymbol]: infer R } ? R : never;

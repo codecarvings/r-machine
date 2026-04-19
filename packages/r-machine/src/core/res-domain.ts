@@ -31,6 +31,8 @@ export interface Token<N extends string> {
   readonly [namespaceSymbol]: N;
 }
 
+export type TokenBuilder<RD extends AnyResDomain> = <N extends Namespace<RD>>(namespace: N) => Token<N>;
+
 export type NamespaceRef<RD extends AnyResDomain> = Namespace<RD> | Token<Namespace<RD>>;
 export type SolidNamespaceRef<RD extends AnyResDomain> = SolidNamespace<RD> | Token<SolidNamespace<RD>>;
 

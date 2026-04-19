@@ -11,17 +11,17 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResLayout, ResAtlasClass, ResolveLayoutType } from "#r-machine/core";
+import { type AnyResLayout, createToken, type ResAtlasClass, type ResolveLayoutType } from "#r-machine/core";
 import type { RMachineTypeError } from "#r-machine/errors";
 
-type FilterResAtlasKeys<RL extends AnyResLayout, RA> = {
-  readonly [K in keyof RA as K extends string
+type FilterResAtlasKeys<RL extends AnyResLayout, RD> = {
+  readonly [K in keyof RD as K extends string
     ? K extends `${string}/${string}`
       ? [ResolveLayoutType<RL, K>] extends [never]
         ? never
         : K
       : never
-    : never]: RA[K];
+    : never]: RD[K];
 };
 
 type ValidLayoutKeys<RL> = {
@@ -30,15 +30,18 @@ type ValidLayoutKeys<RL> = {
     : RMachineTypeError<`Layout key '${K & string}' must end with '/' to indicate a namespace prefix (e.g. 'gear/').`>;
 };
 
-type ResAtlasBuilder<RL extends AnyResLayout> = <const RA>() => ResAtlasClass<RL, FilterResAtlasKeys<RL, RA>, RA>;
+type ResAtlasBuilder<RL extends AnyResLayout> = <const RD>() => ResAtlasClass<RL, FilterResAtlasKeys<RL, RD>, RD>;
 
 export function defineLayout<const RL extends AnyResLayout>(layout: RL & ValidLayoutKeys<RL>): ResAtlasBuilder<RL> {
-  function builder<const RA>(): ResAtlasClass<RL, FilterResAtlasKeys<RL, RA>, RA> {
+  function builder<const RD>(): ResAtlasClass<RL, FilterResAtlasKeys<RL, RD>, RD> {
     // biome-ignore lint/complexity/noStaticOnlyClass: As per design
     abstract class ResourceAtlas {
       static readonly layout = layout;
+      static getTokenBuilder() {
+        return createToken;
+      }
     }
-    return ResourceAtlas as unknown as ResAtlasClass<RL, FilterResAtlasKeys<RL, RA>, RA>;
+    return ResourceAtlas as unknown as ResAtlasClass<RL, FilterResAtlasKeys<RL, RD>, RD>;
   }
   return builder;
 }

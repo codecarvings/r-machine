@@ -1,4 +1,4 @@
-import { defineLayout, getTokenBuilder } from "r-machine";
+import { defineLayout } from "r-machine";
 import type { Gear_ShoppingCart } from "./gear/shopping-cart";
 import type { Shell_Common } from "./shell/common/en";
 import type { Shell_Features_Box_1_2 } from "./shell/features/box_1_2/en";
@@ -29,7 +29,7 @@ type AtlasShape = {
 };
 
 export class ResourceAtlas extends layout<AtlasShape>() {}
-const token = getTokenBuilder(ResourceAtlas);
+const token = ResourceAtlas.getTokenBuilder();
 
 export const cart = token("gear/shopping-cart");
 export const fmt = token("shell/lib/fmt");
