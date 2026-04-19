@@ -47,12 +47,12 @@ describe("ResPod", () => {
     expectTypeOf<AnyLocale>().toExtend<ResPod["locale"]>();
   });
 
-  it("types `family` as ResFamily and intentionally excludes `dynamic-shell`", () => {
-    // The data is post-resolution: layout "dynamic-shell" collapses to
+  it("types `family` as ResFamily and intentionally excludes `shell:mono`", () => {
+    // The data is post-resolution: layout "shell:mono" collapses to
     // family "shell" at build time, so the family union never sees it.
     expectTypeOf<ResPod["family"]>().toEqualTypeOf<ResFamily>();
     expectTypeOf<ResPod["family"]>().toEqualTypeOf<"gear" | "vertex-gear" | "shell">();
-    expectTypeOf<"dynamic-shell">().not.toExtend<ResPod["family"]>();
+    expectTypeOf<"shell:mono">().not.toExtend<ResPod["family"]>();
   });
 
   it("types `isReactive` and `isVertex` as plain booleans (not literal true/false)", () => {
@@ -72,7 +72,7 @@ describe("ResPod", () => {
   it("types `originType` as the closed union of the two canonical origin kinds", () => {
     expectTypeOf<ResPod["originType"]>().toEqualTypeOf<"raw" | "res-matrix">();
     expectTypeOf<string>().not.toExtend<ResPod["originType"]>();
-    expectTypeOf<"dynamic-shell">().not.toExtend<ResPod["originType"]>();
+    expectTypeOf<"shell:mono">().not.toExtend<ResPod["originType"]>();
   });
 
   it("types `origin` as the full AnyResOrigin union (package | raw resource)", () => {
@@ -110,7 +110,7 @@ describe("createResPod — signature", () => {
     const module: AnyResModule = { r: { key: "val" } };
     const d1 = createResPod(module, "ns", undefined, "gear");
     const d2 = createResPod(module, "ns", "en-US", "shell");
-    const d3 = createResPod(module, "ns", "en-US", "dynamic-shell");
+    const d3 = createResPod(module, "ns", "en-US", "shell:mono");
     expectTypeOf(d1).toEqualTypeOf<ResPod>();
     expectTypeOf(d2).toEqualTypeOf<ResPod>();
     expectTypeOf(d3).toEqualTypeOf<ResPod>();
@@ -163,6 +163,6 @@ describe("createResPod — signature", () => {
     const module: AnyResModule = { r: {} };
     createResPod(module, "ns", undefined, "gear");
     createResPod(module, "ns", "en-US", "shell");
-    createResPod(module, "ns", "en-US", "dynamic-shell");
+    createResPod(module, "ns", "en-US", "shell:mono");
   });
 });

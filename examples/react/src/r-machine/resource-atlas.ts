@@ -7,16 +7,14 @@ import type { Shell_Features_IntlDemo } from "./shell/features/intl_demo/en";
 import type { Shell_LandingPage } from "./shell/landing-page/en";
 import type { Shell_Lib_Fmt } from "./shell/lib/fmt";
 
-// Define here your preferred folder structure
-const layout = defineLayout({
-  "gear/": "gear", // <-- Folder containing gear resources.
-  "gear/vertex/": "vertex-gear", // <-- Folder containing vertex-gear resources (components).
-  "shell/": "shell", // <-- Folder containing multi-file shell resources.
-  "shell/lib/": "dynamic-shell", // <-- Folder containing single-file shell resources.
+const folders = defineLayout({
+  "gear/": "gear",
+  "gear/vertex/": "vertex-gear",
+  "shell/": "shell",
+  "shell/lib/": "shell:mono",
 });
 
-// Define here your atlas shape, matching the layout above.
-type AtlasShape = {
+type Resources = {
   "gear/shopping-cart": Gear_ShoppingCart;
 
   "shell/common": Shell_Common;
@@ -28,7 +26,7 @@ type AtlasShape = {
   "shell/lib/fmt": Shell_Lib_Fmt;
 };
 
-export class ResourceAtlas extends layout<AtlasShape>() {}
+export class ResourceAtlas extends folders<Resources>() {}
 const token = ResourceAtlas.getTokenBuilder();
 
 export const cart = token("gear/shopping-cart");

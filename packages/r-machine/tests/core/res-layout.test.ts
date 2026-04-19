@@ -86,14 +86,14 @@ describe("createResLayoutEntryTypeResolver", () => {
       const resolve = createResLayoutEntryTypeResolver({
         "a/": "gear",
         "a/b/": "shell",
-        "a/b/c/": "dynamic-shell",
+        "a/b/c/": "shell:mono",
       });
       expect(resolve("a")).toBe("gear");
       expect(resolve("a/x")).toBe("gear");
       expect(resolve("a/b")).toBe("shell");
       expect(resolve("a/b/x")).toBe("shell");
-      expect(resolve("a/b/c")).toBe("dynamic-shell");
-      expect(resolve("a/b/c/x")).toBe("dynamic-shell");
+      expect(resolve("a/b/c")).toBe("shell:mono");
+      expect(resolve("a/b/c/x")).toBe("shell:mono");
     });
   });
 
@@ -103,23 +103,23 @@ describe("createResLayoutEntryTypeResolver", () => {
         "g/": "gear",
         "v/": "vertex-gear",
         "s/": "shell",
-        "d/": "dynamic-shell",
+        "d/": "shell:mono",
       });
       expect(resolve("g")).toBe("gear");
       expect(resolve("v")).toBe("vertex-gear");
       expect(resolve("s")).toBe("shell");
-      expect(resolve("d")).toBe("dynamic-shell");
+      expect(resolve("d")).toBe("shell:mono");
     });
   });
 
   describe("input-snapshot semantics", () => {
     it("ignores mutations to the layout object performed after resolver creation", () => {
-      const layout: { [k: `${string}/`]: "gear" | "shell" | "dynamic-shell" } = { "app/": "gear" };
+      const layout: { [k: `${string}/`]: "gear" | "shell" | "shell:mono" } = { "app/": "gear" };
       const resolve = createResLayoutEntryTypeResolver(layout);
 
       // Mutate input after creation.
       layout["app/"] = "shell";
-      layout["extra/"] = "dynamic-shell";
+      layout["extra/"] = "shell:mono";
       delete layout["app/"];
 
       // Resolver behavior stays pinned to the original snapshot.
@@ -240,16 +240,16 @@ describe("createResPathResolver", () => {
     });
   });
 
-  describe("dynamic-shell layout", () => {
+  describe("shell:mono layout", () => {
     it("returns the namespace unchanged when locale is undefined", () => {
-      const resolveResPath = withLayout({ "app/": "dynamic-shell" });
+      const resolveResPath = withLayout({ "app/": "shell:mono" });
       expect(resolveResPath("app", undefined)).toBe("app");
     });
 
     it("ignores the locale and still returns the namespace when one is provided", () => {
-      // dynamic-shell is a shell whose locale handling happens elsewhere, so
+      // shell:mono is a shell whose locale handling happens elsewhere, so
       // the path resolver must not append the locale to the namespace.
-      const resolveResPath = withLayout({ "app/": "dynamic-shell" });
+      const resolveResPath = withLayout({ "app/": "shell:mono" });
       expect(resolveResPath("app", "en-US")).toBe("app");
       expect(resolveResPath("app/home", "it-IT")).toBe("app/home");
     });
@@ -348,7 +348,7 @@ describe("createResPathResolver", () => {
         if (ns === "g") return "gear";
         if (ns === "v") return "vertex-gear";
         if (ns === "s") return "shell";
-        if (ns === "d") return "dynamic-shell";
+        if (ns === "d") return "shell:mono";
         return undefined;
       };
       const resolveResPath = createResPathResolver(manual);

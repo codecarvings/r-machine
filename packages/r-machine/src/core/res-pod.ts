@@ -44,7 +44,7 @@ export function createResPod(
 
   if (matrixMeta !== undefined) {
     const { family, isReactive, isVertex } = matrixMeta;
-    const layoutFamily: ResFamily = resLayoutEntryType === "dynamic-shell" ? "shell" : resLayoutEntryType;
+    const layoutFamily: ResFamily = resLayoutEntryType === "shell:mono" ? "shell" : resLayoutEntryType;
     if (family !== layoutFamily) {
       throw new RMachineResolveError(
         ERR_RESOLVE_FAILED,
@@ -65,9 +65,9 @@ export function createResPod(
   }
 
   // Only "shell" admits raw resources. Everything else (gear, vertex-gear,
-  // dynamic-shell) must come from a matrix factory — the raw form has no
+  // shell:mono) must come from a matrix factory — the raw form has no
   // way to carry the required brands (GearTag / VertexGearTag / locale
-  // bundling for dynamic-shell) and attempting to use it would silently
+  // bundling for shell:mono) and attempting to use it would silently
   // break downstream consumers that rely on those brands.
   if (resLayoutEntryType !== "shell") {
     throw new RMachineResolveError(

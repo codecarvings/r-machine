@@ -15,12 +15,12 @@ describe("ResMatrixMeta", () => {
     expectTypeOf<Keys>().toEqualTypeOf<"family" | "isReactive" | "isVertex">();
   });
 
-  it("types `family` as ResFamily (gear | vertex-gear | shell), excluding dynamic-shell", () => {
-    // The meta is the post-resolution artefact; `dynamic-shell` is a
+  it("types `family` as ResFamily (gear | vertex-gear | shell), excluding shell:mono", () => {
+    // The meta is the post-resolution artefact; `shell:mono` is a
     // *layout* concept and must not leak into the family at this level.
     expectTypeOf<ResMatrixMeta["family"]>().toEqualTypeOf<ResFamily>();
     expectTypeOf<ResMatrixMeta["family"]>().toEqualTypeOf<"gear" | "vertex-gear" | "shell">();
-    expectTypeOf<"dynamic-shell">().not.toExtend<ResMatrixMeta["family"]>();
+    expectTypeOf<"shell:mono">().not.toExtend<ResMatrixMeta["family"]>();
   });
 
   it("types the boolean flags as plain booleans (not widened, not literal)", () => {
@@ -134,8 +134,8 @@ describe("createResMatrix — signature", () => {
   });
 
   it("rejects a meta whose family is not a ResFamily literal", () => {
-    // @ts-expect-error — "dynamic-shell" is a layout, not a family
-    createResMatrix({ family: "dynamic-shell", isReactive: false, isVertex: false }, async () => ({}), {});
+    // @ts-expect-error — "shell:mono" is a layout, not a family
+    createResMatrix({ family: "shell:mono", isReactive: false, isVertex: false }, async () => ({}), {});
     // @ts-expect-error — arbitrary strings are not valid families
     createResMatrix({ family: "custom", isReactive: false, isVertex: false }, async () => ({}), {});
   });

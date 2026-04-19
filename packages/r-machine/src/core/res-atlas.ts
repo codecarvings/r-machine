@@ -10,7 +10,7 @@ declare const resAtlasSymbol: unique symbol;
 export interface ResAtlas<RL extends AnyResLayout, RD> {
   readonly [resAtlasSymbol]: true;
   readonly gear: ResAtlasSubMap<RL, RD, "gear">;
-  readonly shell: ResAtlasSubMap<RL, RD, "shell" | "dynamic-shell">;
+  readonly shell: ResAtlasSubMap<RL, RD, "shell" | "shell:mono">;
   readonly res: RD;
 }
 

@@ -33,7 +33,7 @@ describe("createResModuleLoader", () => {
     });
 
     it("passes `undefined` locale through verbatim to both resolveResPath and loadModuleFn", async () => {
-      // Critical for gear/dynamic-shell layouts, which legitimately accept an
+      // Critical for gear/shell:mono layouts, which legitimately accept an
       // undefined locale. The loader must not coerce undefined into a string.
       const resolveResPath = vi.fn<ResPathResolver>((ns) => ns);
       const loadModuleFn = vi.fn<ResModuleLoaderFn>(async () => makeModule("ok"));

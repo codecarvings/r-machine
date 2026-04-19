@@ -11,7 +11,7 @@ import type { AnyLocale } from "../../src/locale/locale.js";
 
 describe("ResLayoutEntryType", () => {
   it("is the exact union of the four canonical layout literals", () => {
-    expectTypeOf<ResLayoutEntryType>().toEqualTypeOf<"gear" | "vertex-gear" | "shell" | "dynamic-shell">();
+    expectTypeOf<ResLayoutEntryType>().toEqualTypeOf<"gear" | "vertex-gear" | "shell" | "shell:mono">();
   });
 
   it("does not widen to string", () => {
@@ -29,7 +29,7 @@ describe("AnyResLayout", () => {
     expectTypeOf<"gear">().toExtend<ResLayoutEntryType>();
     expectTypeOf<"vertex-gear">().toExtend<ResLayoutEntryType>();
     expectTypeOf<"shell">().toExtend<ResLayoutEntryType>();
-    expectTypeOf<"dynamic-shell">().toExtend<ResLayoutEntryType>();
+    expectTypeOf<"shell:mono">().toExtend<ResLayoutEntryType>();
   });
 
   it("rejects unrelated string literals as values", () => {
@@ -48,7 +48,7 @@ describe("AnyResLayout", () => {
     const layout = {
       "app/": "gear",
       "app/settings/": "shell",
-      "app/live/": "dynamic-shell",
+      "app/live/": "shell:mono",
     } as const satisfies AnyResLayout;
     expectTypeOf(layout).toExtend<AnyResLayout>();
   });
@@ -152,7 +152,7 @@ describe("end-to-end inference", () => {
       createResLayoutEntryTypeResolver({
         "app/": "gear",
         "app/settings/": "shell",
-        "app/live/": "dynamic-shell",
+        "app/live/": "shell:mono",
       })
     );
     expectTypeOf(resolveResPath).toEqualTypeOf<ResPathResolver>();

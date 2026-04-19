@@ -17,7 +17,7 @@ import type { AnyNamespace } from "./res-domain.js";
 
 // #region ResLayout
 
-export type ResLayoutEntryType = "gear" | "vertex-gear" | "shell" | "dynamic-shell";
+export type ResLayoutEntryType = "gear" | "vertex-gear" | "shell" | "shell:mono";
 
 export interface AnyResLayout {
   readonly [namespacePrefix: `${string}/`]: ResLayoutEntryType;
@@ -96,7 +96,7 @@ export function createResPathResolver(resolveResLayoutType: ResLayoutEntryTypeRe
     switch (layoutType) {
       case "gear":
       case "vertex-gear":
-      case "dynamic-shell":
+      case "shell:mono":
         return namespace;
       case "shell":
         if (locale === undefined) {

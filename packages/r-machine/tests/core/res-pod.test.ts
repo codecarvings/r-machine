@@ -76,13 +76,13 @@ describe("createResPod", () => {
       expect(d.origin).toBe(module.r);
     });
 
-    it("accepts a shell matrix under a dynamic-shell layout (dynamic-shell maps to shell)", () => {
-      // dynamic-shell is a *layout* type (how to find the path), but at the
+    it("accepts a shell matrix under a shell:mono layout (shell:mono maps to shell)", () => {
+      // shell:mono is a *layout* type (how to find the path), but at the
       // family level it collapses to "shell". A shell matrix must therefore
       // be valid under this layout with no further coercion.
       const module = makeMatrixModule({ family: "shell", isReactive: true, isVertex: false });
 
-      const d = createResPod(module, "app/live", "en-US", "dynamic-shell");
+      const d = createResPod(module, "app/live", "en-US", "shell:mono");
 
       expect(d.family).toBe("shell");
       expect(d.isReactive).toBe(true);
@@ -133,36 +133,36 @@ describe("createResPod", () => {
       expect(error.message).toContain('"gear"');
     });
 
-    it("throws when a gear matrix is used under a dynamic-shell layout (dynamic-shell collapses to shell, not gear)", () => {
+    it("throws when a gear matrix is used under a shell:mono layout (shell:mono collapses to shell, not gear)", () => {
       const module = makeMatrixModule({ family: "gear", isReactive: false, isVertex: false });
 
-      const error = captureResolveError(() => createResPod(module, "app/live", undefined, "dynamic-shell"));
+      const error = captureResolveError(() => createResPod(module, "app/live", undefined, "shell:mono"));
 
       expect(error.code).toBe(ERR_RESOLVE_FAILED);
       expect(error.message).toContain('"gear"');
-      expect(error.message).toContain("dynamic-shell");
+      expect(error.message).toContain("shell:mono");
     });
 
     it("names the mismatch using the ORIGINAL layout string, not the collapsed family (diagnostics clarity)", () => {
       // Regression guard: a previous refactor could be tempted to report
-      // "shell" when the user actually passed "dynamic-shell". The message
+      // "shell" when the user actually passed "shell:mono". The message
       // should reflect what the caller wrote, so they can find it in their
       // config.
       const module = makeMatrixModule({ family: "gear", isReactive: false, isVertex: false });
 
-      const error = captureResolveError(() => createResPod(module, "app", undefined, "dynamic-shell"));
+      const error = captureResolveError(() => createResPod(module, "app", undefined, "shell:mono"));
 
-      expect(error.message).toContain("dynamic-shell");
-      // It should NOT report a bare "shell" without the "dynamic-" prefix —
+      expect(error.message).toContain("shell:mono");
+      // It should NOT report a bare "shell" without the "mono" suffix —
       // that would mislead the user into looking at the wrong config entry.
-      // (We allow "shell" as a substring of "dynamic-shell".)
-      expect(error.message.replace(/dynamic-shell/g, "")).not.toContain("shell");
+      // (We allow "shell" as a substring of "shell:mono".)
+      expect(error.message.replace(/shell:mono/g, "")).not.toContain("shell");
     });
   });
 
   describe("raw AnyRes origin", () => {
     // Contract: only the "shell" layout admits a raw resource. Gear,
-    // vertex-gear, and dynamic-shell all require a matrix factory — the raw
+    // vertex-gear, and shell:mono all require a matrix factory — the raw
     // form has no way to carry the required brands or locale bundling.
 
     it("builds a shell data from a raw resource when the layout is shell, forwarding the locale", () => {
@@ -199,14 +199,14 @@ describe("createResPod", () => {
       expect(error.message).toContain('"vertex-gear"');
     });
 
-    it("throws when a raw resource is used under a dynamic-shell layout (matrices are required)", () => {
+    it("throws when a raw resource is used under a shell:mono layout (matrices are required)", () => {
       const module = makeRawModule();
 
-      const error = captureResolveError(() => createResPod(module, "app/live", "en-US", "dynamic-shell"));
+      const error = captureResolveError(() => createResPod(module, "app/live", "en-US", "shell:mono"));
 
       expect(error.code).toBe(ERR_RESOLVE_FAILED);
       expect(error.message).toContain("app/live");
-      expect(error.message).toContain("dynamic-shell");
+      expect(error.message).toContain('"shell:mono"');
     });
 
     it("treats a plain object with no special keys as a raw resource (only valid under shell)", () => {
@@ -350,7 +350,7 @@ describe("createResPod", () => {
       const module = makeRawModule();
       let threw = false;
       try {
-        createResPod(module, "app", undefined, "dynamic-shell");
+        createResPod(module, "app", undefined, "shell:mono");
       } catch {
         threw = true;
       }
