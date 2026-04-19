@@ -56,11 +56,11 @@ type IsPrefixOf<P extends string, N extends string> = P extends `${infer Base}/`
       : false
   : false;
 
-// For a given prefix P in LO that matches N, returns any other prefix in LO
+// For a given prefix P in RL that matches N, returns any other prefix in RL
 // that is strictly more specific (extends P) and also matches N. Used to
 // discard non-longest matches in ResolveLayoutType.
-type HasMoreSpecificPrefix<LO extends AnyResLayout, N extends string, P extends string> = {
-  [P2 in keyof LO]: P2 extends string
+type HasMoreSpecificPrefix<RL extends AnyResLayout, N extends string, P extends string> = {
+  [P2 in keyof RL]: P2 extends string
     ? P2 extends P
       ? never
       : P2 extends `${P}${string}`
@@ -69,20 +69,20 @@ type HasMoreSpecificPrefix<LO extends AnyResLayout, N extends string, P extends 
           : never
         : never
     : never;
-}[keyof LO];
+}[keyof RL];
 
 // Longest-prefix layout-type resolution at the type level. Returns the entry
-// type for the prefix P in LO with IsPrefixOf<P, N> and no more-specific
+// type for the prefix P in RL with IsPrefixOf<P, N> and no more-specific
 // matching prefix. Returns never when no prefix matches.
-export type ResolveLayoutType<LO extends AnyResLayout, N extends string> = {
-  [P in keyof LO]: P extends string
+export type ResolveLayoutType<RL extends AnyResLayout, N extends string> = {
+  [P in keyof RL]: P extends string
     ? IsPrefixOf<P, N> extends true
-      ? [HasMoreSpecificPrefix<LO, N, P>] extends [never]
-        ? LO[P]
+      ? [HasMoreSpecificPrefix<RL, N, P>] extends [never]
+        ? RL[P]
         : never
       : never
     : never;
-}[keyof LO];
+}[keyof RL];
 
 // #endregion
 

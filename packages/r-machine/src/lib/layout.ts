@@ -14,9 +14,9 @@
 import type { AnyResLayout, ResAtlasClass, ResolveLayoutType } from "#r-machine/core";
 import type { RMachineTypeError } from "#r-machine/errors";
 
-type ValidResAtlasShape<LO extends AnyResLayout, A> = {
+type ValidResAtlasShape<RL extends AnyResLayout, A> = {
   readonly [K in keyof A]: K extends `${string}/${string}`
-    ? [ResolveLayoutType<LO, K & string>] extends [never]
+    ? [ResolveLayoutType<RL, K & string>] extends [never]
       ? RMachineTypeError<`Namespace '${K & string}' has no matching prefix in the layout. Declare a prefix in defineLayout({...}) first.`>
       : unknown
     : RMachineTypeError<`Namespace '${K & string}' must be a sub-path (e.g. 'gear/foo').`>;
@@ -28,21 +28,24 @@ type ValidResAtlasShape<LO extends AnyResLayout, A> = {
 // when the type is inferred from a `const` generic object literal. This
 // mapped type closes that gap by mapping each non-slash-terminated key to a
 // branded error value that is not assignable from any ResLayoutEntryType.
-type ValidLayoutKeys<LO> = {
-  readonly [K in keyof LO]: K extends `${string}/`
-    ? LO[K]
+type ValidLayoutKeys<RL> = {
+  readonly [K in keyof RL]: K extends `${string}/`
+    ? RL[K]
     : RMachineTypeError<`Layout key '${K & string}' must end with '/' to indicate a namespace prefix (e.g. 'gear/').`>;
 };
 
-type ResAtlasBuilder<RL extends AnyResLayout> = <const A extends ValidResAtlasShape<RL, A>>() => ResAtlasClass<RL, A>;
+type ResAtlasBuilder<RL extends AnyResLayout> = <const RA extends ValidResAtlasShape<RL, RA>>() => ResAtlasClass<
+  RL,
+  RA
+>;
 
-export function defineLayout<const LO extends AnyResLayout>(layout: LO & ValidLayoutKeys<LO>): ResAtlasBuilder<LO> {
-  function builder<const RA extends ValidResAtlasShape<LO, RA>>(): ResAtlasClass<LO, RA> {
+export function defineLayout<const RL extends AnyResLayout>(layout: RL & ValidLayoutKeys<RL>): ResAtlasBuilder<RL> {
+  function builder<const RA extends ValidResAtlasShape<RL, RA>>(): ResAtlasClass<RL, RA> {
     // biome-ignore lint/complexity/noStaticOnlyClass: As per design
     abstract class ResourceAtlas {
       static readonly layout = layout;
     }
-    return ResourceAtlas as unknown as ResAtlasClass<LO, RA>;
+    return ResourceAtlas as unknown as ResAtlasClass<RL, RA>;
   }
   return builder;
 }
