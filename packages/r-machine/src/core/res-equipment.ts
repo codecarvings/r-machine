@@ -27,7 +27,7 @@ export interface ResEquipment<
   readonly gateKit: XK;
 }
 
-export type BridgeGearNamespaceList<RA extends AnyResAtlas> = readonly Namespace<RA["gear"]>[];
+export type BridgeGearNamespaceList<RA extends AnyResAtlas> = Namespace<RA["gear"]>[];
 
 export type GearKit<RA extends AnyResAtlas> = {
   readonly [key: string]: Namespace<RA["gear"]>;

@@ -11,38 +11,38 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, NamespaceList, NamespaceMap, PlugBody } from "r-machine/core";
+import type { AnyResDomain, NamespaceList, NamespaceMap, PlugBody } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { NextListPlugHead, NextListPlugin, NextMapPlugHead, NextMapPlugin, NextPluginCtx } from "./next-plug.js";
 import type { AnyPathAtlas } from "./path-atlas.js";
 
 interface NextClientMapPlug<
-  RA extends AnyResAtlas,
+  RD extends AnyResDomain,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
+  KA extends NamespaceMap<RD>,
+  NM extends NamespaceMap<RD>,
   PA extends AnyPathAtlas,
-> extends PlugBody<NextMapPlugHead<RA, L, KA, NM, NextPluginCtx<RA, L, KA, PA>>> {
-  use(): NextMapPlugin<RA, L, KA, NM, PA>;
+> extends PlugBody<NextMapPlugHead<RD, L, KA, NM, NextPluginCtx<RD, L, KA, PA>>> {
+  use(): NextMapPlugin<RD, L, KA, NM, PA>;
 }
 
 interface NextClientListPlug<
-  RA extends AnyResAtlas,
+  RD extends AnyResDomain,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
+  KA extends NamespaceMap<RD>,
+  NL extends NamespaceList<RD>,
   PA extends AnyPathAtlas,
-> extends PlugBody<NextListPlugHead<RA, L, KA, NL, NextPluginCtx<RA, L, KA, PA>>> {
-  use(): NextListPlugin<RA, L, KA, NL, PA>;
+> extends PlugBody<NextListPlugHead<RD, L, KA, NL, NextPluginCtx<RD, L, KA, PA>>> {
+  use(): NextListPlugin<RD, L, KA, NL, PA>;
 }
 
-export interface NextClientPlugComposer<
-  RA extends AnyResAtlas,
+export interface NextClientPlugDefiner<
+  RD extends AnyResDomain,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends NamespaceMap<RD>,
   PA extends AnyPathAtlas,
 > {
-  (): NextClientMapPlug<RA, L, KA, {}, PA>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): NextClientListPlug<RA, L, KA, NL, PA>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): NextClientMapPlug<RA, L, KA, NM, PA>;
+  (): NextClientMapPlug<RD, L, KA, {}, PA>;
+  <NL extends NamespaceList<RD>>(...namespaces: NL): NextClientListPlug<RD, L, KA, NL, PA>;
+  <NM extends NamespaceMap<RD>>(namespaces: NM): NextClientMapPlug<RD, L, KA, NM, PA>;
 }

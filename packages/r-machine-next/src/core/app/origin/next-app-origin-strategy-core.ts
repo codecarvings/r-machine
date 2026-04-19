@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, ResKit } from "r-machine/core";
+import type { AnyResAtlas, ResEquipment } from "r-machine/core";
 import { RMachineConfigError } from "r-machine/errors";
 import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
 import {
@@ -80,9 +80,9 @@ const defaultConfig: NextAppOriginStrategyConfig<
 export abstract class NextAppOriginStrategyCore<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends ResKit<RA>,
+  E extends ResEquipment<RA>,
   C extends AnyNextAppOriginStrategyConfig,
-> extends NextAppStrategyCore<RA, L, KA, C> {
+> extends NextAppStrategyCore<RA, L, E, C> {
   static override readonly defaultConfig = defaultConfig;
 
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, true);

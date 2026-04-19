@@ -14,7 +14,7 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ResKit } from "r-machine/core";
+import type { AnyResAtlas, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
@@ -26,10 +26,10 @@ const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
 export async function createNextAppOriginServerImpl<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends ResKit<RA>,
+  E extends ResEquipment<RA>,
   C extends AnyNextAppOriginStrategyConfig,
 >(
-  rMachine: RMachine<RA, L, KA>,
+  rMachine: RMachine<RA, L, E>,
   strategyConfig: C,
   pathTranslator: HrefTranslator,
   urlTranslator: HrefTranslator,

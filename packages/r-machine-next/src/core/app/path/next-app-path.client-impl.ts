@@ -12,15 +12,19 @@
  */
 
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ResKit } from "r-machine/core";
+import type { AnyResAtlas, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { defaultCookieDeclaration, getCookie, setCookie } from "r-machine/strategy/web";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import type { NextAppClientImpl } from "#r-machine/next/core/app";
 import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
 
-export async function createNextAppPathClientImpl<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>>(
-  _rMachine: RMachine<RA, L, KA>,
+export async function createNextAppPathClientImpl<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  E extends ResEquipment<RA>,
+>(
+  _rMachine: RMachine<RA, L, E>,
   strategyConfig: AnyNextAppPathStrategyConfig,
   pathTranslator: HrefTranslator,
   pathCanonicalizer: HrefCanonicalizer

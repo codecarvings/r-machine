@@ -12,7 +12,7 @@
  */
 
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ResKit } from "r-machine/core";
+import type { AnyResAtlas, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { getCookie, setCookie } from "r-machine/strategy/web";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
@@ -22,10 +22,10 @@ import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core
 export async function createNextAppFlatClientImpl<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends ResKit<RA>,
+  E extends ResEquipment<RA>,
   C extends AnyNextAppFlatStrategyConfig,
 >(
-  _rMachine: RMachine<RA, L, KA>,
+  _rMachine: RMachine<RA, L, E>,
   strategyConfig: C,
   pathTranslator: HrefTranslator,
   pathCanonicalizer: HrefCanonicalizer

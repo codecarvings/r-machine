@@ -12,7 +12,7 @@
  */
 
 import type {
-  AnyResAtlas,
+  AnyResDomain,
   GateListPlugHead,
   GateMapPlugHead,
   GatePluginCtx,
@@ -26,70 +26,70 @@ import type { BoundPathComposer } from "./path.js";
 import type { AnyPathAtlas } from "./path-atlas.js";
 
 export type NextPluginCtx<
-  RA extends AnyResAtlas,
+  RD extends AnyResDomain,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends NamespaceMap<RD>,
   PA extends AnyPathAtlas,
-> = GatePluginCtx<RA, L, KA> & {
+> = GatePluginCtx<RD, L, KA> & {
   readonly getPath: BoundPathComposer<PA>;
 };
 
 export type NextParamsPluginCtx<
-  RA extends AnyResAtlas,
+  RD extends AnyResDomain,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends NamespaceMap<RD>,
   PA extends AnyPathAtlas,
   P extends Record<string, string>,
-> = NextPluginCtx<RA, L, KA, PA> & {
+> = NextPluginCtx<RD, L, KA, PA> & {
   readonly params: P;
 };
 
 export type NextMapPlugin<
-  RA extends AnyResAtlas,
+  RD extends AnyResDomain,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
+  KA extends NamespaceMap<RD>,
+  NM extends NamespaceMap<RD>,
   PA extends AnyPathAtlas,
-> = MapPlugin<RA, NM, NextPluginCtx<RA, L, KA, PA>>;
+> = MapPlugin<RD, NM, NextPluginCtx<RD, L, KA, PA>>;
 
 export type NextParamsMapPlugin<
-  RA extends AnyResAtlas,
+  RD extends AnyResDomain,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
+  KA extends NamespaceMap<RD>,
+  NM extends NamespaceMap<RD>,
   PA extends AnyPathAtlas,
   P extends Record<string, string>,
-> = MapPlugin<RA, NM, NextParamsPluginCtx<RA, L, KA, PA, P>>;
+> = MapPlugin<RD, NM, NextParamsPluginCtx<RD, L, KA, PA, P>>;
 
 export type NextListPlugin<
-  RA extends AnyResAtlas,
+  RD extends AnyResDomain,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
+  KA extends NamespaceMap<RD>,
+  NL extends NamespaceList<RD>,
   PA extends AnyPathAtlas,
-> = ListPlugin<RA, NL, NextPluginCtx<RA, L, KA, PA>>;
+> = ListPlugin<RD, NL, NextPluginCtx<RD, L, KA, PA>>;
 
 export type NextParamsListPlugin<
-  RA extends AnyResAtlas,
+  RD extends AnyResDomain,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
+  KA extends NamespaceMap<RD>,
+  NL extends NamespaceList<RD>,
   PA extends AnyPathAtlas,
   P extends Record<string, string>,
-> = ListPlugin<RA, NL, NextParamsPluginCtx<RA, L, KA, PA, P>>;
+> = ListPlugin<RD, NL, NextParamsPluginCtx<RD, L, KA, PA, P>>;
 
 export interface NextMapPlugHead<
-  RA extends AnyResAtlas,
+  RD extends AnyResDomain,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
-  CTX extends NextPluginCtx<RA, L, KA, AnyPathAtlas>,
-> extends GateMapPlugHead<RA, L, KA, NM, CTX> {}
+  KA extends NamespaceMap<RD>,
+  NM extends NamespaceMap<RD>,
+  CTX extends NextPluginCtx<RD, L, KA, AnyPathAtlas>,
+> extends GateMapPlugHead<RD, L, KA, NM, CTX> {}
 
 export interface NextListPlugHead<
-  RA extends AnyResAtlas,
+  RD extends AnyResDomain,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-  CTX extends NextPluginCtx<RA, L, KA, AnyPathAtlas>,
-> extends GateListPlugHead<RA, L, KA, NL, CTX> {}
+  KA extends NamespaceMap<RD>,
+  NL extends NamespaceList<RD>,
+  CTX extends NextPluginCtx<RD, L, KA, AnyPathAtlas>,
+> extends GateListPlugHead<RD, L, KA, NL, CTX> {}

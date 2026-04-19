@@ -23,7 +23,7 @@ import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import { createContext, useMemo } from "react";
-import type { ReactPlugComposer } from "./react-plug.js";
+import type { ReactPlugDefiner } from "./react-plug.js";
 import { useVertexFrame } from "./vertex-frame.js";
 
 // TODO: WP
@@ -32,7 +32,7 @@ type WriteLocale<L extends AnyLocale> = (newLocale: L) => void | Promise<void>;
 
 export interface ReactBareToolset<RA extends AnyResAtlas, L extends AnyLocale, E extends ResEquipment<RA>> {
   readonly ReactRMachine: ReactBareRMachine<L>;
-  readonly Plug: ReactPlugComposer<RA["res"], L, E["gateKit"]>;
+  readonly Plug: ReactPlugDefiner<RA["res"], L, E["gateKit"]>;
 }
 
 export interface ReactBareRMachine<L extends AnyLocale> {

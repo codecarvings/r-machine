@@ -1,4 +1,5 @@
-import { getTokenBuilder } from "r-machine";
+import { defineLayout } from "r-machine";
+import type { Gear_Config } from "./gear/config";
 import type { Gear_ShoppingCart } from "./gear/shopping-cart";
 import type { Shell_Common } from "./shell/common/en";
 import type { Shell_ExampleDynamic } from "./shell/example-dynamic/en";
@@ -10,8 +11,18 @@ import type { Shell_LandingPage } from "./shell/landing-page/en";
 import type { Shell_Lib_Fmt } from "./shell/lib/fmt";
 import type { Shell_Navigation } from "./shell/navigation/en";
 
-export type ResourceAtlas = {
+// Define here your preferred folder structure
+const layout = defineLayout({
+  "gear/": "gear", // <-- Folder containing gear resources.
+  "gear/vertex/": "vertex-gear", // <-- Folder containing vertex-gear resources (components).
+  "shell/": "shell", // <-- Folder containing multi-file shell resources.
+  "shell/lib/": "dynamic-shell", // <-- Folder containing single-file shell resources.
+});
+
+// Define here your atlas shape, matching the layout above.
+type AtlasShape = {
   "gear/shopping-cart": Gear_ShoppingCart;
+  "gear/config": Gear_Config;
 
   "shell/common": Shell_Common;
   "shell/navigation": Shell_Navigation;
@@ -25,6 +36,8 @@ export type ResourceAtlas = {
   "shell/lib/fmt": Shell_Lib_Fmt;
 };
 
-const token = getTokenBuilder<ResourceAtlas>();
+export class ResourceAtlas extends layout<AtlasShape>() {}
+const token = ResourceAtlas.getTokenBuilder();
+
 export const cart = token("gear/shopping-cart");
 export const fmt = token("shell/lib/fmt");

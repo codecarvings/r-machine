@@ -1,18 +1,13 @@
 import { NextAppPathStrategy } from "@r-machine/next/app/path";
-import { ofType, RMachine, type RMachineLocale } from "r-machine";
+import { RMachine, type RMachineLocale } from "r-machine";
 import { PathAtlas } from "./path-atlas";
-import type { ResourceAtlas } from "./resource-atlas";
+import { ResourceAtlas } from "./resource-atlas";
 
 const rMachine = RMachine.create({
-  resourceAtlas: ofType<ResourceAtlas>(),
+  ResourceAtlas,
   locales: ["en", "it"],
   defaultLocale: "en",
   load: (path) => import(path),
-  layout: {
-    gear: "gear",
-    shell: "shell",
-    "shell/lib": "dynamic-shell",
-  },
   shellKit: {
     fmt: "shell/lib/fmt",
   },

@@ -78,7 +78,7 @@ interface ReactListPlug<
   use(): ReactListPlugin<RD, L, KA, NL>;
 }
 
-export interface ReactPlugComposer<RD extends AnyResDomain, L extends AnyLocale, KA extends NamespaceMap<RD>> {
+export interface ReactPlugDefiner<RD extends AnyResDomain, L extends AnyLocale, KA extends NamespaceMap<RD>> {
   (): ReactMapPlug<RD, L, KA, {}>;
   <NL extends NamespaceList<RD>>(...namespaces: NL): ReactListPlug<RD, L, KA, NL>;
   <NM extends NamespaceMap<RD>>(namespaces: NM): ReactMapPlug<RD, L, KA, NM>;

@@ -12,7 +12,7 @@
  */
 
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ResKit } from "r-machine/core";
+import type { AnyResAtlas, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import type { NextAppClientImpl } from "#r-machine/next/core/app";
@@ -21,10 +21,10 @@ import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-
 export async function createNextAppOriginClientImpl<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends ResKit<RA>,
+  E extends ResEquipment<RA>,
   C extends AnyNextAppOriginStrategyConfig,
 >(
-  _rMachine: RMachine<RA, L, KA>,
+  _rMachine: RMachine<RA, L, E>,
   _strategyConfig: C,
   pathTranslator: HrefTranslator,
   urlTranslator: HrefTranslator,

@@ -75,7 +75,7 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Res
   static create<
     RAC extends AnyResAtlasClass,
     const LL extends AnyLocaleList,
-    const BGL extends BridgeGearNamespaceList<InstanceType<RAC>> = readonly [],
+    const BGL extends BridgeGearNamespaceList<InstanceType<RAC>> = [],
     GK extends GearKit<InstanceType<RAC>> = {},
     SK extends ShellKit<InstanceType<RAC>, BGL> = {},
     XK extends GateKit<InstanceType<RAC>> = {},

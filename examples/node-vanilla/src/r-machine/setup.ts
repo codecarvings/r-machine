@@ -6,6 +6,7 @@ const rMachine = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
   load: (path) => import(`./${path}.ts`),
+  bridgeGears: ["gear/config"],
   shellKit: {
     fmt: "shell/lib/fmt",
     config: "gear/config",
@@ -13,7 +14,6 @@ const rMachine = RMachine.create({
   gateKit: {
     fmt: "shell/common2",
   },
-  bridgeGears: ["gear/config"],
 });
 
 export const { Gear, VertexGear, Shell, localized } = rMachine.createToolset();

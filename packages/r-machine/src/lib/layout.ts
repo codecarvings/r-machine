@@ -32,7 +32,7 @@ type ValidLayoutKeys<RL> = {
 
 type ResAtlasBuilder<RL extends AnyResLayout> = <const RD>() => ResAtlasClass<RL, FilterResAtlasKeys<RL, RD>, RD>;
 
-export function defineLayout<const RL extends AnyResLayout>(layout: RL & ValidLayoutKeys<RL>): ResAtlasBuilder<RL> {
+export function defineLayout<RL extends AnyResLayout>(layout: RL & ValidLayoutKeys<RL>): ResAtlasBuilder<RL> {
   function builder<const RD>(): ResAtlasClass<RL, FilterResAtlasKeys<RL, RD>, RD> {
     // biome-ignore lint/complexity/noStaticOnlyClass: As per design
     abstract class ResourceAtlas {
