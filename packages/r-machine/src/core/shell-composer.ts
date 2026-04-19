@@ -13,10 +13,16 @@
 
 import type { RMachineTypeError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
+import type { LocaleAwarePluginCtx } from "./plug.js";
+import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { NamespaceRef } from "./res-domain.js";
+import { isNamespace, type NamespaceRef } from "./res-domain.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
+import type { ResMatrixMeta } from "./res-matrix.js";
+import { composeResMatrix } from "./res-matrix-composer.js";
+import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
+import type { ResWireProvider } from "./res-wire.js";
 import type { ShellListDefiner, ShellMapDefiner } from "./shell.js";
 
 type ShellDepsNamespace<RA extends AnyResAtlas, BGL extends NamespaceList<RA["res"]>> =
@@ -76,3 +82,96 @@ interface ShellListDepsComposer<
 > {
   readonly define: ShellListDefiner<RA["res"], L, KA, NL>;
 }
+
+// #region Runtime
+
+const shellMeta: ResMatrixMeta = { family: "shell", isReactive: false, isVertex: false };
+
+function makeShellMapDefiner<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KA extends NamespaceMap<RA["res"]>,
+  NM extends NamespaceMap<RA["res"]>,
+>(provider: ResWireProvider, namespaces: NM): ShellMapDefiner<RA["res"], L, KA, NM> {
+  type Head = ResMapPlugHead<"shell", RA["res"], KA, NM, LocaleAwarePluginCtx<RA["res"], L, KA>>;
+  const head = {
+    area: "res",
+    family: "shell",
+    mode: "map",
+    namespaces,
+  } as unknown as Head;
+
+  return ((factory: (plugin: never) => unknown) =>
+    composeResMatrix<Head, AnyRes, AnyRes>({
+      provider,
+      meta: shellMeta,
+      head,
+      namespaces,
+      cursor: undefined,
+      userFactory: ((plugin: unknown) => factory(plugin as never)) as (
+        plugin: unknown,
+        cursor: never
+      ) => AnyRes | Promise<AnyRes>,
+    })) as unknown as ShellMapDefiner<RA["res"], L, KA, NM>;
+}
+
+function makeShellListDefiner<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KA extends NamespaceMap<RA["res"]>,
+  NL extends NamespaceList<RA["res"]>,
+>(provider: ResWireProvider, namespaces: NL): ShellListDefiner<RA["res"], L, KA, NL> {
+  type Head = ResListPlugHead<"shell", RA["res"], KA, NL, LocaleAwarePluginCtx<RA["res"], L, KA>>;
+  const head = {
+    area: "res",
+    family: "shell",
+    mode: "list",
+    namespaces,
+  } as unknown as Head;
+
+  return ((factory: (plugin: never) => unknown) =>
+    composeResMatrix<Head, AnyRes, AnyRes>({
+      provider,
+      meta: shellMeta,
+      head,
+      namespaces,
+      cursor: undefined,
+      userFactory: ((plugin: unknown) => factory(plugin as never)) as (
+        plugin: unknown,
+        cursor: never
+      ) => AnyRes | Promise<AnyRes>,
+    })) as unknown as ShellListDefiner<RA["res"], L, KA, NL>;
+}
+
+export function createShellComposer<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  BGL extends NamespaceList<RA["res"]>,
+  KA extends NamespaceMap<RA["res"]>,
+>(provider: ResWireProvider): ShellComposer<RA, L, BGL, KA> {
+  const defineTopLevel = makeShellMapDefiner<RA, L, KA, {}>(provider, {});
+
+  const deps = ((...args: unknown[]) => {
+    if (args.length === 0) {
+      return { define: defineTopLevel };
+    }
+    if (args.length === 1 && !isNamespace(args[0] as NamespaceRef<any>)) {
+      return {
+        define: makeShellMapDefiner<RA, L, KA, NamespaceMap<RA["res"]>>(provider, args[0] as NamespaceMap<RA["res"]>),
+      };
+    }
+    return {
+      define: makeShellListDefiner<RA, L, KA, NamespaceList<RA["res"]>>(
+        provider,
+        args as unknown as NamespaceList<RA["res"]>
+      ),
+    };
+  }) as unknown as ShellDepsComposer<RA, L, BGL, KA>;
+
+  return {
+    deps,
+    define: defineTopLevel,
+  };
+}
+
+// #endregion

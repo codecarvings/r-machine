@@ -11,19 +11,24 @@
  * contact: licensing@codecarvings.com
  */
 
-import type {
-  AnyNamespace,
-  AnyPlugHead,
-  AnyRes,
-  AnyResAtlas,
-  AnyResAtlasClass,
-  BridgeGearNamespaceList,
-  GateKit,
-  GateWire,
-  GearKit,
-  ResEquipment,
-  ShellKit,
-  VertexGearMap,
+import {
+  type AnyNamespace,
+  type AnyPlugHead,
+  type AnyRes,
+  type AnyResAtlas,
+  type AnyResAtlasClass,
+  type BridgeGearNamespaceList,
+  createGearComposer,
+  createShellComposer,
+  type GateKit,
+  type GateWire,
+  type GearKit,
+  type GearTag,
+  type ResEquipment,
+  type ResWireProvider,
+  type ShellKit,
+  type VertexGearMap,
+  type VertexGearTag,
 } from "#r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
@@ -62,9 +67,14 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Res
   }
 
   createToolset(): RMachineToolset<RA, L, E> {
-    const Gear = undefined!; // TODO: WIP;
-    const VertexGear = undefined!; // TODO: WIP;
-    const Shell = undefined!; // TODO: WIP;
+    const provider: ResWireProvider = () => () => ({
+      getPlugin: () => {
+        throw new Error("ResWire resolution not yet implemented (engine WIP).");
+      },
+    });
+    const Gear = createGearComposer<RA, E["gearKit"], GearTag>(provider, false);
+    const VertexGear = createGearComposer<RA, E["gearKit"], VertexGearTag>(provider, true);
+    const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(provider);
     return { Gear, VertexGear, Shell, localized };
   }
 

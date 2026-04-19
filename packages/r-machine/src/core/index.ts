@@ -18,7 +18,8 @@ export type {
   GatePluginCtx,
 } from "./gate-plug.js";
 export type { GateWire } from "./gate-wire.js";
-export type { GearComposer } from "./gear-composer.js";
+export type { GearTag } from "./gear.js";
+export { createGearComposer, type GearComposer } from "./gear-composer.js";
 export type { Getter } from "./getter.js";
 export {
   type AnyListPlugHead,
@@ -68,8 +69,9 @@ export type {
 } from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";
 export type { ResModuleLoaderFn } from "./res-module.js";
+export type { ResWireProvider } from "./res-wire.js";
 export type { ShellTag } from "./shell.js";
-export type { ShellComposer } from "./shell-composer.js";
+export { createShellComposer, type ShellComposer } from "./shell-composer.js";
 export type { Surface } from "./surface.js";
 export {
   type AnyVertexGear,
