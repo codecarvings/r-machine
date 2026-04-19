@@ -12,7 +12,7 @@
  */
 
 import type { RMachineTypeError } from "#r-machine/errors";
-import type { GearCursor, GearListDefiner, GearMapDefiner, GearTag } from "./gear.js";
+import type { GearCursor, GearListDefiner, GearMapDefiner } from "./gear.js";
 import type { PluginCtx } from "./plug.js";
 import {
   makeReactiveGearListDepsComposer,
@@ -29,7 +29,6 @@ import type { ResMatrixMeta } from "./res-matrix.js";
 import { composeResMatrix } from "./res-matrix-composer.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 import type { ResWireProvider } from "./res-wire.js";
-import type { VertexGearTag } from "./vertex-gear.js";
 
 type ValidGearDepItem<RA extends AnyResAtlas, N> =
   N extends NamespaceRef<RA["gear"]>
@@ -38,48 +37,38 @@ type ValidGearDepItem<RA extends AnyResAtlas, N> =
       ? RMachineTypeError<`Namespace '${N}' is not a valid gear namespace.`>
       : RMachineTypeError<"This token does not reference a valid gear namespace.">;
 
-export interface GearComposer<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA["res"]>,
-  T extends GearTag | VertexGearTag = GearTag,
-> {
-  readonly deps: GearDepsComposer<RA, KA, T>;
-  readonly reactive: ReactiveGearMapDepsComposer<RA, KA, {}, T>;
-  readonly define: GearMapDefiner<RA["res"], KA, {}, T>;
+export interface GearComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA["res"]>> {
+  readonly deps: GearDepsComposer<RA, KA>;
+  readonly reactive: ReactiveGearMapDepsComposer<RA, KA, {}>;
+  readonly define: GearMapDefiner<RA["res"], KA, {}>;
 }
 
-interface GearDepsComposer<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA["res"]>,
-  T extends GearTag | VertexGearTag,
-> {
-  (): GearMapDepsComposer<RA, KA, {}, T>;
+interface GearDepsComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA["res"]>> {
+  (): GearMapDepsComposer<RA, KA, {}>;
   <const NL extends readonly NamespaceRef<RA["res"]>[]>(
     ...namespaces: { readonly [I in keyof NL]: ValidGearDepItem<RA, NL[I]> }
-  ): GearListDepsComposer<RA, KA, NL, T>;
+  ): GearListDepsComposer<RA, KA, NL>;
   <const NM extends { readonly [k: string]: NamespaceRef<RA["res"]> }>(
     namespaces: { readonly [K in keyof NM]: ValidGearDepItem<RA, NM[K]> }
-  ): GearMapDepsComposer<RA, KA, NM, T>;
+  ): GearMapDepsComposer<RA, KA, NM>;
 }
 
 interface GearMapDepsComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA["res"]>,
   NM extends NamespaceMap<RA["res"]>,
-  T,
 > {
-  readonly reactive: ReactiveGearMapDepsComposer<RA, KA, NM, T>;
-  readonly define: GearMapDefiner<RA["res"], KA, NM, T>;
+  readonly reactive: ReactiveGearMapDepsComposer<RA, KA, NM>;
+  readonly define: GearMapDefiner<RA["res"], KA, NM>;
 }
 
 interface GearListDepsComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA["res"]>,
   NL extends NamespaceList<RA["res"]>,
-  T,
 > {
-  readonly reactive: ReactiveGearListDepsComposer<RA, KA, NL, T>;
-  readonly define: GearListDefiner<RA["res"], KA, NL, T>;
+  readonly reactive: ReactiveGearListDepsComposer<RA, KA, NL>;
+  readonly define: GearListDefiner<RA["res"], KA, NL>;
 }
 
 // #region Runtime
@@ -94,16 +83,15 @@ const gearCursor: GearCursor = {
   }) as GearCursor["cmd"],
 };
 
-function buildGearMeta(isVertex: boolean): ResMatrixMeta {
-  return { family: "gear", isReactive: false, isVertex };
+function buildGearMeta(): ResMatrixMeta {
+  return { family: "gear", isReactive: false };
 }
 
 function makeGearMapDefiner<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA["res"]>,
   NM extends NamespaceMap<RA["res"]>,
-  T,
->(provider: ResWireProvider, namespaces: NM, isVertex: boolean): GearMapDefiner<RA["res"], KA, NM, T> {
+>(provider: ResWireProvider, namespaces: NM): GearMapDefiner<RA["res"], KA, NM> {
   type Head = ResMapPlugHead<"gear", RA["res"], KA, NM, PluginCtx<RA["res"], KA>>;
   const head = {
     area: "res",
@@ -115,20 +103,19 @@ function makeGearMapDefiner<
   return ((factory: (plugin: never, cursor: never) => unknown) =>
     composeResMatrix<Head, AnyRes, AnyRes>({
       provider,
-      meta: buildGearMeta(isVertex),
+      meta: buildGearMeta(),
       head,
       namespaces,
       cursor: gearCursor,
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
-    })) as unknown as GearMapDefiner<RA["res"], KA, NM, T>;
+    })) as unknown as GearMapDefiner<RA["res"], KA, NM>;
 }
 
 function makeGearListDefiner<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA["res"]>,
   NL extends NamespaceList<RA["res"]>,
-  T,
->(provider: ResWireProvider, namespaces: NL, isVertex: boolean): GearListDefiner<RA["res"], KA, NL, T> {
+>(provider: ResWireProvider, namespaces: NL): GearListDefiner<RA["res"], KA, NL> {
   type Head = ResListPlugHead<"gear", RA["res"], KA, NL, PluginCtx<RA["res"], KA>>;
   const head = {
     area: "res",
@@ -140,23 +127,22 @@ function makeGearListDefiner<
   return ((factory: (plugin: never, cursor: never) => unknown) =>
     composeResMatrix<Head, AnyRes, AnyRes>({
       provider,
-      meta: buildGearMeta(isVertex),
+      meta: buildGearMeta(),
       head,
       namespaces,
       cursor: gearCursor,
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
-    })) as unknown as GearListDefiner<RA["res"], KA, NL, T>;
+    })) as unknown as GearListDefiner<RA["res"], KA, NL>;
 }
 
 function makeGearMapDepsSubComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA["res"]>,
   NM extends NamespaceMap<RA["res"]>,
-  T,
->(provider: ResWireProvider, namespaces: NM, isVertex: boolean): GearMapDepsComposer<RA, KA, NM, T> {
+>(provider: ResWireProvider, namespaces: NM): GearMapDepsComposer<RA, KA, NM> {
   return {
-    reactive: makeReactiveGearMapDepsComposer<RA, KA, NM, T>(provider, namespaces, isVertex),
-    define: makeGearMapDefiner<RA, KA, NM, T>(provider, namespaces, isVertex),
+    reactive: makeReactiveGearMapDepsComposer<RA, KA, NM>(provider, namespaces),
+    define: makeGearMapDefiner<RA, KA, NM>(provider, namespaces),
   };
 }
 
@@ -164,39 +150,31 @@ function makeGearListDepsSubComposer<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA["res"]>,
   NL extends NamespaceList<RA["res"]>,
-  T,
->(provider: ResWireProvider, namespaces: NL, isVertex: boolean): GearListDepsComposer<RA, KA, NL, T> {
+>(provider: ResWireProvider, namespaces: NL): GearListDepsComposer<RA, KA, NL> {
   return {
-    reactive: makeReactiveGearListDepsComposer<RA, KA, NL, T>(provider, namespaces, isVertex),
-    define: makeGearListDefiner<RA, KA, NL, T>(provider, namespaces, isVertex),
+    reactive: makeReactiveGearListDepsComposer<RA, KA, NL>(provider, namespaces),
+    define: makeGearListDefiner<RA, KA, NL>(provider, namespaces),
   };
 }
 
-export function createGearComposer<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA["res"]>,
-  T extends GearTag | VertexGearTag = GearTag,
->(provider: ResWireProvider, isVertex: boolean): GearComposer<RA, KA, T> {
-  const reactiveTopLevel = makeReactiveGearMapDepsComposer<RA, KA, {}, T>(provider, {}, isVertex);
-  const defineTopLevel = makeGearMapDefiner<RA, KA, {}, T>(provider, {}, isVertex);
+export function createGearComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA["res"]>>(
+  provider: ResWireProvider
+): GearComposer<RA, KA> {
+  const reactiveTopLevel = makeReactiveGearMapDepsComposer<RA, KA, {}>(provider, {});
+  const defineTopLevel = makeGearMapDefiner<RA, KA, {}>(provider, {});
 
   const deps = ((...args: unknown[]) => {
     if (args.length === 0) {
       return { reactive: reactiveTopLevel, define: defineTopLevel };
     }
     if (args.length === 1 && !isNamespace(args[0] as NamespaceRef<any>)) {
-      return makeGearMapDepsSubComposer<RA, KA, NamespaceMap<RA["res"]>, T>(
-        provider,
-        args[0] as NamespaceMap<RA["res"]>,
-        isVertex
-      );
+      return makeGearMapDepsSubComposer<RA, KA, NamespaceMap<RA["res"]>>(provider, args[0] as NamespaceMap<RA["res"]>);
     }
-    return makeGearListDepsSubComposer<RA, KA, NamespaceList<RA["res"]>, T>(
+    return makeGearListDepsSubComposer<RA, KA, NamespaceList<RA["res"]>>(
       provider,
-      args as unknown as NamespaceList<RA["res"]>,
-      isVertex
+      args as unknown as NamespaceList<RA["res"]>
     );
-  }) as unknown as GearDepsComposer<RA, KA, T>;
+  }) as unknown as GearDepsComposer<RA, KA>;
 
   return {
     deps,

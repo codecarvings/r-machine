@@ -18,7 +18,6 @@ import type { AnyResPlug } from "./res-plug.js";
 export interface ResMatrixMeta {
   readonly family: ResFamily;
   readonly isReactive: boolean;
-  readonly isVertex: boolean;
 }
 
 const resMatrixMetaSymbol: unique symbol = Symbol("resMatrixMeta");

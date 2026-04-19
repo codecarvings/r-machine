@@ -11,6 +11,13 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResOrigin, ResMatrix, ShellTag } from "#r-machine/core";
+import type { AnyResOrigin, ResMatrix } from "#r-machine/core";
 
-export type BrandedResource<RO extends AnyResOrigin> = RO extends ResMatrix<infer R, any> ? R : RO & ShellTag;
+type ExtractResource<RO extends AnyResOrigin> = RO extends ResMatrix<infer R, any> ? R : RO;
+
+declare const r: unique symbol;
+interface R {
+  [r]?: undefined;
+}
+
+export type BrandedResource<RO extends AnyResOrigin> = ExtractResource<RO> & R;

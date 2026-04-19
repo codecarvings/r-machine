@@ -101,12 +101,12 @@ describe("createResLayoutEntryTypeResolver", () => {
     it("returns each of the four layout types verbatim", () => {
       const resolve = createResLayoutEntryTypeResolver({
         "g/": "gear",
-        "v/": "vertex-gear",
+        "v/": "gear:vertex",
         "s/": "shell",
         "d/": "shell:mono",
       });
       expect(resolve("g")).toBe("gear");
-      expect(resolve("v")).toBe("vertex-gear");
+      expect(resolve("v")).toBe("gear:vertex");
       expect(resolve("s")).toBe("shell");
       expect(resolve("d")).toBe("shell:mono");
     });
@@ -227,14 +227,14 @@ describe("createResPathResolver", () => {
 
   describe("vertex-gear layout", () => {
     it("returns the namespace unchanged when locale is undefined", () => {
-      const resolveResPath = withLayout({ "app/": "vertex-gear" });
+      const resolveResPath = withLayout({ "app/": "gear:vertex" });
       expect(resolveResPath("app", undefined)).toBe("app");
     });
 
     it("ignores the locale and still returns the namespace when one is provided", () => {
       // Vertex gears never vary by locale — the path resolver must not
       // append the locale, same as regular gears.
-      const resolveResPath = withLayout({ "app/": "vertex-gear" });
+      const resolveResPath = withLayout({ "app/": "gear:vertex" });
       expect(resolveResPath("app", "en-US")).toBe("app");
       expect(resolveResPath("app/home", "it-IT")).toBe("app/home");
     });
@@ -346,7 +346,7 @@ describe("createResPathResolver", () => {
       // inside createResLayoutEntryTypeResolver.
       const manual: ResLayoutEntryTypeResolver = (ns) => {
         if (ns === "g") return "gear";
-        if (ns === "v") return "vertex-gear";
+        if (ns === "v") return "gear:vertex";
         if (ns === "s") return "shell";
         if (ns === "d") return "shell:mono";
         return undefined;

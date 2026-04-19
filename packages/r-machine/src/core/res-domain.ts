@@ -12,7 +12,6 @@
  */
 
 import type { ReactiveGearTag } from "./reactive-gear.js";
-import type { VertexGearTag } from "./vertex-gear.js";
 
 export type AnyNamespace = string;
 

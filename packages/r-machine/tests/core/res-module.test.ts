@@ -283,11 +283,7 @@ describe("validateResModule", () => {
     });
 
     it("returns null when `r` is a ResMatrix", () => {
-      const mat = createResMatrix(
-        { family: "gear", isReactive: false, isVertex: false },
-        async () => ({}),
-        {} as AnyResPlug
-      );
+      const mat = createResMatrix({ family: "gear", isReactive: false }, async () => ({}), {} as AnyResPlug);
 
       expect(validateResModule({ r: mat })).toBeNull();
     });

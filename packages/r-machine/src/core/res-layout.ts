@@ -13,11 +13,24 @@
 
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
+import type { ResFamily } from "./res.js";
 import type { AnyNamespace } from "./res-domain.js";
 
 // #region ResLayout
 
-export type ResLayoutEntryType = "gear" | "vertex-gear" | "shell" | "shell:mono";
+export type ResLayoutEntryType = "gear" | "gear:vertex" | "shell" | "shell:mono";
+
+export function getResFamilyFromLayoutType(layoutType: ResLayoutEntryType): ResFamily {
+  switch (layoutType) {
+    case "gear":
+      return "gear";
+    case "gear:vertex":
+      return "vertex-gear";
+    case "shell":
+    case "shell:mono":
+      return "shell";
+  }
+}
 
 export interface AnyResLayout {
   readonly [namespacePrefix: `${string}/`]: ResLayoutEntryType;
@@ -95,7 +108,7 @@ export function createResPathResolver(resolveResLayoutType: ResLayoutEntryTypeRe
     const layoutType = resolveResLayoutType(namespace);
     switch (layoutType) {
       case "gear":
-      case "vertex-gear":
+      case "gear:vertex":
       case "shell:mono":
         return namespace;
       case "shell":

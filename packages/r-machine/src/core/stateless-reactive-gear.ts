@@ -68,16 +68,14 @@ export type StatelessReactiveGearMapDefiner<
   RD extends AnyResDomain,
   KA extends NamespaceMap<RD>,
   NM extends NamespaceMap<RD>,
-  T,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
   factory: (plugin: StatelessReactiveGearMapPlugin<RD, KA, NM>, _: StatelessReactiveGearCursor) => R | Promise<R>
-) => ResMatrix<R & T & ReactiveGearTag, StatelessReactiveGearMapPlug<RD, KA, NM>>;
+) => ResMatrix<R & ReactiveGearTag, StatelessReactiveGearMapPlug<RD, KA, NM>>;
 
 export type StatelessReactiveGearListDefiner<
   RD extends AnyResDomain,
   KA extends NamespaceMap<RD>,
   NL extends NamespaceList<RD>,
-  T,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
   factory: (plugin: StatelessReactiveGearListPlugin<RD, KA, NL>, _: StatelessReactiveGearCursor) => R | Promise<R>
-) => ResMatrix<R & T & ReactiveGearTag, StatelessReactiveGearListPlug<RD, KA, NL>>;
+) => ResMatrix<R & ReactiveGearTag, StatelessReactiveGearListPlug<RD, KA, NL>>;

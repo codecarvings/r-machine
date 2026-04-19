@@ -20,13 +20,12 @@ export interface VertexGearTagData {
 }
 
 const vertexGearTagSymbol = Symbol("vertexGearTag");
-export interface VertexGearTag {
-  readonly [vertexGearTagSymbol]?: VertexGearTagData;
+interface VertexGear {
+  readonly [vertexGearTagSymbol]: VertexGearTagData;
 }
-export type AnyVertexGear = AnyRes & VertexGearTag;
 
-export function getVertexGearTag(res: VertexGearTag): VertexGearTagData {
-  return res[vertexGearTagSymbol]!;
+export function tryGetVertexGearTag(res: AnyRes): VertexGearTagData | undefined {
+  return (res as Partial<VertexGear>)[vertexGearTagSymbol];
 }
 
 export type VertexGearMap = Record<AnyNamespace, number>;

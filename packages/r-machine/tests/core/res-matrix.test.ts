@@ -11,7 +11,7 @@ import type { AnyResPlug } from "../../src/core/res-plug.js";
 // --- helpers -----------------------------------------------------------------
 
 function makeMeta(overrides: Partial<ResMatrixMeta> = {}): ResMatrixMeta {
-  return { family: "gear", isReactive: false, isVertex: false, ...overrides };
+  return { family: "gear", isReactive: false, ...overrides };
 }
 
 // A sentinel plug — we only care that the exact reference survives round-trip
@@ -34,7 +34,7 @@ describe("createResMatrix", () => {
       // The symbol key is module-private, so the only legitimate way to read
       // the meta back is through the dedicated accessor. This test pins
       // that contract: construct + read must round-trip exactly.
-      const meta = makeMeta({ family: "shell", isReactive: true, isVertex: true });
+      const meta = makeMeta({ family: "shell", isReactive: true });
       const mat = createResMatrix(meta, async () => ({}), sentinelPlug);
 
       expect(tryGetResMatrixMeta(mat)).toBe(meta);
@@ -69,7 +69,7 @@ describe("createResMatrix", () => {
     });
 
     it("does not mutate the meta argument", () => {
-      const meta = makeMeta({ family: "shell", isReactive: true, isVertex: false });
+      const meta = makeMeta({ family: "shell", isReactive: true });
       const snapshot = { ...meta }; // shallow snapshot is enough since the fields are primitives
 
       createResMatrix(meta, async () => ({}), sentinelPlug);
@@ -148,13 +148,12 @@ describe("createResMatrix", () => {
 
 describe("tryGetResMatrixMeta", () => {
   it("returns the meta for a matrix built via createResMatrix", () => {
-    const meta = makeMeta({ family: "shell", isReactive: true, isVertex: true });
+    const meta = makeMeta({ family: "shell", isReactive: true });
     const mat = createResMatrix(meta, async () => ({}), sentinelPlug);
 
     expect(tryGetResMatrixMeta(mat)).toEqual({
       family: "shell",
       isReactive: true,
-      isVertex: true,
     });
   });
 
@@ -211,14 +210,10 @@ describe("createResMatrix ⇄ tryGetResMatrixMeta round-trip", () => {
 
   it("round-trips every canonical family/flag combination without drift", () => {
     const cases: ResMatrixMeta[] = [
-      { family: "gear", isReactive: false, isVertex: false },
-      { family: "gear", isReactive: false, isVertex: true },
-      { family: "gear", isReactive: true, isVertex: false },
-      { family: "gear", isReactive: true, isVertex: true },
-      { family: "shell", isReactive: false, isVertex: false },
-      { family: "shell", isReactive: false, isVertex: true },
-      { family: "shell", isReactive: true, isVertex: false },
-      { family: "shell", isReactive: true, isVertex: true },
+      { family: "gear", isReactive: false },
+      { family: "gear", isReactive: true },
+      { family: "shell", isReactive: false },
+      { family: "shell", isReactive: true },
     ];
 
     for (const meta of cases) {

@@ -192,7 +192,7 @@ describe("createResPod", () => {
     it("throws when a raw resource is used under a vertex-gear layout (matrices are required)", () => {
       const module = makeRawModule();
 
-      const error = captureResolveError(() => createResPod(module, "app/root", undefined, "vertex-gear"));
+      const error = captureResolveError(() => createResPod(module, "app/root", undefined, "gear:vertex"));
 
       expect(error.code).toBe(ERR_RESOLVE_FAILED);
       expect(error.message).toContain("app/root");

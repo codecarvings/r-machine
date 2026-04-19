@@ -16,7 +16,7 @@ import type { AnyLocale } from "#r-machine/locale";
 import { type AnyPlugHead, getPlugHead } from "./plug.js";
 import type { AnyResOrigin, ResFamily } from "./res.js";
 import type { AnyNamespace } from "./res-domain.js";
-import type { ResLayoutEntryType } from "./res-layout.js";
+import { getResFamilyFromLayoutType, type ResLayoutEntryType } from "./res-layout.js";
 import { type AnyResMatrix, tryGetResMatrixMeta } from "./res-matrix.js";
 import type { AnyResModule } from "./res-module.js";
 
@@ -43,14 +43,15 @@ export function createResPod(
   const matrixMeta = tryGetResMatrixMeta(origin);
 
   if (matrixMeta !== undefined) {
-    const { family, isReactive, isVertex } = matrixMeta;
-    const layoutFamily: ResFamily = resLayoutEntryType === "shell:mono" ? "shell" : resLayoutEntryType;
+    const { family, isReactive } = matrixMeta;
+    const layoutFamily = getResFamilyFromLayoutType(resLayoutEntryType);
     if (family !== layoutFamily) {
       throw new RMachineResolveError(
         ERR_RESOLVE_FAILED,
-        `Unable to build resource pod for namespace "${namespace}" - matrix family "${family}" does not match layout type "${resLayoutEntryType}".`
+        `Unable to build resource pod for namespace "${namespace}" - matrix family "${family}" does not match layout entry type "${resLayoutEntryType}".`
       );
     }
+    const isVertex = family === "vertex-gear";
     const plugHead = getPlugHead((origin as AnyResMatrix).plug);
     return {
       namespace,
@@ -64,12 +65,7 @@ export function createResPod(
     };
   }
 
-  // Only "shell" admits raw resources. Everything else (gear, vertex-gear,
-  // shell:mono) must come from a matrix factory — the raw form has no
-  // way to carry the required brands (GearTag / VertexGearTag / locale
-  // bundling for shell:mono) and attempting to use it would silently
-  // break downstream consumers that rely on those brands.
-  if (resLayoutEntryType !== "shell") {
+  if (resLayoutEntryType === "shell:mono" || resLayoutEntryType === "gear:vertex") {
     throw new RMachineResolveError(
       ERR_RESOLVE_FAILED,
       `Unable to build resource pod for namespace "${namespace}" - layout "${resLayoutEntryType}" requires a matrix factory, got a raw resource.`

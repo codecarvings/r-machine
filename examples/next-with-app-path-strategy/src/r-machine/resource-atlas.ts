@@ -13,7 +13,7 @@ import type { Shell_Navigation } from "./shell/navigation/en";
 
 const folders = defineLayout({
   "gear/": "gear",
-  "gear/vertex/": "vertex-gear",
+  "gear/vertex/": "gear:vertex",
   "shell/": "shell",
   "shell/lib/": "shell:mono",
 });

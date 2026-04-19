@@ -9,7 +9,7 @@ import type { Shell_Lib_Fmt } from "./shell/lib/fmt";
 
 const folders = defineLayout({
   "gear/": "gear",
-  "gear/vertex/": "vertex-gear",
+  "gear/vertex/": "gear:vertex",
   "shell/": "shell",
   "shell/lib/": "shell:mono",
 });

@@ -20,11 +20,6 @@ import type { NamespaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
-declare const shellSymbol: unique symbol;
-export interface ShellTag {
-  readonly [shellSymbol]?: typeof shellSymbol;
-}
-
 type ShellPluginCtx<RD extends AnyResDomain, L extends AnyLocale, KA extends NamespaceMap<RD>> = LocaleAwarePluginCtx<
   RD,
   L,
@@ -80,7 +75,7 @@ export type ShellMapDefiner<
   NM extends NamespaceMap<RD>,
 > = <R extends AnyRes>(
   factory: (plugin: ShellMapPlugin<RD, L, KA, NM>) => R | Promise<R>
-) => ResMatrix<R & ShellTag, ShellMapPlug<RD, L, KA, NM>>;
+) => ResMatrix<R, ShellMapPlug<RD, L, KA, NM>>;
 
 export type ShellListDefiner<
   RD extends AnyResDomain,
@@ -89,4 +84,4 @@ export type ShellListDefiner<
   NL extends NamespaceList<RD>,
 > = <R extends AnyRes>(
   factory: (plugin: ShellListPlugin<RD, L, KA, NL>) => R | Promise<R>
-) => ResMatrix<R & ShellTag, ShellListPlug<RD, L, KA, NL>>;
+) => ResMatrix<R, ShellListPlug<RD, L, KA, NL>>;

@@ -111,15 +111,14 @@ export interface StatefulReactiveGearMapDefiner<
   KA extends NamespaceMap<RD>,
   NM extends NamespaceMap<RD>,
   S extends AnyState,
-  T,
 > {
   <const D extends StateDef>(
     factory: (plugin: StatefulReactiveGearMapPlugin<RD, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => D | Promise<D>
-  ): ResMatrix<StateReactiveGearResource<S, D> & T & ReactiveGearTag, StatefulReactiveGearMapPlug<RD, KA, NM, S>>;
+  ): ResMatrix<StateReactiveGearResource<S, D> & ReactiveGearTag, StatefulReactiveGearMapPlug<RD, KA, NM, S>>;
 
   <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
     factory: (plugin: StatefulReactiveGearMapPlugin<RD, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => R | Promise<R>
-  ): ResMatrix<R & T & ReactiveGearTag, StatefulReactiveGearMapPlug<RD, KA, NM, S>>;
+  ): ResMatrix<R & ReactiveGearTag, StatefulReactiveGearMapPlug<RD, KA, NM, S>>;
 }
 
 export interface StatefulReactiveGearListDefiner<
@@ -127,13 +126,12 @@ export interface StatefulReactiveGearListDefiner<
   KA extends NamespaceMap<RD>,
   NL extends NamespaceList<RD>,
   S extends AnyState,
-  T,
 > {
   <const D extends StateDef>(
     factory: (plugin: StatefulReactiveGearListPlugin<RD, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => D | Promise<D>
-  ): ResMatrix<StateReactiveGearResource<S, D> & T & ReactiveGearTag, StatefulReactiveGearListPlug<RD, KA, NL, S>>;
+  ): ResMatrix<StateReactiveGearResource<S, D> & ReactiveGearTag, StatefulReactiveGearListPlug<RD, KA, NL, S>>;
 
   <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
     factory: (plugin: StatefulReactiveGearListPlugin<RD, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => R | Promise<R>
-  ): ResMatrix<R & T & ReactiveGearTag, StatefulReactiveGearListPlug<RD, KA, NL, S>>;
+  ): ResMatrix<R & ReactiveGearTag, StatefulReactiveGearListPlug<RD, KA, NL, S>>;
 }

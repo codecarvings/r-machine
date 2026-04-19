@@ -26,7 +26,7 @@ import type { ResWireProvider } from "./res-wire.js";
 import type { ShellListDefiner, ShellMapDefiner } from "./shell.js";
 
 type ShellDepsNamespace<RA extends AnyResAtlas, BGL extends NamespaceList<RA["res"]>> =
-  | Extract<keyof RA["shell"], string>
+  | Extract<keyof RA["anyShell"], string>
   | BGL[number];
 
 type ShellDepsNamespaceRef<RA extends AnyResAtlas, BGL extends NamespaceList<RA["res"]>> = NamespaceRef<
@@ -85,7 +85,7 @@ interface ShellListDepsComposer<
 
 // #region Runtime
 
-const shellMeta: ResMatrixMeta = { family: "shell", isReactive: false, isVertex: false };
+const shellMeta: ResMatrixMeta = { family: "shell", isReactive: false };
 
 function makeShellMapDefiner<
   RA extends AnyResAtlas,

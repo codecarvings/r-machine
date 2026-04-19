@@ -11,7 +11,7 @@ import type { AnyLocale } from "../../src/locale/locale.js";
 
 describe("ResLayoutEntryType", () => {
   it("is the exact union of the four canonical layout literals", () => {
-    expectTypeOf<ResLayoutEntryType>().toEqualTypeOf<"gear" | "vertex-gear" | "shell" | "shell:mono">();
+    expectTypeOf<ResLayoutEntryType>().toEqualTypeOf<"gear" | "gear:vertex" | "shell" | "shell:mono">();
   });
 
   it("does not widen to string", () => {
@@ -27,7 +27,7 @@ describe("AnyResLayout", () => {
 
   it("accepts the four canonical layout types as values", () => {
     expectTypeOf<"gear">().toExtend<ResLayoutEntryType>();
-    expectTypeOf<"vertex-gear">().toExtend<ResLayoutEntryType>();
+    expectTypeOf<"gear:vertex">().toExtend<ResLayoutEntryType>();
     expectTypeOf<"shell">().toExtend<ResLayoutEntryType>();
     expectTypeOf<"shell:mono">().toExtend<ResLayoutEntryType>();
   });

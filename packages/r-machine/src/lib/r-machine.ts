@@ -23,12 +23,10 @@ import {
   type GateKit,
   type GateWire,
   type GearKit,
-  type GearTag,
   type ResEquipment,
   type ResWireProvider,
   type ShellKit,
   type VertexGearMap,
-  type VertexGearTag,
 } from "#r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
@@ -72,10 +70,9 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Res
         throw new Error("ResWire resolution not yet implemented (engine WIP).");
       },
     });
-    const Gear = createGearComposer<RA, E["gearKit"], GearTag>(provider, false);
-    const VertexGear = createGearComposer<RA, E["gearKit"], VertexGearTag>(provider, true);
+    const Gear = createGearComposer<RA, E["gearKit"]>(provider);
     const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(provider);
-    return { Gear, VertexGear, Shell, localized };
+    return { Gear, Shell, localized };
   }
 
   getGateWire(_plugHead: AnyPlugHead, _locale: L, _vertexGearMap?: VertexGearMap | undefined): GateWire {

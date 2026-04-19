@@ -12,7 +12,7 @@ import type { AnyResPlug } from "../../src/core/res-plug.js";
 describe("ResMatrixMeta", () => {
   it("has exactly the declared fields — no implicit additions", () => {
     type Keys = keyof ResMatrixMeta;
-    expectTypeOf<Keys>().toEqualTypeOf<"family" | "isReactive" | "isVertex">();
+    expectTypeOf<Keys>().toEqualTypeOf<"family" | "isReactive">();
   });
 
   it("types `family` as ResFamily (gear | vertex-gear | shell), excluding shell:mono", () => {
@@ -25,11 +25,10 @@ describe("ResMatrixMeta", () => {
 
   it("types the boolean flags as plain booleans (not widened, not literal)", () => {
     expectTypeOf<ResMatrixMeta["isReactive"]>().toEqualTypeOf<boolean>();
-    expectTypeOf<ResMatrixMeta["isVertex"]>().toEqualTypeOf<boolean>();
   });
 
   it("marks every field as readonly (writable twin is not assignable)", () => {
-    type Writable = { family: ResFamily; isReactive: boolean; isVertex: boolean };
+    type Writable = { family: ResFamily; isReactive: boolean };
     expectTypeOf<ResMatrixMeta>().not.toEqualTypeOf<Writable>();
     // Sanity: the writable form is still structurally assignable.
     expectTypeOf<Writable>().toExtend<ResMatrixMeta>();
@@ -109,7 +108,7 @@ describe("createResMatrix — signature", () => {
     // Type alias (not interface) because `AnyResPlug` is a union — see the
     // earlier `exposes plug as the exact P type` test for the rationale.
     type MyPlug = AnyResPlug & { readonly marker: "my-plug" };
-    const meta: ResMatrixMeta = { family: "gear", isReactive: false, isVertex: false };
+    const meta: ResMatrixMeta = { family: "gear", isReactive: false };
     const factory = async (): Promise<MyResource> => ({ greeting: "hi" });
     const plug = {} as MyPlug;
 
@@ -126,7 +125,7 @@ describe("createResMatrix — signature", () => {
     // Sanity for the `AnyResMatrix` alias — a specific matrix must
     // flow into any slot typed with the erased variant.
     const mat: AnyResMatrix = createResMatrix(
-      { family: "gear", isReactive: false, isVertex: false },
+      { family: "gear", isReactive: false },
       async () => ({}),
       {} as AnyResPlug
     );
@@ -135,27 +134,25 @@ describe("createResMatrix — signature", () => {
 
   it("rejects a meta whose family is not a ResFamily literal", () => {
     // @ts-expect-error — "shell:mono" is a layout, not a family
-    createResMatrix({ family: "shell:mono", isReactive: false, isVertex: false }, async () => ({}), {});
+    createResMatrix({ family: "shell:mono", isReactive: false }, async () => ({}), {});
     // @ts-expect-error — arbitrary strings are not valid families
-    createResMatrix({ family: "custom", isReactive: false, isVertex: false }, async () => ({}), {});
+    createResMatrix({ family: "custom", isReactive: false }, async () => ({}), {});
   });
 
   it("rejects a meta missing required fields", () => {
-    // @ts-expect-error — isVertex is required
-    createResMatrix({ family: "gear", isReactive: false }, async () => ({}), {});
     // @ts-expect-error — isReactive is required
-    createResMatrix({ family: "gear", isVertex: false }, async () => ({}), {});
+    createResMatrix({ family: "gear" }, async () => ({}), {});
     // @ts-expect-error — family is required
-    createResMatrix({ isReactive: false, isVertex: false }, async () => ({}), {});
+    createResMatrix({ isReactive: false }, async () => ({}), {});
   });
 
   it("rejects a factory whose return type is not a Promise", () => {
     // @ts-expect-error — synchronous return is not assignable to () => Promise<R>
-    createResMatrix({ family: "gear", isReactive: false, isVertex: false }, () => ({}), {});
+    createResMatrix({ family: "gear", isReactive: false }, () => ({}), {});
   });
 
   it("rejects a factory that takes arguments (it must be nullary)", () => {
-    const meta: ResMatrixMeta = { family: "gear", isReactive: false, isVertex: false };
+    const meta: ResMatrixMeta = { family: "gear", isReactive: false };
     // @ts-expect-error — extra parameters are not permitted
     createResMatrix(meta, async (arg: string) => ({ arg }), {});
   });
@@ -177,7 +174,7 @@ describe("tryGetResMatrixMeta — signature", () => {
 
   it("accepts both variants of AnyResOrigin at the call site", () => {
     const mat: AnyResMatrix = createResMatrix(
-      { family: "gear", isReactive: false, isVertex: false },
+      { family: "gear", isReactive: false },
       async () => ({}),
       {} as AnyResPlug
     );
