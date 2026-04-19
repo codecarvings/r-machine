@@ -20,5 +20,5 @@ export type SolidNamespaceList<RD extends AnyResDomain> = readonly SolidNamespac
 
 // -readonly required to allow tuple spreading
 export type SurfaceList<RD extends AnyResDomain, NL extends NamespaceList<RD>> = {
-  -readonly [I in keyof NL]: Surface<RD[ExtractNamespace<NL[I]>]>;
+  -readonly [I in keyof NL]: Surface<RD[ExtractNamespace<NL[I]>], ExtractNamespace<NL[I]>>;
 };

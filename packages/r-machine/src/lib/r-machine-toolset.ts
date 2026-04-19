@@ -21,7 +21,7 @@ export interface RMachineToolset<
 > {
   readonly Gear: GearComposer<RA, E["gearKit"]>;
   readonly Shell: ShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>;
-  readonly localized: LocalizerHelper<RA["anyShell"]>;
+  readonly localized: LocalizerHelper<RA["shell:*"]>;
 }
 
 type LocalizerHelper<RD extends AnyResDomain> = <N extends Namespace<RD>, const R extends RD[N]>(

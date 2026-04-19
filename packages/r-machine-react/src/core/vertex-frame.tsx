@@ -13,26 +13,30 @@
 
 "use client";
 
-import { type AnyVertexGear, getVertexGearTag, type VertexGearMap, type VertexGearTagData } from "r-machine/core";
+import type { AnyResDomain, AnySurfaceOf } from "r-machine/core";
+import { tryGetVertexGearTag, type VertexGearMap, type VertexGearTagData } from "r-machine/core";
 import { createContext, type ReactNode, useContext, useRef } from "react";
 
 const Context = createContext<VertexGearMap | undefined>(undefined);
 Context.displayName = "VertexFrameContext";
 
-interface VertexFrameProps {
-  readonly gear: AnyVertexGear | AnyVertexGear[];
+type AnyVertexGearSurface = AnySurfaceOf<AnyResDomain>;
+
+export interface VertexFrameProps<S extends AnyVertexGearSurface = AnyVertexGearSurface> {
+  readonly gear: S | readonly S[];
   readonly children: ReactNode;
 }
 
 interface Data {
   parentMap: VertexGearMap | undefined;
   length: number;
-  tags: VertexGearTagData | VertexGearTagData[];
+  tags: VertexGearTagData | readonly VertexGearTagData[];
 }
 
 export function VertexFrame({ gear, children }: VertexFrameProps) {
-  const isArray = Array.isArray(gear);
-  const length = isArray ? gear.length : -1;
+  const gearArray = Array.isArray(gear) ? gear : undefined;
+  const gearSingle = gearArray === undefined ? (gear as AnyVertexGearSurface) : undefined;
+  const length = gearArray !== undefined ? gearArray.length : -1;
   const parentMap = useContext(Context);
 
   const data = useRef<Data | undefined>(undefined);
@@ -46,16 +50,16 @@ export function VertexFrame({ gear, children }: VertexFrameProps) {
     update = true;
   } else if (current.length !== length) {
     update = true;
-  } else if (isArray) {
+  } else if (gearArray !== undefined) {
     for (let i = 0; i < current.length; i++) {
-      const newTag = getVertexGearTag(gear[i] as unknown as AnyVertexGear);
-      if ((current.tags as VertexGearTagData[])[i] !== newTag) {
+      const newTag = tryGetVertexGearTag(gearArray[i])!;
+      if ((current.tags as readonly VertexGearTagData[])[i] !== newTag) {
         update = true;
         break;
       }
     }
   } else {
-    const newTag = getVertexGearTag(gear as unknown as AnyVertexGear);
+    const newTag = tryGetVertexGearTag(gearSingle!)!;
     update = (current.tags as VertexGearTagData) !== newTag;
   }
 
@@ -63,18 +67,16 @@ export function VertexFrame({ gear, children }: VertexFrameProps) {
     data.current = {
       parentMap,
       length,
-      tags: isArray
-        ? gear.map((g) => getVertexGearTag(g as unknown as AnyVertexGear))
-        : getVertexGearTag(gear as unknown as AnyVertexGear),
+      tags: gearArray !== undefined ? gearArray.map((g) => tryGetVertexGearTag(g)!) : tryGetVertexGearTag(gearSingle!)!,
     };
 
-    if (length === -1) {
-      const tag = getVertexGearTag(gear as unknown as AnyVertexGear)!;
+    if (gearArray === undefined) {
+      const tag = tryGetVertexGearTag(gearSingle!)!;
       value.current = parentMap ? { ...parentMap, [tag.namespace]: tag.genId } : { [tag.namespace]: tag.genId };
     } else {
       const map: VertexGearMap = parentMap ? { ...parentMap } : {};
       for (let i = 0; i < length; i++) {
-        const tag = getVertexGearTag((gear as AnyVertexGear[])[i]);
+        const tag = tryGetVertexGearTag(gearArray[i])!;
         map[tag.namespace] = tag.genId;
       }
       value.current = map;

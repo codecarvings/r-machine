@@ -10,16 +10,16 @@ declare const resAtlasSymbol: unique symbol;
 export interface ResAtlas<RL extends AnyResLayout, RD> {
   readonly [resAtlasSymbol]: true;
   readonly gear: ResAtlasSubMap<RL, RD, "gear">;
-  readonly vertexGear: ResAtlasSubMap<RL, RD, "gear:vertex">;
-  readonly anyShell: ResAtlasSubMap<RL, RD, "shell" | "shell:mono">;
+  readonly "gear:vertex": ResAtlasSubMap<RL, RD, "gear:vertex">;
+  readonly "shell:*": ResAtlasSubMap<RL, RD, "shell" | "shell:mono">;
   readonly res: RD;
 }
 
 export interface AnyResAtlas {
   readonly [resAtlasSymbol]: true;
   readonly gear: AnyResDomain;
-  readonly vertexGear: AnyResDomain;
-  readonly anyShell: AnyResDomain;
+  readonly "gear:vertex": AnyResDomain;
+  readonly "shell:*": AnyResDomain;
   readonly res: AnyResDomain;
 }
 

@@ -24,5 +24,5 @@ export type SolidNamespaceMap<RD extends AnyResDomain> = {
 
 // -readonly as SurfaceList
 export type SurfaceMap<RD extends AnyResDomain, NM extends NamespaceMap<RD>> = {
-  -readonly [K in keyof NM]: Surface<RD[ExtractNamespace<NM[K]>]>;
+  -readonly [K in keyof NM]: Surface<RD[ExtractNamespace<NM[K]>], ExtractNamespace<NM[K]>>;
 };

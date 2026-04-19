@@ -18,21 +18,26 @@
 // - NEXT CLIENT TOOLSET
 
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ResEquipment } from "r-machine/core";
+import type { AnyResAtlas, AnySurfaceOf, ResEquipment } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
-import type { ReactNode } from "react";
+import type { JSX, ReactNode } from "react";
 import { createContext, useMemo } from "react";
 import type { ReactPlugDefiner } from "./react-plug.js";
-import { useVertexFrame } from "./vertex-frame.js";
+import { VertexFrame as RawVertexFrame, useVertexFrame, type VertexFrameProps } from "./vertex-frame.js";
 
 // TODO: WP
 // type SetLocale<L extends AnyLocale> = (newLocale: L) => Promise<void>;
 type WriteLocale<L extends AnyLocale> = (newLocale: L) => void | Promise<void>;
 
+type VertexGearSurface<RA extends AnyResAtlas> = AnySurfaceOf<RA["gear:vertex"]>;
+
+type VertexFrame<RA extends AnyResAtlas> = (props: VertexFrameProps<VertexGearSurface<RA>>) => JSX.Element;
+
 export interface ReactBareToolset<RA extends AnyResAtlas, L extends AnyLocale, E extends ResEquipment<RA>> {
   readonly ReactRMachine: ReactBareRMachine<L>;
   readonly Plug: ReactPlugDefiner<RA["res"], L, E["gateKit"]>;
+  readonly VertexFrame: VertexFrame<RA>;
 }
 
 export interface ReactBareRMachine<L extends AnyLocale> {
@@ -163,5 +168,6 @@ export async function createReactBareToolset<RA extends AnyResAtlas, L extends A
   return {
     ReactRMachine,
     Plug,
+    VertexFrame: RawVertexFrame as VertexFrame<RA>,
   };
 }
