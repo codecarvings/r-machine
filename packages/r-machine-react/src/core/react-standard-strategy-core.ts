@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, ResKit } from "r-machine/core";
+import type { AnyResAtlas, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { createReactStandardImpl } from "./react-standard.impl.js";
@@ -34,11 +34,11 @@ const defaultConfig: ReactStandardStrategyConfig = {
 export abstract class ReactStandardStrategyCore<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends ResKit<RA>,
-> extends ReactStrategyCore<RA, L, KA, ReactStandardStrategyConfig> {
+  E extends ResEquipment<RA>,
+> extends ReactStrategyCore<RA, L, E, ReactStandardStrategyConfig> {
   static readonly defaultConfig = defaultConfig;
 
   protected createImpl() {
-    return createReactStandardImpl<RA, L, KA>(this.rMachine, this.config);
+    return createReactStandardImpl<RA, L, E>(this.rMachine, this.config);
   }
 }

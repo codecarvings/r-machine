@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, ResKit } from "r-machine/core";
+import type { AnyResAtlas, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { Strategy } from "r-machine/strategy";
 import { createReactToolset, type ReactImpl, type ReactToolset } from "./react-toolset.js";
@@ -19,12 +19,12 @@ import { createReactToolset, type ReactImpl, type ReactToolset } from "./react-t
 export abstract class ReactStrategyCore<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends ResKit<RA>,
+  E extends ResEquipment<RA>,
   C,
-> extends Strategy<RA, L, KA, C> {
+> extends Strategy<RA, L, E, C> {
   protected abstract createImpl(): Promise<ReactImpl<L>>;
 
-  async createToolset(): Promise<ReactToolset<RA, L, KA>> {
+  async createToolset(): Promise<ReactToolset<RA, L, E>> {
     const impl = await this.createImpl();
     return await createReactToolset(this.rMachine, impl);
   }

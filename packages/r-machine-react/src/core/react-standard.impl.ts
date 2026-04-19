@@ -12,14 +12,14 @@
  */
 
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ResKit } from "r-machine/core";
+import type { AnyResAtlas, ResEquipment } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactStandardStrategyConfig } from "./react-standard-strategy-core.js";
 import type { ReactImpl } from "./react-toolset.js";
 
-export async function createReactStandardImpl<RA extends AnyResAtlas, L extends AnyLocale, KA extends ResKit<RA>>(
-  rMachine: RMachine<RA, L, KA>,
+export async function createReactStandardImpl<RA extends AnyResAtlas, L extends AnyLocale, E extends ResEquipment<RA>>(
+  rMachine: RMachine<RA, L, E>,
   strategyConfig: ReactStandardStrategyConfig
 ): Promise<ReactImpl<L>> {
   function returnValidLocale(locale: AnyLocale): L {

@@ -12,18 +12,18 @@
  */
 
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ResKit } from "r-machine/core";
+import type { AnyResAtlas, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { type PartialReactStandardStrategyConfig, ReactStandardStrategyCore } from "#r-machine/react/core";
 
 export class ReactStandardStrategy<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends ResKit<RA>,
-> extends ReactStandardStrategyCore<RA, L, KA> {
-  constructor(rMachine: RMachine<RA, L, KA>);
-  constructor(rMachine: RMachine<RA, L, KA>, config: PartialReactStandardStrategyConfig);
-  constructor(rMachine: RMachine<RA, L, KA>, config: PartialReactStandardStrategyConfig = {}) {
+  E extends ResEquipment<RA>,
+> extends ReactStandardStrategyCore<RA, L, E> {
+  constructor(rMachine: RMachine<RA, L, E>);
+  constructor(rMachine: RMachine<RA, L, E>, config: PartialReactStandardStrategyConfig);
+  constructor(rMachine: RMachine<RA, L, E>, config: PartialReactStandardStrategyConfig = {}) {
     super(rMachine, {
       ...ReactStandardStrategyCore.defaultConfig,
       ...config,

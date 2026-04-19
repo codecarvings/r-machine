@@ -1,12 +1,12 @@
 import { ReactStandardStrategy } from "@r-machine/react";
-import { ofType, RMachine, type RMachineLocale } from "r-machine";
-import type { ResourceAtlas } from "./resource-atlas";
+import { RMachine, type RMachineLocale } from "r-machine";
+import { ResourceAtlas } from "./resource-atlas";
 
 // Vite statically analyzes this at build time and creates chunk files for all matching modules
 const moduleLoaders = import.meta.glob<{ r: any }>("./**/*.{tsx,ts}");
 
 const rMachine = RMachine.create({
-  resourceAtlas: ofType<ResourceAtlas>(),
+  ResourceAtlas,
   locales: ["en", "it"],
   defaultLocale: "en",
   load: (path) => {
@@ -20,11 +20,6 @@ const rMachine = RMachine.create({
     }
 
     return moduleLoader();
-  },
-  layout: {
-    gear: "gear",
-    shell: "shell",
-    "shell/lib": "dynamic-shell",
   },
   shellKit: {
     fmt: "shell/lib/fmt",

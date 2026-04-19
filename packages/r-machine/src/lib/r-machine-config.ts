@@ -77,7 +77,7 @@ export function convertParamsToConfig<
   params: RMachineConfigParams<RAC, LL, BGL, GK, SK, XK>
 ): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, XK>> {
   return {
-    resourceAtlas: params.ResourceAtlas as InstanceType<RAC>,
+    resourceAtlas: undefined!,
     locales: [...params.locales],
     defaultLocale: params.defaultLocale,
     load: params.load,
@@ -128,10 +128,10 @@ export function cloneRMachineConfig<C extends RMachineConfig<any, any, any>>(con
     locales: Object.freeze([...config.locales]) as LocaleList<C["defaultLocale"]>,
     layout: { ...config.layout },
     equipment: {
-      bridgeGears: Object.freeze([...config.equipment.bridgeGears]) as C["equipment"]["bridgeGears"],
-      gear: { ...config.equipment.gear },
-      shell: { ...config.equipment.shell },
-      gate: { ...config.equipment.gate },
+      bridgeGears: Object.freeze([...config.equipment.bridgeGears]),
+      gear: { ...config.equipment.gearKit },
+      shell: { ...config.equipment.shellKit },
+      gate: { ...config.equipment.gateKit },
     },
   };
 }

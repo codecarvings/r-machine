@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import { ERR_PLUG_RESOLVE_NOT_SET, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { AnyResDomain } from "./res-domain.js";
 import type { NamespaceList, SurfaceList } from "./res-list.js";
@@ -97,13 +98,14 @@ export interface PlugBody<PH extends AnyPlugHead> {
   [plugResolveSymbol]: () => ExtractPlugin<PH>;
 }
 
+const defaultPlugResolve = () => {
+  throw new RMachineResolveError(ERR_PLUG_RESOLVE_NOT_SET, "Plug resolve not set.");
+};
 export function createPlug<H extends AnyPlugHead>(head: H): PlugBody<H> {
   return {
     [plugHeadSymbol]: head,
     [plugLocaleSymbol]: undefined as PlugLocale<H>,
-    [plugResolveSymbol]: (() => {
-      throw new Error("Plug resolve not set");
-    }) as () => ExtractPlugin<H>,
+    [plugResolveSymbol]: defaultPlugResolve as () => ExtractPlugin<H>,
   };
 }
 

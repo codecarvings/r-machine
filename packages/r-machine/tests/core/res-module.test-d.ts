@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyRes, AnyResOrigin } from "../../src/core/res.js";
-import type { AnyNamespace } from "../../src/core/res-atlas.js";
+import type { AnyNamespace } from "../../src/core/res-domain.js";
 import type { ResPathResolver } from "../../src/core/res-layout.js";
 import {
   type AnyResModule,

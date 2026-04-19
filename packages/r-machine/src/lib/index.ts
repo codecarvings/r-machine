@@ -12,10 +12,7 @@
  */
 
 export type { BrandedResource } from "./branded-resource.js";
-export {
-  defaultLayout,
-  defineLayout,
-} from "./layout.js";
+export { defineLayout } from "./layout.js";
 export {
   RMachine,
   type RMachineLocale,

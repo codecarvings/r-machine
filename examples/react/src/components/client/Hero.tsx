@@ -2,9 +2,10 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GitHubMark from "@/gfx/github-mark.svg";
 import RMachineLogo from "@/gfx/r-machine.logo.svg";
+import { cart } from "@/r-machine/resource-atlas";
 import { Plug } from "@/r-machine/toolset";
 
-export const plug = Plug("shell/landing-page");
+export const plug = Plug("shell/landing-page", cart);
 export default function Hero() {
   const [page] = plug.use();
 

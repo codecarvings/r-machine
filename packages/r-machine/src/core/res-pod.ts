@@ -15,7 +15,7 @@ import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import { type AnyPlugHead, getPlugHead } from "./plug.js";
 import type { AnyResOrigin, ResFamily } from "./res.js";
-import type { AnyNamespace } from "./res-atlas.js";
+import type { AnyNamespace } from "./res-domain.js";
 import type { ResLayoutEntryType } from "./res-layout.js";
 import { type AnyResMatrix, tryGetResMatrixMeta } from "./res-matrix.js";
 import type { AnyResModule } from "./res-module.js";

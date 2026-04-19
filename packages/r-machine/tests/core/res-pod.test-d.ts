@@ -1,7 +1,7 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyPlugHead } from "../../src/core/plug.js";
 import type { AnyResOrigin, ResFamily } from "../../src/core/res.js";
-import type { AnyNamespace } from "../../src/core/res-atlas.js";
+import type { AnyNamespace } from "../../src/core/res-domain.js";
 import type { ResLayoutEntryType } from "../../src/core/res-layout.js";
 import type { AnyResModule } from "../../src/core/res-module.js";
 import { createResPod, type ResPod } from "../../src/core/res-pod.js";
