@@ -12,7 +12,7 @@
  */
 
 import type { AnyRes } from "#r-machine/core";
-import type { AnyNamespace } from "./res-atlas.js";
+import type { AnyNamespace } from "./res-domain.js";
 
 export interface VertexGearTagData {
   readonly namespace: AnyNamespace;

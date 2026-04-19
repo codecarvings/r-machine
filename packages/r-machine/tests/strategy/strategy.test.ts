@@ -1,25 +1,26 @@
 import { describe, expect, it, vi } from "vitest";
-import type { AnyResAtlasInstance, RMachineConfig } from "#r-machine";
+import type { RMachineConfig } from "#r-machine";
+import type { AnyResAtlas } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 import { RMachine } from "../../src/lib/r-machine.js";
 import { Strategy } from "../../src/strategy/strategy.js";
 
-interface TestAtlas extends AnyResAtlasInstance {
+interface TestAtlas extends AnyResAtlas {
   readonly gear: {};
   readonly shell: {};
   readonly res: {};
 }
 
 interface TestResEquipment {
-  readonly gear: {};
-  readonly shell: {};
-  readonly gate: {};
   readonly bridgeGears: readonly [];
+  readonly gearKit: {};
+  readonly shellKit: {};
+  readonly gateKit: {};
 }
 
-function createSpyStrategyClass<ATLAS extends AnyResAtlasInstance, L extends AnyLocale, C>() {
+function createSpyStrategyClass<RA extends AnyResAtlas, L extends AnyLocale, C>() {
   const validateConfigSpy = vi.fn();
-  class SpyStrategy extends Strategy<ATLAS, L, TestResEquipment, C> {
+  class SpyStrategy extends Strategy<RA, L, TestResEquipment, C> {
     protected override validateConfig(): void {
       validateConfigSpy();
     }
@@ -27,23 +28,13 @@ function createSpyStrategyClass<ATLAS extends AnyResAtlasInstance, L extends Any
   return { SpyStrategy, validateConfigSpy };
 }
 
-class ThrowingStrategy<ATLAS extends AnyResAtlasInstance, L extends AnyLocale, C> extends Strategy<
-  ATLAS,
-  L,
-  TestResEquipment,
-  C
-> {
+class ThrowingStrategy<RA extends AnyResAtlas, L extends AnyLocale, C> extends Strategy<RA, L, TestResEquipment, C> {
   protected override validateConfig(): void {
     throw new Error("Validation failed");
   }
 }
 
-class DefaultStrategy<ATLAS extends AnyResAtlasInstance, L extends AnyLocale, C> extends Strategy<
-  ATLAS,
-  L,
-  TestResEquipment,
-  C
-> {}
+class DefaultStrategy<RA extends AnyResAtlas, L extends AnyLocale, C> extends Strategy<RA, L, TestResEquipment, C> {}
 
 const testConfig: RMachineConfig<TestAtlas, string, TestResEquipment> = {
   // Phantom: the config's resourceAtlas is typed as the instance but at
@@ -54,7 +45,7 @@ const testConfig: RMachineConfig<TestAtlas, string, TestResEquipment> = {
   defaultLocale: "en",
   load: async () => ({ r: {} }),
   layout: {},
-  kit: { gear: {}, shell: {}, gate: {}, bridgeGears: [] },
+  equipment: { bridgeGears: [], gearKit: {}, shellKit: {}, gateKit: {} },
 };
 
 function createTestRMachine() {

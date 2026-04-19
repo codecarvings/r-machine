@@ -11,17 +11,14 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { Namespace } from "#r-machine/core";
-import type { AnyResAtlas, ExtractNamespace, NamespaceRef, SolidNamespaceRef } from "./res-atlas.js";
+import type { AnyResDomain, ExtractNamespace, NamespaceRef, SolidNamespaceRef } from "./res-domain.js";
 import type { Surface } from "./surface.js";
 
-export type NamespaceList<RA extends AnyResAtlas> = readonly NamespaceRef<RA>[];
+export type NamespaceList<RD extends AnyResDomain> = readonly NamespaceRef<RD>[];
 
-export type ExplicitNamespaceList<RA extends AnyResAtlas> = readonly Namespace<RA>[];
-
-export type SolidNamespaceList<RA extends AnyResAtlas> = readonly SolidNamespaceRef<RA>[];
+export type SolidNamespaceList<RD extends AnyResDomain> = readonly SolidNamespaceRef<RD>[];
 
 // -readonly required to allow tuple spreading
-export type SurfaceList<RA extends AnyResAtlas, NL extends NamespaceList<RA>> = {
-  -readonly [I in keyof NL]: Surface<RA[ExtractNamespace<NL[I]>]>;
+export type SurfaceList<RD extends AnyResDomain, NL extends NamespaceList<RD>> = {
+  -readonly [I in keyof NL]: Surface<RD[ExtractNamespace<NL[I]>]>;
 };

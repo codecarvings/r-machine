@@ -17,7 +17,7 @@ import type {
   AnyRes,
   AnyResAtlas,
   AnyResAtlasClass,
-  BridgeGearNamespace,
+  BridgeGearNamespaceList,
   GateKit,
   GateWire,
   GearKit,
@@ -75,14 +75,14 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Res
   static create<
     RAC extends AnyResAtlasClass,
     const LL extends AnyLocaleList,
-    const BG extends BridgeGearNamespace<InstanceType<RAC>> = readonly [],
-    GKA extends GearKit<InstanceType<RAC>> = {},
-    SKA extends ShellKit<InstanceType<RAC>, BG> = {},
-    XKA extends GateKit<InstanceType<RAC>> = {},
+    const BGL extends BridgeGearNamespaceList<InstanceType<RAC>> = readonly [],
+    GK extends GearKit<InstanceType<RAC>> = {},
+    SK extends ShellKit<InstanceType<RAC>, BGL> = {},
+    XK extends GateKit<InstanceType<RAC>> = {},
   >(
-    config: RMachineConfigParams<RAC, LL, BG, GKA, SKA, XKA>
-  ): RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BG, GKA, SKA, XKA>> {
-    return new RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BG, GKA, SKA, XKA>>(
+    config: RMachineConfigParams<RAC, LL, BGL, GK, SK, XK>
+  ): RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, XK>> {
+    return new RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, XK>>(
       convertParamsToConfig(config)
     );
   }

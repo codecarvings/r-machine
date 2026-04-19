@@ -28,35 +28,45 @@ type ValidGearDepItem<RA extends AnyResAtlas, N> =
       : RMachineTypeError<"This token does not reference a valid gear namespace.">;
 
 export interface GearComposer<
-  ATLAS extends AnyResAtlas,
-  KA extends NamespaceMap<ATLAS["res"]>,
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA["res"]>,
   T extends GearTag | VertexGearTag = GearTag,
 > {
-  readonly deps: GearDepsComposer<ATLAS, KA, T>;
-  readonly reactive: ReactiveGearMapDepsComposer<ATLAS["res"], KA, {}, T>;
-  readonly define: GearMapDefiner<ATLAS["res"], KA, {}, T>;
+  readonly deps: GearDepsComposer<RA, KA, T>;
+  readonly reactive: ReactiveGearMapDepsComposer<RA, KA, {}, T>;
+  readonly define: GearMapDefiner<RA["res"], KA, {}, T>;
 }
 
 interface GearDepsComposer<
-  ATLAS extends AnyResAtlas,
-  KA extends NamespaceMap<ATLAS["res"]>,
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA["res"]>,
   T extends GearTag | VertexGearTag,
 > {
-  (): GearMapDepsComposer<ATLAS["res"], KA, {}, T>;
-  <const NL extends readonly NamespaceRef<ATLAS["res"]>[]>(
-    ...namespaces: { readonly [I in keyof NL]: ValidGearDepItem<ATLAS, NL[I]> }
-  ): GearListDepsComposer<ATLAS["res"], KA, NL, T>;
-  <const NM extends { readonly [k: string]: NamespaceRef<ATLAS["res"]> }>(
-    namespaces: { readonly [K in keyof NM]: ValidGearDepItem<ATLAS, NM[K]> }
-  ): GearMapDepsComposer<ATLAS["res"], KA, NM, T>;
+  (): GearMapDepsComposer<RA, KA, {}, T>;
+  <const NL extends readonly NamespaceRef<RA["res"]>[]>(
+    ...namespaces: { readonly [I in keyof NL]: ValidGearDepItem<RA, NL[I]> }
+  ): GearListDepsComposer<RA, KA, NL, T>;
+  <const NM extends { readonly [k: string]: NamespaceRef<RA["res"]> }>(
+    namespaces: { readonly [K in keyof NM]: ValidGearDepItem<RA, NM[K]> }
+  ): GearMapDepsComposer<RA, KA, NM, T>;
 }
 
-interface GearMapDepsComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>, T> {
+interface GearMapDepsComposer<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA["res"]>,
+  NM extends NamespaceMap<RA["res"]>,
+  T,
+> {
   readonly reactive: ReactiveGearMapDepsComposer<RA, KA, NM, T>;
-  readonly define: GearMapDefiner<RA, KA, NM, T>;
+  readonly define: GearMapDefiner<RA["res"], KA, NM, T>;
 }
 
-interface GearListDepsComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>, T> {
+interface GearListDepsComposer<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA["res"]>,
+  NL extends NamespaceList<RA["res"]>,
+  T,
+> {
   readonly reactive: ReactiveGearListDepsComposer<RA, KA, NL, T>;
-  readonly define: GearListDefiner<RA, KA, NL, T>;
+  readonly define: GearListDefiner<RA["res"], KA, NL, T>;
 }

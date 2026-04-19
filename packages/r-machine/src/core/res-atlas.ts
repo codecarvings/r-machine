@@ -5,13 +5,16 @@ type ResAtlasSubMap<LO extends AnyResLayout, A, T extends ResLayoutEntryType> = 
   readonly [K in keyof A as K extends string ? (ResolveLayoutType<LO, K> extends T ? K : never) : never]: A[K];
 };
 
+declare const resAtlasSymbol: unique symbol;
 export interface ResAtlas<RL extends AnyResLayout, RD> {
+  readonly [resAtlasSymbol]: true;
   readonly gear: ResAtlasSubMap<RL, RD, "gear">;
   readonly shell: ResAtlasSubMap<RL, RD, "shell" | "dynamic-shell">;
   readonly res: RD;
 }
 
 export interface AnyResAtlas {
+  readonly [resAtlasSymbol]: true;
   readonly gear: AnyResDomain;
   readonly shell: AnyResDomain;
   readonly res: AnyResDomain;

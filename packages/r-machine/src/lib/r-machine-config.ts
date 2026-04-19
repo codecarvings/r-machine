@@ -14,7 +14,7 @@
 import type {
   AnyResAtlas,
   AnyResAtlasClass,
-  BridgeGearNamespace,
+  BridgeGearNamespaceList,
   GateKit,
   GearKit,
   ResEquipment,
@@ -38,19 +38,19 @@ import type { AnyResLayout } from "../core/res-layout.js";
 export interface RMachineConfigParams<
   RAC extends AnyResAtlasClass,
   LL extends AnyLocaleList,
-  BG extends BridgeGearNamespace<InstanceType<RAC>>,
-  GKA extends GearKit<InstanceType<RAC>>,
-  SKA extends ShellKit<InstanceType<RAC>, BG>,
-  XKA extends GateKit<InstanceType<RAC>>,
+  BGL extends BridgeGearNamespaceList<InstanceType<RAC>>,
+  GK extends GearKit<InstanceType<RAC>>,
+  SK extends ShellKit<InstanceType<RAC>, BGL>,
+  XK extends GateKit<InstanceType<RAC>>,
 > {
   readonly ResourceAtlas: RAC;
   readonly locales: LL;
   readonly defaultLocale: LL[number];
   readonly load: ResModuleLoaderFn;
-  readonly bridgeGears?: BG;
-  readonly gearKit?: GKA;
-  readonly shellKit?: SKA;
-  readonly gateKit?: XKA;
+  readonly bridgeGears?: BGL;
+  readonly gearKit?: GK;
+  readonly shellKit?: SK;
+  readonly gateKit?: XK;
 }
 
 export interface RMachineConfig<
@@ -69,13 +69,13 @@ export interface RMachineConfig<
 export function convertParamsToConfig<
   RAC extends AnyResAtlasClass,
   LL extends AnyLocaleList,
-  BG extends BridgeGearNamespace<InstanceType<RAC>>,
-  GKA extends GearKit<InstanceType<RAC>>,
-  SKA extends ShellKit<InstanceType<RAC>, BG>,
-  XKA extends GateKit<InstanceType<RAC>>,
+  BGL extends BridgeGearNamespaceList<InstanceType<RAC>>,
+  GK extends GearKit<InstanceType<RAC>>,
+  SK extends ShellKit<InstanceType<RAC>, BGL>,
+  XK extends GateKit<InstanceType<RAC>>,
 >(
-  params: RMachineConfigParams<RAC, LL, BG, GKA, SKA, XKA>
-): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>["res"], BG, GKA, SKA, XKA>> {
+  params: RMachineConfigParams<RAC, LL, BGL, GK, SK, XK>
+): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, XK>> {
   return {
     resourceAtlas: params.ResourceAtlas as InstanceType<RAC>,
     locales: [...params.locales],
@@ -83,10 +83,10 @@ export function convertParamsToConfig<
     load: params.load,
     layout: params.ResourceAtlas.layout,
     equipment: {
-      bridgeGears: (params.bridgeGears ?? ([] as readonly unknown[])) as BG,
-      gearKit: params.gearKit ?? ({} as GKA),
-      shellKit: params.shellKit ?? ({} as SKA),
-      gateKit: params.gateKit ?? ({} as XKA),
+      bridgeGears: (params.bridgeGears ?? ([] as readonly unknown[])) as BGL,
+      gearKit: params.gearKit ?? ({} as GK),
+      shellKit: params.shellKit ?? ({} as SK),
+      gateKit: params.gateKit ?? ({} as XK),
     },
   };
 }

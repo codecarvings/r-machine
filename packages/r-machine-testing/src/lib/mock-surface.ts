@@ -11,15 +11,15 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { Action, AnyResAtlas, ExtractNamespace, Getter, NamespaceMap, RelayBrand } from "r-machine/core";
+import type { Action, AnyResDomain, ExtractNamespace, Getter, NamespaceMap, RelayBrand } from "r-machine/core";
 
 type MockSurfaceItem<I> =
   I extends Getter<infer V> ? () => V : I extends Action<infer F> ? F : I extends RelayBrand ? never : I;
 
-type MockSurface<R extends AnyResAtlas> = {
-  [K in keyof R as K extends `$${string}` ? never : K]?: MockSurfaceItem<R[K]>;
+type MockSurface<RD extends AnyResDomain> = {
+  [K in keyof RD as K extends `$${string}` ? never : K]?: MockSurfaceItem<RD[K]>;
 };
 
-export type MockSurfaceMap<RA extends AnyResAtlas, NM extends NamespaceMap<RA>> = {
-  [K in keyof NM]?: MockSurface<RA[ExtractNamespace<NM[K]>]>;
+export type MockSurfaceMap<RD extends AnyResDomain, NM extends NamespaceMap<RD>> = {
+  [K in keyof NM]?: MockSurface<RD[ExtractNamespace<NM[K]>]>;
 };

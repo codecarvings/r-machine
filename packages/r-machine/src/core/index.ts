@@ -26,7 +26,7 @@ export {
   type AnyPlugHead,
   type ExtractCtx,
   type ExtractKit,
-  type ExtractResAtlas,
+  type ExtractResDomain,
   getPlugHead,
   getPlugResolve,
   type ListPlugin,
@@ -47,7 +47,13 @@ export {
   type Namespace,
   type Token,
 } from "./res-domain.js";
-export type { BridgeGearNamespace, GateKit, GearKit, ResEquipment, ShellKit } from "./res-equipment.js";
+export type {
+  BridgeGearNamespaceList,
+  GateKit,
+  GearKit,
+  ResEquipment,
+  ShellKit,
+} from "./res-equipment.js";
 export type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "./res-layout.js";
 export type { NamespaceList, SolidNamespaceList, SurfaceList } from "./res-list.js";
 export type {

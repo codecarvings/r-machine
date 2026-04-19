@@ -16,7 +16,7 @@ import type { StatelessGetterComposer } from "./getter.js";
 import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
 import type { ReactiveGearTag } from "./reactive-gear.js";
 import type { AnyReactiveRes, RejectAsyncValueProps } from "./res.js";
-import type { AnyResAtlas } from "./res-atlas.js";
+import type { AnyResDomain } from "./res-domain.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
@@ -26,55 +26,58 @@ interface StatelessReactiveGearCursor extends GearCursor {
   readonly getter: StatelessGetterComposer;
 }
 
-type StatelessReactiveGearPluginCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>> = PluginCtx<RA, KA>;
+type StatelessReactiveGearPluginCtx<RD extends AnyResDomain, KA extends NamespaceMap<RD>> = PluginCtx<RD, KA>;
 
 type StatelessReactiveGearMapPlugin<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
-> = MapPlugin<RA, NM, StatelessReactiveGearPluginCtx<RA, KA>>;
+  RD extends AnyResDomain,
+  KA extends NamespaceMap<RD>,
+  NM extends NamespaceMap<RD>,
+> = MapPlugin<RD, NM, StatelessReactiveGearPluginCtx<RD, KA>>;
 
 type StatelessReactiveGearListPlugin<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-> = ListPlugin<RA, NL, StatelessReactiveGearPluginCtx<RA, KA>>;
+  RD extends AnyResDomain,
+  KA extends NamespaceMap<RD>,
+  NL extends NamespaceList<RD>,
+> = ListPlugin<RD, NL, StatelessReactiveGearPluginCtx<RD, KA>>;
 
 type StatelessReactiveGearMapPlugHead<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
-> = ResMapPlugHead<"gear", RA, KA, NM, StatelessReactiveGearPluginCtx<RA, KA>>;
+  RD extends AnyResDomain,
+  KA extends NamespaceMap<RD>,
+  NM extends NamespaceMap<RD>,
+> = ResMapPlugHead<"gear", RD, KA, NM, StatelessReactiveGearPluginCtx<RD, KA>>;
 
 type StatelessReactiveGearListPlugHead<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-> = ResListPlugHead<"gear", RA, KA, NL, StatelessReactiveGearPluginCtx<RA, KA>>;
+  RD extends AnyResDomain,
+  KA extends NamespaceMap<RD>,
+  NL extends NamespaceList<RD>,
+> = ResListPlugHead<"gear", RD, KA, NL, StatelessReactiveGearPluginCtx<RD, KA>>;
 
-interface StatelessReactiveGearMapPlug<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>
-  extends PlugBody<StatelessReactiveGearMapPlugHead<RA, KA, NM>> {}
+interface StatelessReactiveGearMapPlug<
+  RD extends AnyResDomain,
+  KA extends NamespaceMap<RD>,
+  NM extends NamespaceMap<RD>,
+> extends PlugBody<StatelessReactiveGearMapPlugHead<RD, KA, NM>> {}
 
 interface StatelessReactiveGearListPlug<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
-> extends PlugBody<StatelessReactiveGearListPlugHead<RA, KA, NL>> {}
+  RD extends AnyResDomain,
+  KA extends NamespaceMap<RD>,
+  NL extends NamespaceList<RD>,
+> extends PlugBody<StatelessReactiveGearListPlugHead<RD, KA, NL>> {}
 
 export type StatelessReactiveGearMapDefiner<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
+  RD extends AnyResDomain,
+  KA extends NamespaceMap<RD>,
+  NM extends NamespaceMap<RD>,
   T,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
-  factory: (plugin: StatelessReactiveGearMapPlugin<RA, KA, NM>, _: StatelessReactiveGearCursor) => R | Promise<R>
-) => ResMatrix<R & T & ReactiveGearTag, StatelessReactiveGearMapPlug<RA, KA, NM>>;
+  factory: (plugin: StatelessReactiveGearMapPlugin<RD, KA, NM>, _: StatelessReactiveGearCursor) => R | Promise<R>
+) => ResMatrix<R & T & ReactiveGearTag, StatelessReactiveGearMapPlug<RD, KA, NM>>;
 
 export type StatelessReactiveGearListDefiner<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
+  RD extends AnyResDomain,
+  KA extends NamespaceMap<RD>,
+  NL extends NamespaceList<RD>,
   T,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
-  factory: (plugin: StatelessReactiveGearListPlugin<RA, KA, NL>, _: StatelessReactiveGearCursor) => R | Promise<R>
-) => ResMatrix<R & T & ReactiveGearTag, StatelessReactiveGearListPlug<RA, KA, NL>>;
+  factory: (plugin: StatelessReactiveGearListPlugin<RD, KA, NL>, _: StatelessReactiveGearCursor) => R | Promise<R>
+) => ResMatrix<R & T & ReactiveGearTag, StatelessReactiveGearListPlug<RD, KA, NL>>;

@@ -11,18 +11,18 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlasInstance, RMachine } from "#r-machine";
-import type { ResEquipment } from "#r-machine/core";
+import type { RMachine } from "#r-machine";
+import type { AnyResAtlas, ResEquipment } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
 export abstract class Strategy<
-  ATLAS extends AnyResAtlasInstance,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<ATLAS["res"], any, any, any, any>,
+  E extends ResEquipment<RA, any, any, any, any>,
   C,
 > {
   constructor(
-    readonly rMachine: RMachine<ATLAS, L, E>,
+    readonly rMachine: RMachine<RA, L, E>,
     readonly config: C
   ) {
     this.validateConfig();

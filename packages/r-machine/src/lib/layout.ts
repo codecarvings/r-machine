@@ -22,18 +22,17 @@ type ValidResAtlasShape<LO extends AnyResLayout, A> = {
     : RMachineTypeError<`Namespace '${K & string}' must be a sub-path (e.g. 'gear/foo'), not a bare top-level key.`>;
 };
 
-type ResAtlasBuilder<RL extends AnyResLayout> = RL &
-  (<const A extends ValidResAtlasShape<RL, A>>() => ResAtlasClass<RL, A>);
+type ResAtlasBuilder<RL extends AnyResLayout> = <const A extends ValidResAtlasShape<RL, A>>() => ResAtlasClass<RL, A>;
 
 export function defineLayout<const LO extends AnyResLayout>(layout: LO): ResAtlasBuilder<LO> {
   function builder<const RA extends ValidResAtlasShape<LO, RA>>(): ResAtlasClass<LO, RA> {
     // biome-ignore lint/complexity/noStaticOnlyClass: As per design
     abstract class ResourceAtlas {
-      static readonly layout: LO = layout;
+      static readonly layout = layout;
     }
     return ResourceAtlas as unknown as ResAtlasClass<LO, RA>;
   }
-  return Object.assign(builder, layout) as ResAtlasBuilder<LO>;
+  return builder;
 }
 
 export const defaultLayout = defineLayout({

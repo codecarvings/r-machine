@@ -23,8 +23,8 @@ import type { StatelessReactiveGearListDefiner, StatelessReactiveGearMapDefiner 
 
 export interface ReactiveGearMapDepsComposer<
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
+  KA extends NamespaceMap<RA["res"]>,
+  NM extends NamespaceMap<RA["res"]>,
   T,
 > {
   <S extends AnyState>(state: S): StatefulReactiveGearMapComposer<RA, KA, NM, S, T>;
@@ -33,8 +33,8 @@ export interface ReactiveGearMapDepsComposer<
 
 export interface ReactiveGearListDepsComposer<
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
+  KA extends NamespaceMap<RA["res"]>,
+  NL extends NamespaceList<RA["res"]>,
   T,
 > {
   <S extends AnyState>(state: S): StatefulReactiveGearListComposer<RA, KA, NL, S, T>;
@@ -43,38 +43,38 @@ export interface ReactiveGearListDepsComposer<
 
 interface StatefulReactiveGearMapComposer<
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
+  KA extends NamespaceMap<RA["res"]>,
+  NM extends NamespaceMap<RA["res"]>,
   S extends AnyState,
   T,
 > {
-  readonly define: StatefulReactiveGearMapDefiner<RA, KA, NM, S, T>;
+  readonly define: StatefulReactiveGearMapDefiner<RA["res"], KA, NM, S, T>;
 }
 
 interface StatefulReactiveGearListComposer<
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
+  KA extends NamespaceMap<RA["res"]>,
+  NL extends NamespaceList<RA["res"]>,
   S extends AnyState,
   T,
 > {
-  readonly define: StatefulReactiveGearListDefiner<RA, KA, NL, S, T>;
+  readonly define: StatefulReactiveGearListDefiner<RA["res"], KA, NL, S, T>;
 }
 
 interface StatelessReactiveGearMapComposer<
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
+  KA extends NamespaceMap<RA["res"]>,
+  NM extends NamespaceMap<RA["res"]>,
   T,
 > {
-  readonly define: StatelessReactiveGearMapDefiner<RA, KA, NM, T>;
+  readonly define: StatelessReactiveGearMapDefiner<RA["res"], KA, NM, T>;
 }
 
 interface StatelessReactiveGearListComposer<
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
+  KA extends NamespaceMap<RA["res"]>,
+  NL extends NamespaceList<RA["res"]>,
   T,
 > {
-  readonly define: StatelessReactiveGearListDefiner<RA, KA, NL, T>;
+  readonly define: StatelessReactiveGearListDefiner<RA["res"], KA, NL, T>;
 }

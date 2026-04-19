@@ -29,7 +29,7 @@ export interface RMachineToolset<
 > {
   readonly Gear: GearComposer<RA, E["gearKit"]>;
   readonly VertexGear: GearComposer<RA, E["gearKit"], VertexGearTag>;
-  readonly Shell: ShellComposer<RA, L, E["shellKit"], E["bridgeGears"]>;
+  readonly Shell: ShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>;
   readonly localized: LocalizerHelper<RA["shell"]>;
 }
 

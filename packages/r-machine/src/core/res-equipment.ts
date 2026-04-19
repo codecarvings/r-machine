@@ -16,25 +16,25 @@ import type { Namespace } from "./res-domain.js";
 
 export interface ResEquipment<
   RA extends AnyResAtlas,
-  BG extends BridgeGearNamespace<RA> = [],
-  GKA extends GearKit<RA> = {},
-  SKA extends ShellKit<RA, BG> = {},
-  XKA extends GateKit<RA> = {},
+  BGL extends BridgeGearNamespaceList<RA> = [],
+  GK extends GearKit<RA> = {},
+  SK extends ShellKit<RA, BGL> = {},
+  XK extends GateKit<RA> = {},
 > {
-  readonly bridgeGears: BG;
-  readonly gearKit: GKA;
-  readonly shellKit: SKA;
-  readonly gateKit: XKA;
+  readonly bridgeGears: BGL;
+  readonly gearKit: GK;
+  readonly shellKit: SK;
+  readonly gateKit: XK;
 }
 
-export type BridgeGearNamespace<RA extends AnyResAtlas> = readonly Namespace<RA["gear"]>[];
+export type BridgeGearNamespaceList<RA extends AnyResAtlas> = readonly Namespace<RA["gear"]>[];
 
 export type GearKit<RA extends AnyResAtlas> = {
   readonly [key: string]: Namespace<RA["gear"]>;
 };
 
-export type ShellKit<RA extends AnyResAtlas, BG extends BridgeGearNamespace<RA>> = {
-  readonly [key: string]: Namespace<RA["shell"]> | BG[number];
+export type ShellKit<RA extends AnyResAtlas, BGL extends BridgeGearNamespaceList<RA>> = {
+  readonly [key: string]: Namespace<RA["shell"]> | BGL[number];
 };
 
 export type GateKit<RA extends AnyResAtlas> = {
