@@ -20,7 +20,7 @@ import type { AnyNamespace } from "./res-domain.js";
 export type ResLayoutEntryType = "gear" | "vertex-gear" | "shell" | "dynamic-shell";
 
 export interface AnyResLayout {
-  readonly [namespacePrefix: string]: ResLayoutEntryType;
+  readonly [namespacePrefix: `${string}/`]: ResLayoutEntryType;
 }
 
 type LayoutEntry = readonly [prefix: string, type: ResLayoutEntryType];
@@ -41,11 +41,20 @@ export function createResLayoutEntryTypeResolver(layout: AnyResLayout): ResLayou
 
 function isPrefixMatch(namespace: string, prefix: string): boolean {
   if (namespace === prefix) return true;
-  return namespace.length > prefix.length && namespace.startsWith(prefix) && namespace[prefix.length] === "/";
+  const base = prefix.slice(0, -1);
+  if (namespace === base) return true;
+  return namespace.startsWith(prefix);
 }
 
-// Type-level prefix match: N equals P, or N starts with "${P}/".
-type IsPrefixOf<P extends string, N extends string> = N extends P ? true : N extends `${P}/${string}` ? true : false;
+// Type-level prefix match. Invariant: P ends with "/".
+// N matches when it equals P's base (P without trailing "/") or starts with P.
+type IsPrefixOf<P extends string, N extends string> = P extends `${infer Base}/`
+  ? N extends Base
+    ? true
+    : N extends `${P}${string}`
+      ? true
+      : false
+  : false;
 
 // For a given prefix P in LO that matches N, returns any other prefix in LO
 // that is strictly more specific (extends P) and also matches N. Used to
@@ -54,7 +63,7 @@ type HasMoreSpecificPrefix<LO extends AnyResLayout, N extends string, P extends 
   [P2 in keyof LO]: P2 extends string
     ? P2 extends P
       ? never
-      : P2 extends `${P}/${string}`
+      : P2 extends `${P}${string}`
         ? IsPrefixOf<P2, N> extends true
           ? P2
           : never

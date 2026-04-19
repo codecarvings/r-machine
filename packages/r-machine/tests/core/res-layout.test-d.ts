@@ -21,8 +21,8 @@ describe("ResLayoutEntryType", () => {
 });
 
 describe("AnyResLayout", () => {
-  it("indexes into ResLayoutEntryType for any string key", () => {
-    expectTypeOf<AnyResLayout[string]>().toEqualTypeOf<ResLayoutEntryType>();
+  it("indexes into ResLayoutEntryType for any trailing-slash key", () => {
+    expectTypeOf<AnyResLayout[`${string}/`]>().toEqualTypeOf<ResLayoutEntryType>();
   });
 
   it("accepts the four canonical layout types as values", () => {
@@ -44,13 +44,18 @@ describe("AnyResLayout", () => {
     expectTypeOf<undefined>().not.toExtend<ResLayoutEntryType>();
   });
 
-  it("accepts an object literal whose values are layout types", () => {
+  it("accepts an object literal whose keys end with '/' and values are layout types", () => {
     const layout = {
-      app: "gear",
-      "app/settings": "shell",
-      "app/live": "dynamic-shell",
+      "app/": "gear",
+      "app/settings/": "shell",
+      "app/live/": "dynamic-shell",
     } as const satisfies AnyResLayout;
     expectTypeOf(layout).toExtend<AnyResLayout>();
+  });
+
+  it("rejects an object literal whose keys do not end with '/'", () => {
+    // @ts-expect-error — "app" does not end with "/" so it fails the index-signature constraint
+    const _bad = { app: "gear" } as const satisfies AnyResLayout;
   });
 });
 
@@ -76,7 +81,7 @@ describe("createResLayoutEntryTypeResolver", () => {
     // literal, the returned function still accepts any namespace string and
     // still may return undefined. This guards against accidentally tightening
     // the API into a closed key set.
-    const resolve = createResLayoutEntryTypeResolver({ app: "gear" } as const);
+    const resolve = createResLayoutEntryTypeResolver({ "app/": "gear" } as const);
     expectTypeOf(resolve).toEqualTypeOf<ResLayoutEntryTypeResolver>();
     expectTypeOf(resolve).parameter(0).toEqualTypeOf<string>();
     expectTypeOf(resolve).returns.toEqualTypeOf<ResLayoutEntryType | undefined>();
@@ -84,9 +89,14 @@ describe("createResLayoutEntryTypeResolver", () => {
 
   it("rejects layouts whose values are not layout types", () => {
     // @ts-expect-error — "not-a-layout" is not assignable to ResLayoutType
-    createResLayoutEntryTypeResolver({ app: "not-a-layout" });
+    createResLayoutEntryTypeResolver({ "app/": "not-a-layout" });
     // @ts-expect-error — numbers are not layout types
-    createResLayoutEntryTypeResolver({ app: 42 });
+    createResLayoutEntryTypeResolver({ "app/": 42 });
+  });
+
+  it("rejects layouts whose keys do not end with '/'", () => {
+    // @ts-expect-error — "app" does not end with "/" so it fails the index-signature constraint
+    createResLayoutEntryTypeResolver({ app: "gear" });
   });
 });
 
@@ -140,9 +150,9 @@ describe("end-to-end inference", () => {
   it("chains createResLayoutEntryTypeResolver into createResPathResolver without extra annotations", () => {
     const resolveResPath = createResPathResolver(
       createResLayoutEntryTypeResolver({
-        app: "gear",
-        "app/settings": "shell",
-        "app/live": "dynamic-shell",
+        "app/": "gear",
+        "app/settings/": "shell",
+        "app/live/": "dynamic-shell",
       })
     );
     expectTypeOf(resolveResPath).toEqualTypeOf<ResPathResolver>();

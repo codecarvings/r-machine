@@ -33,10 +33,10 @@ interface Vertex_Main {
 
 // 1) defineLayout preserves the literal layout shape.
 const layout = defineLayout({
-  gear: "gear",
-  vertex: "vertex-gear",
-  shell: "shell",
-  "shell/lib": "dynamic-shell",
+  "gear/": "gear",
+  "vertex/": "vertex-gear",
+  "shell/": "shell",
+  "shell/lib/": "dynamic-shell",
 });
 
 // 2) Valid atlas: class extends layout<{...}>() compiles.
@@ -51,15 +51,15 @@ export class ResourceAtlas extends layout<{
 
 // 3) The class carries the layout as a static.
 const staticLayout = ResourceAtlas.layout;
-type _StaticLayoutIsLiteral = typeof staticLayout extends { readonly gear: "gear" } ? true : never;
+type _StaticLayoutIsLiteral = typeof staticLayout extends { readonly "gear/": "gear" } ? true : never;
 const _1: _StaticLayoutIsLiteral = true;
 
 // 4) Layout properties are also accessible on the callable itself (runtime
 // introspection path).
-const _gearPrefix: "gear" = layout.gear;
-const _vertexPrefix: "vertex-gear" = layout.vertex;
-const _shellPrefix: "shell" = layout.shell;
-const _dynamicShellPrefix: "dynamic-shell" = layout["shell/lib"];
+const _gearPrefix: "gear" = layout["gear/"];
+const _vertexPrefix: "vertex-gear" = layout["vertex/"];
+const _shellPrefix: "shell" = layout["shell/"];
+const _dynamicShellPrefix: "dynamic-shell" = layout["shell/lib/"];
 
 // 5) AnyResAtlasClass bound accepts the produced class.
 function acceptsAtlas<A extends AnyResAtlasClass>(_atlas: A): void {}

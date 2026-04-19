@@ -19,12 +19,24 @@ type ValidResAtlasShape<LO extends AnyResLayout, A> = {
     ? [ResolveLayoutType<LO, K & string>] extends [never]
       ? RMachineTypeError<`Namespace '${K & string}' has no matching prefix in the layout. Declare a prefix in defineLayout({...}) first.`>
       : unknown
-    : RMachineTypeError<`Namespace '${K & string}' must be a sub-path (e.g. 'gear/foo'), not a bare top-level key.`>;
+    : RMachineTypeError<`Namespace '${K & string}' must be a sub-path (e.g. 'gear/foo').`>;
+};
+
+// Validates that every key of an inferred layout literal ends with "/". The
+// index signature on AnyResLayout alone is not enough: TypeScript does not
+// reject extra keys whose names violate a template-literal index-key pattern
+// when the type is inferred from a `const` generic object literal. This
+// mapped type closes that gap by mapping each non-slash-terminated key to a
+// branded error value that is not assignable from any ResLayoutEntryType.
+type ValidLayoutKeys<LO> = {
+  readonly [K in keyof LO]: K extends `${string}/`
+    ? LO[K]
+    : RMachineTypeError<`Layout key '${K & string}' must end with '/' to indicate a namespace prefix (e.g. 'gear/').`>;
 };
 
 type ResAtlasBuilder<RL extends AnyResLayout> = <const A extends ValidResAtlasShape<RL, A>>() => ResAtlasClass<RL, A>;
 
-export function defineLayout<const LO extends AnyResLayout>(layout: LO): ResAtlasBuilder<LO> {
+export function defineLayout<const LO extends AnyResLayout>(layout: LO & ValidLayoutKeys<LO>): ResAtlasBuilder<LO> {
   function builder<const RA extends ValidResAtlasShape<LO, RA>>(): ResAtlasClass<LO, RA> {
     // biome-ignore lint/complexity/noStaticOnlyClass: As per design
     abstract class ResourceAtlas {
@@ -36,8 +48,8 @@ export function defineLayout<const LO extends AnyResLayout>(layout: LO): ResAtla
 }
 
 export const defaultLayout = defineLayout({
-  gear: "gear",
-  "gear/vertex": "vertex-gear",
-  shell: "shell",
-  "shell/lib": "dynamic-shell",
+  "gear/": "gear", // <-- Folder containing gear resources.
+  "gear/vertex/": "vertex-gear", // <-- Folder containing vertex-gear resources (components).
+  "shell/": "shell", // <-- Folder containing multi-file shell resources.
+  "shell/lib/": "dynamic-shell", // <-- Folder containing single-file shell resources.
 });
