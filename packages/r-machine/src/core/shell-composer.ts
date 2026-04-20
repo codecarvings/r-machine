@@ -26,7 +26,7 @@ import type { ResWireProvider } from "./res-wire.js";
 import type { ShellListDefiner, ShellMapDefiner } from "./shell.js";
 
 type ShellDepsNamespace<RA extends AnyResAtlas, BGL extends NamespaceList<RA["res"]>> =
-  | Extract<keyof RA["shell:*"], string>
+  | Extract<keyof RA["shape@shell:*"], string>
   | BGL[number];
 
 type ShellDepsNamespaceRef<RA extends AnyResAtlas, BGL extends NamespaceList<RA["res"]>> = NamespaceRef<

@@ -27,14 +27,14 @@ export interface ResEquipment<
   readonly gateKit: XK;
 }
 
-export type BridgeGearNamespaceList<RA extends AnyResAtlas> = Namespace<RA["gear"]>[];
+export type BridgeGearNamespaceList<RA extends AnyResAtlas> = Namespace<RA["shape@gear"]>[];
 
 export type GearKit<RA extends AnyResAtlas> = {
-  readonly [key: string]: Namespace<RA["gear"]>;
+  readonly [key: string]: Namespace<RA["shape@gear"]>;
 };
 
 export type ShellKit<RA extends AnyResAtlas, BGL extends BridgeGearNamespaceList<RA>> = {
-  readonly [key: string]: Namespace<RA["shell:*"]> | BGL[number];
+  readonly [key: string]: Namespace<RA["shape@shell:*"]> | BGL[number];
 };
 
 export type GateKit<RA extends AnyResAtlas> = {

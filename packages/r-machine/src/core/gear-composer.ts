@@ -31,7 +31,7 @@ import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 import type { ResWireProvider } from "./res-wire.js";
 
 type ValidGearDepItem<RA extends AnyResAtlas, N> =
-  N extends NamespaceRef<RA["gear"]>
+  N extends NamespaceRef<RA["shape@gear"]>
     ? N
     : N extends string
       ? RMachineTypeError<`Namespace '${N}' is not a valid gear namespace.`>

@@ -3,28 +3,34 @@ import type { ReactiveGearTag } from "./reactive-gear.js";
 import type { AnyResDomain, Namespace, Token, TokenBuilder } from "./res-domain.js";
 import type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "./res-layout.js";
 
-type ResAtlasSubMap<RL extends AnyResLayout, A, T extends ResLayoutEntryType> = {
-  readonly [K in keyof A as K extends string ? (ResolveLayoutType<RL, K> extends T ? K : never) : never]: A[K];
+type ShapeMap<RL extends AnyResLayout, RD extends AnyResDomain, T extends ResLayoutEntryType> = {
+  readonly [K in keyof RD as K extends string ? (ResolveLayoutType<RL, K> extends T ? K : never) : never]: RD[K];
+};
+
+type ResLayoutEntryTypeMap<RL extends AnyResLayout, RD extends AnyResDomain> = {
+  readonly [K in keyof RD]: K extends string ? ResolveLayoutType<RL, K> : never;
 };
 
 declare const resAtlasSymbol: unique symbol;
-export interface ResAtlas<RL extends AnyResLayout, RD> {
+export interface ResAtlas<RL extends AnyResLayout, RD extends AnyResDomain> {
   readonly [resAtlasSymbol]: true;
-  readonly gear: ResAtlasSubMap<RL, RD, "gear">;
-  readonly "gear:vertex": ResAtlasSubMap<RL, RD, "gear:vertex">;
-  readonly "shell:*": ResAtlasSubMap<RL, RD, "shell" | "shell:mono">;
   readonly res: RD;
+  readonly "shape@gear": ShapeMap<RL, RD, "gear">;
+  readonly "shape@gear:vertex": ShapeMap<RL, RD, "gear:vertex">;
+  readonly "shape@shell:*": ShapeMap<RL, RD, "shell" | "shell:mono">;
+  readonly let: ResLayoutEntryTypeMap<RL, RD>;
 }
 
 export interface AnyResAtlas {
   readonly [resAtlasSymbol]: true;
-  readonly gear: AnyResDomain;
-  readonly "gear:vertex": AnyResDomain;
-  readonly "shell:*": AnyResDomain;
   readonly res: AnyResDomain;
+  readonly "shape@gear": AnyResDomain;
+  readonly "shape@gear:vertex": AnyResDomain;
+  readonly "shape@shell:*": AnyResDomain;
+  readonly let: AnyResDomain;
 }
 
-export type DroppedAtlasKeys<RA, RD> = Exclude<keyof RA, keyof RD>;
+type DroppedAtlasKeys<RA, RD> = Exclude<keyof RA, keyof RD>;
 
 declare const rawResAtlasShapeSymbol: unique symbol;
 export type ResAtlasClass<RL extends AnyResLayout, RD extends AnyResDomain, RA = RD> = (abstract new () => ResAtlas<
@@ -54,9 +60,9 @@ export type AnyResAtlasClass = (abstract new () => AnyResAtlas) & {
 };
 
 export type SolidNamespace<RA extends AnyResAtlas> =
-  | Namespace<RA["shell:*"]>
+  | Namespace<RA["shape@shell:*"]>
   | {
-      [N in Namespace<RA["gear"]>]: RA["gear"][N] extends ReactiveGearTag ? never : N;
-    }[Namespace<RA["gear"]>];
+      [N in Namespace<RA["shape@gear"]>]: RA["shape@gear"][N] extends ReactiveGearTag ? never : N;
+    }[Namespace<RA["shape@gear"]>];
 
 export type SolidNamespaceRef<RA extends AnyResAtlas> = SolidNamespace<RA> | Token<SolidNamespace<RA>>;

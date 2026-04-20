@@ -30,7 +30,7 @@ import { VertexFrame as RawVertexFrame, useVertexFrame, type VertexFrameProps } 
 // type SetLocale<L extends AnyLocale> = (newLocale: L) => Promise<void>;
 type WriteLocale<L extends AnyLocale> = (newLocale: L) => void | Promise<void>;
 
-type VertexGearSurface<RA extends AnyResAtlas> = AnySurfaceOf<RA["gear:vertex"]>;
+type VertexGearSurface<RA extends AnyResAtlas> = AnySurfaceOf<RA["shape@gear:vertex"]>;
 
 type VertexFrame<RA extends AnyResAtlas> = (props: VertexFrameProps<VertexGearSurface<RA>>) => JSX.Element;
 
