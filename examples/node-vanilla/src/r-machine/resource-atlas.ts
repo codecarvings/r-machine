@@ -29,7 +29,6 @@ type Resources = {
 };
 
 export class ResourceAtlas extends folders<Resources>() {}
-const x = new ResourceAtlas();
 const token = ResourceAtlas.getTokenBuilder();
 
 export const cart = token("gear/shopping-cart");

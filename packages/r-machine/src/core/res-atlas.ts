@@ -14,7 +14,7 @@ type ResLayoutEntryTypeMap<RL extends AnyResLayout, RD extends AnyResDomain> = {
 declare const resAtlasSymbol: unique symbol;
 export interface ResAtlas<RL extends AnyResLayout, RD extends AnyResDomain> {
   readonly [resAtlasSymbol]: true;
-  readonly res: RD;
+  readonly shape: RD;
   readonly "shape@gear": ShapeMap<RL, RD, "gear">;
   readonly "shape@gear:vertex": ShapeMap<RL, RD, "gear:vertex">;
   readonly "shape@shell:*": ShapeMap<RL, RD, "shell" | "shell:mono">;
@@ -23,7 +23,7 @@ export interface ResAtlas<RL extends AnyResLayout, RD extends AnyResDomain> {
 
 export interface AnyResAtlas {
   readonly [resAtlasSymbol]: true;
-  readonly res: AnyResDomain;
+  readonly shape: AnyResDomain;
   readonly "shape@gear": AnyResDomain;
   readonly "shape@gear:vertex": AnyResDomain;
   readonly "shape@shell:*": AnyResDomain;

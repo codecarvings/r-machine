@@ -29,7 +29,7 @@ export interface NextAppClientToolset<
   PA extends AnyPathAtlas,
 > {
   readonly NextClientRMachine: NextAppClientRMachine<L>;
-  readonly ClientPlug: NextClientPlugDefiner<RA["res"], L, E["gateKit"], PA>;
+  readonly ClientPlug: NextClientPlugDefiner<RA["shape"], L, E["gateKit"], PA>;
 }
 
 export type NextAppClientRMachine<L extends AnyLocale> = (props: NextAppClientRMachineProps<L>) => ReactNode;

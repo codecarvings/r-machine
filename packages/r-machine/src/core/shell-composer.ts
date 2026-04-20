@@ -25,15 +25,15 @@ import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 import type { ResWireProvider } from "./res-wire.js";
 import type { ShellListDefiner, ShellMapDefiner } from "./shell.js";
 
-type ShellDepsNamespace<RA extends AnyResAtlas, BGL extends NamespaceList<RA["res"]>> =
+type ShellDepsNamespace<RA extends AnyResAtlas, BGL extends NamespaceList<RA["shape"]>> =
   | Extract<keyof RA["shape@shell:*"], string>
   | BGL[number];
 
-type ShellDepsNamespaceRef<RA extends AnyResAtlas, BGL extends NamespaceList<RA["res"]>> = NamespaceRef<
-  Pick<RA["res"], ShellDepsNamespace<RA, BGL> & keyof RA["res"]>
+type ShellDepsNamespaceRef<RA extends AnyResAtlas, BGL extends NamespaceList<RA["shape"]>> = NamespaceRef<
+  Pick<RA["shape"], ShellDepsNamespace<RA, BGL> & keyof RA["shape"]>
 >;
 
-type ValidShellDepItem<RA extends AnyResAtlas, BGL extends NamespaceList<RA["res"]>, N> =
+type ValidShellDepItem<RA extends AnyResAtlas, BGL extends NamespaceList<RA["shape"]>, N> =
   N extends ShellDepsNamespaceRef<RA, BGL>
     ? N
     : N extends string
@@ -43,24 +43,24 @@ type ValidShellDepItem<RA extends AnyResAtlas, BGL extends NamespaceList<RA["res
 export interface ShellComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  BGL extends NamespaceList<RA["res"]>,
-  KA extends NamespaceMap<RA["res"]>,
+  BGL extends NamespaceList<RA["shape"]>,
+  KA extends NamespaceMap<RA["shape"]>,
 > {
   readonly deps: ShellDepsComposer<RA, L, BGL, KA>;
-  readonly define: ShellMapDefiner<RA["res"], L, KA, {}>;
+  readonly define: ShellMapDefiner<RA["shape"], L, KA, {}>;
 }
 
 interface ShellDepsComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  BGL extends NamespaceList<RA["res"]>,
-  KA extends NamespaceMap<RA["res"]>,
+  BGL extends NamespaceList<RA["shape"]>,
+  KA extends NamespaceMap<RA["shape"]>,
 > {
   (): ShellMapDepsComposer<RA, L, KA, {}>;
-  <const NL extends readonly NamespaceRef<RA["res"]>[]>(
+  <const NL extends readonly NamespaceRef<RA["shape"]>[]>(
     ...namespaces: { readonly [I in keyof NL]: ValidShellDepItem<RA, BGL, NL[I]> }
   ): ShellListDepsComposer<RA, L, KA, NL>;
-  <const NM extends { readonly [k: string]: NamespaceRef<RA["res"]> }>(
+  <const NM extends { readonly [k: string]: NamespaceRef<RA["shape"]> }>(
     namespaces: { readonly [K in keyof NM]: ValidShellDepItem<RA, BGL, NM[K]> }
   ): ShellMapDepsComposer<RA, L, KA, NM>;
 }
@@ -68,19 +68,19 @@ interface ShellDepsComposer<
 interface ShellMapDepsComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA["res"]>,
-  NM extends NamespaceMap<RA["res"]>,
+  KA extends NamespaceMap<RA["shape"]>,
+  NM extends NamespaceMap<RA["shape"]>,
 > {
-  readonly define: ShellMapDefiner<RA["res"], L, KA, NM>;
+  readonly define: ShellMapDefiner<RA["shape"], L, KA, NM>;
 }
 
 interface ShellListDepsComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA["res"]>,
-  NL extends NamespaceList<RA["res"]>,
+  KA extends NamespaceMap<RA["shape"]>,
+  NL extends NamespaceList<RA["shape"]>,
 > {
-  readonly define: ShellListDefiner<RA["res"], L, KA, NL>;
+  readonly define: ShellListDefiner<RA["shape"], L, KA, NL>;
 }
 
 // #region Runtime
@@ -90,10 +90,10 @@ const shellMeta: ResMatrixMeta = { family: "shell", isReactive: false };
 function makeShellMapDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA["res"]>,
-  NM extends NamespaceMap<RA["res"]>,
->(provider: ResWireProvider, namespaces: NM): ShellMapDefiner<RA["res"], L, KA, NM> {
-  type Head = ResMapPlugHead<"shell", RA["res"], KA, NM, LocaleAwarePluginCtx<RA["res"], L, KA>>;
+  KA extends NamespaceMap<RA["shape"]>,
+  NM extends NamespaceMap<RA["shape"]>,
+>(provider: ResWireProvider, namespaces: NM): ShellMapDefiner<RA["shape"], L, KA, NM> {
+  type Head = ResMapPlugHead<"shell", RA["shape"], KA, NM, LocaleAwarePluginCtx<RA["shape"], L, KA>>;
   const head = {
     area: "res",
     family: "shell",
@@ -112,16 +112,16 @@ function makeShellMapDefiner<
         plugin: unknown,
         cursor: never
       ) => AnyRes | Promise<AnyRes>,
-    })) as unknown as ShellMapDefiner<RA["res"], L, KA, NM>;
+    })) as unknown as ShellMapDefiner<RA["shape"], L, KA, NM>;
 }
 
 function makeShellListDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA["res"]>,
-  NL extends NamespaceList<RA["res"]>,
->(provider: ResWireProvider, namespaces: NL): ShellListDefiner<RA["res"], L, KA, NL> {
-  type Head = ResListPlugHead<"shell", RA["res"], KA, NL, LocaleAwarePluginCtx<RA["res"], L, KA>>;
+  KA extends NamespaceMap<RA["shape"]>,
+  NL extends NamespaceList<RA["shape"]>,
+>(provider: ResWireProvider, namespaces: NL): ShellListDefiner<RA["shape"], L, KA, NL> {
+  type Head = ResListPlugHead<"shell", RA["shape"], KA, NL, LocaleAwarePluginCtx<RA["shape"], L, KA>>;
   const head = {
     area: "res",
     family: "shell",
@@ -140,14 +140,14 @@ function makeShellListDefiner<
         plugin: unknown,
         cursor: never
       ) => AnyRes | Promise<AnyRes>,
-    })) as unknown as ShellListDefiner<RA["res"], L, KA, NL>;
+    })) as unknown as ShellListDefiner<RA["shape"], L, KA, NL>;
 }
 
 export function createShellComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  BGL extends NamespaceList<RA["res"]>,
-  KA extends NamespaceMap<RA["res"]>,
+  BGL extends NamespaceList<RA["shape"]>,
+  KA extends NamespaceMap<RA["shape"]>,
 >(provider: ResWireProvider): ShellComposer<RA, L, BGL, KA> {
   const defineTopLevel = makeShellMapDefiner<RA, L, KA, {}>(provider, {});
 
@@ -157,13 +157,16 @@ export function createShellComposer<
     }
     if (args.length === 1 && !isNamespace(args[0] as NamespaceRef<any>)) {
       return {
-        define: makeShellMapDefiner<RA, L, KA, NamespaceMap<RA["res"]>>(provider, args[0] as NamespaceMap<RA["res"]>),
+        define: makeShellMapDefiner<RA, L, KA, NamespaceMap<RA["shape"]>>(
+          provider,
+          args[0] as NamespaceMap<RA["shape"]>
+        ),
       };
     }
     return {
-      define: makeShellListDefiner<RA, L, KA, NamespaceList<RA["res"]>>(
+      define: makeShellListDefiner<RA, L, KA, NamespaceList<RA["shape"]>>(
         provider,
-        args as unknown as NamespaceList<RA["res"]>
+        args as unknown as NamespaceList<RA["shape"]>
       ),
     };
   }) as unknown as ShellDepsComposer<RA, L, BGL, KA>;

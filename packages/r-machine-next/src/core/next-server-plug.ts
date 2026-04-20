@@ -71,11 +71,11 @@ interface NextServerListPlug<
 export interface NextServerPlugDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA["res"]>,
+  KA extends NamespaceMap<RA["shape"]>,
   PA extends AnyPathAtlas,
   LK extends string,
 > {
-  (): NextServerMapPlug<RA["res"], L, KA, {}, PA, LK>;
-  <NL extends SolidNamespaceList<RA>>(...namespaces: NL): NextServerListPlug<RA["res"], L, KA, NL, PA, LK>;
-  <NM extends SolidNamespaceMap<RA>>(namespaces: NM): NextServerMapPlug<RA["res"], L, KA, NM, PA, LK>;
+  (): NextServerMapPlug<RA["shape"], L, KA, {}, PA, LK>;
+  <NL extends SolidNamespaceList<RA>>(...namespaces: NL): NextServerListPlug<RA["shape"], L, KA, NL, PA, LK>;
+  <NM extends SolidNamespaceMap<RA>>(namespaces: NM): NextServerMapPlug<RA["shape"], L, KA, NM, PA, LK>;
 }

@@ -36,7 +36,7 @@ type VertexFrame<RA extends AnyResAtlas> = (props: VertexFrameProps<VertexGearSu
 
 export interface ReactBareToolset<RA extends AnyResAtlas, L extends AnyLocale, E extends ResEquipment<RA>> {
   readonly ReactRMachine: ReactBareRMachine<L>;
-  readonly Plug: ReactPlugDefiner<RA["res"], L, E["gateKit"]>;
+  readonly Plug: ReactPlugDefiner<RA["shape"], L, E["gateKit"]>;
   readonly VertexFrame: VertexFrame<RA>;
 }
 
