@@ -1,13 +1,13 @@
 import type { RMachine } from "r-machine";
-import type { ResKit } from "r-machine/core";
+import type { AnyResAtlas, ResEquipment } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "r-machine/errors";
 import { vi } from "vitest";
 import type { TestLocale } from "./constants.js";
 
-export type TestAtlas = {
+export interface TestAtlas extends AnyResAtlas {
   readonly common: { readonly greeting: string };
   readonly nav: { readonly home: string };
-};
+}
 
 export const VALID_LOCALES = new Set(["en", "it"]);
 
@@ -42,7 +42,7 @@ export function createMockMachine<L extends string = TestLocale>(overrides: Mock
     hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
     pickR: vi.fn(overrides.pickR ?? (() => Promise.resolve({ greeting: "hello" }))),
     pickRKit: vi.fn(overrides.pickRKit ?? (() => Promise.resolve([{ greeting: "hello" }, { home: "Home" }]))),
-  } as unknown as RMachine<TestAtlas, L, ResKit<TestAtlas>>;
+  } as unknown as RMachine<TestAtlas, L, ResEquipment<TestAtlas>>;
 }
 
 export function createMockMachineForProxy<L extends string = TestLocale>(
@@ -58,5 +58,5 @@ export function createMockMachineForProxy<L extends string = TestLocale>(
     localeHelper: {
       matchLocalesForAcceptLanguageHeader: vi.fn(() => overrides.matchLocaleReturn ?? dl),
     },
-  } as unknown as RMachine<TestAtlas, L, ResKit<TestAtlas>>;
+  } as unknown as RMachine<TestAtlas, L, ResEquipment<TestAtlas>>;
 }

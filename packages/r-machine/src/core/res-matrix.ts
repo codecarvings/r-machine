@@ -11,9 +11,21 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyRes } from "#r-machine/core";
-import type { AnyResOrigin, ResFamily } from "./res.js";
-import type { AnyResPlug } from "./res-plug.js";
+import type { AnyResAtlas } from "#r-machine/core";
+import type { AnyLocale } from "#r-machine/locale";
+import {
+  createPlug,
+  type ExtractPlugin,
+  getPlugLocale,
+  getPlugResolve,
+  type PlugBody,
+  setPlugResolve,
+} from "./plug.js";
+import type { AnyRes, AnyResOrigin, ResFamily } from "./res.js";
+import type { NamespaceList } from "./res-list.js";
+import type { NamespaceMap } from "./res-map.js";
+import type { AnyResPlug, AnyResPlugHead } from "./res-plug.js";
+import type { ResWireProvider } from "./res-wire.js";
 
 export interface ResMatrixMeta {
   readonly family: ResFamily;
@@ -45,3 +57,47 @@ export function createResMatrix<R extends AnyRes, P extends AnyResPlug>(
 export function tryGetResMatrixMeta(origin: AnyResOrigin): ResMatrixMeta | undefined {
   return (origin as Partial<AnyResMatrix>)[resMatrixMetaSymbol];
 }
+
+// #region Assemble ResMatrix
+
+export type BuildResPlugin<H extends AnyResPlugHead> = (
+  resolved: ExtractPlugin<H>,
+  locale: AnyLocale | undefined
+) => ExtractPlugin<H>;
+
+interface AssembleResMatrixOptions<PH extends AnyResPlugHead, RAW, RES extends AnyRes> {
+  readonly provider: ResWireProvider;
+  readonly meta: ResMatrixMeta;
+  readonly head: PH;
+  readonly namespaces: NamespaceMap<AnyResAtlas> | NamespaceList<AnyResAtlas>;
+  readonly cursor: unknown;
+  readonly userFactory: (plugin: ExtractPlugin<PH>, cursor: never) => RAW | Promise<RAW>;
+  readonly buildPlugin?: BuildResPlugin<PH>;
+  readonly postProcess?: (raw: RAW, cursor: never) => RES;
+}
+
+export function assembleResMatrix<PH extends AnyResPlugHead, RAW, RES extends AnyRes>(
+  options: AssembleResMatrixOptions<PH, RAW, RES>
+): ResMatrix<RES, PlugBody<PH>> {
+  const { provider, meta, head, namespaces, cursor, userFactory, buildPlugin, postProcess } = options;
+
+  const connector = provider(meta.family, namespaces);
+  const plug = createPlug(head);
+
+  setPlugResolve(plug, () => {
+    const locale = getPlugLocale(plug);
+    const wire = connector(locale);
+    const plugin = wire.getPlugin() as ExtractPlugin<PH>;
+    return buildPlugin ? buildPlugin(plugin, locale) : plugin;
+  });
+
+  const factory = async (): Promise<RES> => {
+    const plugin = getPlugResolve(plug)();
+    const raw = await userFactory(plugin, cursor as never);
+    return postProcess ? postProcess(raw, cursor as never) : (raw as unknown as RES);
+  };
+
+  return createResMatrix<RES, PlugBody<PH>>(meta, factory, plug);
+}
+
+// #endregion

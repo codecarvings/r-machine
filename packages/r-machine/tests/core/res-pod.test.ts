@@ -8,7 +8,7 @@ import { ERR_RESOLVE_FAILED, RMachineResolveError } from "../../src/errors/index
 
 // --- helpers -----------------------------------------------------------------
 
-type MatrixData = { family: ResFamily; isReactive: boolean; isVertex: boolean };
+type MatrixData = { family: ResFamily; isReactive: boolean };
 
 // Builds a realistic matrix via the public factory. `plug` and `factory` are
 // sentinel values that we later assert are never touched by
@@ -45,9 +45,10 @@ function captureResolveError(fn: () => unknown): RMachineResolveError {
 
 describe("createResPod", () => {
   describe("ResMatrix origin — happy paths", () => {
-    it("produces a gear data that copies family and flags verbatim from the matrix data", () => {
-      // This pins the "matrix is the source of truth for family/flags" contract.
-      const module = makeMatrixModule({ family: "gear", isReactive: false, isVertex: true });
+    it("produces a gear data that copies family and isReactive verbatim from the matrix, deriving isVertex from the layout", () => {
+      // Matrix is the source of truth for family/isReactive; isVertex is
+      // derived from the layout entry type ("gear:vertex" ⇒ true, else false).
+      const module = makeMatrixModule({ family: "gear", isReactive: false });
 
       const d = createResPod(module, "app/home", undefined, "gear");
 
@@ -56,7 +57,7 @@ describe("createResPod", () => {
         locale: undefined,
         family: "gear",
         isReactive: false,
-        isVertex: true,
+        isVertex: false,
         plugHead: undefined,
         originType: "res-matrix",
         origin: module.r,
@@ -64,7 +65,7 @@ describe("createResPod", () => {
     });
 
     it("produces a shell data and carries a concrete locale through verbatim", () => {
-      const module = makeMatrixModule({ family: "shell", isReactive: true, isVertex: false });
+      const module = makeMatrixModule({ family: "shell", isReactive: true });
 
       const d = createResPod(module, "app/profile", "it-IT", "shell");
 
@@ -80,7 +81,7 @@ describe("createResPod", () => {
       // shell:mono is a *layout* type (how to find the path), but at the
       // family level it collapses to "shell". A shell matrix must therefore
       // be valid under this layout with no further coercion.
-      const module = makeMatrixModule({ family: "shell", isReactive: true, isVertex: false });
+      const module = makeMatrixModule({ family: "shell", isReactive: true });
 
       const d = createResPod(module, "app/live", "en-US", "shell:mono");
 
@@ -90,26 +91,31 @@ describe("createResPod", () => {
     });
 
     it.each([
-      { isReactive: false, isVertex: false },
-      { isReactive: true, isVertex: false },
-      { isReactive: false, isVertex: true },
-      { isReactive: true, isVertex: true },
-    ])("propagates every (isReactive, isVertex) combination from the matrix data %j", (flags) => {
-      // A table test is justified here: the function has no branching on these
-      // flags, but we want to guarantee *none* is ever inverted, zeroed, or
-      // cross-wired by a future refactor.
-      const module = makeMatrixModule({ family: "gear", ...flags });
+      { isReactive: false, layout: "gear" as const, expectedIsVertex: false },
+      { isReactive: true, layout: "gear" as const, expectedIsVertex: false },
+      { isReactive: false, layout: "gear:vertex" as const, expectedIsVertex: true },
+      { isReactive: true, layout: "gear:vertex" as const, expectedIsVertex: true },
+    ])("propagates isReactive from matrix and derives isVertex from layout %j", ({
+      isReactive,
+      layout,
+      expectedIsVertex,
+    }) => {
+      // A table test is justified here: the function has no branching on
+      // isReactive, and isVertex is a pure function of the layout entry
+      // type. This guarantees no future refactor inverts, zeroes, or
+      // cross-wires either flag.
+      const module = makeMatrixModule({ family: "gear", isReactive });
 
-      const d = createResPod(module, "app", undefined, "gear");
+      const d = createResPod(module, "app", undefined, layout);
 
-      expect(d.isReactive).toBe(flags.isReactive);
-      expect(d.isVertex).toBe(flags.isVertex);
+      expect(d.isReactive).toBe(isReactive);
+      expect(d.isVertex).toBe(expectedIsVertex);
     });
   });
 
   describe("ResMatrix origin — layout/family validation", () => {
     it("throws RMachineResolveError when a gear matrix is used under a shell layout", () => {
-      const module = makeMatrixModule({ family: "gear", isReactive: false, isVertex: false });
+      const module = makeMatrixModule({ family: "gear", isReactive: false });
 
       const error = captureResolveError(() => createResPod(module, "app/home", "en-US", "shell"));
 
@@ -124,7 +130,7 @@ describe("createResPod", () => {
     it("throws when a shell matrix is used under a gear layout (symmetric mismatch)", () => {
       // Covers the opposite direction of the mismatch table — both directions
       // must be rejected, not just one.
-      const module = makeMatrixModule({ family: "shell", isReactive: false, isVertex: false });
+      const module = makeMatrixModule({ family: "shell", isReactive: false });
 
       const error = captureResolveError(() => createResPod(module, "app/home", undefined, "gear"));
 
@@ -134,7 +140,7 @@ describe("createResPod", () => {
     });
 
     it("throws when a gear matrix is used under a shell:mono layout (shell:mono collapses to shell, not gear)", () => {
-      const module = makeMatrixModule({ family: "gear", isReactive: false, isVertex: false });
+      const module = makeMatrixModule({ family: "gear", isReactive: false });
 
       const error = captureResolveError(() => createResPod(module, "app/live", undefined, "shell:mono"));
 
@@ -148,7 +154,7 @@ describe("createResPod", () => {
       // "shell" when the user actually passed "shell:mono". The message
       // should reflect what the caller wrote, so they can find it in their
       // config.
-      const module = makeMatrixModule({ family: "gear", isReactive: false, isVertex: false });
+      const module = makeMatrixModule({ family: "gear", isReactive: false });
 
       const error = captureResolveError(() => createResPod(module, "app", undefined, "shell:mono"));
 
@@ -178,15 +184,19 @@ describe("createResPod", () => {
       expect(d.origin).toBe(module.r);
     });
 
-    // TODO: OLD TESTS BELOW
-    it("throws when a raw resource is used under a gear layout (matrices are required)", () => {
-      const module = makeRawModule();
+    it("produces a shell-family pod from a raw resource under a gear layout (raw collapses to shell family)", () => {
+      // Under the new contract, a raw resource is admitted under the "gear"
+      // layout and reported as a shell-family pod — without a matrix factory
+      // there is no way to express reactive/vertex semantics.
+      const module = makeRawModule({ greeting: "ciao" });
 
-      const error = captureResolveError(() => createResPod(module, "app/home", undefined, "gear"));
+      const d = createResPod(module, "app/home", undefined, "gear");
 
-      expect(error.code).toBe(ERR_RESOLVE_FAILED);
-      expect(error.message).toContain("app/home");
-      expect(error.message).toContain('"gear"');
+      expect(d.family).toBe("shell");
+      expect(d.originType).toBe("raw");
+      expect(d.isReactive).toBe(false);
+      expect(d.isVertex).toBe(false);
+      expect(d.origin).toBe(module.r);
     });
 
     it("throws when a raw resource is used under a gear:vertex layout (matrices are required)", () => {
@@ -226,7 +236,7 @@ describe("createResPod", () => {
 
   describe("identity, purity, and isolation", () => {
     it("preserves the exact `origin` reference for matrices (no cloning, no proxy wrapping)", () => {
-      const mat = makeMatrix({ family: "gear", isReactive: false, isVertex: false });
+      const mat = makeMatrix({ family: "gear", isReactive: false });
 
       const d = createResPod({ r: mat }, "app", undefined, "gear");
 
@@ -258,11 +268,7 @@ describe("createResPod", () => {
       // throws on access, AFTER the matrix is built via the public factory.
       // `plug` IS read on purpose (plugHead is extracted from it), so it
       // is not part of this invariant.
-      const mat = createResMatrix(
-        { family: "gear", isReactive: false, isVertex: false },
-        async () => ({}),
-        {} as AnyResPlug
-      );
+      const mat = createResMatrix({ family: "gear", isReactive: false }, async () => ({}), {} as AnyResPlug);
       Object.defineProperty(mat, "factory", {
         get() {
           throw new Error("factory must not be read during data construction");
@@ -273,7 +279,7 @@ describe("createResPod", () => {
     });
 
     it("does not mutate the matrix data object that was passed to createResMatrix", () => {
-      const data: MatrixData = { family: "shell", isReactive: true, isVertex: false };
+      const data: MatrixData = { family: "shell", isReactive: true };
       const frozen = Object.freeze({ ...data });
       const mat = createResMatrix(frozen, async () => ({}), {} as AnyResPlug);
 
@@ -282,7 +288,7 @@ describe("createResPod", () => {
       // Frozen source is still frozen; values still match; d's values are
       // decoupled copies, so they can coexist.
       expect(Object.isFrozen(frozen)).toBe(true);
-      expect(frozen).toEqual({ family: "shell", isReactive: true, isVertex: false });
+      expect(frozen).toEqual({ family: "shell", isReactive: true });
       expect(d.family).toBe("shell");
     });
 
@@ -302,7 +308,7 @@ describe("createResPod", () => {
       // contexts (e.g. the same shell under two locales). Each call should
       // produce an independent data object that still points at the shared
       // origin — critical for any caching layer built on top.
-      const mat = makeMatrix({ family: "shell", isReactive: false, isVertex: false });
+      const mat = makeMatrix({ family: "shell", isReactive: false });
       const module: AnyResModule = { r: mat };
 
       const dIt = createResPod(module, "app", "it-IT", "shell");
@@ -336,7 +342,7 @@ describe("createResPod", () => {
     });
 
     it("forwards every locale string verbatim, including BCP-47 variants", () => {
-      const module = makeMatrixModule({ family: "shell", isReactive: false, isVertex: false });
+      const module = makeMatrixModule({ family: "shell", isReactive: false });
 
       for (const locale of ["en-US", "it-IT", "en-US-POSIX", "zh-Hant-TW", ""]) {
         const d = createResPod(module, "app", locale, "shell");
@@ -348,13 +354,12 @@ describe("createResPod", () => {
       // The function is sync by signature; a future refactor must not turn
       // the throw into a rejected promise or a deferred error.
       const module = makeRawModule();
-      let threw = false;
       try {
         createResPod(module, "app", undefined, "shell:mono");
+        expect.unreachable("expected createResPod to throw synchronously");
       } catch {
-        threw = true;
+        // success — thrown synchronously
       }
-      expect(threw).toBe(true);
     });
   });
 });

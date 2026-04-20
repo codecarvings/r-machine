@@ -18,7 +18,7 @@ import type { AnyResAtlas } from "./res-atlas.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
 import type { ResMatrixMeta } from "./res-matrix.js";
-import { type BuildPlugin, composeResMatrix } from "./res-matrix-composer.js";
+import { assembleResMatrix, type BuildResPlugin } from "./res-matrix.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 import type { ResWireProvider } from "./res-wire.js";
 import type {
@@ -98,7 +98,7 @@ interface StatefulCursor<S extends AnyState> extends GearCursor {
   readonly state: S;
 }
 
-function makeStatefulCursor<S extends AnyState>(state: S): StatefulCursor<S> {
+function buildStatefulCursor<S extends AnyState>(state: S): StatefulCursor<S> {
   return {
     ...baseGearCursor,
     getter: () => {
@@ -118,62 +118,95 @@ const statelessCursor = {
   },
 };
 
-function buildReactiveMeta(): ResMatrixMeta {
-  return { family: "gear", isReactive: true };
-}
-
-type StateDef = readonly [string] | readonly [string, string];
-
-function isStateDef(value: unknown): value is StateDef {
-  return Array.isArray(value) && value.length >= 1 && value.length <= 2 && typeof value[0] === "string";
-}
+const meta: ResMatrixMeta = { family: "gear", isReactive: true };
 
 function statefulPostProcess<S extends AnyState>(raw: unknown, cursor: StatefulCursor<S>): AnyRes {
-  if (!isStateDef(raw)) return raw as AnyRes;
+  if (!Array.isArray(raw)) {
+    return raw as AnyRes;
+  }
+
   const [getterName, actionName] = raw;
   const resource: Record<string, unknown> = { [getterName]: cursor.getter() };
-  if (actionName !== undefined) resource[actionName] = cursor.action();
-  return resource as AnyRes;
+  if (actionName !== undefined) {
+    resource[actionName] = cursor.action();
+  }
+  return resource;
 }
 
-function makeStatefulReactiveMapDefiner<
+export function createReactiveGearMapDepsComposer<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+>(provider: ResWireProvider, namespaces: NM): ReactiveGearMapDepsComposer<RA, KA, NM> {
+  return ((...args: [] | [AnyState]) => {
+    if (args.length === 0) {
+      return {
+        define: createStatelessReactiveGearMapDefiner<RA, KA, NM>(provider, namespaces),
+      };
+    }
+    const [state] = args;
+    return {
+      define: createStatefulReactiveGearMapDefiner<RA, KA, NM, AnyState>(provider, namespaces, state),
+    };
+  }) as ReactiveGearMapDepsComposer<RA, KA, NM>;
+}
+
+export function createReactiveGearListDepsComposer<
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+>(provider: ResWireProvider, namespaces: NL): ReactiveGearListDepsComposer<RA, KA, NL> {
+  return ((...args: [] | [AnyState]) => {
+    if (args.length === 0) {
+      return {
+        define: createStatelessReactiveGearListDefiner<RA, KA, NL>(provider, namespaces),
+      };
+    }
+    const [state] = args;
+    return {
+      define: createStatefulReactiveGearListDefiner<RA, KA, NL, AnyState>(provider, namespaces, state),
+    };
+  }) as ReactiveGearListDepsComposer<RA, KA, NL>;
+}
+
+function createStatefulReactiveGearMapDefiner<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
   S extends AnyState,
 >(provider: ResWireProvider, namespaces: NM, state: S): StatefulReactiveGearMapDefiner<RA, KA, NM, S> {
   type Ctx = PluginCtx<RA, KA> & { readonly state: S; readonly defaultState: S };
-  type Head = ResMapPlugHead<"gear", RA, KA, NM, Ctx> & { readonly defaultState: S };
+  type PlugHead = ResMapPlugHead<"gear", RA, KA, NM, Ctx> & { readonly defaultState: S };
   const head = {
     area: "res",
     family: "gear",
     mode: "map",
     namespaces,
     defaultState: state,
-  } as unknown as Head;
+  } as PlugHead;
 
-  const cursor = makeStatefulCursor(state);
+  const cursor = buildStatefulCursor(state);
 
-  const buildPlugin: BuildPlugin<Head> = (resolved) =>
+  const buildPlugin: BuildResPlugin<PlugHead> = (resolved) =>
     ({
       ...resolved,
       $: { ...(resolved as { $: object }).$, state, defaultState: state },
     }) as typeof resolved;
 
   return ((factory: (plugin: never, cursor: never) => unknown) =>
-    composeResMatrix<Head, unknown, AnyRes>({
+    assembleResMatrix<PlugHead, unknown, AnyRes>({
       provider,
-      meta: buildReactiveMeta(),
+      meta,
       head,
       namespaces,
       cursor,
       userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
       buildPlugin,
-      postProcess: (raw, c) => statefulPostProcess(raw, c as unknown as StatefulCursor<S>),
-    })) as unknown as StatefulReactiveGearMapDefiner<RA, KA, NM, S>;
+      postProcess: (raw, c) => statefulPostProcess(raw, c as StatefulCursor<S>),
+    })) as StatefulReactiveGearMapDefiner<RA, KA, NM, S>;
 }
 
-function makeStatefulReactiveListDefiner<
+function createStatefulReactiveGearListDefiner<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
@@ -187,111 +220,75 @@ function makeStatefulReactiveListDefiner<
     mode: "list",
     namespaces,
     defaultState: state,
-  } as unknown as Head;
+  } as Head;
 
-  const cursor = makeStatefulCursor(state);
+  const cursor = buildStatefulCursor(state);
 
-  const buildPlugin: BuildPlugin<Head> = (resolved) => {
-    const arr = resolved as unknown as unknown[];
-    const ctx = arr[arr.length - 1] as object;
+  const buildPlugin: BuildResPlugin<Head> = (resolved) => {
+    const arr = resolved;
+    const ctx = arr[arr.length - 1];
     return [...arr.slice(0, -1), { ...ctx, state, defaultState: state }] as unknown as typeof resolved;
   };
 
   return ((factory: (plugin: never, cursor: never) => unknown) =>
-    composeResMatrix<Head, unknown, AnyRes>({
+    assembleResMatrix<Head, unknown, AnyRes>({
       provider,
-      meta: buildReactiveMeta(),
+      meta,
       head,
       namespaces,
       cursor,
       userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
       buildPlugin,
       postProcess: (raw, c) => statefulPostProcess(raw, c as unknown as StatefulCursor<S>),
-    })) as unknown as StatefulReactiveGearListDefiner<RA, KA, NL, S>;
+    })) as StatefulReactiveGearListDefiner<RA, KA, NL, S>;
 }
 
-function makeStatelessReactiveMapDefiner<
+function createStatelessReactiveGearMapDefiner<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
 >(provider: ResWireProvider, namespaces: NM): StatelessReactiveGearMapDefiner<RA, KA, NM> {
-  type Head = ResMapPlugHead<"gear", RA, KA, NM, PluginCtx<RA, KA>>;
+  type PlugHead = ResMapPlugHead<"gear", RA, KA, NM, PluginCtx<RA, KA>>;
   const head = {
     area: "res",
     family: "gear",
     mode: "map",
     namespaces,
-  } as unknown as Head;
+  } as PlugHead;
 
   return ((factory: (plugin: never, cursor: never) => unknown) =>
-    composeResMatrix<Head, AnyRes, AnyRes>({
+    assembleResMatrix<PlugHead, AnyRes, AnyRes>({
       provider,
-      meta: buildReactiveMeta(),
+      meta,
       head,
       namespaces,
       cursor: statelessCursor,
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
-    })) as unknown as StatelessReactiveGearMapDefiner<RA, KA, NM>;
+    })) as StatelessReactiveGearMapDefiner<RA, KA, NM>;
 }
 
-function makeStatelessReactiveListDefiner<
+function createStatelessReactiveGearListDefiner<
   RA extends AnyResAtlas,
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
 >(provider: ResWireProvider, namespaces: NL): StatelessReactiveGearListDefiner<RA, KA, NL> {
-  type Head = ResListPlugHead<"gear", RA, KA, NL, PluginCtx<RA, KA>>;
+  type PlugHead = ResListPlugHead<"gear", RA, KA, NL, PluginCtx<RA, KA>>;
   const head = {
     area: "res",
     family: "gear",
     mode: "list",
     namespaces,
-  } as unknown as Head;
+  } as PlugHead;
 
   return ((factory: (plugin: never, cursor: never) => unknown) =>
-    composeResMatrix<Head, AnyRes, AnyRes>({
+    assembleResMatrix<PlugHead, AnyRes, AnyRes>({
       provider,
-      meta: buildReactiveMeta(),
+      meta,
       head,
       namespaces,
       cursor: statelessCursor,
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
-    })) as unknown as StatelessReactiveGearListDefiner<RA, KA, NL>;
-}
-
-export function makeReactiveGearMapDepsComposer<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
->(provider: ResWireProvider, namespaces: NM): ReactiveGearMapDepsComposer<RA, KA, NM> {
-  return ((...args: [] | [AnyState]) => {
-    if (args.length === 0) {
-      return {
-        define: makeStatelessReactiveMapDefiner<RA, KA, NM>(provider, namespaces),
-      };
-    }
-    const [state] = args;
-    return {
-      define: makeStatefulReactiveMapDefiner<RA, KA, NM, AnyState>(provider, namespaces, state),
-    };
-  }) as unknown as ReactiveGearMapDepsComposer<RA, KA, NM>;
-}
-
-export function makeReactiveGearListDepsComposer<
-  RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
->(provider: ResWireProvider, namespaces: NL): ReactiveGearListDepsComposer<RA, KA, NL> {
-  return ((...args: [] | [AnyState]) => {
-    if (args.length === 0) {
-      return {
-        define: makeStatelessReactiveListDefiner<RA, KA, NL>(provider, namespaces),
-      };
-    }
-    const [state] = args;
-    return {
-      define: makeStatefulReactiveListDefiner<RA, KA, NL, AnyState>(provider, namespaces, state),
-    };
-  }) as unknown as ReactiveGearListDepsComposer<RA, KA, NL>;
+    })) as StatelessReactiveGearListDefiner<RA, KA, NL>;
 }
 
 // #endregion

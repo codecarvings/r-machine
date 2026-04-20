@@ -43,7 +43,7 @@ export function getNamespace<T extends NamespaceRef<any>>(tokenOrNamespace: T): 
   }
 }
 
-export function isNamespace<T extends NamespaceRef<any>>(value: T): boolean {
+export function isNamespace(value: any): value is NamespaceRef<any> {
   return typeof value === "string" || (value && typeof value === "object" && namespaceSymbol in value);
 }
 

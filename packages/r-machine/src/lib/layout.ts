@@ -41,7 +41,7 @@ export function defineLayout<RL extends AnyResLayout>(layout: RL & ValidLayoutKe
         return createToken;
       }
     }
-    return ResourceAtlas as unknown as ResAtlasClass<RL, FilterResAtlasKeys<RL, RD>, RD>;
+    return ResourceAtlas as ResAtlasClass<RL, FilterResAtlasKeys<RL, RD>, RD>;
   }
   return builder;
 }
