@@ -69,7 +69,7 @@ export type {
   SurfaceMap,
 } from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";
-export type { ResModuleLoaderFn } from "./res-module.js";
+export type { AnyResModule, ResModuleLoaderFn } from "./res-module.js";
 export type { ResWireProvider } from "./res-wire.js";
 export { createShellComposer, type ShellComposer } from "./shell-composer.js";
 export type { AnyVertexGearSurface, Surface } from "./surface.js";

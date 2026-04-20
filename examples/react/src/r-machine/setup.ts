@@ -1,9 +1,10 @@
 import { ReactStandardStrategy } from "@r-machine/react";
 import { RMachine, type RMachineLocale } from "r-machine";
+import type { AnyResModule } from "r-machine/core";
 import { ResourceAtlas } from "./resource-atlas";
 
 // Vite statically analyzes this at build time and creates chunk files for all matching modules
-const moduleLoaders = import.meta.glob<{ r: any }>("./**/*.{tsx,ts}");
+const moduleLoaders = import.meta.glob<AnyResModule>("./**/*.{tsx,ts}");
 
 const rMachine = RMachine.create({
   ResourceAtlas,

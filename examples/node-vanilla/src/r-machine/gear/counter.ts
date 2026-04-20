@@ -1,4 +1,3 @@
-import { mockPlug } from "@r-machine/testing";
 import { Gear, type RShape } from "../setup";
 
 export const r = Gear.reactive(0).define(({ $ }, _) => {
@@ -11,10 +10,3 @@ export const r = Gear.reactive(0).define(({ $ }, _) => {
 });
 
 export type Gear_Counter = RShape<typeof r>;
-
-mockPlug(r.plug).with({
-  $: {
-    defaultState: 21,
-    state: 21,
-  },
-});
