@@ -13,6 +13,7 @@
 
 "use client";
 
+import type { VertexFrameType } from "@r-machine/react/core";
 import { createReactBareToolset } from "@r-machine/react/core";
 import type { usePathname, useRouter } from "next/navigation";
 import type { RMachine } from "r-machine";
@@ -30,6 +31,7 @@ export interface NextAppClientToolset<
 > {
   readonly NextClientRMachine: NextAppClientRMachine<L>;
   readonly ClientPlug: NextClientPlugDefiner<RA, L, E["gateKit"], PA>;
+  readonly ClientVertexFrame: VertexFrameType;
 }
 
 export type NextAppClientRMachine<L extends AnyLocale> = (props: NextAppClientRMachineProps<L>) => ReactNode;
@@ -56,7 +58,7 @@ export async function createNextAppClientToolset<
   E extends ResEquipment<RA>,
   PA extends AnyPathAtlas,
 >(rMachine: RMachine<RA, L, E>, impl: NextAppClientImpl<L>): Promise<NextAppClientToolset<RA, L, E, PA>> {
-  const { ReactRMachine } = await createReactBareToolset(rMachine);
+  const { ReactRMachine, VertexFrame } = await createReactBareToolset(rMachine);
 
   // TODO: WP
   const ClientPlug: any = undefined!;
@@ -105,6 +107,7 @@ export async function createNextAppClientToolset<
 
   return {
     NextClientRMachine,
+    ClientVertexFrame: VertexFrame,
     ClientPlug,
   };
 }

@@ -3,16 +3,15 @@ import { Button } from "@/components/ui/button";
 import GitHubMark from "@/gfx/github-mark.svg";
 import RMachineLogo from "@/gfx/r-machine.logo.svg";
 import { cart } from "@/r-machine/resource-atlas";
-import { Plug, VertexFrame } from "@/r-machine/toolset";
+import { Plug } from "@/r-machine/toolset";
 
 export const plug = Plug("shell/landing-page", cart, "gear/vertex/timer");
 export default function Hero() {
-  const [page, cart, timer] = plug.use();
+  const [page] = plug.use();
 
   return (
     <section className="relative w-full py-12 sm:py-16 lg:py-20 bg-linear-to-br from-gray-200 via-gray-100 to-slate-100">
       <div className="absolute inset-0 bg-linear-to-t from-background/50 to-transparent" />
-      <VertexFrame gear={cart}>prova</VertexFrame>
       <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">

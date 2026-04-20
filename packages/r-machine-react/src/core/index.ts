@@ -11,6 +11,8 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { VertexFrame } from "./vertex-frame.js";
+
 export {
   createReactBareToolset,
   type ReactBareRMachine,
@@ -27,3 +29,5 @@ export {
   type ReactImpl,
   type ReactToolset,
 } from "./react-toolset.js";
+
+export type VertexFrameType = typeof VertexFrame;
