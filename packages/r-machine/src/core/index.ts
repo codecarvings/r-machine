@@ -72,7 +72,7 @@ export type { ResMatrix } from "./res-matrix.js";
 export type { ResModuleLoaderFn } from "./res-module.js";
 export type { ResWireProvider } from "./res-wire.js";
 export { createShellComposer, type ShellComposer } from "./shell-composer.js";
-export type { Surface } from "./surface.js";
+export type { AnyVertexGearSurface, Surface } from "./surface.js";
 export {
   tryGetVertexGearTag,
   type VertexGearMap,

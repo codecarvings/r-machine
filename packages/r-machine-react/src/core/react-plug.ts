@@ -12,7 +12,7 @@
  */
 
 import type {
-  AnyResDomain,
+  AnyResAtlas,
   GateListPlugHead,
   GateMapPlugHead,
   GatePluginCtx,
@@ -24,62 +24,62 @@ import type {
 } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 
-type ReactPluginCtx<RD extends AnyResDomain, L extends AnyLocale, KA extends NamespaceMap<RD>> = GatePluginCtx<
-  RD,
+type ReactPluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = GatePluginCtx<
+  RA,
   L,
   KA
 >;
 
 type ReactMapPlugin<
-  RD extends AnyResDomain,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RD>,
-  NM extends NamespaceMap<RD>,
-> = MapPlugin<RD, NM, ReactPluginCtx<RD, L, KA>>;
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+> = MapPlugin<RA, NM, ReactPluginCtx<RA, L, KA>>;
 
 type ReactListPlugin<
-  RD extends AnyResDomain,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RD>,
-  NL extends NamespaceList<RD>,
-> = ListPlugin<RD, NL, ReactPluginCtx<RD, L, KA>>;
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+> = ListPlugin<RA, NL, ReactPluginCtx<RA, L, KA>>;
 
 interface ReactMapPlugHead<
-  RD extends AnyResDomain,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RD>,
-  NM extends NamespaceMap<RD>,
-  CTX extends ReactPluginCtx<RD, L, KA>,
-> extends GateMapPlugHead<RD, L, KA, NM, CTX> {}
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+  CTX extends ReactPluginCtx<RA, L, KA>,
+> extends GateMapPlugHead<RA, L, KA, NM, CTX> {}
 
 interface ReactListPlugHead<
-  RD extends AnyResDomain,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RD>,
-  NL extends NamespaceList<RD>,
-  CTX extends ReactPluginCtx<RD, L, KA>,
-> extends GateListPlugHead<RD, L, KA, NL, CTX> {}
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+  CTX extends ReactPluginCtx<RA, L, KA>,
+> extends GateListPlugHead<RA, L, KA, NL, CTX> {}
 
 interface ReactMapPlug<
-  RD extends AnyResDomain,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RD>,
-  NM extends NamespaceMap<RD>,
-> extends PlugBody<ReactMapPlugHead<RD, L, KA, NM, ReactPluginCtx<RD, L, KA>>> {
-  use(): ReactMapPlugin<RD, L, KA, NM>;
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+> extends PlugBody<ReactMapPlugHead<RA, L, KA, NM, ReactPluginCtx<RA, L, KA>>> {
+  use(): ReactMapPlugin<RA, L, KA, NM>;
 }
 
 interface ReactListPlug<
-  RD extends AnyResDomain,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RD>,
-  NL extends NamespaceList<RD>,
-> extends PlugBody<ReactListPlugHead<RD, L, KA, NL, ReactPluginCtx<RD, L, KA>>> {
-  use(): ReactListPlugin<RD, L, KA, NL>;
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+> extends PlugBody<ReactListPlugHead<RA, L, KA, NL, ReactPluginCtx<RA, L, KA>>> {
+  use(): ReactListPlugin<RA, L, KA, NL>;
 }
 
-export interface ReactPlugDefiner<RD extends AnyResDomain, L extends AnyLocale, KA extends NamespaceMap<RD>> {
-  (): ReactMapPlug<RD, L, KA, {}>;
-  <NL extends NamespaceList<RD>>(...namespaces: NL): ReactListPlug<RD, L, KA, NL>;
-  <NM extends NamespaceMap<RD>>(namespaces: NM): ReactMapPlug<RD, L, KA, NM>;
+export interface ReactPlugDefiner<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {
+  (): ReactMapPlug<RA, L, KA, {}>;
+  <NL extends NamespaceList<RA>>(...namespaces: NL): ReactListPlug<RA, L, KA, NL>;
+  <NM extends NamespaceMap<RA>>(namespaces: NM): ReactMapPlug<RA, L, KA, NM>;
 }

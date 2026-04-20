@@ -13,17 +13,15 @@
 
 "use client";
 
-import type { AnyResDomain, AnySurfaceOf } from "r-machine/core";
+import type { AnyVertexGearSurface } from "r-machine/core";
 import { tryGetVertexGearTag, type VertexGearMap, type VertexGearTagData } from "r-machine/core";
 import { createContext, type ReactNode, useContext, useRef } from "react";
 
 const Context = createContext<VertexGearMap | undefined>(undefined);
 Context.displayName = "VertexFrameContext";
 
-type AnyVertexGearSurface = AnySurfaceOf<AnyResDomain>;
-
-export interface VertexFrameProps<S extends AnyVertexGearSurface = AnyVertexGearSurface> {
-  readonly gear: S | readonly S[];
+export interface VertexFrameProps {
+  readonly gear: AnyVertexGearSurface | readonly AnyVertexGearSurface[];
   readonly children: ReactNode;
 }
 

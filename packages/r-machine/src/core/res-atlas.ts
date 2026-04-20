@@ -1,6 +1,6 @@
 import type { RMachineTypeError } from "../errors/r-machine-type-error.js";
 import type { ReactiveGearTag } from "./reactive-gear.js";
-import type { AnyResDomain, Namespace, Token, TokenBuilder } from "./res-domain.js";
+import type { AnyResDomain, AnyResDomainLayout, Namespace, Token, TokenBuilder } from "./res-domain.js";
 import type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "./res-layout.js";
 
 type ShapeMap<RL extends AnyResLayout, RD extends AnyResDomain, T extends ResLayoutEntryType> = {
@@ -16,7 +16,6 @@ export interface ResAtlas<RL extends AnyResLayout, RD extends AnyResDomain> {
   readonly [resAtlasSymbol]: true;
   readonly shape: RD;
   readonly "shape@gear": ShapeMap<RL, RD, "gear">;
-  // readonly "shape@gear:vertex": ShapeMap<RL, RD, "gear:vertex">;
   readonly "shape@shell:*": ShapeMap<RL, RD, "shell" | "shell:mono">;
   readonly let: ResLayoutEntryTypeMap<RL, RD>;
 }
@@ -25,9 +24,8 @@ export interface AnyResAtlas {
   readonly [resAtlasSymbol]: true;
   readonly shape: AnyResDomain;
   readonly "shape@gear": AnyResDomain;
-  // readonly "shape@gear:vertex": AnyResDomain;
   readonly "shape@shell:*": AnyResDomain;
-  readonly let: AnyResDomain;
+  readonly let: AnyResDomainLayout;
 }
 
 type DroppedAtlasKeys<RA, RD> = Exclude<keyof RA, keyof RD>;

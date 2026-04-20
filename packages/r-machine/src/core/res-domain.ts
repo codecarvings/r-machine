@@ -11,10 +11,15 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { ResLayoutEntryType } from "./index.js";
+
 export type AnyNamespace = string;
 
 export interface AnyResDomain {
   readonly [namespace: AnyNamespace]: any; // Do not use AnyRes - It breaks token system
+}
+export interface AnyResDomainLayout {
+  readonly [namespace: AnyNamespace]: ResLayoutEntryType;
 }
 
 export type Namespace<RD extends AnyResDomain> = Extract<keyof RD, AnyNamespace>;
