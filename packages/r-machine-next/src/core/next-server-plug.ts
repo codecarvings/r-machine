@@ -13,7 +13,6 @@
 
 import type {
   AnyResAtlas,
-  AnyResDomain,
   NamespaceList,
   NamespaceMap,
   PlugBody,
@@ -37,45 +36,45 @@ type RMachineParams<LK extends string> = {
 };
 
 interface NextServerMapPlug<
-  RD extends AnyResDomain,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RD>,
-  NM extends NamespaceMap<RD>,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
   PA extends AnyPathAtlas,
   LK extends string,
-> extends PlugBody<NextMapPlugHead<RD, L, KA, NM, NextPluginCtx<RD, L, KA, PA>>> {
-  use(): Promise<NextMapPlugin<RD, L, KA, NM, PA>>;
+> extends PlugBody<NextMapPlugHead<RA, L, KA, NM, NextPluginCtx<RA, L, KA, PA>>> {
+  use(): Promise<NextMapPlugin<RA, L, KA, NM, PA>>;
   use<P extends RMachineParams<LK>>(
     params: Promise<P>,
     bindLocale?: boolean
-  ): Promise<NextParamsMapPlugin<RD, L, KA, NM, PA, P>>;
-  use(locale: AnyLocale, bindLocale?: boolean): Promise<NextMapPlugin<RD, L, KA, NM, PA>>;
+  ): Promise<NextParamsMapPlugin<RA, L, KA, NM, PA, P>>;
+  use(locale: AnyLocale, bindLocale?: boolean): Promise<NextMapPlugin<RA, L, KA, NM, PA>>;
 }
 
 interface NextServerListPlug<
-  RD extends AnyResDomain,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RD>,
-  NL extends NamespaceList<RD>,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
   PA extends AnyPathAtlas,
   LK extends string,
-> extends PlugBody<NextListPlugHead<RD, L, KA, NL, NextPluginCtx<RD, L, KA, PA>>> {
-  use(): Promise<NextListPlugin<RD, L, KA, NL, PA>>;
+> extends PlugBody<NextListPlugHead<RA, L, KA, NL, NextPluginCtx<RA, L, KA, PA>>> {
+  use(): Promise<NextListPlugin<RA, L, KA, NL, PA>>;
   use<P extends RMachineParams<LK>>(
     params: Promise<P>,
     bindLocale?: boolean
-  ): Promise<NextParamsListPlugin<RD, L, KA, NL, PA, P>>;
-  use(params: AnyLocale, bindLocale?: boolean): Promise<NextListPlugin<RD, L, KA, NL, PA>>;
+  ): Promise<NextParamsListPlugin<RA, L, KA, NL, PA, P>>;
+  use(params: AnyLocale, bindLocale?: boolean): Promise<NextListPlugin<RA, L, KA, NL, PA>>;
 }
 
 export interface NextServerPlugDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA["shape"]>,
+  KA extends NamespaceMap<RA>,
   PA extends AnyPathAtlas,
   LK extends string,
 > {
-  (): NextServerMapPlug<RA["shape"], L, KA, {}, PA, LK>;
-  <NL extends SolidNamespaceList<RA>>(...namespaces: NL): NextServerListPlug<RA["shape"], L, KA, NL, PA, LK>;
-  <NM extends SolidNamespaceMap<RA>>(namespaces: NM): NextServerMapPlug<RA["shape"], L, KA, NM, PA, LK>;
+  (): NextServerMapPlug<RA, L, KA, {}, PA, LK>;
+  <NL extends SolidNamespaceList<RA>>(...namespaces: NL): NextServerListPlug<RA, L, KA, NL, PA, LK>;
+  <NM extends SolidNamespaceMap<RA>>(namespaces: NM): NextServerMapPlug<RA, L, KA, NM, PA, LK>;
 }
