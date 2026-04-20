@@ -12,11 +12,11 @@
  */
 
 import type { AnyResAtlas, SolidNamespaceRef } from "./res-atlas.js";
-import type { AnyResDomain, ExtractNamespace, NamespaceRef } from "./res-domain.js";
+import type { ExtractNamespace, NamespaceRef } from "./res-domain.js";
 import type { Surface } from "./surface.js";
 
-export type NamespaceMap<RD extends AnyResDomain> = {
-  readonly [k: string]: NamespaceRef<RD>;
+export type NamespaceMap<RA extends AnyResAtlas> = {
+  readonly [k: string]: NamespaceRef<RA["shape"]>;
 };
 
 export type SolidNamespaceMap<RA extends AnyResAtlas> = {
@@ -24,6 +24,10 @@ export type SolidNamespaceMap<RA extends AnyResAtlas> = {
 };
 
 // -readonly as SurfaceList
-export type SurfaceMap<RD extends AnyResDomain, NM extends NamespaceMap<RD>> = {
-  -readonly [K in keyof NM]: Surface<RD[ExtractNamespace<NM[K]>], ExtractNamespace<NM[K]>>;
+export type SurfaceMap<RA extends AnyResAtlas, NM extends NamespaceMap<RA>> = {
+  -readonly [K in keyof NM]: Surface<
+    RA["shape"][ExtractNamespace<NM[K]>],
+    ExtractNamespace<NM[K]>,
+    RA["let"][ExtractNamespace<NM[K]>]
+  >;
 };

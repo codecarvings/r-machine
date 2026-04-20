@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { AnyResAtlas } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 import {
   createPlug,
@@ -21,7 +22,6 @@ import {
   setPlugResolve,
 } from "./plug.js";
 import type { AnyRes } from "./res.js";
-import type { AnyResDomain } from "./res-domain.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
 import { createResMatrix, type ResMatrix, type ResMatrixMeta } from "./res-matrix.js";
@@ -37,7 +37,7 @@ export interface ComposeResMatrixOptions<H extends AnyResPlugHead, RAW, RES exte
   readonly provider: ResWireProvider;
   readonly meta: ResMatrixMeta;
   readonly head: H;
-  readonly namespaces: NamespaceMap<AnyResDomain> | NamespaceList<AnyResDomain>;
+  readonly namespaces: NamespaceMap<AnyResAtlas> | NamespaceList<AnyResAtlas>;
   readonly cursor: unknown;
   readonly userFactory: (plugin: ExtractPlugin<H>, cursor: never) => RAW | Promise<RAW>;
   readonly buildPlugin?: BuildPlugin<H>;

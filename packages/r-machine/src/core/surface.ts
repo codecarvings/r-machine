@@ -11,21 +11,25 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { ResLayoutEntryType } from "#r-machine/core";
 import type { Action } from "./action.js";
 import type { Getter } from "./getter.js";
 import type { RelayBrand } from "./relay.js";
-import type { AnyNamespace, AnyResDomain, Namespace } from "./res-domain.js";
+import type { AnyNamespace, AnyResDomain } from "./res-domain.js";
 
 type SurfaceItem<I> = I extends Getter<infer V> ? V : I extends Action<infer F> ? F : I extends RelayBrand ? never : I;
 
 declare const surfaceNamespaceSymbol: unique symbol;
-
-export type Surface<R extends AnyResDomain, N extends AnyNamespace> = {
+declare const surfaceLayoutEntryTypeSymbol: unique symbol;
+export type Surface<R extends AnyResDomain, N extends AnyNamespace, LET extends ResLayoutEntryType> = {
   readonly [surfaceNamespaceSymbol]: N;
+  readonly [surfaceLayoutEntryTypeSymbol]: LET;
 } & {
   readonly [K in keyof R as K extends `$${string}` ? never : K]: SurfaceItem<R[K]>;
 };
 
+/*
 export type AnySurfaceOf<RD extends AnyResDomain> = {
   [N in Namespace<RD>]: Surface<RD[N], N>;
 }[Namespace<RD>];
+*/

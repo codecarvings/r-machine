@@ -11,10 +11,9 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { NamespaceList } from "#r-machine/core";
+import type { AnyResAtlas, NamespaceList } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 import type { ResFamily } from "./res.js";
-import type { AnyResDomain } from "./res-domain.js";
 import type { NamespaceMap } from "./res-map.js";
 
 export interface ResWire {
@@ -25,5 +24,5 @@ export type ResWireConnector = (locale: AnyLocale | undefined) => ResWire;
 
 export type ResWireProvider = (
   family: ResFamily,
-  namespaces: NamespaceMap<AnyResDomain> | NamespaceList<AnyResDomain>
+  namespaces: NamespaceMap<AnyResAtlas> | NamespaceList<AnyResAtlas>
 ) => ResWireConnector;

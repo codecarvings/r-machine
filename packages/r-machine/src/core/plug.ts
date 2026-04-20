@@ -11,54 +11,54 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { AnyResAtlas } from "#r-machine/core";
 import { ERR_PLUG_RESOLVE_NOT_SET, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
-import type { AnyResDomain } from "./res-domain.js";
 import type { NamespaceList, SurfaceList } from "./res-list.js";
 import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 
 export type PlugArea = "res" | "gate";
 export type PlugMode = "map" | "list";
 
-export type PluginCtx<RD extends AnyResDomain, KA extends NamespaceMap<RD>> = {} & (keyof KA extends never
+export type PluginCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>> = {} & (keyof KA extends never
   ? {}
-  : { readonly kit: SurfaceMap<RD, KA> });
+  : { readonly kit: SurfaceMap<RA, KA> });
 
-export type LocaleAwarePluginCtx<RD extends AnyResDomain, L extends AnyLocale, KA extends NamespaceMap<RD>> = PluginCtx<
-  RD,
+export type LocaleAwarePluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = PluginCtx<
+  RA,
   KA
 > & {
   readonly locale: L;
 };
 
-export type MapPlugin<RD extends AnyResDomain, NM extends NamespaceMap<RD>, CTX> = SurfaceMap<RD, Omit<NM, "$">> & {
+export type MapPlugin<RA extends AnyResAtlas, NM extends NamespaceMap<RA>, CTX> = SurfaceMap<RA, Omit<NM, "$">> & {
   $: CTX;
 } & (CTX extends { readonly kit: infer KA } ? Omit<KA, keyof NM> : {});
 
-export type ListPlugin<RD extends AnyResDomain, NL extends NamespaceList<RD>, CTX> = [...SurfaceList<RD, NL>, CTX];
+export type ListPlugin<RA extends AnyResAtlas, NL extends NamespaceList<RA>, CTX> = [...SurfaceList<RA, NL>, CTX];
 
-declare const resDomain: unique symbol;
+declare const resAtlas: unique symbol;
 declare const kit: unique symbol;
 declare const ctx: unique symbol;
 interface BasePlugHead<
   A extends PlugArea,
-  RD extends AnyResDomain,
-  KA extends NamespaceMap<RD>,
-  CTX extends PluginCtx<RD, KA>,
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  CTX extends PluginCtx<RA, KA>,
 > {
   readonly area: A;
-  readonly [resDomain]: RD;
+  readonly [resAtlas]: RA;
   readonly [kit]: KA;
   readonly [ctx]: CTX;
 }
 
 export interface MapPlugHead<
   A extends PlugArea,
-  RD extends AnyResDomain,
-  KA extends NamespaceMap<RD>,
-  NM extends NamespaceMap<RD>,
-  CTX extends PluginCtx<RD, KA>,
-> extends BasePlugHead<A, RD, KA, CTX> {
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NM extends NamespaceMap<RA>,
+  CTX extends PluginCtx<RA, KA>,
+> extends BasePlugHead<A, RA, KA, CTX> {
   readonly mode: "map";
   readonly namespaces: NM;
 }
@@ -66,11 +66,11 @@ export type AnyMapPlugHead = MapPlugHead<any, any, any, any, any>;
 
 export interface ListPlugHead<
   A extends PlugArea,
-  RD extends AnyResDomain,
-  KA extends NamespaceMap<RD>,
-  NL extends NamespaceList<RD>,
-  CTX extends PluginCtx<RD, KA>,
-> extends BasePlugHead<A, RD, KA, CTX> {
+  RA extends AnyResAtlas,
+  KA extends NamespaceMap<RA>,
+  NL extends NamespaceList<RA>,
+  CTX extends PluginCtx<RA, KA>,
+> extends BasePlugHead<A, RA, KA, CTX> {
   readonly mode: "list";
   readonly namespaces: NL;
 }
@@ -78,13 +78,13 @@ export type AnyListPlugHead = ListPlugHead<any, any, any, any, any>;
 
 export type AnyPlugHead = AnyMapPlugHead | AnyListPlugHead;
 
-export type ExtractResDomain<PH extends AnyPlugHead> = PH[typeof resDomain];
+export type ExtractResAtlas<PH extends AnyPlugHead> = PH[typeof resAtlas];
 export type ExtractKit<PH extends AnyPlugHead> = PH[typeof kit];
 export type ExtractCtx<PH extends AnyPlugHead> = PH[typeof ctx];
 export type ExtractPlugin<PH extends AnyPlugHead> = PH extends AnyMapPlugHead
-  ? MapPlugin<PH[typeof resDomain], PH["namespaces"], PH[typeof ctx]>
+  ? MapPlugin<PH[typeof resAtlas], PH["namespaces"], PH[typeof ctx]>
   : PH extends AnyListPlugHead
-    ? ListPlugin<PH[typeof resDomain], PH["namespaces"], PH[typeof ctx]>
+    ? ListPlugin<PH[typeof resAtlas], PH["namespaces"], PH[typeof ctx]>
     : never;
 
 type PlugLocale<PH extends AnyPlugHead> = PH extends { readonly locale: infer L } ? L : undefined;
