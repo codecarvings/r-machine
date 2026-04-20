@@ -17,7 +17,7 @@ import {
   type AnyPlugHead,
   type ExtractCtx,
   type ExtractKit,
-  type ExtractResDomain,
+  type ExtractResAtlas,
   getPlugResolve,
   type PlugBody,
   setPlugResolve,
@@ -63,19 +63,19 @@ export const mockPlug: MockPlug = (plug: PlugBody<AnyPlugHead>) => {
   };
 };
 
-type MockPlugMapDataDeps<PH extends AnyMapPlugHead> = MockSurfaceMap<ExtractResDomain<PH>, Omit<PH["namespaces"], "$">>;
+type MockPlugMapDataDeps<PH extends AnyMapPlugHead> = MockSurfaceMap<ExtractResAtlas<PH>, Omit<PH["namespaces"], "$">>;
 
 type TupleToObject<T extends readonly unknown[]> = {
   [K in keyof T as K extends `${number}` ? K : never]: T[K];
 };
 
 type MockPlugListDeps<PH extends AnyListPlugHead> = MockSurfaceMap<
-  ExtractResDomain<PH>,
+  ExtractResAtlas<PH>,
   Omit<TupleToObject<PH["namespaces"] extends readonly unknown[] ? PH["namespaces"] : never>, "$">
 >;
 
 type MockCtxContent<PH extends AnyPlugHead, C> = {
-  [K in keyof C]?: K extends "kit" ? MockSurfaceMap<ExtractResDomain<PH>, ExtractKit<PH>> : C[K];
+  [K in keyof C]?: K extends "kit" ? MockSurfaceMap<ExtractResAtlas<PH>, ExtractKit<PH>> : C[K];
 };
 
 type MockCtx<PH extends AnyPlugHead> = keyof ExtractCtx<PH> extends never
