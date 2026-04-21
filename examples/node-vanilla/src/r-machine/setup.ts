@@ -1,7 +1,7 @@
 import { RMachine, type RMachineLocale } from "r-machine";
 import { ResourceAtlas } from "./resource-atlas";
 
-const rMachine = RMachine.create({
+export const rMachine = RMachine.create({
   ResourceAtlas,
   locales: ["en", "it"],
   defaultLocale: "en",

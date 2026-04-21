@@ -14,7 +14,7 @@
 import type { RMachineTypeError } from "#r-machine/errors";
 import { lazyGetters } from "./composer-utils.js";
 import type { GearCursor, GearListDefiner, GearMapDefiner } from "./gear.js";
-import type { PluginCtx } from "./plug.js";
+import { getPlugOutline, type PluginCtx } from "./plug.js";
 import {
   createReactiveGearListDepsComposer,
   createReactiveGearMapDepsComposer,
@@ -23,7 +23,7 @@ import {
 } from "./reactive-gear-composer.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import { isNamespace, type NamespaceRef } from "./res-domain.js";
+import type { NamespaceRef } from "./res-domain.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
 import type { ResMatrixMeta } from "./res-matrix.js";
@@ -85,13 +85,12 @@ export function createGearComposer<RA extends AnyResAtlas, KA extends NamespaceM
   const define = createGearMapDefiner<RA, KA, {}>(provider, {});
 
   const deps = ((...args: unknown[]) => {
-    if (args.length === 0) {
-      return { reactive, define };
+    const mask = getPlugOutline<RA>(...args);
+    if (mask.mode === "map") {
+      return createGearMapDepsComposer<RA, KA, any>(provider, mask.namespaces);
+    } else {
+      return createGearListDepsComposer<RA, KA, any>(provider, mask.namespaces);
     }
-    if (args.length === 1 && !isNamespace(args[0])) {
-      return createGearMapDepsComposer<RA, KA, NamespaceMap<RA>>(provider, args[0] as NamespaceMap<RA>);
-    }
-    return createGearListDepsComposer<RA, KA, NamespaceList<RA>>(provider, args as NamespaceList<RA>);
   }) as GearDepsComposer<RA, KA>;
 
   return {

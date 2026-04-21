@@ -102,9 +102,9 @@ export type ResolveLayoutType<RL extends AnyResLayout, N extends string> = {
 
 export type ResPathResolver = (namespace: AnyNamespace, locale: AnyLocale | undefined) => string;
 
-export function createResPathResolver(resolveResLayoutType: ResLayoutEntryTypeResolver): ResPathResolver {
+export function createResPathResolver(resolveResLayoutEntryType: ResLayoutEntryTypeResolver): ResPathResolver {
   return function resolveResPath(namespace, locale) {
-    const layoutType = resolveResLayoutType(namespace);
+    const layoutType = resolveResLayoutEntryType(namespace);
     switch (layoutType) {
       case "gear":
       case "gear:vertex":

@@ -17,7 +17,7 @@ import { type AnyPlugHead, getPlugHead } from "./plug.js";
 import type { AnyResOrigin, ResFamily } from "./res.js";
 import type { AnyNamespace } from "./res-domain.js";
 import { getResFamilyFromLayoutType, type ResLayoutEntryType } from "./res-layout.js";
-import { type AnyResMatrix, tryGetResMatrixMeta } from "./res-matrix.js";
+import { tryGetResMatrixMeta } from "./res-matrix.js";
 import type { AnyResModule } from "./res-module.js";
 
 type ResOriginType = "raw" | "res-matrix";
@@ -52,7 +52,7 @@ export function createResPod(
       );
     }
     const isVertex = resLayoutEntryType === "gear:vertex";
-    const plugHead = getPlugHead((origin as AnyResMatrix).plug);
+    const plugHead = getPlugHead(origin.plug);
     return {
       namespace,
       locale,

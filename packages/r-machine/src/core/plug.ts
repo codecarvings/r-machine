@@ -14,6 +14,7 @@
 import type { AnyResAtlas } from "#r-machine/core";
 import { ERR_PLUG_RESOLVE_NOT_SET, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
+import { isNamespace } from "./res-domain.js";
 import type { NamespaceList, SurfaceList } from "./res-list.js";
 import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 
@@ -125,4 +126,32 @@ export function getPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>): () => 
 }
 export function setPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>, resolve: () => ExtractPlugin<H>): void {
   plug[plugResolveSymbol] = resolve;
+}
+
+interface MapPlugOutline<RA extends AnyResAtlas> {
+  mode: "map";
+  namespaces: NamespaceMap<RA>;
+}
+interface ListPlugOutline<RA extends AnyResAtlas> {
+  mode: "list";
+  namespaces: NamespaceList<RA>;
+}
+
+export function getPlugOutline<RA extends AnyResAtlas>(...args: unknown[]): MapPlugOutline<RA> | ListPlugOutline<RA> {
+  if (args.length === 0) {
+    return {
+      mode: "map",
+      namespaces: {} as NamespaceMap<RA>,
+    };
+  }
+  if (args.length === 1 && !isNamespace(args[0])) {
+    return {
+      mode: "map",
+      namespaces: args[0] as NamespaceMap<RA>,
+    };
+  }
+  return {
+    mode: "list",
+    namespaces: args as NamespaceList<RA>,
+  };
 }

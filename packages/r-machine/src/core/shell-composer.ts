@@ -14,10 +14,10 @@
 import type { RMachineTypeError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import { lazyGetters } from "./composer-utils.js";
-import type { LocaleAwarePluginCtx } from "./plug.js";
+import { getPlugOutline, type LocaleAwarePluginCtx } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import { isNamespace, type NamespaceRef } from "./res-domain.js";
+import type { NamespaceRef } from "./res-domain.js";
 import type { NamespaceList } from "./res-list.js";
 import type { NamespaceMap } from "./res-map.js";
 import type { ResMatrixMeta } from "./res-matrix.js";
@@ -97,13 +97,12 @@ export function createShellComposer<
   const define = createShellMapDefiner<RA, L, KA, {}>(provider, {});
 
   const deps = ((...args: unknown[]) => {
-    if (args.length === 0) {
-      return { define };
+    const mask = getPlugOutline<RA>(...args);
+    if (mask.mode === "map") {
+      return createShellMapDepsComposer<RA, L, KA, any>(provider, mask.namespaces);
+    } else {
+      return createShellListDepsComposer<RA, L, KA, any>(provider, mask.namespaces);
     }
-    if (args.length === 1 && !isNamespace(args[0])) {
-      return createShellMapDepsComposer<RA, L, KA, NamespaceMap<RA>>(provider, args[0] as NamespaceMap<RA>);
-    }
-    return createShellListDepsComposer<RA, L, KA, NamespaceList<RA>>(provider, args as NamespaceList<RA>);
   }) as ShellDepsComposer<RA, L, BGL, KA>;
 
   return {
