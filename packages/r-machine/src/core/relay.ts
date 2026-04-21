@@ -17,8 +17,8 @@ import type { Cmd } from "./cmd.js";
 type RelayOnChangeResult = void | Cmd | Cmd[];
 
 interface RelayConfig<T> {
-  select: () => T;
-  onChange: (current: T, prev: T) => RelayOnChangeResult | Promise<RelayOnChangeResult>;
+  readonly select: () => T;
+  readonly onChange: (current: T, prev: T) => RelayOnChangeResult | Promise<RelayOnChangeResult>;
 }
 
 declare const relayBrand: unique symbol;

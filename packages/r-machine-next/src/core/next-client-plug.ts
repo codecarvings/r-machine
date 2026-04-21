@@ -23,7 +23,7 @@ interface NextClientMapPlug<
   NM extends NamespaceMap<RA>,
   PA extends AnyPathAtlas,
 > extends PlugBody<NextMapPlugHead<RA, L, KA, NM, NextPluginCtx<RA, L, KA, PA>>> {
-  use(): NextMapPlugin<RA, L, KA, NM, PA>;
+  readonly use: () => NextMapPlugin<RA, L, KA, NM, PA>;
 }
 
 interface NextClientListPlug<
@@ -33,7 +33,7 @@ interface NextClientListPlug<
   NL extends NamespaceList<RA>,
   PA extends AnyPathAtlas,
 > extends PlugBody<NextListPlugHead<RA, L, KA, NL, NextPluginCtx<RA, L, KA, PA>>> {
-  use(): NextListPlugin<RA, L, KA, NL, PA>;
+  readonly use: () => NextListPlugin<RA, L, KA, NL, PA>;
 }
 
 export interface NextClientPlugDefiner<

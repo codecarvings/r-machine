@@ -11,14 +11,17 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, AnyResDomain, GearComposer, Namespace, ResEquipment, ShellComposer } from "#r-machine/core";
+import type {
+  AnyResAtlas,
+  AnyResDomain,
+  AnyResEquipment,
+  GearComposer,
+  Namespace,
+  ShellComposer,
+} from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
-export interface RMachineToolset<
-  RA extends AnyResAtlas,
-  L extends AnyLocale,
-  E extends ResEquipment<RA, any, any, any, any>,
-> {
+export interface RMachineToolset<RA extends AnyResAtlas, L extends AnyLocale, E extends AnyResEquipment<RA>> {
   readonly Gear: GearComposer<RA, E["gearKit"]>;
   readonly Shell: ShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>;
   readonly localized: LocalizerHelper<RA["shape@shell:*"]>;

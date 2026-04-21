@@ -55,6 +55,7 @@ export {
   type Token,
 } from "./res-domain.js";
 export type {
+  AnyResEquipment,
   BridgeGearNamespaceList,
   GateKit,
   GearKit,

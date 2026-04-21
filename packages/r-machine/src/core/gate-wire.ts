@@ -18,10 +18,10 @@ import type { NamespaceMap } from "./res-map.js";
 import type { VertexGearMap } from "./vertex-gear.js";
 
 export interface GateWire {
-  getPlugin: () => unknown | Promise<unknown>;
-  subscribe: (callback: () => void) => () => void;
-  commitTracking: () => void;
-  updateRequest: (locale: AnyLocale, vertexGearMap?: VertexGearMap | undefined) => void;
+  readonly getPlugin: () => unknown | Promise<unknown>;
+  readonly subscribe: (callback: () => void) => () => void;
+  readonly commitTracking: () => void;
+  readonly updateRequest: (locale: AnyLocale, vertexGearMap?: VertexGearMap | undefined) => void;
 }
 
 export type GateWireConnector = (locale: AnyLocale, vertexGearMap?: VertexGearMap | undefined) => GateWire;

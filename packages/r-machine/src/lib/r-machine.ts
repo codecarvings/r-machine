@@ -17,6 +17,7 @@ import {
   type AnyRes,
   type AnyResAtlas,
   type AnyResAtlasClass,
+  type AnyResEquipment,
   type BridgeGearNamespaceList,
   createGearComposer,
   createShellComposer,
@@ -40,7 +41,7 @@ import {
 } from "./r-machine-config.js";
 import type { RMachineToolset } from "./r-machine-toolset.js";
 
-export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends ResEquipment<RA, any, any, any, any>> {
+export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends AnyResEquipment<RA>> {
   constructor(config: RMachineConfig<RA, L, E>) {
     const configError = validateRMachineConfig(config);
     if (configError) {

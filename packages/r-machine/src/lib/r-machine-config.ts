@@ -14,6 +14,7 @@
 import type {
   AnyResAtlas,
   AnyResAtlasClass,
+  AnyResEquipment,
   BridgeGearNamespaceList,
   GateKit,
   GearKit,
@@ -53,11 +54,7 @@ export interface RMachineConfigParams<
   readonly gateKit?: XK;
 }
 
-export interface RMachineConfig<
-  RA extends AnyResAtlas,
-  L extends AnyLocale,
-  E extends ResEquipment<RA, any, any, any, any>,
-> {
+export interface RMachineConfig<RA extends AnyResAtlas, L extends AnyLocale, E extends AnyResEquipment<RA>> {
   readonly resourceAtlas: RA;
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;

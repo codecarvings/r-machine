@@ -66,7 +66,7 @@ interface ReactMapPlug<
   KA extends NamespaceMap<RA>,
   NM extends NamespaceMap<RA>,
 > extends PlugBody<ReactMapPlugHead<RA, L, KA, NM, ReactPluginCtx<RA, L, KA>>> {
-  use(): ReactMapPlugin<RA, L, KA, NM>;
+  readonly use: () => ReactMapPlugin<RA, L, KA, NM>;
 }
 
 interface ReactListPlug<
@@ -75,7 +75,7 @@ interface ReactListPlug<
   KA extends NamespaceMap<RA>,
   NL extends NamespaceList<RA>,
 > extends PlugBody<ReactListPlugHead<RA, L, KA, NL, ReactPluginCtx<RA, L, KA>>> {
-  use(): ReactListPlugin<RA, L, KA, NL>;
+  readonly use: () => ReactListPlugin<RA, L, KA, NL>;
 }
 
 export interface ReactPlugDefiner<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> {

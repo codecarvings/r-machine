@@ -27,6 +27,8 @@ export interface ResEquipment<
   readonly gateKit: XK;
 }
 
+export type AnyResEquipment<RA extends AnyResAtlas = AnyResAtlas> = ResEquipment<RA, any, any, any, any>;
+
 export type BridgeGearNamespaceList<RA extends AnyResAtlas> = Namespace<RA["shape@gear"]>[];
 
 export type GearKit<RA extends AnyResAtlas> = {

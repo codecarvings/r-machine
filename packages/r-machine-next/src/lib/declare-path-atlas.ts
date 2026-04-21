@@ -15,7 +15,7 @@ import type { AnyLocale } from "r-machine/locale";
 import type { AnySegment, PathAtlas, PathAtlasClass, Segment } from "#r-machine/next/core";
 
 interface DeclaredPathAtlas<L extends AnyLocale> {
-  as<const S extends AnySegment>(tree: Segment<S, L>): PathAtlasClass<PathAtlas<S>>;
+  readonly as: <const S extends AnySegment>(tree: Segment<S, L>) => PathAtlasClass<PathAtlas<S>>;
 }
 
 export function declarePathAtlas<L extends AnyLocale = AnyLocale>(): DeclaredPathAtlas<L> {

@@ -12,15 +12,10 @@
  */
 
 import type { RMachine } from "#r-machine";
-import type { AnyResAtlas, ResEquipment } from "#r-machine/core";
+import type { AnyResAtlas, AnyResEquipment } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
-export abstract class Strategy<
-  RA extends AnyResAtlas,
-  L extends AnyLocale,
-  E extends ResEquipment<RA, any, any, any, any>,
-  C,
-> {
+export abstract class Strategy<RA extends AnyResAtlas, L extends AnyLocale, E extends AnyResEquipment<RA>, C> {
   constructor(
     readonly rMachine: RMachine<RA, L, E>,
     readonly config: C

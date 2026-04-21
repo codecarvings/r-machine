@@ -31,11 +31,11 @@ const plugMockSymbol = Symbol("plugMock");
 type ResetPlug = () => void;
 
 interface MapMockPlug<PH extends AnyMapPlugHead> {
-  with(data: MockPlugMapData<PH>): ResetPlug;
+  readonly with: (data: MockPlugMapData<PH>) => ResetPlug;
 }
 
 interface ListMockPlug<PH extends AnyListPlugHead> {
-  with(data: MockPlugListData<PH>): ResetPlug;
+  readonly with: (data: MockPlugListData<PH>) => ResetPlug;
 }
 
 interface MockPlug {

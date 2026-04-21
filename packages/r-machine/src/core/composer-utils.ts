@@ -13,7 +13,7 @@
 
 export function lazyGetters<T extends object>(
   factories: {
-    [K in keyof T]: () => T[K];
+    readonly [K in keyof T]: () => T[K];
   }
 ): T {
   const target = {} as { [K in keyof T]: T[K] };

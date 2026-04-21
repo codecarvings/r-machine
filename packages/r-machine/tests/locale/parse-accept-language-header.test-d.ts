@@ -25,11 +25,11 @@ describe("fullParseAcceptLanguageHeader", () => {
   });
 
   it("should return AcceptLanguageEntry array", () => {
-    expectTypeOf(fullParseAcceptLanguageHeader).returns.toEqualTypeOf<AcceptLanguageEntry[]>();
+    expectTypeOf(fullParseAcceptLanguageHeader).returns.toEqualTypeOf<readonly AcceptLanguageEntry[]>();
   });
 
   it("should have correct function signature", () => {
-    expectTypeOf(fullParseAcceptLanguageHeader).toEqualTypeOf<(header: string) => AcceptLanguageEntry[]>();
+    expectTypeOf(fullParseAcceptLanguageHeader).toEqualTypeOf<(header: string) => readonly AcceptLanguageEntry[]>();
   });
 
   it("return value should be iterable of AcceptLanguageEntry", () => {
@@ -44,11 +44,11 @@ describe("parseAcceptLanguageHeader", () => {
   });
 
   it("should return string array", () => {
-    expectTypeOf(parseAcceptLanguageHeader).returns.toEqualTypeOf<string[]>();
+    expectTypeOf(parseAcceptLanguageHeader).returns.toEqualTypeOf<readonly string[]>();
   });
 
   it("should have correct function signature", () => {
-    expectTypeOf(parseAcceptLanguageHeader).toEqualTypeOf<(header: string) => string[]>();
+    expectTypeOf(parseAcceptLanguageHeader).toEqualTypeOf<(header: string) => readonly string[]>();
   });
 
   it("return value should be iterable of strings", () => {

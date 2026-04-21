@@ -16,7 +16,10 @@ import type { ResLayoutEntryType } from "./index.js";
 export type AnyNamespace = string;
 
 export interface AnyResDomain {
-  readonly [namespace: AnyNamespace]: any; // Do not use AnyRes - It breaks token system
+  // `any` is intentional here: replacing it with `AnyRes` introduces a circular
+  // dependency AnyResDomain ↔ Token<Namespace<RD>> ↔ AnyRes that breaks
+  // Token inference and, in turn, the whole token system.
+  readonly [namespace: AnyNamespace]: any;
 }
 export interface AnyResDomainLayout {
   readonly [namespace: AnyNamespace]: ResLayoutEntryType;
@@ -43,8 +46,8 @@ export function getNamespace<T extends NamespaceRef<any>>(tokenOrNamespace: T): 
   }
 }
 
-export function isNamespace(value: any): value is NamespaceRef<any> {
-  return typeof value === "string" || (value && typeof value === "object" && namespaceSymbol in value);
+export function isNamespace(value: unknown): value is NamespaceRef<any> {
+  return typeof value === "string" || (typeof value === "object" && value !== null && namespaceSymbol in value);
 }
 
 export function createToken<N extends AnyNamespace>(namespace: N): Token<N> {

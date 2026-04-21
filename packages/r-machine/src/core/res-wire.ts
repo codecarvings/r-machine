@@ -17,7 +17,7 @@ import type { ResFamily } from "./res.js";
 import type { NamespaceMap } from "./res-map.js";
 
 export interface ResWire {
-  getPlugin: () => unknown;
+  readonly getPlugin: () => unknown;
 }
 
 export type ResWireConnector = (locale: AnyLocale | undefined) => ResWire;

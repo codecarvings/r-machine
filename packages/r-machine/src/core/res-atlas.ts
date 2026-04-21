@@ -38,7 +38,7 @@ export type ResAtlasClass<RL extends AnyResLayout, RD extends AnyResDomain, RA =
   readonly layout: RL;
   readonly [rawResAtlasShapeSymbol]: RA;
 
-  getTokenBuilder(
+  readonly getTokenBuilder: (
     ..._atlas_error: [DroppedAtlasKeys<RA, RD>] extends [never]
       ? []
       : [
@@ -48,13 +48,13 @@ export type ResAtlasClass<RL extends AnyResLayout, RD extends AnyResDomain, RA =
           > &
             string} ***`>,
         ]
-  ): TokenBuilder<RD>;
+  ) => TokenBuilder<RD>;
 };
 
 export type AnyResAtlasClass = (abstract new () => AnyResAtlas) & {
   readonly layout: AnyResLayout;
   readonly [rawResAtlasShapeSymbol]: AnyResDomain;
-  getTokenBuilder(...args: never[]): TokenBuilder<AnyResDomain>;
+  readonly getTokenBuilder: (...args: never[]) => TokenBuilder<AnyResDomain>;
 };
 
 export type SolidNamespace<RA extends AnyResAtlas> =
