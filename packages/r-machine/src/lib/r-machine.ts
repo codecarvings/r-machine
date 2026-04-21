@@ -24,9 +24,12 @@ import {
   type GateKit,
   type GateWire,
   type GearKit,
+  type NamespaceList,
+  ResBuilder,
   type ResEquipment,
   type ResWireProvider,
   type ShellKit,
+  type SurfaceList,
   type VertexGearMap,
 } from "#r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
@@ -51,12 +54,15 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
     this.locales = this.config.locales;
     this.defaultLocale = this.config.defaultLocale;
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
+
+    this.resBuilder = new ResBuilder(this.config.layout, this.config.load);
   }
 
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly localeHelper: LocaleHelper<L>;
   protected readonly config: RMachineConfig<RA, L, E>;
+  protected readonly resBuilder: ResBuilder;
 
   protected validateLocaleForPick(locale: L) {
     const error = this.localeHelper.validateLocale(locale);
@@ -78,6 +84,14 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
 
   getGateWire(_plugHead: AnyPlugHead, _locale: L, _vertexGearMap?: VertexGearMap | undefined): GateWire {
     return undefined!; // TODO: WIP;
+  }
+
+  async WIP_GET<NL extends NamespaceList<RA>>(...namespaces: NL): Promise<SurfaceList<RA, NL>> {
+    if (namespaces.length > 0) {
+      const pod = await this.resBuilder.createPod(namespaces[0] as any, this.defaultLocale);
+      console.log("WIP_GET loaded module:", pod);
+    }
+    return undefined!;
   }
 
   static create<

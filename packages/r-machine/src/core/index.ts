@@ -46,6 +46,7 @@ export type {
   SolidNamespace,
   SolidNamespaceRef,
 } from "./res-atlas.js";
+export { ResBuilder } from "./res-builder.js";
 export {
   type AnyNamespace,
   type AnyResDomain,

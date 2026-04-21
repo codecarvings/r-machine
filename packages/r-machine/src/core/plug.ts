@@ -14,7 +14,7 @@
 import type { AnyResAtlas } from "#r-machine/core";
 import { ERR_PLUG_RESOLVE_NOT_SET, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
-import { isNamespace } from "./res-domain.js";
+import { type AnyNamespace, isNamespace } from "./res-domain.js";
 import type { NamespaceList, SurfaceList } from "./res-list.js";
 import type { NamespaceMap, SurfaceMap } from "./res-map.js";
 
@@ -62,6 +62,7 @@ export interface MapPlugHead<
 > extends BasePlugHead<A, RA, KA, CTX> {
   readonly mode: "map";
   readonly namespaces: NM;
+  readonly deps: Record<string, AnyNamespace>;
 }
 export type AnyMapPlugHead = MapPlugHead<any, any, any, any, any>;
 
@@ -74,6 +75,7 @@ export interface ListPlugHead<
 > extends BasePlugHead<A, RA, KA, CTX> {
   readonly mode: "list";
   readonly namespaces: NL;
+  readonly deps: AnyNamespace[];
 }
 export type AnyListPlugHead = ListPlugHead<any, any, any, any, any>;
 

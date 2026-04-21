@@ -55,7 +55,7 @@ export function createResPod(
     const plugHead = getPlugHead(origin.plug);
     return {
       namespace,
-      locale,
+      locale: family === "shell" ? locale : undefined,
       family,
       isReactive,
       isVertex,

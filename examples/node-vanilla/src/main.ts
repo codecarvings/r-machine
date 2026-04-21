@@ -1,11 +1,4 @@
-import { Gear } from "./r-machine/setup";
+import { rMachine } from "./r-machine/setup";
 
-const r = Gear.deps("gear/config")
-  .reactive("prova")
-  .define(() => {
-    return {};
-  });
-console.dir(r);
-
-const value = await r.factory();
-console.log(value);
+const gear = await rMachine.WIP_GET("shell/common2");
+console.log(gear);

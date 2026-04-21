@@ -1,7 +1,7 @@
-import { type RShape, Shell } from "@/r-machine/setup";
+import type { RShape } from "@/r-machine/setup";
 
-export const r = Shell.deps().define(({ fmt }) => ({
-  greeting: `Hello world ${fmt.number(21)}`,
-}));
+export const r = {
+  greeting: `Hello world!`,
+};
 
 export type Shell_Common2 = RShape<typeof r>;

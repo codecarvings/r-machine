@@ -44,7 +44,9 @@ export function createResLayoutEntryTypeResolver(layout: AnyResLayout): ResLayou
   const cache = new Map<string, ResLayoutEntryType | undefined>();
 
   return function resolveResLayoutType(namespace) {
-    if (cache.has(namespace)) return cache.get(namespace);
+    if (cache.has(namespace)) {
+      return cache.get(namespace);
+    }
     const type = entries.find(([prefix]) => isPrefixMatch(namespace, prefix))?.[1];
     cache.set(namespace, type);
     return type;
