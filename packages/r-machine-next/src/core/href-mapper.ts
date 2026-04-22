@@ -12,7 +12,7 @@
  */
 
 import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
-import type { AnyPathAtlas, AnySegment } from "#r-machine/next/core";
+import type { AnyPathAtlas, AnySegment } from "./path-atlas.js";
 
 type SegmentKind = "static" | "dynamic" | "catchAll" | "optionalCatchAll";
 

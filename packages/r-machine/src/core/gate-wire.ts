@@ -11,8 +11,8 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
+import type { AnyResAtlas } from "./res-atlas.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 import type { VertexGearMap } from "./vertex-gear.js";

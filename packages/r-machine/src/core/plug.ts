@@ -11,9 +11,9 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas } from "#r-machine/core";
 import { ERR_PLUG_RESOLVE_NOT_SET, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
+import type { AnyResAtlas } from "./res-atlas.js";
 import { isHandle } from "./res-domain.js";
 import type { AnyNamespaceList, HandleList, SurfaceList } from "./res-list.js";
 import type { AnyNamespaceMap, HandleMap, SurfaceMap } from "./res-map.js";

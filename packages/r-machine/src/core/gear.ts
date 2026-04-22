@@ -11,13 +11,14 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, ResMatrix } from "#r-machine/core";
 import type { CmdComposer } from "./cmd.js";
 import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
 import type { RelayComposer } from "./relay.js";
 import type { AnyRes } from "./res.js";
+import type { AnyResAtlas } from "./res-atlas.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
+import type { ResMatrix } from "./res-matrix.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
 export interface GearCursor {

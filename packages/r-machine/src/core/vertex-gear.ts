@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyRes } from "#r-machine/core";
+import type { AnyRes } from "./res.js";
 import type { AnyNamespace } from "./res-domain.js";
 
 export interface VertexGearTagData {

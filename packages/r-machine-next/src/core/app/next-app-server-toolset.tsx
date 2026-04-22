@@ -17,10 +17,9 @@ import type { AnyResAtlas, ResEquipment } from "r-machine/core";
 import { RMachineUsageError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
-import type { AnyPathAtlas, BoundPathComposer, RMachineProxy } from "#r-machine/next/core";
+import type { AnyPathAtlas, BoundPathComposer, NextServerPlugDefiner, RMachineProxy } from "#r-machine/next/core";
 import { ERR_LOCALE_BIND_CONFLICT } from "#r-machine/next/errors";
 import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
-import type { NextServerPlugDefiner } from "../next-server-plug.js";
 import type { NextAppClientRMachine } from "./next-app-client-toolset.js";
 
 export interface NextAppServerToolset<

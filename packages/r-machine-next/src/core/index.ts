@@ -14,6 +14,8 @@
 export { HrefCanonicalizer } from "./href-canonicalizer.js";
 export { HrefMapper } from "./href-mapper.js";
 export { HrefTranslator } from "./href-translator.js";
+export type { NextClientPlugDefiner } from "./next-client-plug.js";
+export type { NextServerPlugDefiner } from "./next-server-plug.js";
 export type {
   BoundPathComposer,
   PathParamMap,

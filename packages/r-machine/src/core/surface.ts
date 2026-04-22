@@ -11,12 +11,12 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { ResLayoutEntryType } from "#r-machine/core";
 import type { Action } from "./action.js";
 import type { Getter } from "./getter.js";
 import type { RelayBrand } from "./relay.js";
 import type { AnyRes } from "./res.js";
 import type { AnyNamespace } from "./res-domain.js";
+import type { ResLayoutEntryType } from "./res-layout.js";
 
 type SurfaceItem<I> = I extends Getter<infer V> ? V : I extends Action<infer F> ? F : I extends RelayBrand ? never : I;
 

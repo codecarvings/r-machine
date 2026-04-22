@@ -12,7 +12,7 @@
  */
 
 import { ERR_INVALID_LOCALE_ID, RMachineConfigError } from "#r-machine/errors";
-import type { AnyLocale } from "#r-machine/locale";
+import type { AnyLocale } from "./locale.js";
 
 function computeCanonicalUnicodeLocaleId(locale: AnyLocale): AnyLocale {
   if (locale === "") {

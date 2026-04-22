@@ -1,4 +1,4 @@
-import type { RMachineTypeError } from "../errors/r-machine-type-error.js";
+import type { RMachineTypeError } from "#r-machine/errors";
 import type { ReactiveGearTag } from "./reactive-gear.js";
 import type { AnyResDomain, AnyResDomainLayout, Namespace, Token, TokenBuilder } from "./res-domain.js";
 import type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "./res-layout.js";

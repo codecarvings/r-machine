@@ -11,7 +11,6 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 import {
   createPlug,
@@ -22,6 +21,7 @@ import {
   setPlugResolve,
 } from "./plug.js";
 import type { AnyRes, AnyResOrigin, ResFamily } from "./res.js";
+import type { AnyResAtlas } from "./res-atlas.js";
 import { getNamespaceList, type HandleList } from "./res-list.js";
 import { getNamespaceMap, type HandleMap } from "./res-map.js";
 import type { AnyResPlug, AnyResPlugHead } from "./res-plug.js";

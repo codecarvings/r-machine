@@ -15,6 +15,7 @@ import type {
   AnyResAtlas,
   AnyResAtlasClass,
   AnyResEquipment,
+  AnyResLayout,
   BridgeGearNamespaceList,
   GateKit,
   GearKit,
@@ -34,7 +35,6 @@ import {
   type LocaleList,
   validateCanonicalUnicodeLocaleId,
 } from "#r-machine/locale";
-import type { AnyResLayout } from "../core/res-layout.js";
 
 export interface RMachineConfigParams<
   RAC extends AnyResAtlasClass,

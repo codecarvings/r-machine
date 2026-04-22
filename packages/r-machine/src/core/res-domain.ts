@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { ResLayoutEntryType } from "./index.js";
+import type { ResLayoutEntryType } from "./res-layout.js";
 
 export type AnyNamespace = string;
 
