@@ -14,7 +14,7 @@
 // Branded error helper surfaced in TypeScript diagnostics. When a constraint
 // or parameter type resolves to RMachineTypeError<"…">, the message appears
 // inline in the error, making the failure self-explanatory instead of an
-// opaque structural mismatch like "not assignable to NamespaceRef<…>".
+// opaque structural mismatch like "not assignable to Handle<…>".
 //
 // Usage pattern: in a conditional type, return `T` for the success case and
 // `RMachineTypeError<"message">` for the failure case. Applied either as an

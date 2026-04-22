@@ -23,51 +23,51 @@ import {
 } from "./reactive-gear-composer.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { NamespaceRef } from "./res-domain.js";
-import type { NamespaceList } from "./res-list.js";
-import type { NamespaceMap } from "./res-map.js";
+import type { Handle } from "./res-domain.js";
+import type { HandleList } from "./res-list.js";
+import type { HandleMap } from "./res-map.js";
 import type { ResMatrixMeta } from "./res-matrix.js";
 import { assembleResMatrix } from "./res-matrix.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 import type { ResWireProvider } from "./res-wire.js";
 
 type ValidGearDepItem<RA extends AnyResAtlas, N> =
-  N extends NamespaceRef<RA["shape@gear"]>
+  N extends Handle<RA["shape@gear"]>
     ? N
     : N extends string
       ? RMachineTypeError<`Namespace '${N}' is not a valid gear namespace.`>
       : RMachineTypeError<"This token does not reference a valid gear namespace.">;
 
-export interface GearComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>> {
+export interface GearComposer<RA extends AnyResAtlas, KA extends HandleMap<RA>> {
   readonly deps: GearDepsComposer<RA, KA>;
   readonly reactive: ReactiveGearMapDepsComposer<RA, KA, {}>;
   readonly define: GearMapDefiner<RA, KA, {}>;
 }
 
-interface GearDepsComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>> {
+interface GearDepsComposer<RA extends AnyResAtlas, KA extends HandleMap<RA>> {
   (): GearMapDepsComposer<RA, KA, {}>;
-  <const NL extends readonly NamespaceRef<RA["shape"]>[]>(
-    ...namespaces: { readonly [I in keyof NL]: ValidGearDepItem<RA, NL[I]> }
+  <const NL extends readonly Handle<RA["shape"]>[]>(
+    ...deps: { readonly [I in keyof NL]: ValidGearDepItem<RA, NL[I]> }
   ): GearListDepsComposer<RA, KA, NL>;
-  <const NM extends { readonly [k: string]: NamespaceRef<RA["shape"]> }>(
-    namespaces: { readonly [K in keyof NM]: ValidGearDepItem<RA, NM[K]> }
+  <const NM extends { readonly [k: string]: Handle<RA["shape"]> }>(
+    deps: { readonly [K in keyof NM]: ValidGearDepItem<RA, NM[K]> }
   ): GearMapDepsComposer<RA, KA, NM>;
 }
 
-interface GearMapDepsComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>> {
-  readonly reactive: ReactiveGearMapDepsComposer<RA, KA, NM>;
-  readonly define: GearMapDefiner<RA, KA, NM>;
+interface GearMapDepsComposer<RA extends AnyResAtlas, KA extends HandleMap<RA>, DM extends HandleMap<RA>> {
+  readonly reactive: ReactiveGearMapDepsComposer<RA, KA, DM>;
+  readonly define: GearMapDefiner<RA, KA, DM>;
 }
 
-interface GearListDepsComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>> {
-  readonly reactive: ReactiveGearListDepsComposer<RA, KA, NL>;
-  readonly define: GearListDefiner<RA, KA, NL>;
+interface GearListDepsComposer<RA extends AnyResAtlas, KA extends HandleMap<RA>, DL extends HandleList<RA>> {
+  readonly reactive: ReactiveGearListDepsComposer<RA, KA, DL>;
+  readonly define: GearListDefiner<RA, KA, DL>;
 }
 
 // #region Runtime
 
 // TODO: replace with real cmd/relay runtime once available.
-const gearCursor: GearCursor = {
+const cursor: GearCursor = {
   relay: (() => {
     throw new Error("relay: not yet implemented");
   }) as GearCursor["relay"],
@@ -78,7 +78,7 @@ const gearCursor: GearCursor = {
 
 const meta: ResMatrixMeta = { family: "gear", isReactive: false };
 
-export function createGearComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>>(
+export function createGearComposer<RA extends AnyResAtlas, KA extends HandleMap<RA>>(
   provider: ResWireProvider
 ): GearComposer<RA, KA> {
   const reactive = createReactiveGearMapDepsComposer<RA, KA, {}>(provider, {});
@@ -87,9 +87,9 @@ export function createGearComposer<RA extends AnyResAtlas, KA extends NamespaceM
   const deps = ((...args: unknown[]) => {
     const mask = getPlugOutline<RA>(...args);
     if (mask.mode === "map") {
-      return createGearMapDepsComposer<RA, KA, any>(provider, mask.namespaces);
+      return createGearMapDepsComposer<RA, KA, any>(provider, mask.deps);
     } else {
-      return createGearListDepsComposer<RA, KA, any>(provider, mask.namespaces);
+      return createGearListDepsComposer<RA, KA, any>(provider, mask.deps);
     }
   }) as GearDepsComposer<RA, KA>;
 
@@ -100,36 +100,36 @@ export function createGearComposer<RA extends AnyResAtlas, KA extends NamespaceM
   };
 }
 
-function createGearMapDepsComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>(
+function createGearMapDepsComposer<RA extends AnyResAtlas, KA extends HandleMap<RA>, DM extends HandleMap<RA>>(
   provider: ResWireProvider,
-  namespaces: NM
-): GearMapDepsComposer<RA, KA, NM> {
-  return lazyGetters<GearMapDepsComposer<RA, KA, NM>>({
-    reactive: () => createReactiveGearMapDepsComposer<RA, KA, NM>(provider, namespaces),
-    define: () => createGearMapDefiner<RA, KA, NM>(provider, namespaces),
+  deps: DM
+): GearMapDepsComposer<RA, KA, DM> {
+  return lazyGetters<GearMapDepsComposer<RA, KA, DM>>({
+    reactive: () => createReactiveGearMapDepsComposer<RA, KA, DM>(provider, deps),
+    define: () => createGearMapDefiner<RA, KA, DM>(provider, deps),
   });
 }
 
-function createGearListDepsComposer<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>>(
+function createGearListDepsComposer<RA extends AnyResAtlas, KA extends HandleMap<RA>, DL extends HandleList<RA>>(
   provider: ResWireProvider,
-  namespaces: NL
-): GearListDepsComposer<RA, KA, NL> {
-  return lazyGetters<GearListDepsComposer<RA, KA, NL>>({
-    reactive: () => createReactiveGearListDepsComposer<RA, KA, NL>(provider, namespaces),
-    define: () => createGearListDefiner<RA, KA, NL>(provider, namespaces),
+  deps: DL
+): GearListDepsComposer<RA, KA, DL> {
+  return lazyGetters<GearListDepsComposer<RA, KA, DL>>({
+    reactive: () => createReactiveGearListDepsComposer<RA, KA, DL>(provider, deps),
+    define: () => createGearListDefiner<RA, KA, DL>(provider, deps),
   });
 }
 
-function createGearMapDefiner<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NM extends NamespaceMap<RA>>(
+function createGearMapDefiner<RA extends AnyResAtlas, KA extends HandleMap<RA>, DM extends HandleMap<RA>>(
   provider: ResWireProvider,
-  namespaces: NM
-): GearMapDefiner<RA, KA, NM> {
-  type PlugHead = ResMapPlugHead<"gear", RA, KA, NM, PluginCtx<RA, KA>>;
+  deps: DM
+): GearMapDefiner<RA, KA, DM> {
+  type PlugHead = ResMapPlugHead<"gear", RA, KA, DM, PluginCtx<RA, KA>>;
   const head = {
     area: "res",
     family: "gear",
     mode: "map",
-    namespaces,
+    deps,
   } as PlugHead;
 
   return ((factory: (plugin: never, cursor: never) => unknown) =>
@@ -137,22 +137,21 @@ function createGearMapDefiner<RA extends AnyResAtlas, KA extends NamespaceMap<RA
       provider,
       meta,
       head,
-      namespaces,
-      cursor: gearCursor,
+      cursor,
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
-    })) as GearMapDefiner<RA, KA, NM>;
+    })) as GearMapDefiner<RA, KA, DM>;
 }
 
-function createGearListDefiner<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, NL extends NamespaceList<RA>>(
+function createGearListDefiner<RA extends AnyResAtlas, KA extends HandleMap<RA>, DL extends HandleList<RA>>(
   provider: ResWireProvider,
-  namespaces: NL
-): GearListDefiner<RA, KA, NL> {
-  type PlugHead = ResListPlugHead<"gear", RA, KA, NL, PluginCtx<RA, KA>>;
+  deps: DL
+): GearListDefiner<RA, KA, DL> {
+  type PlugHead = ResListPlugHead<"gear", RA, KA, DL, PluginCtx<RA, KA>>;
   const head = {
     area: "res",
     family: "gear",
     mode: "list",
-    namespaces,
+    deps,
   } as PlugHead;
 
   return ((factory: (plugin: never, cursor: never) => unknown) =>
@@ -160,10 +159,9 @@ function createGearListDefiner<RA extends AnyResAtlas, KA extends NamespaceMap<R
       provider,
       meta,
       head,
-      namespaces,
-      cursor: gearCursor,
+      cursor,
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
-    })) as GearListDefiner<RA, KA, NL>;
+    })) as GearListDefiner<RA, KA, DL>;
 }
 
 // #endregion

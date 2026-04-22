@@ -13,8 +13,8 @@
 
 import type { AnyResAtlas } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
-import type { NamespaceList } from "./res-list.js";
-import type { NamespaceMap } from "./res-map.js";
+import type { HandleList } from "./res-list.js";
+import type { HandleMap } from "./res-map.js";
 import type { VertexGearMap } from "./vertex-gear.js";
 
 export interface GateWire {
@@ -26,6 +26,4 @@ export interface GateWire {
 
 export type GateWireConnector = (locale: AnyLocale, vertexGearMap?: VertexGearMap | undefined) => GateWire;
 
-export type GateWireProvider = (
-  namespaces: NamespaceMap<AnyResAtlas> | NamespaceList<AnyResAtlas>
-) => GateWireConnector;
+export type GateWireProvider = (deps: HandleMap<AnyResAtlas> | HandleList<AnyResAtlas>) => GateWireConnector;

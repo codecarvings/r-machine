@@ -43,8 +43,8 @@ export type {
   AnyResAtlasClass,
   ResAtlas,
   ResAtlasClass,
+  SolidHandle,
   SolidNamespace,
-  SolidNamespaceRef,
 } from "./res-atlas.js";
 export { ResBuilder } from "./res-builder.js";
 export {
@@ -64,10 +64,10 @@ export type {
   ShellKit,
 } from "./res-equipment.js";
 export type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "./res-layout.js";
-export type { NamespaceList, SolidNamespaceList, SurfaceList } from "./res-list.js";
+export type { HandleList, SolidHandleList, SurfaceList } from "./res-list.js";
 export type {
-  NamespaceMap,
-  SolidNamespaceMap,
+  HandleMap,
+  SolidHandleMap,
   SurfaceMap,
 } from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";

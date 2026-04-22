@@ -11,23 +11,36 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, SolidNamespaceRef } from "./res-atlas.js";
-import type { ExtractNamespace, NamespaceRef } from "./res-domain.js";
+import type { AnyResAtlas, SolidHandle } from "./res-atlas.js";
+import { type ExtractNamespace, getNamespace, type Handle, type Namespace } from "./res-domain.js";
 import type { Surface } from "./surface.js";
 
-export type NamespaceMap<RA extends AnyResAtlas> = {
-  readonly [k: string]: NamespaceRef<RA["shape"]>;
+export type HandleMap<RA extends AnyResAtlas> = {
+  readonly [k: string]: Handle<RA["shape"]>;
 };
 
-export type SolidNamespaceMap<RA extends AnyResAtlas> = {
-  readonly [k: string]: SolidNamespaceRef<RA>;
+export type SolidHandleMap<RA extends AnyResAtlas> = {
+  readonly [k: string]: SolidHandle<RA>;
 };
+
+export type NamespaceMap<RA extends AnyResAtlas> = {
+  readonly [k: string]: Namespace<RA["shape"]>;
+};
+export type AnyNamespaceMap = NamespaceMap<AnyResAtlas>;
+
+export function getNamespaceMap<RA extends AnyResAtlas>(handles: HandleMap<RA>): NamespaceMap<RA> {
+  const result: any = {};
+  for (const k in handles) {
+    result[k] = getNamespace(handles[k]);
+  }
+  return result as NamespaceMap<RA>;
+}
 
 // -readonly as SurfaceList
-export type SurfaceMap<RA extends AnyResAtlas, NM extends NamespaceMap<RA>> = {
-  -readonly [K in keyof NM]: Surface<
-    RA["shape"][ExtractNamespace<NM[K]>],
-    ExtractNamespace<NM[K]>,
-    RA["let"][ExtractNamespace<NM[K]>]
+export type SurfaceMap<RA extends AnyResAtlas, HM extends HandleMap<RA>> = {
+  -readonly [K in keyof HM]: Surface<
+    RA["shape"][ExtractNamespace<HM[K]>],
+    ExtractNamespace<HM[K]>,
+    RA["let"][ExtractNamespace<HM[K]>]
   >;
 };

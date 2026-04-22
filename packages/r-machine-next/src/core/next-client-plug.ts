@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, NamespaceList, NamespaceMap, PlugBody } from "r-machine/core";
+import type { AnyResAtlas, HandleList, HandleMap, PlugBody } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { NextListPlugHead, NextListPlugin, NextMapPlugHead, NextMapPlugin, NextPluginCtx } from "./next-plug.js";
 import type { AnyPathAtlas } from "./path-atlas.js";
@@ -19,30 +19,30 @@ import type { AnyPathAtlas } from "./path-atlas.js";
 interface NextClientMapPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
+  KA extends HandleMap<RA>,
+  DM extends HandleMap<RA>,
   PA extends AnyPathAtlas,
-> extends PlugBody<NextMapPlugHead<RA, L, KA, NM, NextPluginCtx<RA, L, KA, PA>>> {
-  readonly use: () => NextMapPlugin<RA, L, KA, NM, PA>;
+> extends PlugBody<NextMapPlugHead<RA, L, KA, DM, NextPluginCtx<RA, L, KA, PA>>> {
+  readonly use: () => NextMapPlugin<RA, L, KA, DM, PA>;
 }
 
 interface NextClientListPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
+  KA extends HandleMap<RA>,
+  DL extends HandleList<RA>,
   PA extends AnyPathAtlas,
-> extends PlugBody<NextListPlugHead<RA, L, KA, NL, NextPluginCtx<RA, L, KA, PA>>> {
-  readonly use: () => NextListPlugin<RA, L, KA, NL, PA>;
+> extends PlugBody<NextListPlugHead<RA, L, KA, DL, NextPluginCtx<RA, L, KA, PA>>> {
+  readonly use: () => NextListPlugin<RA, L, KA, DL, PA>;
 }
 
 export interface NextClientPlugDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends NamespaceMap<RA>,
+  KA extends HandleMap<RA>,
   PA extends AnyPathAtlas,
 > {
   (): NextClientMapPlug<RA, L, KA, {}, PA>;
-  <NL extends NamespaceList<RA>>(...namespaces: NL): NextClientListPlug<RA, L, KA, NL, PA>;
-  <NM extends NamespaceMap<RA>>(namespaces: NM): NextClientMapPlug<RA, L, KA, NM, PA>;
+  <DL extends HandleList<RA>>(...deps: DL): NextClientListPlug<RA, L, KA, DL, PA>;
+  <DM extends HandleMap<RA>>(deps: DM): NextClientMapPlug<RA, L, KA, DM, PA>;
 }

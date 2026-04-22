@@ -11,19 +11,26 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, SolidNamespaceRef } from "./res-atlas.js";
-import type { ExtractNamespace, NamespaceRef } from "./res-domain.js";
+import type { AnyResAtlas, SolidHandle } from "./res-atlas.js";
+import { type ExtractNamespace, getNamespace, type Handle, type Namespace } from "./res-domain.js";
 import type { Surface } from "./surface.js";
 
-export type NamespaceList<RA extends AnyResAtlas> = readonly NamespaceRef<RA["shape"]>[];
+export type HandleList<RA extends AnyResAtlas> = readonly Handle<RA["shape"]>[];
 
-export type SolidNamespaceList<RA extends AnyResAtlas> = readonly SolidNamespaceRef<RA>[];
+export type SolidHandleList<RA extends AnyResAtlas> = readonly SolidHandle<RA>[];
+
+export type NamespaceList<RA extends AnyResAtlas> = readonly Namespace<RA["shape"]>[];
+
+export function getNamespaceList<RA extends AnyResAtlas>(handles: HandleList<RA>): NamespaceList<RA> {
+  return handles.map(getNamespace) as NamespaceList<RA>;
+}
+export type AnyNamespaceList = NamespaceList<AnyResAtlas>;
 
 // -readonly required to allow tuple spreading
-export type SurfaceList<RA extends AnyResAtlas, NL extends NamespaceList<RA>> = {
-  -readonly [I in keyof NL]: Surface<
-    RA["shape"][ExtractNamespace<NL[I]>],
-    ExtractNamespace<NL[I]>,
-    RA["let"][ExtractNamespace<NL[I]>]
+export type SurfaceList<RA extends AnyResAtlas, HL extends HandleList<RA>> = {
+  -readonly [I in keyof HL]: Surface<
+    RA["shape"][ExtractNamespace<HL[I]>],
+    ExtractNamespace<HL[I]>,
+    RA["let"][ExtractNamespace<HL[I]>]
   >;
 };

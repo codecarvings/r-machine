@@ -18,8 +18,8 @@ import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
 import type { ReactiveGearTag } from "./reactive-gear.js";
 import type { AnyReactiveRes, RejectAsyncValueProps } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { NamespaceList } from "./res-list.js";
-import type { NamespaceMap } from "./res-map.js";
+import type { HandleList } from "./res-list.js";
+import type { HandleMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
@@ -30,7 +30,7 @@ interface StatefulReactiveGearCursor<S extends AnyState> extends GearCursor {
   readonly action: ActionComposer<S>;
 }
 
-type StatefulReactiveGearCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>, S extends AnyState> = PluginCtx<
+type StatefulReactiveGearCtx<RA extends AnyResAtlas, KA extends HandleMap<RA>, S extends AnyState> = PluginCtx<
   RA,
   KA
 > & {
@@ -40,51 +40,51 @@ type StatefulReactiveGearCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>
 
 type StatefulReactiveGearMapPlugin<
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
+  KA extends HandleMap<RA>,
+  DM extends HandleMap<RA>,
   S extends AnyState,
-> = MapPlugin<RA, NM, StatefulReactiveGearCtx<RA, KA, S>>;
+> = MapPlugin<RA, DM, StatefulReactiveGearCtx<RA, KA, S>>;
 
 type StatefulReactiveGearListPlugin<
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
+  KA extends HandleMap<RA>,
+  DL extends HandleList<RA>,
   S extends AnyState,
-> = ListPlugin<RA, NL, StatefulReactiveGearCtx<RA, KA, S>>;
+> = ListPlugin<RA, DL, StatefulReactiveGearCtx<RA, KA, S>>;
 
 interface StatefulReactiveGearMapPlugHead<
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
+  KA extends HandleMap<RA>,
+  DM extends HandleMap<RA>,
   CTX extends StatefulReactiveGearCtx<RA, KA, S>,
   S extends AnyState,
-> extends ResMapPlugHead<"gear", RA, KA, NM, CTX> {
+> extends ResMapPlugHead<"gear", RA, KA, DM, CTX> {
   readonly defaultState: S;
 }
 
 interface StatefulReactiveGearListPlugHead<
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
+  KA extends HandleMap<RA>,
+  DL extends HandleList<RA>,
   CTX extends StatefulReactiveGearCtx<RA, KA, S>,
   S extends AnyState,
-> extends ResListPlugHead<"gear", RA, KA, NL, CTX> {
+> extends ResListPlugHead<"gear", RA, KA, DL, CTX> {
   readonly defaultState: S;
 }
 
 interface StatefulReactiveGearMapPlug<
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
+  KA extends HandleMap<RA>,
+  DM extends HandleMap<RA>,
   S extends AnyState,
-> extends PlugBody<StatefulReactiveGearMapPlugHead<RA, KA, NM, StatefulReactiveGearCtx<RA, KA, S>, S>> {}
+> extends PlugBody<StatefulReactiveGearMapPlugHead<RA, KA, DM, StatefulReactiveGearCtx<RA, KA, S>, S>> {}
 
 interface StatefulReactiveGearListPlug<
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
+  KA extends HandleMap<RA>,
+  DL extends HandleList<RA>,
   S extends AnyState,
-> extends PlugBody<StatefulReactiveGearListPlugHead<RA, KA, NL, StatefulReactiveGearCtx<RA, KA, S>, S>> {}
+> extends PlugBody<StatefulReactiveGearListPlugHead<RA, KA, DL, StatefulReactiveGearCtx<RA, KA, S>, S>> {}
 
 type ReadableReactiveGearResource<S extends AnyState, G extends string> = { [P in G]: DefaultGetter<S> };
 type WritableReactiveGearResource<S extends AnyState, G extends string, A extends string> = {
@@ -108,30 +108,30 @@ type StateReactiveGearResource<S extends AnyState, D extends StateDef> = D exten
 
 export interface StatefulReactiveGearMapDefiner<
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
+  KA extends HandleMap<RA>,
+  DM extends HandleMap<RA>,
   S extends AnyState,
 > {
   <const D extends StateDef>(
-    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => D | Promise<D>
-  ): ResMatrix<StateReactiveGearResource<S, D> & ReactiveGearTag, StatefulReactiveGearMapPlug<RA, KA, NM, S>>;
+    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, DM, S>, _: StatefulReactiveGearCursor<S>) => D | Promise<D>
+  ): ResMatrix<StateReactiveGearResource<S, D> & ReactiveGearTag, StatefulReactiveGearMapPlug<RA, KA, DM, S>>;
 
   <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
-    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, NM, S>, _: StatefulReactiveGearCursor<S>) => R | Promise<R>
-  ): ResMatrix<R & ReactiveGearTag, StatefulReactiveGearMapPlug<RA, KA, NM, S>>;
+    factory: (plugin: StatefulReactiveGearMapPlugin<RA, KA, DM, S>, _: StatefulReactiveGearCursor<S>) => R | Promise<R>
+  ): ResMatrix<R & ReactiveGearTag, StatefulReactiveGearMapPlug<RA, KA, DM, S>>;
 }
 
 export interface StatefulReactiveGearListDefiner<
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
+  KA extends HandleMap<RA>,
+  DL extends HandleList<RA>,
   S extends AnyState,
 > {
   <const D extends StateDef>(
-    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => D | Promise<D>
-  ): ResMatrix<StateReactiveGearResource<S, D> & ReactiveGearTag, StatefulReactiveGearListPlug<RA, KA, NL, S>>;
+    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, DL, S>, _: StatefulReactiveGearCursor<S>) => D | Promise<D>
+  ): ResMatrix<StateReactiveGearResource<S, D> & ReactiveGearTag, StatefulReactiveGearListPlug<RA, KA, DL, S>>;
 
   <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
-    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, NL, S>, _: StatefulReactiveGearCursor<S>) => R | Promise<R>
-  ): ResMatrix<R & ReactiveGearTag, StatefulReactiveGearListPlug<RA, KA, NL, S>>;
+    factory: (plugin: StatefulReactiveGearListPlugin<RA, KA, DL, S>, _: StatefulReactiveGearCursor<S>) => R | Promise<R>
+  ): ResMatrix<R & ReactiveGearTag, StatefulReactiveGearListPlug<RA, KA, DL, S>>;
 }

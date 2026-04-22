@@ -14,16 +14,16 @@
 import type { ListPlugHead, MapPlugHead, PlugBody, PluginCtx } from "./plug.js";
 import type { ResFamily } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { NamespaceList } from "./res-list.js";
-import type { NamespaceMap } from "./res-map.js";
+import type { HandleList } from "./res-list.js";
+import type { HandleMap } from "./res-map.js";
 
 export interface ResMapPlugHead<
   F extends ResFamily,
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
+  KA extends HandleMap<RA>,
+  DM extends HandleMap<RA>,
   CTX extends PluginCtx<RA, KA>,
-> extends MapPlugHead<"res", RA, KA, NM, CTX> {
+> extends MapPlugHead<"res", RA, KA, DM, CTX> {
   readonly family: F;
 }
 type AnyResMapPlugHead = ResMapPlugHead<ResFamily, any, any, any, any>;
@@ -31,10 +31,10 @@ type AnyResMapPlugHead = ResMapPlugHead<ResFamily, any, any, any, any>;
 export interface ResListPlugHead<
   F extends ResFamily,
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
+  KA extends HandleMap<RA>,
+  DL extends HandleList<RA>,
   CTX extends PluginCtx<RA, KA>,
-> extends ListPlugHead<"res", RA, KA, NL, CTX> {
+> extends ListPlugHead<"res", RA, KA, DL, CTX> {
   readonly family: F;
 }
 type AnyResListPlugHead = ResListPlugHead<ResFamily, any, any, any, any>;

@@ -24,7 +24,7 @@ import {
   type GateKit,
   type GateWire,
   type GearKit,
-  type NamespaceList,
+  type HandleList,
   ResBuilder,
   type ResEquipment,
   type ResWireProvider,
@@ -86,9 +86,9 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
     return undefined!; // TODO: WIP;
   }
 
-  async WIP_GET<NL extends NamespaceList<RA>>(...namespaces: NL): Promise<SurfaceList<RA, NL>> {
-    if (namespaces.length > 0) {
-      const blueprint = await this.resBuilder.createBlueprint(namespaces[0] as any, this.defaultLocale);
+  async WIP_GET<DL extends HandleList<RA>>(...deps: DL): Promise<SurfaceList<RA, DL>> {
+    if (deps.length > 0) {
+      const blueprint = await this.resBuilder.createBlueprint(deps[0] as any, this.defaultLocale);
       console.log("WIP_GET loaded blueprint:", blueprint);
     }
     return undefined!;

@@ -34,19 +34,19 @@ export interface Token<N extends string> {
 
 export type TokenBuilder<RD extends AnyResDomain> = <N extends Namespace<RD>>(namespace: N) => Token<N>;
 
-export type NamespaceRef<RD extends AnyResDomain> = Namespace<RD> | Token<Namespace<RD>>;
+export type Handle<RD extends AnyResDomain> = Namespace<RD> | Token<Namespace<RD>>;
 
-export type ExtractNamespace<T extends NamespaceRef<any>> = T extends Token<infer N> ? N : T;
+export type ExtractNamespace<H extends Handle<any>> = H extends Token<infer N> ? N : H;
 
-export function getNamespace<T extends NamespaceRef<any>>(tokenOrNamespace: T): ExtractNamespace<T> {
-  if (typeof tokenOrNamespace === "string") {
-    return tokenOrNamespace as ExtractNamespace<T>;
+export function getNamespace<H extends Handle<any>>(handle: H): ExtractNamespace<H> {
+  if (typeof handle === "string") {
+    return handle as ExtractNamespace<H>;
   } else {
-    return tokenOrNamespace[namespaceSymbol] as ExtractNamespace<T>;
+    return handle[namespaceSymbol] as ExtractNamespace<H>;
   }
 }
 
-export function isNamespace(value: unknown): value is NamespaceRef<any> {
+export function isHandle(value: unknown): value is Handle<any> {
   return typeof value === "string" || (typeof value === "object" && value !== null && namespaceSymbol in value);
 }
 

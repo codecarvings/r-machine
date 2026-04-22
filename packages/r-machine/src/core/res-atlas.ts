@@ -63,4 +63,4 @@ export type SolidNamespace<RA extends AnyResAtlas> =
       [N in Namespace<RA["shape@gear"]>]: RA["shape@gear"][N] extends ReactiveGearTag ? never : N;
     }[Namespace<RA["shape@gear"]>];
 
-export type SolidNamespaceRef<RA extends AnyResAtlas> = SolidNamespace<RA> | Token<SolidNamespace<RA>>;
+export type SolidHandle<RA extends AnyResAtlas> = SolidNamespace<RA> | Token<SolidNamespace<RA>>;

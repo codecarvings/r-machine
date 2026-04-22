@@ -14,29 +14,29 @@
 import type { AnyResAtlas } from "#r-machine/core";
 import { ERR_PLUG_RESOLVE_NOT_SET, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
-import { type AnyNamespace, isNamespace } from "./res-domain.js";
-import type { NamespaceList, SurfaceList } from "./res-list.js";
-import type { NamespaceMap, SurfaceMap } from "./res-map.js";
+import { isHandle } from "./res-domain.js";
+import type { AnyNamespaceList, HandleList, SurfaceList } from "./res-list.js";
+import type { AnyNamespaceMap, HandleMap, SurfaceMap } from "./res-map.js";
 
 export type PlugArea = "res" | "gate";
 export type PlugMode = "map" | "list";
 
-export type PluginCtx<RA extends AnyResAtlas, KA extends NamespaceMap<RA>> = {} & (keyof KA extends never
+export type PluginCtx<RA extends AnyResAtlas, KA extends HandleMap<RA>> = {} & (keyof KA extends never
   ? {}
   : { readonly kit: SurfaceMap<RA, KA> });
 
-export type LocaleAwarePluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extends NamespaceMap<RA>> = PluginCtx<
+export type LocaleAwarePluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extends HandleMap<RA>> = PluginCtx<
   RA,
   KA
 > & {
   readonly locale: L;
 };
 
-export type MapPlugin<RA extends AnyResAtlas, NM extends NamespaceMap<RA>, CTX> = SurfaceMap<RA, Omit<NM, "$">> & {
+export type MapPlugin<RA extends AnyResAtlas, DM extends HandleMap<RA>, CTX> = SurfaceMap<RA, Omit<DM, "$">> & {
   $: CTX;
-} & (CTX extends { readonly kit: infer KA } ? Omit<KA, keyof NM> : {});
+} & (CTX extends { readonly kit: infer KA } ? Omit<KA, keyof DM> : {});
 
-export type ListPlugin<RA extends AnyResAtlas, NL extends NamespaceList<RA>, CTX> = [...SurfaceList<RA, NL>, CTX];
+export type ListPlugin<RA extends AnyResAtlas, DL extends HandleList<RA>, CTX> = [...SurfaceList<RA, DL>, CTX];
 
 declare const resAtlas: unique symbol;
 declare const kit: unique symbol;
@@ -44,7 +44,7 @@ declare const ctx: unique symbol;
 interface BasePlugHead<
   A extends PlugArea,
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
+  KA extends HandleMap<RA>,
   CTX extends PluginCtx<RA, KA>,
 > {
   readonly area: A;
@@ -56,26 +56,26 @@ interface BasePlugHead<
 export interface MapPlugHead<
   A extends PlugArea,
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NM extends NamespaceMap<RA>,
+  KA extends HandleMap<RA>,
+  DM extends HandleMap<RA>,
   CTX extends PluginCtx<RA, KA>,
 > extends BasePlugHead<A, RA, KA, CTX> {
   readonly mode: "map";
-  readonly namespaces: NM;
-  readonly deps: Record<string, AnyNamespace>;
+  readonly deps: DM;
+  readonly namespaces: AnyNamespaceMap;
 }
 export type AnyMapPlugHead = MapPlugHead<any, any, any, any, any>;
 
 export interface ListPlugHead<
   A extends PlugArea,
   RA extends AnyResAtlas,
-  KA extends NamespaceMap<RA>,
-  NL extends NamespaceList<RA>,
+  KA extends HandleMap<RA>,
+  DL extends HandleList<RA>,
   CTX extends PluginCtx<RA, KA>,
 > extends BasePlugHead<A, RA, KA, CTX> {
   readonly mode: "list";
-  readonly namespaces: NL;
-  readonly deps: AnyNamespace[];
+  readonly deps: DL;
+  readonly namespaces: AnyNamespaceList;
 }
 export type AnyListPlugHead = ListPlugHead<any, any, any, any, any>;
 
@@ -85,9 +85,9 @@ export type ExtractResAtlas<PH extends AnyPlugHead> = PH[typeof resAtlas];
 export type ExtractKit<PH extends AnyPlugHead> = PH[typeof kit];
 export type ExtractCtx<PH extends AnyPlugHead> = PH[typeof ctx];
 export type ExtractPlugin<PH extends AnyPlugHead> = PH extends AnyMapPlugHead
-  ? MapPlugin<PH[typeof resAtlas], PH["namespaces"], PH[typeof ctx]>
+  ? MapPlugin<PH[typeof resAtlas], PH["deps"], PH[typeof ctx]>
   : PH extends AnyListPlugHead
-    ? ListPlugin<PH[typeof resAtlas], PH["namespaces"], PH[typeof ctx]>
+    ? ListPlugin<PH[typeof resAtlas], PH["deps"], PH[typeof ctx]>
     : never;
 
 type PlugLocale<PH extends AnyPlugHead> = PH extends { readonly locale: infer L } ? L : undefined;
@@ -132,28 +132,28 @@ export function setPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>, resolve
 
 interface MapPlugOutline<RA extends AnyResAtlas> {
   mode: "map";
-  namespaces: NamespaceMap<RA>;
+  deps: HandleMap<RA>;
 }
 interface ListPlugOutline<RA extends AnyResAtlas> {
   mode: "list";
-  namespaces: NamespaceList<RA>;
+  deps: HandleList<RA>;
 }
 
 export function getPlugOutline<RA extends AnyResAtlas>(...args: unknown[]): MapPlugOutline<RA> | ListPlugOutline<RA> {
   if (args.length === 0) {
     return {
       mode: "map",
-      namespaces: {} as NamespaceMap<RA>,
+      deps: {} as HandleMap<RA>,
     };
   }
-  if (args.length === 1 && !isNamespace(args[0])) {
+  if (args.length === 1 && !isHandle(args[0])) {
     return {
       mode: "map",
-      namespaces: args[0] as NamespaceMap<RA>,
+      deps: args[0] as HandleMap<RA>,
     };
   }
   return {
     mode: "list",
-    namespaces: args as NamespaceList<RA>,
+    deps: args as HandleList<RA>,
   };
 }

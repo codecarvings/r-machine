@@ -17,7 +17,7 @@ import type {
   AnyResDomain,
   ExtractNamespace,
   Getter,
-  NamespaceMap,
+  HandleMap,
   RelayBrand,
 } from "r-machine/core";
 
@@ -28,6 +28,6 @@ type MockSurface<RD extends AnyResDomain> = {
   [K in keyof RD as K extends `$${string}` ? never : K]?: MockSurfaceItem<RD[K]>;
 };
 
-export type MockSurfaceMap<RA extends AnyResAtlas, NM extends NamespaceMap<RA>> = {
-  [K in keyof NM]?: MockSurface<RA["shape"][ExtractNamespace<NM[K]>]>;
+export type MockSurfaceMap<RA extends AnyResAtlas, HM extends HandleMap<RA>> = {
+  [K in keyof HM]?: MockSurface<RA["shape"][ExtractNamespace<HM[K]>]>;
 };
