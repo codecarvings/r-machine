@@ -88,8 +88,8 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
 
   async WIP_GET<NL extends NamespaceList<RA>>(...namespaces: NL): Promise<SurfaceList<RA, NL>> {
     if (namespaces.length > 0) {
-      const pod = await this.resBuilder.createPod(namespaces[0] as any, this.defaultLocale);
-      console.log("WIP_GET loaded module:", pod);
+      const blueprint = await this.resBuilder.createBlueprint(namespaces[0] as any, this.defaultLocale);
+      console.log("WIP_GET loaded blueprint:", blueprint);
     }
     return undefined!;
   }

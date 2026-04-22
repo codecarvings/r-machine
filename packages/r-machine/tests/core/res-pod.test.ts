@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { AnyRes, ResFamily } from "../../src/core/res.js";
+import { createResBlueprint } from "../../src/core/res-blueprint.js";
 import { type AnyResMatrix, createResMatrix } from "../../src/core/res-matrix.js";
 import type { AnyResModule } from "../../src/core/res-module.js";
 import type { AnyResPlug } from "../../src/core/res-plug.js";
-import { createResPod } from "../../src/core/res-pod.js";
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "../../src/errors/index.js";
 
 // --- helpers -----------------------------------------------------------------
@@ -12,7 +12,7 @@ type MatrixData = { family: ResFamily; isReactive: boolean };
 
 // Builds a realistic matrix via the public factory. `plug` and `factory` are
 // sentinel values that we later assert are never touched by
-// createResPod.
+// createResBlueprint.
 function makeMatrix(data: MatrixData, resource: AnyRes = {}): AnyResMatrix {
   return createResMatrix(data, async () => resource, {} as AnyResPlug);
 }
@@ -32,7 +32,7 @@ function makeRawModule(resource: AnyRes = { greeting: "hi" }): AnyResModule {
 function captureResolveError(fn: () => unknown): RMachineResolveError {
   try {
     fn();
-    expect.unreachable("expected createResPod to throw an RMachineResolveError");
+    expect.unreachable("expected createResBlueprint to throw an RMachineResolveError");
   } catch (error) {
     expect(error).toBeInstanceOf(RMachineResolveError);
     return error as RMachineResolveError;
@@ -43,14 +43,14 @@ function captureResolveError(fn: () => unknown): RMachineResolveError {
 
 // --- tests -------------------------------------------------------------------
 
-describe("createResPod", () => {
+describe("createResBlueprint", () => {
   describe("ResMatrix origin — happy paths", () => {
     it("produces a gear data that copies family and isReactive verbatim from the matrix, deriving isVertex from the layout", () => {
       // Matrix is the source of truth for family/isReactive; isVertex is
       // derived from the layout entry type ("gear:vertex" ⇒ true, else false).
       const module = makeMatrixModule({ family: "gear", isReactive: false });
 
-      const d = createResPod(module, "app/home", undefined, "gear");
+      const d = createResBlueprint(module, "app/home", undefined, "gear");
 
       expect(d).toEqual({
         namespace: "app/home",
@@ -67,7 +67,7 @@ describe("createResPod", () => {
     it("produces a shell data and carries a concrete locale through verbatim", () => {
       const module = makeMatrixModule({ family: "shell", isReactive: true });
 
-      const d = createResPod(module, "app/profile", "it-IT", "shell");
+      const d = createResBlueprint(module, "app/profile", "it-IT", "shell");
 
       expect(d.family).toBe("shell");
       expect(d.isReactive).toBe(true);
@@ -83,7 +83,7 @@ describe("createResPod", () => {
       // be valid under this layout with no further coercion.
       const module = makeMatrixModule({ family: "shell", isReactive: true });
 
-      const d = createResPod(module, "app/live", "en-US", "shell:mono");
+      const d = createResBlueprint(module, "app/live", "en-US", "shell:mono");
 
       expect(d.family).toBe("shell");
       expect(d.isReactive).toBe(true);
@@ -106,7 +106,7 @@ describe("createResPod", () => {
       // cross-wires either flag.
       const module = makeMatrixModule({ family: "gear", isReactive });
 
-      const d = createResPod(module, "app", undefined, layout);
+      const d = createResBlueprint(module, "app", undefined, layout);
 
       expect(d.isReactive).toBe(isReactive);
       expect(d.isVertex).toBe(expectedIsVertex);
@@ -117,7 +117,7 @@ describe("createResPod", () => {
     it("throws RMachineResolveError when a gear matrix is used under a shell layout", () => {
       const module = makeMatrixModule({ family: "gear", isReactive: false });
 
-      const error = captureResolveError(() => createResPod(module, "app/home", "en-US", "shell"));
+      const error = captureResolveError(() => createResBlueprint(module, "app/home", "en-US", "shell"));
 
       expect(error.code).toBe(ERR_RESOLVE_FAILED);
       // Message must name the namespace, the offending family, and the layout
@@ -132,7 +132,7 @@ describe("createResPod", () => {
       // must be rejected, not just one.
       const module = makeMatrixModule({ family: "shell", isReactive: false });
 
-      const error = captureResolveError(() => createResPod(module, "app/home", undefined, "gear"));
+      const error = captureResolveError(() => createResBlueprint(module, "app/home", undefined, "gear"));
 
       expect(error.code).toBe(ERR_RESOLVE_FAILED);
       expect(error.message).toContain('"shell"');
@@ -142,7 +142,7 @@ describe("createResPod", () => {
     it("throws when a gear matrix is used under a shell:mono layout (shell:mono collapses to shell, not gear)", () => {
       const module = makeMatrixModule({ family: "gear", isReactive: false });
 
-      const error = captureResolveError(() => createResPod(module, "app/live", undefined, "shell:mono"));
+      const error = captureResolveError(() => createResBlueprint(module, "app/live", undefined, "shell:mono"));
 
       expect(error.code).toBe(ERR_RESOLVE_FAILED);
       expect(error.message).toContain('"gear"');
@@ -156,7 +156,7 @@ describe("createResPod", () => {
       // config.
       const module = makeMatrixModule({ family: "gear", isReactive: false });
 
-      const error = captureResolveError(() => createResPod(module, "app", undefined, "shell:mono"));
+      const error = captureResolveError(() => createResBlueprint(module, "app", undefined, "shell:mono"));
 
       expect(error.message).toContain("shell:mono");
       // It should NOT report a bare "shell" without the "mono" suffix —
@@ -173,7 +173,7 @@ describe("createResPod", () => {
     it("builds a shell data from a raw resource when the layout is shell, forwarding the locale", () => {
       const module = makeRawModule({ greeting: "ciao" });
 
-      const d = createResPod(module, "app/home", "it-IT", "shell");
+      const d = createResBlueprint(module, "app/home", "it-IT", "shell");
 
       expect(d.family).toBe("shell");
       expect(d.locale).toBe("it-IT");
@@ -184,13 +184,13 @@ describe("createResPod", () => {
       expect(d.origin).toBe(module.r);
     });
 
-    it("produces a shell-family pod from a raw resource under a gear layout (raw collapses to shell family)", () => {
+    it("produces a shell-family blueprint from a raw resource under a gear layout (raw collapses to shell family)", () => {
       // Under the new contract, a raw resource is admitted under the "gear"
-      // layout and reported as a shell-family pod — without a matrix factory
+      // layout and reported as a shell-family blueprint — without a matrix factory
       // there is no way to express reactive/vertex semantics.
       const module = makeRawModule({ greeting: "ciao" });
 
-      const d = createResPod(module, "app/home", undefined, "gear");
+      const d = createResBlueprint(module, "app/home", undefined, "gear");
 
       expect(d.family).toBe("shell");
       expect(d.originType).toBe("raw");
@@ -202,7 +202,7 @@ describe("createResPod", () => {
     it("throws when a raw resource is used under a gear:vertex layout (matrices are required)", () => {
       const module = makeRawModule();
 
-      const error = captureResolveError(() => createResPod(module, "app/root", undefined, "gear:vertex"));
+      const error = captureResolveError(() => createResBlueprint(module, "app/root", undefined, "gear:vertex"));
 
       expect(error.code).toBe(ERR_RESOLVE_FAILED);
       expect(error.message).toContain("app/root");
@@ -212,7 +212,7 @@ describe("createResPod", () => {
     it("throws when a raw resource is used under a shell:mono layout (matrices are required)", () => {
       const module = makeRawModule();
 
-      const error = captureResolveError(() => createResPod(module, "app/live", "en-US", "shell:mono"));
+      const error = captureResolveError(() => createResBlueprint(module, "app/live", "en-US", "shell:mono"));
 
       expect(error.code).toBe(ERR_RESOLVE_FAILED);
       expect(error.message).toContain("app/live");
@@ -226,7 +226,7 @@ describe("createResPod", () => {
       // admitted only under the "shell" layout.
       const rawLikely: AnyRes = { factory: "surprise", plug: "gotcha" };
 
-      const d = createResPod({ r: rawLikely }, "app", "en-US", "shell");
+      const d = createResBlueprint({ r: rawLikely }, "app", "en-US", "shell");
 
       expect(d.originType).toBe("raw");
       expect(d.family).toBe("shell");
@@ -238,7 +238,7 @@ describe("createResPod", () => {
     it("preserves the exact `origin` reference for matrices (no cloning, no proxy wrapping)", () => {
       const mat = makeMatrix({ family: "gear", isReactive: false });
 
-      const d = createResPod({ r: mat }, "app", undefined, "gear");
+      const d = createResBlueprint({ r: mat }, "app", undefined, "gear");
 
       expect(d.origin).toBe(mat);
     });
@@ -246,7 +246,7 @@ describe("createResPod", () => {
     it("preserves the exact `origin` reference for raw resources", () => {
       const resource: AnyRes = { a: 1, nested: { b: 2 } };
 
-      const d = createResPod({ r: resource }, "app", "en-US", "shell");
+      const d = createResBlueprint({ r: resource }, "app", "en-US", "shell");
 
       expect(d.origin).toBe(resource);
     });
@@ -254,8 +254,8 @@ describe("createResPod", () => {
     it("returns a fresh data object per call (no memoization of the result)", () => {
       const module = makeRawModule();
 
-      const d1 = createResPod(module, "app", "en-US", "shell");
-      const d2 = createResPod(module, "app", "en-US", "shell");
+      const d1 = createResBlueprint(module, "app", "en-US", "shell");
+      const d2 = createResBlueprint(module, "app", "en-US", "shell");
 
       expect(d1).not.toBe(d2);
       expect(d1).toEqual(d2);
@@ -275,7 +275,7 @@ describe("createResPod", () => {
         },
       });
 
-      expect(() => createResPod({ r: mat }, "app", undefined, "gear")).not.toThrow();
+      expect(() => createResBlueprint({ r: mat }, "app", undefined, "gear")).not.toThrow();
     });
 
     it("does not mutate the matrix data object that was passed to createResMatrix", () => {
@@ -283,7 +283,7 @@ describe("createResPod", () => {
       const frozen = Object.freeze({ ...data });
       const mat = createResMatrix(frozen, async () => ({}), {} as AnyResPlug);
 
-      const d = createResPod({ r: mat }, "app", "en-US", "shell");
+      const d = createResBlueprint({ r: mat }, "app", "en-US", "shell");
 
       // Frozen source is still frozen; values still match; d's values are
       // decoupled copies, so they can coexist.
@@ -296,7 +296,7 @@ describe("createResPod", () => {
       const raw: AnyRes = { a: 1 };
       const module: AnyResModule = Object.freeze({ r: raw });
 
-      const d = createResPod(module, "app", "en-US", "shell");
+      const d = createResBlueprint(module, "app", "en-US", "shell");
 
       expect(Object.isFrozen(module)).toBe(true);
       expect(module.r).toBe(raw);
@@ -311,8 +311,8 @@ describe("createResPod", () => {
       const mat = makeMatrix({ family: "shell", isReactive: false });
       const module: AnyResModule = { r: mat };
 
-      const dIt = createResPod(module, "app", "it-IT", "shell");
-      const dEn = createResPod(module, "app", "en-US", "shell");
+      const dIt = createResBlueprint(module, "app", "it-IT", "shell");
+      const dEn = createResBlueprint(module, "app", "en-US", "shell");
 
       expect(dIt.origin).toBe(mat);
       expect(dEn.origin).toBe(mat);
@@ -327,7 +327,7 @@ describe("createResPod", () => {
       const module = makeRawModule();
       const ns = "app/settings/profile/日本語";
 
-      const d = createResPod(module, ns, "en-US", "shell");
+      const d = createResBlueprint(module, ns, "en-US", "shell");
 
       expect(d.namespace).toBe(ns);
     });
@@ -336,7 +336,7 @@ describe("createResPod", () => {
       // The function should not editorialise: validation is the caller's job.
       const module = makeRawModule();
 
-      const d = createResPod(module, "", "en-US", "shell");
+      const d = createResBlueprint(module, "", "en-US", "shell");
 
       expect(d.namespace).toBe("");
     });
@@ -345,7 +345,7 @@ describe("createResPod", () => {
       const module = makeMatrixModule({ family: "shell", isReactive: false });
 
       for (const locale of ["en-US", "it-IT", "en-US-POSIX", "zh-Hant-TW", ""]) {
-        const d = createResPod(module, "app", locale, "shell");
+        const d = createResBlueprint(module, "app", locale, "shell");
         expect(d.locale).toBe(locale);
       }
     });
@@ -355,8 +355,8 @@ describe("createResPod", () => {
       // the throw into a rejected promise or a deferred error.
       const module = makeRawModule();
       try {
-        createResPod(module, "app", undefined, "shell:mono");
-        expect.unreachable("expected createResPod to throw synchronously");
+        createResBlueprint(module, "app", undefined, "shell:mono");
+        expect.unreachable("expected createResBlueprint to throw synchronously");
       } catch {
         // success — thrown synchronously
       }

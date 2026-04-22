@@ -22,7 +22,7 @@ import type { AnyResModule } from "./res-module.js";
 
 type ResOriginType = "raw" | "res-matrix";
 
-export interface ResPod {
+export interface ResBlueprint {
   readonly namespace: AnyNamespace;
   readonly locale: AnyLocale | undefined;
   readonly family: ResFamily;
@@ -33,12 +33,12 @@ export interface ResPod {
   readonly origin: AnyResOrigin;
 }
 
-export function createResPod(
+export function createResBlueprint(
   module: AnyResModule,
   namespace: AnyNamespace,
   locale: AnyLocale | undefined,
   resLayoutEntryType: ResLayoutEntryType
-): ResPod {
+): ResBlueprint {
   const origin = module.r;
   const matrixMeta = tryGetResMatrixMeta(origin);
 
@@ -48,7 +48,7 @@ export function createResPod(
     if (family !== layoutFamily) {
       throw new RMachineResolveError(
         ERR_RESOLVE_FAILED,
-        `Unable to build resource pod for namespace "${namespace}" - matrix family "${family}" does not match layout entry type "${resLayoutEntryType}".`
+        `Unable to build resource blueprint for namespace "${namespace}" - matrix family "${family}" does not match layout entry type "${resLayoutEntryType}".`
       );
     }
     const isVertex = resLayoutEntryType === "gear:vertex";
@@ -68,7 +68,7 @@ export function createResPod(
   if (resLayoutEntryType === "shell:mono" || resLayoutEntryType === "gear:vertex") {
     throw new RMachineResolveError(
       ERR_RESOLVE_FAILED,
-      `Unable to build resource pod for namespace "${namespace}" - layout "${resLayoutEntryType}" requires a matrix factory, got a raw resource.`
+      `Unable to build resource blueprint for namespace "${namespace}" - layout "${resLayoutEntryType}" requires a matrix factory, got a raw resource.`
     );
   }
 

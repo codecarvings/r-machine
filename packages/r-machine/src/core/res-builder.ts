@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import { createResBlueprint } from "./res-blueprint.js";
 import {
   type AnyResLayout,
   createResLayoutEntryTypeResolver,
@@ -24,7 +25,6 @@ import {
   type ResModuleLoaderFn,
   validateResModule,
 } from "./res-module.js";
-import { createResPod } from "./res-pod.js";
 
 export class ResBuilder {
   constructor(
@@ -49,9 +49,9 @@ export class ResBuilder {
     return result;
   }
 
-  async createPod(namespace: string, locale: string | undefined) {
+  async createBlueprint(namespace: string, locale: string | undefined) {
     const module = await this.loadModule(namespace, locale);
     const resLayoutEntryType = this.resLayoutEntryTypeResolver(namespace);
-    return createResPod(module, namespace, locale, resLayoutEntryType!);
+    return createResBlueprint(module, namespace, locale, resLayoutEntryType!);
   }
 }
