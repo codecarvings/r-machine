@@ -28,7 +28,7 @@ import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 import type { ResMatrixMeta } from "./res-matrix.js";
 import { assembleResMatrix } from "./res-matrix.js";
-import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
+import { createResListPlugHead, createResMapPlugHead } from "./res-plug.js";
 import type { ResWireProvider } from "./res-wire.js";
 
 type ValidGearDepItem<RA extends AnyResAtlas, N> =
@@ -124,44 +124,32 @@ function createGearMapDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA>, 
   provider: ResWireProvider,
   deps: DM
 ): GearMapDefiner<RA, KM, DM> {
-  type PlugHead = ResMapPlugHead<"gear", RA, KM, DM, PluginCtx<RA, KM>>;
-  const head = {
-    area: "res",
-    family: "gear",
-    mode: "map",
-    deps,
-  } as PlugHead;
+  const head = createResMapPlugHead<"gear", RA, KM, DM, PluginCtx<RA, KM>>("gear", deps);
 
-  return ((factory: (plugin: never, cursor: never) => unknown) =>
-    assembleResMatrix<PlugHead, AnyRes, AnyRes>({
+  return (factory: (plugin: never, cursor: never) => unknown) =>
+    assembleResMatrix({
       provider,
       meta,
       head,
       cursor,
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
-    })) as GearMapDefiner<RA, KM, DM>;
+    });
 }
 
 function createGearListDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>>(
   provider: ResWireProvider,
   deps: DL
 ): GearListDefiner<RA, KM, DL> {
-  type PlugHead = ResListPlugHead<"gear", RA, KM, DL, PluginCtx<RA, KM>>;
-  const head = {
-    area: "res",
-    family: "gear",
-    mode: "list",
-    deps,
-  } as PlugHead;
+  const head = createResListPlugHead<"gear", RA, KM, DL, PluginCtx<RA, KM>>("gear", deps);
 
-  return ((factory: (plugin: never, cursor: never) => unknown) =>
-    assembleResMatrix<PlugHead, AnyRes, AnyRes>({
+  return (factory: (plugin: never, cursor: never) => unknown) =>
+    assembleResMatrix({
       provider,
       meta,
       head,
       cursor,
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
-    })) as GearListDefiner<RA, KM, DL>;
+    });
 }
 
 // #endregion

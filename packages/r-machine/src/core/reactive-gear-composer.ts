@@ -19,12 +19,15 @@ import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 import type { ResMatrixMeta } from "./res-matrix.js";
 import { assembleResMatrix, type BuildResPlugin } from "./res-matrix.js";
-import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
+import { createResListPlugHead, createResMapPlugHead } from "./res-plug.js";
 import type { ResWireProvider } from "./res-wire.js";
-import type {
-  AnyState,
-  StatefulReactiveGearListDefiner,
-  StatefulReactiveGearMapDefiner,
+import {
+  type AnyState,
+  createStatefulReactiveGearListPlugHead,
+  createStatefulReactiveGearMapPlugHead,
+  type StatefulReactiveGearCtx,
+  type StatefulReactiveGearListDefiner,
+  type StatefulReactiveGearMapDefiner,
 } from "./stateful-reactive-gear.js";
 import type { StatelessReactiveGearListDefiner, StatelessReactiveGearMapDefiner } from "./stateless-reactive-gear.js";
 
@@ -140,9 +143,9 @@ export function createReactiveGearMapDepsComposer<
         define: createStatelessReactiveGearMapDefiner<RA, KM, DM>(provider, deps),
       };
     }
-    const [state] = args;
+    const [defaultState] = args;
     return {
-      define: createStatefulReactiveGearMapDefiner<RA, KM, DM, AnyState>(provider, deps, state),
+      define: createStatefulReactiveGearMapDefiner<RA, KM, DM, AnyState>(provider, deps, defaultState),
     };
   }) as ReactiveGearMapDepsComposer<RA, KM, DM>;
 }
@@ -170,27 +173,22 @@ function createStatefulReactiveGearMapDefiner<
   KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
   S extends AnyState,
->(provider: ResWireProvider, deps: DM, state: S): StatefulReactiveGearMapDefiner<RA, KM, DM, S> {
-  type Ctx = PluginCtx<RA, KM> & { readonly state: S; readonly defaultState: S };
-  type PlugHead = ResMapPlugHead<"gear", RA, KM, DM, Ctx> & { readonly defaultState: S };
-  const head = {
-    area: "res",
-    family: "gear",
-    mode: "map",
+>(provider: ResWireProvider, deps: DM, defaultState: S): StatefulReactiveGearMapDefiner<RA, KM, DM, S> {
+  const head = createStatefulReactiveGearMapPlugHead<RA, KM, DM, StatefulReactiveGearCtx<RA, KM, S>, S>(
     deps,
-    defaultState: state,
-  } as PlugHead;
+    defaultState
+  );
 
-  const cursor = buildStatefulCursor(state);
+  const cursor = buildStatefulCursor(defaultState);
 
-  const buildPlugin: BuildResPlugin<PlugHead> = (resolved) =>
+  const buildPlugin: BuildResPlugin<typeof head> = (resolved) =>
     ({
       ...resolved,
-      $: { ...(resolved as { $: object }).$, state, defaultState: state },
+      $: { ...(resolved as { $: object }).$, state: defaultState, defaultState: defaultState },
     }) as typeof resolved;
 
   return ((factory: (plugin: never, cursor: never) => unknown) =>
-    assembleResMatrix<PlugHead, unknown, AnyRes>({
+    assembleResMatrix({
       provider,
       meta,
       head,
@@ -207,26 +205,18 @@ function createStatefulReactiveGearListDefiner<
   DL extends HandleList<RA>,
   S extends AnyState,
 >(provider: ResWireProvider, deps: DL, state: S): StatefulReactiveGearListDefiner<RA, KM, DL, S> {
-  type Ctx = PluginCtx<RA, KM> & { readonly state: S; readonly defaultState: S };
-  type Head = ResListPlugHead<"gear", RA, KM, DL, Ctx> & { readonly defaultState: S };
-  const head = {
-    area: "res",
-    family: "gear",
-    mode: "list",
-    deps,
-    defaultState: state,
-  } as Head;
+  const head = createStatefulReactiveGearListPlugHead<RA, KM, DL, StatefulReactiveGearCtx<RA, KM, S>, S>(deps, state);
 
   const cursor = buildStatefulCursor(state);
 
-  const buildPlugin: BuildResPlugin<Head> = (resolved) => {
+  const buildPlugin: BuildResPlugin<typeof head> = (resolved) => {
     const arr = resolved;
     const ctx = arr[arr.length - 1];
     return [...arr.slice(0, -1), { ...ctx, state, defaultState: state }] as unknown as typeof resolved;
   };
 
   return ((factory: (plugin: never, cursor: never) => unknown) =>
-    assembleResMatrix<Head, unknown, AnyRes>({
+    assembleResMatrix({
       provider,
       meta,
       head,
@@ -242,22 +232,16 @@ function createStatelessReactiveGearMapDefiner<
   KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
 >(provider: ResWireProvider, deps: DM): StatelessReactiveGearMapDefiner<RA, KM, DM> {
-  type PlugHead = ResMapPlugHead<"gear", RA, KM, DM, PluginCtx<RA, KM>>;
-  const head = {
-    area: "res",
-    family: "gear",
-    mode: "map",
-    deps,
-  } as PlugHead;
+  const head = createResMapPlugHead<"gear", RA, KM, DM, PluginCtx<RA, KM>>("gear", deps);
 
-  return ((factory: (plugin: never, cursor: never) => unknown) =>
-    assembleResMatrix<PlugHead, AnyRes, AnyRes>({
+  return (factory: (plugin: never, cursor: never) => unknown) =>
+    assembleResMatrix({
       provider,
       meta,
       head,
       cursor,
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
-    })) as StatelessReactiveGearMapDefiner<RA, KM, DM>;
+    });
 }
 
 function createStatelessReactiveGearListDefiner<
@@ -265,16 +249,10 @@ function createStatelessReactiveGearListDefiner<
   KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
 >(provider: ResWireProvider, deps: DL): StatelessReactiveGearListDefiner<RA, KM, DL> {
-  type PlugHead = ResListPlugHead<"gear", RA, KM, DL, PluginCtx<RA, KM>>;
-  const head = {
-    area: "res",
-    family: "gear",
-    mode: "list",
-    deps,
-  } as PlugHead;
+  const head = createResListPlugHead<"gear", RA, KM, DL, PluginCtx<RA, KM>>("gear", deps);
 
   return ((factory: (plugin: never, cursor: never) => unknown) =>
-    assembleResMatrix<PlugHead, AnyRes, AnyRes>({
+    assembleResMatrix({
       provider,
       meta,
       head,

@@ -14,8 +14,8 @@
 import type { ListPlugHead, MapPlugHead, PlugBody, PluginCtx } from "./plug.js";
 import type { ResFamily } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { HandleList } from "./res-list.js";
-import type { HandleMap } from "./res-map.js";
+import { getNamespaceList, type HandleList } from "./res-list.js";
+import { getNamespaceMap, type HandleMap } from "./res-map.js";
 
 export interface ResMapPlugHead<
   F extends ResFamily,
@@ -28,6 +28,23 @@ export interface ResMapPlugHead<
 }
 type AnyResMapPlugHead = ResMapPlugHead<ResFamily, any, any, any, any>;
 
+export function createResMapPlugHead<
+  F extends ResFamily,
+  RA extends AnyResAtlas,
+  KM extends HandleMap<RA>,
+  DM extends HandleMap<RA>,
+  CTX extends PluginCtx<RA, KM>,
+>(family: F, deps: DM): ResMapPlugHead<F, RA, KM, DM, CTX> {
+  const namespaces = getNamespaceMap(deps);
+  return {
+    area: "res",
+    mode: "map",
+    family,
+    deps,
+    namespaces,
+  } as unknown as ResMapPlugHead<F, RA, KM, DM, CTX>;
+}
+
 export interface ResListPlugHead<
   F extends ResFamily,
   RA extends AnyResAtlas,
@@ -38,6 +55,23 @@ export interface ResListPlugHead<
   readonly family: F;
 }
 type AnyResListPlugHead = ResListPlugHead<ResFamily, any, any, any, any>;
+
+export function createResListPlugHead<
+  F extends ResFamily,
+  RA extends AnyResAtlas,
+  KM extends HandleMap<RA>,
+  DL extends HandleList<RA>,
+  CTX extends PluginCtx<RA, KM>,
+>(family: F, deps: DL): ResListPlugHead<F, RA, KM, DL, CTX> {
+  const namespaces = getNamespaceList(deps);
+  return {
+    area: "res",
+    mode: "list",
+    family,
+    deps,
+    namespaces,
+  } as unknown as ResListPlugHead<F, RA, KM, DL, CTX>;
+}
 
 export type AnyResPlugHead = AnyResMapPlugHead | AnyResListPlugHead;
 export type AnyResPlug = PlugBody<AnyResPlugHead>;

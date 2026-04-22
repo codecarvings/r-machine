@@ -21,9 +21,6 @@ import {
   setPlugResolve,
 } from "./plug.js";
 import type { AnyRes, AnyResOrigin, ResFamily } from "./res.js";
-import type { AnyResAtlas } from "./res-atlas.js";
-import { getNamespaceList, type HandleList } from "./res-list.js";
-import { getNamespaceMap, type HandleMap } from "./res-map.js";
 import type { AnyResPlug, AnyResPlugHead } from "./res-plug.js";
 import type { ResWireProvider } from "./res-wire.js";
 
@@ -79,11 +76,6 @@ export function assembleResMatrix<PH extends AnyResPlugHead, RAW, RES extends An
   options: AssembleResMatrixOptions<PH, RAW, RES>
 ): ResMatrix<RES, PlugBody<PH>> {
   const { provider, meta, head, cursor, userFactory, buildPlugin, postProcess } = options;
-  if (head.mode === "map") {
-    (head as any).namespaces = getNamespaceMap(head.deps as HandleMap<AnyResAtlas>);
-  } else {
-    (head as any).namespaces = getNamespaceList(head.deps as HandleList<AnyResAtlas>);
-  }
 
   const connector = provider(meta.family, head.deps);
   const plug = createPlug(head);

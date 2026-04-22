@@ -22,7 +22,7 @@ import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 import type { ResMatrixMeta } from "./res-matrix.js";
 import { assembleResMatrix } from "./res-matrix.js";
-import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
+import { createResListPlugHead, createResMapPlugHead } from "./res-plug.js";
 import type { ResWireProvider } from "./res-wire.js";
 import type { ShellListDefiner, ShellMapDefiner } from "./shell.js";
 
@@ -139,16 +139,10 @@ function createShellMapDefiner<
   KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
 >(provider: ResWireProvider, deps: DM): ShellMapDefiner<RA, L, KM, DM> {
-  type PlugHead = ResMapPlugHead<"shell", RA, KM, DM, LocaleAwarePluginCtx<RA, L, KM>>;
-  const head = {
-    area: "res",
-    family: "shell",
-    mode: "map",
-    deps,
-  } as PlugHead;
+  const head = createResMapPlugHead<"shell", RA, KM, DM, LocaleAwarePluginCtx<RA, L, KM>>("shell", deps);
 
-  return ((factory: (plugin: never) => unknown) =>
-    assembleResMatrix<PlugHead, AnyRes, AnyRes>({
+  return (factory: (plugin: never) => unknown) =>
+    assembleResMatrix({
       provider,
       meta,
       head,
@@ -157,7 +151,7 @@ function createShellMapDefiner<
         plugin: unknown,
         cursor: never
       ) => AnyRes | Promise<AnyRes>,
-    })) as ShellMapDefiner<RA, L, KM, DM>;
+    });
 }
 
 function createShellListDefiner<
@@ -166,16 +160,10 @@ function createShellListDefiner<
   KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
 >(provider: ResWireProvider, deps: DL): ShellListDefiner<RA, L, KM, DL> {
-  type PlugHead = ResListPlugHead<"shell", RA, KM, DL, LocaleAwarePluginCtx<RA, L, KM>>;
-  const head = {
-    area: "res",
-    family: "shell",
-    mode: "list",
-    deps,
-  } as PlugHead;
+  const head = createResListPlugHead<"shell", RA, KM, DL, LocaleAwarePluginCtx<RA, L, KM>>("shell", deps);
 
-  return ((factory: (plugin: never) => unknown) =>
-    assembleResMatrix<PlugHead, AnyRes, AnyRes>({
+  return (factory: (plugin: never) => unknown) =>
+    assembleResMatrix({
       provider,
       meta,
       head,
@@ -184,7 +172,7 @@ function createShellListDefiner<
         plugin: unknown,
         cursor: never
       ) => AnyRes | Promise<AnyRes>,
-    })) as ShellListDefiner<RA, L, KM, DL>;
+    });
 }
 
 // #endregion

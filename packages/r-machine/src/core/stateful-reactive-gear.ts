@@ -18,8 +18,8 @@ import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
 import type { ReactiveGearTag } from "./reactive-gear.js";
 import type { AnyReactiveRes, RejectAsyncValueProps } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { HandleList } from "./res-list.js";
-import type { HandleMap } from "./res-map.js";
+import { getNamespaceList, type HandleList } from "./res-list.js";
+import { getNamespaceMap, type HandleMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
@@ -30,7 +30,7 @@ interface StatefulReactiveGearCursor<S extends AnyState> extends GearCursor {
   readonly action: ActionComposer<S>;
 }
 
-type StatefulReactiveGearCtx<RA extends AnyResAtlas, KM extends HandleMap<RA>, S extends AnyState> = PluginCtx<
+export type StatefulReactiveGearCtx<RA extends AnyResAtlas, KM extends HandleMap<RA>, S extends AnyState> = PluginCtx<
   RA,
   KM
 > & {
@@ -62,6 +62,24 @@ interface StatefulReactiveGearMapPlugHead<
   readonly defaultState: S;
 }
 
+export function createStatefulReactiveGearMapPlugHead<
+  RA extends AnyResAtlas,
+  KM extends HandleMap<RA>,
+  DM extends HandleMap<RA>,
+  CTX extends StatefulReactiveGearCtx<RA, KM, S>,
+  S extends AnyState,
+>(deps: DM, defaultState: S): StatefulReactiveGearMapPlugHead<RA, KM, DM, CTX, S> {
+  const namespaces = getNamespaceMap(deps);
+  return {
+    area: "res",
+    mode: "map",
+    family: "gear",
+    deps,
+    namespaces,
+    defaultState,
+  } as unknown as StatefulReactiveGearMapPlugHead<RA, KM, DM, CTX, S>;
+}
+
 interface StatefulReactiveGearListPlugHead<
   RA extends AnyResAtlas,
   KM extends HandleMap<RA>,
@@ -70,6 +88,24 @@ interface StatefulReactiveGearListPlugHead<
   S extends AnyState,
 > extends ResListPlugHead<"gear", RA, KM, DL, CTX> {
   readonly defaultState: S;
+}
+
+export function createStatefulReactiveGearListPlugHead<
+  RA extends AnyResAtlas,
+  KM extends HandleMap<RA>,
+  DL extends HandleList<RA>,
+  CTX extends StatefulReactiveGearCtx<RA, KM, S>,
+  S extends AnyState,
+>(deps: DL, defaultState: S): StatefulReactiveGearListPlugHead<RA, KM, DL, CTX, S> {
+  const namespaces = getNamespaceList(deps);
+  return {
+    area: "res",
+    mode: "list",
+    family: "gear",
+    deps,
+    namespaces,
+    defaultState,
+  } as unknown as StatefulReactiveGearListPlugHead<RA, KM, DL, CTX, S>;
 }
 
 interface StatefulReactiveGearMapPlug<
