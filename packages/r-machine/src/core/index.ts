@@ -12,6 +12,7 @@
  */
 
 export type { Action, Atomic } from "./action.js";
+export { BlueprintManager } from "./blueprint-manager.js";
 export type {
   GateListPlugHead,
   GateMapPlugHead,
@@ -46,7 +47,6 @@ export type {
   SolidHandle,
   SolidNamespace,
 } from "./res-atlas.js";
-export { ResBuilder } from "./res-builder.js";
 export {
   type AnyNamespace,
   type AnyResDomain,

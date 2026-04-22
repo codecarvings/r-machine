@@ -18,6 +18,8 @@ import type { AnyResMatrix } from "./res-matrix.js";
 
 export type AnyRes = Record<string, unknown> & object;
 
+export type ResOriginType = "res-matrix" | "res";
+
 export type AnyResOrigin = AnyResMatrix | AnyRes;
 
 export type ResFamily = "gear" | "shell";

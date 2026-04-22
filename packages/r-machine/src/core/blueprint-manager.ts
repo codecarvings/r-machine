@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import { createResBlueprint } from "./res-blueprint.js";
+import { type Blueprint, createBlueprint } from "./blueprint.js";
 import {
   type AnyResLayout,
   createResLayoutEntryTypeResolver,
@@ -26,7 +26,7 @@ import {
   validateResModule,
 } from "./res-module.js";
 
-export class ResBuilder {
+export class BlueprintManager {
   constructor(
     protected layout: AnyResLayout,
     protected loadResModuleFn: ResModuleLoaderFn
@@ -40,7 +40,7 @@ export class ResBuilder {
   protected readonly resPathResolver: ResPathResolver;
   protected readonly resModuleLoader: ResModuleLoader;
 
-  async loadModule(namespace: string, locale: string | undefined) {
+  protected async loadModule(namespace: string, locale: string | undefined) {
     const result = await this.resModuleLoader(namespace, locale);
     const error = validateResModule(result);
     if (error) {
@@ -49,9 +49,9 @@ export class ResBuilder {
     return result;
   }
 
-  async createBlueprint(namespace: string, locale: string | undefined) {
+  async getBlueprint(namespace: string, locale: string | undefined): Promise<Blueprint> {
     const module = await this.loadModule(namespace, locale);
     const resLayoutEntryType = this.resLayoutEntryTypeResolver(namespace);
-    return createResBlueprint(module, namespace, locale, resLayoutEntryType!);
+    return createBlueprint(module, namespace, locale, resLayoutEntryType!);
   }
 }

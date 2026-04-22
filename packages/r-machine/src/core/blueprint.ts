@@ -14,15 +14,13 @@
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import { type AnyPlugHead, getPlugHead } from "./plug.js";
-import type { AnyResOrigin, ResFamily } from "./res.js";
+import type { AnyResOrigin, ResFamily, ResOriginType } from "./res.js";
 import type { AnyNamespace } from "./res-domain.js";
 import { getResFamilyFromLayoutType, type ResLayoutEntryType } from "./res-layout.js";
 import { tryGetResMatrixMeta } from "./res-matrix.js";
 import type { AnyResModule } from "./res-module.js";
 
-type ResOriginType = "raw" | "res-matrix";
-
-export interface ResBlueprint {
+export interface Blueprint {
   readonly namespace: AnyNamespace;
   readonly locale: AnyLocale | undefined;
   readonly family: ResFamily;
@@ -33,12 +31,12 @@ export interface ResBlueprint {
   readonly origin: AnyResOrigin;
 }
 
-export function createResBlueprint(
+export function createBlueprint(
   module: AnyResModule,
   namespace: AnyNamespace,
   locale: AnyLocale | undefined,
   resLayoutEntryType: ResLayoutEntryType
-): ResBlueprint {
+): Blueprint {
   const origin = module.r;
   const matrixMeta = tryGetResMatrixMeta(origin);
 
@@ -79,7 +77,7 @@ export function createResBlueprint(
     isReactive: false,
     isVertex: false,
     plugHead: undefined,
-    originType: "raw",
+    originType: "res",
     origin,
   };
 }
