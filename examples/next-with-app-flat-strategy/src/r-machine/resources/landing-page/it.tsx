@@ -15,4 +15,3 @@ export const r: R_LandingPage = {
     subtitle: "Costruito per sviluppatori che richiedono type safety e performance.",
   },
 };
-

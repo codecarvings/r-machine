@@ -102,31 +102,36 @@ export type ResolveLayoutType<RL extends AnyResLayout, N extends string> = {
 
 // #region ResPathResolver
 
-export type ResPathResolver = (namespace: AnyNamespace, locale: AnyLocale | undefined) => string;
+export type ResPathResolver = (
+  namespace: AnyNamespace,
+  locale: AnyLocale | undefined,
+  layoutEntryType: ResLayoutEntryType
+) => string;
 
-export function createResPathResolver(resolveResLayoutEntryType: ResLayoutEntryTypeResolver): ResPathResolver {
-  return function resolveResPath(namespace, locale) {
-    const layoutType = resolveResLayoutEntryType(namespace);
-    switch (layoutType) {
-      case "gear":
-      case "gear:vertex":
-      case "shell:mono":
-        return namespace;
-      case "shell":
-        if (locale === undefined) {
-          throw new RMachineResolveError(
-            ERR_RESOLVE_FAILED,
-            `Unable to resolve resource path for namespace "${namespace}" - locale is required for "shell" layout.`
-          );
-        }
-        return `${namespace}/${locale}`;
-      default:
+export function resolveResPath(
+  namespace: AnyNamespace,
+  locale: AnyLocale | undefined,
+  layoutEntryType: ResLayoutEntryType
+): string {
+  switch (layoutEntryType) {
+    case "gear":
+    case "gear:vertex":
+    case "shell:mono":
+      return namespace;
+    case "shell":
+      if (locale === undefined) {
         throw new RMachineResolveError(
           ERR_RESOLVE_FAILED,
-          `Unable to resolve resource path for namespace "${namespace}" - no matching resource layout.`
+          `Unable to resolve resource path for namespace "${namespace}" - locale is required for "shell" layout.`
         );
-    }
-  };
+      }
+      return `${namespace}/${locale}`;
+    default:
+      throw new RMachineResolveError(
+        ERR_RESOLVE_FAILED,
+        `Unable to resolve resource path for namespace "${namespace}" - no matching resource layout.`
+      );
+  }
 }
 
 // #endregion

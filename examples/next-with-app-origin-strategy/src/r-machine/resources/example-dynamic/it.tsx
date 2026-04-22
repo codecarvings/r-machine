@@ -16,4 +16,3 @@ export const r: R_ExampleDynamic = {
     feature: "Parametro dinamico [slug] estratto dai params URL",
   },
 };
-

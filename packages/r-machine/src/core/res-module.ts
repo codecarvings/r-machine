@@ -15,7 +15,6 @@ import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { AnyResOrigin } from "./res.js";
 import type { AnyNamespace } from "./res-domain.js";
-import type { ResPathResolver } from "./res-layout.js";
 
 export interface AnyResModule {
   readonly r: AnyResOrigin;
@@ -26,18 +25,6 @@ export type ResModuleLoaderFn = (
   namespace: AnyNamespace,
   locale: AnyLocale | undefined
 ) => Promise<AnyResModule>;
-
-export type ResModuleLoader = (namespace: AnyNamespace, locale: AnyLocale | undefined) => Promise<AnyResModule>;
-
-export function createResModuleLoader(
-  resolveResPath: ResPathResolver,
-  loadResModuleFn: ResModuleLoaderFn
-): ResModuleLoader {
-  return function loadResModule(namespace, locale) {
-    const path = resolveResPath(namespace, locale);
-    return loadResModuleFn(path, namespace, locale);
-  };
-}
 
 export function validateResModule(input: unknown): RMachineResolveError | null {
   if (typeof input !== "object" || input === null) {

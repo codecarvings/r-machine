@@ -18,4 +18,3 @@ export const r: R_Navigation = {
     description: "Route con parametro [slug]",
   },
 };
-

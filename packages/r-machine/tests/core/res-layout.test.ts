@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  type AnyResLayout,
-  createResLayoutEntryTypeResolver,
-  createResPathResolver,
-  type ResLayoutEntryTypeResolver,
-} from "../../src/core/res-layout.js";
+import { type AnyResLayout, createResLayoutEntryTypeResolver, resolveResPath } from "../../src/core/res-layout.js";
 import { ERR_RESOLVE_FAILED } from "../../src/errors/error-codes.js";
 import { RMachineResolveError } from "../../src/errors/r-machine-resolve-error.js";
 
@@ -204,76 +199,60 @@ describe("createResLayoutEntryTypeResolver", () => {
   });
 });
 
-describe("createResPathResolver", () => {
-  // Small helper to build a resolver paired with an explicit layout, so each
-  // test states its premise in one place.
-  function withLayout(layout: AnyResLayout) {
-    const layoutResolver = createResLayoutEntryTypeResolver(layout);
-    return createResPathResolver(layoutResolver);
-  }
-
+describe("resolveResPath", () => {
   describe("gear layout", () => {
     it("returns the namespace unchanged when locale is undefined", () => {
-      const resolveResPath = withLayout({ "app/": "gear" });
-      expect(resolveResPath("app", undefined)).toBe("app");
+      expect(resolveResPath("app", undefined, "gear")).toBe("app");
     });
 
     it("ignores the locale and still returns the namespace when one is provided", () => {
-      const resolveResPath = withLayout({ "app/": "gear" });
-      expect(resolveResPath("app", "en-US")).toBe("app");
-      expect(resolveResPath("app/home", "it-IT")).toBe("app/home");
+      expect(resolveResPath("app", "en-US", "gear")).toBe("app");
+      expect(resolveResPath("app/home", "it-IT", "gear")).toBe("app/home");
     });
   });
 
   describe("gear:vertex layout", () => {
     it("returns the namespace unchanged when locale is undefined", () => {
-      const resolveResPath = withLayout({ "app/": "gear:vertex" });
-      expect(resolveResPath("app", undefined)).toBe("app");
+      expect(resolveResPath("app", undefined, "gear:vertex")).toBe("app");
     });
 
     it("ignores the locale and still returns the namespace when one is provided", () => {
       // Vertex gears never vary by locale — the path resolver must not
       // append the locale, same as regular gears.
-      const resolveResPath = withLayout({ "app/": "gear:vertex" });
-      expect(resolveResPath("app", "en-US")).toBe("app");
-      expect(resolveResPath("app/home", "it-IT")).toBe("app/home");
+      expect(resolveResPath("app", "en-US", "gear:vertex")).toBe("app");
+      expect(resolveResPath("app/home", "it-IT", "gear:vertex")).toBe("app/home");
     });
   });
 
   describe("shell:mono layout", () => {
     it("returns the namespace unchanged when locale is undefined", () => {
-      const resolveResPath = withLayout({ "app/": "shell:mono" });
-      expect(resolveResPath("app", undefined)).toBe("app");
+      expect(resolveResPath("app", undefined, "shell:mono")).toBe("app");
     });
 
     it("ignores the locale and still returns the namespace when one is provided", () => {
       // shell:mono is a shell whose locale handling happens elsewhere, so
       // the path resolver must not append the locale to the namespace.
-      const resolveResPath = withLayout({ "app/": "shell:mono" });
-      expect(resolveResPath("app", "en-US")).toBe("app");
-      expect(resolveResPath("app/home", "it-IT")).toBe("app/home");
+      expect(resolveResPath("app", "en-US", "shell:mono")).toBe("app");
+      expect(resolveResPath("app/home", "it-IT", "shell:mono")).toBe("app/home");
     });
   });
 
   describe("shell layout", () => {
     it("appends the locale as a final path segment", () => {
-      const resolveResPath = withLayout({ "app/": "shell" });
-      expect(resolveResPath("app", "en-US")).toBe("app/en-US");
-      expect(resolveResPath("app/home", "it-IT")).toBe("app/home/it-IT");
+      expect(resolveResPath("app", "en-US", "shell")).toBe("app/en-US");
+      expect(resolveResPath("app/home", "it-IT", "shell")).toBe("app/home/it-IT");
     });
 
     it("appends the locale verbatim, without normalization", () => {
       // The path resolver is a low-level primitive: locale canonicalization
       // must have happened upstream. Document that by asserting raw pass-through.
-      const resolveResPath = withLayout({ "app/": "shell" });
-      expect(resolveResPath("app", "EN_us")).toBe("app/EN_us");
+      expect(resolveResPath("app", "EN_us", "shell")).toBe("app/EN_us");
     });
 
     it("throws RMachineResolveError when the locale is undefined", () => {
-      const resolveResPath = withLayout({ "app/": "shell" });
       try {
-        resolveResPath("app", undefined);
-        expect.unreachable("expected createResPathResolver to throw for shell without a locale");
+        resolveResPath("app", undefined, "shell");
+        expect.unreachable("expected resolveResPath to throw for shell without a locale");
       } catch (error) {
         expect(error).toBeInstanceOf(RMachineResolveError);
         expect((error as RMachineResolveError).code).toBe(ERR_RESOLVE_FAILED);
@@ -284,79 +263,15 @@ describe("createResPathResolver", () => {
     });
   });
 
-  describe("unresolved namespace", () => {
-    it("throws RMachineResolveError when the layout resolver returns undefined", () => {
-      const resolveResPath = withLayout({ "app/": "gear" });
-      try {
-        resolveResPath("other", "en-US");
-        expect.unreachable("expected createResPathResolver to throw for an unmatched namespace");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineResolveError);
-        expect((error as RMachineResolveError).code).toBe(ERR_RESOLVE_FAILED);
-        expect((error as RMachineResolveError).message).toContain('"other"');
-        expect((error as RMachineResolveError).message).toContain("no matching resource layout");
-      }
-    });
-
-    it("throws the unresolved-namespace error even when a locale is provided", () => {
-      const resolveResPath = withLayout({ "app/": "gear" });
-      try {
-        resolveResPath("other", "en-US");
-        expect.unreachable();
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineResolveError);
-        expect((error as RMachineResolveError).message).toContain("no matching resource layout");
-      }
-    });
-
-    it("throws the unresolved-namespace error (not the shell-locale error) for missing namespaces without a locale", () => {
-      // The resolver checks layout type *before* validating the locale.
-      // An unknown namespace should surface the "no matching layout" error
-      // regardless of whether a locale was provided.
-      const resolveResPath = withLayout({ "app/": "shell" });
-      try {
-        resolveResPath("other", undefined);
-        expect.unreachable();
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineResolveError);
-        expect((error as RMachineResolveError).message).toContain("no matching resource layout");
-      }
-    });
-  });
-
-  describe("delegation to the layout resolver", () => {
-    it("delegates to the supplied resolver exactly once per call", () => {
-      const calls: string[] = [];
-      const spy: ResLayoutEntryTypeResolver = (ns) => {
-        calls.push(ns);
-        return ns === "app" ? "gear" : undefined;
-      };
-      const resolveResPath = createResPathResolver(spy);
-
-      expect(resolveResPath("app", undefined)).toBe("app");
-      expect(calls).toEqual(["app"]);
-
-      expect(() => resolveResPath("missing", undefined)).toThrow(RMachineResolveError);
-      expect(calls).toEqual(["app", "missing"]);
-    });
-
-    it("honors whatever layout type the injected resolver returns, even without caching", () => {
-      // A fresh (uncached) resolver still drives correct dispatch. This guards
-      // against accidental coupling between createResPathResolver and the cache
-      // inside createResLayoutEntryTypeResolver.
-      const manual: ResLayoutEntryTypeResolver = (ns) => {
-        if (ns === "g") return "gear";
-        if (ns === "v") return "gear:vertex";
-        if (ns === "s") return "shell";
-        if (ns === "d") return "shell:mono";
-        return undefined;
-      };
-      const resolveResPath = createResPathResolver(manual);
-
-      expect(resolveResPath("g", "en")).toBe("g");
-      expect(resolveResPath("v", "en")).toBe("v");
-      expect(resolveResPath("s", "en")).toBe("s/en");
-      expect(resolveResPath("d", "en")).toBe("d");
+  describe("purity", () => {
+    it("is a pure function of its three arguments — no shared state between calls", () => {
+      // Call order must not affect outcome. Interleaving different layout
+      // types must produce the same answers as calling each in isolation.
+      expect(resolveResPath("app", "en-US", "shell")).toBe("app/en-US");
+      expect(resolveResPath("app", "en-US", "gear")).toBe("app");
+      expect(resolveResPath("app", "en-US", "shell")).toBe("app/en-US");
+      expect(resolveResPath("app", undefined, "shell:mono")).toBe("app");
+      expect(resolveResPath("app", "en-US", "gear:vertex")).toBe("app");
     });
   });
 });

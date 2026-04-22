@@ -37,4 +37,3 @@ export const r = R.withType<R_Features_IntlDemo>().define(($) => {
     },
   };
 });
-

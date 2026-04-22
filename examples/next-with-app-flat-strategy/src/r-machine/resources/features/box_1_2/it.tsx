@@ -26,4 +26,3 @@ export const r: R_Features_Box_1_2 = {
     badge: "Performance",
   },
 };
-

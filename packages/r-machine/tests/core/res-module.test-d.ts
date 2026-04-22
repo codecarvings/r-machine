@@ -1,14 +1,7 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyRes, AnyResOrigin } from "../../src/core/res.js";
 import type { AnyNamespace } from "../../src/core/res-domain.js";
-import type { ResPathResolver } from "../../src/core/res-layout.js";
-import {
-  type AnyResModule,
-  createResModuleLoader,
-  type ResModuleLoader,
-  type ResModuleLoaderFn,
-  validateResModule,
-} from "../../src/core/res-module.js";
+import { type AnyResModule, type ResModuleLoaderFn, validateResModule } from "../../src/core/res-module.js";
 import type { RMachineResolveError } from "../../src/errors/index.js";
 import type { AnyLocale } from "../../src/locale/locale.js";
 
@@ -92,104 +85,6 @@ describe("ResModuleLoaderFn", () => {
     // Baseline: explicit undefined is accepted.
     void fn("path", "ns", undefined);
     void fn("path", "ns", "en-US");
-  });
-});
-
-describe("ResModuleLoader", () => {
-  it("takes (namespace: AnyNamespace, locale: AnyLocale | undefined) and returns Promise<AnyResModule>", () => {
-    expectTypeOf<ResModuleLoader>().parameter(0).toEqualTypeOf<AnyNamespace>();
-    expectTypeOf<ResModuleLoader>().parameter(1).toEqualTypeOf<AnyLocale | undefined>();
-    expectTypeOf<ResModuleLoader>().returns.toEqualTypeOf<Promise<AnyResModule>>();
-  });
-
-  it("has an arity of exactly two required positional parameters (the path has been curried away)", () => {
-    expectTypeOf<Parameters<ResModuleLoader>>().toEqualTypeOf<
-      [namespace: AnyNamespace, locale: AnyLocale | undefined]
-    >();
-  });
-
-  it("is structurally distinct from ResModuleLoaderFn (different parameter lists)", () => {
-    // A ResModuleLoaderFn takes three arguments; assigning it to a two-arg
-    // ResModuleLoader slot is allowed (function parameter-count is bivariant for
-    // fewer-arg callers), but they are NOT the same type.
-    expectTypeOf<ResModuleLoader>().not.toEqualTypeOf<ResModuleLoaderFn>();
-  });
-
-  it("does not permit omitting the locale parameter at the call site", () => {
-    const loader = (async () => ({ r: {} })) as unknown as ResModuleLoader;
-    // @ts-expect-error — locale is required, even when undefined
-    void loader("ns");
-    void loader("ns", undefined);
-    void loader("ns", "en-US");
-  });
-});
-
-describe("createResModuleLoader", () => {
-  it("takes (ResPathResolver, ResModuleLoaderFn) and returns ResModuleLoader", () => {
-    expectTypeOf(createResModuleLoader).parameter(0).toEqualTypeOf<ResPathResolver>();
-    expectTypeOf(createResModuleLoader).parameter(1).toEqualTypeOf<ResModuleLoaderFn>();
-    expectTypeOf(createResModuleLoader).returns.toEqualTypeOf<ResModuleLoader>();
-  });
-
-  it("produces a ResModuleLoader whose signature matches the declared type exactly", () => {
-    const resolveResPath: ResPathResolver = (ns) => ns;
-    const loadResModuleFn: ResModuleLoaderFn = async () => ({ r: {} });
-    const loader = createResModuleLoader(resolveResPath, loadResModuleFn);
-
-    expectTypeOf(loader).toEqualTypeOf<ResModuleLoader>();
-    expectTypeOf(loader).parameter(0).toEqualTypeOf<AnyNamespace>();
-    expectTypeOf(loader).parameter(1).toEqualTypeOf<AnyLocale | undefined>();
-    expectTypeOf(loader).returns.toEqualTypeOf<Promise<AnyResModule>>();
-  });
-
-  it("rejects a first argument that is not a ResPathResolver", () => {
-    const loadResModuleFn: ResModuleLoaderFn = async () => ({ r: {} });
-    // @ts-expect-error — number is not a ResPathResolver
-    createResModuleLoader(42, loadResModuleFn);
-    // @ts-expect-error — a resolver returning a number violates ResPathResolver's return type
-    createResModuleLoader((_ns: string, _locale) => 0, loadResModuleFn);
-  });
-
-  it("rejects a second argument that is not a ResModuleLoaderFn", () => {
-    const resolveResPath: ResPathResolver = (ns) => ns;
-    // @ts-expect-error — synchronous (non-Promise) return is invalid
-    createResModuleLoader(resolveResPath, (_path: string, _ns: string, _locale) => ({ r: {} }));
-    // @ts-expect-error — resolved value is not an AnyResModule
-    createResModuleLoader(resolveResPath, async (_path: string, _ns: string, _locale) => ({ nope: 1 }));
-    // Note: passing a function with fewer parameters (e.g. `async (_p) => …`)
-    // is accepted by TS's parameter-bivariance rules and is NOT a type error.
-  });
-
-  it("rejects a ResModuleLoaderFn whose path parameter is not a string", () => {
-    const resolveResPath: ResPathResolver = (ns) => ns;
-    // @ts-expect-error — path parameter must be string
-    createResModuleLoader(resolveResPath, async (_path: number, _ns: string, _locale) => ({ r: {} }));
-  });
-
-  it("does not widen or narrow the loader's return type based on the concrete loadResModuleFn", () => {
-    // Even if loadResModuleFn happens to resolve to a very specific shape, the
-    // returned ResModuleLoader still advertises Promise<AnyResModule>. This guards
-    // against accidental generic leakage that would force callers to re-widen.
-    const resolveResPath: ResPathResolver = (ns) => ns;
-    const specific = async (_p: string, _n: string, _l: AnyLocale | undefined) => ({
-      r: { exact: "literal" as const },
-    });
-    const loader = createResModuleLoader(resolveResPath, specific);
-    expectTypeOf(loader).toEqualTypeOf<ResModuleLoader>();
-    expectTypeOf(loader).returns.toEqualTypeOf<Promise<AnyResModule>>();
-  });
-});
-
-describe("end-to-end inference", () => {
-  it("composes createResModuleLoader with a ResPathResolver without requiring extra annotations", async () => {
-    const resolveResPath: ResPathResolver = (ns, locale) => (locale ? `${ns}/${locale}` : ns);
-    const loadResModuleFn: ResModuleLoaderFn = async (_path, _ns, _locale) => ({ r: { hello: "world" } });
-
-    const loader = createResModuleLoader(resolveResPath, loadResModuleFn);
-    const result = loader("app", "en-US");
-
-    expectTypeOf(result).toEqualTypeOf<Promise<AnyResModule>>();
-    expectTypeOf(await result).toEqualTypeOf<AnyResModule>();
   });
 });
 

@@ -2,10 +2,10 @@ import { describe, expectTypeOf, it } from "vitest";
 import {
   type AnyResLayout,
   createResLayoutEntryTypeResolver,
-  createResPathResolver,
   type ResLayoutEntryType,
   type ResLayoutEntryTypeResolver,
   type ResPathResolver,
+  resolveResPath,
 } from "../../src/core/res-layout.js";
 import type { AnyLocale } from "../../src/locale/locale.js";
 
@@ -101,18 +101,27 @@ describe("createResLayoutEntryTypeResolver", () => {
 });
 
 describe("ResPathResolver", () => {
-  it("takes (namespace, locale | undefined) and returns a string", () => {
+  it("takes (namespace, locale | undefined, layoutEntryType) and returns a string", () => {
     expectTypeOf<ResPathResolver>().parameter(0).toEqualTypeOf<string>();
     expectTypeOf<ResPathResolver>().parameter(1).toEqualTypeOf<AnyLocale | undefined>();
+    expectTypeOf<ResPathResolver>().parameter(2).toEqualTypeOf<ResLayoutEntryType>();
     expectTypeOf<ResPathResolver>().returns.toEqualTypeOf<string>();
+  });
+
+  it("has an arity of exactly three required positional parameters", () => {
+    expectTypeOf<Parameters<ResPathResolver>>().toEqualTypeOf<
+      [namespace: string, locale: AnyLocale | undefined, layoutEntryType: ResLayoutEntryType]
+    >();
   });
 
   it("does not allow omitting the locale argument (undefined must be passed explicitly)", () => {
     const resolve: ResPathResolver = (ns) => ns;
     // @ts-expect-error — locale parameter is required even when undefined
-    resolve("app");
-    // Baseline: explicit undefined is accepted.
+    resolve("app", "gear");
+    // @ts-expect-error — layoutEntryType parameter is required
     resolve("app", undefined);
+    // Baseline: all three arguments explicit is accepted.
+    resolve("app", undefined, "gear");
   });
 
   it("returns a plain string, never undefined or a layout type", () => {
@@ -121,43 +130,50 @@ describe("ResPathResolver", () => {
   });
 });
 
-describe("createResPathResolver", () => {
-  it("takes a ResLayoutTypeResolver and returns a ResPathResolver", () => {
-    expectTypeOf(createResPathResolver).parameter(0).toEqualTypeOf<ResLayoutEntryTypeResolver>();
-    expectTypeOf(createResPathResolver).returns.toEqualTypeOf<ResPathResolver>();
-  });
-
-  it("accepts a compatible inline resolver function", () => {
-    const inline = (ns: string): ResLayoutEntryType | undefined => (ns === "app" ? "gear" : undefined);
-    const resolveResPath = createResPathResolver(inline);
+describe("resolveResPath", () => {
+  it("matches the ResPathResolver signature exactly", () => {
     expectTypeOf(resolveResPath).toEqualTypeOf<ResPathResolver>();
   });
 
-  it("rejects a function whose parameter type is incompatible with a namespace string", () => {
-    // @ts-expect-error — number is not assignable to AnyNamespace (string)
-    createResPathResolver((ns: number) => (ns === 0 ? "gear" : undefined));
+  it("takes (namespace, locale | undefined, layoutEntryType) and returns a string", () => {
+    expectTypeOf(resolveResPath).parameter(0).toEqualTypeOf<string>();
+    expectTypeOf(resolveResPath).parameter(1).toEqualTypeOf<AnyLocale | undefined>();
+    expectTypeOf(resolveResPath).parameter(2).toEqualTypeOf<ResLayoutEntryType>();
+    expectTypeOf(resolveResPath).returns.toEqualTypeOf<string>();
   });
 
-  it("rejects a function whose return type is not ResLayoutType | undefined", () => {
-    // @ts-expect-error — "custom" is not a valid ResLayoutType
-    createResPathResolver((_ns: string) => "custom" as const);
-    // @ts-expect-error — returning a number violates the contract
-    createResPathResolver((_ns: string) => 42);
+  it("rejects a layoutEntryType that is not a canonical literal", () => {
+    // @ts-expect-error — "custom" is not a valid ResLayoutEntryType
+    resolveResPath("app", undefined, "custom");
+    // @ts-expect-error — numbers are not layout types
+    resolveResPath("app", undefined, 42);
+  });
+
+  it("does not permit omitting any parameter at the call site", () => {
+    // @ts-expect-error — layoutEntryType is required
+    resolveResPath("app", undefined);
+    // @ts-expect-error — locale is required (even when undefined)
+    resolveResPath("app");
+    // Baseline: all three explicit is accepted.
+    resolveResPath("app", undefined, "gear");
   });
 });
 
 describe("end-to-end inference", () => {
-  it("chains createResLayoutEntryTypeResolver into createResPathResolver without extra annotations", () => {
-    const resolveResPath = createResPathResolver(
-      createResLayoutEntryTypeResolver({
-        "app/": "gear",
-        "app/settings/": "shell",
-        "app/live/": "shell:mono",
-      })
-    );
-    expectTypeOf(resolveResPath).toEqualTypeOf<ResPathResolver>();
+  it("composes createResLayoutEntryTypeResolver with resolveResPath without extra annotations", () => {
+    const resolveLayoutType = createResLayoutEntryTypeResolver({
+      "app/": "gear",
+      "app/settings/": "shell",
+      "app/live/": "shell:mono",
+    });
 
-    const result = resolveResPath("app/settings", "en-US");
-    expectTypeOf(result).toEqualTypeOf<string>();
+    const layoutType = resolveLayoutType("app/settings");
+    expectTypeOf(layoutType).toEqualTypeOf<ResLayoutEntryType | undefined>();
+
+    // At the call site the caller must narrow before passing to resolveResPath.
+    if (layoutType !== undefined) {
+      const result = resolveResPath("app/settings", "en-US", layoutType);
+      expectTypeOf(result).toEqualTypeOf<string>();
+    }
   });
 });

@@ -12,4 +12,3 @@ export const r: R_ExampleStatic = {
     feature: "Usa getPathComposer() per generare link locale-aware",
   },
 };
-

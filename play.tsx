@@ -6,8 +6,7 @@ const folders = defineLayout({
   "shell/": "shell",
 });
 
-type ResourceMap = {
-};
+type ResourceMap = {};
 
 class ResourceAtlas extends folders<ResourceMap>() {}
 
