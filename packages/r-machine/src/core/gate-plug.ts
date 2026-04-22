@@ -17,10 +17,10 @@ import type { ListPlugHead, LocaleAwarePluginCtx, MapPlugHead } from "./plug.js"
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 
-export type GatePluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extends HandleMap<RA>> = LocaleAwarePluginCtx<
+export type GatePluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KM extends HandleMap<RA>> = LocaleAwarePluginCtx<
   RA,
   L,
-  KA
+  KM
 > & {
   readonly setLocale: (newLocale: L) => Promise<void>;
 };
@@ -28,15 +28,15 @@ export type GatePluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extend
 export interface GateMapPlugHead<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
-  CTX extends GatePluginCtx<RA, L, KA>,
-> extends MapPlugHead<"gate", RA, KA, DM, CTX> {}
+  CTX extends GatePluginCtx<RA, L, KM>,
+> extends MapPlugHead<"gate", RA, KM, DM, CTX> {}
 
 export interface GateListPlugHead<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
-  CTX extends GatePluginCtx<RA, L, KA>,
-> extends ListPlugHead<"gate", RA, KA, DL, CTX> {}
+  CTX extends GatePluginCtx<RA, L, KM>,
+> extends ListPlugHead<"gate", RA, KM, DL, CTX> {}

@@ -20,64 +20,64 @@ import type { HandleMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
-type ShellPluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extends HandleMap<RA>> = LocaleAwarePluginCtx<
+type ShellPluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KM extends HandleMap<RA>> = LocaleAwarePluginCtx<
   RA,
   L,
-  KA
+  KM
 >;
 
 type ShellMapPlugin<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
-> = MapPlugin<RA, DM, ShellPluginCtx<RA, L, KA>>;
+> = MapPlugin<RA, DM, ShellPluginCtx<RA, L, KM>>;
 
 type ShellListPlugin<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
-> = ListPlugin<RA, DL, ShellPluginCtx<RA, L, KA>>;
+> = ListPlugin<RA, DL, ShellPluginCtx<RA, L, KM>>;
 
 type ShellMapPlugHead<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
-> = ResMapPlugHead<"shell", RA, KA, DM, ShellPluginCtx<RA, L, KA>>;
+> = ResMapPlugHead<"shell", RA, KM, DM, ShellPluginCtx<RA, L, KM>>;
 
 type ShellListPlugHead<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
-> = ResListPlugHead<"shell", RA, KA, DL, ShellPluginCtx<RA, L, KA>>;
+> = ResListPlugHead<"shell", RA, KM, DL, ShellPluginCtx<RA, L, KM>>;
 
-interface ShellMapPlug<RA extends AnyResAtlas, L extends AnyLocale, KA extends HandleMap<RA>, DM extends HandleMap<RA>>
-  extends PlugBody<ShellMapPlugHead<RA, L, KA, DM>> {}
+interface ShellMapPlug<RA extends AnyResAtlas, L extends AnyLocale, KM extends HandleMap<RA>, DM extends HandleMap<RA>>
+  extends PlugBody<ShellMapPlugHead<RA, L, KM, DM>> {}
 
 interface ShellListPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
-> extends PlugBody<ShellListPlugHead<RA, L, KA, DL>> {}
+> extends PlugBody<ShellListPlugHead<RA, L, KM, DL>> {}
 
 export type ShellMapDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
 > = <R extends AnyRes>(
-  factory: (plugin: ShellMapPlugin<RA, L, KA, DM>) => R | Promise<R>
-) => ResMatrix<R, ShellMapPlug<RA, L, KA, DM>>;
+  factory: (plugin: ShellMapPlugin<RA, L, KM, DM>) => R | Promise<R>
+) => ResMatrix<R, ShellMapPlug<RA, L, KM, DM>>;
 
 export type ShellListDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
 > = <R extends AnyRes>(
-  factory: (plugin: ShellListPlugin<RA, L, KA, DL>) => R | Promise<R>
-) => ResMatrix<R, ShellListPlug<RA, L, KA, DL>>;
+  factory: (plugin: ShellListPlugin<RA, L, KM, DL>) => R | Promise<R>
+) => ResMatrix<R, ShellListPlug<RA, L, KM, DL>>;

@@ -26,50 +26,50 @@ interface StatelessReactiveGearCursor extends GearCursor {
   readonly getter: StatelessGetterComposer;
 }
 
-type StatelessReactiveGearPluginCtx<RA extends AnyResAtlas, KA extends HandleMap<RA>> = PluginCtx<RA, KA>;
+type StatelessReactiveGearPluginCtx<RA extends AnyResAtlas, KM extends HandleMap<RA>> = PluginCtx<RA, KM>;
 
 type StatelessReactiveGearMapPlugin<
   RA extends AnyResAtlas,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
-> = MapPlugin<RA, DM, StatelessReactiveGearPluginCtx<RA, KA>>;
+> = MapPlugin<RA, DM, StatelessReactiveGearPluginCtx<RA, KM>>;
 
 type StatelessReactiveGearListPlugin<
   RA extends AnyResAtlas,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
-> = ListPlugin<RA, DL, StatelessReactiveGearPluginCtx<RA, KA>>;
+> = ListPlugin<RA, DL, StatelessReactiveGearPluginCtx<RA, KM>>;
 
 type StatelessReactiveGearMapPlugHead<
   RA extends AnyResAtlas,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
-> = ResMapPlugHead<"gear", RA, KA, DM, StatelessReactiveGearPluginCtx<RA, KA>>;
+> = ResMapPlugHead<"gear", RA, KM, DM, StatelessReactiveGearPluginCtx<RA, KM>>;
 
 type StatelessReactiveGearListPlugHead<
   RA extends AnyResAtlas,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
-> = ResListPlugHead<"gear", RA, KA, DL, StatelessReactiveGearPluginCtx<RA, KA>>;
+> = ResListPlugHead<"gear", RA, KM, DL, StatelessReactiveGearPluginCtx<RA, KM>>;
 
-interface StatelessReactiveGearMapPlug<RA extends AnyResAtlas, KA extends HandleMap<RA>, DM extends HandleMap<RA>>
-  extends PlugBody<StatelessReactiveGearMapPlugHead<RA, KA, DM>> {}
+interface StatelessReactiveGearMapPlug<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>>
+  extends PlugBody<StatelessReactiveGearMapPlugHead<RA, KM, DM>> {}
 
-interface StatelessReactiveGearListPlug<RA extends AnyResAtlas, KA extends HandleMap<RA>, DL extends HandleList<RA>>
-  extends PlugBody<StatelessReactiveGearListPlugHead<RA, KA, DL>> {}
+interface StatelessReactiveGearListPlug<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>>
+  extends PlugBody<StatelessReactiveGearListPlugHead<RA, KM, DL>> {}
 
 export type StatelessReactiveGearMapDefiner<
   RA extends AnyResAtlas,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
-  factory: (plugin: StatelessReactiveGearMapPlugin<RA, KA, DM>, _: StatelessReactiveGearCursor) => R | Promise<R>
-) => ResMatrix<R & ReactiveGearTag, StatelessReactiveGearMapPlug<RA, KA, DM>>;
+  factory: (plugin: StatelessReactiveGearMapPlugin<RA, KM, DM>, _: StatelessReactiveGearCursor) => R | Promise<R>
+) => ResMatrix<R & ReactiveGearTag, StatelessReactiveGearMapPlug<RA, KM, DM>>;
 
 export type StatelessReactiveGearListDefiner<
   RA extends AnyResAtlas,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
 > = <R extends AnyReactiveRes & RejectAsyncValueProps<R>>(
-  factory: (plugin: StatelessReactiveGearListPlugin<RA, KA, DL>, _: StatelessReactiveGearCursor) => R | Promise<R>
-) => ResMatrix<R & ReactiveGearTag, StatelessReactiveGearListPlug<RA, KA, DL>>;
+  factory: (plugin: StatelessReactiveGearListPlugin<RA, KM, DL>, _: StatelessReactiveGearCursor) => R | Promise<R>
+) => ResMatrix<R & ReactiveGearTag, StatelessReactiveGearListPlug<RA, KM, DL>>;

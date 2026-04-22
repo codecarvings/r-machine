@@ -43,7 +43,7 @@ describe("Strategy", () => {
     });
   });
 
-  it("rMachine property should be readonly RMachine<RA, L, KA>", () => {
+  it("rMachine property should be readonly RMachine<RA, L, KM>", () => {
     expectTypeOf<TestStrategy>().toHaveProperty("rMachine");
     expectTypeOf<TestStrategy["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, string, TestResEquipment>>();
 
@@ -146,7 +146,7 @@ describe("Strategy type constraints", () => {
     expectTypeOf<EnOnlyStrategy>().not.toEqualTypeOf<EnItStrategy>();
   });
 
-  it("should accept NamespaceMap as KA parameter", () => {
+  it("should accept NamespaceMap as KM parameter", () => {
     type TestK = {
       readonly bridgeGears: readonly [];
       readonly gearKit: { readonly c: "common" };

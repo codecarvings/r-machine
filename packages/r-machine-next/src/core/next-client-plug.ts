@@ -19,30 +19,30 @@ import type { AnyPathAtlas } from "./path-atlas.js";
 interface NextClientMapPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
   PA extends AnyPathAtlas,
-> extends PlugBody<NextMapPlugHead<RA, L, KA, DM, NextPluginCtx<RA, L, KA, PA>>> {
-  readonly use: () => NextMapPlugin<RA, L, KA, DM, PA>;
+> extends PlugBody<NextMapPlugHead<RA, L, KM, DM, NextPluginCtx<RA, L, KM, PA>>> {
+  readonly use: () => NextMapPlugin<RA, L, KM, DM, PA>;
 }
 
 interface NextClientListPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
   PA extends AnyPathAtlas,
-> extends PlugBody<NextListPlugHead<RA, L, KA, DL, NextPluginCtx<RA, L, KA, PA>>> {
-  readonly use: () => NextListPlugin<RA, L, KA, DL, PA>;
+> extends PlugBody<NextListPlugHead<RA, L, KM, DL, NextPluginCtx<RA, L, KM, PA>>> {
+  readonly use: () => NextListPlugin<RA, L, KM, DL, PA>;
 }
 
 export interface NextClientPlugDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   PA extends AnyPathAtlas,
 > {
-  (): NextClientMapPlug<RA, L, KA, {}, PA>;
-  <DL extends HandleList<RA>>(...deps: DL): NextClientListPlug<RA, L, KA, DL, PA>;
-  <DM extends HandleMap<RA>>(deps: DM): NextClientMapPlug<RA, L, KA, DM, PA>;
+  (): NextClientMapPlug<RA, L, KM, {}, PA>;
+  <DL extends HandleList<RA>>(...deps: DL): NextClientListPlug<RA, L, KM, DL, PA>;
+  <DM extends HandleMap<RA>>(deps: DM): NextClientMapPlug<RA, L, KM, DM, PA>;
 }

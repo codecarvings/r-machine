@@ -279,7 +279,7 @@ describe("NextAppPathStrategy", () => {
       >();
     });
 
-    it("different KA produce different types", () => {
+    it("different KM produce different types", () => {
       expectTypeOf<NextAppPathStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>>().not.toEqualTypeOf<
         NextAppPathStrategy<TestAtlas, TestLocale, {}>
       >();
@@ -400,7 +400,7 @@ describe("NextAppPathStrategy", () => {
       type _Invalid = NextAppPathStrategy<TestAtlas, number>;
     });
 
-    it("rejects non-NamespaceMap<TestAtlas> as KA", () => {
+    it("rejects non-NamespaceMap<TestAtlas> as KM", () => {
       // @ts-expect-error - string does not satisfy NamespaceMap<TestAtlas>
       type _Invalid = NextAppPathStrategy<TestAtlas, TestLocale, string>;
     });

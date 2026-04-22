@@ -45,43 +45,43 @@ export interface ShellComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   BGL extends HandleList<RA>,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
 > {
-  readonly deps: ShellDepsComposer<RA, L, BGL, KA>;
-  readonly define: ShellMapDefiner<RA, L, KA, {}>;
+  readonly deps: ShellDepsComposer<RA, L, BGL, KM>;
+  readonly define: ShellMapDefiner<RA, L, KM, {}>;
 }
 
 interface ShellDepsComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   BGL extends HandleList<RA>,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
 > {
-  (): ShellMapDepsComposer<RA, L, KA, {}>;
+  (): ShellMapDepsComposer<RA, L, KM, {}>;
   <const NL extends readonly Handle<RA["shape"]>[]>(
     ...deps: { readonly [I in keyof NL]: ValidShellDepItem<RA, BGL, NL[I]> }
-  ): ShellListDepsComposer<RA, L, KA, NL>;
+  ): ShellListDepsComposer<RA, L, KM, NL>;
   <const NM extends { readonly [k: string]: Handle<RA["shape"]> }>(
     deps: { readonly [K in keyof NM]: ValidShellDepItem<RA, BGL, NM[K]> }
-  ): ShellMapDepsComposer<RA, L, KA, NM>;
+  ): ShellMapDepsComposer<RA, L, KM, NM>;
 }
 
 interface ShellMapDepsComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
 > {
-  readonly define: ShellMapDefiner<RA, L, KA, DM>;
+  readonly define: ShellMapDefiner<RA, L, KM, DM>;
 }
 
 interface ShellListDepsComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
 > {
-  readonly define: ShellListDefiner<RA, L, KA, DL>;
+  readonly define: ShellListDefiner<RA, L, KM, DL>;
 }
 
 // #region Runtime
@@ -92,18 +92,18 @@ export function createShellComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   BGL extends HandleList<RA>,
-  KA extends HandleMap<RA>,
->(provider: ResWireProvider): ShellComposer<RA, L, BGL, KA> {
-  const define = createShellMapDefiner<RA, L, KA, {}>(provider, {});
+  KM extends HandleMap<RA>,
+>(provider: ResWireProvider): ShellComposer<RA, L, BGL, KM> {
+  const define = createShellMapDefiner<RA, L, KM, {}>(provider, {});
 
   const deps = ((...args: unknown[]) => {
     const mask = getPlugOutline<RA>(...args);
     if (mask.mode === "map") {
-      return createShellMapDepsComposer<RA, L, KA, any>(provider, mask.deps);
+      return createShellMapDepsComposer<RA, L, KM, any>(provider, mask.deps);
     } else {
-      return createShellListDepsComposer<RA, L, KA, any>(provider, mask.deps);
+      return createShellListDepsComposer<RA, L, KM, any>(provider, mask.deps);
     }
-  }) as ShellDepsComposer<RA, L, BGL, KA>;
+  }) as ShellDepsComposer<RA, L, BGL, KM>;
 
   return {
     deps,
@@ -114,10 +114,10 @@ export function createShellComposer<
 function createShellMapDepsComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
->(provider: ResWireProvider, deps: DM): ShellMapDepsComposer<RA, L, KA, DM> {
-  return lazyGetters<ShellMapDepsComposer<RA, L, KA, DM>>({
+>(provider: ResWireProvider, deps: DM): ShellMapDepsComposer<RA, L, KM, DM> {
+  return lazyGetters<ShellMapDepsComposer<RA, L, KM, DM>>({
     define: () => createShellMapDefiner(provider, deps),
   });
 }
@@ -125,10 +125,10 @@ function createShellMapDepsComposer<
 function createShellListDepsComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
->(provider: ResWireProvider, deps: DL): ShellListDepsComposer<RA, L, KA, DL> {
-  return lazyGetters<ShellListDepsComposer<RA, L, KA, DL>>({
+>(provider: ResWireProvider, deps: DL): ShellListDepsComposer<RA, L, KM, DL> {
+  return lazyGetters<ShellListDepsComposer<RA, L, KM, DL>>({
     define: () => createShellListDefiner(provider, deps),
   });
 }
@@ -136,10 +136,10 @@ function createShellListDepsComposer<
 function createShellMapDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
->(provider: ResWireProvider, deps: DM): ShellMapDefiner<RA, L, KA, DM> {
-  type PlugHead = ResMapPlugHead<"shell", RA, KA, DM, LocaleAwarePluginCtx<RA, L, KA>>;
+>(provider: ResWireProvider, deps: DM): ShellMapDefiner<RA, L, KM, DM> {
+  type PlugHead = ResMapPlugHead<"shell", RA, KM, DM, LocaleAwarePluginCtx<RA, L, KM>>;
   const head = {
     area: "res",
     family: "shell",
@@ -157,16 +157,16 @@ function createShellMapDefiner<
         plugin: unknown,
         cursor: never
       ) => AnyRes | Promise<AnyRes>,
-    })) as ShellMapDefiner<RA, L, KA, DM>;
+    })) as ShellMapDefiner<RA, L, KM, DM>;
 }
 
 function createShellListDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
->(provider: ResWireProvider, deps: DL): ShellListDefiner<RA, L, KA, DL> {
-  type PlugHead = ResListPlugHead<"shell", RA, KA, DL, LocaleAwarePluginCtx<RA, L, KA>>;
+>(provider: ResWireProvider, deps: DL): ShellListDefiner<RA, L, KM, DL> {
+  type PlugHead = ResListPlugHead<"shell", RA, KM, DL, LocaleAwarePluginCtx<RA, L, KM>>;
   const head = {
     area: "res",
     family: "shell",
@@ -184,7 +184,7 @@ function createShellListDefiner<
         plugin: unknown,
         cursor: never
       ) => AnyRes | Promise<AnyRes>,
-    })) as ShellListDefiner<RA, L, KA, DL>;
+    })) as ShellListDefiner<RA, L, KM, DL>;
 }
 
 // #endregion

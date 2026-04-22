@@ -24,54 +24,54 @@ import type {
 } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 
-type ReactPluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extends HandleMap<RA>> = GatePluginCtx<RA, L, KA>;
+type ReactPluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KM extends HandleMap<RA>> = GatePluginCtx<RA, L, KM>;
 
 type ReactMapPlugin<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
-> = MapPlugin<RA, DM, ReactPluginCtx<RA, L, KA>>;
+> = MapPlugin<RA, DM, ReactPluginCtx<RA, L, KM>>;
 
 type ReactListPlugin<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
-> = ListPlugin<RA, DL, ReactPluginCtx<RA, L, KA>>;
+> = ListPlugin<RA, DL, ReactPluginCtx<RA, L, KM>>;
 
 interface ReactMapPlugHead<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
-  CTX extends ReactPluginCtx<RA, L, KA>,
-> extends GateMapPlugHead<RA, L, KA, DM, CTX> {}
+  CTX extends ReactPluginCtx<RA, L, KM>,
+> extends GateMapPlugHead<RA, L, KM, DM, CTX> {}
 
 interface ReactListPlugHead<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
-  CTX extends ReactPluginCtx<RA, L, KA>,
-> extends GateListPlugHead<RA, L, KA, DL, CTX> {}
+  CTX extends ReactPluginCtx<RA, L, KM>,
+> extends GateListPlugHead<RA, L, KM, DL, CTX> {}
 
-interface ReactMapPlug<RA extends AnyResAtlas, L extends AnyLocale, KA extends HandleMap<RA>, DM extends HandleMap<RA>>
-  extends PlugBody<ReactMapPlugHead<RA, L, KA, DM, ReactPluginCtx<RA, L, KA>>> {
-  readonly use: () => ReactMapPlugin<RA, L, KA, DM>;
+interface ReactMapPlug<RA extends AnyResAtlas, L extends AnyLocale, KM extends HandleMap<RA>, DM extends HandleMap<RA>>
+  extends PlugBody<ReactMapPlugHead<RA, L, KM, DM, ReactPluginCtx<RA, L, KM>>> {
+  readonly use: () => ReactMapPlugin<RA, L, KM, DM>;
 }
 
 interface ReactListPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
-> extends PlugBody<ReactListPlugHead<RA, L, KA, DL, ReactPluginCtx<RA, L, KA>>> {
-  readonly use: () => ReactListPlugin<RA, L, KA, DL>;
+> extends PlugBody<ReactListPlugHead<RA, L, KM, DL, ReactPluginCtx<RA, L, KM>>> {
+  readonly use: () => ReactListPlugin<RA, L, KM, DL>;
 }
 
-export interface ReactPlugDefiner<RA extends AnyResAtlas, L extends AnyLocale, KA extends HandleMap<RA>> {
-  (): ReactMapPlug<RA, L, KA, {}>;
-  <DL extends HandleList<RA>>(...deps: DL): ReactListPlug<RA, L, KA, DL>;
-  <DM extends HandleMap<RA>>(deps: DM): ReactMapPlug<RA, L, KA, DM>;
+export interface ReactPlugDefiner<RA extends AnyResAtlas, L extends AnyLocale, KM extends HandleMap<RA>> {
+  (): ReactMapPlug<RA, L, KM, {}>;
+  <DL extends HandleList<RA>>(...deps: DL): ReactListPlug<RA, L, KM, DL>;
+  <DM extends HandleMap<RA>>(deps: DM): ReactMapPlug<RA, L, KM, DM>;
 }

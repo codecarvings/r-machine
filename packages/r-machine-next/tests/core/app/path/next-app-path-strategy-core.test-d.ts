@@ -281,7 +281,7 @@ describe("NextAppPathStrategyCore", () => {
     >().not.toEqualTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, OtherConfig>>();
   });
 
-  it("different KA produce different core types", () => {
+  it("different KM produce different core types", () => {
     expectTypeOf<
       NextAppPathStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimpleConfig>
     >().not.toEqualTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, {}, SimpleConfig>>();

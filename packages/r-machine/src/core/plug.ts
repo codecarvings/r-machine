@@ -21,20 +21,20 @@ import type { AnyNamespaceMap, HandleMap, SurfaceMap } from "./res-map.js";
 export type PlugArea = "res" | "gate";
 export type PlugMode = "map" | "list";
 
-export type PluginCtx<RA extends AnyResAtlas, KA extends HandleMap<RA>> = {} & (keyof KA extends never
+export type PluginCtx<RA extends AnyResAtlas, KM extends HandleMap<RA>> = {} & (keyof KM extends never
   ? {}
-  : { readonly kit: SurfaceMap<RA, KA> });
+  : { readonly kit: SurfaceMap<RA, KM> });
 
-export type LocaleAwarePluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KA extends HandleMap<RA>> = PluginCtx<
+export type LocaleAwarePluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KM extends HandleMap<RA>> = PluginCtx<
   RA,
-  KA
+  KM
 > & {
   readonly locale: L;
 };
 
 export type MapPlugin<RA extends AnyResAtlas, DM extends HandleMap<RA>, CTX> = SurfaceMap<RA, Omit<DM, "$">> & {
   $: CTX;
-} & (CTX extends { readonly kit: infer KA } ? Omit<KA, keyof DM> : {});
+} & (CTX extends { readonly kit: infer KM } ? Omit<KM, keyof DM> : {});
 
 export type ListPlugin<RA extends AnyResAtlas, DL extends HandleList<RA>, CTX> = [...SurfaceList<RA, DL>, CTX];
 
@@ -44,22 +44,22 @@ declare const ctx: unique symbol;
 interface BasePlugHead<
   A extends PlugArea,
   RA extends AnyResAtlas,
-  KA extends HandleMap<RA>,
-  CTX extends PluginCtx<RA, KA>,
+  KM extends HandleMap<RA>,
+  CTX extends PluginCtx<RA, KM>,
 > {
   readonly area: A;
   readonly [resAtlas]: RA;
-  readonly [kit]: KA;
+  readonly [kit]: KM;
   readonly [ctx]: CTX;
 }
 
 export interface MapPlugHead<
   A extends PlugArea,
   RA extends AnyResAtlas,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
-  CTX extends PluginCtx<RA, KA>,
-> extends BasePlugHead<A, RA, KA, CTX> {
+  CTX extends PluginCtx<RA, KM>,
+> extends BasePlugHead<A, RA, KM, CTX> {
   readonly mode: "map";
   readonly deps: DM;
   readonly namespaces: AnyNamespaceMap;
@@ -69,10 +69,10 @@ export type AnyMapPlugHead = MapPlugHead<any, any, any, any, any>;
 export interface ListPlugHead<
   A extends PlugArea,
   RA extends AnyResAtlas,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
-  CTX extends PluginCtx<RA, KA>,
-> extends BasePlugHead<A, RA, KA, CTX> {
+  CTX extends PluginCtx<RA, KM>,
+> extends BasePlugHead<A, RA, KM, CTX> {
   readonly mode: "list";
   readonly deps: DL;
   readonly namespaces: AnyNamespaceList;

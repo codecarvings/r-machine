@@ -20,10 +20,10 @@ import type { HandleMap } from "./res-map.js";
 export interface ResMapPlugHead<
   F extends ResFamily,
   RA extends AnyResAtlas,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
-  CTX extends PluginCtx<RA, KA>,
-> extends MapPlugHead<"res", RA, KA, DM, CTX> {
+  CTX extends PluginCtx<RA, KM>,
+> extends MapPlugHead<"res", RA, KM, DM, CTX> {
   readonly family: F;
 }
 type AnyResMapPlugHead = ResMapPlugHead<ResFamily, any, any, any, any>;
@@ -31,10 +31,10 @@ type AnyResMapPlugHead = ResMapPlugHead<ResFamily, any, any, any, any>;
 export interface ResListPlugHead<
   F extends ResFamily,
   RA extends AnyResAtlas,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
-  CTX extends PluginCtx<RA, KA>,
-> extends ListPlugHead<"res", RA, KA, DL, CTX> {
+  CTX extends PluginCtx<RA, KM>,
+> extends ListPlugHead<"res", RA, KM, DL, CTX> {
   readonly family: F;
 }
 type AnyResListPlugHead = ResListPlugHead<ResFamily, any, any, any, any>;

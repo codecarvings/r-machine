@@ -186,7 +186,7 @@ describe("NextAppFlatStrategyCore", () => {
     >().not.toEqualTypeOf<NextAppFlatStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, OtherConfig>>();
   });
 
-  it("different KA produce different core types", () => {
+  it("different KM produce different core types", () => {
     expectTypeOf<
       NextAppFlatStrategyCore<TestAtlas, TestLocale, NamespaceMap<TestAtlas>, SimpleConfig>
     >().not.toEqualTypeOf<NextAppFlatStrategyCore<TestAtlas, TestLocale, {}, SimpleConfig>>();

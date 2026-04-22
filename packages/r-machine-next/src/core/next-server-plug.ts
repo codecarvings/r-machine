@@ -31,43 +31,43 @@ type RMachineParams<LK extends string> = {
 interface NextServerMapPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DM extends SolidHandleMap<RA>,
   PA extends AnyPathAtlas,
   LK extends string,
-> extends PlugBody<NextMapPlugHead<RA, L, KA, DM, NextPluginCtx<RA, L, KA, PA>>> {
-  use(): Promise<NextMapPlugin<RA, L, KA, DM, PA>>;
+> extends PlugBody<NextMapPlugHead<RA, L, KM, DM, NextPluginCtx<RA, L, KM, PA>>> {
+  use(): Promise<NextMapPlugin<RA, L, KM, DM, PA>>;
   use<P extends RMachineParams<LK>>(
     params: Promise<P>,
     bindLocale?: boolean
-  ): Promise<NextParamsMapPlugin<RA, L, KA, DM, PA, P>>;
-  use(locale: AnyLocale, bindLocale?: boolean): Promise<NextMapPlugin<RA, L, KA, DM, PA>>;
+  ): Promise<NextParamsMapPlugin<RA, L, KM, DM, PA, P>>;
+  use(locale: AnyLocale, bindLocale?: boolean): Promise<NextMapPlugin<RA, L, KM, DM, PA>>;
 }
 
 interface NextServerListPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   DL extends SolidHandleList<RA>,
   PA extends AnyPathAtlas,
   LK extends string,
-> extends PlugBody<NextListPlugHead<RA, L, KA, DL, NextPluginCtx<RA, L, KA, PA>>> {
-  use(): Promise<NextListPlugin<RA, L, KA, DL, PA>>;
+> extends PlugBody<NextListPlugHead<RA, L, KM, DL, NextPluginCtx<RA, L, KM, PA>>> {
+  use(): Promise<NextListPlugin<RA, L, KM, DL, PA>>;
   use<P extends RMachineParams<LK>>(
     params: Promise<P>,
     bindLocale?: boolean
-  ): Promise<NextParamsListPlugin<RA, L, KA, DL, PA, P>>;
-  use(params: AnyLocale, bindLocale?: boolean): Promise<NextListPlugin<RA, L, KA, DL, PA>>;
+  ): Promise<NextParamsListPlugin<RA, L, KM, DL, PA, P>>;
+  use(params: AnyLocale, bindLocale?: boolean): Promise<NextListPlugin<RA, L, KM, DL, PA>>;
 }
 
 export interface NextServerPlugDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KA extends HandleMap<RA>,
+  KM extends HandleMap<RA>,
   PA extends AnyPathAtlas,
   LK extends string,
 > {
-  (): NextServerMapPlug<RA, L, KA, {}, PA, LK>;
-  <DL extends SolidHandleList<RA>>(...deps: DL): NextServerListPlug<RA, L, KA, DL, PA, LK>;
-  <DM extends SolidHandleMap<RA>>(deps: DM): NextServerMapPlug<RA, L, KA, DM, PA, LK>;
+  (): NextServerMapPlug<RA, L, KM, {}, PA, LK>;
+  <DL extends SolidHandleList<RA>>(...deps: DL): NextServerListPlug<RA, L, KM, DL, PA, LK>;
+  <DM extends SolidHandleMap<RA>>(deps: DM): NextServerMapPlug<RA, L, KM, DM, PA, LK>;
 }

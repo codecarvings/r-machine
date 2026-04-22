@@ -158,7 +158,7 @@ describe("NextAppOriginStrategy", () => {
       >();
     });
 
-    it("different KA produce different types", () => {
+    it("different KM produce different types", () => {
       expectTypeOf<NextAppOriginStrategy<TestAtlas, TestLocale, NamespaceMap<TestAtlas>>>().not.toEqualTypeOf<
         NextAppOriginStrategy<TestAtlas, TestLocale, {}>
       >();
@@ -269,7 +269,7 @@ describe("NextAppOriginStrategy", () => {
       type _Invalid = NextAppOriginStrategy<TestAtlas, number>;
     });
 
-    it("rejects non-NamespaceMap<TestAtlas> as KA", () => {
+    it("rejects non-NamespaceMap<TestAtlas> as KM", () => {
       // @ts-expect-error - string does not satisfy NamespaceMap<TestAtlas>
       type _Invalid = NextAppOriginStrategy<TestAtlas, TestLocale, string>;
     });

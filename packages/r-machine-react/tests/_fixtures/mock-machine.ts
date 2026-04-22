@@ -50,7 +50,7 @@ export function createMockMachine(
  * If createMockMachine returned `RMachine<TestAtlas, …> & MockMachineSpies`,
  * the untyped `MockInstance` members (hybridPickR, hybridPickRKit) would shadow
  * the generic-typed protected members of RMachine. When TypeScript then tries to
- * infer `RA` in `createReactBareToolset<RA, L, KA>(rMachine)`, the conflicting
+ * infer `RA` in `createReactBareToolset<RA, L, KM>(rMachine)`, the conflicting
  * signatures cause `RA` to degrade from `TestAtlas` to its constraint (`object`),
  * making `useR("common")` return `object` instead of `TestAtlas["common"]`.
  *
