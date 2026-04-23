@@ -13,30 +13,14 @@
 
 import type { AnyNamespace } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
-import { ERR_RESOLVE_FAILED } from "../errors/error-codes.js";
-import { RMachineResolveError } from "../errors/r-machine-resolve-error.js";
 import { type Blueprint, createBlueprint } from "./blueprint.js";
-import {
-  type AnyResLayout,
-  createResLayoutEntryTypeResolver,
-  type ResLayoutEntryType,
-  type ResLayoutEntryTypeResolver,
-  resolveResPath,
-} from "./res-layout.js";
+import { type ResLayoutEntryType, resolveResPath } from "./res-layout.js";
 import { type AnyResModule, type ResModuleLoaderFn, validateResModule } from "./res-module.js";
 
-type BlueprintByLocale = Map<AnyLocale | undefined, Blueprint | Promise<Blueprint>>;
-
 export class BlueprintManager {
-  constructor(
-    layout: AnyResLayout,
-    protected loadResModuleFn: ResModuleLoaderFn
-  ) {
-    this.resLayoutEntryTypeResolver = createResLayoutEntryTypeResolver(layout);
-  }
+  constructor(protected loadResModuleFn: ResModuleLoaderFn) {}
 
-  protected readonly resLayoutEntryTypeResolver: ResLayoutEntryTypeResolver;
-  protected readonly cache = new Map<AnyNamespace, BlueprintByLocale>();
+  protected readonly cache = new Map<string, Blueprint | Promise<Blueprint>>();
 
   protected async loadModule(
     namespace: AnyNamespace,
@@ -55,48 +39,35 @@ export class BlueprintManager {
   protected resolveBlueprint(
     namespace: AnyNamespace,
     locale: AnyLocale | undefined,
-    byLocale: BlueprintByLocale,
+    key: string,
     resLayoutEntryType: ResLayoutEntryType
   ): Promise<Blueprint> {
     const blueprintPromise = (async () => {
       try {
         const module = await this.loadModule(namespace, locale, resLayoutEntryType);
         const blueprint = createBlueprint(module, namespace, locale, resLayoutEntryType);
-        byLocale.set(locale, blueprint);
+        this.cache.set(key, blueprint);
         return blueprint;
       } catch (error) {
-        byLocale.delete(locale);
+        this.cache.delete(key);
         throw error;
       }
     })();
-    byLocale.set(locale, blueprintPromise);
+    this.cache.set(key, blueprintPromise);
     return blueprintPromise;
   }
 
-  async getBlueprint(namespace: AnyNamespace, locale: AnyLocale | undefined): Promise<Blueprint> {
-    const resLayoutEntryType = this.resLayoutEntryTypeResolver(namespace);
-    if (!resLayoutEntryType) {
-      throw new RMachineResolveError(
-        ERR_RESOLVE_FAILED,
-        `Failed to resolve blueprint for namespace "${namespace}" and locale "${locale ?? "default"}" - no matching layout entry found.`
-      );
+  async getBlueprint(
+    namespace: AnyNamespace,
+    locale: AnyLocale | undefined,
+    resLayoutEntryType: ResLayoutEntryType,
+    key: string
+  ): Promise<Blueprint> {
+    const blueprint = this.cache.get(key);
+    if (blueprint !== undefined) {
+      return blueprint;
     }
 
-    if (resLayoutEntryType !== "shell") {
-      locale = undefined;
-    }
-
-    let byLocale = this.cache.get(namespace);
-    if (byLocale !== undefined) {
-      const blueprint = byLocale.get(locale);
-      if (blueprint !== undefined) {
-        return blueprint;
-      }
-    } else {
-      byLocale = new Map();
-      this.cache.set(namespace, byLocale);
-    }
-
-    return this.resolveBlueprint(namespace, locale, byLocale, resLayoutEntryType);
+    return this.resolveBlueprint(namespace, locale, key, resLayoutEntryType);
   }
 }

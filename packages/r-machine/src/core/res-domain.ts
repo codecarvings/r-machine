@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { AnyLocale } from "#r-machine/locale";
 import type { ResLayoutEntryType } from "./res-layout.js";
 
 export type AnyNamespace = string;
@@ -52,4 +53,20 @@ export function isHandle(value: unknown): value is Handle<any> {
 
 export function createToken<N extends AnyNamespace>(namespace: N): Token<N> {
   return { [namespaceSymbol]: namespace };
+}
+
+// Unambiguous cache key for (namespace, locale) pairs.
+//
+// Encoding: `<locale><SEP><namespace>`, where SEP = U+001F (Unit Separator).
+// An empty locale prefix means `undefined`. Decoding is unambiguous (split at
+// the first SEP) iff:
+//   1. `AnyLocale` values never contain U+001F — enforced by
+//      validateCanonicalUnicodeLocaleId (BCP-47 allows only [a-zA-Z0-9-]).
+//   2. `AnyLocale` values are never the empty string — enforced by the same
+//      validator and by LocaleHelper.validateLocale at boundaries.
+// Both invariants are guaranteed transitively for any locale reaching this
+// helper; the namespace is therefore free to contain any character, including
+// U+001F, without causing collisions.
+export function getResCacheKey(namespace: AnyNamespace, locale: AnyLocale | undefined): string {
+  return `${locale ?? ""}\x1f${namespace}`;
 }

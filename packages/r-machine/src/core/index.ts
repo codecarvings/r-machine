@@ -21,6 +21,7 @@ export type {
 export type { GateWire } from "./gate-wire.js";
 export { createGearComposer, type GearComposer } from "./gear-composer.js";
 export type { Getter } from "./getter.js";
+export { KernelManager } from "./kernel-manager.js";
 export {
   type AnyListPlugHead,
   type AnyMapPlugHead,
@@ -63,7 +64,12 @@ export type {
   ResEquipment,
   ShellKit,
 } from "./res-equipment.js";
-export type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "./res-layout.js";
+export {
+  type AnyResLayout,
+  createResLayoutEntryTypeResolver,
+  type ResLayoutEntryType,
+  type ResolveLayoutType,
+} from "./res-layout.js";
 export type { HandleList, SolidHandleList, SurfaceList } from "./res-list.js";
 export type {
   HandleMap,

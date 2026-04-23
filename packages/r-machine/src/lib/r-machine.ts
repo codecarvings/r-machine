@@ -21,11 +21,13 @@ import {
   BlueprintManager,
   type BridgeGearNamespaceList,
   createGearComposer,
+  createResLayoutEntryTypeResolver,
   createShellComposer,
   type GateKit,
   type GateWire,
   type GearKit,
   type HandleList,
+  KernelManager,
   type ResEquipment,
   type ResWireProvider,
   type ShellKit,
@@ -55,14 +57,16 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
     this.defaultLocale = this.config.defaultLocale;
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
 
-    this.blueprintManager = new BlueprintManager(this.config.layout, this.config.load);
+    const resLayoutEntryTypeResolver = createResLayoutEntryTypeResolver(this.config.layout);
+    const blueprintManager = new BlueprintManager(this.config.load);
+    this.kernelManager = new KernelManager(resLayoutEntryTypeResolver, blueprintManager);
   }
 
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly localeHelper: LocaleHelper<L>;
   protected readonly config: RMachineConfig<RA, L, E>;
-  protected readonly blueprintManager: BlueprintManager;
+  protected readonly kernelManager: KernelManager;
 
   protected validateLocaleForPick(locale: L) {
     const error = this.localeHelper.validateLocale(locale);
@@ -88,7 +92,7 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
 
   async WIP_GET<DL extends HandleList<RA>>(...deps: DL): Promise<SurfaceList<RA, DL>> {
     if (deps.length > 0) {
-      const blueprint = await this.blueprintManager.getBlueprint(deps[0] as any, this.defaultLocale);
+      const blueprint = await this.kernelManager.getKernel(deps[0] as any, this.defaultLocale);
       console.log("WIP_GET loaded blueprint:", blueprint);
     }
     return undefined!;

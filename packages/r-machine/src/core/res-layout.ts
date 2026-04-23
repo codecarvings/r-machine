@@ -60,6 +60,25 @@ function isPrefixMatch(namespace: string, prefix: string): boolean {
   return namespace.startsWith(prefix);
 }
 
+export function validateResLayoutEntry(
+  namespace: AnyNamespace,
+  locale: AnyLocale | undefined,
+  resLayoutEntryType: ResLayoutEntryType | undefined
+): AnyLocale | undefined {
+  if (!resLayoutEntryType) {
+    throw new RMachineResolveError(
+      ERR_RESOLVE_FAILED,
+      `Failed to resolve resource layout entry for namespace "${namespace}" and locale "${locale ?? "default"}" - no matching layout entry found.`
+    );
+  }
+
+  if (resLayoutEntryType !== "shell") {
+    locale = undefined;
+  }
+
+  return locale;
+}
+
 // Type-level prefix match. Invariant: P ends with "/".
 // N matches when it equals P's base (P without trailing "/") or starts with P.
 type IsPrefixOf<P extends string, N extends string> = P extends `${infer Base}/`
