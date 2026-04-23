@@ -23,13 +23,13 @@ import {
 } from "./reactive-gear-composer.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
+import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { Handle } from "./res-domain.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 import type { ResMatrixMeta } from "./res-matrix.js";
 import { assembleResMatrix } from "./res-matrix.js";
 import { createResListPlugHead, createResMapPlugHead } from "./res-plug.js";
-import type { ResWireProvider } from "./res-wire.js";
 
 type ValidGearDepItem<RA extends AnyResAtlas, N> =
   N extends Handle<RA["shape@gear"]>
@@ -79,17 +79,17 @@ const cursor: GearCursor = {
 const meta: ResMatrixMeta = { family: "gear", isReactive: false };
 
 export function createGearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>>(
-  wire: ResWireProvider
+  connector: ResComposerConnector
 ): GearComposer<RA, KM> {
-  const reactive = createReactiveGearMapDepsComposer<RA, KM, {}>(wire, {});
-  const define = createGearMapDefiner<RA, KM, {}>(wire, {});
+  const reactive = createReactiveGearMapDepsComposer<RA, KM, {}>(connector, {});
+  const define = createGearMapDefiner<RA, KM, {}>(connector, {});
 
   const deps = ((...args: unknown[]) => {
     const mask = getPlugOutline<RA>(...args);
     if (mask.mode === "map") {
-      return createGearMapDepsComposer<RA, KM, any>(wire, mask.deps);
+      return createGearMapDepsComposer<RA, KM, any>(connector, mask.deps);
     } else {
-      return createGearListDepsComposer<RA, KM, any>(wire, mask.deps);
+      return createGearListDepsComposer<RA, KM, any>(connector, mask.deps);
     }
   }) as GearDepsComposer<RA, KM>;
 
@@ -101,34 +101,34 @@ export function createGearComposer<RA extends AnyResAtlas, KM extends HandleMap<
 }
 
 function createGearMapDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>>(
-  provider: ResWireProvider,
+  connector: ResComposerConnector,
   deps: DM
 ): GearMapDepsComposer<RA, KM, DM> {
   return lazyGetters<GearMapDepsComposer<RA, KM, DM>>({
-    reactive: () => createReactiveGearMapDepsComposer<RA, KM, DM>(provider, deps),
-    define: () => createGearMapDefiner<RA, KM, DM>(provider, deps),
+    reactive: () => createReactiveGearMapDepsComposer<RA, KM, DM>(connector, deps),
+    define: () => createGearMapDefiner<RA, KM, DM>(connector, deps),
   });
 }
 
 function createGearListDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>>(
-  provider: ResWireProvider,
+  connector: ResComposerConnector,
   deps: DL
 ): GearListDepsComposer<RA, KM, DL> {
   return lazyGetters<GearListDepsComposer<RA, KM, DL>>({
-    reactive: () => createReactiveGearListDepsComposer<RA, KM, DL>(provider, deps),
-    define: () => createGearListDefiner<RA, KM, DL>(provider, deps),
+    reactive: () => createReactiveGearListDepsComposer<RA, KM, DL>(connector, deps),
+    define: () => createGearListDefiner<RA, KM, DL>(connector, deps),
   });
 }
 
 function createGearMapDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>>(
-  provider: ResWireProvider,
+  connector: ResComposerConnector,
   deps: DM
 ): GearMapDefiner<RA, KM, DM> {
-  const head = createResMapPlugHead<"gear", RA, KM, DM, PluginCtx<RA, KM>>("gear", deps);
+  const head = createResMapPlugHead<"gear", RA, KM, DM, PluginCtx<RA, KM>>("gear", deps, connector.kitDepLists);
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
     assembleResMatrix({
-      provider,
+      connector,
       meta,
       head,
       cursor,
@@ -137,14 +137,14 @@ function createGearMapDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA>, 
 }
 
 function createGearListDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>>(
-  provider: ResWireProvider,
+  connector: ResComposerConnector,
   deps: DL
 ): GearListDefiner<RA, KM, DL> {
-  const head = createResListPlugHead<"gear", RA, KM, DL, PluginCtx<RA, KM>>("gear", deps);
+  const head = createResListPlugHead<"gear", RA, KM, DL, PluginCtx<RA, KM>>("gear", deps, connector.kitDepLists);
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
     assembleResMatrix({
-      provider,
+      connector,
       meta,
       head,
       cursor,

@@ -17,13 +17,13 @@ import { lazyGetters } from "./composer-utils.js";
 import { getPlugOutline, type LocaleAwarePluginCtx } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
+import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { Handle } from "./res-domain.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 import type { ResMatrixMeta } from "./res-matrix.js";
 import { assembleResMatrix } from "./res-matrix.js";
 import { createResListPlugHead, createResMapPlugHead } from "./res-plug.js";
-import type { ResWireProvider } from "./res-wire.js";
 import type { ShellListDefiner, ShellMapDefiner } from "./shell.js";
 
 type ShellDepsNamespace<RA extends AnyResAtlas, BGL extends HandleList<RA>> =
@@ -93,15 +93,15 @@ export function createShellComposer<
   L extends AnyLocale,
   BGL extends HandleList<RA>,
   KM extends HandleMap<RA>,
->(provider: ResWireProvider): ShellComposer<RA, L, BGL, KM> {
-  const define = createShellMapDefiner<RA, L, KM, {}>(provider, {});
+>(connector: ResComposerConnector): ShellComposer<RA, L, BGL, KM> {
+  const define = createShellMapDefiner<RA, L, KM, {}>(connector, {});
 
   const deps = ((...args: unknown[]) => {
     const mask = getPlugOutline<RA>(...args);
     if (mask.mode === "map") {
-      return createShellMapDepsComposer<RA, L, KM, any>(provider, mask.deps);
+      return createShellMapDepsComposer<RA, L, KM, any>(connector, mask.deps);
     } else {
-      return createShellListDepsComposer<RA, L, KM, any>(provider, mask.deps);
+      return createShellListDepsComposer<RA, L, KM, any>(connector, mask.deps);
     }
   }) as ShellDepsComposer<RA, L, BGL, KM>;
 
@@ -116,9 +116,9 @@ function createShellMapDepsComposer<
   L extends AnyLocale,
   KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
->(provider: ResWireProvider, deps: DM): ShellMapDepsComposer<RA, L, KM, DM> {
+>(connector: ResComposerConnector, deps: DM): ShellMapDepsComposer<RA, L, KM, DM> {
   return lazyGetters<ShellMapDepsComposer<RA, L, KM, DM>>({
-    define: () => createShellMapDefiner(provider, deps),
+    define: () => createShellMapDefiner(connector, deps),
   });
 }
 
@@ -127,9 +127,9 @@ function createShellListDepsComposer<
   L extends AnyLocale,
   KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
->(provider: ResWireProvider, deps: DL): ShellListDepsComposer<RA, L, KM, DL> {
+>(connector: ResComposerConnector, deps: DL): ShellListDepsComposer<RA, L, KM, DL> {
   return lazyGetters<ShellListDepsComposer<RA, L, KM, DL>>({
-    define: () => createShellListDefiner(provider, deps),
+    define: () => createShellListDefiner(connector, deps),
   });
 }
 
@@ -138,12 +138,16 @@ function createShellMapDefiner<
   L extends AnyLocale,
   KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
->(provider: ResWireProvider, deps: DM): ShellMapDefiner<RA, L, KM, DM> {
-  const head = createResMapPlugHead<"shell", RA, KM, DM, LocaleAwarePluginCtx<RA, L, KM>>("shell", deps);
+>(connector: ResComposerConnector, deps: DM): ShellMapDefiner<RA, L, KM, DM> {
+  const head = createResMapPlugHead<"shell", RA, KM, DM, LocaleAwarePluginCtx<RA, L, KM>>(
+    "shell",
+    deps,
+    connector.kitDepLists
+  );
 
   return (factory: (plugin: never) => unknown) =>
     assembleResMatrix({
-      provider,
+      connector,
       meta,
       head,
       cursor: undefined,
@@ -159,12 +163,16 @@ function createShellListDefiner<
   L extends AnyLocale,
   KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
->(provider: ResWireProvider, deps: DL): ShellListDefiner<RA, L, KM, DL> {
-  const head = createResListPlugHead<"shell", RA, KM, DL, LocaleAwarePluginCtx<RA, L, KM>>("shell", deps);
+>(connector: ResComposerConnector, deps: DL): ShellListDefiner<RA, L, KM, DL> {
+  const head = createResListPlugHead<"shell", RA, KM, DL, LocaleAwarePluginCtx<RA, L, KM>>(
+    "shell",
+    deps,
+    connector.kitDepLists
+  );
 
   return (factory: (plugin: never) => unknown) =>
     assembleResMatrix({
-      provider,
+      connector,
       meta,
       head,
       cursor: undefined,

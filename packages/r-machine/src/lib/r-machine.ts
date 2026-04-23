@@ -33,9 +33,9 @@ import {
   isNamespaceList,
   KernelManager,
   KernelPluginManager,
+  type ResComposerConnector,
   type ResEquipment,
   type ResFamily,
-  type ResWireProvider,
   type ShellKit,
   type SurfaceList,
   type VertexGearMap,
@@ -83,18 +83,24 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
   }
   */
 
-  protected createResWireProvider(family: ResFamily): ResWireProvider {
-    return (deps, locale) => {
-      const plugin = this.kernelPluginManager.getPluginSync(family, deps, locale);
-      return {
-        plugin,
-      };
+  protected createResComposerConnector(family: ResFamily): ResComposerConnector {
+    return {
+      getResWire: (deps, locale) => {
+        const plugin = this.kernelPluginManager.getPluginSync(family, deps, locale);
+        return {
+          plugin,
+        };
+      },
+      kitDepLists: {
+        gear: Object.values(this.config.equipment.gearKit),
+        shell: Object.values(this.config.equipment.shellKit),
+      },
     };
   }
 
   createToolset(): RMachineToolset<RA, L, E> {
-    const Gear = createGearComposer<RA, E["gearKit"]>(this.createResWireProvider("gear"));
-    const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(this.createResWireProvider("shell"));
+    const Gear = createGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"));
+    const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(this.createResComposerConnector("shell"));
     return { Gear, Shell, localized };
   }
 

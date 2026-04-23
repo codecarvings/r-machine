@@ -13,6 +13,7 @@
 
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { Namespace } from "./res-domain.js";
+import type { AnyNamespaceList } from "./res-list.js";
 
 export interface ResEquipment<
   RA extends AnyResAtlas,
@@ -44,3 +45,8 @@ export type ShellKit<RA extends AnyResAtlas, BGL extends BridgeGearNamespaceList
 export type GateKit<RA extends AnyResAtlas> = {
   readonly [key: string]: Namespace<RA["shape"]>;
 };
+
+export interface KitDepLists {
+  readonly gear: AnyNamespaceList;
+  readonly shell: AnyNamespaceList;
+}

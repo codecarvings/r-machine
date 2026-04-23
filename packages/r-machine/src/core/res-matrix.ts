@@ -12,17 +12,10 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
-import {
-  createPlug,
-  type ExtractPlugin,
-  getPlugLocale,
-  getPlugResolve,
-  type PlugBody,
-  setPlugResolve,
-} from "./plug.js";
+import { createPlug, type ExtractPlugin, getPlugResolve, type PlugBody, setPlugResolve } from "./plug.js";
 import type { AnyRes, AnyResOrigin, ResFamily } from "./res.js";
+import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { AnyResPlug, AnyResPlugHead } from "./res-plug.js";
-import type { ResWireProvider } from "./res-wire.js";
 
 export interface ResMatrixMeta {
   readonly family: ResFamily;
@@ -63,7 +56,7 @@ export type BuildResPlugin<H extends AnyResPlugHead> = (
 ) => ExtractPlugin<H>;
 
 interface AssembleResMatrixOptions<PH extends AnyResPlugHead, RAW, RES extends AnyRes> {
-  readonly provider: ResWireProvider;
+  readonly connector: ResComposerConnector;
   readonly meta: ResMatrixMeta;
   readonly head: PH;
   readonly cursor: unknown;
@@ -75,25 +68,24 @@ interface AssembleResMatrixOptions<PH extends AnyResPlugHead, RAW, RES extends A
 export function assembleResMatrix<PH extends AnyResPlugHead, RAW, RES extends AnyRes>(
   options: AssembleResMatrixOptions<PH, RAW, RES>
 ): ResMatrix<RES, PlugBody<PH>> {
-  const { provider, meta, head, cursor, userFactory, buildPlugin, postProcess } = options;
+  const { connector, meta, head, cursor, userFactory, buildPlugin, postProcess } = options;
 
   const plug = createPlug(head);
 
-  setPlugResolve(plug, () => {
-    const locale = getPlugLocale(plug);
-    const wire = provider(head.nsDeps, locale);
+  setPlugResolve(plug, (locale: AnyLocale | undefined) => {
+    const wire = connector.getResWire(head.nsDeps, locale);
     const plugin = wire.plugin as ExtractPlugin<PH>;
     return buildPlugin ? buildPlugin(plugin, locale) : plugin;
   });
 
-  const factory = async (): Promise<RES> => {
-    const plugin = getPlugResolve(plug)();
+  const factory = async (locale: AnyLocale | undefined): Promise<RES> => {
+    const plugin = getPlugResolve(plug)(locale);
     console.log("This plugin", plugin);
     const raw = await userFactory(plugin, cursor as never);
     return postProcess ? postProcess(raw, cursor as never) : (raw as unknown as RES);
   };
 
-  return createResMatrix<RES, PlugBody<PH>>(meta, factory, plug);
+  return createResMatrix<RES, PlugBody<PH>>(meta, factory as () => Promise<RES>, plug);
 }
 
 // #endregion

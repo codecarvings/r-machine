@@ -48,7 +48,7 @@ export class KernelManager {
       }
     }
 
-    const kernel = await (blueprint.origin.factory as () => Promise<Kernel>)();
+    const kernel = await (blueprint.origin.factory as (locale: AnyLocale | undefined) => Promise<Kernel>)(locale);
     return kernel;
   }
 

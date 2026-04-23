@@ -91,24 +91,21 @@ export type ExtractPlugin<PH extends AnyPlugHead> = PH extends AnyMapPlugHead
     ? ListPlugin<PH[typeof resAtlas], PH["deps"], PH[typeof ctx]>
     : never;
 
-type PlugLocale<PH extends AnyPlugHead> = PH extends { readonly locale: infer L } ? L : undefined;
+type PlugResolve<PH extends AnyPlugHead> = (locale: AnyLocale | undefined) => ExtractPlugin<PH>;
 
 const plugHeadSymbol = Symbol("plugHead");
-const plugLocaleSymbol = Symbol("plugLocale");
 const plugResolveSymbol = Symbol("plugResolve");
 export interface PlugBody<PH extends AnyPlugHead> {
   readonly [plugHeadSymbol]: PH;
-  [plugLocaleSymbol]: PlugLocale<PH>;
-  [plugResolveSymbol]: () => ExtractPlugin<PH>;
+  [plugResolveSymbol]: PlugResolve<PH>;
 }
 
-const defaultPlugResolve = () => {
+const defaultPlugResolve: PlugResolve<any> = () => {
   throw new RMachineResolveError(ERR_RESOLVE_FAILED, "Plug resolve not set.");
 };
 export function createPlug<H extends AnyPlugHead>(head: H): PlugBody<H> {
   return {
     [plugHeadSymbol]: head,
-    [plugLocaleSymbol]: undefined as PlugLocale<H>,
     [plugResolveSymbol]: defaultPlugResolve as () => ExtractPlugin<H>,
   };
 }
@@ -117,17 +114,10 @@ export function getPlugHead<H extends AnyPlugHead>(plug: PlugBody<H>): H {
   return plug[plugHeadSymbol];
 }
 
-export function getPlugLocale<H extends AnyPlugHead>(plug: PlugBody<H>): PlugLocale<H> {
-  return plug[plugLocaleSymbol];
-}
-export function setPlugLocale<H extends AnyPlugHead>(plug: PlugBody<H>, locale: PlugLocale<H>): void {
-  plug[plugLocaleSymbol] = locale;
-}
-
-export function getPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>): () => ExtractPlugin<H> {
+export function getPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>): PlugResolve<H> {
   return plug[plugResolveSymbol];
 }
-export function setPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>, resolve: () => ExtractPlugin<H>): void {
+export function setPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>, resolve: PlugResolve<H>): void {
   plug[plugResolveSymbol] = resolve;
 }
 

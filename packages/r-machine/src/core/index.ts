@@ -49,6 +49,7 @@ export type {
   SolidHandle,
   SolidNamespace,
 } from "./res-atlas.js";
+export type { ResComposerConnector } from "./res-composer-connector.js";
 export {
   type AnyNamespace,
   type AnyResDomain,
@@ -88,7 +89,6 @@ export {
 } from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";
 export type { AnyResModule, ResModuleLoaderFn } from "./res-module.js";
-export type { ResWireProvider } from "./res-wire.js";
 export { createShellComposer, type ShellComposer } from "./shell-composer.js";
 export type { AnyVertexGearSurface, Surface } from "./surface.js";
 export {
