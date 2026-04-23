@@ -35,6 +35,29 @@ export class BlueprintManager {
   ) {}
 
   protected readonly cache = new Map<string, Blueprint | Promise<Blueprint>>();
+  protected readonly waits = new Map<string, Set<string>>();
+
+  protected findWaitCyclePath(from: string, target: string): string[] | undefined {
+    const stack: Array<[string, string[]]> = [[from, [from]]];
+    const visited = new Set<string>();
+    while (stack.length > 0) {
+      const [node, path] = stack.pop()!;
+      if (node === target) {
+        return path;
+      }
+      if (visited.has(node)) {
+        continue;
+      }
+      visited.add(node);
+      const neighbors = this.waits.get(node);
+      if (neighbors) {
+        for (const next of neighbors) {
+          stack.push([next, [...path, next]]);
+        }
+      }
+    }
+    return undefined;
+  }
 
   protected async loadModule(
     namespace: AnyNamespace,
@@ -92,9 +115,11 @@ export class BlueprintManager {
           ]);
         }
         this.cache.set(key, blueprint);
+        this.waits.delete(key);
         return blueprint;
       } catch (error) {
         this.cache.delete(key);
+        this.waits.delete(key);
         throw error;
       }
     })();
@@ -111,11 +136,30 @@ export class BlueprintManager {
   ): Promise<Blueprint> {
     if (chain.includes(key)) {
       const path = [...chain, key].join(" -> ");
-      throw new RMachineResolveError(ERR_CIRCULAR_DEPENDENCY, `Circular blueprint dependency detected: ${path}.`);
+      throw new RMachineResolveError(ERR_CIRCULAR_DEPENDENCY, `Circular dependency detected: ${path}.`);
     }
 
     const cached = this.cache.get(key);
     if (cached !== undefined) {
+      if (cached instanceof Promise && chain.length > 0) {
+        for (const ancestor of chain) {
+          const cyclePath = this.findWaitCyclePath(key, ancestor);
+          if (cyclePath) {
+            throw new RMachineResolveError(
+              ERR_CIRCULAR_DEPENDENCY,
+              `Circular dependency detected across concurrent resolutions: ${[ancestor, ...cyclePath].join(" -> ")}.`
+            );
+          }
+        }
+        for (const ancestor of chain) {
+          let set = this.waits.get(ancestor);
+          if (!set) {
+            set = new Set();
+            this.waits.set(ancestor, set);
+          }
+          set.add(key);
+        }
+      }
       return cached;
     }
     return this.resolveBlueprint(namespace, locale, key, resLayoutEntryType, chain);
