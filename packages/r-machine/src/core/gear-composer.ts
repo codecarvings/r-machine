@@ -124,7 +124,7 @@ function createGearMapDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA>, 
   connector: ResComposerConnector,
   deps: DM
 ): GearMapDefiner<RA, KM, DM> {
-  const head = createResMapPlugHead<"gear", RA, KM, DM, PluginCtx<RA, KM>>("gear", deps, connector.kitDepLists);
+  const head = createResMapPlugHead<"gear", RA, KM, DM, PluginCtx<RA, KM>>("gear", deps);
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
     assembleResMatrix({
@@ -140,7 +140,7 @@ function createGearListDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA>,
   connector: ResComposerConnector,
   deps: DL
 ): GearListDefiner<RA, KM, DL> {
-  const head = createResListPlugHead<"gear", RA, KM, DL, PluginCtx<RA, KM>>("gear", deps, connector.kitDepLists);
+  const head = createResListPlugHead<"gear", RA, KM, DL, PluginCtx<RA, KM>>("gear", deps);
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
     assembleResMatrix({

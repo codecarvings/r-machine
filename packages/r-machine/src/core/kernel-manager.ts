@@ -33,29 +33,8 @@ export class KernelManager {
       return blueprint.origin as Kernel;
     }
 
-    const namespaces = blueprint.plugHead!.nsDepList;
-    if (namespaces.length > 0) {
-      // Preload all dependencies before the kernel factory is invoked
-      const blueprints = await Promise.all(namespaces.map((namespace) => this.getDepBlueprint(namespace, locale)));
-      const missingDeps = blueprints
-        .map((bp, index) => (bp ? undefined : namespaces[index]))
-        .filter((ns): ns is AnyNamespace => ns !== undefined);
-      if (missingDeps.length > 0) {
-        throw new RMachineResolveError(
-          ERR_RESOLVE_FAILED,
-          `Unable to create ${blueprint.family} "${blueprint.namespace}" - failed to resolve dependencies: ${JSON.stringify(missingDeps)}.`
-        );
-      }
-    }
-
     const kernel = await (blueprint.origin.factory as (locale: AnyLocale | undefined) => Promise<Kernel>)(locale);
     return kernel;
-  }
-
-  protected getDepBlueprint(namespace: AnyNamespace, locale: AnyLocale | undefined): Promise<Blueprint> {
-    const resLayoutEntryType = this.resLayoutEntryTypeResolver(namespace);
-    const key = getResCacheKey(namespace, locale, resLayoutEntryType);
-    return this.blueprintManager.getBlueprint(namespace, locale, resLayoutEntryType, key);
   }
 
   protected resolveKernel(

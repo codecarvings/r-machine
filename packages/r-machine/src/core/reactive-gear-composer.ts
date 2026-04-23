@@ -232,7 +232,7 @@ function createStatelessReactiveGearMapDefiner<
   KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
 >(connector: ResComposerConnector, deps: DM): StatelessReactiveGearMapDefiner<RA, KM, DM> {
-  const head = createResMapPlugHead<"gear", RA, KM, DM, PluginCtx<RA, KM>>("gear", deps, connector.kitDepLists);
+  const head = createResMapPlugHead<"gear", RA, KM, DM, PluginCtx<RA, KM>>("gear", deps);
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
     assembleResMatrix({
@@ -249,7 +249,7 @@ function createStatelessReactiveGearListDefiner<
   KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
 >(connector: ResComposerConnector, deps: DL): StatelessReactiveGearListDefiner<RA, KM, DL> {
-  const head = createResListPlugHead<"gear", RA, KM, DL, PluginCtx<RA, KM>>("gear", deps, connector.kitDepLists);
+  const head = createResListPlugHead<"gear", RA, KM, DL, PluginCtx<RA, KM>>("gear", deps);
 
   return ((factory: (plugin: never, cursor: never) => unknown) =>
     assembleResMatrix({

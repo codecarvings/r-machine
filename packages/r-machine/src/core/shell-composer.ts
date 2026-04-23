@@ -139,11 +139,7 @@ function createShellMapDefiner<
   KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
 >(connector: ResComposerConnector, deps: DM): ShellMapDefiner<RA, L, KM, DM> {
-  const head = createResMapPlugHead<"shell", RA, KM, DM, LocaleAwarePluginCtx<RA, L, KM>>(
-    "shell",
-    deps,
-    connector.kitDepLists
-  );
+  const head = createResMapPlugHead<"shell", RA, KM, DM, LocaleAwarePluginCtx<RA, L, KM>>("shell", deps);
 
   return (factory: (plugin: never) => unknown) =>
     assembleResMatrix({
@@ -164,11 +160,7 @@ function createShellListDefiner<
   KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
 >(connector: ResComposerConnector, deps: DL): ShellListDefiner<RA, L, KM, DL> {
-  const head = createResListPlugHead<"shell", RA, KM, DL, LocaleAwarePluginCtx<RA, L, KM>>(
-    "shell",
-    deps,
-    connector.kitDepLists
-  );
+  const head = createResListPlugHead<"shell", RA, KM, DL, LocaleAwarePluginCtx<RA, L, KM>>("shell", deps);
 
   return (factory: (plugin: never) => unknown) =>
     assembleResMatrix({

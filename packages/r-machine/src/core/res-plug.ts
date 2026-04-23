@@ -14,7 +14,6 @@
 import type { ListPlugHead, MapPlugHead, PlugBody, PluginCtx } from "./plug.js";
 import type { ResFamily } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { KitDepLists } from "./res-equipment.js";
 import { getNamespaceList, type HandleList } from "./res-list.js";
 import { getNamespaceMap, type HandleMap } from "./res-map.js";
 
@@ -35,10 +34,9 @@ export function createResMapPlugHead<
   KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
   CTX extends PluginCtx<RA, KM>,
->(family: F, deps: DM, kitDepLists: KitDepLists): ResMapPlugHead<F, RA, KM, DM, CTX> {
+>(family: F, deps: DM): ResMapPlugHead<F, RA, KM, DM, CTX> {
   const nsDeps = getNamespaceMap(deps);
-  const nsDepList = [...new Set([...Object.values(nsDeps), ...kitDepLists[family]])];
-
+  const nsDepList = Object.values(nsDeps);
   return {
     area: "res",
     mode: "map",
@@ -66,17 +64,15 @@ export function createResListPlugHead<
   KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
   CTX extends PluginCtx<RA, KM>,
->(family: F, deps: DL, kitDepLists: KitDepLists): ResListPlugHead<F, RA, KM, DL, CTX> {
+>(family: F, deps: DL): ResListPlugHead<F, RA, KM, DL, CTX> {
   const nsDeps = getNamespaceList(deps);
-  const nsDepList = [...new Set([...nsDeps, ...kitDepLists[family]])];
-
   return {
     area: "res",
     mode: "list",
     family,
     deps,
     nsDeps,
-    nsDepList,
+    nsDepList: nsDeps,
   } as unknown as ResListPlugHead<F, RA, KM, DL, CTX>;
 }
 

@@ -63,7 +63,14 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
 
     const resLayoutEntryTypeResolver = createResLayoutEntryTypeResolver(this.config.layout);
-    const blueprintManager = new BlueprintManager(this.config.load);
+    const blueprintManager = new BlueprintManager(
+      resLayoutEntryTypeResolver,
+      {
+        gear: Object.values(this.config.equipment.gearKit),
+        shell: Object.values(this.config.equipment.shellKit),
+      },
+      this.config.load
+    );
     const kernelManager = new KernelManager(resLayoutEntryTypeResolver, blueprintManager);
     this.kernelPluginManager = new KernelPluginManager(this.config.equipment, kernelManager);
   }
@@ -90,10 +97,6 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
         return {
           plugin,
         };
-      },
-      kitDepLists: {
-        gear: Object.values(this.config.equipment.gearKit),
-        shell: Object.values(this.config.equipment.shellKit),
       },
     };
   }
