@@ -15,7 +15,12 @@ import type { AnyNamespace } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 import { type Blueprint, createBlueprint } from "./blueprint.js";
 import { type ResLayoutEntryType, resolveResPath } from "./res-layout.js";
-import { type AnyResModule, type ResModuleLoaderFn, validateResModule } from "./res-module.js";
+import {
+  type AnyResModule,
+  type ResModuleLoaderFn,
+  type ResModuleLoaderFnOptions,
+  validateResModule,
+} from "./res-module.js";
 
 export class BlueprintManager {
   constructor(protected loadResModuleFn: ResModuleLoaderFn) {}
@@ -28,7 +33,12 @@ export class BlueprintManager {
     layoutEntryType: ResLayoutEntryType
   ): Promise<AnyResModule> {
     const path = resolveResPath(namespace, locale, layoutEntryType);
-    const module = await this.loadResModuleFn(path, namespace, locale);
+    const options: ResModuleLoaderFnOptions = {
+      namespace,
+      locale,
+      onUpdate: () => {},
+    };
+    const module = await this.loadResModuleFn(path, options);
     const error = validateResModule(module);
     if (error) {
       throw error;

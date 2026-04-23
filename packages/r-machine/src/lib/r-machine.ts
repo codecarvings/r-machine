@@ -13,6 +13,8 @@
 
 import {
   type AnyNamespace,
+  type AnyNamespaceList,
+  type AnyNamespaceMap,
   type AnyPlugHead,
   type AnyRes,
   type AnyResAtlas,
@@ -26,15 +28,18 @@ import {
   type GateKit,
   type GateWire,
   type GearKit,
+  getNamespaceList,
   type HandleList,
+  isNamespaceList,
   KernelManager,
+  KernelPluginManager,
   type ResEquipment,
+  type ResFamily,
   type ResWireProvider,
   type ShellKit,
   type SurfaceList,
   type VertexGearMap,
 } from "#r-machine/core";
-import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
 import {
@@ -59,30 +64,37 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
 
     const resLayoutEntryTypeResolver = createResLayoutEntryTypeResolver(this.config.layout);
     const blueprintManager = new BlueprintManager(this.config.load);
-    this.kernelManager = new KernelManager(resLayoutEntryTypeResolver, blueprintManager);
+    const kernelManager = new KernelManager(resLayoutEntryTypeResolver, blueprintManager);
+    this.kernelPluginManager = new KernelPluginManager(this.config.equipment, kernelManager);
   }
 
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly localeHelper: LocaleHelper<L>;
   protected readonly config: RMachineConfig<RA, L, E>;
-  protected readonly kernelManager: KernelManager;
+  protected readonly kernelPluginManager: KernelPluginManager;
 
+  /*
   protected validateLocaleForPick(locale: L) {
     const error = this.localeHelper.validateLocale(locale);
     if (error) {
       throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot use invalid locale: "${locale}".`, error);
     }
   }
+  */
+
+  protected createResWireProvider(family: ResFamily): ResWireProvider {
+    return (deps, locale) => {
+      const plugin = this.kernelPluginManager.getPluginSync(family, deps, locale);
+      return {
+        plugin,
+      };
+    };
+  }
 
   createToolset(): RMachineToolset<RA, L, E> {
-    const provider: ResWireProvider = () => () => ({
-      getPlugin: () => {
-        throw new Error("ResWire resolution not yet implemented (engine WIP).");
-      },
-    });
-    const Gear = createGearComposer<RA, E["gearKit"]>(provider);
-    const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(provider);
+    const Gear = createGearComposer<RA, E["gearKit"]>(this.createResWireProvider("gear"));
+    const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(this.createResWireProvider("shell"));
     return { Gear, Shell, localized };
   }
 
@@ -90,12 +102,18 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
     return undefined!; // TODO: WIP;
   }
 
-  async WIP_GET<DL extends HandleList<RA>>(...deps: DL): Promise<SurfaceList<RA, DL>> {
-    if (deps.length > 0) {
-      const blueprint = await this.kernelManager.getKernel(deps[0] as any, this.defaultLocale);
-      console.log("WIP_GET loaded blueprint:", blueprint);
+  async WIP_GET<DL extends HandleList<RA>>(deps: DL): Promise<SurfaceList<RA, DL>> {
+    const isList = isNamespaceList(deps);
+    let nsDeps: AnyNamespaceMap | AnyNamespaceList;
+    if (isList) {
+      nsDeps = getNamespaceList(deps);
+    } else {
+      nsDeps = getNamespaceList(deps);
     }
-    return undefined!;
+
+    const result = await this.kernelPluginManager.getPlugin("gate", nsDeps, this.defaultLocale);
+    console.log("WIP_GET loaded blueprint:", result);
+    return result as SurfaceList<RA, DL>;
   }
 
   static create<

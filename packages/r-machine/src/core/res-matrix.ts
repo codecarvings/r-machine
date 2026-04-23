@@ -77,18 +77,18 @@ export function assembleResMatrix<PH extends AnyResPlugHead, RAW, RES extends An
 ): ResMatrix<RES, PlugBody<PH>> {
   const { provider, meta, head, cursor, userFactory, buildPlugin, postProcess } = options;
 
-  const connector = provider(meta.family, head.deps);
   const plug = createPlug(head);
 
   setPlugResolve(plug, () => {
     const locale = getPlugLocale(plug);
-    const wire = connector(locale);
-    const plugin = wire.getPlugin() as ExtractPlugin<PH>;
+    const wire = provider(head.nsDeps, locale);
+    const plugin = wire.plugin as ExtractPlugin<PH>;
     return buildPlugin ? buildPlugin(plugin, locale) : plugin;
   });
 
   const factory = async (): Promise<RES> => {
     const plugin = getPlugResolve(plug)();
+    console.log("This plugin", plugin);
     const raw = await userFactory(plugin, cursor as never);
     return postProcess ? postProcess(raw, cursor as never) : (raw as unknown as RES);
   };

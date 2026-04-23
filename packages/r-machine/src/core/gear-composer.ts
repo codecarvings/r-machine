@@ -79,17 +79,17 @@ const cursor: GearCursor = {
 const meta: ResMatrixMeta = { family: "gear", isReactive: false };
 
 export function createGearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>>(
-  provider: ResWireProvider
+  wire: ResWireProvider
 ): GearComposer<RA, KM> {
-  const reactive = createReactiveGearMapDepsComposer<RA, KM, {}>(provider, {});
-  const define = createGearMapDefiner<RA, KM, {}>(provider, {});
+  const reactive = createReactiveGearMapDepsComposer<RA, KM, {}>(wire, {});
+  const define = createGearMapDefiner<RA, KM, {}>(wire, {});
 
   const deps = ((...args: unknown[]) => {
     const mask = getPlugOutline<RA>(...args);
     if (mask.mode === "map") {
-      return createGearMapDepsComposer<RA, KM, any>(provider, mask.deps);
+      return createGearMapDepsComposer<RA, KM, any>(wire, mask.deps);
     } else {
-      return createGearListDepsComposer<RA, KM, any>(provider, mask.deps);
+      return createGearListDepsComposer<RA, KM, any>(wire, mask.deps);
     }
   }) as GearDepsComposer<RA, KM>;
 

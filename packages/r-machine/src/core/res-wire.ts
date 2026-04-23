@@ -12,18 +12,11 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
-import type { ResFamily } from "./res.js";
-import type { AnyResAtlas } from "./res-atlas.js";
-import type { HandleList } from "./res-list.js";
-import type { HandleMap } from "./res-map.js";
+import type { AnyNamespaceList } from "./res-list.js";
+import type { AnyNamespaceMap } from "./res-map.js";
 
 export interface ResWire {
-  readonly getPlugin: () => unknown;
+  readonly plugin: unknown;
 }
 
-export type ResWireConnector = (locale: AnyLocale | undefined) => ResWire;
-
-export type ResWireProvider = (
-  family: ResFamily,
-  deps: HandleMap<AnyResAtlas> | HandleList<AnyResAtlas>
-) => ResWireConnector;
+export type ResWireProvider = (nsDeps: AnyNamespaceMap | AnyNamespaceList, locale: AnyLocale | undefined) => ResWire;

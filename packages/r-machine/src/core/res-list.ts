@@ -26,6 +26,10 @@ export function getNamespaceList<RA extends AnyResAtlas>(handles: HandleList<RA>
 }
 export type AnyNamespaceList = NamespaceList<AnyResAtlas>;
 
+export function isNamespaceList(value: unknown): value is AnyNamespaceList {
+  return Array.isArray(value);
+}
+
 // -readonly required to allow tuple spreading
 export type SurfaceList<RA extends AnyResAtlas, HL extends HandleList<RA>> = {
   -readonly [I in keyof HL]: Surface<

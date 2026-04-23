@@ -22,6 +22,7 @@ export type { GateWire } from "./gate-wire.js";
 export { createGearComposer, type GearComposer } from "./gear-composer.js";
 export type { Getter } from "./getter.js";
 export { KernelManager } from "./kernel-manager.js";
+export { KernelPluginManager } from "./kernel-plugin-manager.js";
 export {
   type AnyListPlugHead,
   type AnyMapPlugHead,
@@ -39,7 +40,7 @@ export {
 } from "./plug.js";
 export type { ReactiveGearTag } from "./reactive-gear.js";
 export type { RelayBrand } from "./relay.js";
-export type { AnyRes, AnyResOrigin } from "./res.js";
+export type { AnyRes, AnyResOrigin, ResFamily } from "./res.js";
 export type {
   AnyResAtlas,
   AnyResAtlasClass,
@@ -70,11 +71,20 @@ export {
   type ResLayoutEntryType,
   type ResolveLayoutType,
 } from "./res-layout.js";
-export type { HandleList, SolidHandleList, SurfaceList } from "./res-list.js";
-export type {
-  HandleMap,
-  SolidHandleMap,
-  SurfaceMap,
+export {
+  type AnyNamespaceList,
+  getNamespaceList,
+  type HandleList,
+  isNamespaceList,
+  type SolidHandleList,
+  type SurfaceList,
+} from "./res-list.js";
+export {
+  type AnyNamespaceMap,
+  getNamespaceMap,
+  type HandleMap,
+  type SolidHandleMap,
+  type SurfaceMap,
 } from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";
 export type { AnyResModule, ResModuleLoaderFn } from "./res-module.js";

@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import { ERR_PLUG_RESOLVE_NOT_SET, RMachineResolveError } from "#r-machine/errors";
+import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { AnyResAtlas } from "./res-atlas.js";
 import { isHandle } from "./res-domain.js";
@@ -48,6 +48,7 @@ interface BasePlugHead<
   CTX extends PluginCtx<RA, KM>,
 > {
   readonly area: A;
+  readonly nsDepList: AnyNamespaceList;
   readonly [resAtlas]: RA;
   readonly [kit]: KM;
   readonly [ctx]: CTX;
@@ -62,7 +63,7 @@ export interface MapPlugHead<
 > extends BasePlugHead<A, RA, KM, CTX> {
   readonly mode: "map";
   readonly deps: DM;
-  readonly namespaces: AnyNamespaceMap;
+  readonly nsDeps: AnyNamespaceMap;
 }
 export type AnyMapPlugHead = MapPlugHead<any, any, any, any, any>;
 
@@ -75,7 +76,7 @@ export interface ListPlugHead<
 > extends BasePlugHead<A, RA, KM, CTX> {
   readonly mode: "list";
   readonly deps: DL;
-  readonly namespaces: AnyNamespaceList;
+  readonly nsDeps: AnyNamespaceList;
 }
 export type AnyListPlugHead = ListPlugHead<any, any, any, any, any>;
 
@@ -102,7 +103,7 @@ export interface PlugBody<PH extends AnyPlugHead> {
 }
 
 const defaultPlugResolve = () => {
-  throw new RMachineResolveError(ERR_PLUG_RESOLVE_NOT_SET, "Plug resolve not set.");
+  throw new RMachineResolveError(ERR_RESOLVE_FAILED, "Plug resolve not set.");
 };
 export function createPlug<H extends AnyPlugHead>(head: H): PlugBody<H> {
   return {

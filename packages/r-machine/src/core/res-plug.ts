@@ -35,13 +35,15 @@ export function createResMapPlugHead<
   DM extends HandleMap<RA>,
   CTX extends PluginCtx<RA, KM>,
 >(family: F, deps: DM): ResMapPlugHead<F, RA, KM, DM, CTX> {
-  const namespaces = getNamespaceMap(deps);
+  const nsDeps = getNamespaceMap(deps);
+  const nsDepList = Object.values(nsDeps);
   return {
     area: "res",
     mode: "map",
     family,
     deps,
-    namespaces,
+    nsDeps,
+    nsDepList,
   } as unknown as ResMapPlugHead<F, RA, KM, DM, CTX>;
 }
 
@@ -63,13 +65,14 @@ export function createResListPlugHead<
   DL extends HandleList<RA>,
   CTX extends PluginCtx<RA, KM>,
 >(family: F, deps: DL): ResListPlugHead<F, RA, KM, DL, CTX> {
-  const namespaces = getNamespaceList(deps);
+  const nsDeps = getNamespaceList(deps);
   return {
     area: "res",
     mode: "list",
     family,
     deps,
-    namespaces,
+    nsDeps,
+    nsDepList: nsDeps,
   } as unknown as ResListPlugHead<F, RA, KM, DL, CTX>;
 }
 

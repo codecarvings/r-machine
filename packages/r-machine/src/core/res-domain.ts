@@ -67,6 +67,14 @@ export function createToken<N extends AnyNamespace>(namespace: N): Token<N> {
 // Both invariants are guaranteed transitively for any locale reaching this
 // helper; the namespace is therefore free to contain any character, including
 // U+001F, without causing collisions.
-export function getResCacheKey(namespace: AnyNamespace, locale: AnyLocale | undefined): string {
-  return `${locale ?? ""}\x1f${namespace}`;
+export function getResCacheKey(
+  namespace: AnyNamespace,
+  locale: AnyLocale | undefined,
+  esLayoutEntryType: ResLayoutEntryType
+): string {
+  if (esLayoutEntryType === "shell") {
+    return `${locale}\x1f${namespace}`;
+  }
+
+  return namespace;
 }

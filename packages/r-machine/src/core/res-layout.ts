@@ -37,17 +37,26 @@ export interface AnyResLayout {
 
 type LayoutEntry = readonly [prefix: string, type: ResLayoutEntryType];
 
-export type ResLayoutEntryTypeResolver = (namespace: AnyNamespace) => ResLayoutEntryType | undefined;
+export type ResLayoutEntryTypeResolver = (namespace: AnyNamespace) => ResLayoutEntryType;
 
 export function createResLayoutEntryTypeResolver(layout: AnyResLayout): ResLayoutEntryTypeResolver {
   const entries: readonly LayoutEntry[] = Object.entries(layout).sort(([a], [b]) => b.length - a.length);
-  const cache = new Map<string, ResLayoutEntryType | undefined>();
+  const cache = new Map<string, ResLayoutEntryType>();
 
   return function resolveResLayoutType(namespace) {
-    if (cache.has(namespace)) {
-      return cache.get(namespace);
+    let type = cache.get(namespace);
+    if (type !== undefined) {
+      return type;
     }
-    const type = entries.find(([prefix]) => isPrefixMatch(namespace, prefix))?.[1];
+
+    type = entries.find(([prefix]) => isPrefixMatch(namespace, prefix))?.[1];
+    if (!type) {
+      throw new RMachineResolveError(
+        ERR_RESOLVE_FAILED,
+        `Failed to resolve resource layout entry for namespace "${namespace}" - no matching layout entry found.`
+      );
+    }
+
     cache.set(namespace, type);
     return type;
   };
@@ -58,25 +67,6 @@ function isPrefixMatch(namespace: string, prefix: string): boolean {
   const base = prefix.slice(0, -1);
   if (namespace === base) return true;
   return namespace.startsWith(prefix);
-}
-
-export function validateResLayoutEntry(
-  namespace: AnyNamespace,
-  locale: AnyLocale | undefined,
-  resLayoutEntryType: ResLayoutEntryType | undefined
-): AnyLocale | undefined {
-  if (!resLayoutEntryType) {
-    throw new RMachineResolveError(
-      ERR_RESOLVE_FAILED,
-      `Failed to resolve resource layout entry for namespace "${namespace}" and locale "${locale ?? "default"}" - no matching layout entry found.`
-    );
-  }
-
-  if (resLayoutEntryType !== "shell") {
-    locale = undefined;
-  }
-
-  return locale;
 }
 
 // Type-level prefix match. Invariant: P ends with "/".

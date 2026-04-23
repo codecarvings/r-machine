@@ -126,9 +126,9 @@ export function cloneRMachineConfig<C extends RMachineConfig<any, any, any>>(con
     layout: { ...config.layout },
     equipment: {
       bridgeGears: Object.freeze([...config.equipment.bridgeGears]),
-      gear: { ...config.equipment.gearKit },
-      shell: { ...config.equipment.shellKit },
-      gate: { ...config.equipment.gateKit },
+      gearKit: { ...config.equipment.gearKit },
+      shellKit: { ...config.equipment.shellKit },
+      gateKit: { ...config.equipment.gateKit },
     },
   };
 }
