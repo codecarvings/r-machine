@@ -12,7 +12,7 @@
  */
 
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ResEquipment } from "r-machine/core";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { AnyPathAtlas } from "#r-machine/next/core";
 import {
@@ -25,11 +25,12 @@ export class NextAppOriginStrategy<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   E extends ResEquipment<RA>,
+  EF extends ExperimentalFlags,
   PA extends AnyPathAtlas = InstanceType<typeof NextAppOriginStrategyCore.defaultConfig.PathAtlas>,
   LK extends string = typeof NextAppOriginStrategyCore.defaultConfig.localeKey,
-> extends NextAppOriginStrategyCore<RA, L, E, NextAppOriginStrategyConfig<PA, LK>> {
+> extends NextAppOriginStrategyCore<RA, L, E, EF, NextAppOriginStrategyConfig<PA, LK>> {
   // Config is required since localeOriginMap is required
-  constructor(rMachine: RMachine<RA, L, E>, config: PartialNextAppOriginStrategyConfig<PA, LK>) {
+  constructor(rMachine: RMachine<RA, L, E, EF>, config: PartialNextAppOriginStrategyConfig<PA, LK>) {
     super(rMachine, {
       ...NextAppOriginStrategyCore.defaultConfig,
       ...config,

@@ -55,7 +55,7 @@ export interface RMachineConfigParams<
   readonly gearKit?: GK;
   readonly shellKit?: SK;
   readonly gateKit?: XK;
-  readonly experimental?: EF;
+  readonly experimental?: EF & ExperimentalFlags;
 }
 
 export interface RMachineConfig<

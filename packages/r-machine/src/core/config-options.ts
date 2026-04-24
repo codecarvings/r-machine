@@ -11,7 +11,5 @@
  * contact: licensing@codecarvings.com
  */
 
-export interface ExperimentalFlags {
-  reactiveGear?: "on";
-  vertexGear?: "on";
-}
+// Use strings instead of booleans for better clarity in config and for better DX with intellisense
+export type SwitchableOption = "off" | "on";

@@ -12,7 +12,7 @@
  */
 
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ResEquipment } from "r-machine/core";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { createContext, type ReactNode, use, useMemo, useState } from "react";
 import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils";
@@ -23,10 +23,12 @@ import { createReactBareToolset, type ReactBareToolset } from "./react-bare-tool
 // - REACT STANDARD STRATEGY
 // DO NOT RENAME
 
-export type ReactToolset<RA extends AnyResAtlas, L extends AnyLocale, E extends ResEquipment<RA>> = Omit<
-  ReactBareToolset<RA, L, E>,
-  "ReactRMachine"
-> & {
+export type ReactToolset<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  E extends ResEquipment<RA>,
+  EF extends ExperimentalFlags,
+> = Omit<ReactBareToolset<RA, L, E, EF>, "ReactRMachine"> & {
   readonly ReactRMachine: ReactRMachine;
 };
 
@@ -45,10 +47,12 @@ export interface ReactImpl<L extends AnyLocale> {
 
 type ReactToolsetContext<L extends AnyLocale> = [L, (newLocale: L) => void];
 
-export async function createReactToolset<RA extends AnyResAtlas, L extends AnyLocale, E extends ResEquipment<RA>>(
-  rMachine: RMachine<RA, L, E>,
-  impl: ReactImpl<L>
-): Promise<ReactToolset<RA, L, E>> {
+export async function createReactToolset<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  E extends ResEquipment<RA>,
+  EF extends ExperimentalFlags,
+>(rMachine: RMachine<RA, L, E, EF>, impl: ReactImpl<L>): Promise<ReactToolset<RA, L, E, EF>> {
   const { ReactRMachine: OriginalReactRMachine, ...otherTools } = await createReactBareToolset(rMachine);
 
   const Context = createContext<ReactToolsetContext<L> | null>(null);

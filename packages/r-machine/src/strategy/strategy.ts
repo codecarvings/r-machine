@@ -12,12 +12,18 @@
  */
 
 import type { RMachine } from "#r-machine";
-import type { AnyResAtlas, AnyResEquipment } from "#r-machine/core";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
-export abstract class Strategy<RA extends AnyResAtlas, L extends AnyLocale, E extends AnyResEquipment<RA>, C> {
+export abstract class Strategy<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
+  C,
+> {
   constructor(
-    readonly rMachine: RMachine<RA, L, E>,
+    readonly rMachine: RMachine<RA, L, E, EF>,
     readonly config: C
   ) {
     this.validateConfig();

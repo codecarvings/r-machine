@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, ResEquipment } from "r-machine/core";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { createReactStandardImpl } from "./react-standard.impl.js";
@@ -35,10 +35,11 @@ export abstract class ReactStandardStrategyCore<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   E extends ResEquipment<RA>,
-> extends ReactStrategyCore<RA, L, E, ReactStandardStrategyConfig> {
+  EF extends ExperimentalFlags,
+> extends ReactStrategyCore<RA, L, E, EF, ReactStandardStrategyConfig> {
   static readonly defaultConfig = defaultConfig;
 
   protected createImpl() {
-    return createReactStandardImpl<RA, L, E>(this.rMachine, this.config);
+    return createReactStandardImpl<RA, L, E, EF>(this.rMachine, this.config);
   }
 }

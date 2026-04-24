@@ -42,7 +42,7 @@ type ValidGearDepItem<RA extends AnyResAtlas, N> =
 export type GearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, EF extends ExperimentalFlags> = {
   readonly deps: GearDepsComposer<RA, KM, EF>;
   readonly define: GearMapDefiner<RA, KM, {}>;
-} & (EF["reactiveGear"] extends true
+} & (EF["reactiveGear"] extends "on"
   ? {
       readonly reactive: ReactiveGearMapDepsComposer<RA, KM, {}>;
     }
@@ -65,7 +65,7 @@ type GearMapDepsComposer<
   EF extends ExperimentalFlags,
 > = {
   readonly define: GearMapDefiner<RA, KM, DM>;
-} & (EF["reactiveGear"] extends true
+} & (EF["reactiveGear"] extends "on"
   ? {
       readonly reactive: ReactiveGearMapDepsComposer<RA, KM, DM>;
     }
@@ -78,7 +78,7 @@ type GearListDepsComposer<
   EF extends ExperimentalFlags,
 > = {
   readonly define: GearListDefiner<RA, KM, DL>;
-} & (EF["reactiveGear"] extends true
+} & (EF["reactiveGear"] extends "on"
   ? {
       readonly reactive: ReactiveGearListDepsComposer<RA, KM, DL>;
     }

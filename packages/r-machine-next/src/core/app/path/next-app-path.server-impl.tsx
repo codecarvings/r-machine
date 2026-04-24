@@ -14,7 +14,7 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ResEquipment } from "r-machine/core";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import { RMachineConfigError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
@@ -34,9 +34,10 @@ export async function createNextAppPathServerImpl<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   E extends ResEquipment<RA>,
+  EF extends ExperimentalFlags,
   C extends AnyNextAppPathStrategyConfig,
 >(
-  rMachine: RMachine<RA, L, E>,
+  rMachine: RMachine<RA, L, E, EF>,
   strategyConfig: C,
   pathTranslator: HrefTranslator,
   contentPathCanonicalizer: HrefCanonicalizer

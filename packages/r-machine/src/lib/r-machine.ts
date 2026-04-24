@@ -54,7 +54,7 @@ export class RMachine<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   E extends AnyResEquipment<RA>,
-  EF extends ExperimentalFlags = {},
+  EF extends ExperimentalFlags,
 > {
   constructor(config: RMachineConfig<RA, L, E, EF>) {
     const configError = validateRMachineConfig(config);

@@ -18,7 +18,7 @@
 // - NEXT CLIENT TOOLSET
 
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ResEquipment } from "r-machine/core";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
@@ -30,11 +30,19 @@ import { useVertexFrame, VertexFrame } from "./vertex-frame.js";
 // type SetLocale<L extends AnyLocale> = (newLocale: L) => Promise<void>;
 type WriteLocale<L extends AnyLocale> = (newLocale: L) => void | Promise<void>;
 
-export interface ReactBareToolset<RA extends AnyResAtlas, L extends AnyLocale, E extends ResEquipment<RA>> {
+export type ReactBareToolset<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  E extends ResEquipment<RA>,
+  EF extends ExperimentalFlags,
+> = {
   readonly ReactRMachine: ReactBareRMachine<L>;
   readonly Plug: ReactPlugDefiner<RA, L, E["gateKit"]>;
-  readonly VertexFrame: typeof VertexFrame;
-}
+} & (EF["vertexGear"] extends "on"
+  ? {
+      readonly VertexFrame: typeof VertexFrame;
+    }
+  : {});
 
 export interface ReactBareRMachine<L extends AnyLocale> {
   (props: ReactBareRMachineProps<L>): ReactNode;
@@ -51,9 +59,12 @@ interface ReactBareToolsetContext<L extends AnyLocale> {
   readonly writeLocale: WriteLocale<L> | undefined;
 }
 
-export async function createReactBareToolset<RA extends AnyResAtlas, L extends AnyLocale, E extends ResEquipment<RA>>(
-  rMachine: RMachine<RA, L, E>
-): Promise<ReactBareToolset<RA, L, E>> {
+export async function createReactBareToolset<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  E extends ResEquipment<RA>,
+  EF extends ExperimentalFlags,
+>(rMachine: RMachine<RA, L, E, EF>): Promise<ReactBareToolset<RA, L, E, EF>> {
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const Context = createContext<ReactBareToolsetContext<L> | null>(null);
@@ -165,5 +176,5 @@ export async function createReactBareToolset<RA extends AnyResAtlas, L extends A
     ReactRMachine,
     Plug,
     VertexFrame,
-  };
+  } as ReactBareToolset<RA, L, E, EF>;
 }

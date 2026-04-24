@@ -15,8 +15,8 @@ export const rMachine = RMachine.create({
     fmt: "shell/common2",
   },
   experimental: {
-    reactiveGear: true,
-    vertexGear: true,
+    reactiveGear: "on",
+    vertexGear: "on",
   },
 });
 

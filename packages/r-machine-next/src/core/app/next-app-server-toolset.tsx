@@ -13,7 +13,7 @@
 
 import { notFound } from "next/navigation";
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ResEquipment } from "r-machine/core";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import { RMachineUsageError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
@@ -26,6 +26,7 @@ export interface NextAppServerToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   E extends ResEquipment<RA>,
+  _EF extends ExperimentalFlags,
   PA extends AnyPathAtlas,
   LK extends string,
 > {
@@ -83,13 +84,14 @@ export async function createNextAppServerToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   E extends ResEquipment<RA>,
+  EF extends ExperimentalFlags,
   PA extends AnyPathAtlas,
   LK extends string,
 >(
-  rMachine: RMachine<RA, L, E>,
+  rMachine: RMachine<RA, L, E, EF>,
   impl: NextAppServerImpl<L, LK>,
   NextClientRMachine: NextAppClientRMachine<L>
-): Promise<NextAppServerToolset<RA, L, E, PA, LK>> {
+): Promise<NextAppServerToolset<RA, L, E, EF, PA, LK>> {
   // TODO: WP
   const getLocale: any = undefined!;
 

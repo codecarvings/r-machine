@@ -13,6 +13,7 @@
 
 export type { Action, Atomic } from "./action.js";
 export { BlueprintManager } from "./blueprint-manager.js";
+export type { SwitchableOption } from "./config-options.js";
 export type { ExperimentalFlags } from "./experimental-flags.js";
 export type {
   GateListPlugHead,

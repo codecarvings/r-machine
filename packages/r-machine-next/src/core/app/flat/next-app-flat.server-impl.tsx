@@ -14,7 +14,7 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ResEquipment } from "r-machine/core";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
@@ -27,9 +27,10 @@ export async function createNextAppFlatServerImpl<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   E extends ResEquipment<RA>,
+  EF extends ExperimentalFlags,
   C extends AnyNextAppFlatStrategyConfig,
 >(
-  rMachine: RMachine<RA, L, E>,
+  rMachine: RMachine<RA, L, E, EF>,
   strategyConfig: C,
   pathTranslator: HrefTranslator,
   pathCanonicalizer: HrefCanonicalizer
