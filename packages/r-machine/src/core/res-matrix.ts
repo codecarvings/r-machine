@@ -12,7 +12,7 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
-import { createPlug, type ExtractPlugin, getPlugResolve, type PlugBody, setPlugResolve } from "./plug.js";
+import { createPlug, getPlugResolve, setPlugResolve } from "./plug.js";
 import type { AnyRes, AnyResOrigin, ResFamily } from "./res.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { AnyNamespace } from "./res-domain.js";
@@ -33,59 +33,40 @@ export interface ResMatrix<R, P extends AnyResPlug> {
 
 export type AnyResMatrix = ResMatrix<any, any>;
 
-export function createResMatrix<R extends AnyRes, P extends AnyResPlug>(
-  meta: ResMatrixMeta,
-  factory: () => Promise<R>,
-  plug: P
-): ResMatrix<R, P> {
-  return {
-    [resMatrixMetaSymbol]: meta,
-    factory,
-    plug,
-  };
-}
-
 export function tryGetResMatrixMeta(origin: AnyResOrigin): ResMatrixMeta | undefined {
   return (origin as Partial<AnyResMatrix>)[resMatrixMetaSymbol];
 }
 
-// #region Assemble ResMatrix
-
-export type BuildResPlugin<H extends AnyResPlugHead> = (
-  resolved: ExtractPlugin<H>,
-  locale: AnyLocale | undefined
-) => ExtractPlugin<H>;
-
-interface AssembleResMatrixOptions<PH extends AnyResPlugHead, RAW, RES extends AnyRes> {
+interface CreateResMatrixOptions {
   readonly connector: ResComposerConnector;
   readonly meta: ResMatrixMeta;
-  readonly head: PH;
+  readonly head: AnyResPlugHead;
   readonly cursor: unknown;
-  readonly userFactory: (plugin: ExtractPlugin<PH>, cursor: never) => RAW | Promise<RAW>;
-  readonly buildPlugin?: BuildResPlugin<PH>;
-  readonly postProcess?: (raw: RAW, cursor: never) => RES;
+  readonly userFactory: (plugin: unknown, cursor: never) => unknown | Promise<unknown>;
+  readonly buildPlugin?: (resolved: unknown, locale: AnyLocale | undefined) => unknown;
+  readonly postProcess?: (raw: unknown, cursor: never) => unknown;
 }
 
-export function assembleResMatrix<PH extends AnyResPlugHead, RAW, RES extends AnyRes>(
-  options: AssembleResMatrixOptions<PH, RAW, RES>
-): ResMatrix<RES, PlugBody<PH>> {
+export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
   const { connector, meta, head, cursor, userFactory, buildPlugin, postProcess } = options;
 
   const plug = createPlug(head);
 
   setPlugResolve(plug, async (locale: AnyLocale | undefined, selfNamespace: AnyNamespace | undefined) => {
     const wire = await connector.getWire(head.nsDeps, locale, selfNamespace);
-    const plugin = wire.plugin as ExtractPlugin<PH>;
-    return buildPlugin ? buildPlugin(plugin, locale) : plugin;
+    const plugin = wire.plugin;
+    return (buildPlugin ? buildPlugin(plugin, locale) : plugin) as never;
   });
 
-  const factory = async (locale: AnyLocale | undefined, selfNamespace: AnyNamespace): Promise<RES> => {
+  const factory = async (locale: AnyLocale | undefined, selfNamespace: AnyNamespace): Promise<AnyRes> => {
     const plugin = await getPlugResolve(plug)(locale, selfNamespace);
     const raw = await userFactory(plugin, cursor as never);
-    return postProcess ? postProcess(raw, cursor as never) : (raw as unknown as RES);
+    return (postProcess ? postProcess(raw, cursor as never) : raw) as AnyRes;
   };
 
-  return createResMatrix<RES, PlugBody<PH>>(meta, factory as () => Promise<RES>, plug);
+  return {
+    [resMatrixMetaSymbol]: meta,
+    factory: factory as () => Promise<AnyRes>,
+    plug,
+  };
 }
-
-// #endregion

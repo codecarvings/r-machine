@@ -19,7 +19,7 @@ import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 import type { ResMatrixMeta } from "./res-matrix.js";
-import { assembleResMatrix, type BuildResPlugin } from "./res-matrix.js";
+import { createResMatrix } from "./res-matrix.js";
 import { createResListPlugHead, createResMapPlugHead } from "./res-plug.js";
 import {
   type AnyState,
@@ -181,20 +181,17 @@ function createStatefulReactiveGearMapDefiner<
 
   const cursor = buildStatefulCursor(defaultState);
 
-  const buildPlugin: BuildResPlugin<typeof head> = (resolved) =>
-    ({
-      ...resolved,
-      $: { ...(resolved as { $: object }).$, state: defaultState, defaultState: defaultState },
-    }) as typeof resolved;
-
   return ((factory: (plugin: never, cursor: never) => unknown) =>
-    assembleResMatrix({
+    createResMatrix({
       connector: connector,
       meta,
       head,
       cursor,
       userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
-      buildPlugin,
+      buildPlugin: (resolved) => {
+        const r = resolved as { $: object };
+        return { ...r, $: { ...r.$, state: defaultState, defaultState } };
+      },
       postProcess: (raw, c) => statefulPostProcess(raw, c as StatefulCursor<S>),
     })) as StatefulReactiveGearMapDefiner<RA, KM, DM, S>;
 }
@@ -209,20 +206,18 @@ function createStatefulReactiveGearListDefiner<
 
   const cursor = buildStatefulCursor(state);
 
-  const buildPlugin: BuildResPlugin<typeof head> = (resolved) => {
-    const arr = resolved;
-    const ctx = arr[arr.length - 1];
-    return [...arr.slice(0, -1), { ...ctx, state, defaultState: state }] as unknown as typeof resolved;
-  };
-
   return ((factory: (plugin: never, cursor: never) => unknown) =>
-    assembleResMatrix({
+    createResMatrix({
       connector: connector,
       meta,
       head,
       cursor,
       userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
-      buildPlugin,
+      buildPlugin: (resolved) => {
+        const arr = resolved as unknown[];
+        const ctx = arr[arr.length - 1] as object;
+        return [...arr.slice(0, -1), { ...ctx, state, defaultState: state }];
+      },
       postProcess: (raw, c) => statefulPostProcess(raw, c as unknown as StatefulCursor<S>),
     })) as StatefulReactiveGearListDefiner<RA, KM, DL, S>;
 }
@@ -235,7 +230,7 @@ function createStatelessReactiveGearMapDefiner<
   const head = createResMapPlugHead<"gear", RA, KM, DM, PluginCtx<RA, KM>>("gear", deps);
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
-    assembleResMatrix({
+    createResMatrix({
       connector: connector,
       meta,
       head,
@@ -252,7 +247,7 @@ function createStatelessReactiveGearListDefiner<
   const head = createResListPlugHead<"gear", RA, KM, DL, PluginCtx<RA, KM>>("gear", deps);
 
   return ((factory: (plugin: never, cursor: never) => unknown) =>
-    assembleResMatrix({
+    createResMatrix({
       connector: connector,
       meta,
       head,

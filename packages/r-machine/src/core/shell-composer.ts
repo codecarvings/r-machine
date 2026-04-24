@@ -22,7 +22,7 @@ import type { Handle } from "./res-domain.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 import type { ResMatrixMeta } from "./res-matrix.js";
-import { assembleResMatrix } from "./res-matrix.js";
+import { createResMatrix } from "./res-matrix.js";
 import { createResListPlugHead, createResMapPlugHead } from "./res-plug.js";
 import type { ShellListDefiner, ShellMapDefiner } from "./shell.js";
 
@@ -142,7 +142,7 @@ function createShellMapDefiner<
   const head = createResMapPlugHead<"shell", RA, KM, DM, LocaleAwarePluginCtx<RA, L, KM>>("shell", deps);
 
   return (factory: (plugin: never) => unknown) =>
-    assembleResMatrix({
+    createResMatrix({
       connector,
       meta,
       head,
@@ -163,7 +163,7 @@ function createShellListDefiner<
   const head = createResListPlugHead<"shell", RA, KM, DL, LocaleAwarePluginCtx<RA, L, KM>>("shell", deps);
 
   return (factory: (plugin: never) => unknown) =>
-    assembleResMatrix({
+    createResMatrix({
       connector,
       meta,
       head,

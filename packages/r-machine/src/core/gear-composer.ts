@@ -28,7 +28,7 @@ import type { Handle } from "./res-domain.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 import type { ResMatrixMeta } from "./res-matrix.js";
-import { assembleResMatrix } from "./res-matrix.js";
+import { createResMatrix } from "./res-matrix.js";
 import { createResListPlugHead, createResMapPlugHead } from "./res-plug.js";
 
 type ValidGearDepItem<RA extends AnyResAtlas, N> =
@@ -127,7 +127,7 @@ function createGearMapDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA>, 
   const head = createResMapPlugHead<"gear", RA, KM, DM, PluginCtx<RA, KM>>("gear", deps);
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
-    assembleResMatrix({
+    createResMatrix({
       connector,
       meta,
       head,
@@ -143,7 +143,7 @@ function createGearListDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA>,
   const head = createResListPlugHead<"gear", RA, KM, DL, PluginCtx<RA, KM>>("gear", deps);
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
-    assembleResMatrix({
+    createResMatrix({
       connector,
       meta,
       head,
