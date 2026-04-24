@@ -15,14 +15,20 @@ import type {
   AnyResAtlas,
   AnyResDomain,
   AnyResEquipment,
+  ExperimentalFlags,
   GearComposer,
   Namespace,
   ShellComposer,
 } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
-export interface RMachineToolset<RA extends AnyResAtlas, L extends AnyLocale, E extends AnyResEquipment<RA>> {
-  readonly Gear: GearComposer<RA, E["gearKit"]>;
+export interface RMachineToolset<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
+> {
+  readonly Gear: GearComposer<RA, E["gearKit"], EF>;
   readonly Shell: ShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>;
   readonly localized: LocalizerHelper<RA["shape@shell:*"]>;
 }

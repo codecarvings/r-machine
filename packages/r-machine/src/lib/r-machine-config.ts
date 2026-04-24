@@ -17,6 +17,7 @@ import type {
   AnyResEquipment,
   AnyResLayout,
   BridgeGearNamespaceList,
+  ExperimentalFlags,
   GateKit,
   GearKit,
   ResEquipment,
@@ -26,6 +27,7 @@ import type {
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
+  ERR_EXPERIMENTAL_VERTEX_GEAR_REQUIRED,
   ERR_NO_LOCALES,
   RMachineConfigError,
 } from "#r-machine/errors";
@@ -43,6 +45,7 @@ export interface RMachineConfigParams<
   GK extends GearKit<InstanceType<RAC>>,
   SK extends ShellKit<InstanceType<RAC>, BGL>,
   XK extends GateKit<InstanceType<RAC>>,
+  EF extends ExperimentalFlags,
 > {
   readonly ResourceAtlas: RAC;
   readonly locales: LL;
@@ -52,15 +55,22 @@ export interface RMachineConfigParams<
   readonly gearKit?: GK;
   readonly shellKit?: SK;
   readonly gateKit?: XK;
+  readonly experimental?: EF;
 }
 
-export interface RMachineConfig<RA extends AnyResAtlas, L extends AnyLocale, E extends AnyResEquipment<RA>> {
+export interface RMachineConfig<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
+> {
   readonly resourceAtlas: RA;
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly load: ResModuleLoaderFn;
   readonly layout: AnyResLayout;
   readonly equipment: E;
+  readonly experimental: EF;
 }
 
 export function convertParamsToConfig<
@@ -70,9 +80,10 @@ export function convertParamsToConfig<
   GK extends GearKit<InstanceType<RAC>>,
   SK extends ShellKit<InstanceType<RAC>, BGL>,
   XK extends GateKit<InstanceType<RAC>>,
+  EF extends ExperimentalFlags,
 >(
-  params: RMachineConfigParams<RAC, LL, BGL, GK, SK, XK>
-): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, XK>> {
+  params: RMachineConfigParams<RAC, LL, BGL, GK, SK, XK, EF>
+): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, XK>, EF> {
   return {
     resourceAtlas: undefined!,
     locales: [...params.locales],
@@ -85,10 +96,11 @@ export function convertParamsToConfig<
       shellKit: params.shellKit ?? ({} as SK),
       gateKit: params.gateKit ?? ({} as XK),
     },
+    experimental: params.experimental ?? ({} as EF),
   };
 }
 
-export function validateRMachineConfig(config: RMachineConfig<any, any, any>): RMachineConfigError | null {
+export function validateRMachineConfig(config: RMachineConfig<any, any, any, any>): RMachineConfigError | null {
   if (!config.locales.length) {
     return new RMachineConfigError(ERR_NO_LOCALES, "No locales provided.");
   }
@@ -116,10 +128,22 @@ export function validateRMachineConfig(config: RMachineConfig<any, any, any>): R
     );
   }
 
+  if (!config.experimental.vertexGear) {
+    const vertexPrefixes = Object.entries(config.layout)
+      .filter(([, type]) => type === "gear:vertex")
+      .map(([prefix]) => prefix);
+    if (vertexPrefixes.length) {
+      return new RMachineConfigError(
+        ERR_EXPERIMENTAL_VERTEX_GEAR_REQUIRED,
+        `Layout contains "gear:vertex" entries (${vertexPrefixes.map((p) => `"${p}"`).join(", ")}) but the "vertexGear" experimental feature is not enabled. Add \`experimental: { vertexGear: true }\` to RMachine.create(...) to opt in.`
+      );
+    }
+  }
+
   return null;
 }
 
-export function cloneRMachineConfig<C extends RMachineConfig<any, any, any>>(config: C): C {
+export function cloneRMachineConfig<C extends RMachineConfig<any, any, any, any>>(config: C): C {
   return {
     ...config,
     locales: Object.freeze([...config.locales]) as LocaleList<C["defaultLocale"]>,
@@ -130,5 +154,6 @@ export function cloneRMachineConfig<C extends RMachineConfig<any, any, any>>(con
       shellKit: { ...config.equipment.shellKit },
       gateKit: { ...config.equipment.gateKit },
     },
+    experimental: { ...config.experimental },
   };
 }

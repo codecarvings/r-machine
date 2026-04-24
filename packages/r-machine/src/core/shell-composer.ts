@@ -117,7 +117,7 @@ function createShellMapDepsComposer<
   KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
 >(connector: ResComposerConnector, deps: DM): ShellMapDepsComposer<RA, L, KM, DM> {
-  return lazyGetters<ShellMapDepsComposer<RA, L, KM, DM>>({
+  return lazyGetters({
     define: () => createShellMapDefiner(connector, deps),
   });
 }
@@ -128,7 +128,7 @@ function createShellListDepsComposer<
   KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
 >(connector: ResComposerConnector, deps: DL): ShellListDepsComposer<RA, L, KM, DL> {
-  return lazyGetters<ShellListDepsComposer<RA, L, KM, DL>>({
+  return lazyGetters({
     define: () => createShellListDefiner(connector, deps),
   });
 }

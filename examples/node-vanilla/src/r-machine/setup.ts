@@ -14,6 +14,10 @@ export const rMachine = RMachine.create({
   gateKit: {
     fmt: "shell/common2",
   },
+  experimental: {
+    reactiveGear: true,
+    vertexGear: true,
+  },
 });
 
 export const { Gear, Shell, localized } = rMachine.createToolset();

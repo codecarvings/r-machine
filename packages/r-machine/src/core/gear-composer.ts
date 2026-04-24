@@ -13,6 +13,7 @@
 
 import type { RMachineTypeError } from "#r-machine/errors";
 import { lazyGetters } from "./composer-utils.js";
+import type { ExperimentalFlags } from "./experimental-flags.js";
 import type { GearCursor, GearListDefiner, GearMapDefiner } from "./gear.js";
 import { getPlugOutline, type PluginCtx } from "./plug.js";
 import {
@@ -38,31 +39,50 @@ type ValidGearDepItem<RA extends AnyResAtlas, N> =
       ? RMachineTypeError<`Namespace '${N}' is not a valid gear namespace.`>
       : RMachineTypeError<"This token does not reference a valid gear namespace.">;
 
-export interface GearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>> {
-  readonly deps: GearDepsComposer<RA, KM>;
-  readonly reactive: ReactiveGearMapDepsComposer<RA, KM, {}>;
+export type GearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, EF extends ExperimentalFlags> = {
+  readonly deps: GearDepsComposer<RA, KM, EF>;
   readonly define: GearMapDefiner<RA, KM, {}>;
-}
+} & (EF["reactiveGear"] extends true
+  ? {
+      readonly reactive: ReactiveGearMapDepsComposer<RA, KM, {}>;
+    }
+  : {});
 
-interface GearDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>> {
-  (): GearMapDepsComposer<RA, KM, {}>;
+interface GearDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, EF extends ExperimentalFlags> {
+  (): GearMapDepsComposer<RA, KM, {}, EF>;
   <const NL extends readonly Handle<RA["shape"]>[]>(
     ...deps: { readonly [I in keyof NL]: ValidGearDepItem<RA, NL[I]> }
-  ): GearListDepsComposer<RA, KM, NL>;
+  ): GearListDepsComposer<RA, KM, NL, EF>;
   <const NM extends { readonly [k: string]: Handle<RA["shape"]> }>(
     deps: { readonly [K in keyof NM]: ValidGearDepItem<RA, NM[K]> }
-  ): GearMapDepsComposer<RA, KM, NM>;
+  ): GearMapDepsComposer<RA, KM, NM, EF>;
 }
 
-interface GearMapDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>> {
-  readonly reactive: ReactiveGearMapDepsComposer<RA, KM, DM>;
+type GearMapDepsComposer<
+  RA extends AnyResAtlas,
+  KM extends HandleMap<RA>,
+  DM extends HandleMap<RA>,
+  EF extends ExperimentalFlags,
+> = {
   readonly define: GearMapDefiner<RA, KM, DM>;
-}
+} & (EF["reactiveGear"] extends true
+  ? {
+      readonly reactive: ReactiveGearMapDepsComposer<RA, KM, DM>;
+    }
+  : {});
 
-interface GearListDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>> {
-  readonly reactive: ReactiveGearListDepsComposer<RA, KM, DL>;
+type GearListDepsComposer<
+  RA extends AnyResAtlas,
+  KM extends HandleMap<RA>,
+  DL extends HandleList<RA>,
+  EF extends ExperimentalFlags,
+> = {
   readonly define: GearListDefiner<RA, KM, DL>;
-}
+} & (EF["reactiveGear"] extends true
+  ? {
+      readonly reactive: ReactiveGearListDepsComposer<RA, KM, DL>;
+    }
+  : {});
 
 // #region Runtime
 
@@ -78,20 +98,20 @@ const cursor: GearCursor = {
 
 const meta: ResMatrixMeta = { family: "gear", isReactive: false };
 
-export function createGearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>>(
+export function createGearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, EF extends ExperimentalFlags>(
   connector: ResComposerConnector
-): GearComposer<RA, KM> {
+): GearComposer<RA, KM, EF> {
   const reactive = createReactiveGearMapDepsComposer<RA, KM, {}>(connector, {});
   const define = createGearMapDefiner<RA, KM, {}>(connector, {});
 
   const deps = ((...args: unknown[]) => {
     const mask = getPlugOutline<RA>(...args);
     if (mask.mode === "map") {
-      return createGearMapDepsComposer<RA, KM, any>(connector, mask.deps);
+      return createGearMapDepsComposer<RA, KM, any, EF>(connector, mask.deps);
     } else {
-      return createGearListDepsComposer<RA, KM, any>(connector, mask.deps);
+      return createGearListDepsComposer<RA, KM, any, EF>(connector, mask.deps);
     }
-  }) as GearDepsComposer<RA, KM>;
+  }) as GearDepsComposer<RA, KM, EF>;
 
   return {
     deps,
@@ -100,21 +120,25 @@ export function createGearComposer<RA extends AnyResAtlas, KM extends HandleMap<
   };
 }
 
-function createGearMapDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>>(
-  connector: ResComposerConnector,
-  deps: DM
-): GearMapDepsComposer<RA, KM, DM> {
-  return lazyGetters<GearMapDepsComposer<RA, KM, DM>>({
+function createGearMapDepsComposer<
+  RA extends AnyResAtlas,
+  KM extends HandleMap<RA>,
+  DM extends HandleMap<RA>,
+  EF extends ExperimentalFlags,
+>(connector: ResComposerConnector, deps: DM): GearMapDepsComposer<RA, KM, DM, EF> {
+  return lazyGetters({
     reactive: () => createReactiveGearMapDepsComposer<RA, KM, DM>(connector, deps),
     define: () => createGearMapDefiner<RA, KM, DM>(connector, deps),
   });
 }
 
-function createGearListDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>>(
-  connector: ResComposerConnector,
-  deps: DL
-): GearListDepsComposer<RA, KM, DL> {
-  return lazyGetters<GearListDepsComposer<RA, KM, DL>>({
+function createGearListDepsComposer<
+  RA extends AnyResAtlas,
+  KM extends HandleMap<RA>,
+  DL extends HandleList<RA>,
+  EF extends ExperimentalFlags,
+>(connector: ResComposerConnector, deps: DL): GearListDepsComposer<RA, KM, DL, EF> {
+  return lazyGetters({
     reactive: () => createReactiveGearListDepsComposer<RA, KM, DL>(connector, deps),
     define: () => createGearListDefiner<RA, KM, DL>(connector, deps),
   });

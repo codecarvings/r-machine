@@ -24,6 +24,7 @@ import {
   createGearComposer,
   createResLayoutEntryTypeResolver,
   createShellComposer,
+  type ExperimentalFlags,
   type GateKit,
   type GateWire,
   type GearKit,
@@ -49,8 +50,13 @@ import {
 } from "./r-machine-config.js";
 import type { RMachineToolset } from "./r-machine-toolset.js";
 
-export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends AnyResEquipment<RA>> {
-  constructor(config: RMachineConfig<RA, L, E>) {
+export class RMachine<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags = {},
+> {
+  constructor(config: RMachineConfig<RA, L, E, EF>) {
     const configError = validateRMachineConfig(config);
     if (configError) {
       throw configError;
@@ -75,7 +81,7 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly localeHelper: LocaleHelper<L>;
-  protected readonly config: RMachineConfig<RA, L, E>;
+  protected readonly config: RMachineConfig<RA, L, E, EF>;
   protected readonly kernelManager: KernelManager;
 
   /*
@@ -98,8 +104,8 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
     };
   }
 
-  createToolset(): RMachineToolset<RA, L, E> {
-    const Gear = createGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"));
+  createToolset(): RMachineToolset<RA, L, E, EF> {
+    const Gear = createGearComposer<RA, E["gearKit"], EF>(this.createResComposerConnector("gear"));
     const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(this.createResComposerConnector("shell"));
     return { Gear, Shell, localized };
   }
@@ -128,16 +134,18 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
     GK extends GearKit<InstanceType<RAC>> = {},
     SK extends ShellKit<InstanceType<RAC>, BGL> = {},
     XK extends GateKit<InstanceType<RAC>> = {},
+    EF extends ExperimentalFlags = {},
   >(
-    config: RMachineConfigParams<RAC, LL, BGL, GK, SK, XK>
-  ): RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, XK>> {
-    return new RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, XK>>(
+    config: RMachineConfigParams<RAC, LL, BGL, GK, SK, XK, EF>
+  ): RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, XK>, EF> {
+    return new RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, XK>, EF>(
       convertParamsToConfig(config)
     );
   }
 }
 
-export type RMachineLocale<RM extends RMachine<any, any, any>> = RM extends RMachine<any, infer L, any> ? L : never;
+export type RMachineLocale<RM extends RMachine<any, any, any, any>> =
+  RM extends RMachine<any, infer L, any, any> ? L : never;
 
 function localized<S extends AnyRes>(_namespace: AnyNamespace, shell: S): S {
   return shell;
