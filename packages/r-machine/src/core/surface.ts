@@ -30,3 +30,6 @@ export type Surface<R extends AnyRes, N extends AnyNamespace, LET extends ResLay
 };
 
 export type AnyVertexGearSurface = Surface<AnyRes, AnyNamespace, "gear:vertex">;
+
+// Runtime-side untyped surface
+export type AnySurface = AnyRes;

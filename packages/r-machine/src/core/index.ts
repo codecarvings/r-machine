@@ -22,6 +22,15 @@ export type { GateWire } from "./gate-wire.js";
 export { createGearComposer, type GearComposer } from "./gear-composer.js";
 export type { Getter } from "./getter.js";
 export {
+  buildReactiveKernel,
+  buildStaticKernel,
+  getCurrentSurface,
+  type Kernel,
+  type ReactiveKernel,
+  type StaticKernel,
+} from "./kernel.js";
+export { KernelManager } from "./kernel-manager.js";
+export {
   type AnyListPlugHead,
   type AnyMapPlugHead,
   type AnyPlugHead,
@@ -90,17 +99,7 @@ export {
 export type { ResMatrix } from "./res-matrix.js";
 export type { AnyResModule, ResModuleLoaderFn } from "./res-module.js";
 export { createShellComposer, type ShellComposer } from "./shell-composer.js";
-export {
-  type AnySurface,
-  buildReactiveSlot,
-  buildStaticSlot,
-  getCurrentSurface,
-  type ReactiveSlot,
-  type Slot,
-  type StaticSlot,
-} from "./slot.js";
-export { SlotManager } from "./slot-manager.js";
-export type { AnyVertexGearSurface, Surface } from "./surface.js";
+export type { AnySurface, AnyVertexGearSurface, Surface } from "./surface.js";
 export {
   tryGetVertexGearTag,
   type VertexGearMap,

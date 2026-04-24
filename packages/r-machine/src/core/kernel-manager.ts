@@ -15,59 +15,60 @@ import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { Blueprint } from "./blueprint.js";
 import type { BlueprintManager } from "./blueprint-manager.js";
-import type { Kernel } from "./kernel.js";
+import { buildReactiveKernel, buildStaticKernel, getCurrentSurface, type Kernel } from "./kernel.js";
+import type { AnyRes } from "./res.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { getResCacheKey } from "./res-domain.js";
 import type { AnyResEquipment, KitKind } from "./res-equipment.js";
 import type { ResLayoutEntryTypeResolver } from "./res-layout.js";
 import { type AnyNamespaceList, isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap } from "./res-map.js";
-import { type AnySurface, buildReactiveSlot, buildStaticSlot, getCurrentSurface, type Slot } from "./slot.js";
+import type { AnySurface } from "./surface.js";
 
-export class SlotManager {
+export class KernelManager {
   constructor(
     protected resLayoutEntryTypeResolver: ResLayoutEntryTypeResolver,
     protected equipment: AnyResEquipment,
     protected blueprintManager: BlueprintManager
   ) {}
 
-  protected readonly slots = new Map<string, Slot | Promise<Slot>>();
+  protected readonly kernels = new Map<string, Kernel | Promise<Kernel>>();
 
-  protected resolveSlot(namespace: AnyNamespace, locale: AnyLocale | undefined, key: string): Promise<Slot> {
-    const slotPromise = (async () => {
+  protected resolveKernel(namespace: AnyNamespace, locale: AnyLocale | undefined, key: string): Promise<Kernel> {
+    const kernelPromise = (async () => {
       try {
         const layoutType = this.resLayoutEntryTypeResolver(namespace);
         const blueprint: Blueprint = await this.blueprintManager.getBlueprint(namespace, locale, layoutType, key);
-        let slot: Slot;
+        let kernel: Kernel;
         if (blueprint.originType === "res") {
-          slot = buildStaticSlot(blueprint.origin as Kernel);
+          kernel = buildStaticKernel(blueprint.origin as AnyRes);
         } else {
           const factory = blueprint.origin.factory as (
             locale: AnyLocale | undefined,
             selfNamespace: AnyNamespace
-          ) => Promise<Kernel>;
-          const kernel = await factory(locale, namespace);
-          slot = blueprint.isReactive ? buildReactiveSlot(kernel) : buildStaticSlot(kernel);
+          ) => Promise<AnyRes>;
+          const res = await factory(locale, namespace);
+          kernel = blueprint.isReactive ? buildReactiveKernel(res) : buildStaticKernel(res);
         }
-        this.slots.set(key, slot);
-        return slot;
+        this.kernels.set(key, kernel);
+        return kernel;
       } catch (error) {
-        this.slots.delete(key);
+        this.kernels.delete(key);
         throw error;
       }
     })();
-    this.slots.set(key, slotPromise);
-    return slotPromise;
+    this.kernels.set(key, kernelPromise);
+    return kernelPromise;
   }
 
-  protected async getSlot(namespace: AnyNamespace, locale: AnyLocale | undefined): Promise<Slot> {
+  protected async getKernel(namespace: AnyNamespace, locale: AnyLocale | undefined): Promise<Kernel> {
     const layoutType = this.resLayoutEntryTypeResolver(namespace);
     const key = getResCacheKey(namespace, locale, layoutType);
-    const cached = this.slots.get(key);
+    const cached = this.kernels.get(key);
     if (cached !== undefined) {
       return cached;
     }
-    return this.resolveSlot(namespace, locale, key);
+    return this.resolveKernel(namespace, locale, key);
   }
 
   async getPlugin(
@@ -102,7 +103,7 @@ export class SlotManager {
     const selfLayoutType = this.resLayoutEntryTypeResolver(selfNamespace);
     const selfKey = getResCacheKey(selfNamespace, locale, selfLayoutType);
     return () => {
-      const cached = this.slots.get(selfKey);
+      const cached = this.kernels.get(selfKey);
       if (cached === undefined || cached instanceof Promise) {
         throw new RMachineResolveError(
           ERR_RESOLVE_FAILED,
@@ -118,7 +119,7 @@ export class SlotManager {
     locale: AnyLocale | undefined
   ): Promise<Record<string, unknown>> {
     const resolved = await Promise.all(
-      entries.map(async ([k, ns]) => [k, getCurrentSurface(await this.getSlot(ns, locale))] as const)
+      entries.map(async ([k, ns]) => [k, getCurrentSurface(await this.getKernel(ns, locale))] as const)
     );
     return Object.fromEntries(resolved);
   }
@@ -130,7 +131,7 @@ export class SlotManager {
     const entries = await Promise.all(
       Object.entries(nsDeps).map(async ([key, namespace]) => [
         key,
-        getCurrentSurface(await this.getSlot(namespace, locale)),
+        getCurrentSurface(await this.getKernel(namespace, locale)),
       ])
     );
     return Object.fromEntries(entries);
@@ -138,7 +139,7 @@ export class SlotManager {
 
   protected async loadListDeps(nsDeps: AnyNamespaceList, locale: AnyLocale | undefined): Promise<unknown[]> {
     return Promise.all(
-      nsDeps.map(async (namespace) => getCurrentSurface(await this.getSlot(namespace as AnyNamespace, locale)))
+      nsDeps.map(async (namespace) => getCurrentSurface(await this.getKernel(namespace as AnyNamespace, locale)))
     );
   }
 
