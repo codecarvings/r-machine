@@ -22,7 +22,6 @@ export type { GateWire } from "./gate-wire.js";
 export { createGearComposer, type GearComposer } from "./gear-composer.js";
 export type { Getter } from "./getter.js";
 export { KernelManager } from "./kernel-manager.js";
-export { KernelPluginManager } from "./kernel-plugin-manager.js";
 export {
   type AnyListPlugHead,
   type AnyMapPlugHead,
@@ -36,6 +35,7 @@ export {
   type MapPlugin,
   type PlugBody,
   type PlugMode,
+  type PlugResolve,
   setPlugResolve,
 } from "./plug.js";
 export type { ReactiveGearTag } from "./reactive-gear.js";

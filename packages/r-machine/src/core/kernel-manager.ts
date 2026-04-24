@@ -18,35 +18,35 @@ import type { BlueprintManager } from "./blueprint-manager.js";
 import type { Kernel } from "./kernel.js";
 import type { AnyNamespace } from "./res-domain.js";
 import { getResCacheKey } from "./res-domain.js";
-import type { ResLayoutEntryType, ResLayoutEntryTypeResolver } from "./res-layout.js";
+import type { AnyResEquipment, KitKind } from "./res-equipment.js";
+import type { ResLayoutEntryTypeResolver } from "./res-layout.js";
+import { type AnyNamespaceList, isNamespaceList } from "./res-list.js";
+import type { AnyNamespaceMap } from "./res-map.js";
 
 export class KernelManager {
   constructor(
     protected resLayoutEntryTypeResolver: ResLayoutEntryTypeResolver,
+    protected equipment: AnyResEquipment,
     protected blueprintManager: BlueprintManager
   ) {}
 
   protected readonly cache = new Map<string, Kernel | Promise<Kernel>>();
 
-  protected async createKernel(blueprint: Blueprint, locale: AnyLocale | undefined): Promise<Kernel> {
-    if (blueprint.originType === "res") {
-      return blueprint.origin as Kernel;
-    }
-
-    const kernel = await (blueprint.origin.factory as (locale: AnyLocale | undefined) => Promise<Kernel>)(locale);
-    return kernel;
-  }
-
-  protected resolveKernel(
-    namespace: AnyNamespace,
-    locale: AnyLocale | undefined,
-    resLayoutEntryType: ResLayoutEntryType,
-    key: string
-  ): Promise<Kernel> {
+  protected resolveKernel(namespace: AnyNamespace, locale: AnyLocale | undefined, key: string): Promise<Kernel> {
     const kernelPromise = (async () => {
       try {
-        const blueprint = await this.blueprintManager.getBlueprint(namespace, locale, resLayoutEntryType, key);
-        const kernel = await this.createKernel(blueprint, locale);
+        const layoutType = this.resLayoutEntryTypeResolver(namespace);
+        const blueprint: Blueprint = await this.blueprintManager.getBlueprint(namespace, locale, layoutType, key);
+        let kernel: Kernel;
+        if (blueprint.originType === "res") {
+          kernel = blueprint.origin as Kernel;
+        } else {
+          const factory = blueprint.origin.factory as (
+            locale: AnyLocale | undefined,
+            selfNamespace: AnyNamespace
+          ) => Promise<Kernel>;
+          kernel = await factory(locale, namespace);
+        }
         this.cache.set(key, kernel);
         return kernel;
       } catch (error) {
@@ -58,33 +58,115 @@ export class KernelManager {
     return kernelPromise;
   }
 
-  async getKernel(namespace: AnyNamespace, locale: AnyLocale | undefined): Promise<Kernel> {
-    const resLayoutEntryType = this.resLayoutEntryTypeResolver(namespace);
-    const key = getResCacheKey(namespace, locale, resLayoutEntryType);
-    const kernel = this.cache.get(key);
-    if (kernel !== undefined) {
-      return kernel;
+  protected async getKernel(namespace: AnyNamespace, locale: AnyLocale | undefined): Promise<Kernel> {
+    const layoutType = this.resLayoutEntryTypeResolver(namespace);
+    const key = getResCacheKey(namespace, locale, layoutType);
+    const cached = this.cache.get(key);
+    if (cached !== undefined) {
+      return cached;
     }
-
-    return this.resolveKernel(namespace, locale, resLayoutEntryType!, key);
+    return this.resolveKernel(namespace, locale, key);
   }
 
-  getKernelSync(namespace: AnyNamespace, locale: AnyLocale | undefined): Kernel {
-    const resLayoutEntryType = this.resLayoutEntryTypeResolver(namespace);
-    const key = getResCacheKey(namespace, locale, resLayoutEntryType);
-    const kernel = this.cache.get(key);
-    if (kernel === undefined) {
-      throw new RMachineResolveError(
-        ERR_RESOLVE_FAILED,
-        `Kernel for namespace "${namespace}" ${locale ? `and locale "${locale}" ` : ""}is not loaded yet.`
-      );
+  async getPlugin(
+    kitKind: KitKind,
+    nsDeps: AnyNamespaceMap | AnyNamespaceList,
+    locale: AnyLocale | undefined,
+    selfNamespace?: AnyNamespace | undefined
+  ): Promise<unknown> {
+    const isList = isNamespaceList(nsDeps);
+    const kitMap = this.equipment[`${kitKind}Kit` as keyof AnyResEquipment] as Record<string, AnyNamespace>;
+    const entries = Object.entries(kitMap);
+    let selfKitKey: string | undefined;
+    const kitEntries = entries.filter(([key, ns]) => {
+      if (ns === selfNamespace) {
+        selfKitKey = key;
+        return false;
+      }
+      return true;
+    });
+
+    const [kit, deps] = await Promise.all([
+      this.loadKit(kitEntries, locale),
+      isList ? this.loadListDeps(nsDeps, locale) : this.loadMapDeps(nsDeps, locale),
+    ]);
+
+    return isList
+      ? this.buildListPlugin(kitKind, deps as unknown[], kit, locale, selfNamespace, selfKitKey)
+      : this.buildMapPlugin(kitKind, deps as Record<string, unknown>, kit, locale, selfNamespace, selfKitKey);
+  }
+
+  protected createSelfRefGetter(selfNamespace: AnyNamespace, locale: AnyLocale | undefined): () => Kernel {
+    const selfLayoutType = this.resLayoutEntryTypeResolver(selfNamespace);
+    const selfKey = getResCacheKey(selfNamespace, locale, selfLayoutType);
+    return () => {
+      const cached = this.cache.get(selfKey);
+      if (cached === undefined || cached instanceof Promise) {
+        throw new RMachineResolveError(
+          ERR_RESOLVE_FAILED,
+          `Kit self-reference "${selfNamespace}" is not available while its own factory is running.`
+        );
+      }
+      return cached;
+    };
+  }
+
+  protected async loadKit(
+    entries: ReadonlyArray<readonly [string, AnyNamespace]>,
+    locale: AnyLocale | undefined
+  ): Promise<Record<string, unknown>> {
+    const resolved = await Promise.all(entries.map(async ([k, ns]) => [k, await this.getKernel(ns, locale)]));
+    return Object.fromEntries(resolved);
+  }
+
+  protected async loadMapDeps(
+    nsDeps: AnyNamespaceMap,
+    locale: AnyLocale | undefined
+  ): Promise<Record<string, unknown>> {
+    const entries = await Promise.all(
+      Object.entries(nsDeps).map(async ([key, namespace]) => [key, await this.getKernel(namespace, locale)])
+    );
+    return Object.fromEntries(entries);
+  }
+
+  protected async loadListDeps(nsDeps: AnyNamespaceList, locale: AnyLocale | undefined): Promise<unknown[]> {
+    return Promise.all(nsDeps.map((namespace) => this.getKernel(namespace as AnyNamespace, locale)));
+  }
+
+  protected buildListPlugin(
+    kitKind: KitKind,
+    deps: unknown[],
+    kit: Record<string, unknown>,
+    locale: AnyLocale | undefined,
+    selfNamespace: AnyNamespace | undefined,
+    selfKitKey: string | undefined
+  ): unknown {
+    const ctx = kitKind === "shell" ? { locale, kit } : { kit };
+    const plugin = [...deps, ctx];
+    if (selfNamespace !== undefined && selfKitKey !== undefined) {
+      const getter = this.createSelfRefGetter(selfNamespace, locale);
+      Object.defineProperty(kit, selfKitKey, { enumerable: true, configurable: true, get: getter });
     }
-    if (kernel instanceof Promise) {
-      throw new RMachineResolveError(
-        ERR_RESOLVE_FAILED,
-        `Kernel for namespace "${namespace}" ${locale ? `and locale "${locale}" ` : ""}is still loading.`
-      );
+    return plugin;
+  }
+
+  protected buildMapPlugin(
+    kitKind: KitKind,
+    deps: Record<string, unknown>,
+    kit: Record<string, unknown>,
+    locale: AnyLocale | undefined,
+    selfNamespace: AnyNamespace | undefined,
+    selfKitKey: string | undefined
+  ): unknown {
+    const ctx = kitKind === "shell" ? { locale, kit } : { kit };
+    const plugin: Record<string, unknown> = { ...deps, ...kit, $: ctx };
+    if (selfNamespace !== undefined && selfKitKey !== undefined) {
+      const getter = this.createSelfRefGetter(selfNamespace, locale);
+      Object.defineProperty(kit, selfKitKey, { enumerable: true, configurable: true, get: getter });
+      if (!(selfKitKey in deps)) {
+        Object.defineProperty(plugin, selfKitKey, { enumerable: true, configurable: true, get: getter });
+      }
     }
-    return kernel;
+    return plugin;
   }
 }

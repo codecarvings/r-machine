@@ -32,7 +32,6 @@ import {
   type HandleList,
   isNamespaceList,
   KernelManager,
-  KernelPluginManager,
   type ResComposerConnector,
   type ResEquipment,
   type ResFamily,
@@ -71,15 +70,14 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
       },
       this.config.load
     );
-    const kernelManager = new KernelManager(resLayoutEntryTypeResolver, blueprintManager);
-    this.kernelPluginManager = new KernelPluginManager(this.config.equipment, kernelManager);
+    this.kernelManager = new KernelManager(resLayoutEntryTypeResolver, this.config.equipment, blueprintManager);
   }
 
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly localeHelper: LocaleHelper<L>;
   protected readonly config: RMachineConfig<RA, L, E>;
-  protected readonly kernelPluginManager: KernelPluginManager;
+  protected readonly kernelManager: KernelManager;
 
   /*
   protected validateLocaleForPick(locale: L) {
@@ -92,8 +90,8 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
 
   protected createResComposerConnector(family: ResFamily): ResComposerConnector {
     return {
-      getResWire: (deps, locale) => {
-        const plugin = this.kernelPluginManager.getPluginSync(family, deps, locale);
+      getResWire: async (deps, locale, selfNamespace) => {
+        const plugin = await this.kernelManager.getPlugin(family, deps, locale, selfNamespace);
         return {
           plugin,
         };
@@ -120,8 +118,7 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
       nsDeps = getNamespaceList(deps);
     }
 
-    const result = await this.kernelPluginManager.getPlugin("gate", nsDeps, this.defaultLocale);
-    console.log("WIP_GET loaded blueprint:", result);
+    const result = await this.kernelManager.getPlugin("gate", nsDeps, this.defaultLocale, undefined);
     return result as SurfaceList<RA, DL>;
   }
 

@@ -14,7 +14,7 @@
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { AnyResAtlas } from "./res-atlas.js";
-import { isHandle } from "./res-domain.js";
+import { type AnyNamespace, isHandle } from "./res-domain.js";
 import type { AnyNamespaceList, HandleList, SurfaceList } from "./res-list.js";
 import type { AnyNamespaceMap, HandleMap, SurfaceMap } from "./res-map.js";
 
@@ -91,7 +91,10 @@ export type ExtractPlugin<PH extends AnyPlugHead> = PH extends AnyMapPlugHead
     ? ListPlugin<PH[typeof resAtlas], PH["deps"], PH[typeof ctx]>
     : never;
 
-type PlugResolve<PH extends AnyPlugHead> = (locale: AnyLocale | undefined) => ExtractPlugin<PH>;
+export type PlugResolve<PH extends AnyPlugHead> = (
+  locale: AnyLocale | undefined,
+  selfNamespace: AnyNamespace | undefined
+) => Promise<ExtractPlugin<PH>>;
 
 const plugHeadSymbol = Symbol("plugHead");
 const plugResolveSymbol = Symbol("plugResolve");
@@ -106,7 +109,7 @@ const defaultPlugResolve: PlugResolve<any> = () => {
 export function createPlug<H extends AnyPlugHead>(head: H): PlugBody<H> {
   return {
     [plugHeadSymbol]: head,
-    [plugResolveSymbol]: defaultPlugResolve as () => ExtractPlugin<H>,
+    [plugResolveSymbol]: defaultPlugResolve as PlugResolve<H>,
   };
 }
 

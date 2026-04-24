@@ -15,6 +15,7 @@ import type { AnyLocale } from "#r-machine/locale";
 import { createPlug, type ExtractPlugin, getPlugResolve, type PlugBody, setPlugResolve } from "./plug.js";
 import type { AnyRes, AnyResOrigin, ResFamily } from "./res.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
+import type { AnyNamespace } from "./res-domain.js";
 import type { AnyResPlug, AnyResPlugHead } from "./res-plug.js";
 
 export interface ResMatrixMeta {
@@ -72,15 +73,14 @@ export function assembleResMatrix<PH extends AnyResPlugHead, RAW, RES extends An
 
   const plug = createPlug(head);
 
-  setPlugResolve(plug, (locale: AnyLocale | undefined) => {
-    const wire = connector.getResWire(head.nsDeps, locale);
+  setPlugResolve(plug, async (locale: AnyLocale | undefined, selfNamespace: AnyNamespace | undefined) => {
+    const wire = await connector.getResWire(head.nsDeps, locale, selfNamespace);
     const plugin = wire.plugin as ExtractPlugin<PH>;
     return buildPlugin ? buildPlugin(plugin, locale) : plugin;
   });
 
-  const factory = async (locale: AnyLocale | undefined): Promise<RES> => {
-    const plugin = getPlugResolve(plug)(locale);
-    console.log("This plugin", plugin);
+  const factory = async (locale: AnyLocale | undefined, selfNamespace: AnyNamespace): Promise<RES> => {
+    const plugin = await getPlugResolve(plug)(locale, selfNamespace);
     const raw = await userFactory(plugin, cursor as never);
     return postProcess ? postProcess(raw, cursor as never) : (raw as unknown as RES);
   };
