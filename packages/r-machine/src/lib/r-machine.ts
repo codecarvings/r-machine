@@ -31,7 +31,7 @@ import {
   getNamespaceList,
   type HandleList,
   isNamespaceList,
-  KernelManager,
+  JunctureManager,
   type ResComposerConnector,
   type ResEquipment,
   type ResFamily,
@@ -75,14 +75,14 @@ export class RMachine<
       },
       this.config.load
     );
-    this.kernelManager = new KernelManager(resLayoutEntryTypeResolver, this.config.equipment, blueprintManager);
+    this.junctureManager = new JunctureManager(resLayoutEntryTypeResolver, this.config.equipment, blueprintManager);
   }
 
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly localeHelper: LocaleHelper<L>;
   protected readonly config: RMachineConfig<RA, L, E, EF>;
-  protected readonly kernelManager: KernelManager;
+  protected readonly junctureManager: JunctureManager;
 
   /*
   protected validateLocaleForPick(locale: L) {
@@ -96,7 +96,7 @@ export class RMachine<
   protected createResComposerConnector(family: ResFamily): ResComposerConnector {
     return {
       getWire: async (deps, locale, selfNamespace) => {
-        const plugin = await this.kernelManager.getPlugin(family, deps, locale, selfNamespace);
+        const plugin = await this.junctureManager.getPlugin(family, deps, locale, selfNamespace);
         return {
           plugin,
         };
@@ -123,7 +123,7 @@ export class RMachine<
       nsDeps = getNamespaceList(deps);
     }
 
-    const result = await this.kernelManager.getPlugin("gate", nsDeps, this.defaultLocale, undefined);
+    const result = await this.junctureManager.getPlugin("gate", nsDeps, this.defaultLocale, undefined);
     return result as SurfaceList<RA, DL>;
   }
 

@@ -15,7 +15,7 @@ import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { Blueprint } from "./blueprint.js";
 import type { BlueprintManager } from "./blueprint-manager.js";
-import { buildReactiveKernel, buildStaticKernel, getCurrentSurface, type Kernel } from "./kernel.js";
+import { buildReactiveJuncture, buildStaticJuncture, getCurrentSurface, type Juncture } from "./juncture.js";
 import type { AnyRes } from "./res.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { getResCacheKey } from "./res-domain.js";
@@ -25,50 +25,50 @@ import { type AnyNamespaceList, isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap } from "./res-map.js";
 import type { AnySurface } from "./surface.js";
 
-export class KernelManager {
+export class JunctureManager {
   constructor(
     protected resLayoutEntryTypeResolver: ResLayoutEntryTypeResolver,
     protected equipment: AnyResEquipment,
     protected blueprintManager: BlueprintManager
   ) {}
 
-  protected readonly kernels = new Map<string, Kernel | Promise<Kernel>>();
+  protected readonly junctures = new Map<string, Juncture | Promise<Juncture>>();
 
-  protected resolveKernel(namespace: AnyNamespace, locale: AnyLocale | undefined, key: string): Promise<Kernel> {
-    const kernelPromise = (async () => {
+  protected resolveJuncture(namespace: AnyNamespace, locale: AnyLocale | undefined, key: string): Promise<Juncture> {
+    const juncturePromise = (async () => {
       try {
         const layoutType = this.resLayoutEntryTypeResolver(namespace);
         const blueprint: Blueprint = await this.blueprintManager.getBlueprint(namespace, locale, layoutType, key);
-        let kernel: Kernel;
+        let juncture: Juncture;
         if (blueprint.originType === "res") {
-          kernel = buildStaticKernel(blueprint.origin as AnyRes);
+          juncture = buildStaticJuncture(blueprint.origin as AnyRes);
         } else {
           const factory = blueprint.origin.factory as (
             locale: AnyLocale | undefined,
             selfNamespace: AnyNamespace
           ) => Promise<AnyRes>;
           const res = await factory(locale, namespace);
-          kernel = blueprint.isReactive ? buildReactiveKernel(res) : buildStaticKernel(res);
+          juncture = blueprint.isReactive ? buildReactiveJuncture(res) : buildStaticJuncture(res);
         }
-        this.kernels.set(key, kernel);
-        return kernel;
+        this.junctures.set(key, juncture);
+        return juncture;
       } catch (error) {
-        this.kernels.delete(key);
+        this.junctures.delete(key);
         throw error;
       }
     })();
-    this.kernels.set(key, kernelPromise);
-    return kernelPromise;
+    this.junctures.set(key, juncturePromise);
+    return juncturePromise;
   }
 
-  protected async getKernel(namespace: AnyNamespace, locale: AnyLocale | undefined): Promise<Kernel> {
+  protected async getJuncture(namespace: AnyNamespace, locale: AnyLocale | undefined): Promise<Juncture> {
     const layoutType = this.resLayoutEntryTypeResolver(namespace);
     const key = getResCacheKey(namespace, locale, layoutType);
-    const cached = this.kernels.get(key);
+    const cached = this.junctures.get(key);
     if (cached !== undefined) {
       return cached;
     }
-    return this.resolveKernel(namespace, locale, key);
+    return this.resolveJuncture(namespace, locale, key);
   }
 
   async getPlugin(
@@ -103,7 +103,7 @@ export class KernelManager {
     const selfLayoutType = this.resLayoutEntryTypeResolver(selfNamespace);
     const selfKey = getResCacheKey(selfNamespace, locale, selfLayoutType);
     return () => {
-      const cached = this.kernels.get(selfKey);
+      const cached = this.junctures.get(selfKey);
       if (cached === undefined || cached instanceof Promise) {
         throw new RMachineResolveError(
           ERR_RESOLVE_FAILED,
@@ -119,7 +119,7 @@ export class KernelManager {
     locale: AnyLocale | undefined
   ): Promise<Record<string, unknown>> {
     const resolved = await Promise.all(
-      entries.map(async ([k, ns]) => [k, getCurrentSurface(await this.getKernel(ns, locale))] as const)
+      entries.map(async ([k, ns]) => [k, getCurrentSurface(await this.getJuncture(ns, locale))] as const)
     );
     return Object.fromEntries(resolved);
   }
@@ -131,7 +131,7 @@ export class KernelManager {
     const entries = await Promise.all(
       Object.entries(nsDeps).map(async ([key, namespace]) => [
         key,
-        getCurrentSurface(await this.getKernel(namespace, locale)),
+        getCurrentSurface(await this.getJuncture(namespace, locale)),
       ])
     );
     return Object.fromEntries(entries);
@@ -139,7 +139,7 @@ export class KernelManager {
 
   protected async loadListDeps(nsDeps: AnyNamespaceList, locale: AnyLocale | undefined): Promise<unknown[]> {
     return Promise.all(
-      nsDeps.map(async (namespace) => getCurrentSurface(await this.getKernel(namespace as AnyNamespace, locale)))
+      nsDeps.map(async (namespace) => getCurrentSurface(await this.getJuncture(namespace as AnyNamespace, locale)))
     );
   }
 

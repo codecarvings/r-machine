@@ -23,14 +23,13 @@ export type { GateWire } from "./gate-wire.js";
 export { createGearComposer, type GearComposer } from "./gear-composer.js";
 export type { Getter } from "./getter.js";
 export {
-  buildReactiveKernel,
-  buildStaticKernel,
-  getCurrentSurface,
-  type Kernel,
-  type ReactiveKernel,
-  type StaticKernel,
-} from "./kernel.js";
-export { KernelManager } from "./kernel-manager.js";
+  buildReactiveJuncture,
+  buildStaticJuncture,
+  type Juncture,
+  type ReactiveJuncture,
+  type StaticJuncture,
+} from "./juncture.js";
+export { JunctureManager } from "./juncture-manager.js";
 export {
   type AnyListPlugHead,
   type AnyMapPlugHead,

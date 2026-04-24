@@ -61,7 +61,7 @@ export const mockPlug: MockPlug = (plug: PlugBody<AnyPlugHead>) => {
         // TODO: WIP - For now, just return the original resolve result.
         // Plan: read data.$.locale (if set) to override locale; call prevResolve; deep-merge _data.
         // Caveat: prevResolve may install a lazy getter on $.kit[selfKey] for kit self-reference.
-        // Deep-merging enumerates kit keys and would invoke that getter; if the self-kernel isn't
+        // Deep-merging enumerates kit keys and would invoke that getter; if the self-juncture isn't
         // cached yet (factory still running), the getter throws. Handle this in the merge step —
         // e.g. skip own-property getters or short-circuit on self-ref keys.
         return prevResolve(locale, selfNamespace);

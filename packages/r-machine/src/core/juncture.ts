@@ -14,15 +14,15 @@
 import type { AnyRes } from "./res.js";
 import type { AnySurface } from "./surface.js";
 
-export type Kernel = StaticKernel | ReactiveKernel;
+export type Juncture = StaticJuncture | ReactiveJuncture;
 
-export interface StaticKernel {
+export interface StaticJuncture {
   readonly kind: "static";
   readonly res: AnyRes;
   readonly surface: AnySurface;
 }
 
-export interface ReactiveKernel {
+export interface ReactiveJuncture {
   readonly kind: "reactive";
   readonly res: AnyRes;
   readonly surfaceA: AnySurface;
@@ -32,8 +32,8 @@ export interface ReactiveKernel {
   readonly subscribers: Set<() => void>;
 }
 
-export function getCurrentSurface(kernel: Kernel): AnySurface {
-  return kernel.kind === "reactive" ? kernel.current : kernel.surface;
+export function getCurrentSurface(juncture: Juncture): AnySurface {
+  return juncture.kind === "reactive" ? juncture.current : juncture.surface;
 }
 
 // TODO: brand-aware handling (Getter → accessor materialized, Action → wrapped
@@ -54,11 +54,11 @@ function buildSurface(res: AnyRes): AnySurface {
   return surface;
 }
 
-export function buildStaticKernel(res: AnyRes): StaticKernel {
+export function buildStaticJuncture(res: AnyRes): StaticJuncture {
   return { kind: "static", res, surface: buildSurface(res) };
 }
 
-export function buildReactiveKernel(res: AnyRes): ReactiveKernel {
+export function buildReactiveJuncture(res: AnyRes): ReactiveJuncture {
   const surfaceA = buildSurface(res);
   const surfaceB = buildSurface(res);
   return {
