@@ -22,50 +22,52 @@ import type { AnyResEquipment, KitKind } from "./res-equipment.js";
 import type { ResLayoutEntryTypeResolver } from "./res-layout.js";
 import { type AnyNamespaceList, isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap } from "./res-map.js";
+import { type AnySurface, buildReactiveSlot, buildStaticSlot, getCurrentSurface, type Slot } from "./slot.js";
 
-export class KernelManager {
+export class SlotManager {
   constructor(
     protected resLayoutEntryTypeResolver: ResLayoutEntryTypeResolver,
     protected equipment: AnyResEquipment,
     protected blueprintManager: BlueprintManager
   ) {}
 
-  protected readonly cache = new Map<string, Kernel | Promise<Kernel>>();
+  protected readonly slots = new Map<string, Slot | Promise<Slot>>();
 
-  protected resolveKernel(namespace: AnyNamespace, locale: AnyLocale | undefined, key: string): Promise<Kernel> {
-    const kernelPromise = (async () => {
+  protected resolveSlot(namespace: AnyNamespace, locale: AnyLocale | undefined, key: string): Promise<Slot> {
+    const slotPromise = (async () => {
       try {
         const layoutType = this.resLayoutEntryTypeResolver(namespace);
         const blueprint: Blueprint = await this.blueprintManager.getBlueprint(namespace, locale, layoutType, key);
-        let kernel: Kernel;
+        let slot: Slot;
         if (blueprint.originType === "res") {
-          kernel = blueprint.origin as Kernel;
+          slot = buildStaticSlot(blueprint.origin as Kernel);
         } else {
           const factory = blueprint.origin.factory as (
             locale: AnyLocale | undefined,
             selfNamespace: AnyNamespace
           ) => Promise<Kernel>;
-          kernel = await factory(locale, namespace);
+          const kernel = await factory(locale, namespace);
+          slot = blueprint.isReactive ? buildReactiveSlot(kernel) : buildStaticSlot(kernel);
         }
-        this.cache.set(key, kernel);
-        return kernel;
+        this.slots.set(key, slot);
+        return slot;
       } catch (error) {
-        this.cache.delete(key);
+        this.slots.delete(key);
         throw error;
       }
     })();
-    this.cache.set(key, kernelPromise);
-    return kernelPromise;
+    this.slots.set(key, slotPromise);
+    return slotPromise;
   }
 
-  protected async getKernel(namespace: AnyNamespace, locale: AnyLocale | undefined): Promise<Kernel> {
+  protected async getSlot(namespace: AnyNamespace, locale: AnyLocale | undefined): Promise<Slot> {
     const layoutType = this.resLayoutEntryTypeResolver(namespace);
     const key = getResCacheKey(namespace, locale, layoutType);
-    const cached = this.cache.get(key);
+    const cached = this.slots.get(key);
     if (cached !== undefined) {
       return cached;
     }
-    return this.resolveKernel(namespace, locale, key);
+    return this.resolveSlot(namespace, locale, key);
   }
 
   async getPlugin(
@@ -96,18 +98,18 @@ export class KernelManager {
       : this.buildMapPlugin(kitKind, deps as Record<string, unknown>, kit, locale, selfNamespace, selfKitKey);
   }
 
-  protected createSelfRefGetter(selfNamespace: AnyNamespace, locale: AnyLocale | undefined): () => Kernel {
+  protected createSelfRefGetter(selfNamespace: AnyNamespace, locale: AnyLocale | undefined): () => AnySurface {
     const selfLayoutType = this.resLayoutEntryTypeResolver(selfNamespace);
     const selfKey = getResCacheKey(selfNamespace, locale, selfLayoutType);
     return () => {
-      const cached = this.cache.get(selfKey);
+      const cached = this.slots.get(selfKey);
       if (cached === undefined || cached instanceof Promise) {
         throw new RMachineResolveError(
           ERR_RESOLVE_FAILED,
           `Kit self-reference "${selfNamespace}" is not available while its own factory is running.`
         );
       }
-      return cached;
+      return getCurrentSurface(cached);
     };
   }
 
@@ -115,7 +117,9 @@ export class KernelManager {
     entries: ReadonlyArray<readonly [string, AnyNamespace]>,
     locale: AnyLocale | undefined
   ): Promise<Record<string, unknown>> {
-    const resolved = await Promise.all(entries.map(async ([k, ns]) => [k, await this.getKernel(ns, locale)]));
+    const resolved = await Promise.all(
+      entries.map(async ([k, ns]) => [k, getCurrentSurface(await this.getSlot(ns, locale))] as const)
+    );
     return Object.fromEntries(resolved);
   }
 
@@ -124,13 +128,18 @@ export class KernelManager {
     locale: AnyLocale | undefined
   ): Promise<Record<string, unknown>> {
     const entries = await Promise.all(
-      Object.entries(nsDeps).map(async ([key, namespace]) => [key, await this.getKernel(namespace, locale)])
+      Object.entries(nsDeps).map(async ([key, namespace]) => [
+        key,
+        getCurrentSurface(await this.getSlot(namespace, locale)),
+      ])
     );
     return Object.fromEntries(entries);
   }
 
   protected async loadListDeps(nsDeps: AnyNamespaceList, locale: AnyLocale | undefined): Promise<unknown[]> {
-    return Promise.all(nsDeps.map((namespace) => this.getKernel(namespace as AnyNamespace, locale)));
+    return Promise.all(
+      nsDeps.map(async (namespace) => getCurrentSurface(await this.getSlot(namespace as AnyNamespace, locale)))
+    );
   }
 
   protected buildListPlugin(

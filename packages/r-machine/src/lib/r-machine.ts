@@ -30,11 +30,11 @@ import {
   getNamespaceList,
   type HandleList,
   isNamespaceList,
-  KernelManager,
   type ResComposerConnector,
   type ResEquipment,
   type ResFamily,
   type ShellKit,
+  SlotManager,
   type SurfaceList,
   type VertexGearMap,
 } from "#r-machine/core";
@@ -69,14 +69,14 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
       },
       this.config.load
     );
-    this.kernelManager = new KernelManager(resLayoutEntryTypeResolver, this.config.equipment, blueprintManager);
+    this.slotManager = new SlotManager(resLayoutEntryTypeResolver, this.config.equipment, blueprintManager);
   }
 
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly localeHelper: LocaleHelper<L>;
   protected readonly config: RMachineConfig<RA, L, E>;
-  protected readonly kernelManager: KernelManager;
+  protected readonly slotManager: SlotManager;
 
   /*
   protected validateLocaleForPick(locale: L) {
@@ -90,7 +90,7 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
   protected createResComposerConnector(family: ResFamily): ResComposerConnector {
     return {
       getWire: async (deps, locale, selfNamespace) => {
-        const plugin = await this.kernelManager.getPlugin(family, deps, locale, selfNamespace);
+        const plugin = await this.slotManager.getPlugin(family, deps, locale, selfNamespace);
         return {
           plugin,
         };
@@ -117,7 +117,7 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
       nsDeps = getNamespaceList(deps);
     }
 
-    const result = await this.kernelManager.getPlugin("gate", nsDeps, this.defaultLocale, undefined);
+    const result = await this.slotManager.getPlugin("gate", nsDeps, this.defaultLocale, undefined);
     return result as SurfaceList<RA, DL>;
   }
 

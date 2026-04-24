@@ -13,12 +13,12 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import type { GateWire } from "./gate-wire.js";
-import type { KernelManager } from "./kernel-manager.js";
 import type { AnyNamespaceCollection } from "./res-domain.js";
+import type { SlotManager } from "./slot-manager.js";
 import type { VertexGearMap } from "./vertex-gear.js";
 
 export class GateWireManager {
-  constructor(protected readonly kernelManager: KernelManager) {}
+  constructor(protected readonly slotManager: SlotManager) {}
 
   getGateWire(
     _nsDeps: AnyNamespaceCollection,
