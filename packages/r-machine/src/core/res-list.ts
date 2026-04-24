@@ -12,7 +12,13 @@
  */
 
 import type { AnyResAtlas, SolidHandle } from "./res-atlas.js";
-import { type ExtractNamespace, getNamespace, type Handle, type Namespace } from "./res-domain.js";
+import {
+  type AnyNamespaceCollection,
+  type ExtractNamespace,
+  getNamespace,
+  type Handle,
+  type Namespace,
+} from "./res-domain.js";
 import type { Surface } from "./surface.js";
 
 export type HandleList<RA extends AnyResAtlas> = readonly Handle<RA["shape"]>[];
@@ -26,7 +32,7 @@ export function getNamespaceList<RA extends AnyResAtlas>(handles: HandleList<RA>
 }
 export type AnyNamespaceList = NamespaceList<AnyResAtlas>;
 
-export function isNamespaceList(value: unknown): value is AnyNamespaceList {
+export function isNamespaceList(value: AnyNamespaceCollection): value is AnyNamespaceList {
   return Array.isArray(value);
 }
 

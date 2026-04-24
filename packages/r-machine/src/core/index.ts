@@ -52,6 +52,7 @@ export type {
 export type { ResComposerConnector } from "./res-composer-connector.js";
 export {
   type AnyNamespace,
+  type AnyNamespaceCollection,
   type AnyResDomain,
   createToken,
   type ExtractNamespace,

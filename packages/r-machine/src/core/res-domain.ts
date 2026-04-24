@@ -13,6 +13,8 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import type { ResLayoutEntryType } from "./res-layout.js";
+import type { AnyNamespaceList } from "./res-list.js";
+import type { AnyNamespaceMap } from "./res-map.js";
 
 export type AnyNamespace = string;
 
@@ -38,6 +40,8 @@ export type TokenBuilder<RD extends AnyResDomain> = <N extends Namespace<RD>>(na
 export type Handle<RD extends AnyResDomain> = Namespace<RD> | Token<Namespace<RD>>;
 
 export type ExtractNamespace<H extends Handle<any>> = H extends Token<infer N> ? N : H;
+
+export type AnyNamespaceCollection = AnyNamespaceMap | AnyNamespaceList;
 
 export function getNamespace<H extends Handle<any>>(handle: H): ExtractNamespace<H> {
   if (typeof handle === "string") {

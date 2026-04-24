@@ -13,8 +13,7 @@
 
 import {
   type AnyNamespace,
-  type AnyNamespaceList,
-  type AnyNamespaceMap,
+  type AnyNamespaceCollection,
   type AnyPlugHead,
   type AnyRes,
   type AnyResAtlas,
@@ -90,7 +89,7 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
 
   protected createResComposerConnector(family: ResFamily): ResComposerConnector {
     return {
-      getResWire: async (deps, locale, selfNamespace) => {
+      getWire: async (deps, locale, selfNamespace) => {
         const plugin = await this.kernelManager.getPlugin(family, deps, locale, selfNamespace);
         return {
           plugin,
@@ -110,8 +109,8 @@ export class RMachine<RA extends AnyResAtlas, L extends AnyLocale, E extends Any
   }
 
   async WIP_GET<DL extends HandleList<RA>>(deps: DL): Promise<SurfaceList<RA, DL>> {
-    const isList = isNamespaceList(deps);
-    let nsDeps: AnyNamespaceMap | AnyNamespaceList;
+    const isList = isNamespaceList(deps as any);
+    let nsDeps: AnyNamespaceCollection;
     if (isList) {
       nsDeps = getNamespaceList(deps);
     } else {

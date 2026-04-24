@@ -74,7 +74,7 @@ export function assembleResMatrix<PH extends AnyResPlugHead, RAW, RES extends An
   const plug = createPlug(head);
 
   setPlugResolve(plug, async (locale: AnyLocale | undefined, selfNamespace: AnyNamespace | undefined) => {
-    const wire = await connector.getResWire(head.nsDeps, locale, selfNamespace);
+    const wire = await connector.getWire(head.nsDeps, locale, selfNamespace);
     const plugin = wire.plugin as ExtractPlugin<PH>;
     return buildPlugin ? buildPlugin(plugin, locale) : plugin;
   });

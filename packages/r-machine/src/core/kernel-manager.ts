@@ -16,7 +16,7 @@ import type { AnyLocale } from "#r-machine/locale";
 import type { Blueprint } from "./blueprint.js";
 import type { BlueprintManager } from "./blueprint-manager.js";
 import type { Kernel } from "./kernel.js";
-import type { AnyNamespace } from "./res-domain.js";
+import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { getResCacheKey } from "./res-domain.js";
 import type { AnyResEquipment, KitKind } from "./res-equipment.js";
 import type { ResLayoutEntryTypeResolver } from "./res-layout.js";
@@ -70,7 +70,7 @@ export class KernelManager {
 
   async getPlugin(
     kitKind: KitKind,
-    nsDeps: AnyNamespaceMap | AnyNamespaceList,
+    nsDeps: AnyNamespaceCollection,
     locale: AnyLocale | undefined,
     selfNamespace?: AnyNamespace | undefined
   ): Promise<unknown> {

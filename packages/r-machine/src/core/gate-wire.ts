@@ -12,18 +12,40 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
-import type { AnyResAtlas } from "./res-atlas.js";
-import type { HandleList } from "./res-list.js";
-import type { HandleMap } from "./res-map.js";
+import type { AnyNamespaceCollection } from "./res-domain.js";
 import type { VertexGearMap } from "./vertex-gear.js";
 
+/*
+function useGate(wire: GateWire): unknown {
+  const pluginPromise = useSyncExternalStore(
+    wire.subscribe,
+    wire.getPluginPromise,  // snapshot = Promise reference
+    wire.getPluginPromise,  // SSR snapshot
+  );
+
+  const plugin = use(pluginPromise);
+
+  useEffect(() => {
+    wire.commitTracking();
+  });
+
+  return plugin;
+}
+
+--- IMPORANTE:
+getPluginPromise() deve ritornare esattamente la stessa reference fra due chiamate se non è arrivata una notify.
+La promessa va sostituita solo dentro a una notify
+*/
+
+export type GateWireProvider = (
+  nsDeps: AnyNamespaceCollection,
+  locale: AnyLocale,
+  vertexGearMap?: VertexGearMap | undefined
+) => GateWire;
+
 export interface GateWire {
-  readonly getPlugin: () => unknown | Promise<unknown>;
+  readonly getPluginPromise: () => Promise<unknown>;
   readonly subscribe: (callback: () => void) => () => void;
   readonly commitTracking: () => void;
   readonly updateRequest: (locale: AnyLocale, vertexGearMap?: VertexGearMap | undefined) => void;
 }
-
-export type GateWireConnector = (locale: AnyLocale, vertexGearMap?: VertexGearMap | undefined) => GateWire;
-
-export type GateWireProvider = (deps: HandleMap<AnyResAtlas> | HandleList<AnyResAtlas>) => GateWireConnector;

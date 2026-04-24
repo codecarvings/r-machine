@@ -12,17 +12,15 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
-import type { AnyNamespace } from "./res-domain.js";
-import type { AnyNamespaceList } from "./res-list.js";
-import type { AnyNamespaceMap } from "./res-map.js";
+import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 
-export type ResComposerConnector = {
-  readonly getResWire: (
-    nsDeps: AnyNamespaceMap | AnyNamespaceList,
+export interface ResComposerConnector {
+  readonly getWire: (
+    nsDeps: AnyNamespaceCollection,
     locale: AnyLocale | undefined,
     selfNamespace: AnyNamespace | undefined
   ) => Promise<ResWire>;
-};
+}
 
 export interface ResWire {
   readonly plugin: unknown;
