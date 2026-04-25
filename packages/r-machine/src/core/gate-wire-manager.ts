@@ -54,23 +54,18 @@ function createGateWire(
       subscribers.add(callback);
       return () => {
         subscribers.delete(callback);
-        if (subscribers.size === 0) {
-          junctureManager.disposeVertexJunctures(genId);
-        }
       };
     },
     // TODO: WIP — concurrent-rendering tracking (next slice)
     startTracking: () => () => {},
 
     updateRequest: (newLocale: AnyLocale, newVertexGearMap?: VertexGearMap | undefined) => {
-      // TODO: race "updateRequest while pluginPromise still in flight"
       const localeChanged = newLocale !== currentLocale;
       const vertexGearMapChanged = newVertexGearMap !== currentVertexGearMap;
       if (!localeChanged && !vertexGearMapChanged) {
         return;
       }
       if (vertexGearMapChanged) {
-        junctureManager.disposeVertexJuncturesByOwnershipChange(genId, newVertexGearMap);
         currentVertexGearMap = newVertexGearMap;
       }
       if (localeChanged) {
