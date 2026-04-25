@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+export { managed } from "../core/managed.js";
 export type { BrandedResource } from "./branded-resource.js";
 export { defineLayout } from "./layout.js";
 export {

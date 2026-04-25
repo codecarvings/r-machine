@@ -16,6 +16,7 @@ import type { AnyLocale } from "#r-machine/locale";
 import type { Blueprint } from "./blueprint.js";
 import type { BlueprintManager } from "./blueprint-manager.js";
 import { buildReactiveJuncture, buildStaticJuncture, getCurrentSurface, type Juncture } from "./juncture.js";
+import { tryGetManagedTeardown } from "./managed.js";
 import type { AnyRes } from "./res.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { getResCacheKey } from "./res-domain.js";
@@ -34,6 +35,8 @@ export class JunctureManager {
   ) {}
 
   protected readonly junctures = new Map<string, Juncture | Promise<Juncture>>();
+  protected readonly vertexJuncturesByGenId = new Map<number, Set<string>>();
+  protected readonly pendingDisposeKeys = new Set<string>();
 
   protected resolveJuncture(
     namespace: AnyNamespace,
@@ -57,9 +60,22 @@ export class JunctureManager {
           juncture = blueprint.isReactive ? buildReactiveJuncture(res, vertexTag) : buildStaticJuncture(res, vertexTag);
         }
         this.junctures.set(key, juncture);
+        if (vertexTag !== undefined) {
+          let set = this.vertexJuncturesByGenId.get(vertexTag.genId);
+          if (set === undefined) {
+            set = new Set();
+            this.vertexJuncturesByGenId.set(vertexTag.genId, set);
+          }
+          set.add(key);
+        }
+        if (this.pendingDisposeKeys.has(key)) {
+          this.pendingDisposeKeys.delete(key);
+          this.disposeJuncture(key);
+        }
         return juncture;
       } catch (error) {
         this.junctures.delete(key);
+        this.pendingDisposeKeys.delete(key);
         throw error;
       }
     })();
@@ -223,5 +239,34 @@ export class JunctureManager {
       }
     }
     return plugin;
+  }
+
+  protected disposeJuncture(key: string): void {
+    const cached = this.junctures.get(key);
+    if (cached === undefined) {
+      return;
+    }
+    if (cached instanceof Promise) {
+      this.pendingDisposeKeys.add(key);
+      return;
+    }
+    try {
+      tryGetManagedTeardown(cached.res)?.();
+    } catch (e) {
+      console.error(e);
+    }
+    this.junctures.delete(key);
+  }
+
+  disposeVertexJunctures(genId: number): void {
+    const keys = this.vertexJuncturesByGenId.get(genId);
+    if (keys === undefined) {
+      return;
+    }
+
+    for (const key of keys) {
+      this.disposeJuncture(key);
+    }
+    this.vertexJuncturesByGenId.delete(genId);
   }
 }

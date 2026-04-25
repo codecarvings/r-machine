@@ -27,6 +27,7 @@ import {
   type ExperimentalFlags,
   type GateKit,
   type GateWire,
+  GateWireManager,
   type GearKit,
   getNamespaceList,
   type HandleList,
@@ -76,6 +77,7 @@ export class RMachine<
       this.config.load
     );
     this.junctureManager = new JunctureManager(resLayoutEntryTypeResolver, this.config.equipment, blueprintManager);
+    this.gateWireManager = new GateWireManager(this.junctureManager);
 
     this.warnExperimental();
   }
@@ -97,6 +99,7 @@ export class RMachine<
   readonly localeHelper: LocaleHelper<L>;
   protected readonly config: RMachineConfig<RA, L, E, EF>;
   protected readonly junctureManager: JunctureManager;
+  protected readonly gateWireManager: GateWireManager;
 
   /*
   protected validateLocaleForPick(locale: L) {
@@ -124,8 +127,8 @@ export class RMachine<
     return { Gear, Shell, localized };
   }
 
-  getGateWire(_plugHead: AnyPlugHead, _locale: L, _vertexGearMap?: VertexGearMap | undefined): GateWire {
-    return undefined!; // TODO: WIP;
+  getGateWire(plugHead: AnyPlugHead, locale: L, vertexGearMap?: VertexGearMap | undefined): GateWire {
+    return this.gateWireManager.getWire(plugHead.nsDeps, locale, vertexGearMap);
   }
 
   async WIP_GET<DL extends HandleList<RA>>(deps: DL): Promise<SurfaceList<RA, DL>> {

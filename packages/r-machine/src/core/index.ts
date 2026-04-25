@@ -21,6 +21,7 @@ export type {
   GatePluginCtx,
 } from "./gate-plug.js";
 export type { GateWire } from "./gate-wire.js";
+export { GateWireManager } from "./gate-wire-manager.js";
 export { createGearComposer, type GearComposer } from "./gear-composer.js";
 export type { Getter } from "./getter.js";
 export {

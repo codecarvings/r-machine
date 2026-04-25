@@ -17,11 +17,41 @@ import type { JunctureManager } from "./juncture-manager.js";
 import type { AnyNamespaceCollection } from "./res-domain.js";
 import type { VertexGearMap } from "./vertex-gear.js";
 
+// Unique id across all GateWireManager instances
+let nextGenId = 0;
+
 export class GateWireManager {
   constructor(protected readonly junctureManager: JunctureManager) {}
 
-  getWire(_nsDeps: AnyNamespaceCollection, _locale: AnyLocale, _vertexGearMap?: VertexGearMap | undefined): GateWire {
-    // TODO: Implement this
-    return undefined!;
+  getWire(nsDeps: AnyNamespaceCollection, locale: AnyLocale, vertexGearMap?: VertexGearMap | undefined): GateWire {
+    return createGateWire(this.junctureManager, nsDeps, locale, vertexGearMap, ++nextGenId);
   }
+}
+
+function createGateWire(
+  junctureManager: JunctureManager,
+  nsDeps: AnyNamespaceCollection,
+  locale: AnyLocale,
+  vertexGearMap: VertexGearMap | undefined,
+  genId: number
+): GateWire {
+  const pluginPromise = junctureManager.getPlugin("gate", nsDeps, locale, undefined, genId, vertexGearMap);
+  const subscribers = new Set<() => void>();
+
+  return {
+    getPluginPromise: () => pluginPromise,
+    subscribe: (callback: () => void) => {
+      subscribers.add(callback);
+      return () => {
+        subscribers.delete(callback);
+        if (subscribers.size === 0) {
+          junctureManager.disposeVertexJunctures(genId);
+        }
+      };
+    },
+    // TODO: WIP — concurrent-rendering tracking (next slice)
+    startTracking: () => () => {},
+    // TODO: WIP — re-resolve on locale / vertexGearMap change + notify (next slice)
+    updateRequest: (_locale: AnyLocale, _vertexGearMap?: VertexGearMap | undefined) => {},
+  };
 }
