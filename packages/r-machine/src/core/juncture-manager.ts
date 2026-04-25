@@ -35,7 +35,7 @@ export class JunctureManager {
   ) {}
 
   protected readonly junctures = new Map<string, Juncture | Promise<Juncture>>();
-  protected readonly vertexJuncturesByGenId = new Map<number, Set<string>>();
+  protected readonly vertexJuncturesByGenId = new Map<number, Map<AnyNamespace, string>>();
   protected readonly pendingDisposeKeys = new Set<string>();
 
   protected resolveJuncture(
@@ -60,14 +60,6 @@ export class JunctureManager {
           juncture = blueprint.isReactive ? buildReactiveJuncture(res, vertexTag) : buildStaticJuncture(res, vertexTag);
         }
         this.junctures.set(key, juncture);
-        if (vertexTag !== undefined) {
-          let set = this.vertexJuncturesByGenId.get(vertexTag.genId);
-          if (set === undefined) {
-            set = new Set();
-            this.vertexJuncturesByGenId.set(vertexTag.genId, set);
-          }
-          set.add(key);
-        }
         if (this.pendingDisposeKeys.has(key)) {
           this.pendingDisposeKeys.delete(key);
           this.disposeJuncture(key);
@@ -76,10 +68,27 @@ export class JunctureManager {
       } catch (error) {
         this.junctures.delete(key);
         this.pendingDisposeKeys.delete(key);
+        if (vertexTag !== undefined) {
+          const map = this.vertexJuncturesByGenId.get(vertexTag.genId);
+          if (map !== undefined) {
+            map.delete(vertexTag.namespace);
+            if (map.size === 0) {
+              this.vertexJuncturesByGenId.delete(vertexTag.genId);
+            }
+          }
+        }
         throw error;
       }
     })();
     this.junctures.set(key, juncturePromise);
+    if (vertexTag !== undefined) {
+      let map = this.vertexJuncturesByGenId.get(vertexTag.genId);
+      if (map === undefined) {
+        map = new Map();
+        this.vertexJuncturesByGenId.set(vertexTag.genId, map);
+      }
+      map.set(vertexTag.namespace, key);
+    }
     return juncturePromise;
   }
 
@@ -106,6 +115,15 @@ export class JunctureManager {
       const creatorKey = getResCacheKey(namespace, locale, layoutType, genId);
       const creatorCached = this.junctures.get(creatorKey);
       if (creatorCached !== undefined) {
+        // Re-acquisition: cancel any pending dispose, and re-populate the index
+        // (idempotent on the happy path, restorative after an A→B→A flip).
+        this.pendingDisposeKeys.delete(creatorKey);
+        let map = this.vertexJuncturesByGenId.get(genId);
+        if (map === undefined) {
+          map = new Map();
+          this.vertexJuncturesByGenId.set(genId, map);
+        }
+        map.set(namespace, creatorKey);
         return creatorCached;
       }
       return this.resolveJuncture(namespace, locale, creatorKey, { namespace, genId });
@@ -250,6 +268,7 @@ export class JunctureManager {
       this.pendingDisposeKeys.add(key);
       return;
     }
+
     try {
       tryGetManagedTeardown(cached.res)?.();
     } catch (e) {
@@ -259,14 +278,32 @@ export class JunctureManager {
   }
 
   disposeVertexJunctures(genId: number): void {
-    const keys = this.vertexJuncturesByGenId.get(genId);
-    if (keys === undefined) {
+    const map = this.vertexJuncturesByGenId.get(genId);
+    if (map === undefined) {
       return;
     }
 
-    for (const key of keys) {
+    for (const key of map.values()) {
       this.disposeJuncture(key);
     }
     this.vertexJuncturesByGenId.delete(genId);
+  }
+
+  disposeVertexJuncturesByOwnershipChange(genId: number, newVertexGearMap: VertexGearMap | undefined): void {
+    const map = this.vertexJuncturesByGenId.get(genId);
+    if (map === undefined) {
+      return;
+    }
+
+    for (const [ns, key] of map) {
+      // Dispose previous vertex junctures if newVertexGearMap indicates to use a parent instance
+      if (newVertexGearMap?.[ns] !== undefined) {
+        this.disposeJuncture(key);
+        map.delete(ns);
+      }
+    }
+    if (map.size === 0) {
+      this.vertexJuncturesByGenId.delete(genId);
+    }
   }
 }

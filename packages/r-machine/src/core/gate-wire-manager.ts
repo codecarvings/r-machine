@@ -35,11 +35,21 @@ function createGateWire(
   vertexGearMap: VertexGearMap | undefined,
   genId: number
 ): GateWire {
-  const pluginPromise = junctureManager.getPlugin("gate", nsDeps, locale, undefined, genId, vertexGearMap);
+  let currentLocale = locale;
+  let currentVertexGearMap = vertexGearMap;
+  let currentPluginPromise = junctureManager.getPlugin(
+    "gate",
+    nsDeps,
+    currentLocale,
+    undefined,
+    genId,
+    currentVertexGearMap
+  );
   const subscribers = new Set<() => void>();
 
   return {
-    getPluginPromise: () => pluginPromise,
+    getPluginPromise: () => currentPluginPromise,
+
     subscribe: (callback: () => void) => {
       subscribers.add(callback);
       return () => {
@@ -51,7 +61,38 @@ function createGateWire(
     },
     // TODO: WIP — concurrent-rendering tracking (next slice)
     startTracking: () => () => {},
-    // TODO: WIP — re-resolve on locale / vertexGearMap change + notify (next slice)
-    updateRequest: (_locale: AnyLocale, _vertexGearMap?: VertexGearMap | undefined) => {},
+
+    updateRequest: (newLocale: AnyLocale, newVertexGearMap?: VertexGearMap | undefined) => {
+      // TODO: race "updateRequest while pluginPromise still in flight"
+      const localeChanged = newLocale !== currentLocale;
+      const vertexGearMapChanged = newVertexGearMap !== currentVertexGearMap;
+      if (!localeChanged && !vertexGearMapChanged) {
+        return;
+      }
+      if (vertexGearMapChanged) {
+        junctureManager.disposeVertexJuncturesByOwnershipChange(genId, newVertexGearMap);
+        currentVertexGearMap = newVertexGearMap;
+      }
+      if (localeChanged) {
+        currentLocale = newLocale;
+      }
+
+      currentPluginPromise = junctureManager.getPlugin(
+        "gate",
+        nsDeps,
+        currentLocale,
+        undefined,
+        genId,
+        currentVertexGearMap
+      );
+
+      for (const cb of subscribers) {
+        try {
+          cb();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    },
   };
 }
