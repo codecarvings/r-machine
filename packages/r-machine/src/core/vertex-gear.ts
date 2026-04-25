@@ -28,4 +28,8 @@ export function tryGetVertexGearTag(res: AnyRes): VertexGearTagData | undefined 
   return (res as Partial<VertexGear>)[vertexGearTagSymbol];
 }
 
+export function setVertexGearTag(res: AnyRes, tag: VertexGearTagData): void {
+  (res as any)[vertexGearTagSymbol] = tag;
+}
+
 export type VertexGearMap = Record<AnyNamespace, number>;

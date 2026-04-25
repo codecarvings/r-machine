@@ -110,7 +110,7 @@ export class RMachine<
   protected createResComposerConnector(family: ResFamily): ResComposerConnector {
     return {
       getWire: async (deps, locale, selfNamespace) => {
-        const plugin = await this.junctureManager.getPlugin(family, deps, locale, selfNamespace);
+        const plugin = await this.junctureManager.getPlugin(family, deps, locale, selfNamespace, 0, undefined);
         return {
           plugin,
         };
@@ -137,7 +137,7 @@ export class RMachine<
       nsDeps = getNamespaceList(deps);
     }
 
-    const result = await this.junctureManager.getPlugin("gate", nsDeps, this.defaultLocale, undefined);
+    const result = await this.junctureManager.getPlugin("gate", nsDeps, this.defaultLocale, undefined, 0, undefined);
     return result as SurfaceList<RA, DL>;
   }
 

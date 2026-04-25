@@ -43,7 +43,7 @@ export type ShellKit<RA extends AnyResAtlas, BGL extends BridgeGearNamespaceList
 };
 
 export type GateKit<RA extends AnyResAtlas> = {
-  readonly [key: string]: Namespace<RA["shape"]>;
+  readonly [key: string]: Namespace<RA["shape@gear|shell:*"]>;
 };
 
 export interface KitDepLists {

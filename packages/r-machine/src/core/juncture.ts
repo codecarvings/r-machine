@@ -13,6 +13,7 @@
 
 import type { AnyRes } from "./res.js";
 import type { AnySurface } from "./surface.js";
+import { setVertexGearTag, type VertexGearTagData } from "./vertex-gear.js";
 
 export type Juncture = StaticJuncture | ReactiveJuncture;
 
@@ -40,7 +41,7 @@ export function getCurrentSurface(juncture: Juncture): AnySurface {
 // with suspend+swap+notify, Relay → excluded) when the runtime composers for
 // Getter/Action/Relay are implemented. Today brands are phantom types with no
 // runtime marker, so this is a shallow pass-through clone that excludes $* keys.
-function buildSurface(res: AnyRes): AnySurface {
+function buildSurface(res: AnyRes, vertexTag: VertexGearTagData | undefined): AnySurface {
   const surface = Object.create(null) as Record<string, unknown>;
   for (const key of Object.keys(res)) {
     if (key.startsWith("$")) continue;
@@ -51,16 +52,19 @@ function buildSurface(res: AnyRes): AnySurface {
       value: (res as Record<string, unknown>)[key],
     });
   }
+  if (vertexTag !== undefined) {
+    setVertexGearTag(surface as AnyRes, vertexTag);
+  }
   return surface;
 }
 
-export function buildStaticJuncture(res: AnyRes): StaticJuncture {
-  return { kind: "static", res, surface: buildSurface(res) };
+export function buildStaticJuncture(res: AnyRes, vertexTag: VertexGearTagData | undefined): StaticJuncture {
+  return { kind: "static", res, surface: buildSurface(res, vertexTag) };
 }
 
-export function buildReactiveJuncture(res: AnyRes): ReactiveJuncture {
-  const surfaceA = buildSurface(res);
-  const surfaceB = buildSurface(res);
+export function buildReactiveJuncture(res: AnyRes, vertexTag: VertexGearTagData | undefined): ReactiveJuncture {
+  const surfaceA = buildSurface(res, vertexTag);
+  const surfaceB = buildSurface(res, vertexTag);
   return {
     kind: "reactive",
     res,

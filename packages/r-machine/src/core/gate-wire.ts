@@ -46,6 +46,6 @@ export type GateWireProvider = (
 export interface GateWire {
   readonly getPluginPromise: () => Promise<unknown>;
   readonly subscribe: (callback: () => void) => () => void;
-  readonly commitTracking: () => void;
+  readonly startTracking: () => () => void;
   readonly updateRequest: (locale: AnyLocale, vertexGearMap?: VertexGearMap | undefined) => void;
 }

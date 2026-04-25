@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
+import { ERR_RESOLVE_FAILED, ERR_VERTEX_INSTANCE_NOT_FOUND, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { Blueprint } from "./blueprint.js";
 import type { BlueprintManager } from "./blueprint-manager.js";
@@ -24,6 +24,7 @@ import type { ResLayoutEntryTypeResolver } from "./res-layout.js";
 import { type AnyNamespaceList, isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap } from "./res-map.js";
 import type { AnySurface } from "./surface.js";
+import type { VertexGearMap, VertexGearTagData } from "./vertex-gear.js";
 
 export class JunctureManager {
   constructor(
@@ -34,21 +35,26 @@ export class JunctureManager {
 
   protected readonly junctures = new Map<string, Juncture | Promise<Juncture>>();
 
-  protected resolveJuncture(namespace: AnyNamespace, locale: AnyLocale | undefined, key: string): Promise<Juncture> {
+  protected resolveJuncture(
+    namespace: AnyNamespace,
+    locale: AnyLocale | undefined,
+    key: string,
+    vertexTag: VertexGearTagData | undefined
+  ): Promise<Juncture> {
     const juncturePromise = (async () => {
       try {
         const layoutType = this.resLayoutEntryTypeResolver(namespace);
         const blueprint: Blueprint = await this.blueprintManager.getBlueprint(namespace, locale, layoutType, key);
         let juncture: Juncture;
         if (blueprint.originType === "res") {
-          juncture = buildStaticJuncture(blueprint.origin as AnyRes);
+          juncture = buildStaticJuncture(blueprint.origin as AnyRes, vertexTag);
         } else {
           const factory = blueprint.origin.factory as (
             locale: AnyLocale | undefined,
             selfNamespace: AnyNamespace
           ) => Promise<AnyRes>;
           const res = await factory(locale, namespace);
-          juncture = blueprint.isReactive ? buildReactiveJuncture(res) : buildStaticJuncture(res);
+          juncture = blueprint.isReactive ? buildReactiveJuncture(res, vertexTag) : buildStaticJuncture(res, vertexTag);
         }
         this.junctures.set(key, juncture);
         return juncture;
@@ -61,21 +67,49 @@ export class JunctureManager {
     return juncturePromise;
   }
 
-  protected async getJuncture(namespace: AnyNamespace, locale: AnyLocale | undefined): Promise<Juncture> {
+  protected async getJuncture(
+    namespace: AnyNamespace,
+    locale: AnyLocale | undefined,
+    genId: number,
+    vertexGearMap: VertexGearMap | undefined
+  ): Promise<Juncture> {
     const layoutType = this.resLayoutEntryTypeResolver(namespace);
+    if (layoutType === "gear:vertex") {
+      const existingGenId = vertexGearMap?.[namespace];
+      if (existingGenId !== undefined) {
+        const consumerKey = getResCacheKey(namespace, locale, layoutType, existingGenId);
+        const consumerCached = this.junctures.get(consumerKey);
+        if (consumerCached === undefined) {
+          throw new RMachineResolveError(
+            ERR_VERTEX_INSTANCE_NOT_FOUND,
+            `Vertex gear instance "${namespace}" with genId ${existingGenId} not found in JunctureManager cache.`
+          );
+        }
+        return consumerCached;
+      }
+      const creatorKey = getResCacheKey(namespace, locale, layoutType, genId);
+      const creatorCached = this.junctures.get(creatorKey);
+      if (creatorCached !== undefined) {
+        return creatorCached;
+      }
+      return this.resolveJuncture(namespace, locale, creatorKey, { namespace, genId });
+    }
+
     const key = getResCacheKey(namespace, locale, layoutType);
     const cached = this.junctures.get(key);
     if (cached !== undefined) {
       return cached;
     }
-    return this.resolveJuncture(namespace, locale, key);
+    return this.resolveJuncture(namespace, locale, key, undefined);
   }
 
   async getPlugin(
     kitKind: KitKind,
     nsDeps: AnyNamespaceCollection,
     locale: AnyLocale | undefined,
-    selfNamespace?: AnyNamespace | undefined
+    selfNamespace: AnyNamespace | undefined,
+    genId: number,
+    vertexGearMap: VertexGearMap | undefined
   ): Promise<unknown> {
     const isList = isNamespaceList(nsDeps);
     const kitMap = this.equipment[`${kitKind}Kit` as keyof AnyResEquipment] as Record<string, AnyNamespace>;
@@ -91,7 +125,9 @@ export class JunctureManager {
 
     const [kit, deps] = await Promise.all([
       this.loadKit(kitEntries, locale),
-      isList ? this.loadListDeps(nsDeps, locale) : this.loadMapDeps(nsDeps, locale),
+      isList
+        ? this.loadListDeps(nsDeps, locale, genId, vertexGearMap)
+        : this.loadMapDeps(nsDeps, locale, genId, vertexGearMap),
     ]);
 
     return isList
@@ -119,27 +155,36 @@ export class JunctureManager {
     locale: AnyLocale | undefined
   ): Promise<Record<string, unknown>> {
     const resolved = await Promise.all(
-      entries.map(async ([k, ns]) => [k, getCurrentSurface(await this.getJuncture(ns, locale))] as const)
+      entries.map(async ([k, ns]) => [k, getCurrentSurface(await this.getJuncture(ns, locale, 0, undefined))] as const)
     );
     return Object.fromEntries(resolved);
   }
 
   protected async loadMapDeps(
     nsDeps: AnyNamespaceMap,
-    locale: AnyLocale | undefined
+    locale: AnyLocale | undefined,
+    genId: number,
+    vertexGearMap: VertexGearMap | undefined
   ): Promise<Record<string, unknown>> {
     const entries = await Promise.all(
       Object.entries(nsDeps).map(async ([key, namespace]) => [
         key,
-        getCurrentSurface(await this.getJuncture(namespace, locale)),
+        getCurrentSurface(await this.getJuncture(namespace, locale, genId, vertexGearMap)),
       ])
     );
     return Object.fromEntries(entries);
   }
 
-  protected async loadListDeps(nsDeps: AnyNamespaceList, locale: AnyLocale | undefined): Promise<unknown[]> {
+  protected async loadListDeps(
+    nsDeps: AnyNamespaceList,
+    locale: AnyLocale | undefined,
+    genId: number,
+    vertexGearMap: VertexGearMap | undefined
+  ): Promise<unknown[]> {
     return Promise.all(
-      nsDeps.map(async (namespace) => getCurrentSurface(await this.getJuncture(namespace as AnyNamespace, locale)))
+      nsDeps.map(async (namespace) =>
+        getCurrentSurface(await this.getJuncture(namespace as AnyNamespace, locale, genId, vertexGearMap))
+      )
     );
   }
 

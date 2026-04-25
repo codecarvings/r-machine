@@ -20,11 +20,7 @@ import type { VertexGearMap } from "./vertex-gear.js";
 export class GateWireManager {
   constructor(protected readonly junctureManager: JunctureManager) {}
 
-  getGateWire(
-    _nsDeps: AnyNamespaceCollection,
-    _locale: AnyLocale,
-    _vertexGearMap?: VertexGearMap | undefined
-  ): GateWire {
+  getWire(_nsDeps: AnyNamespaceCollection, _locale: AnyLocale, _vertexGearMap?: VertexGearMap | undefined): GateWire {
     // TODO: Implement this
     return undefined!;
   }
