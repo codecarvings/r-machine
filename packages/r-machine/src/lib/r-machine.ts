@@ -76,6 +76,20 @@ export class RMachine<
       this.config.load
     );
     this.junctureManager = new JunctureManager(resLayoutEntryTypeResolver, this.config.equipment, blueprintManager);
+
+    this.warnExperimental();
+  }
+
+  protected warnExperimental() {
+    const display = (feature: string) =>
+      console.warn(`R-Machine: ${feature} (experimental). API may change before stable release.`);
+    if (this.config.experimental.vertexGear === "on" && this.config.experimental.reactiveGear === "on") {
+      display("Reactive Gear and Vertex Gear are enabled");
+    } else if (this.config.experimental.vertexGear === "on") {
+      display("Vertex Gear is enabled");
+    } else if (this.config.experimental.reactiveGear === "on") {
+      display("Reactive Gear is enabled");
+    }
   }
 
   readonly locales: LocaleList<L>;
