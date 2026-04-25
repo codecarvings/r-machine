@@ -36,6 +36,14 @@ export class BlueprintManager {
 
   protected readonly cache = new Map<string, Blueprint | Promise<Blueprint>>();
   protected readonly waits = new Map<string, Set<string>>();
+  protected readonly forwardDeps = new Map<AnyNamespace, Set<AnyNamespace>>();
+  protected readonly reverseDeps = new Map<AnyNamespace, Set<AnyNamespace>>();
+  protected readonly keysByNs = new Map<AnyNamespace, Set<string>>();
+  protected onInvalidate?: (ns: AnyNamespace) => void;
+
+  setOnInvalidate(callback: (ns: AnyNamespace) => void): void {
+    this.onInvalidate = callback;
+  }
 
   protected findWaitCyclePath(from: string, target: string): string[] | undefined {
     const stack: Array<[string, string[]]> = [[from, [from]]];
@@ -68,7 +76,9 @@ export class BlueprintManager {
     const options: ResModuleLoaderFnOptions = {
       namespace,
       locale,
-      onUpdate: () => {},
+      onUpdate: () => {
+        this.onInvalidate?.(namespace);
+      },
     };
     const module = await this.loadResModuleFn(path, options);
     const error = validateResModule(module);
@@ -84,10 +94,9 @@ export class BlueprintManager {
     locale: AnyLocale | undefined,
     nsDepList: AnyNamespaceList,
     chain: ReadonlyArray<string>
-  ): Promise<void> {
+  ): Promise<AnyNamespace[]> {
     const kitDeps = this.kitDepList[family].filter((n) => n !== namespace);
     const allNsDeps = [...new Set([...nsDepList, ...kitDeps])];
-
     await Promise.all(
       allNsDeps.map((depNs) => {
         const depLayout = this.resLayoutEntryTypeResolver(depNs);
@@ -95,6 +104,19 @@ export class BlueprintManager {
         return this.getBlueprintInternal(depNs, locale, depLayout, depKey, chain);
       })
     );
+    return allNsDeps;
+  }
+
+  protected registerDepsInGraph(namespace: AnyNamespace, allNsDeps: AnyNamespace[]): void {
+    this.forwardDeps.set(namespace, new Set(allNsDeps));
+    for (const dep of allNsDeps) {
+      let rev = this.reverseDeps.get(dep);
+      if (!rev) {
+        rev = new Set();
+        this.reverseDeps.set(dep, rev);
+      }
+      rev.add(namespace);
+    }
   }
 
   protected resolveBlueprint(
@@ -104,26 +126,52 @@ export class BlueprintManager {
     resLayoutEntryType: ResLayoutEntryType,
     chain: ReadonlyArray<string>
   ): Promise<Blueprint> {
+    let pendingPromise!: Promise<Blueprint>;
     const blueprintPromise = (async () => {
+      let blueprint: Blueprint;
+      let allNsDeps: AnyNamespace[] | undefined;
       try {
         const module = await this.loadModule(namespace, locale, resLayoutEntryType);
-        const blueprint = createBlueprint(module, namespace, locale, resLayoutEntryType);
+        blueprint = createBlueprint(module, namespace, locale, resLayoutEntryType);
         if (blueprint.originType === "res-matrix") {
-          await this.loadDepsBlueprints(namespace, blueprint.family, locale, blueprint.plugHead!.nsDepList, [
-            ...chain,
-            key,
-          ]);
+          allNsDeps = await this.loadDepsBlueprints(
+            namespace,
+            blueprint.family,
+            locale,
+            blueprint.plugHead!.nsDepList,
+            [...chain, key]
+          );
         }
-        this.cache.set(key, blueprint);
-        this.waits.delete(key);
-        return blueprint;
       } catch (error) {
-        this.cache.delete(key);
+        // Identity check on cleanup: if our entry was already replaced by
+        // another resolve (race after evict), don't touch the cache.
+        if (this.cache.get(key) === pendingPromise) {
+          this.cache.delete(key);
+        }
         this.waits.delete(key);
         throw error;
       }
+      // Identity check before committing side effects: if the cache entry was
+      // evicted (and possibly replaced) while this resolve was in flight, our
+      // result is stale — return it but don't write cache nor dep graph.
+      if (this.cache.get(key) !== pendingPromise) {
+        return blueprint;
+      }
+      this.cache.set(key, blueprint);
+      if (allNsDeps) {
+        this.registerDepsInGraph(namespace, allNsDeps);
+      }
+      this.waits.delete(key);
+      return blueprint;
     })();
-    this.cache.set(key, blueprintPromise);
+    pendingPromise = blueprintPromise;
+    this.cache.set(key, pendingPromise);
+    let keys = this.keysByNs.get(namespace);
+    if (!keys) {
+      keys = new Set();
+      this.keysByNs.set(namespace, keys);
+    }
+    keys.add(key);
     return blueprintPromise;
   }
 
@@ -172,5 +220,70 @@ export class BlueprintManager {
     key: string
   ): Promise<Blueprint> {
     return this.getBlueprintInternal(namespace, locale, resLayoutEntryType, key, []);
+  }
+
+  getForwardClosure(nsList: Iterable<AnyNamespace>): Set<AnyNamespace> {
+    const result = new Set<AnyNamespace>();
+    const stack: AnyNamespace[] = [...nsList];
+    while (stack.length > 0) {
+      const ns = stack.pop()!;
+      if (result.has(ns)) {
+        continue;
+      }
+      result.add(ns);
+      const deps = this.forwardDeps.get(ns);
+      if (deps) {
+        for (const d of deps) {
+          stack.push(d);
+        }
+      }
+    }
+    return result;
+  }
+
+  getReverseClosure(ns: AnyNamespace): Set<AnyNamespace> {
+    // Post-order DFS on reverseDeps: a node is appended AFTER all of its
+    // dependents. Set preserves insertion order, so iterating the result yields
+    // dispose-safe order (dependents first, ns last). If A depends on B, A is
+    // visited as a dependent of B and appended before B — A's teardown can
+    // therefore safely reference resources held by B.
+    const result = new Set<AnyNamespace>();
+    const visiting = new Set<AnyNamespace>();
+    const visit = (n: AnyNamespace) => {
+      if (visiting.has(n)) {
+        return;
+      }
+      visiting.add(n);
+      const dependents = this.reverseDeps.get(n);
+      if (dependents) {
+        for (const d of dependents) {
+          visit(d);
+        }
+      }
+      result.add(n);
+    };
+    visit(ns);
+    return result;
+  }
+
+  evictBlueprint(ns: AnyNamespace): void {
+    const keys = this.keysByNs.get(ns);
+    if (keys) {
+      for (const key of keys) {
+        this.cache.delete(key);
+      }
+      this.keysByNs.delete(ns);
+    }
+    const oldDeps = this.forwardDeps.get(ns);
+    if (oldDeps) {
+      for (const dep of oldDeps) {
+        this.reverseDeps.get(dep)?.delete(ns);
+      }
+      this.forwardDeps.delete(ns);
+    }
+    // reverseDeps[ns] is left untouched: every dependent of ns is itself in the
+    // current cascade closure and gets evicted in this same pass — its own
+    // forwardDeps cleanup removes it from reverseDeps[ns]. Edges are rebuilt
+    // when those dependents are re-loaded.
   }
 }

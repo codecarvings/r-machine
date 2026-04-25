@@ -16,6 +16,7 @@ import type { AnyLocale } from "#r-machine/locale";
 import type { Blueprint } from "./blueprint.js";
 import type { BlueprintManager } from "./blueprint-manager.js";
 import { buildReactiveJuncture, buildStaticJuncture, getCurrentSurface, type Juncture } from "./juncture.js";
+import { tryGetManagedTeardown } from "./managed.js";
 import type { AnyRes } from "./res.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { getResCacheKey } from "./res-domain.js";
@@ -26,14 +27,26 @@ import type { AnyNamespaceMap } from "./res-map.js";
 import type { AnySurface } from "./surface.js";
 import type { VertexGearMap, VertexGearTagData } from "./vertex-gear.js";
 
+interface Slot {
+  readonly key: string;
+  readonly namespace: AnyNamespace;
+  readonly generation: number;
+  content: Juncture | Promise<Juncture>;
+}
+
 export class JunctureManager {
   constructor(
     protected resLayoutEntryTypeResolver: ResLayoutEntryTypeResolver,
     protected equipment: AnyResEquipment,
     protected blueprintManager: BlueprintManager
-  ) {}
+  ) {
+    blueprintManager.setOnInvalidate((ns) => this.invalidate(ns));
+  }
 
-  protected readonly junctures = new Map<string, Juncture | Promise<Juncture>>();
+  protected readonly slots = new Map<string, Slot>();
+  protected readonly generationByNs = new Map<AnyNamespace, number>();
+  protected readonly subscribersByNs = new Map<AnyNamespace, Set<() => void>>();
+  protected readonly vertexSlotsByGenId = new Map<number, Set<AnyNamespace>>();
 
   protected resolveJuncture(
     namespace: AnyNamespace,
@@ -41,6 +54,8 @@ export class JunctureManager {
     key: string,
     vertexTag: VertexGearTagData | undefined
   ): Promise<Juncture> {
+    const generation = this.generationByNs.get(namespace) ?? 0;
+    let slot!: Slot;
     const juncturePromise = (async () => {
       try {
         const layoutType = this.resLayoutEntryTypeResolver(namespace);
@@ -56,15 +71,33 @@ export class JunctureManager {
           const res = await factory(locale, namespace);
           juncture = blueprint.isReactive ? buildReactiveJuncture(res, vertexTag) : buildStaticJuncture(res, vertexTag);
         }
-        this.junctures.set(key, juncture);
+        // Stale check: generation mismatch (HMR happened) OR slot identity mismatch
+        // (slot was disposed and possibly re-created during this resolve).
+        const currentGen = this.generationByNs.get(namespace) ?? 0;
+        if (currentGen !== generation || this.slots.get(key) !== slot) {
+          try {
+            tryGetManagedTeardown(juncture.res)?.();
+          } catch (e) {
+            console.error(e);
+          }
+          return juncture;
+        }
+        slot.content = juncture;
         return juncture;
       } catch (error) {
-        this.junctures.delete(key);
+        if (this.slots.get(key) === slot) {
+          this.slots.delete(key);
+        }
         throw error;
       }
     })();
-    this.junctures.set(key, juncturePromise);
+    slot = { key, namespace, generation, content: juncturePromise };
+    this.slots.set(key, slot);
     return juncturePromise;
+  }
+
+  protected isSlotFresh(slot: Slot): boolean {
+    return slot.generation === (this.generationByNs.get(slot.namespace) ?? 0);
   }
 
   protected async getJuncture(
@@ -78,27 +111,35 @@ export class JunctureManager {
       const existingGenId = vertexGearMap?.[namespace];
       if (existingGenId !== undefined) {
         const consumerKey = getResCacheKey(namespace, locale, layoutType, existingGenId);
-        const consumerCached = this.junctures.get(consumerKey);
-        if (consumerCached === undefined) {
+        const consumerSlot = this.slots.get(consumerKey);
+        if (consumerSlot === undefined || !this.isSlotFresh(consumerSlot)) {
           throw new RMachineResolveError(
             ERR_VERTEX_INSTANCE_NOT_FOUND,
             `Vertex gear instance "${namespace}" with genId ${existingGenId} not found in JunctureManager cache.`
           );
         }
-        return consumerCached;
+        return consumerSlot.content;
       }
       const creatorKey = getResCacheKey(namespace, locale, layoutType, genId);
-      const creatorCached = this.junctures.get(creatorKey);
-      if (creatorCached !== undefined) {
-        return creatorCached;
+      const creatorSlot = this.slots.get(creatorKey);
+      if (creatorSlot !== undefined && this.isSlotFresh(creatorSlot)) {
+        return creatorSlot.content;
       }
-      return this.resolveJuncture(namespace, locale, creatorKey, { namespace, genId });
+      const promise = this.resolveJuncture(namespace, locale, creatorKey, { namespace, genId });
+      // Register vertex creation in genId index (idempotent set add).
+      let vertexSet = this.vertexSlotsByGenId.get(genId);
+      if (!vertexSet) {
+        vertexSet = new Set();
+        this.vertexSlotsByGenId.set(genId, vertexSet);
+      }
+      vertexSet.add(namespace);
+      return promise;
     }
 
     const key = getResCacheKey(namespace, locale, layoutType);
-    const cached = this.junctures.get(key);
-    if (cached !== undefined) {
-      return cached;
+    const cached = this.slots.get(key);
+    if (cached !== undefined && this.isSlotFresh(cached)) {
+      return cached.content;
     }
     return this.resolveJuncture(namespace, locale, key, undefined);
   }
@@ -139,14 +180,14 @@ export class JunctureManager {
     const selfLayoutType = this.resLayoutEntryTypeResolver(selfNamespace);
     const selfKey = getResCacheKey(selfNamespace, locale, selfLayoutType);
     return () => {
-      const cached = this.junctures.get(selfKey);
-      if (cached === undefined || cached instanceof Promise) {
+      const slot = this.slots.get(selfKey);
+      if (slot === undefined || slot.content instanceof Promise) {
         throw new RMachineResolveError(
           ERR_RESOLVE_FAILED,
           `Kit self-reference "${selfNamespace}" is not available while its own factory is running.`
         );
       }
-      return getCurrentSurface(cached);
+      return getCurrentSurface(slot.content);
     };
   }
 
@@ -223,5 +264,135 @@ export class JunctureManager {
       }
     }
     return plugin;
+  }
+
+  protected disposeSlot(key: string): void {
+    const slot = this.slots.get(key);
+    if (!slot) {
+      return;
+    }
+    if (!(slot.content instanceof Promise)) {
+      try {
+        tryGetManagedTeardown(slot.content.res)?.();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    // In-flight: stale check at completion intercepts (slots.delete causes
+    // identity mismatch and the resolved juncture is discarded with teardown).
+    this.slots.delete(key);
+  }
+
+  invalidate(ns: AnyNamespace): void {
+    // The closure is iterated in dispose-safe order: dependents first, ns last.
+    // (See BlueprintManager.getReverseClosure.)
+    const closure = this.blueprintManager.getReverseClosure(ns);
+    // 1. Bump generation for every namespace in the closure. An in-flight
+    //    resolve started before this point will see the new generation at its
+    //    completion check and discard its juncture.
+    for (const n of closure) {
+      this.generationByNs.set(n, (this.generationByNs.get(n) ?? 0) + 1);
+    }
+    // 2. Eager dispose of resolved slots in the closure (teardown invoked).
+    //    Group slot keys by namespace once, then walk the closure in dispose
+    //    order — A is disposed before B if A depends on B, so A's teardown
+    //    can safely reference resources held by B.
+    const keysByNs = new Map<AnyNamespace, string[]>();
+    for (const slot of this.slots.values()) {
+      if (closure.has(slot.namespace)) {
+        let keys = keysByNs.get(slot.namespace);
+        if (!keys) {
+          keys = [];
+          keysByNs.set(slot.namespace, keys);
+        }
+        keys.push(slot.key);
+      }
+    }
+    for (const n of closure) {
+      const keys = keysByNs.get(n);
+      if (keys) {
+        for (const key of keys) {
+          this.disposeSlot(key);
+        }
+      }
+    }
+    // 3. Evict blueprints in the closure (must happen before notify so any
+    //    re-resolve triggered by a subscriber callback loads fresh modules).
+    for (const n of closure) {
+      this.blueprintManager.evictBlueprint(n);
+    }
+    // 4. Notify subscribers.
+    for (const n of closure) {
+      const subs = this.subscribersByNs.get(n);
+      if (subs) {
+        for (const cb of subs) {
+          try {
+            cb();
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+    }
+  }
+
+  subscribe(nsList: Iterable<AnyNamespace>, callback: () => void): () => void {
+    const subscribed: AnyNamespace[] = [];
+    for (const ns of nsList) {
+      let set = this.subscribersByNs.get(ns);
+      if (!set) {
+        set = new Set();
+        this.subscribersByNs.set(ns, set);
+      }
+      set.add(callback);
+      subscribed.push(ns);
+    }
+    return () => {
+      for (const ns of subscribed) {
+        const set = this.subscribersByNs.get(ns);
+        set?.delete(callback);
+        if (set && set.size === 0) {
+          this.subscribersByNs.delete(ns);
+        }
+      }
+    };
+  }
+
+  disposeVertexSlot(ns: AnyNamespace, genId: number): void {
+    const set = this.vertexSlotsByGenId.get(genId);
+    if (!set?.has(ns)) {
+      return;
+    }
+    set.delete(ns);
+    if (set.size === 0) {
+      this.vertexSlotsByGenId.delete(genId);
+    }
+    const key = getResCacheKey(ns, undefined, "gear:vertex", genId);
+    this.disposeSlot(key);
+  }
+
+  disposeAllVertexSlotsByGenId(genId: number): void {
+    const set = this.vertexSlotsByGenId.get(genId);
+    if (!set) {
+      return;
+    }
+    for (const ns of set) {
+      const key = getResCacheKey(ns, undefined, "gear:vertex", genId);
+      this.disposeSlot(key);
+    }
+    this.vertexSlotsByGenId.delete(genId);
+  }
+
+  disposeVertexSlotsByOwnershipChange(genId: number, newVertexGearMap: VertexGearMap | undefined): void {
+    const set = this.vertexSlotsByGenId.get(genId);
+    if (!set) {
+      return;
+    }
+    // Copy iteration source: disposeVertexSlot mutates the set.
+    for (const ns of [...set]) {
+      if (newVertexGearMap?.[ns] !== undefined) {
+        this.disposeVertexSlot(ns, genId);
+      }
+    }
   }
 }

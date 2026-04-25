@@ -14,7 +14,8 @@
 import type { AnyLocale } from "#r-machine/locale";
 import type { GateWire } from "./gate-wire.js";
 import type { JunctureManager } from "./juncture-manager.js";
-import type { AnyNamespaceCollection } from "./res-domain.js";
+import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
+import { isNamespaceList } from "./res-list.js";
 import type { VertexGearMap } from "./vertex-gear.js";
 
 // Unique id across all GateWireManager instances
@@ -37,6 +38,7 @@ function createGateWire(
 ): GateWire {
   let currentLocale = locale;
   let currentVertexGearMap = vertexGearMap;
+  let dirty = false;
   let currentPluginPromise = junctureManager.getPlugin(
     "gate",
     nsDeps,
@@ -47,13 +49,49 @@ function createGateWire(
   );
   const subscribers = new Set<() => void>();
 
+  // Subscribe to top-level namespaces only. Cascades from JM.invalidate(X)
+  // always reach top-level dependents via reverseClosure, so subscribing to
+  // transitive deps would be redundant.
+  const topLevelNs: AnyNamespace[] = isNamespaceList(nsDeps) ? [...nsDeps] : Object.values(nsDeps);
+  const unsubFromJm = junctureManager.subscribe(topLevelNs, () => {
+    dirty = true;
+    for (const cb of subscribers) {
+      try {
+        cb();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  });
+
+  function reresolve() {
+    currentPluginPromise = junctureManager.getPlugin(
+      "gate",
+      nsDeps,
+      currentLocale,
+      undefined,
+      genId,
+      currentVertexGearMap
+    );
+    dirty = false;
+  }
+
   return {
-    getPluginPromise: () => currentPluginPromise,
+    getPluginPromise: () => {
+      if (dirty) {
+        reresolve();
+      }
+      return currentPluginPromise;
+    },
 
     subscribe: (callback: () => void) => {
       subscribers.add(callback);
       return () => {
         subscribers.delete(callback);
+        if (subscribers.size === 0) {
+          unsubFromJm();
+          junctureManager.disposeAllVertexSlotsByGenId(genId);
+        }
       };
     },
     // TODO: WIP — concurrent-rendering tracking (next slice)
@@ -66,20 +104,17 @@ function createGateWire(
         return;
       }
       if (vertexGearMapChanged) {
+        // Dispose only the vertex slots whose ownership has shifted to a
+        // parent (newVertexGearMap[ns] now defined): the wire stops being
+        // their creator. Vertex still owned survive.
+        junctureManager.disposeVertexSlotsByOwnershipChange(genId, newVertexGearMap);
         currentVertexGearMap = newVertexGearMap;
       }
       if (localeChanged) {
         currentLocale = newLocale;
       }
 
-      currentPluginPromise = junctureManager.getPlugin(
-        "gate",
-        nsDeps,
-        currentLocale,
-        undefined,
-        genId,
-        currentVertexGearMap
-      );
+      reresolve();
 
       for (const cb of subscribers) {
         try {
