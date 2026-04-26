@@ -69,7 +69,7 @@ export function getResCacheKey(
   switch (resLayoutEntryType) {
     case "shell":
       return `S:${locale}\x1f${namespace}`;
-    case "gear:vertex":
+    case "gear:client(vertex)":
       return `V:${genId ?? 0}\x1f${namespace}`;
     default:
       return `\x1f${namespace}`;

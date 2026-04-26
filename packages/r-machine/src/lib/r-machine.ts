@@ -123,8 +123,10 @@ export class RMachine<
 
   createToolset(): RMachineToolset<RA, L, E, EF> {
     const Gear = createGearComposer<RA, E["gearKit"], EF>(this.createResComposerConnector("gear"));
+    const ClientGear = createGearComposer<RA, E["gearKit"], EF>(this.createResComposerConnector("gear"));
+    const ServerGear = createGearComposer<RA, E["gearKit"], EF>(this.createResComposerConnector("gear"));
     const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(this.createResComposerConnector("shell"));
-    return { Gear, Shell, localized };
+    return { Gear, ClientGear, ServerGear, Shell, localized };
   }
 
   getGateWire(plugHead: AnyPlugHead, locale: L, vertexGearMap?: VertexGearMap | undefined): GateWire {

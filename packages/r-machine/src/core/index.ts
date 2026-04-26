@@ -101,7 +101,7 @@ export {
 export type { ResMatrix } from "./res-matrix.js";
 export type { AnyResModule, ResModuleLoaderFn } from "./res-module.js";
 export { createShellComposer, type ShellComposer } from "./shell-composer.js";
-export type { AnySurface, AnyVertexGearSurface, Surface } from "./surface.js";
+export type { AnyClientVertexGearSurface, AnySurface, Surface } from "./surface.js";
 export {
   tryGetVertexGearTag,
   type VertexGearMap,

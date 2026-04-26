@@ -29,6 +29,8 @@ export interface RMachineToolset<
   EF extends ExperimentalFlags,
 > {
   readonly Gear: GearComposer<RA, E["gearKit"], EF>;
+  readonly ClientGear: GearComposer<RA, E["gearKit"], EF>;
+  readonly ServerGear: GearComposer<RA, E["gearKit"], EF>;
   readonly Shell: ShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>;
   readonly localized: LocalizerHelper<RA["shape@shell:*"]>;
 }

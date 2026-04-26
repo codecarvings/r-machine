@@ -16,8 +16,8 @@ export interface ResAtlas<RL extends AnyResLayout, RD extends AnyResDomain> {
   readonly [resAtlasSymbol]: true;
   readonly shape: RD;
   readonly "shape@gear": ShapeMap<RL, RD, "gear">;
-  readonly "shape@shell:*": ShapeMap<RL, RD, "shell" | "shell:mono">;
-  readonly "shape@gear|shell:*": ShapeMap<RL, RD, "gear" | "shell" | "shell:mono">;
+  readonly "shape@shell:*": ShapeMap<RL, RD, "shell" | "shell(mono)">;
+  readonly "shape@gear|shell:*": ShapeMap<RL, RD, "gear" | "shell" | "shell(mono)">;
   readonly let: ResLayoutEntryTypeMap<RL, RD>;
 }
 

@@ -13,7 +13,7 @@
 
 "use client";
 
-import type { AnyVertexGearSurface } from "r-machine/core";
+import type { AnyClientVertexGearSurface } from "r-machine/core";
 import { tryGetVertexGearTag, type VertexGearMap, type VertexGearTagData } from "r-machine/core";
 import { createContext, type ReactNode, useContext, useRef } from "react";
 
@@ -21,7 +21,7 @@ const Context = createContext<VertexGearMap | undefined>(undefined);
 Context.displayName = "VertexFrameContext";
 
 export interface VertexFrameProps {
-  readonly gear: AnyVertexGearSurface | readonly AnyVertexGearSurface[];
+  readonly gear: AnyClientVertexGearSurface | readonly AnyClientVertexGearSurface[];
   readonly children: ReactNode;
 }
 
@@ -33,7 +33,7 @@ interface Data {
 
 export function VertexFrame({ gear, children }: VertexFrameProps) {
   const gearArray = Array.isArray(gear) ? gear : undefined;
-  const gearSingle = gearArray === undefined ? (gear as AnyVertexGearSurface) : undefined;
+  const gearSingle = gearArray === undefined ? (gear as AnyClientVertexGearSurface) : undefined;
   const length = gearArray !== undefined ? gearArray.length : -1;
   const parentMap = useContext(Context);
 
