@@ -49,7 +49,7 @@ export function createBlueprint(
         `Unable to build resource blueprint for namespace "${namespace}" - matrix family "${family}" does not match layout entry type "${resLayoutEntryType}".`
       );
     }
-    const isVertex = resLayoutEntryType === "gear:client(vertex)";
+    const isVertex = resLayoutEntryType === "gear:outer(vertex)";
     const plugHead = getPlugHead(origin.plug);
     return {
       namespace,
@@ -63,7 +63,7 @@ export function createBlueprint(
     };
   }
 
-  if (resLayoutEntryType === "shell(mono)" || resLayoutEntryType === "gear:client(vertex)") {
+  if (resLayoutEntryType === "shell(mono)" || resLayoutEntryType === "gear:outer(vertex)") {
     throw new RMachineResolveError(
       ERR_RESOLVE_FAILED,
       `Unable to build resource blueprint for namespace "${namespace}" - layout "${resLayoutEntryType}" requires a matrix factory, got a raw resource.`

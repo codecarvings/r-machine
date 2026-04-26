@@ -29,13 +29,13 @@ export type RMachineToolset<
   E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
 > = {
+  readonly InnerGear: GearComposer<RA, E["gearKit"], EF>;
   readonly HubGear: HubGearComposer<RA, E["gearKit"]>;
-  readonly ServerGear: GearComposer<RA, E["gearKit"], EF>;
   readonly Shell: ShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>;
   readonly localized: LocalizerHelper<RA["shape@shell:*"]>;
-} & (EF["clientGear"] extends "on"
+} & (EF["outerGear"] extends "on"
   ? {
-      readonly ClientGear: GearComposer<RA, E["gearKit"], EF>;
+      readonly OuterGear: GearComposer<RA, E["gearKit"], EF>;
     }
   : {});
 

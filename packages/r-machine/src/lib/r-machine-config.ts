@@ -28,7 +28,7 @@ import type {
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
-  ERR_EXPERIMENTAL_CLIENT_GEAR_REQUIRED,
+  ERR_EXPERIMENTAL_OUTER_GEAR_REQUIRED,
   ERR_NO_LOCALES,
   RMachineConfigError,
 } from "#r-machine/errors";
@@ -133,14 +133,14 @@ export function validateRMachineConfig(config: RMachineConfig<any, any, any, any
     );
   }
 
-  if (!config.experimental.clientGear) {
-    const clientPrefixes = Object.entries(config.layout)
-      .filter(([, type]) => (type as string).startsWith("gear:client"))
+  if (!config.experimental.outerGear) {
+    const outerPrefixes = Object.entries(config.layout)
+      .filter(([, type]) => (type as string).startsWith("gear:outer"))
       .map(([prefix]) => prefix);
-    if (clientPrefixes.length) {
+    if (outerPrefixes.length) {
       return new RMachineConfigError(
-        ERR_EXPERIMENTAL_CLIENT_GEAR_REQUIRED,
-        `Layout contains "gear:client" entries (${clientPrefixes.map((p) => `"${p}"`).join(", ")}) but the "clientGear" experimental feature is not enabled. Add \`experimental: { clientGear: true }\` to RMachine.create(...) to opt in.`
+        ERR_EXPERIMENTAL_OUTER_GEAR_REQUIRED,
+        `Layout contains "gear:outer" entries (${outerPrefixes.map((p) => `"${p}"`).join(", ")}) but the "outerGear" experimental feature is not enabled. Add \`experimental: { outerGear: true }\` to RMachine.create(...) to opt in.`
       );
     }
   }

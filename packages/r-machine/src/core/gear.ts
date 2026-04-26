@@ -21,7 +21,7 @@ import type { HandleMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
-export type GearRole = "hub" | "server" | "client";
+export type GearRole = "inner" | "hub" | "outer";
 
 export interface GearCursor {
   readonly relay: RelayComposer;

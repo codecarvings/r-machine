@@ -19,19 +19,19 @@ import type { AnyNamespace } from "./res-domain.js";
 // #region ResLayout
 
 export type ResLayoutEntryType =
+  | "gear:inner"
   | "gear:hub"
-  | "gear:client"
-  | "gear:client(vertex)"
-  | "gear:server"
+  | "gear:outer"
+  | "gear:outer(vertex)"
   | "shell"
   | "shell(mono)";
 
 export function getResFamilyFromLayoutType(layoutType: ResLayoutEntryType): ResFamily {
   switch (layoutType) {
+    case "gear:inner":
     case "gear:hub":
-    case "gear:client":
-    case "gear:client(vertex)":
-    case "gear:server":
+    case "gear:outer":
+    case "gear:outer(vertex)":
       return "gear";
     case "shell":
     case "shell(mono)":
@@ -131,10 +131,10 @@ export function resolveResPath(
   layoutEntryType: ResLayoutEntryType
 ): string {
   switch (layoutEntryType) {
+    case "gear:inner":
     case "gear:hub":
-    case "gear:client":
-    case "gear:client(vertex)":
-    case "gear:server":
+    case "gear:outer":
+    case "gear:outer(vertex)":
     case "shell(mono)":
       return namespace;
     case "shell":

@@ -88,8 +88,8 @@ export class RMachine<
     const display = (feature: string) =>
       console.warn(`R-Machine: ${feature} (experimental). API may change before stable release.`);
 
-    if (this.config.experimental.clientGear === "on") {
-      display("Client Gear is enabled");
+    if (this.config.experimental.outerGear === "on") {
+      display("Outer Gear is enabled");
     }
   }
 
@@ -121,11 +121,14 @@ export class RMachine<
   }
 
   createToolset(): RMachineToolset<RA, L, E, EF> {
+    const InnerGear = createGearComposer<RA, E["gearKit"], EF>(this.createResComposerConnector("gear"));
     const HubGear = createHubGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"));
-    const ClientGear = createGearComposer<RA, E["gearKit"], EF>(this.createResComposerConnector("gear"));
-    const ServerGear = createGearComposer<RA, E["gearKit"], EF>(this.createResComposerConnector("gear"));
+    const OuterGear =
+      this.config.experimental.outerGear === "on"
+        ? createGearComposer<RA, E["gearKit"], EF>(this.createResComposerConnector("gear"))
+        : undefined!;
     const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(this.createResComposerConnector("shell"));
-    return { HubGear, ClientGear, ServerGear, Shell, localized };
+    return { InnerGear, HubGear, OuterGear, Shell, localized };
   }
 
   getGateWire(plugHead: AnyPlugHead, locale: L, vertexGearMap?: VertexGearMap | undefined): GateWire {

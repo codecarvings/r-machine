@@ -12,5 +12,5 @@
  */
 
 export interface ExperimentalFlags {
-  clientGear?: "on";
+  outerGear?: "on";
 }

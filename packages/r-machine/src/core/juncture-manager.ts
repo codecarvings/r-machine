@@ -107,7 +107,7 @@ export class JunctureManager {
     vertexGearMap: VertexGearMap | undefined
   ): Promise<Juncture> {
     const layoutType = this.resLayoutEntryTypeResolver(namespace);
-    if (layoutType === "gear:client(vertex)") {
+    if (layoutType === "gear:outer(vertex)") {
       const existingGenId = vertexGearMap?.[namespace];
       if (existingGenId !== undefined) {
         const consumerKey = getResCacheKey(namespace, locale, layoutType, existingGenId);
@@ -367,7 +367,7 @@ export class JunctureManager {
     if (set.size === 0) {
       this.vertexSlotsByGenId.delete(genId);
     }
-    const key = getResCacheKey(ns, undefined, "gear:client(vertex)", genId);
+    const key = getResCacheKey(ns, undefined, "gear:outer(vertex)", genId);
     this.disposeSlot(key);
   }
 
@@ -377,7 +377,7 @@ export class JunctureManager {
       return;
     }
     for (const ns of set) {
-      const key = getResCacheKey(ns, undefined, "gear:client(vertex)", genId);
+      const key = getResCacheKey(ns, undefined, "gear:outer(vertex)", genId);
       this.disposeSlot(key);
     }
     this.vertexSlotsByGenId.delete(genId);

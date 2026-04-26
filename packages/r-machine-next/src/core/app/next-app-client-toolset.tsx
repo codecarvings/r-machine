@@ -31,7 +31,7 @@ export type NextAppClientToolset<
 > = {
   readonly NextClientRMachine: NextAppClientRMachine<L>;
   readonly ClientPlug: NextClientPlugDefiner<RA, L, E["gateKit"], PA>;
-} & (EF["clientGear"] extends "on"
+} & (EF["outerGear"] extends "on"
   ? {
       readonly ClientVertexFrame: VertexFrameType;
     }

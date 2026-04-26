@@ -14,21 +14,21 @@ declare const resAtlasSymbol: unique symbol;
 export interface ResAtlas<RL extends AnyResLayout, RD extends AnyResDomain> {
   readonly [resAtlasSymbol]: true;
   readonly shape: RD;
+  readonly "shape@gear:inner": ShapeMap<RL, RD, "gear:inner">;
   readonly "shape@gear:hub": ShapeMap<RL, RD, "gear:hub">;
-  readonly "shape@gear:server": ShapeMap<RL, RD, "gear:server">;
-  readonly "shape@gear:client": ShapeMap<RL, RD, "gear:client">;
+  readonly "shape@gear:outer": ShapeMap<RL, RD, "gear:outer">;
   readonly "shape@shell:*": ShapeMap<RL, RD, "shell" | "shell(mono)">;
-  readonly "shape@server": ShapeMap<RL, RD, "gear:hub" | "gear:server" | "shell" | "shell(mono)">;
-  readonly "shape@client": ShapeMap<RL, RD, "gear:hub" | "gear:client" | "shell" | "shell(mono)">;
+  readonly "shape@server": ShapeMap<RL, RD, "gear:inner" | "gear:hub" | "shell" | "shell(mono)">;
+  readonly "shape@client": ShapeMap<RL, RD, "gear:hub" | "gear:outer" | "shell" | "shell(mono)">;
   readonly let: ResLayoutEntryTypeMap<RL, RD>;
 }
 
 export interface AnyResAtlas {
   readonly [resAtlasSymbol]: true;
   readonly shape: AnyResDomain;
+  readonly "shape@gear:inner": AnyResDomain;
   readonly "shape@gear:hub": AnyResDomain;
-  readonly "shape@gear:server": AnyResDomain;
-  readonly "shape@gear:client": AnyResDomain;
+  readonly "shape@gear:outer": AnyResDomain;
   readonly "shape@shell:*": AnyResDomain;
   readonly "shape@server": AnyResDomain;
   readonly "shape@client": AnyResDomain;
@@ -65,8 +65,8 @@ export type AnyResAtlasClass = (abstract new () => AnyResAtlas) & {
 };
 
 export type SolidNamespace<RA extends AnyResAtlas> =
+  | Namespace<RA["shape@gear:inner"]>
   | Namespace<RA["shape@gear:hub"]>
-  | Namespace<RA["shape@gear:server"]>
   | Namespace<RA["shape@shell:*"]>;
 
 /*
