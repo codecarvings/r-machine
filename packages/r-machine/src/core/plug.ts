@@ -18,7 +18,7 @@ import { type AnyNamespace, isHandle } from "./res-domain.js";
 import type { AnyNamespaceList, HandleList, SurfaceList } from "./res-list.js";
 import type { AnyNamespaceMap, HandleMap, SurfaceMap } from "./res-map.js";
 
-export type PlugArea = "res" | "gate";
+export type PlugRealm = "res" | "gate";
 export type PlugMode = "map" | "list";
 
 export type PluginCtx<RA extends AnyResAtlas, KM extends HandleMap<RA>> = {} & (keyof KM extends never
@@ -42,12 +42,12 @@ declare const resAtlas: unique symbol;
 declare const kit: unique symbol;
 declare const ctx: unique symbol;
 interface BasePlugHead<
-  A extends PlugArea,
+  R extends PlugRealm,
   RA extends AnyResAtlas,
   KM extends HandleMap<RA>,
   CTX extends PluginCtx<RA, KM>,
 > {
-  readonly area: A;
+  readonly realm: R;
   readonly nsDepList: AnyNamespaceList;
   readonly [resAtlas]: RA;
   readonly [kit]: KM;
@@ -55,12 +55,12 @@ interface BasePlugHead<
 }
 
 export interface MapPlugHead<
-  A extends PlugArea,
+  R extends PlugRealm,
   RA extends AnyResAtlas,
   KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
   CTX extends PluginCtx<RA, KM>,
-> extends BasePlugHead<A, RA, KM, CTX> {
+> extends BasePlugHead<R, RA, KM, CTX> {
   readonly mode: "map";
   readonly deps: DM;
   readonly nsDeps: AnyNamespaceMap;
@@ -68,12 +68,12 @@ export interface MapPlugHead<
 export type AnyMapPlugHead = MapPlugHead<any, any, any, any, any>;
 
 export interface ListPlugHead<
-  A extends PlugArea,
+  R extends PlugRealm,
   RA extends AnyResAtlas,
   KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
   CTX extends PluginCtx<RA, KM>,
-> extends BasePlugHead<A, RA, KM, CTX> {
+> extends BasePlugHead<R, RA, KM, CTX> {
   readonly mode: "list";
   readonly deps: DL;
   readonly nsDeps: AnyNamespaceList;

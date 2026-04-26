@@ -14,11 +14,12 @@
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import { type AnyPlugHead, getPlugHead } from "./plug.js";
-import type { AnyResOrigin, ResFamily, ResOriginType } from "./res.js";
+import type { AnyResOrigin, ResOriginType } from "./res.js";
 import type { AnyNamespace } from "./res-domain.js";
 import { getResFamilyFromLayoutType, type ResLayoutEntryType } from "./res-layout.js";
 import { tryGetResMatrixMeta } from "./res-matrix.js";
 import type { AnyResModule } from "./res-module.js";
+import type { ResFamily } from "./res-plug.js";
 
 export interface Blueprint {
   readonly namespace: AnyNamespace;

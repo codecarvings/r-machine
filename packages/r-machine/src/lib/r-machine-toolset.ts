@@ -16,9 +16,9 @@ import type {
   AnyResDomain,
   AnyResEquipment,
   ExperimentalFlags,
-  GearComposer,
   HubGearComposer,
   Namespace,
+  OuterGearComposer,
   ShellComposer,
 } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
@@ -29,13 +29,13 @@ export type RMachineToolset<
   E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
 > = {
-  readonly InnerGear: GearComposer<RA, E["gearKit"], EF>;
+  readonly InnerGear: HubGearComposer<RA, E["gearKit"]>;
   readonly HubGear: HubGearComposer<RA, E["gearKit"]>;
   readonly Shell: ShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>;
-  readonly localized: LocalizerHelper<RA["shape@shell:*"]>;
+  readonly localized: LocalizerHelper<RA["shape@shell"]>;
 } & (EF["outerGear"] extends "on"
   ? {
-      readonly OuterGear: GearComposer<RA, E["gearKit"], EF>;
+      readonly OuterGear: OuterGearComposer<RA, E["gearKit"]>;
     }
   : {});
 

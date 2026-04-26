@@ -14,24 +14,24 @@ declare const resAtlasSymbol: unique symbol;
 export interface ResAtlas<RL extends AnyResLayout, RD extends AnyResDomain> {
   readonly [resAtlasSymbol]: true;
   readonly shape: RD;
-  readonly "shape@gear:inner": ShapeMap<RL, RD, "gear:inner">;
   readonly "shape@gear:hub": ShapeMap<RL, RD, "gear:hub">;
-  readonly "shape@gear:outer": ShapeMap<RL, RD, "gear:outer">;
-  readonly "shape@shell:*": ShapeMap<RL, RD, "shell" | "shell(mono)">;
-  readonly "shape@server": ShapeMap<RL, RD, "gear:inner" | "gear:hub" | "shell" | "shell(mono)">;
-  readonly "shape@client": ShapeMap<RL, RD, "gear:hub" | "gear:outer" | "shell" | "shell(mono)">;
+  readonly "shape@shell": ShapeMap<RL, RD, "shell" | "shell(mono)">;
+  readonly "valid@gear:inner": ShapeMap<RL, RD, "gear:inner" | "gear:hub">;
+  readonly "valid@gear:outer": ShapeMap<RL, RD, "gear:hub" | "gear:outer">;
+  readonly "valid@server": ShapeMap<RL, RD, "gear:inner" | "gear:hub" | "shell" | "shell(mono)">;
+  readonly "valid@client": ShapeMap<RL, RD, "gear:hub" | "gear:outer" | "shell" | "shell(mono)">;
   readonly let: ResLayoutEntryTypeMap<RL, RD>;
 }
 
 export interface AnyResAtlas {
   readonly [resAtlasSymbol]: true;
   readonly shape: AnyResDomain;
-  readonly "shape@gear:inner": AnyResDomain;
   readonly "shape@gear:hub": AnyResDomain;
-  readonly "shape@gear:outer": AnyResDomain;
-  readonly "shape@shell:*": AnyResDomain;
-  readonly "shape@server": AnyResDomain;
-  readonly "shape@client": AnyResDomain;
+  readonly "shape@shell": AnyResDomain;
+  readonly "valid@gear:inner": AnyResDomain;
+  readonly "valid@gear:outer": AnyResDomain;
+  readonly "valid@server": AnyResDomain;
+  readonly "valid@client": AnyResDomain;
   readonly let: AnyResDomainLayout;
 }
 
@@ -65,16 +65,8 @@ export type AnyResAtlasClass = (abstract new () => AnyResAtlas) & {
 };
 
 export type SolidNamespace<RA extends AnyResAtlas> =
-  | Namespace<RA["shape@gear:inner"]>
+  | Namespace<RA["valid@gear:inner"]>
   | Namespace<RA["shape@gear:hub"]>
-  | Namespace<RA["shape@shell:*"]>;
-
-/*
-export type SolidNamespace<RA extends AnyResAtlas> =
-  | Namespace<RA["shape@shell:*"]>
-  | {
-      [N in Namespace<RA["shape@gear"]>]: RA["shape@gear"][N] extends ReactiveGearTag ? never : N;
-    }[Namespace<RA["shape@gear"]>];
-*/
+  | Namespace<RA["shape@shell"]>;
 
 export type SolidHandle<RA extends AnyResAtlas> = SolidNamespace<RA> | Token<SolidNamespace<RA>>;

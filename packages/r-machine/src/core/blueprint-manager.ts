@@ -14,7 +14,6 @@
 import { ERR_CIRCULAR_DEPENDENCY, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import { type Blueprint, createBlueprint } from "./blueprint.js";
-import type { ResFamily } from "./res.js";
 import type { AnyNamespace } from "./res-domain.js";
 import { getResCacheKey } from "./res-domain.js";
 import type { KitDepLists } from "./res-equipment.js";
@@ -26,6 +25,7 @@ import {
   type ResModuleLoaderFnOptions,
   validateResModule,
 } from "./res-module.js";
+import type { ResFamily } from "./res-plug.js";
 
 export class BlueprintManager {
   constructor(

@@ -24,12 +24,12 @@ import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 import { createResMatrix, type GearMatrixMeta } from "./res-matrix.js";
 
-type ValidHubGearDepItem<RA extends AnyResAtlas, N> =
-  N extends Handle<RA["shape@gear:hub"]>
-    ? N
-    : N extends string
-      ? RMachineTypeError<`Namespace '${N}' is not a valid hub gear namespace.`>
-      : RMachineTypeError<"This token does not reference a valid hub gear namespace.">;
+type ValidHubGearDepItem<RA extends AnyResAtlas, H> =
+  H extends Handle<RA["shape@gear:hub"]>
+    ? H
+    : H extends string
+      ? RMachineTypeError<`Namespace '${H}' is not valid for a hub gear plug.`>
+      : RMachineTypeError<"This token does not reference a valid namespace for a hub gear plug.">;
 
 export interface HubGearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>> {
   readonly deps: HubGearDepsComposer<RA, KM>;
@@ -37,20 +37,20 @@ export interface HubGearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA
 }
 
 interface HubGearDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>> {
-  (): HubGearMapDepsComposer<RA, KM, {}>;
+  (): HubGearMapComposer<RA, KM, {}>;
   <const NL extends readonly Handle<RA["shape"]>[]>(
     ...deps: { readonly [I in keyof NL]: ValidHubGearDepItem<RA, NL[I]> }
-  ): HubGearListDepsComposer<RA, KM, NL>;
+  ): HubGearListComposer<RA, KM, NL>;
   <const NM extends { readonly [k: string]: Handle<RA["shape"]> }>(
     deps: { readonly [K in keyof NM]: ValidHubGearDepItem<RA, NM[K]> }
-  ): HubGearMapDepsComposer<RA, KM, NM>;
+  ): HubGearMapComposer<RA, KM, NM>;
 }
 
-interface HubGearMapDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>> {
+interface HubGearMapComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>> {
   readonly define: HubGearMapDefiner<RA, KM, DM>;
 }
 
-interface HubGearListDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>> {
+interface HubGearListComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>> {
   readonly define: HubGearListDefiner<RA, KM, DL>;
 }
 
@@ -83,7 +83,7 @@ export function createHubGearComposer<RA extends AnyResAtlas, KM extends HandleM
 function createHubGearMapDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>>(
   connector: ResComposerConnector,
   deps: DM
-): HubGearMapDepsComposer<RA, KM, DM> {
+): HubGearMapComposer<RA, KM, DM> {
   return lazyGetters({
     define: () => createHubGearMapDefiner<RA, KM, DM>(connector, deps),
   });
@@ -92,7 +92,7 @@ function createHubGearMapDepsComposer<RA extends AnyResAtlas, KM extends HandleM
 function createHubGearListDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>>(
   connector: ResComposerConnector,
   deps: DL
-): HubGearListDepsComposer<RA, KM, DL> {
+): HubGearListComposer<RA, KM, DL> {
   return lazyGetters({
     define: () => createHubGearListDefiner<RA, KM, DL>(connector, deps),
   });

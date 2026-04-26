@@ -26,7 +26,7 @@ import { createResListPlugHead, createResMapPlugHead } from "./res-plug.js";
 import type { ShellListDefiner, ShellMapDefiner } from "./shell.js";
 
 type ShellDepsNamespace<RA extends AnyResAtlas, BGL extends HandleList<RA>> =
-  | Extract<keyof RA["shape@shell:*"], string>
+  | Extract<keyof RA["shape@shell"], string>
   | BGL[number];
 
 type ShellDepsHandle<RA extends AnyResAtlas, BGL extends HandleList<RA>> = Handle<
@@ -37,8 +37,8 @@ type ValidShellDepItem<RA extends AnyResAtlas, BGL extends HandleList<RA>, N> =
   N extends ShellDepsHandle<RA, BGL>
     ? N
     : N extends string
-      ? RMachineTypeError<`Namespace '${N}' is not a valid shell namespace (and not declared in bridgeGears).`>
-      : RMachineTypeError<"This token does not reference a valid shell namespace (or declared bridgeGear).">;
+      ? RMachineTypeError<`Namespace '${N}' is not valid for a shell plug.`>
+      : RMachineTypeError<"This token does not reference a valid namespace for a shell plug.">;
 
 export interface ShellComposer<
   RA extends AnyResAtlas,
@@ -56,16 +56,16 @@ interface ShellDepsComposer<
   BGL extends HandleList<RA>,
   KM extends HandleMap<RA>,
 > {
-  (): ShellMapDepsComposer<RA, L, KM, {}>;
+  (): ShellMapComposer<RA, L, KM, {}>;
   <const NL extends readonly Handle<RA["shape"]>[]>(
     ...deps: { readonly [I in keyof NL]: ValidShellDepItem<RA, BGL, NL[I]> }
-  ): ShellListDepsComposer<RA, L, KM, NL>;
+  ): ShellListComposer<RA, L, KM, NL>;
   <const NM extends { readonly [k: string]: Handle<RA["shape"]> }>(
     deps: { readonly [K in keyof NM]: ValidShellDepItem<RA, BGL, NM[K]> }
-  ): ShellMapDepsComposer<RA, L, KM, NM>;
+  ): ShellMapComposer<RA, L, KM, NM>;
 }
 
-interface ShellMapDepsComposer<
+interface ShellMapComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KM extends HandleMap<RA>,
@@ -74,7 +74,7 @@ interface ShellMapDepsComposer<
   readonly define: ShellMapDefiner<RA, L, KM, DM>;
 }
 
-interface ShellListDepsComposer<
+interface ShellListComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KM extends HandleMap<RA>,
@@ -117,7 +117,7 @@ function createShellMapDepsComposer<
   L extends AnyLocale,
   KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
->(connector: ResComposerConnector, deps: DM): ShellMapDepsComposer<RA, L, KM, DM> {
+>(connector: ResComposerConnector, deps: DM): ShellMapComposer<RA, L, KM, DM> {
   return lazyGetters({
     define: () => createShellMapDefiner(connector, deps),
   });
@@ -128,7 +128,7 @@ function createShellListDepsComposer<
   L extends AnyLocale,
   KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
->(connector: ResComposerConnector, deps: DL): ShellListDepsComposer<RA, L, KM, DL> {
+>(connector: ResComposerConnector, deps: DL): ShellListComposer<RA, L, KM, DL> {
   return lazyGetters({
     define: () => createShellListDefiner(connector, deps),
   });

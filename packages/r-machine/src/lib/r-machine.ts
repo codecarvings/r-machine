@@ -22,7 +22,6 @@ import {
   BlueprintManager,
   type BridgeGearNamespaceList,
   type ClientGateKit,
-  createGearComposer,
   createHubGearComposer,
   createResLayoutEntryTypeResolver,
   createShellComposer,
@@ -121,12 +120,9 @@ export class RMachine<
   }
 
   createToolset(): RMachineToolset<RA, L, E, EF> {
-    const InnerGear = createGearComposer<RA, E["gearKit"], EF>(this.createResComposerConnector("gear"));
+    const InnerGear = undefined!;
     const HubGear = createHubGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"));
-    const OuterGear =
-      this.config.experimental.outerGear === "on"
-        ? createGearComposer<RA, E["gearKit"], EF>(this.createResComposerConnector("gear"))
-        : undefined!;
+    const OuterGear = this.config.experimental.outerGear === "on" ? undefined! : undefined!;
     const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(this.createResComposerConnector("shell"));
     return { InnerGear, HubGear, OuterGear, Shell, localized };
   }

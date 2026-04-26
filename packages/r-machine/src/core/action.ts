@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyState } from "./stateful-reactive-gear.js";
+import type { AnyState } from "./stateful-outer-gear.js";
 
 type BuiltinAtomic =
   | Date

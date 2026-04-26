@@ -12,7 +12,7 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
-import type { GearRole } from "./gear.js";
+import type { GearRole } from "./gear-plug.js";
 import { createPlug, getPlugResolve, setPlugResolve } from "./plug.js";
 import type { AnyRes, AnyResOrigin } from "./res.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";

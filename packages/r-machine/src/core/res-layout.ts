@@ -13,8 +13,8 @@
 
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
-import type { ResFamily } from "./res.js";
 import type { AnyNamespace } from "./res-domain.js";
+import type { ResFamily } from "./res-plug.js";
 
 // #region ResLayout
 

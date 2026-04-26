@@ -12,10 +12,11 @@
  */
 
 import type { ListPlugHead, MapPlugHead, PlugBody, PluginCtx } from "./plug.js";
-import type { ResFamily } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import { getNamespaceList, type HandleList } from "./res-list.js";
 import { getNamespaceMap, type HandleMap } from "./res-map.js";
+
+export type ResFamily = "gear" | "shell";
 
 export interface ResMapPlugHead<
   F extends ResFamily,
@@ -38,9 +39,9 @@ export function createResMapPlugHead<
   const nsDeps = getNamespaceMap(deps);
   const nsDepList = Object.values(nsDeps);
   return {
-    area: "res",
-    mode: "map",
+    realm: "res",
     family,
+    mode: "map",
     deps,
     nsDeps,
     nsDepList,
@@ -67,9 +68,9 @@ export function createResListPlugHead<
 >(family: F, deps: DL): ResListPlugHead<F, RA, KM, DL, CTX> {
   const nsDeps = getNamespaceList(deps);
   return {
-    area: "res",
-    mode: "list",
+    realm: "res",
     family,
+    mode: "list",
     deps,
     nsDeps,
     nsDepList: nsDeps,

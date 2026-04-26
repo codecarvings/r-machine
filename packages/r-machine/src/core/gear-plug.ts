@@ -11,12 +11,13 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { GearRole } from "./gear.js";
 import type { PlugBody, PluginCtx } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import { getNamespaceList, type HandleList } from "./res-list.js";
-import { getNamespaceMap, type HandleMap } from "./res-map.js";
-import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
+import type { HandleList } from "./res-list.js";
+import type { HandleMap } from "./res-map.js";
+import { createResListPlugHead, createResMapPlugHead, type ResListPlugHead, type ResMapPlugHead } from "./res-plug.js";
+
+export type GearRole = "inner" | "hub" | "outer";
 
 export interface GearMapPlugHead<
   R extends GearRole,
@@ -36,16 +37,9 @@ export function createGearMapPlugHead<
   DM extends HandleMap<RA>,
   CTX extends PluginCtx<RA, KM>,
 >(role: R, deps: DM): GearMapPlugHead<R, RA, KM, DM, CTX> {
-  const nsDeps = getNamespaceMap(deps);
-  const nsDepList = Object.values(nsDeps);
   return {
-    area: "res",
-    mode: "map",
-    family: "gear",
+    ...createResMapPlugHead<"gear", RA, KM, DM, CTX>("gear", deps),
     role,
-    deps,
-    nsDeps,
-    nsDepList,
   } as unknown as GearMapPlugHead<R, RA, KM, DM, CTX>;
 }
 
@@ -67,15 +61,9 @@ export function createGearListPlugHead<
   DL extends HandleList<RA>,
   CTX extends PluginCtx<RA, KM>,
 >(role: R, deps: DL): GearListPlugHead<R, RA, KM, DL, CTX> {
-  const nsDeps = getNamespaceList(deps);
   return {
-    area: "res",
-    mode: "list",
-    family: "gear",
+    ...createResListPlugHead<"gear", RA, KM, DL, CTX>("gear", deps),
     role,
-    deps,
-    nsDeps,
-    nsDepList: nsDeps,
   } as unknown as GearListPlugHead<R, RA, KM, DL, CTX>;
 }
 

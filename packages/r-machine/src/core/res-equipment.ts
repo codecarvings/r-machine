@@ -41,15 +41,15 @@ export type GearKit<RA extends AnyResAtlas> = {
 };
 
 export type ShellKit<RA extends AnyResAtlas, BGL extends BridgeGearNamespaceList<RA>> = {
-  readonly [key: string]: Namespace<RA["shape@shell:*"]> | BGL[number];
+  readonly [key: string]: Namespace<RA["shape@shell"]> | BGL[number];
 };
 
 export type ServerGateKit<RA extends AnyResAtlas> = {
-  readonly [key: string]: Namespace<RA["shape@server"]>;
+  readonly [key: string]: Namespace<RA["valid@server"]>;
 };
 
 export type ClientGateKit<RA extends AnyResAtlas> = {
-  readonly [key: string]: Namespace<RA["shape@client"]>;
+  readonly [key: string]: Namespace<RA["valid@client"]>;
 };
 
 export interface KitDepLists {

@@ -22,7 +22,6 @@ export type {
 } from "./gate-plug.js";
 export type { GateWire } from "./gate-wire.js";
 export { GateWireManager } from "./gate-wire-manager.js";
-export { createGearComposer, type GearComposer } from "./gear-composer.js";
 export type { Getter } from "./getter.js";
 export { createHubGearComposer, type HubGearComposer } from "./hub-gear-composer.js";
 export {
@@ -33,6 +32,7 @@ export {
   type StaticJuncture,
 } from "./juncture.js";
 export { JunctureManager } from "./juncture-manager.js";
+export type { OuterGearComposer } from "./outer-gear-composer.js";
 export {
   type AnyListPlugHead,
   type AnyMapPlugHead,
@@ -49,9 +49,8 @@ export {
   type PlugResolve,
   setPlugResolve,
 } from "./plug.js";
-export type { ReactiveGearTag } from "./reactive-gear.js";
 export type { RelayBrand } from "./relay.js";
-export type { AnyRes, AnyResOrigin, ResFamily } from "./res.js";
+export type { AnyRes, AnyResOrigin } from "./res.js";
 export type {
   AnyResAtlas,
   AnyResAtlasClass,
