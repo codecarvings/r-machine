@@ -94,7 +94,7 @@ describe("createBlueprint — signature", () => {
         module: AnyResModule,
         namespace: AnyNamespace,
         locale: AnyLocale | undefined,
-        resLayoutEntryType: ResLayoutEntryType,
+        layoutEntryType: ResLayoutEntryType,
       ]
     >();
   });

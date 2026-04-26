@@ -24,15 +24,8 @@ export type { GateWire } from "./gate-wire.js";
 export { GateWireManager } from "./gate-wire-manager.js";
 export type { Getter } from "./getter.js";
 export { createHubGearComposer, type HubGearComposer } from "./hub-gear-composer.js";
-export {
-  buildReactiveJuncture,
-  buildStaticJuncture,
-  type Juncture,
-  type ReactiveJuncture,
-  type StaticJuncture,
-} from "./juncture.js";
 export { JunctureManager } from "./juncture-manager.js";
-export type { OuterGearComposer } from "./outer-gear-composer.js";
+export { createOuterGearComposer, type OuterGearComposer } from "./outer-gear-composer.js";
 export {
   type AnyListPlugHead,
   type AnyMapPlugHead,

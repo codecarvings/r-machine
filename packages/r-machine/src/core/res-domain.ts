@@ -63,10 +63,10 @@ export function createToken<N extends AnyNamespace>(namespace: N): Token<N> {
 export function getResCacheKey(
   namespace: AnyNamespace,
   locale: AnyLocale | undefined,
-  resLayoutEntryType: ResLayoutEntryType,
+  layoutEntryType: ResLayoutEntryType,
   genId?: number
 ): string {
-  switch (resLayoutEntryType) {
+  switch (layoutEntryType) {
     case "shell":
       return `S:${locale}\x1f${namespace}`;
     case "gear:outer(vertex)":

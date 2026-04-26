@@ -123,7 +123,7 @@ export class BlueprintManager {
     namespace: AnyNamespace,
     locale: AnyLocale | undefined,
     key: string,
-    resLayoutEntryType: ResLayoutEntryType,
+    layoutEntryType: ResLayoutEntryType,
     chain: ReadonlyArray<string>
   ): Promise<Blueprint> {
     let pendingPromise!: Promise<Blueprint>;
@@ -131,8 +131,8 @@ export class BlueprintManager {
       let blueprint: Blueprint;
       let allNsDeps: AnyNamespace[] | undefined;
       try {
-        const module = await this.loadModule(namespace, locale, resLayoutEntryType);
-        blueprint = createBlueprint(module, namespace, locale, resLayoutEntryType);
+        const module = await this.loadModule(namespace, locale, layoutEntryType);
+        blueprint = createBlueprint(module, namespace, locale, layoutEntryType);
         if (blueprint.originType === "res-matrix") {
           allNsDeps = await this.loadDepsBlueprints(
             namespace,
@@ -178,7 +178,7 @@ export class BlueprintManager {
   protected async getBlueprintInternal(
     namespace: AnyNamespace,
     locale: AnyLocale | undefined,
-    resLayoutEntryType: ResLayoutEntryType,
+    layoutEntryType: ResLayoutEntryType,
     key: string,
     chain: ReadonlyArray<string>
   ): Promise<Blueprint> {
@@ -210,16 +210,16 @@ export class BlueprintManager {
       }
       return cached;
     }
-    return this.resolveBlueprint(namespace, locale, key, resLayoutEntryType, chain);
+    return this.resolveBlueprint(namespace, locale, key, layoutEntryType, chain);
   }
 
   async getBlueprint(
     namespace: AnyNamespace,
     locale: AnyLocale | undefined,
-    resLayoutEntryType: ResLayoutEntryType,
+    layoutEntryType: ResLayoutEntryType,
     key: string
   ): Promise<Blueprint> {
-    return this.getBlueprintInternal(namespace, locale, resLayoutEntryType, key, []);
+    return this.getBlueprintInternal(namespace, locale, layoutEntryType, key, []);
   }
 
   getForwardClosure(nsList: Iterable<AnyNamespace>): Set<AnyNamespace> {

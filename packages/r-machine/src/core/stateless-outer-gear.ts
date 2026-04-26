@@ -12,6 +12,7 @@
  */
 
 import type { CmdComposer } from "./cmd.js";
+import type { GearListPlugHead, GearMapPlugHead } from "./gear-plug.js";
 import type { StatelessGetterComposer } from "./getter.js";
 import type { AnyOuterGear, RejectAsyncValueProps } from "./outer-gear.js";
 import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
@@ -20,9 +21,8 @@ import type { AnyResAtlas } from "./res-atlas.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
-import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
-interface StatelessOuterGearCursor {
+export interface StatelessOuterGearCursor {
   readonly getter: StatelessGetterComposer;
   readonly relay: RelayComposer;
   readonly cmd: CmdComposer;
@@ -46,13 +46,13 @@ type StatelessOuterGearMapPlugHead<
   RA extends AnyResAtlas,
   KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
-> = ResMapPlugHead<"gear", RA, KM, DM, StatelessOuterGearPluginCtx<RA, KM>>;
+> = GearMapPlugHead<"outer", RA, KM, DM, StatelessOuterGearPluginCtx<RA, KM>>;
 
 type StatelessOuterGearListPlugHead<
   RA extends AnyResAtlas,
   KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
-> = ResListPlugHead<"gear", RA, KM, DL, StatelessOuterGearPluginCtx<RA, KM>>;
+> = GearListPlugHead<"outer", RA, KM, DL, StatelessOuterGearPluginCtx<RA, KM>>;
 
 interface StatelessOuterGearMapPlug<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>>
   extends PlugBody<StatelessOuterGearMapPlugHead<RA, KM, DM>> {}

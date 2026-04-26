@@ -1,8 +1,8 @@
-import { Gear, type RShape } from "@/r-machine/setup";
+import { OuterGear, type RShape } from "@/r-machine/setup";
 
-export const r = Gear.define(() => {
+export const r = OuterGear.withState({}).define(($, _) => {
   return {
-    timer: 0,
+    timer: _.getter(() => 0),
   };
 });
 

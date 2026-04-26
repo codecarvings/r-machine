@@ -15,16 +15,16 @@ import type { AnyRes } from "./res.js";
 import type { AnySurface } from "./surface.js";
 import { setVertexGearTag, type VertexGearTagData } from "./vertex-gear.js";
 
-export type Juncture = StaticJuncture | ReactiveJuncture;
+export type Juncture = KernelJuncture | OuterJuncture;
 
-export interface StaticJuncture {
-  readonly kind: "static";
+export interface KernelJuncture {
+  readonly kind: "kernel";
   readonly res: AnyRes;
   readonly surface: AnySurface;
 }
 
-export interface ReactiveJuncture {
-  readonly kind: "reactive";
+export interface OuterJuncture {
+  readonly kind: "outer";
   readonly res: AnyRes;
   readonly surfaceA: AnySurface;
   readonly surfaceB: AnySurface;
@@ -34,7 +34,7 @@ export interface ReactiveJuncture {
 }
 
 export function getCurrentSurface(juncture: Juncture): AnySurface {
-  return juncture.kind === "reactive" ? juncture.current : juncture.surface;
+  return juncture.kind === "outer" ? juncture.current : juncture.surface;
 }
 
 // TODO: brand-aware handling (Getter → accessor materialized, Action → wrapped
@@ -58,15 +58,15 @@ function buildSurface(res: AnyRes, vertexTag: VertexGearTagData | undefined): An
   return surface;
 }
 
-export function buildStaticJuncture(res: AnyRes, vertexTag: VertexGearTagData | undefined): StaticJuncture {
-  return { kind: "static", res, surface: buildSurface(res, vertexTag) };
+export function buildKernelJuncture(res: AnyRes, vertexTag: VertexGearTagData | undefined): KernelJuncture {
+  return { kind: "kernel", res, surface: buildSurface(res, vertexTag) };
 }
 
-export function buildReactiveJuncture(res: AnyRes, vertexTag: VertexGearTagData | undefined): ReactiveJuncture {
+export function buildOuterJuncture(res: AnyRes, vertexTag: VertexGearTagData | undefined): OuterJuncture {
   const surfaceA = buildSurface(res, vertexTag);
   const surfaceB = buildSurface(res, vertexTag);
   return {
-    kind: "reactive",
+    kind: "outer",
     res,
     surfaceA,
     surfaceB,

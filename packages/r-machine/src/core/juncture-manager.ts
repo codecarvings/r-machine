@@ -15,7 +15,7 @@ import { ERR_RESOLVE_FAILED, ERR_VERTEX_INSTANCE_NOT_FOUND, RMachineResolveError
 import type { AnyLocale } from "#r-machine/locale";
 import type { Blueprint } from "./blueprint.js";
 import type { BlueprintManager } from "./blueprint-manager.js";
-import { buildReactiveJuncture, buildStaticJuncture, getCurrentSurface, type Juncture } from "./juncture.js";
+import { buildKernelJuncture, buildOuterJuncture, getCurrentSurface, type Juncture } from "./juncture.js";
 import { tryGetManagedTeardown } from "./managed.js";
 import type { AnyRes } from "./res.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
@@ -62,14 +62,14 @@ export class JunctureManager {
         const blueprint: Blueprint = await this.blueprintManager.getBlueprint(namespace, locale, layoutType, key);
         let juncture: Juncture;
         if (blueprint.originType === "res") {
-          juncture = buildStaticJuncture(blueprint.origin as AnyRes, vertexTag);
+          juncture = buildKernelJuncture(blueprint.origin as AnyRes, vertexTag);
         } else {
           const factory = blueprint.origin.factory as (
             locale: AnyLocale | undefined,
             selfNamespace: AnyNamespace
           ) => Promise<AnyRes>;
           const res = await factory(locale, namespace);
-          juncture = blueprint.isReactive ? buildReactiveJuncture(res, vertexTag) : buildStaticJuncture(res, vertexTag);
+          juncture = blueprint.isOuterGear ? buildOuterJuncture(res, vertexTag) : buildKernelJuncture(res, vertexTag);
         }
         // Stale check: generation mismatch (HMR happened) OR slot identity mismatch
         // (slot was disposed and possibly re-created during this resolve).

@@ -24,13 +24,19 @@ let nextGenId = 0;
 export class GateWireManager {
   constructor(protected readonly junctureManager: JunctureManager) {}
 
-  getWire(nsDeps: AnyNamespaceCollection, locale: AnyLocale, vertexGearMap?: VertexGearMap | undefined): GateWire {
-    return createGateWire(this.junctureManager, nsDeps, locale, vertexGearMap, ++nextGenId);
+  getWire(
+    kit: "clientGate" | "serverGate", // TODO: WIP
+    nsDeps: AnyNamespaceCollection,
+    locale: AnyLocale,
+    vertexGearMap?: VertexGearMap | undefined
+  ): GateWire {
+    return createGateWire(this.junctureManager, kit, nsDeps, locale, vertexGearMap, ++nextGenId);
   }
 }
 
 function createGateWire(
   junctureManager: JunctureManager,
+  kit: "clientGate" | "serverGate", // TODO: WIP
   nsDeps: AnyNamespaceCollection,
   locale: AnyLocale,
   vertexGearMap: VertexGearMap | undefined,
@@ -40,7 +46,7 @@ function createGateWire(
   let currentVertexGearMap = vertexGearMap;
   let dirty = false;
   let currentPluginPromise = junctureManager.getPlugin(
-    "gate",
+    kit,
     nsDeps,
     currentLocale,
     undefined,
@@ -66,7 +72,7 @@ function createGateWire(
 
   function reresolve() {
     currentPluginPromise = junctureManager.getPlugin(
-      "gate",
+      kit,
       nsDeps,
       currentLocale,
       undefined,

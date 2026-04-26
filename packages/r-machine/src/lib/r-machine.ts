@@ -23,6 +23,7 @@ import {
   type BridgeGearNamespaceList,
   type ClientGateKit,
   createHubGearComposer,
+  createOuterGearComposer,
   createResLayoutEntryTypeResolver,
   createShellComposer,
   type ExperimentalFlags,
@@ -122,13 +123,16 @@ export class RMachine<
   createToolset(): RMachineToolset<RA, L, E, EF> {
     const InnerGear = undefined!;
     const HubGear = createHubGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"));
-    const OuterGear = this.config.experimental.outerGear === "on" ? undefined! : undefined!;
+    const OuterGear =
+      this.config.experimental.outerGear === "on"
+        ? createOuterGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"))
+        : undefined!;
     const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(this.createResComposerConnector("shell"));
     return { InnerGear, HubGear, OuterGear, Shell, localized };
   }
 
   getGateWire(plugHead: AnyPlugHead, locale: L, vertexGearMap?: VertexGearMap | undefined): GateWire {
-    return this.gateWireManager.getWire(plugHead.nsDeps, locale, vertexGearMap);
+    return this.gateWireManager.getWire("clientGate", plugHead.nsDeps, locale, vertexGearMap);
   }
 
   async WIP_GET<DL extends HandleList<RA>>(deps: DL): Promise<SurfaceList<RA, DL>> {

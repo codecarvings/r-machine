@@ -1,4 +1,4 @@
-import { Gear, type RShape } from "../setup";
+import { OuterGear, type RShape } from "../setup.js";
 
 interface User {
   name: string;
@@ -10,7 +10,7 @@ interface GearState {
   user: User | null;
 }
 
-export const r = Gear.reactive<GearState>({
+export const r = OuterGear.withState<GearState>({
   loading: true,
   error: null,
   user: null,
@@ -41,4 +41,4 @@ export const r = Gear.reactive<GearState>({
   };
 });
 
-export type Gear_Gear1 = RShape<typeof r>;
+export type Outer_Gear1 = RShape<typeof r>;

@@ -30,7 +30,7 @@ import type { ResMatrix } from "./res-matrix.js";
 
 export type AnyState = unknown; // Record<PropertyKey, unknown> & object;
 
-interface StatefulOuterGearCursor<S extends AnyState> {
+export interface StatefulOuterGearCursor<S extends AnyState> {
   readonly getter: GetterComposer<S>;
   readonly action: ActionComposer<S>;
   readonly relay: RelayComposer;

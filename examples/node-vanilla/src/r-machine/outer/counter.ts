@@ -1,6 +1,6 @@
-import { Gear, type RShape } from "../setup";
+import { OuterGear, type RShape } from "../setup.js";
 
-export const r = Gear.reactive(0).define(({ $ }, _) => {
+export const r = OuterGear.withState(0).define(({ $ }, _) => {
   return {
     increment: _.action(() => $.state + 1),
     decrement: _.action(() => $.state - 1),
@@ -9,4 +9,4 @@ export const r = Gear.reactive(0).define(({ $ }, _) => {
   };
 });
 
-export type Gear_Counter = RShape<typeof r>;
+export type Outer_Counter = RShape<typeof r>;

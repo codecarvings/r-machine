@@ -6,20 +6,22 @@ export const rMachine = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
   load: (path) => import(`./${path}.ts`),
-  bridgeGears: ["gear/config"],
+  bridgeGears: ["hub/config"],
   shellKit: {
     fmt: "shell/lib/fmt",
-    config: "gear/config",
+    config: "hub/config",
   },
-  gateKit: {
+  clientGateKit: {
+    fmt: "shell/common2",
+  },
+  serverGateKit: {
     fmt: "shell/common2",
   },
   experimental: {
-    reactiveGear: "on",
-    vertexGear: "on",
+    outerGear: "on",
   },
 });
 
-export const { Gear, Shell, localized } = rMachine.createToolset();
+export const { InnerGear, HubGear, OuterGear, Shell, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";

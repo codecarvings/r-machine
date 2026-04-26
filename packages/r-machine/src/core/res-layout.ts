@@ -13,6 +13,7 @@
 
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
+import type { GearRole } from "./gear-plug.js";
 import type { AnyNamespace } from "./res-domain.js";
 import type { ResFamily } from "./res-plug.js";
 
@@ -37,6 +38,28 @@ export function getResFamilyFromLayoutType(layoutType: ResLayoutEntryType): ResF
     case "shell(mono)":
       return "shell";
   }
+}
+
+export function getGearRoleFromLayoutType(layoutType: ResLayoutEntryType): GearRole | undefined {
+  switch (layoutType) {
+    case "gear:inner":
+      return "inner";
+    case "gear:hub":
+      return "hub";
+    case "gear:outer":
+    case "gear:outer(vertex)":
+      return "outer";
+    default:
+      return undefined;
+  }
+}
+
+export function isOuterGearLayoutType(layoutType: ResLayoutEntryType): boolean {
+  return layoutType === "gear:outer" || layoutType === "gear:outer(vertex)";
+}
+
+export function isVertexGearLayoutType(layoutType: ResLayoutEntryType): boolean {
+  return layoutType === "gear:outer(vertex)";
 }
 
 export interface AnyResLayout {
