@@ -18,7 +18,6 @@ export interface ResAtlas<RL extends AnyResLayout, RD extends AnyResDomain> {
   readonly "shape@gear:server": ShapeMap<RL, RD, "gear:server">;
   readonly "shape@gear:client": ShapeMap<RL, RD, "gear:client">;
   readonly "shape@shell:*": ShapeMap<RL, RD, "shell" | "shell(mono)">;
-  // readonly "shape@gear|shell:*": ShapeMap<RL, RD, "gear" | "shell" | "shell(mono)">;
   readonly "shape@server": ShapeMap<RL, RD, "gear:hub" | "gear:server" | "shell" | "shell(mono)">;
   readonly "shape@client": ShapeMap<RL, RD, "gear:hub" | "gear:client" | "shell" | "shell(mono)">;
   readonly let: ResLayoutEntryTypeMap<RL, RD>;
@@ -31,7 +30,6 @@ export interface AnyResAtlas {
   readonly "shape@gear:server": AnyResDomain;
   readonly "shape@gear:client": AnyResDomain;
   readonly "shape@shell:*": AnyResDomain;
-  // readonly "shape@gear|shell:*": AnyResDomain;
   readonly "shape@server": AnyResDomain;
   readonly "shape@client": AnyResDomain;
   readonly let: AnyResDomainLayout;

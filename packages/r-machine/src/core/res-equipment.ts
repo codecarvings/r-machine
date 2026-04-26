@@ -20,30 +20,36 @@ export interface ResEquipment<
   BGL extends BridgeGearNamespaceList<RA> = [],
   GK extends GearKit<RA> = {},
   SK extends ShellKit<RA, BGL> = {},
-  XK extends GateKit<RA> = {},
+  SGK extends ServerGateKit<RA> = {},
+  CGK extends ClientGateKit<RA> = {},
 > {
   readonly bridgeGears: BGL;
   readonly gearKit: GK;
   readonly shellKit: SK;
-  readonly gateKit: XK;
+  readonly serverGateKit: SGK;
+  readonly clientGateKit: CGK;
 }
 
-export type KitKind = "gear" | "shell" | "gate";
+export type KitKind = "gear" | "shell" | "serverGate" | "clientGate";
 
 export type AnyResEquipment<RA extends AnyResAtlas = AnyResAtlas> = ResEquipment<RA, any, any, any, any>;
 
-export type BridgeGearNamespaceList<RA extends AnyResAtlas> = Namespace<RA["shape@gear"]>[];
+export type BridgeGearNamespaceList<RA extends AnyResAtlas> = Namespace<RA["shape@gear:hub"]>[];
 
 export type GearKit<RA extends AnyResAtlas> = {
-  readonly [key: string]: Namespace<RA["shape@gear"]>;
+  readonly [key: string]: Namespace<RA["shape@gear:hub"]>;
 };
 
 export type ShellKit<RA extends AnyResAtlas, BGL extends BridgeGearNamespaceList<RA>> = {
   readonly [key: string]: Namespace<RA["shape@shell:*"]> | BGL[number];
 };
 
-export type GateKit<RA extends AnyResAtlas> = {
-  readonly [key: string]: Namespace<RA["shape@gear|shell:*"]>;
+export type ServerGateKit<RA extends AnyResAtlas> = {
+  readonly [key: string]: Namespace<RA["shape@server"]>;
+};
+
+export type ClientGateKit<RA extends AnyResAtlas> = {
+  readonly [key: string]: Namespace<RA["shape@client"]>;
 };
 
 export interface KitDepLists {

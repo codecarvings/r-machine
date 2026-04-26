@@ -73,10 +73,11 @@ export {
 export type {
   AnyResEquipment,
   BridgeGearNamespaceList,
-  GateKit,
+  ClientGateKit,
   GearKit,
   KitKind,
   ResEquipment,
+  ServerGateKit,
   ShellKit,
 } from "./res-equipment.js";
 export {

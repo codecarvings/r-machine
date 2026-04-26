@@ -17,17 +17,18 @@ import type {
   AnyResEquipment,
   AnyResLayout,
   BridgeGearNamespaceList,
+  ClientGateKit,
   ExperimentalFlags,
-  GateKit,
   GearKit,
   ResEquipment,
   ResModuleLoaderFn,
+  ServerGateKit,
   ShellKit,
 } from "#r-machine/core";
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
-  ERR_EXPERIMENTAL_VERTEX_GEAR_REQUIRED,
+  ERR_EXPERIMENTAL_CLIENT_GEAR_REQUIRED,
   ERR_NO_LOCALES,
   RMachineConfigError,
 } from "#r-machine/errors";
@@ -44,7 +45,8 @@ export interface RMachineConfigParams<
   BGL extends BridgeGearNamespaceList<InstanceType<RAC>>,
   GK extends GearKit<InstanceType<RAC>>,
   SK extends ShellKit<InstanceType<RAC>, BGL>,
-  XK extends GateKit<InstanceType<RAC>>,
+  SGK extends ServerGateKit<InstanceType<RAC>>,
+  CGK extends ClientGateKit<InstanceType<RAC>>,
   EF extends ExperimentalFlags,
 > {
   readonly ResourceAtlas: RAC;
@@ -54,7 +56,8 @@ export interface RMachineConfigParams<
   readonly bridgeGears?: BGL;
   readonly gearKit?: GK;
   readonly shellKit?: SK;
-  readonly gateKit?: XK;
+  readonly serverGateKit?: SGK;
+  readonly clientGateKit?: CGK;
   readonly experimental?: EF & ExperimentalFlags;
 }
 
@@ -79,11 +82,12 @@ export function convertParamsToConfig<
   BGL extends BridgeGearNamespaceList<InstanceType<RAC>>,
   GK extends GearKit<InstanceType<RAC>>,
   SK extends ShellKit<InstanceType<RAC>, BGL>,
-  XK extends GateKit<InstanceType<RAC>>,
+  SGK extends ServerGateKit<InstanceType<RAC>>,
+  CGK extends ClientGateKit<InstanceType<RAC>>,
   EF extends ExperimentalFlags,
 >(
-  params: RMachineConfigParams<RAC, LL, BGL, GK, SK, XK, EF>
-): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, XK>, EF> {
+  params: RMachineConfigParams<RAC, LL, BGL, GK, SK, SGK, CGK, EF>
+): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, SGK, CGK>, EF> {
   return {
     resourceAtlas: undefined!,
     locales: [...params.locales],
@@ -94,7 +98,8 @@ export function convertParamsToConfig<
       bridgeGears: (params.bridgeGears ?? ([] as readonly unknown[])) as BGL,
       gearKit: params.gearKit ?? ({} as GK),
       shellKit: params.shellKit ?? ({} as SK),
-      gateKit: params.gateKit ?? ({} as XK),
+      serverGateKit: params.serverGateKit ?? ({} as SGK),
+      clientGateKit: params.clientGateKit ?? ({} as CGK),
     },
     experimental: params.experimental ?? ({} as EF),
   };
@@ -129,13 +134,13 @@ export function validateRMachineConfig(config: RMachineConfig<any, any, any, any
   }
 
   if (!config.experimental.clientGear) {
-    const vertexPrefixes = Object.entries(config.layout)
+    const clientPrefixes = Object.entries(config.layout)
       .filter(([, type]) => (type as string).startsWith("gear:client"))
       .map(([prefix]) => prefix);
-    if (vertexPrefixes.length) {
+    if (clientPrefixes.length) {
       return new RMachineConfigError(
-        ERR_EXPERIMENTAL_VERTEX_GEAR_REQUIRED,
-        `Layout contains "gear:client" entries (${vertexPrefixes.map((p) => `"${p}"`).join(", ")}) but the "clientGear" experimental feature is not enabled. Add \`experimental: { clientGear: true }\` to RMachine.create(...) to opt in.`
+        ERR_EXPERIMENTAL_CLIENT_GEAR_REQUIRED,
+        `Layout contains "gear:client" entries (${clientPrefixes.map((p) => `"${p}"`).join(", ")}) but the "clientGear" experimental feature is not enabled. Add \`experimental: { clientGear: true }\` to RMachine.create(...) to opt in.`
       );
     }
   }
@@ -152,7 +157,8 @@ export function cloneRMachineConfig<C extends RMachineConfig<any, any, any, any>
       bridgeGears: Object.freeze([...config.equipment.bridgeGears]),
       gearKit: { ...config.equipment.gearKit },
       shellKit: { ...config.equipment.shellKit },
-      gateKit: { ...config.equipment.gateKit },
+      serverGateKit: { ...config.equipment.serverGateKit },
+      clientGateKit: { ...config.equipment.clientGateKit },
     },
     experimental: { ...config.experimental },
   };

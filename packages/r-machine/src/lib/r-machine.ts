@@ -21,12 +21,12 @@ import {
   type AnyResEquipment,
   BlueprintManager,
   type BridgeGearNamespaceList,
+  type ClientGateKit,
   createGearComposer,
   createHubGearComposer,
   createResLayoutEntryTypeResolver,
   createShellComposer,
   type ExperimentalFlags,
-  type GateKit,
   type GateWire,
   GateWireManager,
   type GearKit,
@@ -37,6 +37,7 @@ import {
   type KitKind,
   type ResComposerConnector,
   type ResEquipment,
+  type ServerGateKit,
   type ShellKit,
   type SurfaceList,
   type VertexGearMap,
@@ -140,7 +141,14 @@ export class RMachine<
       nsDeps = getNamespaceList(deps);
     }
 
-    const result = await this.junctureManager.getPlugin("gate", nsDeps, this.defaultLocale, undefined, 0, undefined);
+    const result = await this.junctureManager.getPlugin(
+      "clientGate",
+      nsDeps,
+      this.defaultLocale,
+      undefined,
+      0,
+      undefined
+    );
     return result as SurfaceList<RA, DL>;
   }
 
@@ -150,12 +158,13 @@ export class RMachine<
     const BGL extends BridgeGearNamespaceList<InstanceType<RAC>> = [],
     GK extends GearKit<InstanceType<RAC>> = {},
     SK extends ShellKit<InstanceType<RAC>, BGL> = {},
-    XK extends GateKit<InstanceType<RAC>> = {},
+    SGK extends ServerGateKit<InstanceType<RAC>> = {},
+    CGK extends ClientGateKit<InstanceType<RAC>> = {},
     EF extends ExperimentalFlags = {},
   >(
-    config: RMachineConfigParams<RAC, LL, BGL, GK, SK, XK, EF>
-  ): RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, XK>, EF> {
-    return new RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, XK>, EF>(
+    config: RMachineConfigParams<RAC, LL, BGL, GK, SK, SGK, CGK, EF>
+  ): RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, SGK, CGK>, EF> {
+    return new RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, SGK, CGK>, EF>(
       convertParamsToConfig(config)
     );
   }
