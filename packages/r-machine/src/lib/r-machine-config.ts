@@ -128,14 +128,14 @@ export function validateRMachineConfig(config: RMachineConfig<any, any, any, any
     );
   }
 
-  if (!config.experimental.vertexGear) {
+  if (!config.experimental.clientGear) {
     const vertexPrefixes = Object.entries(config.layout)
-      .filter(([, type]) => type === "gear:client(vertex)")
+      .filter(([, type]) => (type as string).startsWith("gear:client"))
       .map(([prefix]) => prefix);
     if (vertexPrefixes.length) {
       return new RMachineConfigError(
         ERR_EXPERIMENTAL_VERTEX_GEAR_REQUIRED,
-        `Layout contains "gear:client(vertex)" entries (${vertexPrefixes.map((p) => `"${p}"`).join(", ")}) but the "vertexGear" experimental feature is not enabled. Add \`experimental: { vertexGear: true }\` to RMachine.create(...) to opt in.`
+        `Layout contains "gear:client" entries (${vertexPrefixes.map((p) => `"${p}"`).join(", ")}) but the "clientGear" experimental feature is not enabled. Add \`experimental: { clientGear: true }\` to RMachine.create(...) to opt in.`
       );
     }
   }

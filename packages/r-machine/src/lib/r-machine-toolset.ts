@@ -17,23 +17,27 @@ import type {
   AnyResEquipment,
   ExperimentalFlags,
   GearComposer,
+  HubGearComposer,
   Namespace,
   ShellComposer,
 } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
-export interface RMachineToolset<
+export type RMachineToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
-> {
-  readonly Gear: GearComposer<RA, E["gearKit"], EF>;
-  readonly ClientGear: GearComposer<RA, E["gearKit"], EF>;
+> = {
+  readonly HubGear: HubGearComposer<RA, E["gearKit"]>;
   readonly ServerGear: GearComposer<RA, E["gearKit"], EF>;
   readonly Shell: ShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>;
   readonly localized: LocalizerHelper<RA["shape@shell:*"]>;
-}
+} & (EF["clientGear"] extends "on"
+  ? {
+      readonly ClientGear: GearComposer<RA, E["gearKit"], EF>;
+    }
+  : {});
 
 type LocalizerHelper<RD extends AnyResDomain> = <N extends Namespace<RD>, const R extends RD[N]>(
   namespace: N,

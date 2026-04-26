@@ -12,16 +12,23 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
+import type { GearRole } from "./gear.js";
 import { createPlug, getPlugResolve, setPlugResolve } from "./plug.js";
-import type { AnyRes, AnyResOrigin, ResFamily } from "./res.js";
+import type { AnyRes, AnyResOrigin } from "./res.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { AnyNamespace } from "./res-domain.js";
 import type { AnyResPlug, AnyResPlugHead } from "./res-plug.js";
 
-export interface ResMatrixMeta {
-  readonly family: ResFamily;
-  readonly isReactive: boolean;
+export interface GearMatrixMeta {
+  readonly family: "gear";
+  readonly role: GearRole;
 }
+
+export interface ShellMatrixMeta {
+  readonly family: "shell";
+}
+
+type ResMatrixMeta = GearMatrixMeta | ShellMatrixMeta;
 
 const resMatrixMetaSymbol: unique symbol = Symbol("resMatrixMeta");
 // Cannot use ResMatrix<R extends AnyRes, ...> because of res tags

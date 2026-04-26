@@ -24,6 +24,7 @@ export type { GateWire } from "./gate-wire.js";
 export { GateWireManager } from "./gate-wire-manager.js";
 export { createGearComposer, type GearComposer } from "./gear-composer.js";
 export type { Getter } from "./getter.js";
+export { createHubGearComposer, type HubGearComposer } from "./hub-gear-composer.js";
 export {
   buildReactiveJuncture,
   buildStaticJuncture,
@@ -74,6 +75,7 @@ export type {
   BridgeGearNamespaceList,
   GateKit,
   GearKit,
+  KitKind,
   ResEquipment,
   ShellKit,
 } from "./res-equipment.js";

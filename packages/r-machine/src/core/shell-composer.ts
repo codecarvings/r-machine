@@ -21,8 +21,7 @@ import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { Handle } from "./res-domain.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
-import type { ResMatrixMeta } from "./res-matrix.js";
-import { createResMatrix } from "./res-matrix.js";
+import { createResMatrix, type ShellMatrixMeta } from "./res-matrix.js";
 import { createResListPlugHead, createResMapPlugHead } from "./res-plug.js";
 import type { ShellListDefiner, ShellMapDefiner } from "./shell.js";
 
@@ -86,7 +85,9 @@ interface ShellListDepsComposer<
 
 // #region Runtime
 
-const meta: ResMatrixMeta = { family: "shell", isReactive: false };
+const meta: ShellMatrixMeta = { family: "shell" };
+
+const cursor = undefined;
 
 export function createShellComposer<
   RA extends AnyResAtlas,
@@ -146,11 +147,8 @@ function createShellMapDefiner<
       connector,
       meta,
       head,
-      cursor: undefined,
-      userFactory: ((plugin: unknown) => factory(plugin as never)) as (
-        plugin: unknown,
-        cursor: never
-      ) => AnyRes | Promise<AnyRes>,
+      cursor,
+      userFactory: factory as (plugin: unknown) => AnyRes | Promise<AnyRes>,
     });
 }
 
@@ -167,11 +165,8 @@ function createShellListDefiner<
       connector,
       meta,
       head,
-      cursor: undefined,
-      userFactory: ((plugin: unknown) => factory(plugin as never)) as (
-        plugin: unknown,
-        cursor: never
-      ) => AnyRes | Promise<AnyRes>,
+      cursor,
+      userFactory: factory as (plugin: unknown) => AnyRes | Promise<AnyRes>,
     });
 }
 

@@ -22,6 +22,7 @@ import {
   BlueprintManager,
   type BridgeGearNamespaceList,
   createGearComposer,
+  createHubGearComposer,
   createResLayoutEntryTypeResolver,
   createShellComposer,
   type ExperimentalFlags,
@@ -33,9 +34,9 @@ import {
   type HandleList,
   isNamespaceList,
   JunctureManager,
+  type KitKind,
   type ResComposerConnector,
   type ResEquipment,
-  type ResFamily,
   type ShellKit,
   type SurfaceList,
   type VertexGearMap,
@@ -85,12 +86,9 @@ export class RMachine<
   protected warnExperimental() {
     const display = (feature: string) =>
       console.warn(`R-Machine: ${feature} (experimental). API may change before stable release.`);
-    if (this.config.experimental.vertexGear === "on" && this.config.experimental.reactiveGear === "on") {
-      display("Reactive Gear and Vertex Gear are enabled");
-    } else if (this.config.experimental.vertexGear === "on") {
-      display("Vertex Gear is enabled");
-    } else if (this.config.experimental.reactiveGear === "on") {
-      display("Reactive Gear is enabled");
+
+    if (this.config.experimental.clientGear === "on") {
+      display("Client Gear is enabled");
     }
   }
 
@@ -110,10 +108,10 @@ export class RMachine<
   }
   */
 
-  protected createResComposerConnector(family: ResFamily): ResComposerConnector {
+  protected createResComposerConnector(kitKind: KitKind): ResComposerConnector {
     return {
       getWire: async (deps, locale, selfNamespace) => {
-        const plugin = await this.junctureManager.getPlugin(family, deps, locale, selfNamespace, 0, undefined);
+        const plugin = await this.junctureManager.getPlugin(kitKind, deps, locale, selfNamespace, 0, undefined);
         return {
           plugin,
         };
@@ -122,11 +120,11 @@ export class RMachine<
   }
 
   createToolset(): RMachineToolset<RA, L, E, EF> {
-    const Gear = createGearComposer<RA, E["gearKit"], EF>(this.createResComposerConnector("gear"));
+    const HubGear = createHubGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"));
     const ClientGear = createGearComposer<RA, E["gearKit"], EF>(this.createResComposerConnector("gear"));
     const ServerGear = createGearComposer<RA, E["gearKit"], EF>(this.createResComposerConnector("gear"));
     const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(this.createResComposerConnector("shell"));
-    return { Gear, ClientGear, ServerGear, Shell, localized };
+    return { HubGear, ClientGear, ServerGear, Shell, localized };
   }
 
   getGateWire(plugHead: AnyPlugHead, locale: L, vertexGearMap?: VertexGearMap | undefined): GateWire {

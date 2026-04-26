@@ -12,6 +12,5 @@
  */
 
 export interface ExperimentalFlags {
-  reactiveGear?: "on";
-  vertexGear?: "on";
+  clientGear?: "on";
 }

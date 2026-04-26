@@ -31,7 +31,7 @@ export type NextAppClientToolset<
 > = {
   readonly NextClientRMachine: NextAppClientRMachine<L>;
   readonly ClientPlug: NextClientPlugDefiner<RA, L, E["gateKit"], PA>;
-} & (EF["vertexGear"] extends "on"
+} & (EF["clientGear"] extends "on"
   ? {
       readonly ClientVertexFrame: VertexFrameType;
     }
@@ -63,7 +63,7 @@ export async function createNextAppClientToolset<
   PA extends AnyPathAtlas,
 >(rMachine: RMachine<RA, L, E, EF>, impl: NextAppClientImpl<L>): Promise<NextAppClientToolset<RA, L, E, EF, PA>> {
   const { ReactRMachine, VertexFrame } = await createReactBareToolset(
-    rMachine as RMachine<RA, L, E, { vertexGear: "on" }>
+    rMachine as RMachine<RA, L, E, { clientGear: "on" }>
   );
 
   // TODO: WP

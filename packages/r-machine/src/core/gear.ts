@@ -21,23 +21,25 @@ import type { HandleMap } from "./res-map.js";
 import type { ResMatrix } from "./res-matrix.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
+export type GearRole = "hub" | "server" | "client";
+
 export interface GearCursor {
   readonly relay: RelayComposer;
   readonly cmd: CmdComposer;
 }
 
-type GatePluginCtx<RA extends AnyResAtlas, KM extends HandleMap<RA>> = PluginCtx<RA, KM>;
+type GearPluginCtx<RA extends AnyResAtlas, KM extends HandleMap<RA>> = PluginCtx<RA, KM>;
 
 export type GearMapPlugin<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>> = MapPlugin<
   RA,
   DM,
-  GatePluginCtx<RA, KM>
+  GearPluginCtx<RA, KM>
 >;
 
 export type GearListPlugin<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>> = ListPlugin<
   RA,
   DL,
-  GatePluginCtx<RA, KM>
+  GearPluginCtx<RA, KM>
 >;
 
 type GearMapPlugHead<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>> = ResMapPlugHead<
@@ -45,7 +47,7 @@ type GearMapPlugHead<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extend
   RA,
   KM,
   DM,
-  GatePluginCtx<RA, KM>
+  GearPluginCtx<RA, KM>
 >;
 
 type GearListPlugHead<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>> = ResListPlugHead<
@@ -53,7 +55,7 @@ type GearListPlugHead<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL exten
   RA,
   KM,
   DL,
-  GatePluginCtx<RA, KM>
+  GearPluginCtx<RA, KM>
 >;
 
 interface GearMapPlug<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>>

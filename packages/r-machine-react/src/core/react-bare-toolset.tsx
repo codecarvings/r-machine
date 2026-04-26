@@ -38,7 +38,7 @@ export type ReactBareToolset<
 > = {
   readonly ReactRMachine: ReactBareRMachine<L>;
   readonly Plug: ReactPlugDefiner<RA, L, E["gateKit"]>;
-} & (EF["vertexGear"] extends "on"
+} & (EF["clientGear"] extends "on"
   ? {
       readonly VertexFrame: typeof VertexFrame;
     }
