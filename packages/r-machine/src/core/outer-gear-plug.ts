@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { ActionComposer, DefaultAction } from "./action.js";
+import type { ActionComposer } from "./action.js";
 import type { CmdComposer } from "./cmd.js";
 import {
   createGearListPlugHead,
@@ -20,16 +20,18 @@ import {
   type GearMapPlugHead,
   type GearPlugKitMap,
 } from "./gear-plug.js";
-import type { DefaultGetter, GetterComposer } from "./getter.js";
-import type { AnyOuterGear, RejectAsyncValueProps } from "./outer-gear.js";
+import type { GetterComposer, StatelessGetterComposer } from "./getter.js";
+import type { AnyState } from "./outer-gear.js";
 import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
 import type { RelayComposer } from "./relay.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
-import type { ResMatrix } from "./res-matrix.js";
 
-export type AnyState = unknown; // Record<PropertyKey, unknown> & object;
+export type OuterGearPlugDepMap<RA extends AnyResAtlas> = HandleMap<RA, "valid@gear:outer">;
+export type OuterGearPlugDepList<RA extends AnyResAtlas> = HandleList<RA, "valid@gear:outer">;
+
+// #region Stateful
 
 export interface StatefulOuterGearCursor<S extends AnyState> {
   readonly getter: GetterComposer<S>;
@@ -46,24 +48,24 @@ export type StatefulOuterGearCtx<RA extends AnyResAtlas, KM extends GearPlugKitM
   readonly defaultState: S;
 };
 
-type StatefulOuterGearMapPlugin<
+export type StatefulOuterGearMapPlugin<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
-  DM extends HandleMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
   S extends AnyState,
 > = MapPlugin<RA, DM, StatefulOuterGearCtx<RA, KM, S>>;
 
-type StatefulOuterGearListPlugin<
+export type StatefulOuterGearListPlugin<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
-  DL extends HandleList<RA>,
+  DL extends OuterGearPlugDepList<RA>,
   S extends AnyState,
 > = ListPlugin<RA, DL, StatefulOuterGearCtx<RA, KM, S>>;
 
 interface StatefulOuterGearMapPlugHead<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
-  DM extends HandleMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
   CTX extends StatefulOuterGearCtx<RA, KM, S>,
   S extends AnyState,
 > extends GearMapPlugHead<"outer", RA, KM, DM, CTX> {
@@ -73,7 +75,7 @@ interface StatefulOuterGearMapPlugHead<
 export function createStatefulOuterGearMapPlugHead<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
-  DM extends HandleMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
   CTX extends StatefulOuterGearCtx<RA, KM, S>,
   S extends AnyState,
 >(deps: DM, defaultState: S): StatefulOuterGearMapPlugHead<RA, KM, DM, CTX, S> {
@@ -86,7 +88,7 @@ export function createStatefulOuterGearMapPlugHead<
 interface StatefulOuterGearListPlugHead<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
-  DL extends HandleList<RA>,
+  DL extends OuterGearPlugDepList<RA>,
   CTX extends StatefulOuterGearCtx<RA, KM, S>,
   S extends AnyState,
 > extends GearListPlugHead<"outer", RA, KM, DL, CTX> {
@@ -96,7 +98,7 @@ interface StatefulOuterGearListPlugHead<
 export function createStatefulOuterGearListPlugHead<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
-  DL extends HandleList<RA>,
+  DL extends OuterGearPlugDepList<RA>,
   CTX extends StatefulOuterGearCtx<RA, KM, S>,
   S extends AnyState,
 >(deps: DL, defaultState: S): StatefulOuterGearListPlugHead<RA, KM, DL, CTX, S> {
@@ -106,66 +108,66 @@ export function createStatefulOuterGearListPlugHead<
   } as unknown as StatefulOuterGearListPlugHead<RA, KM, DL, CTX, S>;
 }
 
-interface StatefulOuterGearMapPlug<
+export interface StatefulOuterGearMapPlug<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
-  DM extends HandleMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
   S extends AnyState,
 > extends PlugBody<StatefulOuterGearMapPlugHead<RA, KM, DM, StatefulOuterGearCtx<RA, KM, S>, S>> {}
 
-interface StatefulOuterGearListPlug<
+export interface StatefulOuterGearListPlug<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
-  DL extends HandleList<RA>,
+  DL extends OuterGearPlugDepList<RA>,
   S extends AnyState,
 > extends PlugBody<StatefulOuterGearListPlugHead<RA, KM, DL, StatefulOuterGearCtx<RA, KM, S>, S>> {}
 
-type ReadableOuterGearResource<S extends AnyState, G extends string> = { [P in G]: DefaultGetter<S> };
-type WritableOuterGearResource<S extends AnyState, G extends string, A extends string> = {
-  [P in G]: DefaultGetter<S>;
-} & {
-  [P in A]: DefaultAction<S>;
-};
+// #endregion
 
-type ReadonlyStateDef = readonly [string];
-type WritableStateDef = readonly [string, string];
-type StateDef = ReadonlyStateDef | WritableStateDef;
+// #region Stateless
 
-type StateOuterGearResource<S extends AnyState, D extends StateDef> = D extends readonly [
-  infer G extends string,
-  infer A extends string,
-]
-  ? WritableOuterGearResource<S, G, A>
-  : D extends readonly [infer G extends string]
-    ? ReadableOuterGearResource<S, G>
-    : never;
-
-export interface StatefulOuterGearMapDefiner<
-  RA extends AnyResAtlas,
-  KM extends GearPlugKitMap<RA>,
-  DM extends HandleMap<RA>,
-  S extends AnyState,
-> {
-  <const D extends StateDef>(
-    factory: (plugin: StatefulOuterGearMapPlugin<RA, KM, DM, S>, _: StatefulOuterGearCursor<S>) => D | Promise<D>
-  ): ResMatrix<StateOuterGearResource<S, D>, StatefulOuterGearMapPlug<RA, KM, DM, S>>;
-
-  <R extends AnyOuterGear & RejectAsyncValueProps<R>>(
-    factory: (plugin: StatefulOuterGearMapPlugin<RA, KM, DM, S>, _: StatefulOuterGearCursor<S>) => R | Promise<R>
-  ): ResMatrix<R, StatefulOuterGearMapPlug<RA, KM, DM, S>>;
+export interface StatelessOuterGearCursor {
+  readonly getter: StatelessGetterComposer;
+  readonly relay: RelayComposer;
+  readonly cmd: CmdComposer;
 }
 
-export interface StatefulOuterGearListDefiner<
+type StatelessOuterGearPluginCtx<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> = PluginCtx<RA, KM>;
+
+export type StatelessOuterGearMapPlugin<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
-  DL extends HandleList<RA>,
-  S extends AnyState,
-> {
-  <const D extends StateDef>(
-    factory: (plugin: StatefulOuterGearListPlugin<RA, KM, DL, S>, _: StatefulOuterGearCursor<S>) => D | Promise<D>
-  ): ResMatrix<StateOuterGearResource<S, D>, StatefulOuterGearListPlug<RA, KM, DL, S>>;
+  DM extends OuterGearPlugDepMap<RA>,
+> = MapPlugin<RA, DM, StatelessOuterGearPluginCtx<RA, KM>>;
 
-  <R extends AnyOuterGear & RejectAsyncValueProps<R>>(
-    factory: (plugin: StatefulOuterGearListPlugin<RA, KM, DL, S>, _: StatefulOuterGearCursor<S>) => R | Promise<R>
-  ): ResMatrix<R, StatefulOuterGearListPlug<RA, KM, DL, S>>;
-}
+export type StatelessOuterGearListPlugin<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends OuterGearPlugDepList<RA>,
+> = ListPlugin<RA, DL, StatelessOuterGearPluginCtx<RA, KM>>;
+
+type StatelessOuterGearMapPlugHead<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
+> = GearMapPlugHead<"outer", RA, KM, DM, StatelessOuterGearPluginCtx<RA, KM>>;
+
+type StatelessOuterGearListPlugHead<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends OuterGearPlugDepList<RA>,
+> = GearListPlugHead<"outer", RA, KM, DL, StatelessOuterGearPluginCtx<RA, KM>>;
+
+export interface StatelessOuterGearMapPlug<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
+> extends PlugBody<StatelessOuterGearMapPlugHead<RA, KM, DM>> {}
+
+export interface StatelessOuterGearListPlug<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends OuterGearPlugDepList<RA>,
+> extends PlugBody<StatelessOuterGearListPlugHead<RA, KM, DL>> {}
+
+// #endregion

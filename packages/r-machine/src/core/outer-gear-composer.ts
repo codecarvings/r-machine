@@ -11,39 +11,36 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { RMachineTypeError } from "#r-machine/errors";
+import type { DefaultAction } from "./action.js";
 import { lazyGetters } from "./composer-utils.js";
 import { createGearListPlugHead, createGearMapPlugHead, type GearPlugKitMap } from "./gear-plug.js";
+import type { DefaultGetter } from "./getter.js";
+import type { AnyOuterGear, AnyState, RejectAsyncValueProps } from "./outer-gear.js";
+import {
+  createStatefulOuterGearListPlugHead,
+  createStatefulOuterGearMapPlugHead,
+  type OuterGearPlugDepList,
+  type OuterGearPlugDepMap,
+  type StatefulOuterGearCtx,
+  type StatefulOuterGearCursor,
+  type StatefulOuterGearListPlug,
+  type StatefulOuterGearListPlugin,
+  type StatefulOuterGearMapPlug,
+  type StatefulOuterGearMapPlugin,
+  type StatelessOuterGearCursor,
+  type StatelessOuterGearListPlug,
+  type StatelessOuterGearListPlugin,
+  type StatelessOuterGearMapPlug,
+  type StatelessOuterGearMapPlugin,
+} from "./outer-gear-plug.js";
 import { getPlugOutline, type PluginCtx } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
-import type { Handle } from "./res-domain.js";
-import type { HandleList } from "./res-list.js";
-import type { HandleMap } from "./res-map.js";
-import type { GearMatrixMeta } from "./res-matrix.js";
+import type { ValidatedDepListType } from "./res-list.js";
+import type { HandleMap, ValidatedDepMapType } from "./res-map.js";
+import type { GearMatrixMeta, ResMatrix } from "./res-matrix.js";
 import { createResMatrix } from "./res-matrix.js";
-import {
-  type AnyState,
-  createStatefulOuterGearListPlugHead,
-  createStatefulOuterGearMapPlugHead,
-  type StatefulOuterGearCtx,
-  type StatefulOuterGearCursor,
-  type StatefulOuterGearListDefiner,
-  type StatefulOuterGearMapDefiner,
-} from "./stateful-outer-gear.js";
-import type {
-  StatelessOuterGearCursor,
-  StatelessOuterGearListDefiner,
-  StatelessOuterGearMapDefiner,
-} from "./stateless-outer-gear.js";
-
-type ValidOuterGearDepItem<RA extends AnyResAtlas, H> =
-  H extends Handle<RA["valid@gear:outer"]>
-    ? H
-    : H extends string
-      ? RMachineTypeError<`Namespace '${H}' is not valid for an outer gear plug.`>
-      : RMachineTypeError<"This token does not reference a valid namespace for an outer gear plug.">;
 
 export interface OuterGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   readonly withState: OuterGearMapStateComposer<RA, KM, {}>;
@@ -52,40 +49,46 @@ export interface OuterGearComposer<RA extends AnyResAtlas, KM extends GearPlugKi
 
 interface OuterGearDepsComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   (): OuterGearMapComposer<RA, KM, {}>;
-  <const DL extends readonly Handle<RA["shape"]>[]>(
-    ...deps: { readonly [I in keyof DL]: ValidOuterGearDepItem<RA, DL[I]> }
-  ): OuterGearListComposer<RA, KM, DL>;
-  <const DM extends { readonly [k: string]: Handle<RA["shape"]> }>(
-    deps: { readonly [K in keyof DM]: ValidOuterGearDepItem<RA, DM[K]> }
-  ): OuterGearMapComposer<RA, KM, DM>;
+  <const DL extends OuterGearPlugDepList<RA>>(...deps: DL): ValidatedDepListType<DL, OuterGearListComposer<RA, KM, DL>>;
+  <const DM extends OuterGearPlugDepMap<RA>>(deps: DM): ValidatedDepMapType<DM, OuterGearMapComposer<RA, KM, DM>>;
 }
 
-interface OuterGearMapComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DM extends HandleMap<RA>> {
+interface OuterGearMapComposer<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
+> {
   readonly withState: OuterGearMapStateComposer<RA, KM, DM>;
   readonly define: StatelessOuterGearMapDefiner<RA, KM, DM>;
 }
 
-interface OuterGearListComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DL extends HandleList<RA>> {
+interface OuterGearListComposer<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends OuterGearPlugDepList<RA>,
+> {
   readonly withState: OuterGearListStateComposer<RA, KM, DL>;
   readonly define: StatelessOuterGearListDefiner<RA, KM, DL>;
 }
 
-type OuterGearMapStateComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DM extends HandleMap<RA>> = <
-  S extends AnyState,
->(
-  defaultState: S
-) => StatefulOuterGearMapComposer<RA, KM, DM, S>;
+type OuterGearMapStateComposer<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
+> = <S extends AnyState>(defaultState: S) => StatefulOuterGearMapComposer<RA, KM, DM, S>;
 
-type OuterGearListStateComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DL extends HandleList<RA>> = <
-  S extends AnyState,
->(
-  defaultState: S
-) => StatefulOuterGearListComposer<RA, KM, DL, S>;
+type OuterGearListStateComposer<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends OuterGearPlugDepList<RA>,
+> = <S extends AnyState>(defaultState: S) => StatefulOuterGearListComposer<RA, KM, DL, S>;
+
+// #region Stateful
 
 interface StatefulOuterGearMapComposer<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
-  DM extends HandleMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
   S extends AnyState,
 > {
   readonly define: StatefulOuterGearMapDefiner<RA, KM, DM, S>;
@@ -94,11 +97,83 @@ interface StatefulOuterGearMapComposer<
 interface StatefulOuterGearListComposer<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
-  DL extends HandleList<RA>,
+  DL extends OuterGearPlugDepList<RA>,
   S extends AnyState,
 > {
   readonly define: StatefulOuterGearListDefiner<RA, KM, DL, S>;
 }
+
+type ReadableOuterGearResource<S extends AnyState, G extends string> = { [P in G]: DefaultGetter<S> };
+type WritableOuterGearResource<S extends AnyState, G extends string, A extends string> = {
+  [P in G]: DefaultGetter<S>;
+} & {
+  [P in A]: DefaultAction<S>;
+};
+
+type ReadonlyStateDef = readonly [string];
+type WritableStateDef = readonly [string, string];
+type StateDef = ReadonlyStateDef | WritableStateDef;
+
+type StateOuterGearResource<S extends AnyState, D extends StateDef> = D extends readonly [
+  infer G extends string,
+  infer A extends string,
+]
+  ? WritableOuterGearResource<S, G, A>
+  : D extends readonly [infer G extends string]
+    ? ReadableOuterGearResource<S, G>
+    : never;
+
+interface StatefulOuterGearMapDefiner<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
+  S extends AnyState,
+> {
+  <const D extends StateDef>(
+    factory: (plugin: StatefulOuterGearMapPlugin<RA, KM, DM, S>, _: StatefulOuterGearCursor<S>) => D | Promise<D>
+  ): ResMatrix<StateOuterGearResource<S, D>, StatefulOuterGearMapPlug<RA, KM, DM, S>>;
+
+  <R extends AnyOuterGear & RejectAsyncValueProps<R>>(
+    factory: (plugin: StatefulOuterGearMapPlugin<RA, KM, DM, S>, _: StatefulOuterGearCursor<S>) => R | Promise<R>
+  ): ResMatrix<R, StatefulOuterGearMapPlug<RA, KM, DM, S>>;
+}
+
+interface StatefulOuterGearListDefiner<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends OuterGearPlugDepList<RA>,
+  S extends AnyState,
+> {
+  <const D extends StateDef>(
+    factory: (plugin: StatefulOuterGearListPlugin<RA, KM, DL, S>, _: StatefulOuterGearCursor<S>) => D | Promise<D>
+  ): ResMatrix<StateOuterGearResource<S, D>, StatefulOuterGearListPlug<RA, KM, DL, S>>;
+
+  <R extends AnyOuterGear & RejectAsyncValueProps<R>>(
+    factory: (plugin: StatefulOuterGearListPlugin<RA, KM, DL, S>, _: StatefulOuterGearCursor<S>) => R | Promise<R>
+  ): ResMatrix<R, StatefulOuterGearListPlug<RA, KM, DL, S>>;
+}
+
+// #endregion
+
+// #region Stateless
+
+type StatelessOuterGearMapDefiner<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
+> = <R extends AnyOuterGear & RejectAsyncValueProps<R>>(
+  factory: (plugin: StatelessOuterGearMapPlugin<RA, KM, DM>, _: StatelessOuterGearCursor) => R | Promise<R>
+) => ResMatrix<R, StatelessOuterGearMapPlug<RA, KM, DM>>;
+
+type StatelessOuterGearListDefiner<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends OuterGearPlugDepList<RA>,
+> = <R extends AnyOuterGear & RejectAsyncValueProps<R>>(
+  factory: (plugin: StatelessOuterGearListPlugin<RA, KM, DL>, _: StatelessOuterGearCursor) => R | Promise<R>
+) => ResMatrix<R, StatelessOuterGearListPlug<RA, KM, DL>>;
+
+// #endregion
 
 // #region Runtime
 
@@ -164,10 +239,11 @@ export function createOuterGearComposer<RA extends AnyResAtlas, KM extends GearP
   return { withState, deps };
 }
 
-function createOuterGearMapComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DM extends HandleMap<RA>>(
-  connector: ResComposerConnector,
-  deps: DM
-): OuterGearMapComposer<RA, KM, DM> {
+function createOuterGearMapComposer<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
+>(connector: ResComposerConnector, deps: DM): OuterGearMapComposer<RA, KM, DM> {
   return lazyGetters({
     withState: () =>
       (<S extends AnyState>(defaultState: S) => ({
@@ -177,10 +253,11 @@ function createOuterGearMapComposer<RA extends AnyResAtlas, KM extends GearPlugK
   });
 }
 
-function createOuterGearListComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DL extends HandleList<RA>>(
-  connector: ResComposerConnector,
-  deps: DL
-): OuterGearListComposer<RA, KM, DL> {
+function createOuterGearListComposer<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends OuterGearPlugDepList<RA>,
+>(connector: ResComposerConnector, deps: DL): OuterGearListComposer<RA, KM, DL> {
   return lazyGetters({
     withState: () =>
       (<S extends AnyState>(defaultState: S) => ({
@@ -193,7 +270,7 @@ function createOuterGearListComposer<RA extends AnyResAtlas, KM extends GearPlug
 function createStatefulOuterGearMapDefiner<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
-  DM extends HandleMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
   S extends AnyState,
 >(connector: ResComposerConnector, deps: DM, defaultState: S): StatefulOuterGearMapDefiner<RA, KM, DM, S> {
   const head = createStatefulOuterGearMapPlugHead<RA, KM, DM, StatefulOuterGearCtx<RA, KM, S>, S>(deps, defaultState);
@@ -218,7 +295,7 @@ function createStatefulOuterGearMapDefiner<
 function createStatefulOuterGearListDefiner<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
-  DL extends HandleList<RA>,
+  DL extends OuterGearPlugDepList<RA>,
   S extends AnyState,
 >(connector: ResComposerConnector, deps: DL, state: S): StatefulOuterGearListDefiner<RA, KM, DL, S> {
   const head = createStatefulOuterGearListPlugHead<RA, KM, DL, StatefulOuterGearCtx<RA, KM, S>, S>(deps, state);
@@ -244,7 +321,7 @@ function createStatefulOuterGearListDefiner<
 function createStatelessOuterGearMapDefiner<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
-  DM extends HandleMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
 >(connector: ResComposerConnector, deps: DM): StatelessOuterGearMapDefiner<RA, KM, DM> {
   const head = createGearMapPlugHead<"outer", RA, KM, DM, PluginCtx<RA, KM>>("outer", deps);
 
@@ -261,7 +338,7 @@ function createStatelessOuterGearMapDefiner<
 function createStatelessOuterGearListDefiner<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
-  DL extends HandleList<RA>,
+  DL extends OuterGearPlugDepList<RA>,
 >(connector: ResComposerConnector, deps: DL): StatelessOuterGearListDefiner<RA, KM, DL> {
   const head = createGearListPlugHead<"outer", RA, KM, DL, PluginCtx<RA, KM>>("outer", deps);
 

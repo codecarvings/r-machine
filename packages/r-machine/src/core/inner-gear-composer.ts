@@ -11,7 +11,6 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { RMachineTypeError } from "#r-machine/errors";
 import { lazyGetters } from "./composer-utils.js";
 import { createGearListPlugHead, createGearMapPlugHead, type GearPlugKitMap } from "./gear-plug.js";
 import type {
@@ -26,15 +25,9 @@ import { getPlugOutline, type PluginCtx } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
-import type { Handle } from "./res-domain.js";
+import type { ValidatedDepListType } from "./res-list.js";
+import type { ValidatedDepMapType } from "./res-map.js";
 import { createResMatrix, type GearMatrixMeta, type ResMatrix } from "./res-matrix.js";
-
-type ValidInnerGearDepItem<RA extends AnyResAtlas, H> =
-  H extends Handle<RA["valid@gear:inner"]>
-    ? H
-    : H extends string
-      ? RMachineTypeError<`Namespace '${H}' is not valid for an inner gear plug.`>
-      : RMachineTypeError<"This token does not reference a valid namespace for an inner gear plug.">;
 
 export interface InnerGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   readonly deps: InnerGearDepsComposer<RA, KM>;
@@ -43,12 +36,8 @@ export interface InnerGearComposer<RA extends AnyResAtlas, KM extends GearPlugKi
 
 interface InnerGearDepsComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   (): InnerGearMapComposer<RA, KM, {}>;
-  <const DL extends readonly Handle<RA["shape"]>[]>(
-    ...deps: { readonly [I in keyof DL]: ValidInnerGearDepItem<RA, DL[I]> }
-  ): InnerGearListComposer<RA, KM, DL>;
-  <const DM extends { readonly [k: string]: Handle<RA["shape"]> }>(
-    deps: { readonly [K in keyof DM]: ValidInnerGearDepItem<RA, DM[K]> }
-  ): InnerGearMapComposer<RA, KM, DM>;
+  <const DL extends InnerGearPlugDepList<RA>>(...deps: DL): ValidatedDepListType<DL, InnerGearListComposer<RA, KM, DL>>;
+  <const DM extends InnerGearPlugDepMap<RA>>(deps: DM): ValidatedDepMapType<DM, InnerGearMapComposer<RA, KM, DM>>;
 }
 
 interface InnerGearMapComposer<

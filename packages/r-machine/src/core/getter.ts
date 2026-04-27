@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyState } from "./stateful-outer-gear.js";
+import type { AnyState } from "./outer-gear.js";
 
 declare const getterBrand: unique symbol;
 export interface GetterBrand {

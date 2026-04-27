@@ -15,6 +15,8 @@ import type { ActionBrand } from "./action.js";
 import type { GetterBrand } from "./getter.js";
 import type { RelayBrand } from "./relay.js";
 
+export type AnyState = unknown; // Record<PropertyKey, unknown> & object;
+
 type AnyOuterGearItem = ActionBrand | GetterBrand | RelayBrand | ((...args: any[]) => any);
 export interface AnyOuterGear {
   [key: string]: AnyOuterGearItem;
