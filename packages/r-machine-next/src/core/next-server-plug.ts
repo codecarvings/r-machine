@@ -11,7 +11,15 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, HandleMap, PlugBody, SolidHandleList, SolidHandleMap } from "r-machine/core";
+import type {
+  AnyResAtlas,
+  HandleList,
+  HandleMap,
+  NamespaceMap,
+  PlugBody,
+  ValidatedDepListType,
+  ValidatedDepMapType,
+} from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type {
   NextListPlugHead,
@@ -24,6 +32,10 @@ import type {
 } from "./next-plug.js";
 import type { AnyPathAtlas } from "./path-atlas.js";
 
+export type NextServerPlugKitMap<RA extends AnyResAtlas> = NamespaceMap<RA, "valid@server">;
+type NextServerPlugDepMap<RA extends AnyResAtlas> = HandleMap<RA, "valid@server">;
+type NextServerPlugDepList<RA extends AnyResAtlas> = HandleList<RA, "valid@server">;
+
 type RMachineParams<LK extends string> = {
   [P in LK]: AnyLocale;
 };
@@ -31,8 +43,8 @@ type RMachineParams<LK extends string> = {
 interface NextServerMapPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KM extends HandleMap<RA>,
-  DM extends SolidHandleMap<RA>,
+  KM extends NextServerPlugKitMap<RA>,
+  DM extends NextServerPlugDepMap<RA>,
   PA extends AnyPathAtlas,
   LK extends string,
 > extends PlugBody<NextMapPlugHead<RA, L, KM, DM, NextPluginCtx<RA, L, KM, PA>>> {
@@ -47,8 +59,8 @@ interface NextServerMapPlug<
 interface NextServerListPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KM extends HandleMap<RA>,
-  DL extends SolidHandleList<RA>,
+  KM extends NextServerPlugKitMap<RA>,
+  DL extends NextServerPlugDepList<RA>,
   PA extends AnyPathAtlas,
   LK extends string,
 > extends PlugBody<NextListPlugHead<RA, L, KM, DL, NextPluginCtx<RA, L, KM, PA>>> {
@@ -63,11 +75,13 @@ interface NextServerListPlug<
 export interface NextServerPlugDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KM extends HandleMap<RA>,
+  KM extends NextServerPlugKitMap<RA>,
   PA extends AnyPathAtlas,
   LK extends string,
 > {
   (): NextServerMapPlug<RA, L, KM, {}, PA, LK>;
-  <DL extends SolidHandleList<RA>>(...deps: DL): NextServerListPlug<RA, L, KM, DL, PA, LK>;
-  <DM extends SolidHandleMap<RA>>(deps: DM): NextServerMapPlug<RA, L, KM, DM, PA, LK>;
+  <DL extends NextServerPlugDepList<RA>>(
+    ...deps: DL
+  ): ValidatedDepListType<DL, NextServerListPlug<RA, L, KM, DL, PA, LK>>;
+  <DM extends NextServerPlugDepMap<RA>>(deps: DM): ValidatedDepMapType<DM, NextServerMapPlug<RA, L, KM, DM, PA, LK>>;
 }

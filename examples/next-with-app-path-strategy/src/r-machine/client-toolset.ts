@@ -2,4 +2,4 @@
 
 import { strategy } from "./setup";
 
-export const { NextClientRMachine, ClientPlug, ClientVertexFrame } = await strategy.createClientToolset();
+export const { NextClientRMachine, ClientPlug, VertexFrame } = await strategy.createClientToolset();

@@ -14,32 +14,63 @@
 import type { AnyResAtlas, ExperimentalFlags, ResEquipment, SwitchableOption } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { Strategy } from "r-machine/strategy";
-import type { AnyPathAtlas, BuiltPathAtlas, PathAtlasClass } from "#r-machine/next/core";
+import type {
+  AnyPathAtlas,
+  BuiltPathAtlas,
+  NextClientPlugKitMap,
+  NextServerPlugKitMap,
+  PathAtlasClass,
+} from "#r-machine/next/core";
 import type { NextAppClientImpl, NextAppClientRMachine, NextAppClientToolset } from "./next-app-client-toolset.js";
 import type { NextAppServerImpl, NextAppServerToolset } from "./next-app-server-toolset.js";
 
 export const localeHeaderName = "x-rm-locale";
 
-export interface NextAppStrategyConfig<PA extends AnyPathAtlas, LK extends string> {
+export interface NextAppStrategyConfig<
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+> {
+  readonly clientKit: CKM;
+  readonly serverKit: SKM;
   readonly PathAtlas: PathAtlasClass<PA>;
   readonly localeKey: LK;
   readonly autoLocaleBinding: SwitchableOption;
   readonly basePath: string;
 }
-export type AnyNextAppStrategyConfig = NextAppStrategyConfig<any, any>;
-export interface PartialNextAppStrategyConfig<PA extends AnyPathAtlas, LK extends string> {
+export type AnyNextAppStrategyConfig = NextAppStrategyConfig<any, any, any, any, any>;
+export interface PartialNextAppStrategyConfig<
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+> {
+  readonly clientKit?: CKM;
+  readonly serverKit?: SKM;
   readonly PathAtlas?: PathAtlasClass<PA>;
   readonly localeKey?: LK;
   readonly autoLocaleBinding?: SwitchableOption;
   readonly basePath?: string;
 }
 
+const defaultKit = {} as const;
 // Need to export otherwise TS will expose the type as { segment: any; }
 export class DefaultPathAtlas {
   readonly segment: any = {};
 }
 const defaultLocaleKey = "locale" as const;
-const defaultConfig: NextAppStrategyConfig<DefaultPathAtlas, typeof defaultLocaleKey> = {
+const defaultConfig: NextAppStrategyConfig<
+  AnyResAtlas,
+  typeof defaultKit,
+  typeof defaultKit,
+  DefaultPathAtlas,
+  typeof defaultLocaleKey
+> = {
+  clientKit: defaultKit,
+  serverKit: defaultKit,
   PathAtlas: DefaultPathAtlas,
   localeKey: defaultLocaleKey,
   autoLocaleBinding: "off",
@@ -60,7 +91,7 @@ export abstract class NextAppStrategyCore<
   protected abstract createClientImpl(): Promise<NextAppClientImpl<L>>;
   protected abstract createServerImpl(): Promise<NextAppServerImpl<L, C["localeKey"]>>;
 
-  async createClientToolset(): Promise<NextAppClientToolset<RA, L, E, EF, InstanceType<C["PathAtlas"]>>> {
+  async createClientToolset(): Promise<NextAppClientToolset<RA, L, EF, C["clientKit"], InstanceType<C["PathAtlas"]>>> {
     const impl = await this.createClientImpl();
     const module = await import("./next-app-client-toolset.js");
     return module.createNextAppClientToolset(this.rMachine, impl);
@@ -68,7 +99,7 @@ export abstract class NextAppStrategyCore<
 
   async createServerToolset(
     NextClientRMachine: NextAppClientRMachine<L>
-  ): Promise<NextAppServerToolset<RA, L, E, EF, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
+  ): Promise<NextAppServerToolset<RA, L, C["serverKit"], InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     const impl = await this.createServerImpl();
     const module = await import("./next-app-server-toolset.js");
     return module.createNextAppServerToolset(this.rMachine, impl, NextClientRMachine);

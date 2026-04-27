@@ -1,5 +1,5 @@
 import type { RMachineTypeError } from "#r-machine/errors";
-import type { AnyResDomain, AnyResDomainLayout, Namespace, Token, TokenBuilder } from "./res-domain.js";
+import type { AnyResDomain, AnyResDomainLayout, TokenBuilder } from "./res-domain.js";
 import type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "./res-layout.js";
 
 type ShapeMap<RL extends AnyResLayout, RD extends AnyResDomain, T extends ResLayoutEntryType> = {
@@ -85,10 +85,3 @@ export type AnyResAtlasClass = (abstract new () => AnyResAtlas) & {
   readonly [rawResAtlasShapeSymbol]: AnyResDomain;
   readonly getTokenBuilder: (...args: never[]) => TokenBuilder<AnyResDomain>;
 };
-
-export type SolidNamespace<RA extends AnyResAtlas> =
-  | Namespace<RA["valid@gear:inner"]>
-  | Namespace<RA["shape@gear:hub"]>
-  | Namespace<RA["shape@shell"]>;
-
-export type SolidHandle<RA extends AnyResAtlas> = SolidNamespace<RA> | Token<SolidNamespace<RA>>;

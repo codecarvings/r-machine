@@ -12,7 +12,7 @@
  */
 
 import type { RMachineTypeError } from "#r-machine/errors";
-import type { AnyResAtlas, ResAtlasCatalog, SolidHandle } from "./res-atlas.js";
+import type { AnyResAtlas, ResAtlasCatalog } from "./res-atlas.js";
 import {
   type AnyNamespaceCollection,
   type ExtractNamespace,
@@ -23,8 +23,6 @@ import {
 import type { Surface } from "./surface.js";
 
 export type HandleList<RA extends AnyResAtlas, C extends ResAtlasCatalog = "shape"> = readonly Handle<RA[C]>[];
-
-export type SolidHandleList<RA extends AnyResAtlas> = readonly SolidHandle<RA>[];
 
 export type NamespaceList<RA extends AnyResAtlas, C extends ResAtlasCatalog = "shape"> = readonly Namespace<RA[C]>[];
 

@@ -12,16 +12,12 @@
  */
 
 import type { RMachineTypeError } from "#r-machine/errors";
-import type { AnyResAtlas, ResAtlasCatalog, SolidHandle } from "./res-atlas.js";
+import type { AnyResAtlas, ResAtlasCatalog } from "./res-atlas.js";
 import { type ExtractNamespace, getNamespace, type Handle, type Namespace } from "./res-domain.js";
 import type { Surface } from "./surface.js";
 
 export type HandleMap<RA extends AnyResAtlas, C extends ResAtlasCatalog = "shape"> = {
   readonly [k: string]: Handle<RA[C]>;
-};
-
-export type SolidHandleMap<RA extends AnyResAtlas> = {
-  readonly [k: string]: SolidHandle<RA>;
 };
 
 export type NamespaceMap<RA extends AnyResAtlas, C extends ResAtlasCatalog = "shape"> = {

@@ -1,6 +1,6 @@
-import { Gear, type RShape } from "../setup";
+import { OuterGear, type RShape } from "../setup";
 
-export const r = Gear.reactive({ counter: 0 }).define(({ $ }, _) => {
+export const r = OuterGear.withState({ counter: 0 }).define(({ $ }, _) => {
   const setSomeValue = _.action((value: number) => ({ counter: value }));
 
   const $myRelay = _.relay({
@@ -25,4 +25,4 @@ export const r = Gear.reactive({ counter: 0 }).define(({ $ }, _) => {
   };
 });
 
-export type Gear_ShoppingCart = RShape<typeof r>;
+export type Outer_ShoppingCart = RShape<typeof r>;

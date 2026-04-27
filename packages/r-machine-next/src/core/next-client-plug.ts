@@ -11,16 +11,28 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, HandleList, HandleMap, PlugBody } from "r-machine/core";
+import type {
+  AnyResAtlas,
+  HandleList,
+  HandleMap,
+  NamespaceMap,
+  PlugBody,
+  ValidatedDepListType,
+  ValidatedDepMapType,
+} from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { NextListPlugHead, NextListPlugin, NextMapPlugHead, NextMapPlugin, NextPluginCtx } from "./next-plug.js";
 import type { AnyPathAtlas } from "./path-atlas.js";
 
+export type NextClientPlugKitMap<RA extends AnyResAtlas> = NamespaceMap<RA, "valid@client:kit">;
+type NextClientPlugDepMap<RA extends AnyResAtlas> = HandleMap<RA, "valid@client">;
+type NextClientPlugDepList<RA extends AnyResAtlas> = HandleList<RA, "valid@client">;
+
 interface NextClientMapPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KM extends HandleMap<RA>,
-  DM extends HandleMap<RA>,
+  KM extends NextClientPlugKitMap<RA>,
+  DM extends NextClientPlugDepMap<RA>,
   PA extends AnyPathAtlas,
 > extends PlugBody<NextMapPlugHead<RA, L, KM, DM, NextPluginCtx<RA, L, KM, PA>>> {
   readonly use: () => NextMapPlugin<RA, L, KM, DM, PA>;
@@ -29,8 +41,8 @@ interface NextClientMapPlug<
 interface NextClientListPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KM extends HandleMap<RA>,
-  DL extends HandleList<RA>,
+  KM extends NextClientPlugKitMap<RA>,
+  DL extends NextClientPlugDepList<RA>,
   PA extends AnyPathAtlas,
 > extends PlugBody<NextListPlugHead<RA, L, KM, DL, NextPluginCtx<RA, L, KM, PA>>> {
   readonly use: () => NextListPlugin<RA, L, KM, DL, PA>;
@@ -39,10 +51,10 @@ interface NextClientListPlug<
 export interface NextClientPlugDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KM extends HandleMap<RA>,
+  KM extends NextClientPlugKitMap<RA>,
   PA extends AnyPathAtlas,
 > {
   (): NextClientMapPlug<RA, L, KM, {}, PA>;
-  <DL extends HandleList<RA>>(...deps: DL): NextClientListPlug<RA, L, KM, DL, PA>;
-  <DM extends HandleMap<RA>>(deps: DM): NextClientMapPlug<RA, L, KM, DM, PA>;
+  <DL extends NextClientPlugDepList<RA>>(...deps: DL): ValidatedDepListType<DL, NextClientListPlug<RA, L, KM, DL, PA>>;
+  <DM extends NextClientPlugDepMap<RA>>(deps: DM): ValidatedDepMapType<DM, NextClientMapPlug<RA, L, KM, DM, PA>>;
 }

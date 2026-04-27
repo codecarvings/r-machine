@@ -1,7 +1,7 @@
-import { Gear, type RShape } from "@/r-machine/setup";
+import { OuterGear, type RShape } from "@/r-machine/setup";
 
-export const r = Gear.define(() => {
-  return { time: new Date().toLocaleTimeString() };
+export const r = OuterGear.deps("hub/config").define((__, _) => {
+  return { time: _.getter(() => new Date().toLocaleTimeString()) };
 });
 
 export type Vertex_Timer = RShape<typeof r>;

@@ -20,6 +20,8 @@ import {
   buildPathAtlas,
   HrefCanonicalizer,
   HrefTranslator,
+  type NextClientPlugKitMap,
+  type NextServerPlugKitMap,
   type PathParamMap,
   type PathParams,
   type PathSelector,
@@ -67,16 +69,26 @@ interface CustomAutoDetectLocale {
 type AutoDetectLocaleOption = SwitchableOption | CustomAutoDetectLocale;
 type CookieOption = SwitchableOption | CookieDeclaration;
 
-export interface NextAppPathStrategyConfig<PA extends AnyPathAtlas, LK extends string>
-  extends NextAppStrategyConfig<PA, LK> {
+export interface NextAppPathStrategyConfig<
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+> extends NextAppStrategyConfig<RA, CKM, SKM, PA, LK> {
   readonly cookie: CookieOption;
   readonly localeLabel: LocaleLabelOption;
   readonly autoDetectLocale: AutoDetectLocaleOption;
   readonly implicitDefaultLocale: ImplicitDefaultLocaleOption;
 }
-export type AnyNextAppPathStrategyConfig = NextAppPathStrategyConfig<any, any>;
-export interface PartialNextAppPathStrategyConfig<PA extends AnyPathAtlas, LK extends string>
-  extends PartialNextAppStrategyConfig<PA, LK> {
+export type AnyNextAppPathStrategyConfig = NextAppPathStrategyConfig<any, any, any, any, any>;
+export interface PartialNextAppPathStrategyConfig<
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+> extends PartialNextAppStrategyConfig<RA, CKM, SKM, PA, LK> {
   readonly cookie?: CookieOption;
   readonly localeLabel?: LocaleLabelOption;
   readonly autoDetectLocale?: AutoDetectLocaleOption;
@@ -84,6 +96,9 @@ export interface PartialNextAppPathStrategyConfig<PA extends AnyPathAtlas, LK ex
 }
 
 const defaultConfig: NextAppPathStrategyConfig<
+  AnyResAtlas,
+  typeof NextAppStrategyCore.defaultConfig.clientKit,
+  typeof NextAppStrategyCore.defaultConfig.serverKit,
   InstanceType<typeof NextAppStrategyCore.defaultConfig.PathAtlas>,
   typeof NextAppStrategyCore.defaultConfig.localeKey
 > = {
@@ -180,7 +195,7 @@ export abstract class NextAppPathStrategyCore<
 
   async createNoProxyServerToolset(
     NextClientRMachine: NextAppClientRMachine<L>
-  ): Promise<NextAppNoProxyServerToolset<RA, L, E, EF, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
+  ): Promise<NextAppNoProxyServerToolset<RA, L, C["serverKit"], InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     this.validateNoProxyConfig();
     const impl = await this.createServerImpl();
     const module = await import("../next-app-no-proxy-server-toolset.js");

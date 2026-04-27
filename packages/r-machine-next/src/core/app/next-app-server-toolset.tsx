@@ -17,7 +17,13 @@ import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/cor
 import { RMachineUsageError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
-import type { AnyPathAtlas, BoundPathComposer, NextServerPlugDefiner, RMachineProxy } from "#r-machine/next/core";
+import type {
+  AnyPathAtlas,
+  BoundPathComposer,
+  NextServerPlugDefiner,
+  NextServerPlugKitMap,
+  RMachineProxy,
+} from "#r-machine/next/core";
 import { ERR_LOCALE_BIND_CONFLICT } from "#r-machine/next/errors";
 import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { NextAppClientRMachine } from "./next-app-client-toolset.js";
@@ -25,8 +31,7 @@ import type { NextAppClientRMachine } from "./next-app-client-toolset.js";
 export interface NextAppServerToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
-  _EF extends ExperimentalFlags,
+  SKM extends NextServerPlugKitMap<RA>,
   PA extends AnyPathAtlas,
   LK extends string,
 > {
@@ -34,7 +39,7 @@ export interface NextAppServerToolset<
   readonly NextServerRMachine: NextAppServerRMachine;
   readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
   readonly bindLocale: BindLocale<L, LK>;
-  readonly ServerPlug: NextServerPlugDefiner<RA, L, E["gateKit"], PA, LK>;
+  readonly ServerPlug: NextServerPlugDefiner<RA, L, SKM, PA, LK>;
 }
 
 type BoundPathComposerSupplier<PA extends AnyPathAtlas> = () => Promise<BoundPathComposer<PA>>;
@@ -85,13 +90,14 @@ export async function createNextAppServerToolset<
   L extends AnyLocale,
   E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
+  SKM extends NextServerPlugKitMap<RA>,
   PA extends AnyPathAtlas,
   LK extends string,
 >(
   rMachine: RMachine<RA, L, E, EF>,
   impl: NextAppServerImpl<L, LK>,
   NextClientRMachine: NextAppClientRMachine<L>
-): Promise<NextAppServerToolset<RA, L, E, EF, PA, LK>> {
+): Promise<NextAppServerToolset<RA, L, SKM, PA, LK>> {
   // TODO: WP
   const getLocale: any = undefined!;
 

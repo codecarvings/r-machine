@@ -19,6 +19,8 @@ import {
   buildPathAtlas,
   HrefCanonicalizer,
   HrefTranslator,
+  type NextClientPlugKitMap,
+  type NextServerPlugKitMap,
   type PathParamMap,
   type PathParams,
   type PathSelector,
@@ -39,19 +41,32 @@ type PathComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O exte
   ...args: [keyof PathParamMap<P>] extends [never] ? [params?: PathParams<P, O>] : [params: PathParams<P, O>]
 ) => string;
 
-export interface NextAppFlatStrategyConfig<PA extends AnyPathAtlas, LK extends string>
-  extends NextAppStrategyConfig<PA, LK> {
+export interface NextAppFlatStrategyConfig<
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+> extends NextAppStrategyConfig<RA, CKM, SKM, PA, LK> {
   readonly cookie: CookieDeclaration;
   readonly pathMatcher: RegExp | null;
 }
-export type AnyNextAppFlatStrategyConfig = NextAppFlatStrategyConfig<any, any>;
-export interface PartialNextAppFlatStrategyConfig<PA extends AnyPathAtlas, LK extends string>
-  extends PartialNextAppStrategyConfig<PA, LK> {
+export type AnyNextAppFlatStrategyConfig = NextAppFlatStrategyConfig<any, any, any, any, any>;
+export interface PartialNextAppFlatStrategyConfig<
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+> extends PartialNextAppStrategyConfig<RA, CKM, SKM, PA, LK> {
   readonly cookie?: CookieDeclaration;
   readonly pathMatcher?: RegExp | null;
 }
 
 const defaultConfig: NextAppFlatStrategyConfig<
+  AnyResAtlas,
+  typeof NextAppStrategyCore.defaultConfig.clientKit,
+  typeof NextAppStrategyCore.defaultConfig.serverKit,
   InstanceType<typeof NextAppStrategyCore.defaultConfig.PathAtlas>,
   typeof NextAppStrategyCore.defaultConfig.localeKey
 > = {

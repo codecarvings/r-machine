@@ -20,20 +20,25 @@ import type { RMachine } from "r-machine";
 import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { type ReactNode, useEffect } from "react";
-import type { AnyPathAtlas, BoundPathComposer, NextClientPlugDefiner } from "#r-machine/next/core";
+import type {
+  AnyPathAtlas,
+  BoundPathComposer,
+  NextClientPlugDefiner,
+  NextClientPlugKitMap,
+} from "#r-machine/next/core";
 
 export type NextAppClientToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
+  CKM extends NextClientPlugKitMap<RA>,
   PA extends AnyPathAtlas,
 > = {
   readonly NextClientRMachine: NextAppClientRMachine<L>;
-  readonly ClientPlug: NextClientPlugDefiner<RA, L, E["gateKit"], PA>;
+  readonly ClientPlug: NextClientPlugDefiner<RA, L, CKM, PA>;
 } & (EF["outerGear"] extends "on"
   ? {
-      readonly ClientVertexFrame: VertexFrameType;
+      readonly VertexFrame: VertexFrameType;
     }
   : {});
 
@@ -60,10 +65,11 @@ export async function createNextAppClientToolset<
   L extends AnyLocale,
   E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
+  CKM extends NextClientPlugKitMap<RA>,
   PA extends AnyPathAtlas,
->(rMachine: RMachine<RA, L, E, EF>, impl: NextAppClientImpl<L>): Promise<NextAppClientToolset<RA, L, E, EF, PA>> {
+>(rMachine: RMachine<RA, L, E, EF>, impl: NextAppClientImpl<L>): Promise<NextAppClientToolset<RA, L, EF, CKM, PA>> {
   const { ReactRMachine, VertexFrame } = await createReactBareToolset(
-    rMachine as RMachine<RA, L, E, { clientGear: "on" }>
+    rMachine as RMachine<RA, L, E, { outerGear: "on" }>
   );
 
   // TODO: WP
@@ -113,7 +119,7 @@ export async function createNextAppClientToolset<
 
   return {
     NextClientRMachine,
-    ClientVertexFrame: VertexFrame,
+    VertexFrame,
     ClientPlug,
   };
 }

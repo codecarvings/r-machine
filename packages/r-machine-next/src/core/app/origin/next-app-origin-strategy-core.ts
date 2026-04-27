@@ -19,6 +19,8 @@ import {
   buildPathAtlas,
   HrefCanonicalizer,
   HrefTranslator,
+  type NextClientPlugKitMap,
+  type NextServerPlugKitMap,
   type PathParamMap,
   type PathParams,
   type PathSelector,
@@ -56,19 +58,32 @@ export type LocaleOriginMap = {
   readonly [locale: AnyLocale]: string | string[];
 };
 
-export interface NextAppOriginStrategyConfig<PA extends AnyPathAtlas, LK extends string>
-  extends NextAppStrategyConfig<PA, LK> {
+export interface NextAppOriginStrategyConfig<
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+> extends NextAppStrategyConfig<RA, CKM, SKM, PA, LK> {
   readonly localeOriginMap: LocaleOriginMap;
   readonly pathMatcher: RegExp | null;
 }
-export type AnyNextAppOriginStrategyConfig = NextAppOriginStrategyConfig<any, any>;
-export interface PartialNextAppOriginStrategyConfig<PA extends AnyPathAtlas, LK extends string>
-  extends PartialNextAppStrategyConfig<PA, LK> {
+export type AnyNextAppOriginStrategyConfig = NextAppOriginStrategyConfig<any, any, any, any, any>;
+export interface PartialNextAppOriginStrategyConfig<
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+> extends PartialNextAppStrategyConfig<RA, CKM, SKM, PA, LK> {
   readonly localeOriginMap: LocaleOriginMap; // Required
   readonly pathMatcher?: RegExp | null;
 }
 
 const defaultConfig: NextAppOriginStrategyConfig<
+  AnyResAtlas,
+  typeof NextAppStrategyCore.defaultConfig.clientKit,
+  typeof NextAppStrategyCore.defaultConfig.serverKit,
   InstanceType<typeof NextAppStrategyCore.defaultConfig.PathAtlas>,
   typeof NextAppStrategyCore.defaultConfig.localeKey
 > = {
