@@ -16,13 +16,11 @@ import type {
   AnyResAtlasClass,
   AnyResEquipment,
   AnyResLayout,
-  ClientGateKit,
   ExperimentalFlags,
   GearPlugKitMap,
   HubGearNamespaceList,
   ResEquipment,
   ResModuleLoaderFn,
-  ServerGateKit,
   ShellPlugKitMap,
 } from "#r-machine/core";
 import {
@@ -45,8 +43,6 @@ export interface RMachineConfigParams<
   BGL extends HubGearNamespaceList<InstanceType<RAC>>,
   GK extends GearPlugKitMap<InstanceType<RAC>>,
   SK extends ShellPlugKitMap<InstanceType<RAC>, BGL>,
-  SGK extends ServerGateKit<InstanceType<RAC>>,
-  CGK extends ClientGateKit<InstanceType<RAC>>,
   EF extends ExperimentalFlags,
 > {
   readonly ResourceAtlas: RAC;
@@ -56,8 +52,6 @@ export interface RMachineConfigParams<
   readonly bridgeGears?: BGL;
   readonly gearKit?: GK;
   readonly shellKit?: SK;
-  readonly serverGateKit?: SGK;
-  readonly clientGateKit?: CGK;
   readonly experimental?: EF & ExperimentalFlags;
 }
 
@@ -82,12 +76,10 @@ export function convertParamsToConfig<
   BGL extends HubGearNamespaceList<InstanceType<RAC>>,
   GK extends GearPlugKitMap<InstanceType<RAC>>,
   SK extends ShellPlugKitMap<InstanceType<RAC>, BGL>,
-  SGK extends ServerGateKit<InstanceType<RAC>>,
-  CGK extends ClientGateKit<InstanceType<RAC>>,
   EF extends ExperimentalFlags,
 >(
-  params: RMachineConfigParams<RAC, LL, BGL, GK, SK, SGK, CGK, EF>
-): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, SGK, CGK>, EF> {
+  params: RMachineConfigParams<RAC, LL, BGL, GK, SK, EF>
+): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF> {
   return {
     resourceAtlas: undefined!,
     locales: [...params.locales],
@@ -98,8 +90,6 @@ export function convertParamsToConfig<
       bridgeGears: (params.bridgeGears ?? ([] as readonly unknown[])) as BGL,
       gearKit: params.gearKit ?? ({} as GK),
       shellKit: params.shellKit ?? ({} as SK),
-      serverGateKit: params.serverGateKit ?? ({} as SGK),
-      clientGateKit: params.clientGateKit ?? ({} as CGK),
     },
     experimental: params.experimental ?? ({} as EF),
   };
@@ -157,8 +147,6 @@ export function cloneRMachineConfig<C extends RMachineConfig<any, any, any, any>
       bridgeGears: Object.freeze([...config.equipment.bridgeGears]),
       gearKit: { ...config.equipment.gearKit },
       shellKit: { ...config.equipment.shellKit },
-      serverGateKit: { ...config.equipment.serverGateKit },
-      clientGateKit: { ...config.equipment.clientGateKit },
     },
     experimental: { ...config.experimental },
   };

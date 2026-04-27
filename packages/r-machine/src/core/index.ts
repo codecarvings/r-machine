@@ -66,10 +66,7 @@ export {
 } from "./res-domain.js";
 export type {
   AnyResEquipment,
-  ClientGateKit,
-  KitKind,
   ResEquipment,
-  ServerGateKit,
 } from "./res-equipment.js";
 export {
   type AnyResLayout,

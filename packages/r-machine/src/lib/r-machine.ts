@@ -20,7 +20,6 @@ import {
   type AnyResAtlasClass,
   type AnyResEquipment,
   BlueprintManager,
-  type ClientGateKit,
   createHubGearComposer,
   createInnerGearComposer,
   createOuterGearComposer,
@@ -35,10 +34,8 @@ import {
   type HubGearNamespaceList,
   isNamespaceList,
   JunctureManager,
-  type KitKind,
   type ResComposerConnector,
   type ResEquipment,
-  type ServerGateKit,
   type ShellPlugKitMap,
   type SurfaceList,
   type VertexGearMap,
@@ -110,7 +107,7 @@ export class RMachine<
   }
   */
 
-  protected createResComposerConnector(kitKind: KitKind): ResComposerConnector {
+  protected createResComposerConnector(kitKind: string): ResComposerConnector {
     return {
       getWire: async (deps, locale, selfNamespace) => {
         const plugin = await this.junctureManager.getPlugin(kitKind, deps, locale, selfNamespace, 0, undefined);
@@ -162,13 +159,11 @@ export class RMachine<
     const BGL extends HubGearNamespaceList<InstanceType<RAC>> = [],
     GK extends GearPlugKitMap<InstanceType<RAC>> = {},
     SK extends ShellPlugKitMap<InstanceType<RAC>, BGL> = {},
-    SGK extends ServerGateKit<InstanceType<RAC>> = {},
-    CGK extends ClientGateKit<InstanceType<RAC>> = {},
     EF extends ExperimentalFlags = {},
   >(
-    config: RMachineConfigParams<RAC, LL, BGL, GK, SK, SGK, CGK, EF>
-  ): RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, SGK, CGK>, EF> {
-    return new RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, SGK, CGK>, EF>(
+    config: RMachineConfigParams<RAC, LL, BGL, GK, SK, EF>
+  ): RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF> {
+    return new RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF>(
       convertParamsToConfig(config)
     );
   }

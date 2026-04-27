@@ -20,7 +20,7 @@ import { tryGetManagedTeardown } from "./managed.js";
 import type { AnyRes } from "./res.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { getResCacheKey } from "./res-domain.js";
-import type { AnyResEquipment, KitKind } from "./res-equipment.js";
+import type { AnyResEquipment } from "./res-equipment.js";
 import type { ResLayoutEntryTypeResolver } from "./res-layout.js";
 import { type AnyNamespaceList, isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap } from "./res-map.js";
@@ -145,7 +145,7 @@ export class JunctureManager {
   }
 
   async getPlugin(
-    kitKind: KitKind,
+    kitKind: string,
     nsDeps: AnyNamespaceCollection,
     locale: AnyLocale | undefined,
     selfNamespace: AnyNamespace | undefined,
@@ -153,7 +153,9 @@ export class JunctureManager {
     vertexGearMap: VertexGearMap | undefined
   ): Promise<unknown> {
     const isList = isNamespaceList(nsDeps);
-    const kitMap = this.equipment[`${kitKind}Kit` as keyof AnyResEquipment] as Record<string, AnyNamespace>;
+    const kitKey = `${kitKind}Kit` as const;
+    const kitMap =
+      kitKey in this.equipment ? (this.equipment[kitKey as keyof AnyResEquipment] as Record<string, AnyNamespace>) : {};
     const entries = Object.entries(kitMap);
     let selfKitKey: string | undefined;
     const kitEntries = entries.filter(([key, ns]) => {
@@ -230,7 +232,7 @@ export class JunctureManager {
   }
 
   protected buildListPlugin(
-    kitKind: KitKind,
+    kitKind: string,
     deps: unknown[],
     kit: Record<string, unknown>,
     locale: AnyLocale | undefined,
@@ -247,7 +249,7 @@ export class JunctureManager {
   }
 
   protected buildMapPlugin(
-    kitKind: KitKind,
+    kitKind: string,
     deps: Record<string, unknown>,
     kit: Record<string, unknown>,
     locale: AnyLocale | undefined,

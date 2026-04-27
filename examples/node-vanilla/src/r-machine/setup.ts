@@ -14,12 +14,6 @@ export const rMachine = RMachine.create({
     fmt: "shell/lib/fmt",
     config: "hub/config",
   },
-  clientGateKit: {
-    fmt: "shell/common2",
-  },
-  serverGateKit: {
-    fmt: "shell/common2",
-  },
   experimental: {
     outerGear: "on",
   },
