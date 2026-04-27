@@ -14,11 +14,13 @@
 import type { GearListPlugHead, GearMapPlugHead, GearPlugKitMap } from "./gear-plug.js";
 import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { HandleList } from "./res-list.js";
+import type { HandleList, NamespaceList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 
 export type HubGearPlugDepMap<RA extends AnyResAtlas> = HandleMap<RA, "shape@gear:hub">;
 export type HubGearPlugDepList<RA extends AnyResAtlas> = HandleList<RA, "shape@gear:hub">;
+
+export type HubGearNamespaceList<RA extends AnyResAtlas> = NamespaceList<RA, "shape@gear:hub">;
 
 type HubGearPluginCtx<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> = PluginCtx<RA, KM>;
 

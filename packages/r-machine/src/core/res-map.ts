@@ -33,7 +33,7 @@ export type AnyNamespaceMap = NamespaceMap<AnyResAtlas>;
 export type IsWidenedMap<M> = string extends keyof M ? true : false;
 
 export type ValidatedDepMapType<DM, T> =
-  IsWidenedMap<DM> extends true ? RMachineTypeError<"Invalid dependency provided."> : T;
+  IsWidenedMap<DM> extends true ? RMachineTypeError<"Invalid dependency map provided."> : T;
 
 export function getNamespaceMap<RA extends AnyResAtlas>(handles: HandleMap<RA>): NamespaceMap<RA> {
   const result: any = {};

@@ -11,40 +11,32 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { RMachineTypeError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import { lazyGetters } from "./composer-utils.js";
+import type { HubGearNamespaceList } from "./hub-gear-plug.js";
 import { getPlugOutline, type LocaleAwarePluginCtx } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
-import type { Handle } from "./res-domain.js";
-import type { HandleList } from "./res-list.js";
-import type { HandleMap } from "./res-map.js";
-import { createResMatrix, type ShellMatrixMeta } from "./res-matrix.js";
+import type { ValidatedDepListType } from "./res-list.js";
+import type { ValidatedDepMapType } from "./res-map.js";
+import { createResMatrix, type ResMatrix, type ShellMatrixMeta } from "./res-matrix.js";
 import { createResListPlugHead, createResMapPlugHead } from "./res-plug.js";
-import type { ShellListDefiner, ShellMapDefiner } from "./shell.js";
-
-type ShellDepsNamespace<RA extends AnyResAtlas, BGL extends HandleList<RA>> =
-  | Extract<keyof RA["shape@shell"], string>
-  | BGL[number];
-
-type ShellDepsHandle<RA extends AnyResAtlas, BGL extends HandleList<RA>> = Handle<
-  Pick<RA["shape"], ShellDepsNamespace<RA, BGL> & keyof RA["shape"]>
->;
-
-type ValidShellDepItem<RA extends AnyResAtlas, BGL extends HandleList<RA>, N> =
-  N extends ShellDepsHandle<RA, BGL>
-    ? N
-    : N extends string
-      ? RMachineTypeError<`Namespace '${N}' is not valid for a shell plug.`>
-      : RMachineTypeError<"This token does not reference a valid namespace for a shell plug.">;
+import type {
+  ShellListPlug,
+  ShellListPlugin,
+  ShellMapPlug,
+  ShellMapPlugin,
+  ShellPlugDepList,
+  ShellPlugDepMap,
+  ShellPlugKitMap,
+} from "./shell-plug.js";
 
 export interface ShellComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  BGL extends HandleList<RA>,
-  KM extends HandleMap<RA>,
+  BGL extends HubGearNamespaceList<RA>,
+  KM extends ShellPlugKitMap<RA>,
 > {
   readonly deps: ShellDepsComposer<RA, L, BGL, KM>;
   readonly define: ShellMapDefiner<RA, L, KM, {}>;
@@ -53,23 +45,19 @@ export interface ShellComposer<
 interface ShellDepsComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  BGL extends HandleList<RA>,
-  KM extends HandleMap<RA>,
+  BGL extends HubGearNamespaceList<RA>,
+  KM extends ShellPlugKitMap<RA>,
 > {
   (): ShellMapComposer<RA, L, KM, {}>;
-  <const DL extends readonly Handle<RA["shape"]>[]>(
-    ...deps: { readonly [I in keyof DL]: ValidShellDepItem<RA, BGL, DL[I]> }
-  ): ShellListComposer<RA, L, KM, DL>;
-  <const DM extends { readonly [k: string]: Handle<RA["shape"]> }>(
-    deps: { readonly [K in keyof DM]: ValidShellDepItem<RA, BGL, DM[K]> }
-  ): ShellMapComposer<RA, L, KM, DM>;
+  <const DL extends ShellPlugDepList<RA, BGL>>(...deps: DL): ValidatedDepListType<DL, ShellListComposer<RA, L, KM, DL>>;
+  <const DM extends ShellPlugDepMap<RA, BGL>>(deps: DM): ValidatedDepMapType<DM, ShellMapComposer<RA, L, KM, DM>>;
 }
 
 interface ShellMapComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KM extends HandleMap<RA>,
-  DM extends HandleMap<RA>,
+  KM extends ShellPlugKitMap<RA>,
+  DM extends ShellPlugDepMap<RA>,
 > {
   readonly define: ShellMapDefiner<RA, L, KM, DM>;
 }
@@ -77,11 +65,29 @@ interface ShellMapComposer<
 interface ShellListComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KM extends HandleMap<RA>,
-  DL extends HandleList<RA>,
+  KM extends ShellPlugKitMap<RA>,
+  DL extends ShellPlugDepList<RA>,
 > {
   readonly define: ShellListDefiner<RA, L, KM, DL>;
 }
+
+type ShellMapDefiner<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KM extends ShellPlugKitMap<RA>,
+  DM extends ShellPlugDepMap<RA>,
+> = <R extends AnyRes>(
+  factory: (plugin: ShellMapPlugin<RA, L, KM, DM>) => R | Promise<R>
+) => ResMatrix<R, ShellMapPlug<RA, L, KM, DM>>;
+
+type ShellListDefiner<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KM extends ShellPlugKitMap<RA>,
+  DL extends ShellPlugDepList<RA>,
+> = <R extends AnyRes>(
+  factory: (plugin: ShellListPlugin<RA, L, KM, DL>) => R | Promise<R>
+) => ResMatrix<R, ShellListPlug<RA, L, KM, DL>>;
 
 // #region Runtime
 
@@ -92,8 +98,8 @@ const cursor = undefined;
 export function createShellComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  BGL extends HandleList<RA>,
-  KM extends HandleMap<RA>,
+  BGL extends HubGearNamespaceList<RA>,
+  KM extends ShellPlugKitMap<RA>,
 >(connector: ResComposerConnector): ShellComposer<RA, L, BGL, KM> {
   const define = createShellMapDefiner<RA, L, KM, {}>(connector, {});
 
@@ -115,8 +121,8 @@ export function createShellComposer<
 function createShellMapDepsComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KM extends HandleMap<RA>,
-  DM extends HandleMap<RA>,
+  KM extends ShellPlugKitMap<RA>,
+  DM extends ShellPlugDepMap<RA>,
 >(connector: ResComposerConnector, deps: DM): ShellMapComposer<RA, L, KM, DM> {
   return lazyGetters({
     define: () => createShellMapDefiner(connector, deps),
@@ -126,8 +132,8 @@ function createShellMapDepsComposer<
 function createShellListDepsComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KM extends HandleMap<RA>,
-  DL extends HandleList<RA>,
+  KM extends ShellPlugKitMap<RA>,
+  DL extends ShellPlugDepList<RA>,
 >(connector: ResComposerConnector, deps: DL): ShellListComposer<RA, L, KM, DL> {
   return lazyGetters({
     define: () => createShellListDefiner(connector, deps),
@@ -137,8 +143,8 @@ function createShellListDepsComposer<
 function createShellMapDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KM extends HandleMap<RA>,
-  DM extends HandleMap<RA>,
+  KM extends ShellPlugKitMap<RA>,
+  DM extends ShellPlugDepMap<RA>,
 >(connector: ResComposerConnector, deps: DM): ShellMapDefiner<RA, L, KM, DM> {
   const head = createResMapPlugHead<"shell", RA, KM, DM, LocaleAwarePluginCtx<RA, L, KM>>("shell", deps);
 
@@ -155,8 +161,8 @@ function createShellMapDefiner<
 function createShellListDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  KM extends HandleMap<RA>,
-  DL extends HandleList<RA>,
+  KM extends ShellPlugKitMap<RA>,
+  DL extends ShellPlugDepList<RA>,
 >(connector: ResComposerConnector, deps: DL): ShellListDefiner<RA, L, KM, DL> {
   const head = createResListPlugHead<"shell", RA, KM, DL, LocaleAwarePluginCtx<RA, L, KM>>("shell", deps);
 

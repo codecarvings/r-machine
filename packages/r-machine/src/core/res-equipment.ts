@@ -12,15 +12,11 @@
  */
 
 import type { GearPlugKitMap } from "./gear-plug.js";
+import type { HubGearNamespaceList } from "./hub-gear-plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { Namespace } from "./res-domain.js";
 import type { AnyNamespaceList } from "./res-list.js";
-
-export type BridgeGearNamespaceList<RA extends AnyResAtlas> = Namespace<RA["shape@gear:hub"]>[];
-
-export type ShellKit<RA extends AnyResAtlas, BGL extends BridgeGearNamespaceList<RA>> = {
-  readonly [key: string]: Namespace<RA["shape@shell"]> | BGL[number];
-};
+import type { ShellPlugKitMap } from "./shell-plug.js";
 
 export type ServerGateKit<RA extends AnyResAtlas> = {
   readonly [key: string]: Namespace<RA["valid@server"]>;
@@ -32,9 +28,9 @@ export type ClientGateKit<RA extends AnyResAtlas> = {
 
 export interface ResEquipment<
   RA extends AnyResAtlas,
-  BGL extends BridgeGearNamespaceList<RA> = [],
+  BGL extends HubGearNamespaceList<RA> = [],
   GK extends GearPlugKitMap<RA> = {},
-  SK extends ShellKit<RA, BGL> = {},
+  SK extends ShellPlugKitMap<RA, BGL> = {},
   SGK extends ServerGateKit<RA> = {},
   CGK extends ClientGateKit<RA> = {},
 > {

@@ -25,6 +25,7 @@ export { GateWireManager } from "./gate-wire-manager.js";
 export type { GearPlugKitMap } from "./gear-plug.js";
 export type { Getter } from "./getter.js";
 export { createHubGearComposer, type HubGearComposer } from "./hub-gear-composer.js";
+export type { HubGearNamespaceList } from "./hub-gear-plug.js";
 export { createInnerGearComposer, type InnerGearComposer } from "./inner-gear-composer.js";
 export { JunctureManager } from "./juncture-manager.js";
 export { createOuterGearComposer, type OuterGearComposer } from "./outer-gear-composer.js";
@@ -67,12 +68,10 @@ export {
 } from "./res-domain.js";
 export type {
   AnyResEquipment,
-  BridgeGearNamespaceList,
   ClientGateKit,
   KitKind,
   ResEquipment,
   ServerGateKit,
-  ShellKit,
 } from "./res-equipment.js";
 export {
   type AnyResLayout,
@@ -102,6 +101,7 @@ export {
 export type { ResMatrix } from "./res-matrix.js";
 export type { AnyResModule, ResModuleLoaderFn } from "./res-module.js";
 export { createShellComposer, type ShellComposer } from "./shell-composer.js";
+export type { ShellPlugKitMap } from "./shell-plug.js";
 export type { AnyClientVertexGearSurface, AnySurface, Surface } from "./surface.js";
 export {
   tryGetVertexGearTag,

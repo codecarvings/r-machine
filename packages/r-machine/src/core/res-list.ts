@@ -37,7 +37,7 @@ export type AnyNamespaceList = NamespaceList<AnyResAtlas>;
 export type IsWidenedList<L extends readonly unknown[]> = number extends L["length"] ? true : false;
 
 export type ValidatedDepListType<DL extends readonly unknown[], T> =
-  IsWidenedList<DL> extends true ? RMachineTypeError<"Invalid dependency provided."> : T;
+  IsWidenedList<DL> extends true ? RMachineTypeError<"Invalid dependency list provided."> : T;
 
 export function isNamespaceList(value: AnyNamespaceCollection): value is AnyNamespaceList {
   return Array.isArray(value);
