@@ -23,6 +23,7 @@ import {
   type BridgeGearNamespaceList,
   type ClientGateKit,
   createHubGearComposer,
+  createInnerGearComposer,
   createOuterGearComposer,
   createResLayoutEntryTypeResolver,
   createShellComposer,
@@ -121,7 +122,7 @@ export class RMachine<
   }
 
   createToolset(): RMachineToolset<RA, L, E, EF> {
-    const InnerGear = undefined!;
+    const InnerGear = createInnerGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"));
     const HubGear = createHubGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"));
     const OuterGear =
       this.config.experimental.outerGear === "on"

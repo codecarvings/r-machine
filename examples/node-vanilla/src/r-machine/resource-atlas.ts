@@ -1,5 +1,7 @@
 import { defineLayout } from "r-machine";
 import type { Hub_Config } from "./hub/config";
+import type { Hub_Mid } from "./hub/mid";
+import type { Inner_Db } from "./inner/db";
 import type { Outer_Aggregator } from "./outer/aggregator";
 import type { Outer_Counter } from "./outer/counter";
 import type { Outer_Gear1 } from "./outer/gear1";
@@ -19,7 +21,10 @@ const folders = defineLayout({
 });
 
 type ResourceMap = {
+  "inner/db": Inner_Db;
+
   "hub/config": Hub_Config;
+  "hub/mid": Hub_Mid;
 
   "outer/aggregator": Outer_Aggregator;
   "outer/shopping-cart": Outer_ShoppingCart;

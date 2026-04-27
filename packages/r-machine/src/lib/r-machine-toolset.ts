@@ -17,6 +17,7 @@ import type {
   AnyResEquipment,
   ExperimentalFlags,
   HubGearComposer,
+  InnerGearComposer,
   Namespace,
   OuterGearComposer,
   ShellComposer,
@@ -29,7 +30,7 @@ export type RMachineToolset<
   E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
 > = {
-  readonly InnerGear: HubGearComposer<RA, E["gearKit"]>;
+  readonly InnerGear: InnerGearComposer<RA, E["gearKit"]>;
   readonly HubGear: HubGearComposer<RA, E["gearKit"]>;
   readonly Shell: ShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>;
   readonly localized: LocalizerHelper<RA["shape@shell"]>;
