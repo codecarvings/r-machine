@@ -14,19 +14,27 @@
 import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
+import type { ReactPlugKitMap } from "./react-plug.js";
 import { createReactStandardImpl } from "./react-standard.impl.js";
-import { ReactStrategyCore } from "./react-strategy-core.js";
+import { type PartialReactStrategyConfig, type ReactStrategyConfig, ReactStrategyCore } from "./react-strategy-core.js";
 
-export interface ReactStandardStrategyConfig {
+export interface ReactStandardStrategyConfig<RA extends AnyResAtlas, KM extends ReactPlugKitMap<RA>>
+  extends ReactStrategyConfig<RA, KM> {
   readonly localeDetector: CustomLocaleDetector | undefined;
   readonly localeStore: CustomLocaleStore | undefined;
 }
-export interface PartialReactStandardStrategyConfig {
+export type AnyReactStandardStrategyConfig<RA extends AnyResAtlas = AnyResAtlas> = ReactStandardStrategyConfig<
+  RA,
+  ReactPlugKitMap<RA>
+>;
+export interface PartialReactStandardStrategyConfig<RA extends AnyResAtlas, KM extends ReactPlugKitMap<RA>>
+  extends PartialReactStrategyConfig<RA, KM> {
   readonly localeDetector?: CustomLocaleDetector | undefined;
   readonly localeStore?: CustomLocaleStore | undefined;
 }
 
-const defaultConfig: ReactStandardStrategyConfig = {
+const defaultConfig: AnyReactStandardStrategyConfig = {
+  ...ReactStrategyCore.defaultConfig,
   localeDetector: undefined,
   localeStore: undefined,
 };
@@ -36,10 +44,11 @@ export abstract class ReactStandardStrategyCore<
   L extends AnyLocale,
   E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
-> extends ReactStrategyCore<RA, L, E, EF, ReactStandardStrategyConfig> {
-  static readonly defaultConfig = defaultConfig;
+  C extends AnyReactStandardStrategyConfig<RA>,
+> extends ReactStrategyCore<RA, L, E, EF, C> {
+  static override readonly defaultConfig = defaultConfig;
 
   protected createImpl() {
-    return createReactStandardImpl<RA, L, E, EF>(this.rMachine, this.config);
+    return createReactStandardImpl<RA, L, E, EF, C>(this.rMachine, this.config);
   }
 }

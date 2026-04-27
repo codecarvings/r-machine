@@ -17,6 +17,7 @@ import type { AnyLocale } from "r-machine/locale";
 import { createContext, type ReactNode, use, useMemo, useState } from "react";
 import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils";
 import { createReactBareToolset, type ReactBareToolset } from "./react-bare-toolset.js";
+import type { ReactPlugKitMap } from "./react-plug.js";
 
 // THIS IS THE TOOLSET USED BY:
 // - REACT STRATEGY CORE
@@ -26,9 +27,9 @@ import { createReactBareToolset, type ReactBareToolset } from "./react-bare-tool
 export type ReactToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
-> = Omit<ReactBareToolset<RA, L, E, EF>, "ReactRMachine"> & {
+  KM extends ReactPlugKitMap<RA>,
+> = Omit<ReactBareToolset<RA, L, EF, KM>, "ReactRMachine"> & {
   readonly ReactRMachine: ReactRMachine;
 };
 
@@ -52,8 +53,11 @@ export async function createReactToolset<
   L extends AnyLocale,
   E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
->(rMachine: RMachine<RA, L, E, EF>, impl: ReactImpl<L>): Promise<ReactToolset<RA, L, E, EF>> {
-  const { ReactRMachine: OriginalReactRMachine, ...otherTools } = await createReactBareToolset(rMachine);
+  KM extends ReactPlugKitMap<RA>,
+>(rMachine: RMachine<RA, L, E, EF>, impl: ReactImpl<L>): Promise<ReactToolset<RA, L, EF, KM>> {
+  const { ReactRMachine: OriginalReactRMachine, ...otherTools } = await createReactBareToolset<RA, L, E, EF, KM>(
+    rMachine
+  );
 
   const Context = createContext<ReactToolsetContext<L> | null>(null);
   Context.displayName = "ReactToolsetContext";

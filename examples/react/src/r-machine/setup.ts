@@ -25,20 +25,19 @@ const rMachine = RMachine.create({
   shellKit: {
     fmt: "shell/lib/fmt",
   },
-  gateKit: {
-    fmt: "shell/lib/fmt",
-  },
   experimental: {
-    reactiveGear: "on",
-    vertexGear: "on",
+    outerGear: "on",
   },
 });
 
-export const { Gear, Shell, localized } = rMachine.createToolset();
+export const { InnerGear, HubGear, OuterGear, Shell, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 
 export const strategy = new ReactStandardStrategy(rMachine, {
+  kit: {
+    fmt: "shell/lib/fmt",
+  },
   localeDetector: () => rMachine.localeHelper.matchLocales(navigator.languages),
   localeStore: {
     get: () => localStorage.getItem("locale") ?? undefined,

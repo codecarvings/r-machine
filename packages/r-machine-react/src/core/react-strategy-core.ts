@@ -14,19 +14,35 @@
 import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { Strategy } from "r-machine/strategy";
+import type { ReactPlugKitMap } from "./react-plug.js";
 import { createReactToolset, type ReactImpl, type ReactToolset } from "./react-toolset.js";
+
+export interface ReactStrategyConfig<RA extends AnyResAtlas, KM extends ReactPlugKitMap<RA>> {
+  readonly kit: KM;
+}
+type AnyReactStrategyConfig<RA extends AnyResAtlas = AnyResAtlas> = ReactStrategyConfig<RA, ReactPlugKitMap<RA>>;
+export interface PartialReactStrategyConfig<RA extends AnyResAtlas, KM extends ReactPlugKitMap<RA>> {
+  readonly kit?: KM;
+}
+
+const defaultKit = {} as const;
+const defaultConfig: ReactStrategyConfig<AnyResAtlas, typeof defaultKit> = {
+  kit: defaultKit,
+};
 
 export abstract class ReactStrategyCore<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
-  C,
+  C extends AnyReactStrategyConfig<RA>,
 > extends Strategy<RA, L, E, EF, C> {
+  static readonly defaultConfig = defaultConfig;
+
   protected abstract createImpl(): Promise<ReactImpl<L>>;
 
-  async createToolset(): Promise<ReactToolset<RA, L, E, EF>> {
+  async createToolset(): Promise<ReactToolset<RA, L, EF, C["kit"]>> {
     const impl = await this.createImpl();
-    return await createReactToolset(this.rMachine, impl);
+    return await createReactToolset<RA, L, E, EF, C["kit"]>(this.rMachine, impl);
   }
 }

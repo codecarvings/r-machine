@@ -11,22 +11,29 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, SolidHandle } from "./res-atlas.js";
+import type { RMachineTypeError } from "#r-machine/errors";
+import type { AnyResAtlas, ResAtlasCatalog, SolidHandle } from "./res-atlas.js";
 import { type ExtractNamespace, getNamespace, type Handle, type Namespace } from "./res-domain.js";
 import type { Surface } from "./surface.js";
 
-export type HandleMap<RA extends AnyResAtlas> = {
-  readonly [k: string]: Handle<RA["shape"]>;
+export type HandleMap<RA extends AnyResAtlas, C extends ResAtlasCatalog = "shape"> = {
+  readonly [k: string]: Handle<RA[C]>;
 };
 
 export type SolidHandleMap<RA extends AnyResAtlas> = {
   readonly [k: string]: SolidHandle<RA>;
 };
 
-export type NamespaceMap<RA extends AnyResAtlas> = {
-  readonly [k: string]: Namespace<RA["shape"]>;
+export type NamespaceMap<RA extends AnyResAtlas, C extends ResAtlasCatalog = "shape"> = {
+  readonly [k: string]: Namespace<RA[C]>;
 };
 export type AnyNamespaceMap = NamespaceMap<AnyResAtlas>;
+
+// Utility type to check if a HandleMap is widened (wrong namespace is passed)
+export type IsWidenedMap<M> = string extends keyof M ? true : false;
+
+export type ValidatedDepMapType<DM, T> =
+  IsWidenedMap<DM> extends true ? RMachineTypeError<"Invalid dependency provided."> : T;
 
 export function getNamespaceMap<RA extends AnyResAtlas>(handles: HandleMap<RA>): NamespaceMap<RA> {
   const result: any = {};

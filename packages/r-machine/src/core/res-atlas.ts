@@ -18,8 +18,15 @@ export interface ResAtlas<RL extends AnyResLayout, RD extends AnyResDomain> {
   readonly "shape@shell": ShapeMap<RL, RD, "shell" | "shell(mono)">;
   readonly "valid@gear:inner": ShapeMap<RL, RD, "gear:inner" | "gear:hub">;
   readonly "valid@gear:outer": ShapeMap<RL, RD, "gear:hub" | "gear:outer">;
+  readonly "valid@universal": ShapeMap<
+    RL,
+    RD,
+    "gear:inner" | "gear:hub" | "gear:outer" | "gear:outer(vertex)" | "shell" | "shell(mono)"
+  >;
+  readonly "valid@universal:kit": ShapeMap<RL, RD, "gear:inner" | "gear:hub" | "gear:outer" | "shell" | "shell(mono)">;
   readonly "valid@server": ShapeMap<RL, RD, "gear:inner" | "gear:hub" | "shell" | "shell(mono)">;
-  readonly "valid@client": ShapeMap<RL, RD, "gear:hub" | "gear:outer" | "shell" | "shell(mono)">;
+  readonly "valid@client": ShapeMap<RL, RD, "gear:hub" | "gear:outer" | "gear:outer(vertex)" | "shell" | "shell(mono)">;
+  readonly "valid@client:kit": ShapeMap<RL, RD, "gear:hub" | "gear:outer" | "shell" | "shell(mono)">;
   readonly let: ResLayoutEntryTypeMap<RL, RD>;
 }
 
@@ -30,10 +37,25 @@ export interface AnyResAtlas {
   readonly "shape@shell": AnyResDomain;
   readonly "valid@gear:inner": AnyResDomain;
   readonly "valid@gear:outer": AnyResDomain;
+  readonly "valid@universal": AnyResDomain;
+  readonly "valid@universal:kit": AnyResDomain;
   readonly "valid@server": AnyResDomain;
   readonly "valid@client": AnyResDomain;
+  readonly "valid@client:kit": AnyResDomain;
   readonly let: AnyResDomainLayout;
 }
+
+export type ResAtlasCatalog =
+  | "shape"
+  | "shape@gear:hub"
+  | "shape@shell"
+  | "valid@gear:inner"
+  | "valid@gear:outer"
+  | "valid@universal"
+  | "valid@universal:kit"
+  | "valid@server"
+  | "valid@client"
+  | "valid@client:kit";
 
 type DroppedAtlasKeys<RA, RD> = Exclude<keyof RA, keyof RD>;
 

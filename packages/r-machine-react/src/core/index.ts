@@ -18,7 +18,9 @@ export {
   type ReactBareRMachine,
   type ReactBareToolset,
 } from "./react-bare-toolset.js";
+export type { ReactPlugKitMap } from "./react-plug.js";
 export {
+  type AnyReactStandardStrategyConfig,
   type PartialReactStandardStrategyConfig,
   type ReactStandardStrategyConfig,
   ReactStandardStrategyCore,

@@ -14,20 +14,26 @@
 import type { RMachine } from "r-machine";
 import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
-import { type PartialReactStandardStrategyConfig, ReactStandardStrategyCore } from "#r-machine/react/core";
+import {
+  type PartialReactStandardStrategyConfig,
+  type ReactPlugKitMap,
+  type ReactStandardStrategyConfig,
+  ReactStandardStrategyCore,
+} from "#r-machine/react/core";
 
 export class ReactStandardStrategy<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
-> extends ReactStandardStrategyCore<RA, L, E, EF> {
+  KM extends ReactPlugKitMap<RA> = {},
+> extends ReactStandardStrategyCore<RA, L, E, EF, ReactStandardStrategyConfig<RA, KM>> {
   constructor(rMachine: RMachine<RA, L, E, EF>);
-  constructor(rMachine: RMachine<RA, L, E, EF>, config: PartialReactStandardStrategyConfig);
-  constructor(rMachine: RMachine<RA, L, E, EF>, config: PartialReactStandardStrategyConfig = {}) {
+  constructor(rMachine: RMachine<RA, L, E, EF>, config: PartialReactStandardStrategyConfig<RA, KM>);
+  constructor(rMachine: RMachine<RA, L, E, EF>, config: PartialReactStandardStrategyConfig<RA, KM> = {}) {
     super(rMachine, {
       ...ReactStandardStrategyCore.defaultConfig,
       ...config,
-    });
+    } as ReactStandardStrategyConfig<RA, KM>);
   }
 }

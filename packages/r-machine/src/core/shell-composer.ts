@@ -57,12 +57,12 @@ interface ShellDepsComposer<
   KM extends HandleMap<RA>,
 > {
   (): ShellMapComposer<RA, L, KM, {}>;
-  <const NL extends readonly Handle<RA["shape"]>[]>(
-    ...deps: { readonly [I in keyof NL]: ValidShellDepItem<RA, BGL, NL[I]> }
-  ): ShellListComposer<RA, L, KM, NL>;
-  <const NM extends { readonly [k: string]: Handle<RA["shape"]> }>(
-    deps: { readonly [K in keyof NM]: ValidShellDepItem<RA, BGL, NM[K]> }
-  ): ShellMapComposer<RA, L, KM, NM>;
+  <const DL extends readonly Handle<RA["shape"]>[]>(
+    ...deps: { readonly [I in keyof DL]: ValidShellDepItem<RA, BGL, DL[I]> }
+  ): ShellListComposer<RA, L, KM, DL>;
+  <const DM extends { readonly [k: string]: Handle<RA["shape"]> }>(
+    deps: { readonly [K in keyof DM]: ValidShellDepItem<RA, BGL, DM[K]> }
+  ): ShellMapComposer<RA, L, KM, DM>;
 }
 
 interface ShellMapComposer<

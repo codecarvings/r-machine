@@ -52,12 +52,12 @@ export interface OuterGearComposer<RA extends AnyResAtlas, KM extends HandleMap<
 
 interface OuterGearDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>> {
   (): OuterGearMapComposer<RA, KM, {}>;
-  <const NL extends readonly Handle<RA["shape"]>[]>(
-    ...deps: { readonly [I in keyof NL]: ValidOuterGearDepItem<RA, NL[I]> }
-  ): OuterGearListComposer<RA, KM, NL>;
-  <const NM extends { readonly [k: string]: Handle<RA["shape"]> }>(
-    deps: { readonly [K in keyof NM]: ValidOuterGearDepItem<RA, NM[K]> }
-  ): OuterGearMapComposer<RA, KM, NM>;
+  <const DL extends readonly Handle<RA["shape"]>[]>(
+    ...deps: { readonly [I in keyof DL]: ValidOuterGearDepItem<RA, DL[I]> }
+  ): OuterGearListComposer<RA, KM, DL>;
+  <const DM extends { readonly [k: string]: Handle<RA["shape"]> }>(
+    deps: { readonly [K in keyof DM]: ValidOuterGearDepItem<RA, DM[K]> }
+  ): OuterGearMapComposer<RA, KM, DM>;
 }
 
 interface OuterGearMapComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>> {

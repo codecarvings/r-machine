@@ -54,6 +54,7 @@ export type {
   SolidNamespace,
 } from "./res-atlas.js";
 export type { ResComposerConnector } from "./res-composer-connector.js";
+export type { Handle } from "./res-domain.js";
 export {
   type AnyNamespace,
   type AnyNamespaceCollection,
@@ -84,15 +85,19 @@ export {
   getNamespaceList,
   type HandleList,
   isNamespaceList,
+  type NamespaceList,
   type SolidHandleList,
   type SurfaceList,
+  type ValidatedDepListType,
 } from "./res-list.js";
 export {
   type AnyNamespaceMap,
   getNamespaceMap,
   type HandleMap,
+  type NamespaceMap,
   type SolidHandleMap,
   type SurfaceMap,
+  type ValidatedDepMapType,
 } from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";
 export type { AnyResModule, ResModuleLoaderFn } from "./res-module.js";

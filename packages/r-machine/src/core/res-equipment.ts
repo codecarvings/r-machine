@@ -15,25 +15,6 @@ import type { AnyResAtlas } from "./res-atlas.js";
 import type { Namespace } from "./res-domain.js";
 import type { AnyNamespaceList } from "./res-list.js";
 
-export interface ResEquipment<
-  RA extends AnyResAtlas,
-  BGL extends BridgeGearNamespaceList<RA> = [],
-  GK extends GearKit<RA> = {},
-  SK extends ShellKit<RA, BGL> = {},
-  SGK extends ServerGateKit<RA> = {},
-  CGK extends ClientGateKit<RA> = {},
-> {
-  readonly bridgeGears: BGL;
-  readonly gearKit: GK;
-  readonly shellKit: SK;
-  readonly serverGateKit: SGK;
-  readonly clientGateKit: CGK;
-}
-
-export type KitKind = "gear" | "shell" | "serverGate" | "clientGate";
-
-export type AnyResEquipment<RA extends AnyResAtlas = AnyResAtlas> = ResEquipment<RA, any, any, any, any>;
-
 export type BridgeGearNamespaceList<RA extends AnyResAtlas> = Namespace<RA["shape@gear:hub"]>[];
 
 export type GearKit<RA extends AnyResAtlas> = {
@@ -51,6 +32,25 @@ export type ServerGateKit<RA extends AnyResAtlas> = {
 export type ClientGateKit<RA extends AnyResAtlas> = {
   readonly [key: string]: Namespace<RA["valid@client"]>;
 };
+
+export interface ResEquipment<
+  RA extends AnyResAtlas,
+  BGL extends BridgeGearNamespaceList<RA> = [],
+  GK extends GearKit<RA> = {},
+  SK extends ShellKit<RA, BGL> = {},
+  SGK extends ServerGateKit<RA> = {},
+  CGK extends ClientGateKit<RA> = {},
+> {
+  readonly bridgeGears: BGL;
+  readonly gearKit: GK;
+  readonly shellKit: SK;
+  readonly serverGateKit: SGK;
+  readonly clientGateKit: CGK;
+}
+
+export type AnyResEquipment<RA extends AnyResAtlas = AnyResAtlas> = ResEquipment<RA, any, any, any, any>;
+
+export type KitKind = "gear" | "shell" | "serverGate" | "clientGate";
 
 export interface KitDepLists {
   readonly gear: AnyNamespaceList;

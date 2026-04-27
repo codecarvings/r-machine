@@ -15,7 +15,7 @@ import type { RMachine } from "r-machine";
 import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
-import type { ReactStandardStrategyConfig } from "./react-standard-strategy-core.js";
+import type { AnyReactStandardStrategyConfig } from "./react-standard-strategy-core.js";
 import type { ReactImpl } from "./react-toolset.js";
 
 export async function createReactStandardImpl<
@@ -23,7 +23,8 @@ export async function createReactStandardImpl<
   L extends AnyLocale,
   E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
->(rMachine: RMachine<RA, L, E, EF>, strategyConfig: ReactStandardStrategyConfig): Promise<ReactImpl<L>> {
+  C extends AnyReactStandardStrategyConfig<RA>,
+>(rMachine: RMachine<RA, L, E, EF>, strategyConfig: C): Promise<ReactImpl<L>> {
   function returnValidLocale(locale: AnyLocale): L {
     const error = rMachine.localeHelper.validateLocale(locale);
     if (error) {

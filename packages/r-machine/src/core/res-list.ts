@@ -11,7 +11,8 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, SolidHandle } from "./res-atlas.js";
+import type { RMachineTypeError } from "#r-machine/errors";
+import type { AnyResAtlas, ResAtlasCatalog, SolidHandle } from "./res-atlas.js";
 import {
   type AnyNamespaceCollection,
   type ExtractNamespace,
@@ -21,16 +22,22 @@ import {
 } from "./res-domain.js";
 import type { Surface } from "./surface.js";
 
-export type HandleList<RA extends AnyResAtlas> = readonly Handle<RA["shape"]>[];
+export type HandleList<RA extends AnyResAtlas, C extends ResAtlasCatalog = "shape"> = readonly Handle<RA[C]>[];
 
 export type SolidHandleList<RA extends AnyResAtlas> = readonly SolidHandle<RA>[];
 
-export type NamespaceList<RA extends AnyResAtlas> = readonly Namespace<RA["shape"]>[];
+export type NamespaceList<RA extends AnyResAtlas, C extends ResAtlasCatalog = "shape"> = readonly Namespace<RA[C]>[];
 
 export function getNamespaceList<RA extends AnyResAtlas>(handles: HandleList<RA>): NamespaceList<RA> {
   return handles.map(getNamespace) as NamespaceList<RA>;
 }
 export type AnyNamespaceList = NamespaceList<AnyResAtlas>;
+
+// Utility type to check if a HandleList is widened (wrong namespace is passed)
+export type IsWidenedList<L extends readonly unknown[]> = number extends L["length"] ? true : false;
+
+export type ValidatedDepListType<DL extends readonly unknown[], T> =
+  IsWidenedList<DL> extends true ? RMachineTypeError<"Invalid dependency provided."> : T;
 
 export function isNamespaceList(value: AnyNamespaceCollection): value is AnyNamespaceList {
   return Array.isArray(value);

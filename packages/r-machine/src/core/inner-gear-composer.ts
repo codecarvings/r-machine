@@ -38,12 +38,12 @@ export interface InnerGearComposer<RA extends AnyResAtlas, KM extends HandleMap<
 
 interface InnerGearDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>> {
   (): InnerGearMapComposer<RA, KM, {}>;
-  <const NL extends readonly Handle<RA["shape"]>[]>(
-    ...deps: { readonly [I in keyof NL]: ValidInnerGearDepItem<RA, NL[I]> }
-  ): InnerGearListComposer<RA, KM, NL>;
-  <const NM extends { readonly [k: string]: Handle<RA["shape"]> }>(
-    deps: { readonly [K in keyof NM]: ValidInnerGearDepItem<RA, NM[K]> }
-  ): InnerGearMapComposer<RA, KM, NM>;
+  <const DL extends readonly Handle<RA["shape"]>[]>(
+    ...deps: { readonly [I in keyof DL]: ValidInnerGearDepItem<RA, DL[I]> }
+  ): InnerGearListComposer<RA, KM, DL>;
+  <const DM extends { readonly [k: string]: Handle<RA["shape"]> }>(
+    deps: { readonly [K in keyof DM]: ValidInnerGearDepItem<RA, DM[K]> }
+  ): InnerGearMapComposer<RA, KM, DM>;
 }
 
 interface InnerGearMapComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>> {

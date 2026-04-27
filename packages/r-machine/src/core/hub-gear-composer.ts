@@ -38,12 +38,12 @@ export interface HubGearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA
 
 interface HubGearDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>> {
   (): HubGearMapComposer<RA, KM, {}>;
-  <const NL extends readonly Handle<RA["shape"]>[]>(
-    ...deps: { readonly [I in keyof NL]: ValidHubGearDepItem<RA, NL[I]> }
-  ): HubGearListComposer<RA, KM, NL>;
-  <const NM extends { readonly [k: string]: Handle<RA["shape"]> }>(
-    deps: { readonly [K in keyof NM]: ValidHubGearDepItem<RA, NM[K]> }
-  ): HubGearMapComposer<RA, KM, NM>;
+  <const DL extends readonly Handle<RA["shape"]>[]>(
+    ...deps: { readonly [I in keyof DL]: ValidHubGearDepItem<RA, DL[I]> }
+  ): HubGearListComposer<RA, KM, DL>;
+  <const DM extends { readonly [k: string]: Handle<RA["shape"]> }>(
+    deps: { readonly [K in keyof DM]: ValidHubGearDepItem<RA, DM[K]> }
+  ): HubGearMapComposer<RA, KM, DM>;
 }
 
 interface HubGearMapComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>> {

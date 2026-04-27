@@ -23,7 +23,7 @@ import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import { createContext, useMemo } from "react";
-import type { ReactPlugDefiner } from "./react-plug.js";
+import type { ReactPlugDefiner, ReactPlugKitMap } from "./react-plug.js";
 import { useVertexFrame, VertexFrame } from "./vertex-frame.js";
 
 // TODO: WP
@@ -33,12 +33,12 @@ type WriteLocale<L extends AnyLocale> = (newLocale: L) => void | Promise<void>;
 export type ReactBareToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
+  KM extends ReactPlugKitMap<RA>,
 > = {
   readonly ReactRMachine: ReactBareRMachine<L>;
-  readonly Plug: ReactPlugDefiner<RA, L, E["gateKit"]>;
-} & (EF["clientGear"] extends "on"
+  readonly Plug: ReactPlugDefiner<RA, L, KM>;
+} & (EF["outerGear"] extends "on"
   ? {
       readonly VertexFrame: typeof VertexFrame;
     }
@@ -64,7 +64,8 @@ export async function createReactBareToolset<
   L extends AnyLocale,
   E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
->(rMachine: RMachine<RA, L, E, EF>): Promise<ReactBareToolset<RA, L, E, EF>> {
+  KM extends ReactPlugKitMap<RA>,
+>(rMachine: RMachine<RA, L, E, EF>): Promise<ReactBareToolset<RA, L, EF, KM>> {
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const Context = createContext<ReactBareToolsetContext<L> | null>(null);
@@ -176,5 +177,5 @@ export async function createReactBareToolset<
     ReactRMachine,
     Plug,
     VertexFrame,
-  } as ReactBareToolset<RA, L, E, EF>;
+  } as ReactBareToolset<RA, L, EF, KM>;
 }
