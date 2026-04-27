@@ -13,16 +13,21 @@
 
 import type { RMachineTypeError } from "#r-machine/errors";
 import { lazyGetters } from "./composer-utils.js";
-import { createGearListPlugHead, createGearMapPlugHead } from "./gear-plug.js";
-import type { InnerGearListDefiner, InnerGearMapDefiner } from "./inner-gear.js";
+import { createGearListPlugHead, createGearMapPlugHead, type GearPlugKitMap } from "./gear-plug.js";
+import type {
+  InnerGearListPlug,
+  InnerGearListPlugin,
+  InnerGearMapPlug,
+  InnerGearMapPlugin,
+  InnerGearPlugDepList,
+  InnerGearPlugDepMap,
+} from "./inner-gear-plug.js";
 import { getPlugOutline, type PluginCtx } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { Handle } from "./res-domain.js";
-import type { HandleList } from "./res-list.js";
-import type { HandleMap } from "./res-map.js";
-import { createResMatrix, type GearMatrixMeta } from "./res-matrix.js";
+import { createResMatrix, type GearMatrixMeta, type ResMatrix } from "./res-matrix.js";
 
 type ValidInnerGearDepItem<RA extends AnyResAtlas, H> =
   H extends Handle<RA["valid@gear:inner"]>
@@ -31,12 +36,12 @@ type ValidInnerGearDepItem<RA extends AnyResAtlas, H> =
       ? RMachineTypeError<`Namespace '${H}' is not valid for an inner gear plug.`>
       : RMachineTypeError<"This token does not reference a valid namespace for an inner gear plug.">;
 
-export interface InnerGearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>> {
+export interface InnerGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   readonly deps: InnerGearDepsComposer<RA, KM>;
   readonly define: InnerGearMapDefiner<RA, KM, {}>;
 }
 
-interface InnerGearDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>> {
+interface InnerGearDepsComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   (): InnerGearMapComposer<RA, KM, {}>;
   <const DL extends readonly Handle<RA["shape"]>[]>(
     ...deps: { readonly [I in keyof DL]: ValidInnerGearDepItem<RA, DL[I]> }
@@ -46,13 +51,35 @@ interface InnerGearDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>
   ): InnerGearMapComposer<RA, KM, DM>;
 }
 
-interface InnerGearMapComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>> {
+interface InnerGearMapComposer<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends InnerGearPlugDepMap<RA>,
+> {
   readonly define: InnerGearMapDefiner<RA, KM, DM>;
 }
 
-interface InnerGearListComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>> {
+interface InnerGearListComposer<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends InnerGearPlugDepList<RA>,
+> {
   readonly define: InnerGearListDefiner<RA, KM, DL>;
 }
+
+type InnerGearMapDefiner<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DM extends InnerGearPlugDepMap<RA>> = <
+  R extends AnyRes,
+>(
+  factory: (plugin: InnerGearMapPlugin<RA, KM, DM>) => R | Promise<R>
+) => ResMatrix<R, InnerGearMapPlug<RA, KM, DM>>;
+
+type InnerGearListDefiner<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends InnerGearPlugDepList<RA>,
+> = <R extends AnyRes>(
+  factory: (plugin: InnerGearListPlugin<RA, KM, DL>) => R | Promise<R>
+) => ResMatrix<R, InnerGearListPlug<RA, KM, DL>>;
 
 // #region Runtime
 
@@ -60,7 +87,7 @@ const meta: GearMatrixMeta = { family: "gear", role: "inner" };
 
 const cursor = undefined;
 
-export function createInnerGearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>>(
+export function createInnerGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>>(
   connector: ResComposerConnector
 ): InnerGearComposer<RA, KM> {
   const define = createInnerGearMapDefiner<RA, KM, {}>(connector, {});
@@ -80,28 +107,31 @@ export function createInnerGearComposer<RA extends AnyResAtlas, KM extends Handl
   };
 }
 
-function createInnerGearMapDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>>(
-  connector: ResComposerConnector,
-  deps: DM
-): InnerGearMapComposer<RA, KM, DM> {
+function createInnerGearMapDepsComposer<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends InnerGearPlugDepMap<RA>,
+>(connector: ResComposerConnector, deps: DM): InnerGearMapComposer<RA, KM, DM> {
   return lazyGetters({
     define: () => createInnerGearMapDefiner<RA, KM, DM>(connector, deps),
   });
 }
 
-function createInnerGearListDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>>(
-  connector: ResComposerConnector,
-  deps: DL
-): InnerGearListComposer<RA, KM, DL> {
+function createInnerGearListDepsComposer<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends InnerGearPlugDepList<RA>,
+>(connector: ResComposerConnector, deps: DL): InnerGearListComposer<RA, KM, DL> {
   return lazyGetters({
     define: () => createInnerGearListDefiner<RA, KM, DL>(connector, deps),
   });
 }
 
-function createInnerGearMapDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>>(
-  connector: ResComposerConnector,
-  deps: DM
-): InnerGearMapDefiner<RA, KM, DM> {
+function createInnerGearMapDefiner<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends InnerGearPlugDepMap<RA>,
+>(connector: ResComposerConnector, deps: DM): InnerGearMapDefiner<RA, KM, DM> {
   const head = createGearMapPlugHead<"inner", RA, KM, DM, PluginCtx<RA, KM>>("inner", deps);
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
@@ -114,10 +144,11 @@ function createInnerGearMapDefiner<RA extends AnyResAtlas, KM extends HandleMap<
     });
 }
 
-function createInnerGearListDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>>(
-  connector: ResComposerConnector,
-  deps: DL
-): InnerGearListDefiner<RA, KM, DL> {
+function createInnerGearListDefiner<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends InnerGearPlugDepList<RA>,
+>(connector: ResComposerConnector, deps: DL): InnerGearListDefiner<RA, KM, DL> {
   const head = createGearListPlugHead<"inner", RA, KM, DL, PluginCtx<RA, KM>>("inner", deps);
 
   return (factory: (plugin: never) => unknown) =>

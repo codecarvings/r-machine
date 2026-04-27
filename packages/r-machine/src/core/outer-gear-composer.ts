@@ -13,7 +13,7 @@
 
 import type { RMachineTypeError } from "#r-machine/errors";
 import { lazyGetters } from "./composer-utils.js";
-import { createGearListPlugHead, createGearMapPlugHead } from "./gear-plug.js";
+import { createGearListPlugHead, createGearMapPlugHead, type GearPlugKitMap } from "./gear-plug.js";
 import { getPlugOutline, type PluginCtx } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
@@ -45,12 +45,12 @@ type ValidOuterGearDepItem<RA extends AnyResAtlas, H> =
       ? RMachineTypeError<`Namespace '${H}' is not valid for an outer gear plug.`>
       : RMachineTypeError<"This token does not reference a valid namespace for an outer gear plug.">;
 
-export interface OuterGearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>> {
+export interface OuterGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   readonly withState: OuterGearMapStateComposer<RA, KM, {}>;
   readonly deps: OuterGearDepsComposer<RA, KM>;
 }
 
-interface OuterGearDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>> {
+interface OuterGearDepsComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   (): OuterGearMapComposer<RA, KM, {}>;
   <const DL extends readonly Handle<RA["shape"]>[]>(
     ...deps: { readonly [I in keyof DL]: ValidOuterGearDepItem<RA, DL[I]> }
@@ -60,23 +60,23 @@ interface OuterGearDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>
   ): OuterGearMapComposer<RA, KM, DM>;
 }
 
-interface OuterGearMapComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>> {
+interface OuterGearMapComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DM extends HandleMap<RA>> {
   readonly withState: OuterGearMapStateComposer<RA, KM, DM>;
   readonly define: StatelessOuterGearMapDefiner<RA, KM, DM>;
 }
 
-interface OuterGearListComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>> {
+interface OuterGearListComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DL extends HandleList<RA>> {
   readonly withState: OuterGearListStateComposer<RA, KM, DL>;
   readonly define: StatelessOuterGearListDefiner<RA, KM, DL>;
 }
 
-type OuterGearMapStateComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>> = <
+type OuterGearMapStateComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DM extends HandleMap<RA>> = <
   S extends AnyState,
 >(
   defaultState: S
 ) => StatefulOuterGearMapComposer<RA, KM, DM, S>;
 
-type OuterGearListStateComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>> = <
+type OuterGearListStateComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DL extends HandleList<RA>> = <
   S extends AnyState,
 >(
   defaultState: S
@@ -84,7 +84,7 @@ type OuterGearListStateComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>
 
 interface StatefulOuterGearMapComposer<
   RA extends AnyResAtlas,
-  KM extends HandleMap<RA>,
+  KM extends GearPlugKitMap<RA>,
   DM extends HandleMap<RA>,
   S extends AnyState,
 > {
@@ -93,7 +93,7 @@ interface StatefulOuterGearMapComposer<
 
 interface StatefulOuterGearListComposer<
   RA extends AnyResAtlas,
-  KM extends HandleMap<RA>,
+  KM extends GearPlugKitMap<RA>,
   DL extends HandleList<RA>,
   S extends AnyState,
 > {
@@ -146,7 +146,7 @@ function statefulPostProcess<S extends AnyState>(raw: unknown, cursor: StatefulO
   return resource;
 }
 
-export function createOuterGearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>>(
+export function createOuterGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>>(
   connector: ResComposerConnector
 ): OuterGearComposer<RA, KM> {
   const withState = (<S extends AnyState>(defaultState: S) => ({
@@ -164,7 +164,7 @@ export function createOuterGearComposer<RA extends AnyResAtlas, KM extends Handl
   return { withState, deps };
 }
 
-function createOuterGearMapComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>>(
+function createOuterGearMapComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DM extends HandleMap<RA>>(
   connector: ResComposerConnector,
   deps: DM
 ): OuterGearMapComposer<RA, KM, DM> {
@@ -177,7 +177,7 @@ function createOuterGearMapComposer<RA extends AnyResAtlas, KM extends HandleMap
   });
 }
 
-function createOuterGearListComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>>(
+function createOuterGearListComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DL extends HandleList<RA>>(
   connector: ResComposerConnector,
   deps: DL
 ): OuterGearListComposer<RA, KM, DL> {
@@ -192,7 +192,7 @@ function createOuterGearListComposer<RA extends AnyResAtlas, KM extends HandleMa
 
 function createStatefulOuterGearMapDefiner<
   RA extends AnyResAtlas,
-  KM extends HandleMap<RA>,
+  KM extends GearPlugKitMap<RA>,
   DM extends HandleMap<RA>,
   S extends AnyState,
 >(connector: ResComposerConnector, deps: DM, defaultState: S): StatefulOuterGearMapDefiner<RA, KM, DM, S> {
@@ -217,7 +217,7 @@ function createStatefulOuterGearMapDefiner<
 
 function createStatefulOuterGearListDefiner<
   RA extends AnyResAtlas,
-  KM extends HandleMap<RA>,
+  KM extends GearPlugKitMap<RA>,
   DL extends HandleList<RA>,
   S extends AnyState,
 >(connector: ResComposerConnector, deps: DL, state: S): StatefulOuterGearListDefiner<RA, KM, DL, S> {
@@ -241,10 +241,11 @@ function createStatefulOuterGearListDefiner<
     })) as StatefulOuterGearListDefiner<RA, KM, DL, S>;
 }
 
-function createStatelessOuterGearMapDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>>(
-  connector: ResComposerConnector,
-  deps: DM
-): StatelessOuterGearMapDefiner<RA, KM, DM> {
+function createStatelessOuterGearMapDefiner<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends HandleMap<RA>,
+>(connector: ResComposerConnector, deps: DM): StatelessOuterGearMapDefiner<RA, KM, DM> {
   const head = createGearMapPlugHead<"outer", RA, KM, DM, PluginCtx<RA, KM>>("outer", deps);
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
@@ -259,7 +260,7 @@ function createStatelessOuterGearMapDefiner<RA extends AnyResAtlas, KM extends H
 
 function createStatelessOuterGearListDefiner<
   RA extends AnyResAtlas,
-  KM extends HandleMap<RA>,
+  KM extends GearPlugKitMap<RA>,
   DL extends HandleList<RA>,
 >(connector: ResComposerConnector, deps: DL): StatelessOuterGearListDefiner<RA, KM, DL> {
   const head = createGearListPlugHead<"outer", RA, KM, DL, PluginCtx<RA, KM>>("outer", deps);

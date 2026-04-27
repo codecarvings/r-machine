@@ -7,6 +7,9 @@ export const rMachine = RMachine.create({
   defaultLocale: "en",
   load: (path) => import(`./${path}.ts`),
   bridgeGears: ["hub/config"],
+  gearKit: {
+    config: "hub/config",
+  },
   shellKit: {
     fmt: "shell/lib/fmt",
     config: "hub/config",

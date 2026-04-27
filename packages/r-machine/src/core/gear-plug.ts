@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { NamespaceMap } from "#r-machine/core";
 import type { PlugBody, PluginCtx } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { HandleList } from "./res-list.js";
@@ -19,10 +20,12 @@ import { createResListPlugHead, createResMapPlugHead, type ResListPlugHead, type
 
 export type GearRole = "inner" | "hub" | "outer";
 
+export type GearPlugKitMap<RA extends AnyResAtlas> = NamespaceMap<RA, "shape@gear:hub">;
+
 export interface GearMapPlugHead<
   R extends GearRole,
   RA extends AnyResAtlas,
-  KM extends HandleMap<RA>,
+  KM extends GearPlugKitMap<RA>,
   DM extends HandleMap<RA>,
   CTX extends PluginCtx<RA, KM>,
 > extends ResMapPlugHead<"gear", RA, KM, DM, CTX> {
@@ -33,7 +36,7 @@ type AnyGearMapPlugHead = GearMapPlugHead<GearRole, any, any, any, any>;
 export function createGearMapPlugHead<
   R extends GearRole,
   RA extends AnyResAtlas,
-  KM extends HandleMap<RA>,
+  KM extends GearPlugKitMap<RA>,
   DM extends HandleMap<RA>,
   CTX extends PluginCtx<RA, KM>,
 >(role: R, deps: DM): GearMapPlugHead<R, RA, KM, DM, CTX> {
@@ -46,7 +49,7 @@ export function createGearMapPlugHead<
 export interface GearListPlugHead<
   R extends GearRole,
   RA extends AnyResAtlas,
-  KM extends HandleMap<RA>,
+  KM extends GearPlugKitMap<RA>,
   DL extends HandleList<RA>,
   CTX extends PluginCtx<RA, KM>,
 > extends ResListPlugHead<"gear", RA, KM, DL, CTX> {
@@ -57,7 +60,7 @@ type AnyGearListPlugHead = GearListPlugHead<GearRole, any, any, any, any>;
 export function createGearListPlugHead<
   R extends GearRole,
   RA extends AnyResAtlas,
-  KM extends HandleMap<RA>,
+  KM extends GearPlugKitMap<RA>,
   DL extends HandleList<RA>,
   CTX extends PluginCtx<RA, KM>,
 >(role: R, deps: DL): GearListPlugHead<R, RA, KM, DL, CTX> {

@@ -11,15 +11,12 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { GearPlugKitMap } from "./gear-plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { Namespace } from "./res-domain.js";
 import type { AnyNamespaceList } from "./res-list.js";
 
 export type BridgeGearNamespaceList<RA extends AnyResAtlas> = Namespace<RA["shape@gear:hub"]>[];
-
-export type GearKit<RA extends AnyResAtlas> = {
-  readonly [key: string]: Namespace<RA["shape@gear:hub"]>;
-};
 
 export type ShellKit<RA extends AnyResAtlas, BGL extends BridgeGearNamespaceList<RA>> = {
   readonly [key: string]: Namespace<RA["shape@shell"]> | BGL[number];
@@ -36,7 +33,7 @@ export type ClientGateKit<RA extends AnyResAtlas> = {
 export interface ResEquipment<
   RA extends AnyResAtlas,
   BGL extends BridgeGearNamespaceList<RA> = [],
-  GK extends GearKit<RA> = {},
+  GK extends GearPlugKitMap<RA> = {},
   SK extends ShellKit<RA, BGL> = {},
   SGK extends ServerGateKit<RA> = {},
   CGK extends ClientGateKit<RA> = {},

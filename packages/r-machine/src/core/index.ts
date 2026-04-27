@@ -22,6 +22,7 @@ export type {
 } from "./gate-plug.js";
 export type { GateWire } from "./gate-wire.js";
 export { GateWireManager } from "./gate-wire-manager.js";
+export type { GearPlugKitMap } from "./gear-plug.js";
 export type { Getter } from "./getter.js";
 export { createHubGearComposer, type HubGearComposer } from "./hub-gear-composer.js";
 export { createInnerGearComposer, type InnerGearComposer } from "./inner-gear-composer.js";
@@ -68,7 +69,6 @@ export type {
   AnyResEquipment,
   BridgeGearNamespaceList,
   ClientGateKit,
-  GearKit,
   KitKind,
   ResEquipment,
   ServerGateKit,

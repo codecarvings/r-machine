@@ -12,7 +12,7 @@
  */
 
 import type { CmdComposer } from "./cmd.js";
-import type { GearListPlugHead, GearMapPlugHead } from "./gear-plug.js";
+import type { GearListPlugHead, GearMapPlugHead, GearPlugKitMap } from "./gear-plug.js";
 import type { StatelessGetterComposer } from "./getter.js";
 import type { AnyOuterGear, RejectAsyncValueProps } from "./outer-gear.js";
 import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
@@ -28,47 +28,49 @@ export interface StatelessOuterGearCursor {
   readonly cmd: CmdComposer;
 }
 
-type StatelessOuterGearPluginCtx<RA extends AnyResAtlas, KM extends HandleMap<RA>> = PluginCtx<RA, KM>;
+type StatelessOuterGearPluginCtx<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> = PluginCtx<RA, KM>;
 
 type StatelessOuterGearMapPlugin<
   RA extends AnyResAtlas,
-  KM extends HandleMap<RA>,
+  KM extends GearPlugKitMap<RA>,
   DM extends HandleMap<RA>,
 > = MapPlugin<RA, DM, StatelessOuterGearPluginCtx<RA, KM>>;
 
 type StatelessOuterGearListPlugin<
   RA extends AnyResAtlas,
-  KM extends HandleMap<RA>,
+  KM extends GearPlugKitMap<RA>,
   DL extends HandleList<RA>,
 > = ListPlugin<RA, DL, StatelessOuterGearPluginCtx<RA, KM>>;
 
 type StatelessOuterGearMapPlugHead<
   RA extends AnyResAtlas,
-  KM extends HandleMap<RA>,
+  KM extends GearPlugKitMap<RA>,
   DM extends HandleMap<RA>,
 > = GearMapPlugHead<"outer", RA, KM, DM, StatelessOuterGearPluginCtx<RA, KM>>;
 
 type StatelessOuterGearListPlugHead<
   RA extends AnyResAtlas,
-  KM extends HandleMap<RA>,
+  KM extends GearPlugKitMap<RA>,
   DL extends HandleList<RA>,
 > = GearListPlugHead<"outer", RA, KM, DL, StatelessOuterGearPluginCtx<RA, KM>>;
 
-interface StatelessOuterGearMapPlug<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>>
+interface StatelessOuterGearMapPlug<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DM extends HandleMap<RA>>
   extends PlugBody<StatelessOuterGearMapPlugHead<RA, KM, DM>> {}
 
-interface StatelessOuterGearListPlug<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>>
+interface StatelessOuterGearListPlug<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DL extends HandleList<RA>>
   extends PlugBody<StatelessOuterGearListPlugHead<RA, KM, DL>> {}
 
-export type StatelessOuterGearMapDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>> = <
-  R extends AnyOuterGear & RejectAsyncValueProps<R>,
->(
+export type StatelessOuterGearMapDefiner<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends HandleMap<RA>,
+> = <R extends AnyOuterGear & RejectAsyncValueProps<R>>(
   factory: (plugin: StatelessOuterGearMapPlugin<RA, KM, DM>, _: StatelessOuterGearCursor) => R | Promise<R>
 ) => ResMatrix<R, StatelessOuterGearMapPlug<RA, KM, DM>>;
 
 export type StatelessOuterGearListDefiner<
   RA extends AnyResAtlas,
-  KM extends HandleMap<RA>,
+  KM extends GearPlugKitMap<RA>,
   DL extends HandleList<RA>,
 > = <R extends AnyOuterGear & RejectAsyncValueProps<R>>(
   factory: (plugin: StatelessOuterGearListPlugin<RA, KM, DL>, _: StatelessOuterGearCursor) => R | Promise<R>

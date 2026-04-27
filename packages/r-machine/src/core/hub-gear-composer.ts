@@ -11,48 +11,58 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { RMachineTypeError } from "#r-machine/errors";
 import { lazyGetters } from "./composer-utils.js";
-import { createGearListPlugHead, createGearMapPlugHead } from "./gear-plug.js";
-import type { HubGearListDefiner, HubGearMapDefiner } from "./hub-gear.js";
+import { createGearListPlugHead, createGearMapPlugHead, type GearPlugKitMap } from "./gear-plug.js";
+import type {
+  HubGearListPlug,
+  HubGearListPlugin,
+  HubGearMapPlug,
+  HubGearMapPlugin,
+  HubGearPlugDepList,
+  HubGearPlugDepMap,
+} from "./hub-gear-plug.js";
 import { getPlugOutline, type PluginCtx } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
-import type { Handle } from "./res-domain.js";
-import type { HandleList } from "./res-list.js";
-import type { HandleMap } from "./res-map.js";
-import { createResMatrix, type GearMatrixMeta } from "./res-matrix.js";
+import type { ValidatedDepListType } from "./res-list.js";
+import type { ValidatedDepMapType } from "./res-map.js";
+import { createResMatrix, type GearMatrixMeta, type ResMatrix } from "./res-matrix.js";
 
-type ValidHubGearDepItem<RA extends AnyResAtlas, H> =
-  H extends Handle<RA["shape@gear:hub"]>
-    ? H
-    : H extends string
-      ? RMachineTypeError<`Namespace '${H}' is not valid for a hub gear plug.`>
-      : RMachineTypeError<"This token does not reference a valid namespace for a hub gear plug.">;
-
-export interface HubGearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>> {
+export interface HubGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   readonly deps: HubGearDepsComposer<RA, KM>;
   readonly define: HubGearMapDefiner<RA, KM, {}>;
 }
 
-interface HubGearDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>> {
+interface HubGearDepsComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   (): HubGearMapComposer<RA, KM, {}>;
-  <const DL extends readonly Handle<RA["shape"]>[]>(
-    ...deps: { readonly [I in keyof DL]: ValidHubGearDepItem<RA, DL[I]> }
-  ): HubGearListComposer<RA, KM, DL>;
-  <const DM extends { readonly [k: string]: Handle<RA["shape"]> }>(
-    deps: { readonly [K in keyof DM]: ValidHubGearDepItem<RA, DM[K]> }
-  ): HubGearMapComposer<RA, KM, DM>;
+  <const DL extends HubGearPlugDepList<RA>>(...deps: DL): ValidatedDepListType<DL, HubGearListComposer<RA, KM, DL>>;
+  <const DM extends HubGearPlugDepMap<RA>>(deps: DM): ValidatedDepMapType<DM, HubGearMapComposer<RA, KM, DM>>;
 }
 
-interface HubGearMapComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>> {
+interface HubGearMapComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DM extends HubGearPlugDepMap<RA>> {
   readonly define: HubGearMapDefiner<RA, KM, DM>;
 }
 
-interface HubGearListComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>> {
+interface HubGearListComposer<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends HubGearPlugDepList<RA>,
+> {
   readonly define: HubGearListDefiner<RA, KM, DL>;
 }
+
+type HubGearMapDefiner<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DM extends HubGearPlugDepMap<RA>> = <
+  R extends AnyRes,
+>(
+  factory: (plugin: HubGearMapPlugin<RA, KM, DM>) => R | Promise<R>
+) => ResMatrix<R, HubGearMapPlug<RA, KM, DM>>;
+
+type HubGearListDefiner<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DL extends HubGearPlugDepList<RA>> = <
+  R extends AnyRes,
+>(
+  factory: (plugin: HubGearListPlugin<RA, KM, DL>) => R | Promise<R>
+) => ResMatrix<R, HubGearListPlug<RA, KM, DL>>;
 
 // #region Runtime
 
@@ -60,7 +70,7 @@ const meta: GearMatrixMeta = { family: "gear", role: "hub" };
 
 const cursor = undefined;
 
-export function createHubGearComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>>(
+export function createHubGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>>(
   connector: ResComposerConnector
 ): HubGearComposer<RA, KM> {
   const define = createHubGearMapDefiner<RA, KM, {}>(connector, {});
@@ -80,28 +90,31 @@ export function createHubGearComposer<RA extends AnyResAtlas, KM extends HandleM
   };
 }
 
-function createHubGearMapDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>>(
-  connector: ResComposerConnector,
-  deps: DM
-): HubGearMapComposer<RA, KM, DM> {
+function createHubGearMapDepsComposer<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends HubGearPlugDepMap<RA>,
+>(connector: ResComposerConnector, deps: DM): HubGearMapComposer<RA, KM, DM> {
   return lazyGetters({
     define: () => createHubGearMapDefiner<RA, KM, DM>(connector, deps),
   });
 }
 
-function createHubGearListDepsComposer<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>>(
-  connector: ResComposerConnector,
-  deps: DL
-): HubGearListComposer<RA, KM, DL> {
+function createHubGearListDepsComposer<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends HubGearPlugDepList<RA>,
+>(connector: ResComposerConnector, deps: DL): HubGearListComposer<RA, KM, DL> {
   return lazyGetters({
     define: () => createHubGearListDefiner<RA, KM, DL>(connector, deps),
   });
 }
 
-function createHubGearMapDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA>, DM extends HandleMap<RA>>(
-  connector: ResComposerConnector,
-  deps: DM
-): HubGearMapDefiner<RA, KM, DM> {
+function createHubGearMapDefiner<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends HubGearPlugDepMap<RA>,
+>(connector: ResComposerConnector, deps: DM): HubGearMapDefiner<RA, KM, DM> {
   const head = createGearMapPlugHead<"hub", RA, KM, DM, PluginCtx<RA, KM>>("hub", deps);
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
@@ -114,10 +127,11 @@ function createHubGearMapDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA
     });
 }
 
-function createHubGearListDefiner<RA extends AnyResAtlas, KM extends HandleMap<RA>, DL extends HandleList<RA>>(
-  connector: ResComposerConnector,
-  deps: DL
-): HubGearListDefiner<RA, KM, DL> {
+function createHubGearListDefiner<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends HubGearPlugDepList<RA>,
+>(connector: ResComposerConnector, deps: DL): HubGearListDefiner<RA, KM, DL> {
   const head = createGearListPlugHead<"hub", RA, KM, DL, PluginCtx<RA, KM>>("hub", deps);
 
   return (factory: (plugin: never) => unknown) =>
