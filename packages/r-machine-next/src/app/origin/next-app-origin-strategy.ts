@@ -26,14 +26,25 @@ export class NextAppOriginStrategy<
   L extends AnyLocale,
   E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
-  CKM extends NextClientPlugKitMap<RA> = {},
-  SKM extends NextServerPlugKitMap<RA> = {},
-  PA extends AnyPathAtlas = InstanceType<typeof NextAppOriginStrategyCore.defaultConfig.PathAtlas>,
-  LK extends string = typeof NextAppOriginStrategyCore.defaultConfig.localeKey,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
 > extends NextAppOriginStrategyCore<RA, L, E, EF, NextAppOriginStrategyConfig<RA, CKM, SKM, PA, LK>> {
-  // Config is required since localeOriginMap is required
-  constructor(rMachine: RMachine<RA, L, E, EF>, config: PartialNextAppOriginStrategyConfig<RA, CKM, SKM, PA, LK>) {
-    super(rMachine, {
+  static create<
+    RA extends AnyResAtlas,
+    L extends AnyLocale,
+    E extends ResEquipment<RA>,
+    EF extends ExperimentalFlags,
+    CKM extends NextClientPlugKitMap<RA> = {},
+    SKM extends NextServerPlugKitMap<RA> = {},
+    PA extends AnyPathAtlas = InstanceType<typeof NextAppOriginStrategyCore.defaultConfig.PathAtlas>,
+    LK extends string = typeof NextAppOriginStrategyCore.defaultConfig.localeKey,
+  >(
+    rMachine: RMachine<RA, L, E, EF>,
+    config: PartialNextAppOriginStrategyConfig<RA, CKM, SKM, PA, LK>
+  ): NextAppOriginStrategy<RA, L, E, EF, CKM, SKM, PA, LK> {
+    return new NextAppOriginStrategy<RA, L, E, EF, CKM, SKM, PA, LK>(rMachine, {
       ...NextAppOriginStrategyCore.defaultConfig,
       ...config,
     } as NextAppOriginStrategyConfig<RA, CKM, SKM, PA, LK>);

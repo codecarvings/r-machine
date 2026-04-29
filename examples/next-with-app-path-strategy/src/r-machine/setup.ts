@@ -20,7 +20,7 @@ export const { InnerGear, BaseGear, OuterGear, Shell, localized } = rMachine.cre
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 
-export const strategy = new NextAppPathStrategy(rMachine, {
+export const strategy = NextAppPathStrategy.create(rMachine, {
   clientKit: {
     fmt: "shell/lib/fmt",
   },

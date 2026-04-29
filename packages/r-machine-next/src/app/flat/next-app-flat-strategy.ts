@@ -26,15 +26,25 @@ export class NextAppFlatStrategy<
   L extends AnyLocale,
   E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
-  CKM extends NextClientPlugKitMap<RA> = {},
-  SKM extends NextServerPlugKitMap<RA> = {},
-  PA extends AnyPathAtlas = InstanceType<typeof NextAppFlatStrategyCore.defaultConfig.PathAtlas>,
-  LK extends string = typeof NextAppFlatStrategyCore.defaultConfig.localeKey,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
 > extends NextAppFlatStrategyCore<RA, L, E, EF, NextAppFlatStrategyConfig<RA, CKM, SKM, PA, LK>> {
-  constructor(rMachine: RMachine<RA, L, E, EF>);
-  constructor(rMachine: RMachine<RA, L, E, EF>, config: PartialNextAppFlatStrategyConfig<RA, CKM, SKM, PA, LK>);
-  constructor(rMachine: RMachine<RA, L, E, EF>, config: PartialNextAppFlatStrategyConfig<RA, CKM, SKM, PA, LK> = {}) {
-    super(rMachine, {
+  static create<
+    RA extends AnyResAtlas,
+    L extends AnyLocale,
+    E extends ResEquipment<RA>,
+    EF extends ExperimentalFlags,
+    CKM extends NextClientPlugKitMap<RA> = {},
+    SKM extends NextServerPlugKitMap<RA> = {},
+    PA extends AnyPathAtlas = InstanceType<typeof NextAppFlatStrategyCore.defaultConfig.PathAtlas>,
+    LK extends string = typeof NextAppFlatStrategyCore.defaultConfig.localeKey,
+  >(
+    rMachine: RMachine<RA, L, E, EF>,
+    config: PartialNextAppFlatStrategyConfig<RA, CKM, SKM, PA, LK>
+  ): NextAppFlatStrategy<RA, L, E, EF, CKM, SKM, PA, LK> {
+    return new NextAppFlatStrategy<RA, L, E, EF, CKM, SKM, PA, LK>(rMachine, {
       ...NextAppFlatStrategyCore.defaultConfig,
       ...config,
     } as NextAppFlatStrategyConfig<RA, CKM, SKM, PA, LK>);

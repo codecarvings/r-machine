@@ -22,7 +22,7 @@ export abstract class Strategy<
   EF extends ExperimentalFlags,
   C,
 > {
-  constructor(
+  protected constructor(
     readonly rMachine: RMachine<RA, L, E, EF>,
     readonly config: C
   ) {

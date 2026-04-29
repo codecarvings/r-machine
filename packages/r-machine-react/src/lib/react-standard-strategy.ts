@@ -27,21 +27,14 @@ export class ReactStandardStrategy<
   L extends AnyLocale,
   E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
-  KM extends ReactPlugKitMap<RA> = {},
+  KM extends ReactPlugKitMap<RA>,
 > extends ReactStandardStrategyCore<RA, L, E, EF, ReactStandardStrategyConfig<RA, KM>> {
-  protected constructor(rMachine: RMachine<RA, L, E, EF>, config: PartialReactStandardStrategyConfig<RA, KM>) {
-    super(rMachine, {
-      ...ReactStandardStrategyCore.defaultConfig,
-      ...config,
-    } as ReactStandardStrategyConfig<RA, KM>);
-  }
-
   static create<
     RA extends AnyResAtlas,
     L extends AnyLocale,
     E extends ResEquipment<RA>,
     EF extends ExperimentalFlags,
-    KM extends ReactPlugKitMap<RA>,
+    KM extends ReactPlugKitMap<RA> = {},
   >(
     rMachine: RMachine<RA, L, E, EF>,
     config: PartialReactStandardStrategyConfig<RA, KM>,
@@ -54,6 +47,9 @@ export class ReactStandardStrategy<
           >} ***`>,
         ]
   ): ReactStandardStrategy<RA, L, E, EF, KM> {
-    return new ReactStandardStrategy<RA, L, E, EF, KM>(rMachine, config!);
+    return new ReactStandardStrategy<RA, L, E, EF, KM>(rMachine, {
+      ...ReactStandardStrategyCore.defaultConfig,
+      ...config,
+    } as ReactStandardStrategyConfig<RA, KM>);
   }
 }
