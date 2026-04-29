@@ -17,7 +17,7 @@ import { type Blueprint, createBlueprint } from "./blueprint.js";
 import type { AnyNamespace } from "./res-domain.js";
 import { getResCacheKey } from "./res-domain.js";
 import type { KitDepLists } from "./res-equipment.js";
-import { type ResLayoutEntryType, type ResLayoutEntryTypeResolver, resolveResPath } from "./res-layout.js";
+import type { ResLayoutEntryType, ResLayoutResolver } from "./res-layout.js";
 import type { AnyNamespaceList } from "./res-list.js";
 import {
   type AnyResModule,
@@ -29,7 +29,7 @@ import type { ResFamily } from "./res-plug.js";
 
 export class BlueprintManager {
   constructor(
-    protected resLayoutEntryTypeResolver: ResLayoutEntryTypeResolver,
+    protected resLayoutResolver: ResLayoutResolver,
     protected kitDepList: KitDepLists,
     protected loadResModuleFn: ResModuleLoaderFn
   ) {}
@@ -72,9 +72,13 @@ export class BlueprintManager {
     locale: AnyLocale | undefined,
     layoutEntryType: ResLayoutEntryType
   ): Promise<AnyResModule> {
-    const path = resolveResPath(namespace, locale, layoutEntryType);
+    const path = this.resLayoutResolver.resolvePath(namespace, locale, layoutEntryType);
+    const namespaceParts = this.resLayoutResolver.resolveNamespaceParts(namespace);
+    const prefix = namespaceParts[0];
     const options: ResModuleLoaderFnOptions = {
       namespace,
+      namespaceParts,
+      pathParts: [prefix, path.slice(prefix.length)],
       locale,
       onUpdate: () => {
         this.onInvalidate?.(namespace);
@@ -99,7 +103,7 @@ export class BlueprintManager {
     const allNsDeps = [...new Set([...nsDepList, ...kitDeps])];
     await Promise.all(
       allNsDeps.map((depNs) => {
-        const depLayout = this.resLayoutEntryTypeResolver(depNs);
+        const depLayout = this.resLayoutResolver.resolveLayoutEntryType(depNs);
         const depKey = getResCacheKey(depNs, locale, depLayout);
         return this.getBlueprintInternal(depNs, locale, depLayout, depKey, chain);
       })

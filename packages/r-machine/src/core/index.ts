@@ -70,8 +70,8 @@ export type {
 } from "./res-equipment.js";
 export {
   type AnyResLayout,
-  createResLayoutEntryTypeResolver,
   type ResLayoutEntryType,
+  ResLayoutResolver,
   type ResolveLayoutType,
 } from "./res-layout.js";
 export {

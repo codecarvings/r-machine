@@ -24,7 +24,6 @@ import {
   createBaseGearComposer,
   createInnerGearComposer,
   createOuterGearComposer,
-  createResLayoutEntryTypeResolver,
   createShellComposer,
   type ExperimentalFlags,
   type GateWire,
@@ -36,6 +35,7 @@ import {
   JunctureManager,
   type ResComposerConnector,
   type ResEquipment,
+  ResLayoutResolver,
   type ShellPlugKitMap,
   type SurfaceList,
   type VertexGearMap,
@@ -67,16 +67,16 @@ export class RMachine<
     this.defaultLocale = this.config.defaultLocale;
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
 
-    const resLayoutEntryTypeResolver = createResLayoutEntryTypeResolver(this.config.layout);
+    const resLayoutResolver = new ResLayoutResolver(this.config.layout);
     const blueprintManager = new BlueprintManager(
-      resLayoutEntryTypeResolver,
+      resLayoutResolver,
       {
         gear: Object.values(this.config.equipment.gearKit),
         shell: Object.values(this.config.equipment.shellKit),
       },
       this.config.load
     );
-    this.junctureManager = new JunctureManager(resLayoutEntryTypeResolver, this.config.equipment, blueprintManager);
+    this.junctureManager = new JunctureManager(resLayoutResolver, this.config.equipment, blueprintManager);
     this.gateWireManager = new GateWireManager(this.junctureManager);
 
     this.warnExperimental();

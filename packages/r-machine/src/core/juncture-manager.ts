@@ -21,7 +21,7 @@ import type { AnyRes } from "./res.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { getResCacheKey } from "./res-domain.js";
 import type { AnyResEquipment } from "./res-equipment.js";
-import type { ResLayoutEntryTypeResolver } from "./res-layout.js";
+import type { ResLayoutResolver } from "./res-layout.js";
 import { type AnyNamespaceList, isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap } from "./res-map.js";
 import type { AnySurface } from "./surface.js";
@@ -36,7 +36,7 @@ interface Slot {
 
 export class JunctureManager {
   constructor(
-    protected resLayoutEntryTypeResolver: ResLayoutEntryTypeResolver,
+    protected resLayoutResolver: ResLayoutResolver,
     protected equipment: AnyResEquipment,
     protected blueprintManager: BlueprintManager
   ) {
@@ -58,7 +58,7 @@ export class JunctureManager {
     let slot!: Slot;
     const juncturePromise = (async () => {
       try {
-        const layoutType = this.resLayoutEntryTypeResolver(namespace);
+        const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
         const blueprint: Blueprint = await this.blueprintManager.getBlueprint(namespace, locale, layoutType, key);
         let juncture: Juncture;
         if (blueprint.originType === "res") {
@@ -106,7 +106,7 @@ export class JunctureManager {
     genId: number,
     vertexGearMap: VertexGearMap | undefined
   ): Promise<Juncture> {
-    const layoutType = this.resLayoutEntryTypeResolver(namespace);
+    const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
     if (layoutType === "gear:outer(vertex)") {
       const existingGenId = vertexGearMap?.[namespace];
       if (existingGenId !== undefined) {
@@ -179,7 +179,7 @@ export class JunctureManager {
   }
 
   protected createSelfRefGetter(selfNamespace: AnyNamespace, locale: AnyLocale | undefined): () => AnySurface {
-    const selfLayoutType = this.resLayoutEntryTypeResolver(selfNamespace);
+    const selfLayoutType = this.resLayoutResolver.resolveLayoutEntryType(selfNamespace);
     const selfKey = getResCacheKey(selfNamespace, locale, selfLayoutType);
     return () => {
       const slot = this.slots.get(selfKey);

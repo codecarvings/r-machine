@@ -14,10 +14,8 @@
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { GearRole } from "./gear-plug.js";
-import type { AnyNamespace } from "./res-domain.js";
+import type { AnyNamespace, NamespaceParts } from "./res-domain.js";
 import type { ResFamily } from "./res-plug.js";
-
-// #region ResLayout
 
 export type ResLayoutEntryType =
   | "gear:inner"
@@ -68,35 +66,89 @@ export interface AnyResLayout {
 
 type LayoutEntry = readonly [prefix: string, type: ResLayoutEntryType];
 
-export type ResLayoutEntryTypeResolver = (namespace: AnyNamespace) => ResLayoutEntryType;
+export class ResLayoutResolver {
+  constructor(layout: AnyResLayout) {
+    this.entries = Object.entries(layout).sort(([a], [b]) => b.length - a.length);
+  }
+  protected readonly entries: readonly LayoutEntry[];
+  protected resLayoutEntryTypeCache = new Map<string, ResLayoutEntryType>();
+  protected namespacePartsCache = new Map<string, NamespaceParts>();
 
-export function createResLayoutEntryTypeResolver(layout: AnyResLayout): ResLayoutEntryTypeResolver {
-  const entries: readonly LayoutEntry[] = Object.entries(layout).sort(([a], [b]) => b.length - a.length);
-  const cache = new Map<string, ResLayoutEntryType>();
+  protected resolveEntry(namespace: AnyNamespace): LayoutEntry {
+    const entry = this.entries.find(([prefix]) => isPrefixMatch(namespace, prefix));
+    if (entry === undefined) {
+      throw new RMachineResolveError(
+        ERR_RESOLVE_FAILED,
+        `Failed to resolve resource layout entry for namespace "${namespace}" - no matching layout entry found.`
+      );
+    }
+    return entry;
+  }
 
-  return function resolveResLayoutType(namespace) {
-    let type = cache.get(namespace);
+  resolveLayoutEntryType(namespace: AnyNamespace): ResLayoutEntryType {
+    let type = this.resLayoutEntryTypeCache.get(namespace);
     if (type !== undefined) {
       return type;
     }
 
-    type = entries.find(([prefix]) => isPrefixMatch(namespace, prefix))?.[1];
+    type = this.resolveEntry(namespace)[1];
     if (!type) {
       throw new RMachineResolveError(
         ERR_RESOLVE_FAILED,
         `Failed to resolve resource layout entry for namespace "${namespace}" - no matching layout entry found.`
       );
     }
-
-    cache.set(namespace, type);
+    this.resLayoutEntryTypeCache.set(namespace, type);
     return type;
-  };
+  }
+
+  resolveNamespaceParts(namespace: AnyNamespace): NamespaceParts {
+    const cached = this.namespacePartsCache.get(namespace);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const entry = this.resolveEntry(namespace);
+    const prefix = entry[0];
+    const suffix = namespace.slice(prefix.length);
+    const parts: NamespaceParts = [prefix, suffix];
+    this.namespacePartsCache.set(namespace, parts);
+    return parts;
+  }
+
+  resolvePath(namespace: AnyNamespace, locale: AnyLocale | undefined, layoutEntryType: ResLayoutEntryType): string {
+    switch (layoutEntryType) {
+      case "gear:inner":
+      case "gear:base":
+      case "gear:outer":
+      case "gear:outer(vertex)":
+      case "shell(mono)":
+        return namespace;
+      case "shell":
+        if (locale === undefined) {
+          throw new RMachineResolveError(
+            ERR_RESOLVE_FAILED,
+            `Unable to resolve resource path for namespace "${namespace}" - locale is required for "shell" layout.`
+          );
+        }
+        return `${namespace}/${locale}`;
+      default:
+        throw new RMachineResolveError(
+          ERR_RESOLVE_FAILED,
+          `Unable to resolve resource path for namespace "${namespace}" - no matching resource layout.`
+        );
+    }
+  }
 }
 
 function isPrefixMatch(namespace: string, prefix: string): boolean {
-  if (namespace === prefix) return true;
+  if (namespace === prefix) {
+    return true;
+  }
   const base = prefix.slice(0, -1);
-  if (namespace === base) return true;
+  if (namespace === base) {
+    return true;
+  }
   return namespace.startsWith(prefix);
 }
 
@@ -137,43 +189,3 @@ export type ResolveLayoutType<RL extends AnyResLayout, N extends string> = {
       : never
     : never;
 }[keyof RL];
-
-// #endregion
-
-// #region ResPathResolver
-
-export type ResPathResolver = (
-  namespace: AnyNamespace,
-  locale: AnyLocale | undefined,
-  layoutEntryType: ResLayoutEntryType
-) => string;
-
-export function resolveResPath(
-  namespace: AnyNamespace,
-  locale: AnyLocale | undefined,
-  layoutEntryType: ResLayoutEntryType
-): string {
-  switch (layoutEntryType) {
-    case "gear:inner":
-    case "gear:base":
-    case "gear:outer":
-    case "gear:outer(vertex)":
-    case "shell(mono)":
-      return namespace;
-    case "shell":
-      if (locale === undefined) {
-        throw new RMachineResolveError(
-          ERR_RESOLVE_FAILED,
-          `Unable to resolve resource path for namespace "${namespace}" - locale is required for "shell" layout.`
-        );
-      }
-      return `${namespace}/${locale}`;
-    default:
-      throw new RMachineResolveError(
-        ERR_RESOLVE_FAILED,
-        `Unable to resolve resource path for namespace "${namespace}" - no matching resource layout.`
-      );
-  }
-}
-
-// #endregion

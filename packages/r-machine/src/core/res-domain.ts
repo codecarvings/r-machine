@@ -17,6 +17,7 @@ import type { AnyNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap } from "./res-map.js";
 
 export type AnyNamespace = string;
+export type NamespaceParts = readonly [prefix: string, suffix: string];
 
 export interface AnyResDomain {
   // `any` is intentional here: replacing it with `AnyRes` introduces a circular
