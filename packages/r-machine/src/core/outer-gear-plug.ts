@@ -126,6 +126,12 @@ export interface StatefulOuterGearListPlug<
 
 // #region Stateless
 
+// If state is not present AND no OuterGear dep is present, the then there is no need
+// to provide relay and cmd composers.
+export interface InertOuterGearCursor {
+  readonly getter: StatelessGetterComposer;
+}
+
 export interface StatelessOuterGearCursor {
   readonly getter: StatelessGetterComposer;
   readonly relay: RelayComposer;
