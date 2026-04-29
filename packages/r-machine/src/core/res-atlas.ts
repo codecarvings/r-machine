@@ -10,6 +10,10 @@ type ResLayoutEntryTypeMap<RL extends AnyResLayout, RD extends AnyResDomain> = {
   readonly [K in keyof RD]: K extends string ? ResolveLayoutType<RL, K> : never;
 };
 
+type LetMap<RL extends AnyResLayout, T extends ResLayoutEntryType> = {
+  readonly [P in keyof RL as RL[P] extends T ? P : never]: RL[P];
+};
+
 declare const resAtlasSymbol: unique symbol;
 export interface ResAtlas<RL extends AnyResLayout, RD extends AnyResDomain> {
   readonly [resAtlasSymbol]: true;
@@ -18,12 +22,6 @@ export interface ResAtlas<RL extends AnyResLayout, RD extends AnyResDomain> {
   readonly "shape@shell": ShapeMap<RL, RD, "shell" | "shell(mono)">;
   readonly "valid@gear:inner": ShapeMap<RL, RD, "gear:inner" | "gear:base">;
   readonly "valid@gear:outer": ShapeMap<RL, RD, "gear:base" | "gear:outer">;
-  readonly "valid@universal": ShapeMap<
-    RL,
-    RD,
-    "gear:inner" | "gear:base" | "gear:outer" | "gear:outer(vertex)" | "shell" | "shell(mono)"
-  >;
-  readonly "valid@universal:kit": ShapeMap<RL, RD, "gear:inner" | "gear:base" | "gear:outer" | "shell" | "shell(mono)">;
   readonly "valid@server": ShapeMap<RL, RD, "gear:inner" | "gear:base" | "shell" | "shell(mono)">;
   readonly "valid@client": ShapeMap<
     RL,
@@ -32,6 +30,7 @@ export interface ResAtlas<RL extends AnyResLayout, RD extends AnyResDomain> {
   >;
   readonly "valid@client:kit": ShapeMap<RL, RD, "gear:base" | "gear:outer" | "shell" | "shell(mono)">;
   readonly let: ResLayoutEntryTypeMap<RL, RD>;
+  readonly "let@gear:inner": LetMap<RL, "gear:inner">;
 }
 
 export interface AnyResAtlas {
@@ -41,12 +40,11 @@ export interface AnyResAtlas {
   readonly "shape@shell": AnyResDomain;
   readonly "valid@gear:inner": AnyResDomain;
   readonly "valid@gear:outer": AnyResDomain;
-  readonly "valid@universal": AnyResDomain;
-  readonly "valid@universal:kit": AnyResDomain;
   readonly "valid@server": AnyResDomain;
   readonly "valid@client": AnyResDomain;
   readonly "valid@client:kit": AnyResDomain;
   readonly let: AnyResDomainLayout;
+  readonly "let@gear:inner": AnyResLayout;
 }
 
 export type ResAtlasCatalog =
@@ -55,8 +53,6 @@ export type ResAtlasCatalog =
   | "shape@shell"
   | "valid@gear:inner"
   | "valid@gear:outer"
-  | "valid@universal"
-  | "valid@universal:kit"
   | "valid@server"
   | "valid@client"
   | "valid@client:kit";

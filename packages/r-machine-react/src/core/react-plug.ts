@@ -27,9 +27,9 @@ import type {
 } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 
-export type ReactPlugKitMap<RA extends AnyResAtlas> = NamespaceMap<RA, "valid@universal:kit">;
-type ReactPlugDepMap<RA extends AnyResAtlas> = HandleMap<RA, "valid@universal">;
-type ReactPlugDepList<RA extends AnyResAtlas> = HandleList<RA, "valid@universal">;
+export type ReactPlugKitMap<RA extends AnyResAtlas> = NamespaceMap<RA, "valid@client:kit">;
+type ReactPlugDepMap<RA extends AnyResAtlas> = HandleMap<RA, "valid@client">;
+type ReactPlugDepList<RA extends AnyResAtlas> = HandleList<RA, "valid@client">;
 
 type ReactPluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KM extends ReactPlugKitMap<RA>> = GatePluginCtx<
   RA,

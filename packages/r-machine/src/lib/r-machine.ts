@@ -57,7 +57,7 @@ export class RMachine<
   E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
 > {
-  constructor(config: RMachineConfig<RA, L, E, EF>) {
+  protected constructor(config: RMachineConfig<RA, L, E, EF>) {
     const configError = validateRMachineConfig(config);
     if (configError) {
       throw configError;

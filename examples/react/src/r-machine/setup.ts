@@ -34,7 +34,7 @@ export const { InnerGear, BaseGear, OuterGear, Shell, localized } = rMachine.cre
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 
-export const strategy = new ReactStandardStrategy(rMachine, {
+export const strategy = ReactStandardStrategy.create(rMachine, {
   kit: {
     fmt: "shell/lib/fmt",
   },
