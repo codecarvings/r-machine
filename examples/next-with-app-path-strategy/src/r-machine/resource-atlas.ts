@@ -1,5 +1,5 @@
 import { defineLayout } from "r-machine";
-import type { Hub_Config } from "./hub/config";
+import type { Base_Config } from "./base/config";
 import type { Inner_DB } from "./inner/db";
 import type { Outer_ShoppingCart } from "./outer/shopping-cart";
 import type { Shell_Common } from "./shell/common/en";
@@ -15,7 +15,7 @@ import type { Vertex_Timer } from "./vertex/timer";
 
 const folders = defineLayout({
   "inner/": "gear:inner",
-  "hub/": "gear:hub",
+  "base/": "gear:base",
   "outer/": "gear:outer",
   "vertex/": "gear:outer(vertex)",
   "shell/": "shell",
@@ -25,7 +25,7 @@ const folders = defineLayout({
 type ResourceMap = {
   "inner/db": Inner_DB;
 
-  "hub/config": Hub_Config;
+  "base/config": Base_Config;
 
   "outer/shopping-cart": Outer_ShoppingCart;
 

@@ -1,5 +1,5 @@
 import { defineLayout } from "r-machine";
-import type { Hub_Timer } from "./hub/timer";
+import type { Base_Timer } from "./base/timer";
 import type { Shell_Common } from "./shell/common/en";
 import type { Shell_Features_Box_1_2 } from "./shell/features/box_1_2/en";
 import type { Shell_Features_Box_3 } from "./shell/features/box_3/en";
@@ -9,14 +9,14 @@ import type { Shell_Lib_Fmt } from "./shell/lib/fmt";
 import type { Vertex_ShoppingCart } from "./vertex/shopping-cart";
 
 const folders = defineLayout({
-  "hub/": "gear:hub",
+  "base/": "gear:base",
   "vertex/": "gear:outer(vertex)",
   "shell/": "shell",
   "shell/lib/": "shell(mono)",
 });
 
 type ResourceMap = {
-  "hub/timer": Hub_Timer;
+  "base/timer": Base_Timer;
 
   "vertex/shopping-cart": Vertex_ShoppingCart;
 

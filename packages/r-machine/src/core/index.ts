@@ -12,6 +12,8 @@
  */
 
 export type { Action, Atomic } from "./action.js";
+export { type BaseGearComposer, createBaseGearComposer } from "./base-gear-composer.js";
+export type { BaseGearNamespaceList } from "./base-gear-plug.js";
 export { BlueprintManager } from "./blueprint-manager.js";
 export type { SwitchableOption } from "./config-options.js";
 export type { ExperimentalFlags } from "./experimental-flags.js";
@@ -24,8 +26,6 @@ export type { GateWire } from "./gate-wire.js";
 export { GateWireManager } from "./gate-wire-manager.js";
 export type { GearPlugKitMap } from "./gear-plug.js";
 export type { Getter } from "./getter.js";
-export { createHubGearComposer, type HubGearComposer } from "./hub-gear-composer.js";
-export type { HubGearNamespaceList } from "./hub-gear-plug.js";
 export { createInnerGearComposer, type InnerGearComposer } from "./inner-gear-composer.js";
 export { JunctureManager } from "./juncture-manager.js";
 export { createOuterGearComposer, type OuterGearComposer } from "./outer-gear-composer.js";

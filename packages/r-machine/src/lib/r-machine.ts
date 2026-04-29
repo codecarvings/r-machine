@@ -19,8 +19,9 @@ import {
   type AnyResAtlas,
   type AnyResAtlasClass,
   type AnyResEquipment,
+  type BaseGearNamespaceList,
   BlueprintManager,
-  createHubGearComposer,
+  createBaseGearComposer,
   createInnerGearComposer,
   createOuterGearComposer,
   createResLayoutEntryTypeResolver,
@@ -31,7 +32,6 @@ import {
   type GearPlugKitMap,
   getNamespaceList,
   type HandleList,
-  type HubGearNamespaceList,
   isNamespaceList,
   JunctureManager,
   type ResComposerConnector,
@@ -120,13 +120,13 @@ export class RMachine<
 
   createToolset(): RMachineToolset<RA, L, E, EF> {
     const InnerGear = createInnerGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"));
-    const HubGear = createHubGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"));
+    const BaseGear = createBaseGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"));
     const OuterGear =
       this.config.experimental.outerGear === "on"
         ? createOuterGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"))
         : undefined!;
     const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(this.createResComposerConnector("shell"));
-    return { InnerGear, HubGear, OuterGear, Shell, localized };
+    return { InnerGear, BaseGear, OuterGear, Shell, localized };
   }
 
   getGateWire(plugHead: AnyPlugHead, locale: L, vertexGearMap?: VertexGearMap | undefined): GateWire {
@@ -156,7 +156,7 @@ export class RMachine<
   static create<
     RAC extends AnyResAtlasClass,
     const LL extends AnyLocaleList,
-    const BGL extends HubGearNamespaceList<InstanceType<RAC>> = [],
+    const BGL extends BaseGearNamespaceList<InstanceType<RAC>> = [],
     GK extends GearPlugKitMap<InstanceType<RAC>> = {},
     SK extends ShellPlugKitMap<InstanceType<RAC>, BGL> = {},
     EF extends ExperimentalFlags = {},

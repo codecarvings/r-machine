@@ -12,8 +12,8 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
+import type { BaseGearNamespaceList } from "./base-gear-plug.js";
 import { lazyGetters } from "./composer-utils.js";
-import type { HubGearNamespaceList } from "./hub-gear-plug.js";
 import { getPlugOutline, type LocaleAwarePluginCtx } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
@@ -35,7 +35,7 @@ import type {
 export interface ShellComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  BGL extends HubGearNamespaceList<RA>,
+  BGL extends BaseGearNamespaceList<RA>,
   KM extends ShellPlugKitMap<RA>,
 > {
   readonly deps: ShellDepsComposer<RA, L, BGL, KM>;
@@ -45,7 +45,7 @@ export interface ShellComposer<
 interface ShellDepsComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  BGL extends HubGearNamespaceList<RA>,
+  BGL extends BaseGearNamespaceList<RA>,
   KM extends ShellPlugKitMap<RA>,
 > {
   (): ShellMapComposer<RA, L, KM, {}>;
@@ -98,7 +98,7 @@ const cursor = undefined;
 export function createShellComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  BGL extends HubGearNamespaceList<RA>,
+  BGL extends BaseGearNamespaceList<RA>,
   KM extends ShellPlugKitMap<RA>,
 >(connector: ResComposerConnector): ShellComposer<RA, L, BGL, KM> {
   const define = createShellMapDefiner<RA, L, KM, {}>(connector, {});

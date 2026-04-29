@@ -15,8 +15,8 @@ import type {
   AnyResAtlas,
   AnyResDomain,
   AnyResEquipment,
+  BaseGearComposer,
   ExperimentalFlags,
-  HubGearComposer,
   InnerGearComposer,
   Namespace,
   OuterGearComposer,
@@ -31,7 +31,7 @@ export type RMachineToolset<
   EF extends ExperimentalFlags,
 > = {
   readonly InnerGear: InnerGearComposer<RA, E["gearKit"]>;
-  readonly HubGear: HubGearComposer<RA, E["gearKit"]>;
+  readonly BaseGear: BaseGearComposer<RA, E["gearKit"]>;
   readonly Shell: ShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>;
   readonly localized: LocalizerHelper<RA["shape@shell"]>;
 } & (EF["outerGear"] extends "on"

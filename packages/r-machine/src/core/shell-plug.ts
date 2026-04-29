@@ -13,30 +13,30 @@
 
 import type { Token } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
-import type { HubGearNamespaceList } from "./hub-gear-plug.js";
+import type { BaseGearNamespaceList } from "./base-gear-plug.js";
 import type { ListPlugin, LocaleAwarePluginCtx, MapPlugin, PlugBody } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
 
-type ShellPlugDepNamespace<RA extends AnyResAtlas, BGL extends HubGearNamespaceList<RA>> =
+type ShellPlugDepNamespace<RA extends AnyResAtlas, BGL extends BaseGearNamespaceList<RA>> =
   | Extract<keyof RA["shape@shell"], string>
   | BGL[number];
 
-type ShellPlugDepHandle<RA extends AnyResAtlas, BGL extends HubGearNamespaceList<RA>> =
+type ShellPlugDepHandle<RA extends AnyResAtlas, BGL extends BaseGearNamespaceList<RA>> =
   | ShellPlugDepNamespace<RA, BGL>
   | Token<ShellPlugDepNamespace<RA, BGL>>;
 
-export type ShellPlugKitMap<RA extends AnyResAtlas, BGL extends HubGearNamespaceList<RA> = any> = {
+export type ShellPlugKitMap<RA extends AnyResAtlas, BGL extends BaseGearNamespaceList<RA> = any> = {
   readonly [k: string]: ShellPlugDepNamespace<RA, BGL>;
 };
 
-export type ShellPlugDepMap<RA extends AnyResAtlas, BGL extends HubGearNamespaceList<RA> = any> = {
+export type ShellPlugDepMap<RA extends AnyResAtlas, BGL extends BaseGearNamespaceList<RA> = any> = {
   readonly [k: string]: ShellPlugDepHandle<RA, BGL>;
 };
 
 export type ShellPlugDepList<
   RA extends AnyResAtlas,
-  BGL extends HubGearNamespaceList<RA> = any,
+  BGL extends BaseGearNamespaceList<RA> = any,
 > = readonly ShellPlugDepHandle<RA, BGL>[];
 
 type ShellPluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KM extends ShellPlugKitMap<RA>> = LocaleAwarePluginCtx<

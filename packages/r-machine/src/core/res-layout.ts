@@ -21,7 +21,7 @@ import type { ResFamily } from "./res-plug.js";
 
 export type ResLayoutEntryType =
   | "gear:inner"
-  | "gear:hub"
+  | "gear:base"
   | "gear:outer"
   | "gear:outer(vertex)"
   | "shell"
@@ -30,7 +30,7 @@ export type ResLayoutEntryType =
 export function getResFamilyFromLayoutType(layoutType: ResLayoutEntryType): ResFamily {
   switch (layoutType) {
     case "gear:inner":
-    case "gear:hub":
+    case "gear:base":
     case "gear:outer":
     case "gear:outer(vertex)":
       return "gear";
@@ -44,8 +44,8 @@ export function getGearRoleFromLayoutType(layoutType: ResLayoutEntryType): GearR
   switch (layoutType) {
     case "gear:inner":
       return "inner";
-    case "gear:hub":
-      return "hub";
+    case "gear:base":
+      return "base";
     case "gear:outer":
     case "gear:outer(vertex)":
       return "outer";
@@ -155,7 +155,7 @@ export function resolveResPath(
 ): string {
   switch (layoutEntryType) {
     case "gear:inner":
-    case "gear:hub":
+    case "gear:base":
     case "gear:outer":
     case "gear:outer(vertex)":
     case "shell(mono)":

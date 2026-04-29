@@ -16,9 +16,9 @@ import type {
   AnyResAtlasClass,
   AnyResEquipment,
   AnyResLayout,
+  BaseGearNamespaceList,
   ExperimentalFlags,
   GearPlugKitMap,
-  HubGearNamespaceList,
   ResEquipment,
   ResModuleLoaderFn,
   ShellPlugKitMap,
@@ -40,7 +40,7 @@ import {
 export interface RMachineConfigParams<
   RAC extends AnyResAtlasClass,
   LL extends AnyLocaleList,
-  BGL extends HubGearNamespaceList<InstanceType<RAC>>,
+  BGL extends BaseGearNamespaceList<InstanceType<RAC>>,
   GK extends GearPlugKitMap<InstanceType<RAC>>,
   SK extends ShellPlugKitMap<InstanceType<RAC>, BGL>,
   EF extends ExperimentalFlags,
@@ -73,7 +73,7 @@ export interface RMachineConfig<
 export function convertParamsToConfig<
   RAC extends AnyResAtlasClass,
   LL extends AnyLocaleList,
-  BGL extends HubGearNamespaceList<InstanceType<RAC>>,
+  BGL extends BaseGearNamespaceList<InstanceType<RAC>>,
   GK extends GearPlugKitMap<InstanceType<RAC>>,
   SK extends ShellPlugKitMap<InstanceType<RAC>, BGL>,
   EF extends ExperimentalFlags,

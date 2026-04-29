@@ -14,26 +14,30 @@ declare const resAtlasSymbol: unique symbol;
 export interface ResAtlas<RL extends AnyResLayout, RD extends AnyResDomain> {
   readonly [resAtlasSymbol]: true;
   readonly shape: RD;
-  readonly "shape@gear:hub": ShapeMap<RL, RD, "gear:hub">;
+  readonly "shape@gear:base": ShapeMap<RL, RD, "gear:base">;
   readonly "shape@shell": ShapeMap<RL, RD, "shell" | "shell(mono)">;
-  readonly "valid@gear:inner": ShapeMap<RL, RD, "gear:inner" | "gear:hub">;
-  readonly "valid@gear:outer": ShapeMap<RL, RD, "gear:hub" | "gear:outer">;
+  readonly "valid@gear:inner": ShapeMap<RL, RD, "gear:inner" | "gear:base">;
+  readonly "valid@gear:outer": ShapeMap<RL, RD, "gear:base" | "gear:outer">;
   readonly "valid@universal": ShapeMap<
     RL,
     RD,
-    "gear:inner" | "gear:hub" | "gear:outer" | "gear:outer(vertex)" | "shell" | "shell(mono)"
+    "gear:inner" | "gear:base" | "gear:outer" | "gear:outer(vertex)" | "shell" | "shell(mono)"
   >;
-  readonly "valid@universal:kit": ShapeMap<RL, RD, "gear:inner" | "gear:hub" | "gear:outer" | "shell" | "shell(mono)">;
-  readonly "valid@server": ShapeMap<RL, RD, "gear:inner" | "gear:hub" | "shell" | "shell(mono)">;
-  readonly "valid@client": ShapeMap<RL, RD, "gear:hub" | "gear:outer" | "gear:outer(vertex)" | "shell" | "shell(mono)">;
-  readonly "valid@client:kit": ShapeMap<RL, RD, "gear:hub" | "gear:outer" | "shell" | "shell(mono)">;
+  readonly "valid@universal:kit": ShapeMap<RL, RD, "gear:inner" | "gear:base" | "gear:outer" | "shell" | "shell(mono)">;
+  readonly "valid@server": ShapeMap<RL, RD, "gear:inner" | "gear:base" | "shell" | "shell(mono)">;
+  readonly "valid@client": ShapeMap<
+    RL,
+    RD,
+    "gear:base" | "gear:outer" | "gear:outer(vertex)" | "shell" | "shell(mono)"
+  >;
+  readonly "valid@client:kit": ShapeMap<RL, RD, "gear:base" | "gear:outer" | "shell" | "shell(mono)">;
   readonly let: ResLayoutEntryTypeMap<RL, RD>;
 }
 
 export interface AnyResAtlas {
   readonly [resAtlasSymbol]: true;
   readonly shape: AnyResDomain;
-  readonly "shape@gear:hub": AnyResDomain;
+  readonly "shape@gear:base": AnyResDomain;
   readonly "shape@shell": AnyResDomain;
   readonly "valid@gear:inner": AnyResDomain;
   readonly "valid@gear:outer": AnyResDomain;
@@ -47,7 +51,7 @@ export interface AnyResAtlas {
 
 export type ResAtlasCatalog =
   | "shape"
-  | "shape@gear:hub"
+  | "shape@gear:base"
   | "shape@shell"
   | "valid@gear:inner"
   | "valid@gear:outer"

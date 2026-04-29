@@ -1,6 +1,6 @@
 import { OuterGear, type RShape } from "@/r-machine/setup";
 
-export const r = OuterGear.deps("hub/config").define((__, _) => {
+export const r = OuterGear.deps("base/config").define((__, _) => {
   return { time: _.getter(() => new Date().toLocaleTimeString()) };
 });
 

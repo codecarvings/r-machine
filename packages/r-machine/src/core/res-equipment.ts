@@ -11,15 +11,15 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { BaseGearNamespaceList } from "./base-gear-plug.js";
 import type { GearPlugKitMap } from "./gear-plug.js";
-import type { HubGearNamespaceList } from "./hub-gear-plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { AnyNamespaceList } from "./res-list.js";
 import type { ShellPlugKitMap } from "./shell-plug.js";
 
 export interface ResEquipment<
   RA extends AnyResAtlas,
-  BGL extends HubGearNamespaceList<RA> = [],
+  BGL extends BaseGearNamespaceList<RA> = [],
   GK extends GearPlugKitMap<RA> = {},
   SK extends ShellPlugKitMap<RA, BGL> = {},
 > {

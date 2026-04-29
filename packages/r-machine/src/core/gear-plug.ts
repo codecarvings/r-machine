@@ -18,9 +18,9 @@ import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 import { createResListPlugHead, createResMapPlugHead, type ResListPlugHead, type ResMapPlugHead } from "./res-plug.js";
 
-export type GearRole = "inner" | "hub" | "outer";
+export type GearRole = "inner" | "base" | "outer";
 
-export type GearPlugKitMap<RA extends AnyResAtlas> = NamespaceMap<RA, "shape@gear:hub">;
+export type GearPlugKitMap<RA extends AnyResAtlas> = NamespaceMap<RA, "shape@gear:base">;
 
 export interface GearMapPlugHead<
   R extends GearRole,
