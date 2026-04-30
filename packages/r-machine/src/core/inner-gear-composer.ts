@@ -30,7 +30,7 @@ import type { ValidatedDepMapType } from "./res-map.js";
 import { createResMatrix, type GearMatrixMeta, type ResMatrix } from "./res-matrix.js";
 
 export interface InnerGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
-  readonly deps: InnerGearDepsComposer<RA, KM>;
+  readonly withDeps: InnerGearDepsComposer<RA, KM>;
   readonly define: InnerGearMapDefiner<RA, KM, {}>;
 }
 
@@ -81,7 +81,7 @@ export function createInnerGearComposer<RA extends AnyResAtlas, KM extends GearP
 ): InnerGearComposer<RA, KM> {
   const define = createInnerGearMapDefiner<RA, KM, {}>(connector, {});
 
-  const deps = ((...args: unknown[]) => {
+  const withDeps = ((...args: unknown[]) => {
     const mask = getPlugOutline<RA>(...args);
     if (mask.mode === "map") {
       return createInnerGearMapDepsComposer<RA, KM, any>(connector, mask.deps);
@@ -91,7 +91,7 @@ export function createInnerGearComposer<RA extends AnyResAtlas, KM extends GearP
   }) as InnerGearDepsComposer<RA, KM>;
 
   return {
-    deps,
+    withDeps,
     define,
   };
 }

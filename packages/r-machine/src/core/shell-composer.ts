@@ -38,7 +38,7 @@ export interface ShellComposer<
   BGL extends BaseGearNamespaceList<RA>,
   KM extends ShellPlugKitMap<RA>,
 > {
-  readonly deps: ShellDepsComposer<RA, L, BGL, KM>;
+  readonly withDeps: ShellDepsComposer<RA, L, BGL, KM>;
   readonly define: ShellMapDefiner<RA, L, KM, {}>;
 }
 
@@ -103,7 +103,7 @@ export function createShellComposer<
 >(connector: ResComposerConnector): ShellComposer<RA, L, BGL, KM> {
   const define = createShellMapDefiner<RA, L, KM, {}>(connector, {});
 
-  const deps = ((...args: unknown[]) => {
+  const withDeps = ((...args: unknown[]) => {
     const mask = getPlugOutline<RA>(...args);
     if (mask.mode === "map") {
       return createShellMapDepsComposer<RA, L, KM, any>(connector, mask.deps);
@@ -113,7 +113,7 @@ export function createShellComposer<
   }) as ShellDepsComposer<RA, L, BGL, KM>;
 
   return {
-    deps,
+    withDeps,
     define,
   };
 }

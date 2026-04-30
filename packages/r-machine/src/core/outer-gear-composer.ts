@@ -46,7 +46,7 @@ import { createResMatrix } from "./res-matrix.js";
 
 export interface OuterGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   readonly withState: OuterGearMapStateComposer<RA, KM, {}>;
-  readonly deps: OuterGearDepsComposer<RA, KM>;
+  readonly withDeps: OuterGearDepsComposer<RA, KM>;
   readonly define: InertOuterGearMapDefiner<RA, KM, {}>;
 }
 
@@ -283,20 +283,20 @@ export function createOuterGearComposer<RA extends AnyResAtlas, KM extends GearP
     define: createStatefulOuterGearMapDefiner<RA, KM, {}, S>(connector, {} as HandleMap<RA>, defaultState),
   })) as OuterGearComposer<RA, KM>["withState"];
 
-  const deps = ((...args: unknown[]) => {
+  const withDeps = ((...args: unknown[]) => {
     const mask = getPlugOutline<RA>(...args);
     if (mask.mode === "map") {
       return createOuterGearMapComposer<RA, KM, any>(connector, mask.deps);
     }
     return createOuterGearListComposer<RA, KM, any>(connector, mask.deps);
-  }) as OuterGearComposer<RA, KM>["deps"];
+  }) as OuterGearComposer<RA, KM>["withDeps"];
 
   const define = createStatelessOuterGearMapDefiner<RA, KM, {}>(
     connector,
     {} as OuterGearPlugDepMap<RA>
   ) as unknown as InertOuterGearMapDefiner<RA, KM, {}>;
 
-  return { withState, deps, define };
+  return { withState, withDeps, define };
 }
 
 function createOuterGearMapComposer<
