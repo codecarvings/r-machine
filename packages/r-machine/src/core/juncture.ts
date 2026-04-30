@@ -12,6 +12,7 @@
  */
 
 import type { AnyRes } from "./res.js";
+import type { AnyResolvedNamespaceMap } from "./res-map.js";
 import type { AnySurface } from "./surface.js";
 import { setVertexGearTag, type VertexGearTagData } from "./vertex-gear.js";
 
@@ -42,14 +43,14 @@ export function getCurrentSurface(juncture: Juncture): AnySurface {
 // Getter/Action/Relay are implemented. Today brands are phantom types with no
 // runtime marker, so this is a shallow pass-through clone that excludes $* keys.
 function buildSurface(res: AnyRes, vertexTag: VertexGearTagData | undefined): AnySurface {
-  const surface = Object.create(null) as Record<string, unknown>;
+  const surface = Object.create(null) as AnyResolvedNamespaceMap;
   for (const key of Object.keys(res)) {
     if (key.startsWith("$")) continue;
     Object.defineProperty(surface, key, {
       enumerable: true,
       configurable: false,
       writable: false,
-      value: (res as Record<string, unknown>)[key],
+      value: (res as AnyResolvedNamespaceMap)[key],
     });
   }
   if (vertexTag !== undefined) {

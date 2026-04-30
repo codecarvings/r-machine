@@ -40,7 +40,7 @@ import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { ExtractNamespace } from "./res-domain.js";
 import type { ValidatedDepListType } from "./res-list.js";
-import type { HandleMap, ValidatedDepMapType } from "./res-map.js";
+import type { AnyResolvedNamespaceMap, HandleMap, ValidatedDepMapType } from "./res-map.js";
 import type { GearMatrixMeta, ResMatrix } from "./res-matrix.js";
 import { createResMatrix } from "./res-matrix.js";
 
@@ -269,7 +269,7 @@ function statefulPostProcess<S extends AnyState>(raw: unknown, cursor: StatefulO
   }
 
   const [getterName, actionName] = raw;
-  const resource: Record<string, unknown> = { [getterName]: cursor.getter() };
+  const resource: AnyResolvedNamespaceMap = { [getterName]: cursor.getter() };
   if (actionName !== undefined) {
     resource[actionName] = cursor.action();
   }

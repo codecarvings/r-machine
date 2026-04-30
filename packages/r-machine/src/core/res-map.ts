@@ -24,6 +24,7 @@ export type NamespaceMap<RA extends AnyResAtlas, C extends ResAtlasCatalog = "sh
   readonly [k: string]: Namespace<RA[C]>;
 };
 export type AnyNamespaceMap = NamespaceMap<AnyResAtlas>;
+export type AnyResolvedNamespaceMap = Record<string, unknown>;
 
 // Utility type to check if a HandleMap is widened (wrong namespace is passed)
 export type IsWidenedMap<M> = string extends keyof M ? true : false;

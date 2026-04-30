@@ -22,8 +22,8 @@ import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { getResCacheKey } from "./res-domain.js";
 import type { AnyResEquipment } from "./res-equipment.js";
 import type { ResLayoutResolver } from "./res-layout.js";
-import { type AnyNamespaceList, isNamespaceList } from "./res-list.js";
-import type { AnyNamespaceMap } from "./res-map.js";
+import { type AnyNamespaceList, type AnyResolvedNamespaceList, isNamespaceList } from "./res-list.js";
+import type { AnyNamespaceMap, AnyResolvedNamespaceMap } from "./res-map.js";
 import type { AnySurface } from "./surface.js";
 import type { VertexGearMap, VertexGearTagData } from "./vertex-gear.js";
 
@@ -145,18 +145,16 @@ export class JunctureManager {
   }
 
   async getPlugin(
-    kitKind: string,
+    kit: AnyNamespaceMap,
     nsDeps: AnyNamespaceCollection,
+    isLocaleAware: boolean,
     locale: AnyLocale | undefined,
     selfNamespace: AnyNamespace | undefined,
     genId: number,
     vertexGearMap: VertexGearMap | undefined
   ): Promise<unknown> {
     const isList = isNamespaceList(nsDeps);
-    const kitKey = `${kitKind}Kit` as const;
-    const kitMap =
-      kitKey in this.equipment ? (this.equipment[kitKey as keyof AnyResEquipment] as Record<string, AnyNamespace>) : {};
-    const entries = Object.entries(kitMap);
+    const entries = Object.entries(kit);
     let selfKitKey: string | undefined;
     const kitEntries = entries.filter(([key, ns]) => {
       if (ns === selfNamespace) {
@@ -166,7 +164,7 @@ export class JunctureManager {
       return true;
     });
 
-    const [kit, deps] = await Promise.all([
+    const [kitDeps, deps] = await Promise.all([
       this.loadKit(kitEntries, locale),
       isList
         ? this.loadListDeps(nsDeps, locale, genId, vertexGearMap)
@@ -174,8 +172,15 @@ export class JunctureManager {
     ]);
 
     return isList
-      ? this.buildListPlugin(kitKind, deps as unknown[], kit, locale, selfNamespace, selfKitKey)
-      : this.buildMapPlugin(kitKind, deps as Record<string, unknown>, kit, locale, selfNamespace, selfKitKey);
+      ? this.buildListPlugin(
+          kitDeps,
+          deps as AnyResolvedNamespaceList,
+          isLocaleAware,
+          locale,
+          selfNamespace,
+          selfKitKey
+        )
+      : this.buildMapPlugin(kitDeps, deps as AnyResolvedNamespaceMap, isLocaleAware, locale, selfNamespace, selfKitKey);
   }
 
   protected createSelfRefGetter(selfNamespace: AnyNamespace, locale: AnyLocale | undefined): () => AnySurface {
@@ -196,7 +201,7 @@ export class JunctureManager {
   protected async loadKit(
     entries: ReadonlyArray<readonly [string, AnyNamespace]>,
     locale: AnyLocale | undefined
-  ): Promise<Record<string, unknown>> {
+  ): Promise<AnyResolvedNamespaceMap> {
     const resolved = await Promise.all(
       entries.map(async ([k, ns]) => [k, getCurrentSurface(await this.getJuncture(ns, locale, 0, undefined))] as const)
     );
@@ -208,7 +213,7 @@ export class JunctureManager {
     locale: AnyLocale | undefined,
     genId: number,
     vertexGearMap: VertexGearMap | undefined
-  ): Promise<Record<string, unknown>> {
+  ): Promise<AnyResolvedNamespaceMap> {
     const entries = await Promise.all(
       Object.entries(nsDeps).map(async ([key, namespace]) => [
         key,
@@ -223,7 +228,7 @@ export class JunctureManager {
     locale: AnyLocale | undefined,
     genId: number,
     vertexGearMap: VertexGearMap | undefined
-  ): Promise<unknown[]> {
+  ): Promise<AnyResolvedNamespaceList> {
     return Promise.all(
       nsDeps.map(async (namespace) =>
         getCurrentSurface(await this.getJuncture(namespace as AnyNamespace, locale, genId, vertexGearMap))
@@ -232,14 +237,14 @@ export class JunctureManager {
   }
 
   protected buildListPlugin(
-    kitKind: string,
-    deps: unknown[],
-    kit: Record<string, unknown>,
+    kit: AnyResolvedNamespaceMap,
+    deps: AnyResolvedNamespaceList,
+    isLocaleAware: boolean,
     locale: AnyLocale | undefined,
     selfNamespace: AnyNamespace | undefined,
     selfKitKey: string | undefined
   ): unknown {
-    const ctx = kitKind === "shell" ? { locale, kit } : { kit };
+    const ctx = isLocaleAware ? { locale, kit } : { kit };
     const plugin = [...deps, ctx];
     if (selfNamespace !== undefined && selfKitKey !== undefined) {
       const getter = this.createSelfRefGetter(selfNamespace, locale);
@@ -249,15 +254,15 @@ export class JunctureManager {
   }
 
   protected buildMapPlugin(
-    kitKind: string,
-    deps: Record<string, unknown>,
-    kit: Record<string, unknown>,
+    kit: AnyResolvedNamespaceMap,
+    deps: AnyResolvedNamespaceMap,
+    isLocaleAware: boolean,
     locale: AnyLocale | undefined,
     selfNamespace: AnyNamespace | undefined,
     selfKitKey: string | undefined
   ): unknown {
-    const ctx = kitKind === "shell" ? { locale, kit } : { kit };
-    const plugin: Record<string, unknown> = { ...deps, ...kit, $: ctx };
+    const ctx = isLocaleAware ? { locale, kit } : { kit };
+    const plugin: AnyResolvedNamespaceMap = { ...deps, ...kit, $: ctx };
     if (selfNamespace !== undefined && selfKitKey !== undefined) {
       const getter = this.createSelfRefGetter(selfNamespace, locale);
       Object.defineProperty(kit, selfKitKey, { enumerable: true, configurable: true, get: getter });

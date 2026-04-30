@@ -30,6 +30,7 @@ export function getNamespaceList<RA extends AnyResAtlas>(handles: HandleList<RA>
   return handles.map(getNamespace) as NamespaceList<RA>;
 }
 export type AnyNamespaceList = NamespaceList<AnyResAtlas>;
+export type AnyResolvedNamespaceList = unknown[];
 
 // Utility type to check if a HandleList is widened (wrong namespace is passed)
 export type IsWidenedList<L extends readonly unknown[]> = number extends L["length"] ? true : false;

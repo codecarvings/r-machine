@@ -16,6 +16,7 @@ import type { GateWire } from "./gate-wire.js";
 import type { JunctureManager } from "./juncture-manager.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { isNamespaceList } from "./res-list.js";
+import type { AnyNamespaceMap } from "./res-map.js";
 import type { VertexGearMap } from "./vertex-gear.js";
 
 // Unique id across all GateWireManager instances
@@ -25,7 +26,7 @@ export class GateWireManager {
   constructor(protected readonly junctureManager: JunctureManager) {}
 
   getWire(
-    kit: "clientGate" | "serverGate", // TODO: WIP
+    kit: AnyNamespaceMap,
     nsDeps: AnyNamespaceCollection,
     locale: AnyLocale,
     vertexGearMap?: VertexGearMap | undefined
@@ -36,7 +37,7 @@ export class GateWireManager {
 
 function createGateWire(
   junctureManager: JunctureManager,
-  kit: "clientGate" | "serverGate", // TODO: WIP
+  kit: AnyNamespaceMap,
   nsDeps: AnyNamespaceCollection,
   locale: AnyLocale,
   vertexGearMap: VertexGearMap | undefined,
@@ -48,6 +49,7 @@ function createGateWire(
   let currentPluginPromise = junctureManager.getPlugin(
     kit,
     nsDeps,
+    true,
     currentLocale,
     undefined,
     genId,
@@ -74,6 +76,7 @@ function createGateWire(
     currentPluginPromise = junctureManager.getPlugin(
       kit,
       nsDeps,
+      true,
       currentLocale,
       undefined,
       genId,

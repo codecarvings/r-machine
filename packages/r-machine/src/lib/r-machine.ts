@@ -14,7 +14,7 @@
 import {
   type AnyNamespace,
   type AnyNamespaceCollection,
-  type AnyPlugHead,
+  type AnyNamespaceMap,
   type AnyRes,
   type AnyResAtlas,
   type AnyResAtlasClass,
@@ -26,7 +26,6 @@ import {
   createOuterGearComposer,
   createShellComposer,
   type ExperimentalFlags,
-  type GateWire,
   GateWireManager,
   type GearPlugKitMap,
   getNamespaceList,
@@ -38,7 +37,6 @@ import {
   ResLayoutResolver,
   type ShellPlugKitMap,
   type SurfaceList,
-  type VertexGearMap,
 } from "#r-machine/core";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
@@ -68,14 +66,10 @@ export class RMachine<
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
 
     const resLayoutResolver = new ResLayoutResolver(this.config.layout);
-    const blueprintManager = new BlueprintManager(
-      resLayoutResolver,
-      {
-        gear: Object.values(this.config.equipment.gearKit),
-        shell: Object.values(this.config.equipment.shellKit),
-      },
-      this.config.load
-    );
+    const blueprintManager = new BlueprintManager(resLayoutResolver, this.config.load, {
+      gear: Object.values(this.config.equipment.gearKit),
+      shell: Object.values(this.config.equipment.shellKit),
+    });
     this.junctureManager = new JunctureManager(resLayoutResolver, this.config.equipment, blueprintManager);
     this.gateWireManager = new GateWireManager(this.junctureManager);
 
@@ -107,10 +101,18 @@ export class RMachine<
   }
   */
 
-  protected createResComposerConnector(kitKind: string): ResComposerConnector {
+  protected createResComposerConnector(kit: AnyNamespaceMap, isLocaleAware: boolean): ResComposerConnector {
     return {
       getWire: async (deps, locale, selfNamespace) => {
-        const plugin = await this.junctureManager.getPlugin(kitKind, deps, locale, selfNamespace, 0, undefined);
+        const plugin = await this.junctureManager.getPlugin(
+          kit,
+          deps,
+          isLocaleAware,
+          locale,
+          selfNamespace,
+          0,
+          undefined
+        );
         return {
           plugin,
         };
@@ -119,19 +121,29 @@ export class RMachine<
   }
 
   createToolset(): RMachineToolset<RA, L, E, EF> {
-    const InnerGear = createInnerGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"));
-    const BaseGear = createBaseGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"));
+    const InnerGear = createInnerGearComposer<RA, E["gearKit"]>(
+      this.createResComposerConnector(this.config.equipment.gearKit, false)
+    );
+    const BaseGear = createBaseGearComposer<RA, E["gearKit"]>(
+      this.createResComposerConnector(this.config.equipment.gearKit, false)
+    );
     const OuterGear =
       this.config.experimental.outerGear === "on"
-        ? createOuterGearComposer<RA, E["gearKit"]>(this.createResComposerConnector("gear"))
+        ? createOuterGearComposer<RA, E["gearKit"]>(
+            this.createResComposerConnector(this.config.equipment.gearKit, false)
+          )
         : undefined!;
-    const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(this.createResComposerConnector("shell"));
+    const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(
+      this.createResComposerConnector(this.config.equipment.shellKit, true)
+    );
     return { InnerGear, BaseGear, OuterGear, Shell, localized };
   }
 
+  /*
   getGateWire(plugHead: AnyPlugHead, locale: L, vertexGearMap?: VertexGearMap | undefined): GateWire {
     return this.gateWireManager.getWire("clientGate", plugHead.nsDeps, locale, vertexGearMap);
   }
+  */
 
   async WIP_GET<DL extends HandleList<RA>>(deps: DL): Promise<SurfaceList<RA, DL>> {
     const isList = isNamespaceList(deps as any);
@@ -142,14 +154,7 @@ export class RMachine<
       nsDeps = getNamespaceList(deps);
     }
 
-    const result = await this.junctureManager.getPlugin(
-      "clientGate",
-      nsDeps,
-      this.defaultLocale,
-      undefined,
-      0,
-      undefined
-    );
+    const result = await this.junctureManager.getPlugin({}, nsDeps, true, this.defaultLocale, undefined, 0, undefined);
     return result as SurfaceList<RA, DL>;
   }
 

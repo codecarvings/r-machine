@@ -16,7 +16,6 @@ import type { AnyLocale } from "#r-machine/locale";
 import { type Blueprint, createBlueprint } from "./blueprint.js";
 import type { AnyNamespace } from "./res-domain.js";
 import { getResCacheKey } from "./res-domain.js";
-import type { KitDepLists } from "./res-equipment.js";
 import type { ResLayoutEntryType, ResLayoutResolver } from "./res-layout.js";
 import type { AnyNamespaceList } from "./res-list.js";
 import {
@@ -30,8 +29,10 @@ import type { ResFamily } from "./res-plug.js";
 export class BlueprintManager {
   constructor(
     protected resLayoutResolver: ResLayoutResolver,
-    protected kitDepList: KitDepLists,
-    protected loadResModuleFn: ResModuleLoaderFn
+    protected loadResModuleFn: ResModuleLoaderFn,
+    protected kitDepList: {
+      [F in ResFamily]: AnyNamespaceList;
+    }
   ) {}
 
   protected readonly cache = new Map<string, Blueprint | Promise<Blueprint>>();

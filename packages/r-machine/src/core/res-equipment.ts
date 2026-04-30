@@ -14,7 +14,6 @@
 import type { BaseGearNamespaceList } from "./base-gear-plug.js";
 import type { GearPlugKitMap } from "./gear-plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { AnyNamespaceList } from "./res-list.js";
 import type { ShellPlugKitMap } from "./shell-plug.js";
 
 export interface ResEquipment<
@@ -29,8 +28,3 @@ export interface ResEquipment<
 }
 
 export type AnyResEquipment<RA extends AnyResAtlas = AnyResAtlas> = ResEquipment<RA, any, any>;
-
-export interface KitDepLists {
-  readonly gear: AnyNamespaceList;
-  readonly shell: AnyNamespaceList;
-}
