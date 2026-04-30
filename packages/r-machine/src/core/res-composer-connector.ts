@@ -12,12 +12,14 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
+import type { PluginCtxAugmenter } from "./plug.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 
 export interface ResComposerConnector {
   readonly getWire: (
     nsDeps: AnyNamespaceCollection,
     locale: AnyLocale | undefined,
+    augmentCtx: PluginCtxAugmenter,
     selfNamespace: AnyNamespace | undefined
   ) => Promise<ResWire>;
 }

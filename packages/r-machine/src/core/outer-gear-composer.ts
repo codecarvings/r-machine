@@ -22,12 +22,12 @@ import {
   type InertOuterGearCursor,
   type OuterGearPlugDepList,
   type OuterGearPlugDepMap,
-  type StatefulOuterGearCtx,
   type StatefulOuterGearCursor,
   type StatefulOuterGearListPlug,
   type StatefulOuterGearListPlugin,
   type StatefulOuterGearMapPlug,
   type StatefulOuterGearMapPlugin,
+  type StatefulOuterGearPluginCtx,
   type StatelessOuterGearCursor,
   type StatelessOuterGearListPlug,
   type StatelessOuterGearListPlugin,
@@ -45,7 +45,7 @@ import type { GearMatrixMeta, ResMatrix } from "./res-matrix.js";
 import { createResMatrix } from "./res-matrix.js";
 
 export interface OuterGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
-  readonly withState: OuterGearMapStateComposer<RA, KM, {}>;
+  readonly withState: OuterGearMapStateConfigurator<RA, KM, {}>;
   readonly withDeps: OuterGearDepsComposer<RA, KM>;
   readonly define: InertOuterGearMapDefiner<RA, KM, {}>;
 }
@@ -79,7 +79,7 @@ interface OuterGearMapComposer<
   KM extends GearPlugKitMap<RA>,
   DM extends OuterGearPlugDepMap<RA>,
 > {
-  readonly withState: OuterGearMapStateComposer<RA, KM, DM>;
+  readonly withState: OuterGearMapStateConfigurator<RA, KM, DM>;
   readonly define: StatelessOuterGearMapDefiner<RA, KM, DM>;
 }
 
@@ -88,7 +88,7 @@ interface OuterGearListComposer<
   KM extends GearPlugKitMap<RA>,
   DL extends OuterGearPlugDepList<RA>,
 > {
-  readonly withState: OuterGearListStateComposer<RA, KM, DL>;
+  readonly withState: OuterGearListStateConfigurator<RA, KM, DL>;
   readonly define: StatelessOuterGearListDefiner<RA, KM, DL>;
 }
 
@@ -97,7 +97,7 @@ interface InertOuterGearMapComposer<
   KM extends GearPlugKitMap<RA>,
   DM extends OuterGearPlugDepMap<RA>,
 > {
-  readonly withState: OuterGearMapStateComposer<RA, KM, DM>;
+  readonly withState: OuterGearMapStateConfigurator<RA, KM, DM>;
   readonly define: InertOuterGearMapDefiner<RA, KM, DM>;
 }
 
@@ -106,17 +106,17 @@ interface InertOuterGearListComposer<
   KM extends GearPlugKitMap<RA>,
   DL extends OuterGearPlugDepList<RA>,
 > {
-  readonly withState: OuterGearListStateComposer<RA, KM, DL>;
+  readonly withState: OuterGearListStateConfigurator<RA, KM, DL>;
   readonly define: InertOuterGearListDefiner<RA, KM, DL>;
 }
 
-type OuterGearMapStateComposer<
+type OuterGearMapStateConfigurator<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends OuterGearPlugDepMap<RA>,
 > = <S extends AnyState>(defaultState: S) => StatefulOuterGearMapComposer<RA, KM, DM, S>;
 
-type OuterGearListStateComposer<
+type OuterGearListStateConfigurator<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends OuterGearPlugDepList<RA>,
@@ -305,10 +305,7 @@ function createOuterGearMapComposer<
   DM extends OuterGearPlugDepMap<RA>,
 >(connector: ResComposerConnector, deps: DM): OuterGearMapComposer<RA, KM, DM> {
   return lazyGetters({
-    withState: () =>
-      (<S extends AnyState>(defaultState: S) => ({
-        define: createStatefulOuterGearMapDefiner<RA, KM, DM, S>(connector, deps, defaultState),
-      })) as OuterGearMapComposer<RA, KM, DM>["withState"],
+    withState: () => createOuterGearMapStateConfigurator<RA, KM, DM>(connector, deps),
     define: () => createStatelessOuterGearMapDefiner<RA, KM, DM>(connector, deps),
   });
 }
@@ -319,12 +316,29 @@ function createOuterGearListComposer<
   DL extends OuterGearPlugDepList<RA>,
 >(connector: ResComposerConnector, deps: DL): OuterGearListComposer<RA, KM, DL> {
   return lazyGetters({
-    withState: () =>
-      (<S extends AnyState>(defaultState: S) => ({
-        define: createStatefulOuterGearListDefiner<RA, KM, DL, S>(connector, deps, defaultState),
-      })) as OuterGearListComposer<RA, KM, DL>["withState"],
+    withState: () => createOuterGearListStateConfigurator<RA, KM, DL>(connector, deps),
     define: () => createStatelessOuterGearListDefiner<RA, KM, DL>(connector, deps),
   });
+}
+
+function createOuterGearMapStateConfigurator<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
+>(connector: ResComposerConnector, deps: DM): OuterGearMapStateConfigurator<RA, KM, DM> {
+  return (<S extends AnyState>(defaultState: S) => ({
+    define: createStatefulOuterGearMapDefiner<RA, KM, DM, S>(connector, deps, defaultState),
+  })) as OuterGearMapStateConfigurator<RA, KM, DM>;
+}
+
+function createOuterGearListStateConfigurator<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends OuterGearPlugDepList<RA>,
+>(connector: ResComposerConnector, deps: DL): OuterGearListStateConfigurator<RA, KM, DL> {
+  return (<S extends AnyState>(defaultState: S) => ({
+    define: createStatefulOuterGearListDefiner<RA, KM, DL, S>(connector, deps, defaultState),
+  })) as OuterGearListStateConfigurator<RA, KM, DL>;
 }
 
 function createStatefulOuterGearMapDefiner<
@@ -333,7 +347,10 @@ function createStatefulOuterGearMapDefiner<
   DM extends OuterGearPlugDepMap<RA>,
   S extends AnyState,
 >(connector: ResComposerConnector, deps: DM, defaultState: S): StatefulOuterGearMapDefiner<RA, KM, DM, S> {
-  const head = createStatefulOuterGearMapPlugHead<RA, KM, DM, StatefulOuterGearCtx<RA, KM, S>, S>(deps, defaultState);
+  const head = createStatefulOuterGearMapPlugHead<RA, KM, DM, StatefulOuterGearPluginCtx<RA, KM, S>, S>(
+    deps,
+    defaultState
+  );
 
   const cursor = buildStatefulOuterGearCursor(defaultState);
 
@@ -344,9 +361,9 @@ function createStatefulOuterGearMapDefiner<
       head,
       cursor,
       userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
-      buildPlugin: (resolved) => {
-        const r = resolved as { $: object };
-        return { ...r, $: { ...r.$, state: defaultState, defaultState } };
+      augmentCtx: ($) => {
+        $.state = defaultState;
+        $.defaultState = defaultState;
       },
       postProcess: (raw, c) => statefulPostProcess(raw, c as StatefulOuterGearCursor<S>),
     })) as StatefulOuterGearMapDefiner<RA, KM, DM, S>;
@@ -358,7 +375,7 @@ function createStatefulOuterGearListDefiner<
   DL extends OuterGearPlugDepList<RA>,
   S extends AnyState,
 >(connector: ResComposerConnector, deps: DL, state: S): StatefulOuterGearListDefiner<RA, KM, DL, S> {
-  const head = createStatefulOuterGearListPlugHead<RA, KM, DL, StatefulOuterGearCtx<RA, KM, S>, S>(deps, state);
+  const head = createStatefulOuterGearListPlugHead<RA, KM, DL, StatefulOuterGearPluginCtx<RA, KM, S>, S>(deps, state);
 
   const cursor = buildStatefulOuterGearCursor(state);
 
@@ -369,10 +386,9 @@ function createStatefulOuterGearListDefiner<
       head,
       cursor,
       userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
-      buildPlugin: (resolved) => {
-        const arr = resolved as unknown[];
-        const ctx = arr[arr.length - 1] as object;
-        return [...arr.slice(0, -1), { ...ctx, state, defaultState: state }];
+      augmentCtx: ($) => {
+        $.state = state;
+        $.defaultState = state;
       },
       postProcess: (raw, c) => statefulPostProcess(raw, c as unknown as StatefulOuterGearCursor<S>),
     })) as StatefulOuterGearListDefiner<RA, KM, DL, S>;
@@ -383,7 +399,7 @@ function createStatelessOuterGearMapDefiner<
   KM extends GearPlugKitMap<RA>,
   DM extends OuterGearPlugDepMap<RA>,
 >(connector: ResComposerConnector, deps: DM): StatelessOuterGearMapDefiner<RA, KM, DM> {
-  const head = createGearMapPlugHead<"outer", RA, KM, DM, PluginCtx<RA, KM>>("outer", deps);
+  const head = createGearMapPlugHead<"outer", RA, KM, DM, {}, PluginCtx<RA, KM>>("outer", deps, {});
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
     createResMatrix({
@@ -400,7 +416,7 @@ function createStatelessOuterGearListDefiner<
   KM extends GearPlugKitMap<RA>,
   DL extends OuterGearPlugDepList<RA>,
 >(connector: ResComposerConnector, deps: DL): StatelessOuterGearListDefiner<RA, KM, DL> {
-  const head = createGearListPlugHead<"outer", RA, KM, DL, PluginCtx<RA, KM>>("outer", deps);
+  const head = createGearListPlugHead<"outer", RA, KM, DL, {}, PluginCtx<RA, KM>>("outer", deps, {});
 
   return ((factory: (plugin: never, cursor: never) => unknown) =>
     createResMatrix({

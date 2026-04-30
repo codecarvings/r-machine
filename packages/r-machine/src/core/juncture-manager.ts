@@ -17,6 +17,7 @@ import type { Blueprint } from "./blueprint.js";
 import type { BlueprintManager } from "./blueprint-manager.js";
 import { buildKernelJuncture, buildOuterJuncture, getCurrentSurface, type Juncture } from "./juncture.js";
 import { tryGetManagedTeardown } from "./managed.js";
+import type { PluginCtxAugmenter } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { getResCacheKey } from "./res-domain.js";
@@ -147,8 +148,8 @@ export class JunctureManager {
   async getPlugin(
     kit: AnyNamespaceMap,
     nsDeps: AnyNamespaceCollection,
-    isLocaleAware: boolean,
     locale: AnyLocale | undefined,
+    augmentCtx: PluginCtxAugmenter,
     selfNamespace: AnyNamespace | undefined,
     genId: number,
     vertexGearMap: VertexGearMap | undefined
@@ -172,15 +173,8 @@ export class JunctureManager {
     ]);
 
     return isList
-      ? this.buildListPlugin(
-          kitDeps,
-          deps as AnyResolvedNamespaceList,
-          isLocaleAware,
-          locale,
-          selfNamespace,
-          selfKitKey
-        )
-      : this.buildMapPlugin(kitDeps, deps as AnyResolvedNamespaceMap, isLocaleAware, locale, selfNamespace, selfKitKey);
+      ? this.buildListPlugin(kitDeps, deps as AnyResolvedNamespaceList, locale, augmentCtx, selfNamespace, selfKitKey)
+      : this.buildMapPlugin(kitDeps, deps as AnyResolvedNamespaceMap, locale, augmentCtx, selfNamespace, selfKitKey);
   }
 
   protected createSelfRefGetter(selfNamespace: AnyNamespace, locale: AnyLocale | undefined): () => AnySurface {
@@ -239,13 +233,14 @@ export class JunctureManager {
   protected buildListPlugin(
     kit: AnyResolvedNamespaceMap,
     deps: AnyResolvedNamespaceList,
-    isLocaleAware: boolean,
     locale: AnyLocale | undefined,
+    augmentCtx: PluginCtxAugmenter,
     selfNamespace: AnyNamespace | undefined,
     selfKitKey: string | undefined
   ): unknown {
-    const ctx = isLocaleAware ? { locale, kit } : { kit };
-    const plugin = [...deps, ctx];
+    const $ = { kit };
+    augmentCtx($);
+    const plugin = [...deps, $];
     if (selfNamespace !== undefined && selfKitKey !== undefined) {
       const getter = this.createSelfRefGetter(selfNamespace, locale);
       Object.defineProperty(kit, selfKitKey, { enumerable: true, configurable: true, get: getter });
@@ -256,13 +251,14 @@ export class JunctureManager {
   protected buildMapPlugin(
     kit: AnyResolvedNamespaceMap,
     deps: AnyResolvedNamespaceMap,
-    isLocaleAware: boolean,
     locale: AnyLocale | undefined,
+    augmentCtx: PluginCtxAugmenter,
     selfNamespace: AnyNamespace | undefined,
     selfKitKey: string | undefined
   ): unknown {
-    const ctx = isLocaleAware ? { locale, kit } : { kit };
-    const plugin: AnyResolvedNamespaceMap = { ...deps, ...kit, $: ctx };
+    const $ = { kit };
+    augmentCtx($);
+    const plugin: AnyResolvedNamespaceMap = { ...kit, ...deps, $ };
     if (selfNamespace !== undefined && selfKitKey !== undefined) {
       const getter = this.createSelfRefGetter(selfNamespace, locale);
       Object.defineProperty(kit, selfKitKey, { enumerable: true, configurable: true, get: getter });

@@ -101,18 +101,10 @@ export class RMachine<
   }
   */
 
-  protected createResComposerConnector(kit: AnyNamespaceMap, isLocaleAware: boolean): ResComposerConnector {
+  protected createResComposerConnector(kit: AnyNamespaceMap): ResComposerConnector {
     return {
-      getWire: async (deps, locale, selfNamespace) => {
-        const plugin = await this.junctureManager.getPlugin(
-          kit,
-          deps,
-          isLocaleAware,
-          locale,
-          selfNamespace,
-          0,
-          undefined
-        );
+      getWire: async (deps, locale, augmentCtx, selfNamespace) => {
+        const plugin = await this.junctureManager.getPlugin(kit, deps, locale, augmentCtx, selfNamespace, 0, undefined);
         return {
           plugin,
         };
@@ -122,19 +114,17 @@ export class RMachine<
 
   createToolset(): RMachineToolset<RA, L, E, EF> {
     const InnerGear = createInnerGearComposer<RA, E["gearKit"]>(
-      this.createResComposerConnector(this.config.equipment.gearKit, false)
+      this.createResComposerConnector(this.config.equipment.gearKit)
     );
     const BaseGear = createBaseGearComposer<RA, E["gearKit"]>(
-      this.createResComposerConnector(this.config.equipment.gearKit, false)
+      this.createResComposerConnector(this.config.equipment.gearKit)
     );
     const OuterGear =
       this.config.experimental.outerGear === "on"
-        ? createOuterGearComposer<RA, E["gearKit"]>(
-            this.createResComposerConnector(this.config.equipment.gearKit, false)
-          )
+        ? createOuterGearComposer<RA, E["gearKit"]>(this.createResComposerConnector(this.config.equipment.gearKit))
         : undefined!;
     const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(
-      this.createResComposerConnector(this.config.equipment.shellKit, true)
+      this.createResComposerConnector(this.config.equipment.shellKit)
     );
     return { InnerGear, BaseGear, OuterGear, Shell, localized };
   }
@@ -154,7 +144,17 @@ export class RMachine<
       nsDeps = getNamespaceList(deps);
     }
 
-    const result = await this.junctureManager.getPlugin({}, nsDeps, true, this.defaultLocale, undefined, 0, undefined);
+    const result = await this.junctureManager.getPlugin(
+      {},
+      nsDeps,
+      this.defaultLocale,
+      ($) => {
+        $.locale = this.defaultLocale;
+      },
+      undefined,
+      0,
+      undefined
+    );
     return result as SurfaceList<RA, DL>;
   }
 

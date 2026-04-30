@@ -13,7 +13,7 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import type { GearRole } from "./gear-plug.js";
-import { createPlug, getPlugResolve, setPlugResolve } from "./plug.js";
+import { createPlug, getPlugResolve, type PluginCtxAugmenter, setPlugResolve } from "./plug.js";
 import type { AnyRes, AnyResOrigin } from "./res.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { AnyNamespace } from "./res-domain.js";
@@ -50,19 +50,27 @@ interface CreateResMatrixOptions {
   readonly head: AnyResPlugHead;
   readonly cursor: unknown;
   readonly userFactory: (plugin: unknown, cursor: never) => unknown | Promise<unknown>;
-  readonly buildPlugin?: (resolved: unknown, locale: AnyLocale | undefined) => unknown;
+  readonly augmentCtx?: PluginCtxAugmenter;
   readonly postProcess?: (raw: unknown, cursor: never) => unknown;
 }
 
+const defaultBuildCtx: PluginCtxAugmenter = ($) => $;
+
 export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
-  const { connector, meta, head, cursor, userFactory, buildPlugin, postProcess } = options;
+  const { connector, meta, head, cursor, userFactory, augmentCtx, postProcess } = options;
 
   const plug = createPlug(head);
 
   setPlugResolve(plug, async (locale: AnyLocale | undefined, selfNamespace: AnyNamespace | undefined) => {
-    const wire = await connector.getWire(head.nsDeps, locale, selfNamespace);
-    const plugin = wire.plugin;
-    return (buildPlugin ? buildPlugin(plugin, locale) : plugin) as never;
+    const buildCtx2: PluginCtxAugmenter = ($) => {
+      if (meta.family === "shell") {
+        $.locale = locale;
+      }
+      $.ports = head.ports;
+      return augmentCtx !== undefined ? augmentCtx($) : defaultBuildCtx($);
+    };
+    const wire = await connector.getWire(head.nsDeps, locale, buildCtx2, selfNamespace);
+    return wire.plugin as never;
   });
 
   const factory = async (locale: AnyLocale | undefined, selfNamespace: AnyNamespace): Promise<AnyRes> => {

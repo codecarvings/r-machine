@@ -21,6 +21,8 @@ import type { AnyNamespaceMap, HandleMap, SurfaceMap } from "./res-map.js";
 export type PlugRealm = "res" | "gate";
 export type PlugMode = "map" | "list";
 
+export type PluginCtxAugmenter = ($: any) => void;
+
 export type PluginCtx<RA extends AnyResAtlas, KM extends HandleMap<RA>> = {} & (keyof KM extends never
   ? {}
   : { readonly kit: SurfaceMap<RA, KM> });

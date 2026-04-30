@@ -14,6 +14,7 @@
 import type { AnyLocale } from "#r-machine/locale";
 import type { GateWire } from "./gate-wire.js";
 import type { JunctureManager } from "./juncture-manager.js";
+import type { PluginCtxAugmenter } from "./plug.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap } from "./res-map.js";
@@ -29,9 +30,10 @@ export class GateWireManager {
     kit: AnyNamespaceMap,
     nsDeps: AnyNamespaceCollection,
     locale: AnyLocale,
+    augmentCtx: PluginCtxAugmenter,
     vertexGearMap?: VertexGearMap | undefined
   ): GateWire {
-    return createGateWire(this.junctureManager, kit, nsDeps, locale, vertexGearMap, ++nextGenId);
+    return createGateWire(this.junctureManager, kit, nsDeps, locale, augmentCtx, vertexGearMap, ++nextGenId);
   }
 }
 
@@ -40,6 +42,7 @@ function createGateWire(
   kit: AnyNamespaceMap,
   nsDeps: AnyNamespaceCollection,
   locale: AnyLocale,
+  augmentCtx: PluginCtxAugmenter,
   vertexGearMap: VertexGearMap | undefined,
   genId: number
 ): GateWire {
@@ -49,8 +52,8 @@ function createGateWire(
   let currentPluginPromise = junctureManager.getPlugin(
     kit,
     nsDeps,
-    true,
     currentLocale,
+    augmentCtx,
     undefined,
     genId,
     currentVertexGearMap
@@ -76,8 +79,8 @@ function createGateWire(
     currentPluginPromise = junctureManager.getPlugin(
       kit,
       nsDeps,
-      true,
       currentLocale,
+      augmentCtx,
       undefined,
       genId,
       currentVertexGearMap

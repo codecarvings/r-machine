@@ -121,7 +121,7 @@ function createInnerGearMapDefiner<
   KM extends GearPlugKitMap<RA>,
   DM extends InnerGearPlugDepMap<RA>,
 >(connector: ResComposerConnector, deps: DM): InnerGearMapDefiner<RA, KM, DM> {
-  const head = createGearMapPlugHead<"inner", RA, KM, DM, PluginCtx<RA, KM>>("inner", deps);
+  const head = createGearMapPlugHead<"inner", RA, KM, DM, {}, PluginCtx<RA, KM>>("inner", deps, {});
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
     createResMatrix({
@@ -138,7 +138,7 @@ function createInnerGearListDefiner<
   KM extends GearPlugKitMap<RA>,
   DL extends InnerGearPlugDepList<RA>,
 >(connector: ResComposerConnector, deps: DL): InnerGearListDefiner<RA, KM, DL> {
-  const head = createGearListPlugHead<"inner", RA, KM, DL, PluginCtx<RA, KM>>("inner", deps);
+  const head = createGearListPlugHead<"inner", RA, KM, DL, {}, PluginCtx<RA, KM>>("inner", deps, {});
 
   return (factory: (plugin: never) => unknown) =>
     createResMatrix({

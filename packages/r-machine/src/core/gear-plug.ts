@@ -12,11 +12,18 @@
  */
 
 import type { NamespaceMap } from "#r-machine/core";
-import type { PlugBody, PluginCtx } from "./plug.js";
+import type { PlugBody } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
-import { createResListPlugHead, createResMapPlugHead, type ResListPlugHead, type ResMapPlugHead } from "./res-plug.js";
+import {
+  type AnyPortMap,
+  createResListPlugHead,
+  createResMapPlugHead,
+  type ResListPlugHead,
+  type ResMapPlugHead,
+  type ResPluginCtx,
+} from "./res-plug.js";
 
 export type GearRole = "inner" | "base" | "outer";
 
@@ -27,23 +34,25 @@ export interface GearMapPlugHead<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends HandleMap<RA>,
-  CTX extends PluginCtx<RA, KM>,
-> extends ResMapPlugHead<"gear", RA, KM, DM, CTX> {
+  PM extends AnyPortMap,
+  CTX extends ResPluginCtx<RA, KM, PM>,
+> extends ResMapPlugHead<"gear", RA, KM, DM, PM, CTX> {
   readonly role: R;
 }
-type AnyGearMapPlugHead = GearMapPlugHead<GearRole, any, any, any, any>;
+type AnyGearMapPlugHead = GearMapPlugHead<GearRole, any, any, any, any, any>;
 
 export function createGearMapPlugHead<
   R extends GearRole,
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends HandleMap<RA>,
-  CTX extends PluginCtx<RA, KM>,
->(role: R, deps: DM): GearMapPlugHead<R, RA, KM, DM, CTX> {
+  PM extends AnyPortMap,
+  CTX extends ResPluginCtx<RA, KM, PM>,
+>(role: R, deps: DM, ports: PM): GearMapPlugHead<R, RA, KM, DM, PM, CTX> {
   return {
-    ...createResMapPlugHead<"gear", RA, KM, DM, CTX>("gear", deps),
+    ...createResMapPlugHead<"gear", RA, KM, DM, PM, CTX>("gear", deps, ports),
     role,
-  } as unknown as GearMapPlugHead<R, RA, KM, DM, CTX>;
+  } as unknown as GearMapPlugHead<R, RA, KM, DM, PM, CTX>;
 }
 
 export interface GearListPlugHead<
@@ -51,23 +60,25 @@ export interface GearListPlugHead<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends HandleList<RA>,
-  CTX extends PluginCtx<RA, KM>,
-> extends ResListPlugHead<"gear", RA, KM, DL, CTX> {
+  PM extends AnyPortMap,
+  CTX extends ResPluginCtx<RA, KM, PM>,
+> extends ResListPlugHead<"gear", RA, KM, DL, PM, CTX> {
   readonly role: R;
 }
-type AnyGearListPlugHead = GearListPlugHead<GearRole, any, any, any, any>;
+type AnyGearListPlugHead = GearListPlugHead<GearRole, any, any, any, any, any>;
 
 export function createGearListPlugHead<
   R extends GearRole,
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends HandleList<RA>,
-  CTX extends PluginCtx<RA, KM>,
->(role: R, deps: DL): GearListPlugHead<R, RA, KM, DL, CTX> {
+  PM extends AnyPortMap,
+  CTX extends ResPluginCtx<RA, KM, PM>,
+>(role: R, deps: DL, ports: PM): GearListPlugHead<R, RA, KM, DL, PM, CTX> {
   return {
-    ...createResListPlugHead<"gear", RA, KM, DL, CTX>("gear", deps),
+    ...createResListPlugHead<"gear", RA, KM, DL, PM, CTX>("gear", deps, ports),
     role,
-  } as unknown as GearListPlugHead<R, RA, KM, DL, CTX>;
+  } as unknown as GearListPlugHead<R, RA, KM, DL, PM, CTX>;
 }
 
 export type AnyGearPlugHead = AnyGearMapPlugHead | AnyGearListPlugHead;

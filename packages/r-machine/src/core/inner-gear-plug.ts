@@ -38,13 +38,13 @@ type InnerGearMapPlugHead<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends InnerGearPlugDepMap<RA>,
-> = GearMapPlugHead<"inner", RA, KM, DM, InnerGearPluginCtx<RA, KM>>;
+> = GearMapPlugHead<"inner", RA, KM, DM, {}, InnerGearPluginCtx<RA, KM>>;
 
 type InnerGearListPlugHead<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends InnerGearPlugDepList<RA>,
-> = GearListPlugHead<"inner", RA, KM, DL, InnerGearPluginCtx<RA, KM>>;
+> = GearListPlugHead<"inner", RA, KM, DL, {}, InnerGearPluginCtx<RA, KM>>;
 
 export interface InnerGearMapPlug<
   RA extends AnyResAtlas,

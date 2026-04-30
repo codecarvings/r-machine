@@ -64,14 +64,14 @@ type ShellMapPlugHead<
   L extends AnyLocale,
   KM extends ShellPlugKitMap<RA>,
   DM extends ShellPlugDepMap<RA>,
-> = ResMapPlugHead<"shell", RA, KM, DM, ShellPluginCtx<RA, L, KM>>;
+> = ResMapPlugHead<"shell", RA, KM, DM, {}, ShellPluginCtx<RA, L, KM>>;
 
 type ShellListPlugHead<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KM extends ShellPlugKitMap<RA>,
   DL extends ShellPlugDepList<RA>,
-> = ResListPlugHead<"shell", RA, KM, DL, ShellPluginCtx<RA, L, KM>>;
+> = ResListPlugHead<"shell", RA, KM, DL, {}, ShellPluginCtx<RA, L, KM>>;
 
 export interface ShellMapPlug<
   RA extends AnyResAtlas,

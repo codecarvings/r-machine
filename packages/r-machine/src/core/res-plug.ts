@@ -18,24 +18,32 @@ import { getNamespaceMap, type HandleMap } from "./res-map.js";
 
 export type ResFamily = "gear" | "shell";
 
+export type AnyPortMap = Record<string, unknown>;
+
+export type ResPluginCtx<RA extends AnyResAtlas, KM extends HandleMap<RA>, PM extends AnyPortMap> = PluginCtx<RA, KM> &
+  (keyof PM extends never ? {} : { readonly ports: PM });
+
 export interface ResMapPlugHead<
   F extends ResFamily,
   RA extends AnyResAtlas,
   KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
-  CTX extends PluginCtx<RA, KM>,
+  PM extends AnyPortMap,
+  CTX extends ResPluginCtx<RA, KM, PM>,
 > extends MapPlugHead<"res", RA, KM, DM, CTX> {
   readonly family: F;
+  readonly ports: PM;
 }
-type AnyResMapPlugHead = ResMapPlugHead<ResFamily, any, any, any, any>;
+type AnyResMapPlugHead = ResMapPlugHead<ResFamily, any, any, any, any, any>;
 
 export function createResMapPlugHead<
   F extends ResFamily,
   RA extends AnyResAtlas,
   KM extends HandleMap<RA>,
   DM extends HandleMap<RA>,
-  CTX extends PluginCtx<RA, KM>,
->(family: F, deps: DM): ResMapPlugHead<F, RA, KM, DM, CTX> {
+  PM extends AnyPortMap,
+  CTX extends ResPluginCtx<RA, KM, PM>,
+>(family: F, deps: DM, ports: PM): ResMapPlugHead<F, RA, KM, DM, PM, CTX> {
   const nsDeps = getNamespaceMap(deps);
   const nsDepList = Object.values(nsDeps);
   return {
@@ -45,7 +53,8 @@ export function createResMapPlugHead<
     deps,
     nsDeps,
     nsDepList,
-  } as unknown as ResMapPlugHead<F, RA, KM, DM, CTX>;
+    ports,
+  } as unknown as ResMapPlugHead<F, RA, KM, DM, PM, CTX>;
 }
 
 export interface ResListPlugHead<
@@ -53,19 +62,22 @@ export interface ResListPlugHead<
   RA extends AnyResAtlas,
   KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
-  CTX extends PluginCtx<RA, KM>,
+  PM extends AnyPortMap,
+  CTX extends ResPluginCtx<RA, KM, PM>,
 > extends ListPlugHead<"res", RA, KM, DL, CTX> {
   readonly family: F;
+  readonly ports: PM;
 }
-type AnyResListPlugHead = ResListPlugHead<ResFamily, any, any, any, any>;
+type AnyResListPlugHead = ResListPlugHead<ResFamily, any, any, any, any, any>;
 
 export function createResListPlugHead<
   F extends ResFamily,
   RA extends AnyResAtlas,
   KM extends HandleMap<RA>,
   DL extends HandleList<RA>,
-  CTX extends PluginCtx<RA, KM>,
->(family: F, deps: DL): ResListPlugHead<F, RA, KM, DL, CTX> {
+  PM extends AnyPortMap,
+  CTX extends ResPluginCtx<RA, KM, PM>,
+>(family: F, deps: DL, ports: PM): ResListPlugHead<F, RA, KM, DL, PM, CTX> {
   const nsDeps = getNamespaceList(deps);
   return {
     realm: "res",
@@ -74,7 +86,8 @@ export function createResListPlugHead<
     deps,
     nsDeps,
     nsDepList: nsDeps,
-  } as unknown as ResListPlugHead<F, RA, KM, DL, CTX>;
+    ports,
+  } as unknown as ResListPlugHead<F, RA, KM, DL, PM, CTX>;
 }
 
 export type AnyResPlugHead = AnyResMapPlugHead | AnyResListPlugHead;

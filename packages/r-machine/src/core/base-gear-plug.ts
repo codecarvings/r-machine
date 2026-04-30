@@ -12,50 +12,62 @@
  */
 
 import type { GearListPlugHead, GearMapPlugHead, GearPlugKitMap } from "./gear-plug.js";
-import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
+import type { ListPlugin, MapPlugin, PlugBody } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { HandleList, NamespaceList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
+import type { AnyPortMap, ResPluginCtx } from "./res-plug.js";
 
 export type BaseGearPlugDepMap<RA extends AnyResAtlas> = HandleMap<RA, "shape@gear:base">;
 export type BaseGearPlugDepList<RA extends AnyResAtlas> = HandleList<RA, "shape@gear:base">;
+export type BaseGearPlugPortMap = AnyPortMap;
 
 export type BaseGearNamespaceList<RA extends AnyResAtlas> = NamespaceList<RA, "shape@gear:base">;
 
-type BaseGearPluginCtx<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> = PluginCtx<RA, KM>;
+type BaseGearPluginCtx<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  PM extends BaseGearPlugPortMap,
+> = ResPluginCtx<RA, KM, PM>;
 
 export type BaseGearMapPlugin<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends BaseGearPlugDepMap<RA>,
-> = MapPlugin<RA, DM, BaseGearPluginCtx<RA, KM>>;
+  PM extends BaseGearPlugPortMap,
+> = MapPlugin<RA, DM, BaseGearPluginCtx<RA, KM, PM>>;
 
 export type BaseGearListPlugin<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends BaseGearPlugDepList<RA>,
-> = ListPlugin<RA, DL, BaseGearPluginCtx<RA, KM>>;
+  PM extends BaseGearPlugPortMap,
+> = ListPlugin<RA, DL, BaseGearPluginCtx<RA, KM, PM>>;
 
 type BaseGearMapPlugHead<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends BaseGearPlugDepMap<RA>,
-> = GearMapPlugHead<"base", RA, KM, DM, BaseGearPluginCtx<RA, KM>>;
+  PM extends BaseGearPlugPortMap,
+> = GearMapPlugHead<"base", RA, KM, DM, PM, BaseGearPluginCtx<RA, KM, PM>>;
 
 type BaseGearListPlugHead<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends BaseGearPlugDepList<RA>,
-> = GearListPlugHead<"base", RA, KM, DL, BaseGearPluginCtx<RA, KM>>;
+  PM extends BaseGearPlugPortMap,
+> = GearListPlugHead<"base", RA, KM, DL, PM, BaseGearPluginCtx<RA, KM, PM>>;
 
 export interface BaseGearMapPlug<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends BaseGearPlugDepMap<RA>,
-> extends PlugBody<BaseGearMapPlugHead<RA, KM, DM>> {}
+  PM extends BaseGearPlugPortMap,
+> extends PlugBody<BaseGearMapPlugHead<RA, KM, DM, PM>> {}
 
 export interface BaseGearListPlug<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends BaseGearPlugDepList<RA>,
-> extends PlugBody<BaseGearListPlugHead<RA, KM, DL>> {}
+  PM extends BaseGearPlugPortMap,
+> extends PlugBody<BaseGearListPlugHead<RA, KM, DL, PM>> {}
