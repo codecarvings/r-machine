@@ -65,15 +65,15 @@ type BaseGearMapPortsConfigurator<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends BaseGearPlugDepMap<RA>,
-> = <const PM extends BaseGearPlugPortMap>(ports: PM) => BaseGearMapDefineOnly<RA, KM, DM, PM>;
+> = <const PM extends BaseGearPlugPortMap>(ports: PM) => BaseGearMapDefineOnlyComposer<RA, KM, DM, PM>;
 
 type BaseGearListPortsConfigurator<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends BaseGearPlugDepList<RA>,
-> = <const PM extends BaseGearPlugPortMap>(ports: PM) => BaseGearListDefineOnly<RA, KM, DL, PM>;
+> = <const PM extends BaseGearPlugPortMap>(ports: PM) => BaseGearListDefineOnlyComposer<RA, KM, DL, PM>;
 
-interface BaseGearMapDefineOnly<
+interface BaseGearMapDefineOnlyComposer<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends BaseGearPlugDepMap<RA>,
@@ -82,7 +82,7 @@ interface BaseGearMapDefineOnly<
   readonly define: BaseGearMapDefiner<RA, KM, DM, PM>;
 }
 
-interface BaseGearListDefineOnly<
+interface BaseGearListDefineOnlyComposer<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends BaseGearPlugDepList<RA>,

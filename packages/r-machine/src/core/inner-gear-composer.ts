@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { BaseGearPlugPortMap } from "./base-gear-plug.js";
 import { lazyGetters } from "./composer-utils.js";
 import { createGearListPlugHead, createGearMapPlugHead, type GearPlugKitMap } from "./gear-plug.js";
 import type {
@@ -21,17 +22,19 @@ import type {
   InnerGearPlugDepList,
   InnerGearPlugDepMap,
 } from "./inner-gear-plug.js";
-import { getPlugOutline, type PluginCtx } from "./plug.js";
+import { getPlugOutline } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { ValidatedDepListType } from "./res-list.js";
 import type { ValidatedDepMapType } from "./res-map.js";
 import { createResMatrix, type GearMatrixMeta, type ResMatrix } from "./res-matrix.js";
+import type { ResPluginCtx } from "./res-plug.js";
 
 export interface InnerGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   readonly withDeps: InnerGearDepsComposer<RA, KM>;
-  readonly define: InnerGearMapDefiner<RA, KM, {}>;
+  readonly withPorts: InnerGearMapPortsConfigurator<RA, KM, {}>;
+  readonly define: InnerGearMapDefiner<RA, KM, {}, {}>;
 }
 
 interface InnerGearDepsComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
@@ -45,7 +48,8 @@ interface InnerGearMapComposer<
   KM extends GearPlugKitMap<RA>,
   DM extends InnerGearPlugDepMap<RA>,
 > {
-  readonly define: InnerGearMapDefiner<RA, KM, DM>;
+  readonly withPorts: InnerGearMapPortsConfigurator<RA, KM, DM>;
+  readonly define: InnerGearMapDefiner<RA, KM, DM, {}>;
 }
 
 interface InnerGearListComposer<
@@ -53,22 +57,57 @@ interface InnerGearListComposer<
   KM extends GearPlugKitMap<RA>,
   DL extends InnerGearPlugDepList<RA>,
 > {
-  readonly define: InnerGearListDefiner<RA, KM, DL>;
+  readonly withPorts: InnerGearListPortsConfigurator<RA, KM, DL>;
+  readonly define: InnerGearListDefiner<RA, KM, DL, {}>;
 }
 
-type InnerGearMapDefiner<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>, DM extends InnerGearPlugDepMap<RA>> = <
-  R extends AnyRes,
->(
-  factory: (plugin: InnerGearMapPlugin<RA, KM, DM>) => R | Promise<R>
-) => ResMatrix<R, InnerGearMapPlug<RA, KM, DM>>;
+type InnerGearMapPortsConfigurator<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends InnerGearPlugDepMap<RA>,
+> = <const PM extends BaseGearPlugPortMap>(ports: PM) => InnerGearMapDefineOnlyComposer<RA, KM, DM, PM>;
+
+type InnerGearListPortsConfigurator<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends InnerGearPlugDepList<RA>,
+> = <const PM extends BaseGearPlugPortMap>(ports: PM) => InnerGearListDefineOnlyComposer<RA, KM, DL, PM>;
+
+interface InnerGearMapDefineOnlyComposer<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends InnerGearPlugDepMap<RA>,
+  PM extends BaseGearPlugPortMap,
+> {
+  readonly define: InnerGearMapDefiner<RA, KM, DM, PM>;
+}
+
+interface InnerGearListDefineOnlyComposer<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends InnerGearPlugDepList<RA>,
+  PM extends BaseGearPlugPortMap,
+> {
+  readonly define: InnerGearListDefiner<RA, KM, DL, PM>;
+}
+
+type InnerGearMapDefiner<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends InnerGearPlugDepMap<RA>,
+  PM extends BaseGearPlugPortMap,
+> = <R extends AnyRes>(
+  factory: (plugin: InnerGearMapPlugin<RA, KM, DM, PM>) => R | Promise<R>
+) => ResMatrix<R, InnerGearMapPlug<RA, KM, DM, PM>>;
 
 type InnerGearListDefiner<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends InnerGearPlugDepList<RA>,
+  PM extends BaseGearPlugPortMap,
 > = <R extends AnyRes>(
-  factory: (plugin: InnerGearListPlugin<RA, KM, DL>) => R | Promise<R>
-) => ResMatrix<R, InnerGearListPlug<RA, KM, DL>>;
+  factory: (plugin: InnerGearListPlugin<RA, KM, DL, PM>) => R | Promise<R>
+) => ResMatrix<R, InnerGearListPlug<RA, KM, DL, PM>>;
 
 // #region Runtime
 
@@ -76,10 +115,14 @@ const meta: GearMatrixMeta = { family: "gear", role: "inner" };
 
 const cursor = undefined;
 
+const emptyPorts: BaseGearPlugPortMap = {};
+
 export function createInnerGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>>(
   connector: ResComposerConnector
 ): InnerGearComposer<RA, KM> {
-  const define = createInnerGearMapDefiner<RA, KM, {}>(connector, {});
+  const define = createInnerGearMapDefiner<RA, KM, {}, {}>(connector, {}, emptyPorts);
+
+  const withPorts = createInnerGearMapPortsConfigurator<RA, KM, {}>(connector, {});
 
   const withDeps = ((...args: unknown[]) => {
     const mask = getPlugOutline<RA>(...args);
@@ -92,6 +135,7 @@ export function createInnerGearComposer<RA extends AnyResAtlas, KM extends GearP
 
   return {
     withDeps,
+    withPorts,
     define,
   };
 }
@@ -102,7 +146,8 @@ function createInnerGearMapDepsComposer<
   DM extends InnerGearPlugDepMap<RA>,
 >(connector: ResComposerConnector, deps: DM): InnerGearMapComposer<RA, KM, DM> {
   return lazyGetters({
-    define: () => createInnerGearMapDefiner<RA, KM, DM>(connector, deps),
+    withPorts: () => createInnerGearMapPortsConfigurator<RA, KM, DM>(connector, deps),
+    define: () => createInnerGearMapDefiner<RA, KM, DM, {}>(connector, deps, emptyPorts),
   });
 }
 
@@ -112,16 +157,38 @@ function createInnerGearListDepsComposer<
   DL extends InnerGearPlugDepList<RA>,
 >(connector: ResComposerConnector, deps: DL): InnerGearListComposer<RA, KM, DL> {
   return lazyGetters({
-    define: () => createInnerGearListDefiner<RA, KM, DL>(connector, deps),
+    withPorts: () => createInnerGearListPortsConfigurator<RA, KM, DL>(connector, deps),
+    define: () => createInnerGearListDefiner<RA, KM, DL, {}>(connector, deps, emptyPorts),
   });
+}
+
+function createInnerGearMapPortsConfigurator<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends InnerGearPlugDepMap<RA>,
+>(connector: ResComposerConnector, deps: DM): InnerGearMapPortsConfigurator<RA, KM, DM> {
+  return (<const PM extends BaseGearPlugPortMap>(ports: PM) => ({
+    define: createInnerGearMapDefiner<RA, KM, DM, PM>(connector, deps, ports),
+  })) as InnerGearMapPortsConfigurator<RA, KM, DM>;
+}
+
+function createInnerGearListPortsConfigurator<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends InnerGearPlugDepList<RA>,
+>(connector: ResComposerConnector, deps: DL): InnerGearListPortsConfigurator<RA, KM, DL> {
+  return (<const PM extends BaseGearPlugPortMap>(ports: PM) => ({
+    define: createInnerGearListDefiner<RA, KM, DL, PM>(connector, deps, ports),
+  })) as InnerGearListPortsConfigurator<RA, KM, DL>;
 }
 
 function createInnerGearMapDefiner<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends InnerGearPlugDepMap<RA>,
->(connector: ResComposerConnector, deps: DM): InnerGearMapDefiner<RA, KM, DM> {
-  const head = createGearMapPlugHead<"inner", RA, KM, DM, {}, PluginCtx<RA, KM>>("inner", deps, {});
+  PM extends BaseGearPlugPortMap,
+>(connector: ResComposerConnector, deps: DM, ports: PM): InnerGearMapDefiner<RA, KM, DM, PM> {
+  const head = createGearMapPlugHead<"inner", RA, KM, DM, PM, ResPluginCtx<RA, KM, PM>>("inner", deps, ports);
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
     createResMatrix({
@@ -137,8 +204,9 @@ function createInnerGearListDefiner<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends InnerGearPlugDepList<RA>,
->(connector: ResComposerConnector, deps: DL): InnerGearListDefiner<RA, KM, DL> {
-  const head = createGearListPlugHead<"inner", RA, KM, DL, {}, PluginCtx<RA, KM>>("inner", deps, {});
+  PM extends BaseGearPlugPortMap,
+>(connector: ResComposerConnector, deps: DL, ports: PM): InnerGearListDefiner<RA, KM, DL, PM> {
+  const head = createGearListPlugHead<"inner", RA, KM, DL, PM, ResPluginCtx<RA, KM, PM>>("inner", deps, ports);
 
   return (factory: (plugin: never) => unknown) =>
     createResMatrix({

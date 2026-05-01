@@ -11,49 +11,61 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { BaseGearPlugPortMap } from "./base-gear-plug.js";
 import type { GearListPlugHead, GearMapPlugHead, GearPlugKitMap } from "./gear-plug.js";
-import type { ListPlugin, MapPlugin, PlugBody, PluginCtx } from "./plug.js";
+import type { ListPlugin, MapPlugin, PlugBody } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
+import type { ResPluginCtx } from "./res-plug.js";
 
 export type InnerGearPlugDepMap<RA extends AnyResAtlas> = HandleMap<RA, "valid@gear:inner">;
 export type InnerGearPlugDepList<RA extends AnyResAtlas> = HandleList<RA, "valid@gear:inner">;
 
-type InnerGearPluginCtx<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> = PluginCtx<RA, KM>;
+type InnerGearPluginCtx<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  PM extends BaseGearPlugPortMap,
+> = ResPluginCtx<RA, KM, PM>;
 
 export type InnerGearMapPlugin<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends InnerGearPlugDepMap<RA>,
-> = MapPlugin<RA, DM, InnerGearPluginCtx<RA, KM>>;
+  PM extends BaseGearPlugPortMap,
+> = MapPlugin<RA, DM, InnerGearPluginCtx<RA, KM, PM>>;
 
 export type InnerGearListPlugin<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends InnerGearPlugDepList<RA>,
-> = ListPlugin<RA, DL, InnerGearPluginCtx<RA, KM>>;
+  PM extends BaseGearPlugPortMap,
+> = ListPlugin<RA, DL, InnerGearPluginCtx<RA, KM, PM>>;
 
 type InnerGearMapPlugHead<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends InnerGearPlugDepMap<RA>,
-> = GearMapPlugHead<"inner", RA, KM, DM, {}, InnerGearPluginCtx<RA, KM>>;
+  PM extends BaseGearPlugPortMap,
+> = GearMapPlugHead<"inner", RA, KM, DM, PM, InnerGearPluginCtx<RA, KM, PM>>;
 
 type InnerGearListPlugHead<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends InnerGearPlugDepList<RA>,
-> = GearListPlugHead<"inner", RA, KM, DL, {}, InnerGearPluginCtx<RA, KM>>;
+  PM extends BaseGearPlugPortMap,
+> = GearListPlugHead<"inner", RA, KM, DL, PM, InnerGearPluginCtx<RA, KM, PM>>;
 
 export interface InnerGearMapPlug<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends InnerGearPlugDepMap<RA>,
-> extends PlugBody<InnerGearMapPlugHead<RA, KM, DM>> {}
+  PM extends BaseGearPlugPortMap,
+> extends PlugBody<InnerGearMapPlugHead<RA, KM, DM, PM>> {}
 
 export interface InnerGearListPlug<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends InnerGearPlugDepList<RA>,
-> extends PlugBody<InnerGearListPlugHead<RA, KM, DL>> {}
+  PM extends BaseGearPlugPortMap,
+> extends PlugBody<InnerGearListPlugHead<RA, KM, DL, PM>> {}

@@ -18,7 +18,9 @@ import { getNamespaceMap, type HandleMap } from "./res-map.js";
 
 export type ResFamily = "gear" | "shell";
 
-export type AnyPortMap = Record<string, unknown>;
+export interface AnyPortMap {
+  readonly [key: string]: unknown;
+}
 
 export type ResPluginCtx<RA extends AnyResAtlas, KM extends HandleMap<RA>, PM extends AnyPortMap> = PluginCtx<RA, KM> &
   (keyof PM extends never ? {} : { readonly ports: PM });
