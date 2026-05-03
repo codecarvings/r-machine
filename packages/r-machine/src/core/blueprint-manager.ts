@@ -98,7 +98,7 @@ export class BlueprintManager {
     family: ResFamily,
     locale: AnyLocale | undefined,
     nsDepList: AnyNamespaceList,
-    chain: ReadonlyArray<string>
+    chain: readonly string[]
   ): Promise<AnyNamespace[]> {
     const kitDeps = this.kitDepList[family].filter((n) => n !== namespace);
     const allNsDeps = [...new Set([...nsDepList, ...kitDeps])];
@@ -129,7 +129,7 @@ export class BlueprintManager {
     locale: AnyLocale | undefined,
     key: string,
     layoutEntryType: ResLayoutEntryType,
-    chain: ReadonlyArray<string>
+    chain: readonly string[]
   ): Promise<Blueprint> {
     let pendingPromise!: Promise<Blueprint>;
     const blueprintPromise = (async () => {
@@ -185,7 +185,7 @@ export class BlueprintManager {
     locale: AnyLocale | undefined,
     layoutEntryType: ResLayoutEntryType,
     key: string,
-    chain: ReadonlyArray<string>
+    chain: readonly string[]
   ): Promise<Blueprint> {
     if (chain.includes(key)) {
       const path = [...chain, key].join(" -> ");

@@ -1,6 +1,7 @@
 import type { RMachineTypeError } from "#r-machine/errors";
-import type { AnyResDomain, AnyResDomainLayout, TokenBuilder } from "./res-domain.js";
+import type { AnyResDomain, AnyResDomainLayout, Namespace, TokenBuilder } from "./res-domain.js";
 import type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "./res-layout.js";
+import type { AnyNamespaceList } from "./res-list.js";
 
 type ShapeMap<RL extends AnyResLayout, RD extends AnyResDomain, T extends ResLayoutEntryType> = {
   readonly [K in keyof RD as K extends string ? (ResolveLayoutType<RL, K> extends T ? K : never) : never]: RD[K];
@@ -69,6 +70,9 @@ export type ResAtlasClass<RL extends AnyResLayout, RD extends AnyResDomain, RA =
 >) & {
   readonly layout: RL;
   readonly [rawResAtlasShapeSymbol]: RA;
+  readonly priority: readonly Namespace<RD>[];
+
+  readonly withPriority: <P extends readonly Namespace<RD>[]>(priority: P) => ResAtlasClass<RL, RD, RA>;
 
   readonly getTokenBuilder: (
     ..._atlas_error: [DroppedAtlasKeys<RA, RD>] extends [never]
@@ -86,5 +90,7 @@ export type ResAtlasClass<RL extends AnyResLayout, RD extends AnyResDomain, RA =
 export type AnyResAtlasClass = (abstract new () => AnyResAtlas) & {
   readonly layout: AnyResLayout;
   readonly [rawResAtlasShapeSymbol]: AnyResDomain;
+  readonly priority: AnyNamespaceList;
+  readonly withPriority: (...args: never[]) => AnyResAtlasClass;
   readonly getTokenBuilder: (...args: never[]) => TokenBuilder<AnyResDomain>;
 };

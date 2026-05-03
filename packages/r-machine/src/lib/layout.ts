@@ -54,14 +54,21 @@ type ResAtlasBuilder<RL extends AnyResLayout> = <const RD>() => ResAtlasClass<RL
 
 export function defineLayout<RL extends AnyResLayout>(layout: RL & ValidLayoutKeys<RL>): ResAtlasBuilder<RL> {
   function builder<const RD>(): ResAtlasClass<RL, FilterResAtlasKeys<RL, RD>, RD> {
-    // biome-ignore lint/complexity/noStaticOnlyClass: As per design
-    abstract class ResourceAtlas {
-      static readonly layout = layout;
-      static getTokenBuilder() {
-        return createToken;
+    function makeClass(priority: readonly string[] = []) {
+      // biome-ignore lint/complexity/noStaticOnlyClass: As per design
+      abstract class ResourceAtlas {
+        static readonly layout = layout;
+        static readonly priority = priority;
+        static getTokenBuilder() {
+          return createToken;
+        }
+        static withPriority(p: readonly string[]) {
+          return makeClass(p);
+        }
       }
+      return ResourceAtlas;
     }
-    return ResourceAtlas as ResAtlasClass<RL, FilterResAtlasKeys<RL, RD>, RD>;
+    return makeClass() as unknown as ResAtlasClass<RL, FilterResAtlasKeys<RL, RD>, RD>;
   }
   return builder;
 }

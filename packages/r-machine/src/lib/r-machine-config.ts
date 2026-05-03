@@ -19,6 +19,7 @@ import type {
   BaseGearNamespaceList,
   ExperimentalFlags,
   GearPlugKitMap,
+  NamespaceList,
   ResEquipment,
   ResModuleLoaderFn,
   ShellPlugKitMap,
@@ -66,6 +67,7 @@ export interface RMachineConfig<
   readonly defaultLocale: L;
   readonly load: ResModuleLoaderFn;
   readonly layout: AnyResLayout;
+  readonly priority: NamespaceList<RA>;
   readonly equipment: E;
   readonly experimental: EF;
 }
@@ -86,6 +88,7 @@ export function convertParamsToConfig<
     defaultLocale: params.defaultLocale,
     load: params.load,
     layout: params.ResourceAtlas.layout,
+    priority: params.ResourceAtlas.priority as NamespaceList<InstanceType<RAC>>,
     equipment: {
       bridgeGears: (params.bridgeGears ?? ([] as readonly unknown[])) as BGL,
       gearKit: params.gearKit ?? ({} as GK),
@@ -143,6 +146,7 @@ export function cloneRMachineConfig<C extends RMachineConfig<any, any, any, any>
     ...config,
     locales: Object.freeze([...config.locales]) as LocaleList<C["defaultLocale"]>,
     layout: { ...config.layout },
+    priority: Object.freeze([...config.priority]),
     equipment: {
       bridgeGears: Object.freeze([...config.equipment.bridgeGears]),
       gearKit: { ...config.equipment.gearKit },
