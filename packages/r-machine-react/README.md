@@ -4,7 +4,7 @@
 
 <img src="r-machine.logo.svg" width="158px" align="center" alt="R-Machine logo" />
 
-# @r-machine/react — Typed resource access for React
+# @r-machine/react — R-Machine for React
 
 [![NPM Version](https://img.shields.io/npm/v/%40r-machine%2Freact?label=latest)](https://www.npmjs.com/package/@r-machine/react)
 [![R-Machine CI status](https://github.com/codecarvings/r-machine/actions/workflows/ci.yml/badge.svg?event=push&branch=main)](https://github.com/codecarvings/r-machine/actions/workflows/ci.yml?query=branch%3Amain)
