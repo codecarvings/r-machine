@@ -88,7 +88,11 @@ type MockPlugListDeps<PH extends AnyListPlugHead> = MockSurfaceMap<
 >;
 
 type MockCtxContent<PH extends AnyPlugHead, C> = {
-  [K in keyof C]?: K extends "kit" ? MockSurfaceMap<ExtractResAtlas<PH>, ExtractKit<PH>> : C[K];
+  [K in keyof C]?: K extends "kit"
+    ? MockSurfaceMap<ExtractResAtlas<PH>, ExtractKit<PH>>
+    : K extends "ports"
+      ? Partial<C[K]>
+      : C[K];
 };
 
 type MockCtx<PH extends AnyPlugHead> = keyof ExtractCtx<PH> extends never
