@@ -133,7 +133,7 @@ export function validateRMachineConfig(config: RMachineConfig<any, any, any, any
     if (outerPrefixes.length) {
       return new RMachineConfigError(
         ERR_EXPERIMENTAL_OUTER_GEAR_REQUIRED,
-        `Layout contains "gear:outer" entries (${outerPrefixes.map((p) => `"${p}"`).join(", ")}) but the "outerGear" experimental feature is not enabled. Add \`experimental: { outerGear: true }\` to RMachine.create(...) to opt in.`
+        `Layout contains "gear:outer" entries (${outerPrefixes.map((p) => `"${p}"`).join(", ")}) but the "outerGear" experimental feature is not enabled. Add \`experimental: { outerGear: "on" }\` to RMachine.create(...) to opt in.`
       );
     }
   }

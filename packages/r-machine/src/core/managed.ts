@@ -22,7 +22,7 @@ export function tryGetManagedTeardown(res: AnyRes): (() => void) | undefined {
   return (res as Partial<Managed>)[managedTeardownSymbol];
 }
 
-export function managed<R extends AnyRes>(res: R, teardown: () => void): R {
+export function managed<const R>(res: R, teardown: () => void): R {
   (res as any)[managedTeardownSymbol] = teardown;
   return res;
 }
