@@ -19,6 +19,7 @@ import {
   createGearMapPlugHead,
   type GearListPlugHead,
   type GearMapPlugHead,
+  type GearPluginCtx,
   type GearPlugKitMap,
 } from "./gear-plug.js";
 import type { GetterComposer, StatelessGetterComposer } from "./getter.js";
@@ -28,7 +29,6 @@ import type { RelayComposer } from "./relay.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
-import type { ResPluginCtx } from "./res-plug.js";
 
 export type OuterGearPlugDepMap<RA extends AnyResAtlas> = HandleMap<RA, "valid@gear:outer">;
 export type OuterGearPlugDepList<RA extends AnyResAtlas> = HandleList<RA, "valid@gear:outer">;
@@ -47,7 +47,7 @@ export type StatefulOuterGearPluginCtx<
   KM extends GearPlugKitMap<RA>,
   PM extends BaseGearPlugPortMap,
   S extends AnyState,
-> = ResPluginCtx<RA, KM, PM> & {
+> = GearPluginCtx<RA, KM, PM> & {
   readonly state: S;
   readonly defaultState: S;
 };
@@ -154,7 +154,7 @@ type StatelessOuterGearPluginCtx<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   PM extends BaseGearPlugPortMap,
-> = ResPluginCtx<RA, KM, PM>;
+> = GearPluginCtx<RA, KM, PM>;
 
 export type StatelessOuterGearMapPlugin<
   RA extends AnyResAtlas,

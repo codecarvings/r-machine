@@ -29,13 +29,19 @@ export type GearRole = "inner" | "base" | "outer";
 
 export type GearPlugKitMap<RA extends AnyResAtlas> = NamespaceMap<RA, "shape@gear:base">;
 
+export type GearPluginCtx<RA extends AnyResAtlas, KM extends HandleMap<RA>, PM extends AnyPortMap> = ResPluginCtx<
+  RA,
+  KM,
+  PM
+> & { readonly namespace: string };
+
 export interface GearMapPlugHead<
   R extends GearRole,
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends HandleMap<RA>,
   PM extends AnyPortMap,
-  CTX extends ResPluginCtx<RA, KM, PM>,
+  CTX extends GearPluginCtx<RA, KM, PM>,
 > extends ResMapPlugHead<"gear", RA, KM, DM, PM, CTX> {
   readonly role: R;
 }
@@ -47,7 +53,7 @@ export function createGearMapPlugHead<
   KM extends GearPlugKitMap<RA>,
   DM extends HandleMap<RA>,
   PM extends AnyPortMap,
-  CTX extends ResPluginCtx<RA, KM, PM>,
+  CTX extends GearPluginCtx<RA, KM, PM>,
 >(role: R, deps: DM, ports: PM): GearMapPlugHead<R, RA, KM, DM, PM, CTX> {
   return {
     ...createResMapPlugHead<"gear", RA, KM, DM, PM, CTX>("gear", deps, ports),
@@ -61,7 +67,7 @@ export interface GearListPlugHead<
   KM extends GearPlugKitMap<RA>,
   DL extends HandleList<RA>,
   PM extends AnyPortMap,
-  CTX extends ResPluginCtx<RA, KM, PM>,
+  CTX extends GearPluginCtx<RA, KM, PM>,
 > extends ResListPlugHead<"gear", RA, KM, DL, PM, CTX> {
   readonly role: R;
 }
@@ -73,7 +79,7 @@ export function createGearListPlugHead<
   KM extends GearPlugKitMap<RA>,
   DL extends HandleList<RA>,
   PM extends AnyPortMap,
-  CTX extends ResPluginCtx<RA, KM, PM>,
+  CTX extends GearPluginCtx<RA, KM, PM>,
 >(role: R, deps: DL, ports: PM): GearListPlugHead<R, RA, KM, DL, PM, CTX> {
   return {
     ...createResListPlugHead<"gear", RA, KM, DL, PM, CTX>("gear", deps, ports),

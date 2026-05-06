@@ -1,5 +1,6 @@
 import { defineLayout } from "r-machine";
 import type { Base_Timer } from "./base/timer";
+import type { Outer_Profile } from "./outer/profile";
 import type { Shell_Common } from "./shell/common/en";
 import type { Shell_Features_Box_1_2 } from "./shell/features/box_1_2/en";
 import type { Shell_Features_Box_3 } from "./shell/features/box_3/en";
@@ -10,6 +11,7 @@ import type { Vertex_ShoppingCart } from "./vertex/shopping-cart";
 
 const folders = defineLayout({
   "base/": "gear:base",
+  "outer/": "gear:outer",
   "vertex/": "gear:outer(vertex)",
   "shell/": "shell",
   "shell/lib/": "shell(mono)",
@@ -17,6 +19,7 @@ const folders = defineLayout({
 
 type ResourceMap = {
   "base/timer": Base_Timer;
+  "outer/profile": Outer_Profile;
 
   "vertex/shopping-cart": Vertex_ShoppingCart;
 

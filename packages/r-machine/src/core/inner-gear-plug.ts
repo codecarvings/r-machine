@@ -12,12 +12,11 @@
  */
 
 import type { BaseGearPlugPortMap } from "./base-gear-plug.js";
-import type { GearListPlugHead, GearMapPlugHead, GearPlugKitMap } from "./gear-plug.js";
+import type { GearListPlugHead, GearMapPlugHead, GearPluginCtx, GearPlugKitMap } from "./gear-plug.js";
 import type { ListPlugin, MapPlugin, PlugBody } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
-import type { ResPluginCtx } from "./res-plug.js";
 
 export type InnerGearPlugDepMap<RA extends AnyResAtlas> = HandleMap<RA, "valid@gear:inner">;
 export type InnerGearPlugDepList<RA extends AnyResAtlas> = HandleList<RA, "valid@gear:inner">;
@@ -26,7 +25,7 @@ type InnerGearPluginCtx<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   PM extends BaseGearPlugPortMap,
-> = ResPluginCtx<RA, KM, PM>;
+> = GearPluginCtx<RA, KM, PM>;
 
 export type InnerGearMapPlugin<
   RA extends AnyResAtlas,

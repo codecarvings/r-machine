@@ -21,7 +21,7 @@ import type {
   BaseGearPlugPortMap,
 } from "./base-gear-plug.js";
 import { lazyGetters } from "./composer-utils.js";
-import { createGearListPlugHead, createGearMapPlugHead, type GearPlugKitMap } from "./gear-plug.js";
+import { createGearListPlugHead, createGearMapPlugHead, type GearPluginCtx, type GearPlugKitMap } from "./gear-plug.js";
 import { getPlugOutline } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
@@ -29,7 +29,6 @@ import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { ValidatedDepListType } from "./res-list.js";
 import type { ValidatedDepMapType } from "./res-map.js";
 import { createResMatrix, type GearMatrixMeta, type ResMatrix } from "./res-matrix.js";
-import type { ResPluginCtx } from "./res-plug.js";
 
 export interface BaseGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   readonly withDeps: BaseGearDepsComposer<RA, KM>;
@@ -188,7 +187,7 @@ function createBaseGearMapDefiner<
   DM extends BaseGearPlugDepMap<RA>,
   PM extends BaseGearPlugPortMap,
 >(connector: ResComposerConnector, deps: DM, ports: PM): BaseGearMapDefiner<RA, KM, DM, PM> {
-  const head = createGearMapPlugHead<"base", RA, KM, DM, PM, ResPluginCtx<RA, KM, PM>>("base", deps, ports);
+  const head = createGearMapPlugHead<"base", RA, KM, DM, PM, GearPluginCtx<RA, KM, PM>>("base", deps, ports);
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
     createResMatrix({
@@ -206,7 +205,7 @@ function createBaseGearListDefiner<
   DL extends BaseGearPlugDepList<RA>,
   PM extends BaseGearPlugPortMap,
 >(connector: ResComposerConnector, deps: DL, ports: PM): BaseGearListDefiner<RA, KM, DL, PM> {
-  const head = createGearListPlugHead<"base", RA, KM, DL, PM, ResPluginCtx<RA, KM, PM>>("base", deps, ports);
+  const head = createGearListPlugHead<"base", RA, KM, DL, PM, GearPluginCtx<RA, KM, PM>>("base", deps, ports);
 
   return (factory: (plugin: never) => unknown) =>
     createResMatrix({

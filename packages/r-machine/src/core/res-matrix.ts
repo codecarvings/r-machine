@@ -65,6 +65,8 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
     const buildCtx2: PluginCtxAugmenter = ($) => {
       if (meta.family === "shell") {
         $.locale = locale;
+      } else {
+        $.namespace = selfNamespace;
       }
       $.ports = head.ports;
       return augmentCtx !== undefined ? augmentCtx($) : defaultBuildCtx($);

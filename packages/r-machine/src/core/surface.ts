@@ -29,7 +29,8 @@ export type Surface<R extends AnyRes, N extends AnyNamespace, LET extends ResLay
   readonly [K in keyof R as K extends `$${string}` ? never : K]: SurfaceItem<R[K]>;
 };
 
-export type AnyClientVertexGearSurface = Surface<AnyRes, AnyNamespace, "gear:outer(vertex)">;
+// export type AnyClientVertexGearSurface = Surface<AnyRes, AnyNamespace, "gear:outer(vertex)">;
+export type AnyClientGearSurface = Surface<AnyRes, AnyNamespace, "gear:outer(vertex)" | "gear:outer" | "gear:base">;
 
 // Runtime-side untyped surface
 export type AnySurface = AnyRes;

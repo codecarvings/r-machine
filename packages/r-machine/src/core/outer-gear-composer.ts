@@ -14,7 +14,7 @@
 import type { DefaultAction } from "./action.js";
 import type { BaseGearPlugPortMap } from "./base-gear-plug.js";
 import { lazyGetters } from "./composer-utils.js";
-import { createGearListPlugHead, createGearMapPlugHead, type GearPlugKitMap } from "./gear-plug.js";
+import { createGearListPlugHead, createGearMapPlugHead, type GearPluginCtx, type GearPlugKitMap } from "./gear-plug.js";
 import type { DefaultGetter } from "./getter.js";
 import type { AnyOuterGear, AnyState, RejectAsyncValueProps } from "./outer-gear.js";
 import {
@@ -44,7 +44,6 @@ import type { ValidatedDepListType } from "./res-list.js";
 import type { HandleMap, ValidatedDepMapType } from "./res-map.js";
 import type { GearMatrixMeta, ResMatrix } from "./res-matrix.js";
 import { createResMatrix } from "./res-matrix.js";
-import type { ResPluginCtx } from "./res-plug.js";
 
 export interface OuterGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   readonly withDeps: OuterGearDepsComposer<RA, KM>;
@@ -556,7 +555,7 @@ function createStatelessOuterGearMapDefiner<
   DM extends OuterGearPlugDepMap<RA>,
   PM extends BaseGearPlugPortMap,
 >(connector: ResComposerConnector, deps: DM, ports: PM): StatelessOuterGearMapDefiner<RA, KM, DM, PM> {
-  const head = createGearMapPlugHead<"outer", RA, KM, DM, PM, ResPluginCtx<RA, KM, PM>>("outer", deps, ports);
+  const head = createGearMapPlugHead<"outer", RA, KM, DM, PM, GearPluginCtx<RA, KM, PM>>("outer", deps, ports);
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
     createResMatrix({
@@ -574,7 +573,7 @@ function createStatelessOuterGearListDefiner<
   DL extends OuterGearPlugDepList<RA>,
   PM extends BaseGearPlugPortMap,
 >(connector: ResComposerConnector, deps: DL, ports: PM): StatelessOuterGearListDefiner<RA, KM, DL, PM> {
-  const head = createGearListPlugHead<"outer", RA, KM, DL, PM, ResPluginCtx<RA, KM, PM>>("outer", deps, ports);
+  const head = createGearListPlugHead<"outer", RA, KM, DL, PM, GearPluginCtx<RA, KM, PM>>("outer", deps, ports);
 
   return ((factory: (plugin: never, cursor: never) => unknown) =>
     createResMatrix({
