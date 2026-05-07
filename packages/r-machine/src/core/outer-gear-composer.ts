@@ -44,6 +44,28 @@ import type { ValidatedDepListType } from "./res-list.js";
 import type { HandleMap, ValidatedDepMapType } from "./res-map.js";
 import type { GearMatrixMeta, ResMatrix } from "./res-matrix.js";
 import { createResMatrix } from "./res-matrix.js";
+import type { AnyResPlug } from "./res-plug.js";
+
+interface StatelessCloneOverrides<PM> {
+  ports?: Partial<PM>;
+}
+
+interface StatefulCloneOverrides<PM, S extends AnyState> {
+  ports?: Partial<PM>;
+  defaultState?: S;
+}
+
+export interface StatelessOuterGearResMatrix<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap>
+  extends ResMatrix<R, P> {
+  clone(): StatelessOuterGearResMatrix<R, P, PM>;
+  clone(overrides: StatelessCloneOverrides<PM>): StatelessOuterGearResMatrix<R, P, PM>;
+}
+
+export interface StatefulOuterGearResMatrix<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap, S extends AnyState>
+  extends ResMatrix<R, P> {
+  clone(): StatefulOuterGearResMatrix<R, P, PM, S>;
+  clone(overrides: StatefulCloneOverrides<PM, S>): StatefulOuterGearResMatrix<R, P, PM, S>;
+}
 
 export interface OuterGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   readonly withDeps: OuterGearDepsComposer<RA, KM>;
@@ -122,25 +144,25 @@ type OuterGearMapPortsConfigurator<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends OuterGearPlugDepMap<RA>,
-> = <const PM extends BaseGearPlugPortMap>(ports: PM) => OuterGearMapPortsComposer<RA, KM, DM, PM>;
+> = <PM extends BaseGearPlugPortMap>(ports: PM) => OuterGearMapPortsComposer<RA, KM, DM, PM>;
 
 type OuterGearListPortsConfigurator<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends OuterGearPlugDepList<RA>,
-> = <const PM extends BaseGearPlugPortMap>(ports: PM) => OuterGearListPortsComposer<RA, KM, DL, PM>;
+> = <PM extends BaseGearPlugPortMap>(ports: PM) => OuterGearListPortsComposer<RA, KM, DL, PM>;
 
 type InertOuterGearMapPortsConfigurator<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends OuterGearPlugDepMap<RA>,
-> = <const PM extends BaseGearPlugPortMap>(ports: PM) => InertOuterGearMapPortsComposer<RA, KM, DM, PM>;
+> = <PM extends BaseGearPlugPortMap>(ports: PM) => InertOuterGearMapPortsComposer<RA, KM, DM, PM>;
 
 type InertOuterGearListPortsConfigurator<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends OuterGearPlugDepList<RA>,
-> = <const PM extends BaseGearPlugPortMap>(ports: PM) => InertOuterGearListPortsComposer<RA, KM, DL, PM>;
+> = <PM extends BaseGearPlugPortMap>(ports: PM) => InertOuterGearListPortsComposer<RA, KM, DL, PM>;
 
 interface OuterGearMapPortsComposer<
   RA extends AnyResAtlas,
@@ -253,11 +275,11 @@ interface StatefulOuterGearMapDefiner<
 > {
   <const D extends StateDef>(
     factory: (plugin: StatefulOuterGearMapPlugin<RA, KM, DM, PM, S>, _: StatefulOuterGearCursor<S>) => D | Promise<D>
-  ): ResMatrix<StateOuterGearResource<S, D>, StatefulOuterGearMapPlug<RA, KM, DM, PM, S>>;
+  ): StatefulOuterGearResMatrix<StateOuterGearResource<S, D>, StatefulOuterGearMapPlug<RA, KM, DM, PM, S>, PM, S>;
 
   <R extends AnyOuterGear & RejectAsyncValueProps<R>>(
     factory: (plugin: StatefulOuterGearMapPlugin<RA, KM, DM, PM, S>, _: StatefulOuterGearCursor<S>) => R | Promise<R>
-  ): ResMatrix<R, StatefulOuterGearMapPlug<RA, KM, DM, PM, S>>;
+  ): StatefulOuterGearResMatrix<R, StatefulOuterGearMapPlug<RA, KM, DM, PM, S>, PM, S>;
 }
 
 interface StatefulOuterGearListDefiner<
@@ -269,11 +291,11 @@ interface StatefulOuterGearListDefiner<
 > {
   <const D extends StateDef>(
     factory: (plugin: StatefulOuterGearListPlugin<RA, KM, DL, PM, S>, _: StatefulOuterGearCursor<S>) => D | Promise<D>
-  ): ResMatrix<StateOuterGearResource<S, D>, StatefulOuterGearListPlug<RA, KM, DL, PM, S>>;
+  ): StatefulOuterGearResMatrix<StateOuterGearResource<S, D>, StatefulOuterGearListPlug<RA, KM, DL, PM, S>, PM, S>;
 
   <R extends AnyOuterGear & RejectAsyncValueProps<R>>(
     factory: (plugin: StatefulOuterGearListPlugin<RA, KM, DL, PM, S>, _: StatefulOuterGearCursor<S>) => R | Promise<R>
-  ): ResMatrix<R, StatefulOuterGearListPlug<RA, KM, DL, PM, S>>;
+  ): StatefulOuterGearResMatrix<R, StatefulOuterGearListPlug<RA, KM, DL, PM, S>, PM, S>;
 }
 
 // #endregion
@@ -287,7 +309,7 @@ type InertOuterGearMapDefiner<
   PM extends BaseGearPlugPortMap,
 > = <R extends AnyOuterGear & RejectAsyncValueProps<R>>(
   factory: (plugin: StatelessOuterGearMapPlugin<RA, KM, DM, PM>, _: InertOuterGearCursor) => R | Promise<R>
-) => ResMatrix<R, StatelessOuterGearMapPlug<RA, KM, DM, PM>>;
+) => StatelessOuterGearResMatrix<R, StatelessOuterGearMapPlug<RA, KM, DM, PM>, PM>;
 
 type InertOuterGearListDefiner<
   RA extends AnyResAtlas,
@@ -296,7 +318,7 @@ type InertOuterGearListDefiner<
   PM extends BaseGearPlugPortMap,
 > = <R extends AnyOuterGear & RejectAsyncValueProps<R>>(
   factory: (plugin: StatelessOuterGearListPlugin<RA, KM, DL, PM>, _: InertOuterGearCursor) => R | Promise<R>
-) => ResMatrix<R, StatelessOuterGearListPlug<RA, KM, DL, PM>>;
+) => StatelessOuterGearResMatrix<R, StatelessOuterGearListPlug<RA, KM, DL, PM>, PM>;
 
 type StatelessOuterGearMapDefiner<
   RA extends AnyResAtlas,
@@ -305,7 +327,7 @@ type StatelessOuterGearMapDefiner<
   PM extends BaseGearPlugPortMap,
 > = <R extends AnyOuterGear & RejectAsyncValueProps<R>>(
   factory: (plugin: StatelessOuterGearMapPlugin<RA, KM, DM, PM>, _: StatelessOuterGearCursor) => R | Promise<R>
-) => ResMatrix<R, StatelessOuterGearMapPlug<RA, KM, DM, PM>>;
+) => StatelessOuterGearResMatrix<R, StatelessOuterGearMapPlug<RA, KM, DM, PM>, PM>;
 
 type StatelessOuterGearListDefiner<
   RA extends AnyResAtlas,
@@ -314,7 +336,7 @@ type StatelessOuterGearListDefiner<
   PM extends BaseGearPlugPortMap,
 > = <R extends AnyOuterGear & RejectAsyncValueProps<R>>(
   factory: (plugin: StatelessOuterGearListPlugin<RA, KM, DL, PM>, _: StatelessOuterGearCursor) => R | Promise<R>
-) => ResMatrix<R, StatelessOuterGearListPlug<RA, KM, DL, PM>>;
+) => StatelessOuterGearResMatrix<R, StatelessOuterGearListPlug<RA, KM, DL, PM>, PM>;
 
 // #endregion
 
@@ -426,7 +448,7 @@ function createOuterGearMapPortsConfigurator<
   KM extends GearPlugKitMap<RA>,
   DM extends OuterGearPlugDepMap<RA>,
 >(connector: ResComposerConnector, deps: DM): OuterGearMapPortsConfigurator<RA, KM, DM> {
-  return (<const PM extends BaseGearPlugPortMap>(ports: PM) =>
+  return (<PM extends BaseGearPlugPortMap>(ports: PM) =>
     lazyGetters({
       withState: () => createOuterGearMapStateConfigurator<RA, KM, DM, PM>(connector, deps, ports),
       define: () => createStatelessOuterGearMapDefiner<RA, KM, DM, PM>(connector, deps, ports),
@@ -438,7 +460,7 @@ function createOuterGearListPortsConfigurator<
   KM extends GearPlugKitMap<RA>,
   DL extends OuterGearPlugDepList<RA>,
 >(connector: ResComposerConnector, deps: DL): OuterGearListPortsConfigurator<RA, KM, DL> {
-  return (<const PM extends BaseGearPlugPortMap>(ports: PM) =>
+  return (<PM extends BaseGearPlugPortMap>(ports: PM) =>
     lazyGetters({
       withState: () => createOuterGearListStateConfigurator<RA, KM, DL, PM>(connector, deps, ports),
       define: () => createStatelessOuterGearListDefiner<RA, KM, DL, PM>(connector, deps, ports),
@@ -450,7 +472,7 @@ function createInertOuterGearMapPortsConfigurator<
   KM extends GearPlugKitMap<RA>,
   DM extends OuterGearPlugDepMap<RA>,
 >(connector: ResComposerConnector, deps: DM): InertOuterGearMapPortsConfigurator<RA, KM, DM> {
-  return (<const PM extends BaseGearPlugPortMap>(ports: PM) =>
+  return (<PM extends BaseGearPlugPortMap>(ports: PM) =>
     lazyGetters({
       withState: () => createOuterGearMapStateConfigurator<RA, KM, DM, PM>(connector, deps, ports),
       define: () =>
@@ -496,6 +518,29 @@ function createStatefulOuterGearMapDefiner<
   ports: PM,
   defaultState: S
 ): StatefulOuterGearMapDefiner<RA, KM, DM, PM, S> {
+  return ((factory: (plugin: never, cursor: never) => unknown) =>
+    buildStatefulOuterGearMapMatrix<RA, KM, DM, PM, S>(
+      connector,
+      deps,
+      ports,
+      defaultState,
+      factory
+    )) as StatefulOuterGearMapDefiner<RA, KM, DM, PM, S>;
+}
+
+function buildStatefulOuterGearMapMatrix<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
+  PM extends BaseGearPlugPortMap,
+  S extends AnyState,
+>(
+  connector: ResComposerConnector,
+  deps: DM,
+  ports: PM,
+  defaultState: S,
+  factory: (plugin: never, cursor: never) => unknown
+): StatefulOuterGearResMatrix<AnyRes, StatefulOuterGearMapPlug<RA, KM, DM, PM, S>, PM, S> {
   const head = createStatefulOuterGearMapPlugHead<RA, KM, DM, PM, StatefulOuterGearPluginCtx<RA, KM, PM, S>, S>(
     deps,
     ports,
@@ -504,19 +549,31 @@ function createStatefulOuterGearMapDefiner<
 
   const cursor = buildStatefulOuterGearCursor(defaultState);
 
-  return ((factory: (plugin: never, cursor: never) => unknown) =>
-    createResMatrix({
-      connector: connector,
-      meta,
-      head,
-      cursor,
-      userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
-      augmentCtx: ($) => {
-        $.state = defaultState;
-        $.defaultState = defaultState;
-      },
-      postProcess: (raw, c) => statefulPostProcess(raw, c as StatefulOuterGearCursor<S>),
-    })) as StatefulOuterGearMapDefiner<RA, KM, DM, PM, S>;
+  const matrix = createResMatrix({
+    connector,
+    meta,
+    head,
+    cursor,
+    userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
+    augmentCtx: ($) => {
+      $.state = defaultState;
+      $.defaultState = defaultState;
+    },
+    postProcess: (raw, c) => statefulPostProcess(raw, c as StatefulOuterGearCursor<S>),
+  });
+
+  const clone = (overrides?: StatefulCloneOverrides<PM, S>) => {
+    const nextPorts = overrides?.ports !== undefined ? ({ ...ports, ...overrides.ports } as PM) : ports;
+    const nextState = overrides?.defaultState !== undefined ? overrides.defaultState : defaultState;
+    return buildStatefulOuterGearMapMatrix<RA, KM, DM, PM, S>(connector, deps, nextPorts, nextState, factory);
+  };
+
+  return { ...matrix, clone } as unknown as StatefulOuterGearResMatrix<
+    AnyRes,
+    StatefulOuterGearMapPlug<RA, KM, DM, PM, S>,
+    PM,
+    S
+  >;
 }
 
 function createStatefulOuterGearListDefiner<
@@ -526,27 +583,62 @@ function createStatefulOuterGearListDefiner<
   PM extends BaseGearPlugPortMap,
   S extends AnyState,
 >(connector: ResComposerConnector, deps: DL, ports: PM, state: S): StatefulOuterGearListDefiner<RA, KM, DL, PM, S> {
+  return ((factory: (plugin: never, cursor: never) => unknown) =>
+    buildStatefulOuterGearListMatrix<RA, KM, DL, PM, S>(
+      connector,
+      deps,
+      ports,
+      state,
+      factory
+    )) as StatefulOuterGearListDefiner<RA, KM, DL, PM, S>;
+}
+
+function buildStatefulOuterGearListMatrix<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends OuterGearPlugDepList<RA>,
+  PM extends BaseGearPlugPortMap,
+  S extends AnyState,
+>(
+  connector: ResComposerConnector,
+  deps: DL,
+  ports: PM,
+  defaultState: S,
+  factory: (plugin: never, cursor: never) => unknown
+): StatefulOuterGearResMatrix<AnyRes, StatefulOuterGearListPlug<RA, KM, DL, PM, S>, PM, S> {
   const head = createStatefulOuterGearListPlugHead<RA, KM, DL, PM, StatefulOuterGearPluginCtx<RA, KM, PM, S>, S>(
     deps,
     ports,
-    state
+    defaultState
   );
 
-  const cursor = buildStatefulOuterGearCursor(state);
+  const cursor = buildStatefulOuterGearCursor(defaultState);
 
-  return ((factory: (plugin: never, cursor: never) => unknown) =>
-    createResMatrix({
-      connector: connector,
-      meta,
-      head,
-      cursor,
-      userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
-      augmentCtx: ($) => {
-        $.state = state;
-        $.defaultState = state;
-      },
-      postProcess: (raw, c) => statefulPostProcess(raw, c as unknown as StatefulOuterGearCursor<S>),
-    })) as StatefulOuterGearListDefiner<RA, KM, DL, PM, S>;
+  const matrix = createResMatrix({
+    connector,
+    meta,
+    head,
+    cursor,
+    userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
+    augmentCtx: ($) => {
+      $.state = defaultState;
+      $.defaultState = defaultState;
+    },
+    postProcess: (raw, c) => statefulPostProcess(raw, c as unknown as StatefulOuterGearCursor<S>),
+  });
+
+  const clone = (overrides?: StatefulCloneOverrides<PM, S>) => {
+    const nextPorts = overrides?.ports !== undefined ? ({ ...ports, ...overrides.ports } as PM) : ports;
+    const nextState = overrides?.defaultState !== undefined ? overrides.defaultState : defaultState;
+    return buildStatefulOuterGearListMatrix<RA, KM, DL, PM, S>(connector, deps, nextPorts, nextState, factory);
+  };
+
+  return { ...matrix, clone } as unknown as StatefulOuterGearResMatrix<
+    AnyRes,
+    StatefulOuterGearListPlug<RA, KM, DL, PM, S>,
+    PM,
+    S
+  >;
 }
 
 function createStatelessOuterGearMapDefiner<

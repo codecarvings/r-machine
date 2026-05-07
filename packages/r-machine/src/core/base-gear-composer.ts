@@ -29,6 +29,15 @@ import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { ValidatedDepListType } from "./res-list.js";
 import type { ValidatedDepMapType } from "./res-map.js";
 import { createResMatrix, type GearMatrixMeta, type ResMatrix } from "./res-matrix.js";
+import type { AnyResPlug } from "./res-plug.js";
+
+interface CloneOverrides<PM> {
+  ports?: Partial<PM>;
+}
+export interface BaseGearResMatrix<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap> extends ResMatrix<R, P> {
+  clone(): BaseGearResMatrix<R, P, PM>;
+  clone(overrides: CloneOverrides<PM>): BaseGearResMatrix<R, P, PM>;
+}
 
 export interface BaseGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   readonly withDeps: BaseGearDepsComposer<RA, KM>;
@@ -64,13 +73,13 @@ type BaseGearMapPortsConfigurator<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends BaseGearPlugDepMap<RA>,
-> = <const PM extends BaseGearPlugPortMap>(ports: PM) => BaseGearMapDefineOnlyComposer<RA, KM, DM, PM>;
+> = <PM extends BaseGearPlugPortMap>(ports: PM) => BaseGearMapDefineOnlyComposer<RA, KM, DM, PM>;
 
 type BaseGearListPortsConfigurator<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends BaseGearPlugDepList<RA>,
-> = <const PM extends BaseGearPlugPortMap>(ports: PM) => BaseGearListDefineOnlyComposer<RA, KM, DL, PM>;
+> = <PM extends BaseGearPlugPortMap>(ports: PM) => BaseGearListDefineOnlyComposer<RA, KM, DL, PM>;
 
 interface BaseGearMapDefineOnlyComposer<
   RA extends AnyResAtlas,
@@ -97,7 +106,7 @@ type BaseGearMapDefiner<
   PM extends BaseGearPlugPortMap,
 > = <R extends AnyRes>(
   factory: (plugin: BaseGearMapPlugin<RA, KM, DM, PM>) => R | Promise<R>
-) => ResMatrix<R, BaseGearMapPlug<RA, KM, DM, PM>>;
+) => BaseGearResMatrix<R, BaseGearMapPlug<RA, KM, DM, PM>, PM>;
 
 type BaseGearListDefiner<
   RA extends AnyResAtlas,
@@ -106,7 +115,7 @@ type BaseGearListDefiner<
   PM extends BaseGearPlugPortMap,
 > = <R extends AnyRes>(
   factory: (plugin: BaseGearListPlugin<RA, KM, DL, PM>) => R | Promise<R>
-) => ResMatrix<R, BaseGearListPlug<RA, KM, DL, PM>>;
+) => BaseGearResMatrix<R, BaseGearListPlug<RA, KM, DL, PM>, PM>;
 
 // #region Runtime
 
@@ -166,7 +175,7 @@ function createBaseGearMapPortsConfigurator<
   KM extends GearPlugKitMap<RA>,
   DM extends BaseGearPlugDepMap<RA>,
 >(connector: ResComposerConnector, deps: DM): BaseGearMapPortsConfigurator<RA, KM, DM> {
-  return (<const PM extends BaseGearPlugPortMap>(ports: PM) => ({
+  return (<PM extends BaseGearPlugPortMap>(ports: PM) => ({
     define: createBaseGearMapDefiner<RA, KM, DM, PM>(connector, deps, ports),
   })) as BaseGearMapPortsConfigurator<RA, KM, DM>;
 }
@@ -176,7 +185,7 @@ function createBaseGearListPortsConfigurator<
   KM extends GearPlugKitMap<RA>,
   DL extends BaseGearPlugDepList<RA>,
 >(connector: ResComposerConnector, deps: DL): BaseGearListPortsConfigurator<RA, KM, DL> {
-  return (<const PM extends BaseGearPlugPortMap>(ports: PM) => ({
+  return (<PM extends BaseGearPlugPortMap>(ports: PM) => ({
     define: createBaseGearListDefiner<RA, KM, DL, PM>(connector, deps, ports),
   })) as BaseGearListPortsConfigurator<RA, KM, DL>;
 }

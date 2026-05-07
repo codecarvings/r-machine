@@ -14,9 +14,9 @@
 import type { Token } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 import type { BaseGearNamespaceList } from "./base-gear-plug.js";
-import type { ListPlugin, LocaleAwarePluginCtx, MapPlugin, PlugBody } from "./plug.js";
+import type { ListPlugin, MapPlugin, PlugBody } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { ResListPlugHead, ResMapPlugHead } from "./res-plug.js";
+import type { AnyPortMap, ResListPlugHead, ResMapPlugHead, ResPluginCtx } from "./res-plug.js";
 
 type ShellPlugDepNamespace<RA extends AnyResAtlas, BGL extends BaseGearNamespaceList<RA>> =
   | Extract<keyof RA["shape@shell"], string>
@@ -39,50 +39,59 @@ export type ShellPlugDepList<
   BGL extends BaseGearNamespaceList<RA> = any,
 > = readonly ShellPlugDepHandle<RA, BGL>[];
 
-type ShellPluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KM extends ShellPlugKitMap<RA>> = LocaleAwarePluginCtx<
-  RA,
-  L,
-  KM
->;
+export type ShellPlugPortMap = AnyPortMap;
+
+export type ShellPluginCtx<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KM extends ShellPlugKitMap<RA>,
+  PM extends ShellPlugPortMap,
+> = ResPluginCtx<RA, KM, PM> & { readonly locale: L };
 
 export type ShellMapPlugin<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KM extends ShellPlugKitMap<RA>,
   DM extends ShellPlugDepMap<RA>,
-> = MapPlugin<RA, DM, ShellPluginCtx<RA, L, KM>>;
+  PM extends ShellPlugPortMap,
+> = MapPlugin<RA, DM, ShellPluginCtx<RA, L, KM, PM>>;
 
 export type ShellListPlugin<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KM extends ShellPlugKitMap<RA>,
   DL extends ShellPlugDepList<RA>,
-> = ListPlugin<RA, DL, ShellPluginCtx<RA, L, KM>>;
+  PM extends ShellPlugPortMap,
+> = ListPlugin<RA, DL, ShellPluginCtx<RA, L, KM, PM>>;
 
 type ShellMapPlugHead<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KM extends ShellPlugKitMap<RA>,
   DM extends ShellPlugDepMap<RA>,
-> = ResMapPlugHead<"shell", RA, KM, DM, {}, ShellPluginCtx<RA, L, KM>>;
+  PM extends ShellPlugPortMap,
+> = ResMapPlugHead<"shell", RA, KM, DM, PM, ShellPluginCtx<RA, L, KM, PM>>;
 
 type ShellListPlugHead<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KM extends ShellPlugKitMap<RA>,
   DL extends ShellPlugDepList<RA>,
-> = ResListPlugHead<"shell", RA, KM, DL, {}, ShellPluginCtx<RA, L, KM>>;
+  PM extends ShellPlugPortMap,
+> = ResListPlugHead<"shell", RA, KM, DL, PM, ShellPluginCtx<RA, L, KM, PM>>;
 
 export interface ShellMapPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KM extends ShellPlugKitMap<RA>,
   DM extends ShellPlugDepMap<RA>,
-> extends PlugBody<ShellMapPlugHead<RA, L, KM, DM>> {}
+  PM extends ShellPlugPortMap,
+> extends PlugBody<ShellMapPlugHead<RA, L, KM, DM, PM>> {}
 
 export interface ShellListPlug<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KM extends ShellPlugKitMap<RA>,
   DL extends ShellPlugDepList<RA>,
-> extends PlugBody<ShellListPlugHead<RA, L, KM, DL>> {}
+  PM extends ShellPlugPortMap,
+> extends PlugBody<ShellListPlugHead<RA, L, KM, DL, PM>> {}

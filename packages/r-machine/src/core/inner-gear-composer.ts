@@ -29,6 +29,15 @@ import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { ValidatedDepListType } from "./res-list.js";
 import type { ValidatedDepMapType } from "./res-map.js";
 import { createResMatrix, type GearMatrixMeta, type ResMatrix } from "./res-matrix.js";
+import type { AnyResPlug } from "./res-plug.js";
+
+interface CloneOverrides<PM> {
+  ports?: Partial<PM>;
+}
+export interface InnerGearResMatrix<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap> extends ResMatrix<R, P> {
+  clone(): InnerGearResMatrix<R, P, PM>;
+  clone(overrides: CloneOverrides<PM>): InnerGearResMatrix<R, P, PM>;
+}
 
 export interface InnerGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   readonly withDeps: InnerGearDepsComposer<RA, KM>;
@@ -64,13 +73,13 @@ type InnerGearMapPortsConfigurator<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends InnerGearPlugDepMap<RA>,
-> = <const PM extends BaseGearPlugPortMap>(ports: PM) => InnerGearMapDefineOnlyComposer<RA, KM, DM, PM>;
+> = <PM extends BaseGearPlugPortMap>(ports: PM) => InnerGearMapDefineOnlyComposer<RA, KM, DM, PM>;
 
 type InnerGearListPortsConfigurator<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends InnerGearPlugDepList<RA>,
-> = <const PM extends BaseGearPlugPortMap>(ports: PM) => InnerGearListDefineOnlyComposer<RA, KM, DL, PM>;
+> = <PM extends BaseGearPlugPortMap>(ports: PM) => InnerGearListDefineOnlyComposer<RA, KM, DL, PM>;
 
 interface InnerGearMapDefineOnlyComposer<
   RA extends AnyResAtlas,
@@ -97,7 +106,7 @@ type InnerGearMapDefiner<
   PM extends BaseGearPlugPortMap,
 > = <R extends AnyRes>(
   factory: (plugin: InnerGearMapPlugin<RA, KM, DM, PM>) => R | Promise<R>
-) => ResMatrix<R, InnerGearMapPlug<RA, KM, DM, PM>>;
+) => InnerGearResMatrix<R, InnerGearMapPlug<RA, KM, DM, PM>, PM>;
 
 type InnerGearListDefiner<
   RA extends AnyResAtlas,
@@ -106,7 +115,7 @@ type InnerGearListDefiner<
   PM extends BaseGearPlugPortMap,
 > = <R extends AnyRes>(
   factory: (plugin: InnerGearListPlugin<RA, KM, DL, PM>) => R | Promise<R>
-) => ResMatrix<R, InnerGearListPlug<RA, KM, DL, PM>>;
+) => InnerGearResMatrix<R, InnerGearListPlug<RA, KM, DL, PM>, PM>;
 
 // #region Runtime
 
@@ -166,7 +175,7 @@ function createInnerGearMapPortsConfigurator<
   KM extends GearPlugKitMap<RA>,
   DM extends InnerGearPlugDepMap<RA>,
 >(connector: ResComposerConnector, deps: DM): InnerGearMapPortsConfigurator<RA, KM, DM> {
-  return (<const PM extends BaseGearPlugPortMap>(ports: PM) => ({
+  return (<PM extends BaseGearPlugPortMap>(ports: PM) => ({
     define: createInnerGearMapDefiner<RA, KM, DM, PM>(connector, deps, ports),
   })) as InnerGearMapPortsConfigurator<RA, KM, DM>;
 }
@@ -176,7 +185,7 @@ function createInnerGearListPortsConfigurator<
   KM extends GearPlugKitMap<RA>,
   DL extends InnerGearPlugDepList<RA>,
 >(connector: ResComposerConnector, deps: DL): InnerGearListPortsConfigurator<RA, KM, DL> {
-  return (<const PM extends BaseGearPlugPortMap>(ports: PM) => ({
+  return (<PM extends BaseGearPlugPortMap>(ports: PM) => ({
     define: createInnerGearListDefiner<RA, KM, DL, PM>(connector, deps, ports),
   })) as InnerGearListPortsConfigurator<RA, KM, DL>;
 }

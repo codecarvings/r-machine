@@ -33,7 +33,7 @@ export type GearPluginCtx<RA extends AnyResAtlas, KM extends HandleMap<RA>, PM e
   RA,
   KM,
   PM
-> & { readonly namespace: string };
+>;
 
 export interface GearMapPlugHead<
   R extends GearRole,

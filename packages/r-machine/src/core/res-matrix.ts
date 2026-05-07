@@ -17,7 +17,11 @@ import { createPlug, getPlugResolve, type PluginCtxAugmenter, setPlugResolve } f
 import type { AnyRes, AnyResOrigin } from "./res.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { AnyNamespace } from "./res-domain.js";
-import type { AnyResPlug, AnyResPlugHead } from "./res-plug.js";
+import type { AnyPortMap, AnyResPlug, AnyResPlugHead } from "./res-plug.js";
+
+export interface ResMatrixCloneOverrides {
+  readonly ports?: AnyPortMap;
+}
 
 export interface GearMatrixMeta {
   readonly family: "gear";
@@ -36,6 +40,7 @@ export interface ResMatrix<R, P extends AnyResPlug> {
   readonly [resMatrixMetaSymbol]: ResMatrixMeta;
   readonly factory: () => Promise<R>;
   readonly plug: P;
+  clone(overrides?: ResMatrixCloneOverrides): ResMatrix<R, P>;
 }
 
 export type AnyResMatrix = ResMatrix<any, any>;
@@ -65,8 +70,6 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
     const buildCtx2: PluginCtxAugmenter = ($) => {
       if (meta.family === "shell") {
         $.locale = locale;
-      } else {
-        $.namespace = selfNamespace;
       }
       $.ports = head.ports;
       return augmentCtx !== undefined ? augmentCtx($) : defaultBuildCtx($);
@@ -81,9 +84,18 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
     return (postProcess ? postProcess(raw, cursor as never) : raw) as AnyRes;
   };
 
+  const clone = (overrides?: ResMatrixCloneOverrides): AnyResMatrix => {
+    const nextHead =
+      overrides?.ports !== undefined
+        ? ({ ...head, ports: { ...head.ports, ...overrides.ports } } as AnyResPlugHead)
+        : head;
+    return createResMatrix({ ...options, head: nextHead });
+  };
+
   return {
     [resMatrixMetaSymbol]: meta,
     factory: factory as () => Promise<AnyRes>,
     plug,
+    clone,
   };
 }

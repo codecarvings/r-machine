@@ -14,14 +14,14 @@
 import type { AnyLocale } from "#r-machine/locale";
 import type { BaseGearNamespaceList } from "./base-gear-plug.js";
 import { lazyGetters } from "./composer-utils.js";
-import { getPlugOutline, type LocaleAwarePluginCtx } from "./plug.js";
+import { getPlugOutline } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { ValidatedDepListType } from "./res-list.js";
 import type { ValidatedDepMapType } from "./res-map.js";
 import { createResMatrix, type ResMatrix, type ShellMatrixMeta } from "./res-matrix.js";
-import { createResListPlugHead, createResMapPlugHead } from "./res-plug.js";
+import { type AnyResPlug, createResListPlugHead, createResMapPlugHead } from "./res-plug.js";
 import type {
   ShellListPlug,
   ShellListPlugin,
@@ -29,8 +29,18 @@ import type {
   ShellMapPlugin,
   ShellPlugDepList,
   ShellPlugDepMap,
+  ShellPluginCtx,
   ShellPlugKitMap,
+  ShellPlugPortMap,
 } from "./shell-plug.js";
+
+interface CloneOverrides<PM> {
+  ports?: Partial<PM>;
+}
+export interface ShellResMatrix<R, P extends AnyResPlug, PM extends ShellPlugPortMap> extends ResMatrix<R, P> {
+  clone(): ShellResMatrix<R, P, PM>;
+  clone(overrides: CloneOverrides<PM>): ShellResMatrix<R, P, PM>;
+}
 
 export interface ShellComposer<
   RA extends AnyResAtlas,
@@ -39,7 +49,8 @@ export interface ShellComposer<
   KM extends ShellPlugKitMap<RA>,
 > {
   readonly withDeps: ShellDepsComposer<RA, L, BGL, KM>;
-  readonly define: ShellMapDefiner<RA, L, KM, {}>;
+  readonly withPorts: ShellMapPortsConfigurator<RA, L, KM, {}>;
+  readonly define: ShellMapDefiner<RA, L, KM, {}, {}>;
 }
 
 interface ShellDepsComposer<
@@ -59,7 +70,8 @@ interface ShellMapComposer<
   KM extends ShellPlugKitMap<RA>,
   DM extends ShellPlugDepMap<RA>,
 > {
-  readonly define: ShellMapDefiner<RA, L, KM, DM>;
+  readonly withPorts: ShellMapPortsConfigurator<RA, L, KM, DM>;
+  readonly define: ShellMapDefiner<RA, L, KM, DM, {}>;
 }
 
 interface ShellListComposer<
@@ -68,7 +80,42 @@ interface ShellListComposer<
   KM extends ShellPlugKitMap<RA>,
   DL extends ShellPlugDepList<RA>,
 > {
-  readonly define: ShellListDefiner<RA, L, KM, DL>;
+  readonly withPorts: ShellListPortsConfigurator<RA, L, KM, DL>;
+  readonly define: ShellListDefiner<RA, L, KM, DL, {}>;
+}
+
+type ShellMapPortsConfigurator<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KM extends ShellPlugKitMap<RA>,
+  DM extends ShellPlugDepMap<RA>,
+> = <PM extends ShellPlugPortMap>(ports: PM) => ShellMapDefineOnlyComposer<RA, L, KM, DM, PM>;
+
+type ShellListPortsConfigurator<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KM extends ShellPlugKitMap<RA>,
+  DL extends ShellPlugDepList<RA>,
+> = <PM extends ShellPlugPortMap>(ports: PM) => ShellListDefineOnlyComposer<RA, L, KM, DL, PM>;
+
+interface ShellMapDefineOnlyComposer<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KM extends ShellPlugKitMap<RA>,
+  DM extends ShellPlugDepMap<RA>,
+  PM extends ShellPlugPortMap,
+> {
+  readonly define: ShellMapDefiner<RA, L, KM, DM, PM>;
+}
+
+interface ShellListDefineOnlyComposer<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KM extends ShellPlugKitMap<RA>,
+  DL extends ShellPlugDepList<RA>,
+  PM extends ShellPlugPortMap,
+> {
+  readonly define: ShellListDefiner<RA, L, KM, DL, PM>;
 }
 
 type ShellMapDefiner<
@@ -76,18 +123,20 @@ type ShellMapDefiner<
   L extends AnyLocale,
   KM extends ShellPlugKitMap<RA>,
   DM extends ShellPlugDepMap<RA>,
+  PM extends ShellPlugPortMap,
 > = <R extends AnyRes>(
-  factory: (plugin: ShellMapPlugin<RA, L, KM, DM>) => R | Promise<R>
-) => ResMatrix<R, ShellMapPlug<RA, L, KM, DM>>;
+  factory: (plugin: ShellMapPlugin<RA, L, KM, DM, PM>) => R | Promise<R>
+) => ShellResMatrix<R, ShellMapPlug<RA, L, KM, DM, PM>, PM>;
 
 type ShellListDefiner<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   KM extends ShellPlugKitMap<RA>,
   DL extends ShellPlugDepList<RA>,
+  PM extends ShellPlugPortMap,
 > = <R extends AnyRes>(
-  factory: (plugin: ShellListPlugin<RA, L, KM, DL>) => R | Promise<R>
-) => ResMatrix<R, ShellListPlug<RA, L, KM, DL>>;
+  factory: (plugin: ShellListPlugin<RA, L, KM, DL, PM>) => R | Promise<R>
+) => ShellResMatrix<R, ShellListPlug<RA, L, KM, DL, PM>, PM>;
 
 // #region Runtime
 
@@ -95,13 +144,17 @@ const meta: ShellMatrixMeta = { family: "shell" };
 
 const cursor = undefined;
 
+const emptyPorts: ShellPlugPortMap = {};
+
 export function createShellComposer<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   BGL extends BaseGearNamespaceList<RA>,
   KM extends ShellPlugKitMap<RA>,
 >(connector: ResComposerConnector): ShellComposer<RA, L, BGL, KM> {
-  const define = createShellMapDefiner<RA, L, KM, {}>(connector, {});
+  const define = createShellMapDefiner<RA, L, KM, {}, {}>(connector, {}, emptyPorts);
+
+  const withPorts = createShellMapPortsConfigurator<RA, L, KM, {}>(connector, {});
 
   const withDeps = ((...args: unknown[]) => {
     const mask = getPlugOutline<RA>(...args);
@@ -114,6 +167,7 @@ export function createShellComposer<
 
   return {
     withDeps,
+    withPorts,
     define,
   };
 }
@@ -125,7 +179,8 @@ function createShellMapDepsComposer<
   DM extends ShellPlugDepMap<RA>,
 >(connector: ResComposerConnector, deps: DM): ShellMapComposer<RA, L, KM, DM> {
   return lazyGetters({
-    define: () => createShellMapDefiner(connector, deps),
+    withPorts: () => createShellMapPortsConfigurator<RA, L, KM, DM>(connector, deps),
+    define: () => createShellMapDefiner<RA, L, KM, DM, {}>(connector, deps, emptyPorts),
   });
 }
 
@@ -136,8 +191,31 @@ function createShellListDepsComposer<
   DL extends ShellPlugDepList<RA>,
 >(connector: ResComposerConnector, deps: DL): ShellListComposer<RA, L, KM, DL> {
   return lazyGetters({
-    define: () => createShellListDefiner(connector, deps),
+    withPorts: () => createShellListPortsConfigurator<RA, L, KM, DL>(connector, deps),
+    define: () => createShellListDefiner<RA, L, KM, DL, {}>(connector, deps, emptyPorts),
   });
+}
+
+function createShellMapPortsConfigurator<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KM extends ShellPlugKitMap<RA>,
+  DM extends ShellPlugDepMap<RA>,
+>(connector: ResComposerConnector, deps: DM): ShellMapPortsConfigurator<RA, L, KM, DM> {
+  return (<PM extends ShellPlugPortMap>(ports: PM) => ({
+    define: createShellMapDefiner<RA, L, KM, DM, PM>(connector, deps, ports),
+  })) as ShellMapPortsConfigurator<RA, L, KM, DM>;
+}
+
+function createShellListPortsConfigurator<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KM extends ShellPlugKitMap<RA>,
+  DL extends ShellPlugDepList<RA>,
+>(connector: ResComposerConnector, deps: DL): ShellListPortsConfigurator<RA, L, KM, DL> {
+  return (<PM extends ShellPlugPortMap>(ports: PM) => ({
+    define: createShellListDefiner<RA, L, KM, DL, PM>(connector, deps, ports),
+  })) as ShellListPortsConfigurator<RA, L, KM, DL>;
 }
 
 function createShellMapDefiner<
@@ -145,8 +223,9 @@ function createShellMapDefiner<
   L extends AnyLocale,
   KM extends ShellPlugKitMap<RA>,
   DM extends ShellPlugDepMap<RA>,
->(connector: ResComposerConnector, deps: DM): ShellMapDefiner<RA, L, KM, DM> {
-  const head = createResMapPlugHead<"shell", RA, KM, DM, {}, LocaleAwarePluginCtx<RA, L, KM>>("shell", deps, {});
+  PM extends ShellPlugPortMap,
+>(connector: ResComposerConnector, deps: DM, ports: PM): ShellMapDefiner<RA, L, KM, DM, PM> {
+  const head = createResMapPlugHead<"shell", RA, KM, DM, PM, ShellPluginCtx<RA, L, KM, PM>>("shell", deps, ports);
 
   return (factory: (plugin: never) => unknown) =>
     createResMatrix({
@@ -163,8 +242,9 @@ function createShellListDefiner<
   L extends AnyLocale,
   KM extends ShellPlugKitMap<RA>,
   DL extends ShellPlugDepList<RA>,
->(connector: ResComposerConnector, deps: DL): ShellListDefiner<RA, L, KM, DL> {
-  const head = createResListPlugHead<"shell", RA, KM, DL, {}, LocaleAwarePluginCtx<RA, L, KM>>("shell", deps, {});
+  PM extends ShellPlugPortMap,
+>(connector: ResComposerConnector, deps: DL, ports: PM): ShellListDefiner<RA, L, KM, DL, PM> {
+  const head = createResListPlugHead<"shell", RA, KM, DL, PM, ShellPluginCtx<RA, L, KM, PM>>("shell", deps, ports);
 
   return (factory: (plugin: never) => unknown) =>
     createResMatrix({
