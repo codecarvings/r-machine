@@ -234,20 +234,24 @@ describe("ResLayoutResolver — resolvePath", () => {
   const resolver = new ResLayoutResolver({ "app/": "gear:inner" });
 
   describe("gear layout types — locale is ignored", () => {
-    it.each(["gear:inner", "gear:base", "gear:outer", "gear:outer(vertex)"] as const)(
-      "%s returns the namespace unchanged when locale is undefined",
-      (layoutType) => {
-        expect(resolver.resolvePath("app", undefined, layoutType)).toBe("app");
-      }
-    );
+    it.each([
+      "gear:inner",
+      "gear:base",
+      "gear:outer",
+      "gear:outer(vertex)",
+    ] as const)("%s returns the namespace unchanged when locale is undefined", (layoutType) => {
+      expect(resolver.resolvePath("app", undefined, layoutType)).toBe("app");
+    });
 
-    it.each(["gear:inner", "gear:base", "gear:outer", "gear:outer(vertex)"] as const)(
-      "%s ignores the locale and still returns the namespace when one is provided",
-      (layoutType) => {
-        expect(resolver.resolvePath("app", "en-US", layoutType)).toBe("app");
-        expect(resolver.resolvePath("app/home", "it-IT", layoutType)).toBe("app/home");
-      }
-    );
+    it.each([
+      "gear:inner",
+      "gear:base",
+      "gear:outer",
+      "gear:outer(vertex)",
+    ] as const)("%s ignores the locale and still returns the namespace when one is provided", (layoutType) => {
+      expect(resolver.resolvePath("app", "en-US", layoutType)).toBe("app");
+      expect(resolver.resolvePath("app/home", "it-IT", layoutType)).toBe("app/home");
+    });
   });
 
   describe("shell(mono) layout — locale is ignored", () => {

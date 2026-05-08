@@ -1,5 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { GearRole } from "../../src/core/gear-plug.js";
+import type { NamespaceParts } from "../../src/core/res-domain.js";
 import {
   type AnyResLayout,
   getGearRoleFromLayoutType,
@@ -10,7 +11,6 @@ import {
   ResLayoutResolver,
   type ResolveLayoutType,
 } from "../../src/core/res-layout.js";
-import type { NamespaceParts } from "../../src/core/res-domain.js";
 import type { ResFamily } from "../../src/core/res-plug.js";
 import type { AnyLocale } from "../../src/locale/locale.js";
 

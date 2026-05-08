@@ -93,8 +93,7 @@ function createTestEnv(options: TestEnvOptions) {
       cb();
     },
     loadCalls,
-    keyOf: (ns: string, locale?: string) =>
-      getResCacheKey(ns, locale, resolver.resolveLayoutEntryType(ns)),
+    keyOf: (ns: string, locale?: string) => getResCacheKey(ns, locale, resolver.resolveLayoutEntryType(ns)),
     inspect: () =>
       bm as unknown as {
         forwardDeps: Map<AnyNamespace, Set<AnyNamespace>>;
@@ -359,9 +358,7 @@ describe("BlueprintManager — race protection", () => {
           xLoadCount++;
           // First call returns the deferred (slow) promise. Subsequent calls
           // return a fresh module synchronously.
-          return xLoadCount === 1
-            ? oldLoadPromise
-            : makeMatrixModule("gear", "inner", ["g/B"]);
+          return xLoadCount === 1 ? oldLoadPromise : makeMatrixModule("gear", "inner", ["g/B"]);
         },
         "g/A": () => makeMatrixModule("gear", "inner", []),
         "g/B": () => makeMatrixModule("gear", "inner", []),

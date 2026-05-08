@@ -232,18 +232,19 @@ describe("createBlueprint", () => {
       expect(bp.origin).toBe(module.r);
     });
 
-    it.each(["gear:outer", "gear:outer(vertex)", "shell(mono)"] as const)(
-      "throws when a raw resource is used under %s (matrices are required)",
-      (layout) => {
-        const module = makeRawModule();
+    it.each([
+      "gear:outer",
+      "gear:outer(vertex)",
+      "shell(mono)",
+    ] as const)("throws when a raw resource is used under %s (matrices are required)", (layout) => {
+      const module = makeRawModule();
 
-        const error = captureResolveError(() => createBlueprint(module, "app/root", "en-US", layout));
+      const error = captureResolveError(() => createBlueprint(module, "app/root", "en-US", layout));
 
-        expect(error.code).toBe(ERR_RESOLVE_FAILED);
-        expect(error.message).toContain("app/root");
-        expect(error.message).toContain(layout);
-      }
-    );
+      expect(error.code).toBe(ERR_RESOLVE_FAILED);
+      expect(error.message).toContain("app/root");
+      expect(error.message).toContain(layout);
+    });
 
     it("treats a plain object with no special keys as a raw resource (only valid under shell)", () => {
       // The brand symbol is module-private to res-matrix.ts, so raw
