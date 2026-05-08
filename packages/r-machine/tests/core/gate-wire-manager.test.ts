@@ -16,6 +16,7 @@ interface GetPluginCall {
   readonly selfNamespace: AnyNamespace | undefined;
   readonly genId: number;
   readonly vertexGearMap: VertexGearMap | undefined;
+  readonly chain: readonly AnyNamespace[];
 }
 
 interface MockJm {
@@ -43,10 +44,11 @@ function createMockJm(): MockJm {
       locale: string | undefined,
       augmentCtx: PluginCtxAugmenter,
       selfNamespace: AnyNamespace | undefined,
+      chain: readonly AnyNamespace[],
       genId: number,
       vertexGearMap: VertexGearMap | undefined
     ): Promise<unknown> {
-      getPluginCalls.push({ kit, nsDeps, locale, augmentCtx, selfNamespace, genId, vertexGearMap });
+      getPluginCalls.push({ kit, nsDeps, locale, augmentCtx, selfNamespace, chain, genId, vertexGearMap });
       return Promise.resolve({ pluginId: pluginIdx++ });
     },
     subscribe(nsList: Iterable<AnyNamespace>, callback: () => void): () => void {

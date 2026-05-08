@@ -66,20 +66,27 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
 
   const plug = createPlug(head);
 
-  setPlugResolve(plug, async (locale: AnyLocale | undefined, selfNamespace: AnyNamespace | undefined) => {
-    const buildCtx2: PluginCtxAugmenter = ($) => {
-      if (meta.family === "shell") {
-        $.locale = locale;
-      }
-      $.ports = head.ports;
-      return augmentCtx !== undefined ? augmentCtx($) : defaultBuildCtx($);
-    };
-    const wire = await connector.getWire(head.nsDeps, locale, buildCtx2, selfNamespace);
-    return wire.plugin as never;
-  });
+  setPlugResolve(
+    plug,
+    async (locale: AnyLocale | undefined, selfNamespace: AnyNamespace | undefined, chain: readonly AnyNamespace[]) => {
+      const buildCtx2: PluginCtxAugmenter = ($) => {
+        if (meta.family === "shell") {
+          $.locale = locale;
+        }
+        $.ports = head.ports;
+        return augmentCtx !== undefined ? augmentCtx($) : defaultBuildCtx($);
+      };
+      const wire = await connector.getWire(head.nsDeps, locale, buildCtx2, selfNamespace, chain);
+      return wire.plugin as never;
+    }
+  );
 
-  const factory = async (locale: AnyLocale | undefined, selfNamespace: AnyNamespace): Promise<AnyRes> => {
-    const plugin = await getPlugResolve(plug)(locale, selfNamespace);
+  const factory = async (
+    locale: AnyLocale | undefined,
+    selfNamespace: AnyNamespace,
+    chain: ReadonlyArray<AnyNamespace>
+  ): Promise<AnyRes> => {
+    const plugin = await getPlugResolve(plug)(locale, selfNamespace, chain);
     const raw = await userFactory(plugin, cursor as never);
     return (postProcess ? postProcess(raw, cursor as never) : raw) as AnyRes;
   };

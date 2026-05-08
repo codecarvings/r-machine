@@ -108,8 +108,17 @@ export class RMachine<
 
   protected createResComposerConnector(kit: AnyNamespaceMap): ResComposerConnector {
     return {
-      getWire: async (deps, locale, augmentCtx, selfNamespace) => {
-        const plugin = await this.junctureManager.getPlugin(kit, deps, locale, augmentCtx, selfNamespace, 0, undefined);
+      getWire: async (deps, locale, augmentCtx, selfNamespace, chain) => {
+        const plugin = await this.junctureManager.getPlugin(
+          kit,
+          deps,
+          locale,
+          augmentCtx,
+          selfNamespace,
+          chain,
+          0,
+          undefined
+        );
         return {
           plugin,
         };
@@ -140,7 +149,7 @@ export class RMachine<
   }
   */
 
-  async WIP_GET<DL extends HandleList<RA>>(deps: DL): Promise<SurfaceList<RA, DL>> {
+  async WIP_GET<DL extends HandleList<RA>>(deps: DL, locale: L): Promise<SurfaceList<RA, DL>> {
     const isList = isNamespaceList(deps as any);
     let nsDeps: AnyNamespaceCollection;
     if (isList) {
@@ -152,11 +161,12 @@ export class RMachine<
     const result = await this.junctureManager.getPlugin(
       {},
       nsDeps,
-      this.defaultLocale,
+      locale,
       ($) => {
-        $.locale = this.defaultLocale;
+        $.locale = locale;
       },
       undefined,
+      [],
       0,
       undefined
     );

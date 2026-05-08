@@ -1,8 +1,8 @@
 import { BaseGear, type RShape } from "../setup.js";
 
-export const r = BaseGear.define(() => {
+export const r = BaseGear.withDeps("base/mid").define(([mid]) => {
   return {
-    someData: true,
+    someData: mid.name,
   };
 });
 

@@ -11,7 +11,11 @@ import { type AnyResLayout, ResLayoutResolver } from "../../src/core/res-layout.
 import type { AnyNamespaceMap } from "../../src/core/res-map.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
 import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-module.js";
-import { ERR_VERTEX_INSTANCE_NOT_FOUND, RMachineResolveError } from "../../src/errors/index.js";
+import {
+  ERR_CIRCULAR_DEPENDENCY,
+  ERR_VERTEX_INSTANCE_NOT_FOUND,
+  RMachineResolveError,
+} from "../../src/errors/index.js";
 
 // --- helpers -----------------------------------------------------------------
 
@@ -46,8 +50,8 @@ function makeVertexModule(jm: JunctureManager, kit: AnyNamespaceMap, resource: A
     ports: {},
   };
   const connector: ResComposerConnector = {
-    getWire: async (nsDeps, locale, augmentCtx, selfNamespace) => {
-      const plugin = await jm.getPlugin(kit, nsDeps, locale, augmentCtx, selfNamespace, 0, undefined);
+    getWire: async (nsDeps, locale, augmentCtx, selfNamespace, chain) => {
+      const plugin = await jm.getPlugin(kit, nsDeps, locale, augmentCtx, selfNamespace, chain, 0, undefined);
       return { plugin };
     },
   };
@@ -57,6 +61,42 @@ function makeVertexModule(jm: JunctureManager, kit: AnyNamespaceMap, resource: A
     head: head as never,
     cursor: undefined,
     userFactory: async () => resource,
+  });
+  return { r: matrix };
+}
+
+// Generic gear matrix module (inner/base/outer). The userFactory receives the
+// resolved plugin (a list `[...deps, $]`), so the test can both verify
+// kit access works in non-cyclic cases and assert cycle errors when the
+// factory body reaches into a cyclic kit entry.
+function makeGearModule(
+  jm: JunctureManager,
+  kit: AnyNamespaceMap,
+  role: "inner" | "base" | "outer",
+  deps: readonly AnyNamespace[],
+  userFactory: (plugin: readonly unknown[]) => unknown
+): AnyResModule {
+  const head = {
+    realm: "res",
+    family: "gear",
+    mode: "list",
+    deps,
+    nsDeps: deps,
+    nsDepList: deps,
+    ports: {},
+  };
+  const connector: ResComposerConnector = {
+    getWire: async (nsDeps, locale, augmentCtx, selfNamespace, chain) => {
+      const plugin = await jm.getPlugin(kit, nsDeps, locale, augmentCtx, selfNamespace, chain, 0, undefined);
+      return { plugin };
+    },
+  };
+  const matrix = createResMatrix({
+    connector,
+    meta: { family: "gear", role },
+    head: head as never,
+    cursor: undefined,
+    userFactory: async (plugin) => userFactory(plugin as readonly unknown[]),
   });
   return { r: matrix };
 }
@@ -126,7 +166,8 @@ function createJmTestEnv(options: JmTestEnvOptions) {
       namespace: AnyNamespace,
       locale: string | undefined,
       genId: number,
-      vertexGearMap: Record<AnyNamespace, number> | undefined
+      vertexGearMap: Record<AnyNamespace, number> | undefined,
+      chain: readonly AnyNamespace[]
     ): Promise<unknown>;
   };
 
@@ -176,7 +217,7 @@ describe("JunctureManager — slot model", () => {
       },
     });
 
-    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined);
+    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined, []);
 
     const slot = env.jmInternal.slots.get(env.keyOf("g/X"));
     expect(slot).toBeDefined();
@@ -193,7 +234,7 @@ describe("JunctureManager — slot model", () => {
     // Bump generation BEFORE first resolve.
     env.jmInternal.generationByNs.set("g/X", 5);
 
-    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined);
+    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined, []);
 
     const slot = env.jmInternal.slots.get(env.keyOf("g/X"));
     expect(slot?.generation).toBe(5);
@@ -206,8 +247,8 @@ describe("JunctureManager — slot model", () => {
       },
     });
 
-    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined);
-    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined);
+    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined, []);
+    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined, []);
 
     // Module loaded only once — slot reused.
     expect(env.loadCalls.filter((n) => n === "g/X").length).toBe(1);
@@ -220,7 +261,7 @@ describe("JunctureManager — slot model", () => {
       },
     });
 
-    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined);
+    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined, []);
     const firstSlot = env.jmInternal.slots.get(env.keyOf("g/X"));
     expect(firstSlot?.generation).toBe(0);
 
@@ -229,7 +270,7 @@ describe("JunctureManager — slot model", () => {
     // to verify that getJuncture itself treats a stale slot as a miss).
     env.jmInternal.generationByNs.set("g/X", 1);
 
-    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined);
+    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined, []);
 
     const secondSlot = env.jmInternal.slots.get(env.keyOf("g/X"));
     // A fresh slot replaced the stale one, with the new generation captured.
@@ -246,7 +287,7 @@ describe("JunctureManager — vertex slot tracking", () => {
       },
     });
 
-    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined);
+    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, []);
 
     expect(env.jmInternal.vertexSlotsByGenId.get(42)).toEqual(new Set(["v/V"]));
     expect(env.jmInternal.slots.has(env.keyOf("v/V", undefined, 42))).toBe(true);
@@ -259,8 +300,8 @@ describe("JunctureManager — vertex slot tracking", () => {
       },
     });
 
-    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined);
-    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined);
+    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, []);
+    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, []);
 
     expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(1);
   });
@@ -272,11 +313,11 @@ describe("JunctureManager — vertex slot tracking", () => {
       },
     });
     // Parent creates the vertex with genId 42.
-    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined);
+    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, []);
     const parentSlot = env.jmInternal.slots.get(env.keyOf("v/V", undefined, 42));
 
     // Child consumes it via the inherited vertexGearMap.
-    const consumed = await env.jmInternal.getJuncture("v/V", undefined, 999, { "v/V": 42 });
+    const consumed = await env.jmInternal.getJuncture("v/V", undefined, 999, { "v/V": 42 }, []);
 
     // Same juncture content as the parent — no new load triggered.
     expect(consumed).toBe(parentSlot?.content);
@@ -291,7 +332,7 @@ describe("JunctureManager — vertex slot tracking", () => {
     });
 
     try {
-      await env.jmInternal.getJuncture("v/V", undefined, 999, { "v/V": 42 });
+      await env.jmInternal.getJuncture("v/V", undefined, 999, { "v/V": 42 }, []);
       expect.unreachable("expected getJuncture to throw");
     } catch (error) {
       expect(error).toBeInstanceOf(RMachineResolveError);
@@ -308,8 +349,8 @@ describe("JunctureManager — vertex dispose APIs", () => {
         "v/B": (jm) => makeVertexModule(jm, {}, { b: 2 }),
       },
     });
-    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined);
-    await env.jmInternal.getJuncture("v/B", undefined, 42, undefined);
+    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined, []);
+    await env.jmInternal.getJuncture("v/B", undefined, 42, undefined, []);
 
     env.jm.disposeVertexSlot("v/A", 42);
 
@@ -326,8 +367,8 @@ describe("JunctureManager — vertex dispose APIs", () => {
         "v/B": (jm) => makeVertexModule(jm, {}, { b: 2 }),
       },
     });
-    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined);
-    await env.jmInternal.getJuncture("v/B", undefined, 42, undefined);
+    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined, []);
+    await env.jmInternal.getJuncture("v/B", undefined, 42, undefined, []);
 
     env.jm.disposeAllVertexSlotsByGenId(42);
 
@@ -343,8 +384,8 @@ describe("JunctureManager — vertex dispose APIs", () => {
         "v/B": (jm) => makeVertexModule(jm, {}, { b: 2 }),
       },
     });
-    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined);
-    await env.jmInternal.getJuncture("v/B", undefined, 42, undefined);
+    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined, []);
+    await env.jmInternal.getJuncture("v/B", undefined, 42, undefined, []);
 
     // Simulate an updateRequest where v/A now has a parent owner.
     env.jm.disposeVertexSlotsByOwnershipChange(42, { "v/A": 7 });
@@ -362,7 +403,7 @@ describe("JunctureManager — vertex dispose APIs", () => {
         "v/A": (jm) => makeVertexModule(jm, {}, managed({ a: 1 }, teardown)),
       },
     });
-    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined);
+    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined, []);
 
     env.jm.disposeVertexSlot("v/A", 42);
 
@@ -377,7 +418,7 @@ describe("JunctureManager — invalidate cascade", () => {
         "g/X": () => makeRawModule({ x: 1 }),
       },
     });
-    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined);
+    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined, []);
 
     const callback = vi.fn();
     env.jm.subscribe(["g/X"], callback);
@@ -396,7 +437,7 @@ describe("JunctureManager — invalidate cascade", () => {
         "g/X": () => makeRawModule(managed({ x: 1 }, teardown)),
       },
     });
-    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined);
+    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined, []);
 
     env.jm.invalidate("g/X");
 
@@ -417,8 +458,8 @@ describe("JunctureManager — invalidate cascade", () => {
     // Manually wire the dep graph: A → B.
     env.addDepEdge("g/A", "g/B");
 
-    await env.jmInternal.getJuncture("g/A", undefined, 0, undefined);
-    await env.jmInternal.getJuncture("g/B", undefined, 0, undefined);
+    await env.jmInternal.getJuncture("g/A", undefined, 0, undefined, []);
+    await env.jmInternal.getJuncture("g/B", undefined, 0, undefined, []);
 
     env.jm.invalidate("g/B");
 
@@ -523,12 +564,70 @@ describe("JunctureManager — HMR end-to-end via BM onUpdate", () => {
         "g/X": () => makeRawModule({ x: 1 }),
       },
     });
-    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined);
+    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined, []);
     expect(env.jmInternal.generationByNs.get("g/X") ?? 0).toBe(0);
 
     env.triggerHmr("g/X");
 
     expect(env.jmInternal.generationByNs.get("g/X")).toBe(1);
     expect(env.jmInternal.slots.has(env.keyOf("g/X"))).toBe(false);
+  });
+});
+
+describe("JunctureManager — runtime cycle through kit", () => {
+  it("kit-mate access during recursive resolve does not deadlock when the factory does not touch the cyclic kit entry", async () => {
+    // b/A is a kit gear (in gearKit). b/B is a regular gear that A depends on.
+    // Without the chain mechanism, B's factory's loadKit would await A's
+    // juncture (cached as Promise) → deadlock. With the chain, A is replaced
+    // by a cyclic accessor in B's $.kit, and B's factory (which doesn't read
+    // it) completes normally.
+    const env = createJmTestEnv({
+      gearKit: { a: "b/A" },
+      modules: {
+        "b/A": (jm) =>
+          makeGearModule(jm, { a: "b/A" }, "base", ["b/B"], ([b]) => ({
+            value: (b as { name: string }).name,
+          })),
+        "b/B": (jm) =>
+          makeGearModule(jm, { a: "b/A" }, "base", [], () => ({
+            name: "B",
+          })),
+      },
+    });
+
+    const result = await env.jmInternal.getJuncture("b/A", "en", 0, undefined, []);
+
+    expect(result).toMatchObject({ res: { value: "B" } });
+  });
+
+  it("$.kit access on a cyclic ancestor throws ERR_CIRCULAR_DEPENDENCY with a clear message", async () => {
+    // Same shape as above, but B's factory reads $.kit.a — which is a
+    // cyclic-kit accessor at this point. The Proxy throws on the property
+    // read; the error bubbles up through the JM's resolveJuncture chain.
+    const env = createJmTestEnv({
+      gearKit: { a: "b/A" },
+      modules: {
+        "b/A": (jm) =>
+          makeGearModule(jm, { a: "b/A" }, "base", ["b/B"], ([b]) => ({
+            value: (b as { name: string }).name,
+          })),
+        "b/B": (jm) =>
+          makeGearModule(jm, { a: "b/A" }, "base", [], (plugin) => {
+            // Plugin is [...deps, $]. Reach into $.kit.a — cyclic accessor.
+            const $ = plugin[plugin.length - 1] as { kit: { a: { something: unknown } } };
+            return { stolenFromA: $.kit.a.something };
+          }),
+      },
+    });
+
+    try {
+      await env.jmInternal.getJuncture("b/A", "en", 0, undefined, []);
+      expect.unreachable("expected getJuncture to throw a circular-kit error");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RMachineResolveError);
+      const e = error as RMachineResolveError;
+      expect(e.code).toBe(ERR_CIRCULAR_DEPENDENCY);
+      expect(e.message).toContain("b/A");
+    }
   });
 });

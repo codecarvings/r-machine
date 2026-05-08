@@ -11,7 +11,12 @@
  * contact: licensing@codecarvings.com
  */
 
-import { ERR_RESOLVE_FAILED, ERR_VERTEX_INSTANCE_NOT_FOUND, RMachineResolveError } from "#r-machine/errors";
+import {
+  ERR_CIRCULAR_DEPENDENCY,
+  ERR_RESOLVE_FAILED,
+  ERR_VERTEX_INSTANCE_NOT_FOUND,
+  RMachineResolveError,
+} from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { Blueprint } from "./blueprint.js";
 import type { BlueprintManager } from "./blueprint-manager.js";
@@ -35,6 +40,24 @@ interface Slot {
   content: Juncture | Promise<Juncture>;
 }
 
+// Returned in place of a kit entry whose namespace is currently a transitive
+// ancestor of the running factory. Pre-resolving it would deadlock; the
+// factory body typically does not touch this entry, so the substitution is
+// invisible. An actual access raises a clear circular-dependency error.
+function makeCyclicKitAccessor(namespace: AnyNamespace): unknown {
+  return new Proxy(
+    {},
+    {
+      get(_target, prop) {
+        throw new RMachineResolveError(
+          ERR_CIRCULAR_DEPENDENCY,
+          `Circular kit access: cannot read "${String(prop)}" from $.kit entry "${namespace}" — that namespace is currently being resolved as a transitive ancestor.`
+        );
+      },
+    }
+  );
+}
+
 export class JunctureManager {
   constructor(
     protected resLayoutResolver: ResLayoutResolver,
@@ -53,7 +76,8 @@ export class JunctureManager {
     namespace: AnyNamespace,
     locale: AnyLocale | undefined,
     key: string,
-    vertexTag: VertexGearTagData | undefined
+    vertexTag: VertexGearTagData | undefined,
+    chain: readonly AnyNamespace[]
   ): Promise<Juncture> {
     const generation = this.generationByNs.get(namespace) ?? 0;
     let slot!: Slot;
@@ -67,9 +91,13 @@ export class JunctureManager {
         } else {
           const factory = blueprint.origin.factory as (
             locale: AnyLocale | undefined,
-            selfNamespace: AnyNamespace
+            selfNamespace: AnyNamespace,
+            chain: readonly AnyNamespace[]
           ) => Promise<AnyRes>;
-          const res = await factory(locale, namespace);
+          // Extend the chain with our own namespace before invoking the factory:
+          // any nested loadKit / getJuncture under us will see us as in-flight
+          // and break cycles via the cyclic-kit accessor.
+          const res = await factory(locale, namespace, [...chain, namespace]);
           juncture = blueprint.isOuterGear ? buildOuterJuncture(res, vertexTag) : buildKernelJuncture(res, vertexTag);
         }
         // Stale check: generation mismatch (HMR happened) OR slot identity mismatch
@@ -105,7 +133,8 @@ export class JunctureManager {
     namespace: AnyNamespace,
     locale: AnyLocale | undefined,
     genId: number,
-    vertexGearMap: VertexGearMap | undefined
+    vertexGearMap: VertexGearMap | undefined,
+    chain: readonly AnyNamespace[]
   ): Promise<Juncture> {
     const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
     if (layoutType === "gear:outer(vertex)") {
@@ -135,7 +164,7 @@ export class JunctureManager {
         this.vertexSlotsByGenId.set(genId, vertexSet);
       }
       vertexSet.add(namespace);
-      return this.resolveJuncture(namespace, locale, creatorKey, { namespace, genId });
+      return this.resolveJuncture(namespace, locale, creatorKey, { namespace, genId }, chain);
     }
 
     const key = getResCacheKey(namespace, locale, layoutType);
@@ -143,7 +172,7 @@ export class JunctureManager {
     if (cached !== undefined && this.isSlotFresh(cached)) {
       return cached.content;
     }
-    return this.resolveJuncture(namespace, locale, key, undefined);
+    return this.resolveJuncture(namespace, locale, key, undefined, chain);
   }
 
   async getPlugin(
@@ -152,6 +181,7 @@ export class JunctureManager {
     locale: AnyLocale | undefined,
     augmentCtx: PluginCtxAugmenter,
     selfNamespace: AnyNamespace | undefined,
+    chain: readonly AnyNamespace[],
     genId: number,
     vertexGearMap: VertexGearMap | undefined
   ): Promise<unknown> {
@@ -167,10 +197,10 @@ export class JunctureManager {
     });
 
     const [kitDeps, deps] = await Promise.all([
-      this.loadKit(kitEntries, locale),
+      this.loadKit(kitEntries, locale, chain),
       isList
-        ? this.loadListDeps(nsDeps, locale, genId, vertexGearMap)
-        : this.loadMapDeps(nsDeps, locale, genId, vertexGearMap),
+        ? this.loadListDeps(nsDeps, locale, genId, vertexGearMap, chain)
+        : this.loadMapDeps(nsDeps, locale, genId, vertexGearMap, chain),
     ]);
 
     return isList
@@ -195,10 +225,21 @@ export class JunctureManager {
 
   protected async loadKit(
     entries: ReadonlyArray<readonly [string, AnyNamespace]>,
-    locale: AnyLocale | undefined
+    locale: AnyLocale | undefined,
+    chain: readonly AnyNamespace[]
   ): Promise<AnyResolvedNamespaceMap> {
     const resolved = await Promise.all(
-      entries.map(async ([k, ns]) => [k, getCurrentSurface(await this.getJuncture(ns, locale, 0, undefined))] as const)
+      entries.map(async ([k, ns]) => {
+        // Cycle break: if a kit-mate is currently in resolution as a
+        // transitive ancestor, eagerly awaiting its juncture would deadlock.
+        // Substitute a throwing accessor so the factory body can still run
+        // (it typically does not access this kit entry); only an actual
+        // attempt to read it raises a clear ERR_CIRCULAR_DEPENDENCY.
+        if (chain.includes(ns)) {
+          return [k, makeCyclicKitAccessor(ns)] as const;
+        }
+        return [k, getCurrentSurface(await this.getJuncture(ns, locale, 0, undefined, chain))] as const;
+      })
     );
     return Object.fromEntries(resolved);
   }
@@ -207,12 +248,13 @@ export class JunctureManager {
     nsDeps: AnyNamespaceMap,
     locale: AnyLocale | undefined,
     genId: number,
-    vertexGearMap: VertexGearMap | undefined
+    vertexGearMap: VertexGearMap | undefined,
+    chain: readonly AnyNamespace[]
   ): Promise<AnyResolvedNamespaceMap> {
     const entries = await Promise.all(
       Object.entries(nsDeps).map(async ([key, namespace]) => [
         key,
-        getCurrentSurface(await this.getJuncture(namespace, locale, genId, vertexGearMap)),
+        getCurrentSurface(await this.getJuncture(namespace, locale, genId, vertexGearMap, chain)),
       ])
     );
     return Object.fromEntries(entries);
@@ -222,11 +264,12 @@ export class JunctureManager {
     nsDeps: AnyNamespaceList,
     locale: AnyLocale | undefined,
     genId: number,
-    vertexGearMap: VertexGearMap | undefined
+    vertexGearMap: VertexGearMap | undefined,
+    chain: readonly AnyNamespace[]
   ): Promise<AnyResolvedNamespaceList> {
     return Promise.all(
       nsDeps.map(async (namespace) =>
-        getCurrentSurface(await this.getJuncture(namespace as AnyNamespace, locale, genId, vertexGearMap))
+        getCurrentSurface(await this.getJuncture(namespace as AnyNamespace, locale, genId, vertexGearMap, chain))
       )
     );
   }

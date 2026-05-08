@@ -20,7 +20,8 @@ export interface ResComposerConnector {
     nsDeps: AnyNamespaceCollection,
     locale: AnyLocale | undefined,
     augmentCtx: PluginCtxAugmenter,
-    selfNamespace: AnyNamespace | undefined
+    selfNamespace: AnyNamespace | undefined,
+    chain: readonly AnyNamespace[]
   ) => Promise<ResWire>;
 }
 

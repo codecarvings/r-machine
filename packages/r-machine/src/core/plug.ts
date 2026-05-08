@@ -95,7 +95,8 @@ export type ExtractPlugin<PH extends AnyPlugHead> = PH extends AnyMapPlugHead
 
 export type PlugResolve<PH extends AnyPlugHead> = (
   locale: AnyLocale | undefined,
-  selfNamespace: AnyNamespace | undefined
+  selfNamespace: AnyNamespace | undefined,
+  chain: readonly AnyNamespace[]
 ) => Promise<ExtractPlugin<PH>>;
 
 const plugHeadSymbol = Symbol("plugHead");
