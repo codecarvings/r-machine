@@ -1,29 +1,45 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { AnyRes, AnyResOrigin, ResFamily } from "../../src/core/res.js";
+import type { AnyRes, AnyResOrigin } from "../../src/core/res.js";
 import {
   type AnyResMatrix,
   createResMatrix,
+  type GearMatrixMeta,
   type ResMatrix,
-  type ResMatrixMeta,
+  type ResMatrixCloneOverrides,
+  type ShellMatrixMeta,
   tryGetResMatrixMeta,
 } from "../../src/core/res-matrix.js";
 import type { AnyResPlug } from "../../src/core/res-plug.js";
 
-describe("ResMatrixMeta", () => {
-  it("has exactly the declared fields — no implicit additions", () => {
-    type Keys = keyof ResMatrixMeta;
-    expectTypeOf<Keys>().toEqualTypeOf<"family" | "isReactive">();
+// Test-local alias for the matrix meta union — the source keeps the union
+// itself module-private; tests reach for it via the two exported variants.
+type AnyMatrixMeta = GearMatrixMeta | ShellMatrixMeta;
+
+describe("GearMatrixMeta / ShellMatrixMeta", () => {
+  it("GearMatrixMeta is a discriminated record with `family: 'gear'` and a `role` field", () => {
+    expectTypeOf<GearMatrixMeta["family"]>().toEqualTypeOf<"gear">();
+    expectTypeOf<GearMatrixMeta["role"]>().toEqualTypeOf<"inner" | "base" | "outer">();
   });
 
-  it("types the boolean flags as plain booleans (not widened, not literal)", () => {
-    expectTypeOf<ResMatrixMeta["isReactive"]>().toEqualTypeOf<boolean>();
+  it("ShellMatrixMeta is a discriminated record with `family: 'shell'` and no role", () => {
+    expectTypeOf<ShellMatrixMeta["family"]>().toEqualTypeOf<"shell">();
+    expectTypeOf<keyof ShellMatrixMeta>().toEqualTypeOf<"family">();
+  });
+
+  it("the meta union is discriminated by `family` — narrowing works at the value level", () => {
+    const meta = {} as AnyMatrixMeta;
+    if (meta.family === "gear") {
+      expectTypeOf(meta).toEqualTypeOf<GearMatrixMeta>();
+    } else {
+      expectTypeOf(meta).toEqualTypeOf<ShellMatrixMeta>();
+    }
   });
 
   it("marks every field as readonly (writable twin is not assignable)", () => {
-    type Writable = { family: ResFamily; isReactive: boolean };
-    expectTypeOf<ResMatrixMeta>().not.toEqualTypeOf<Writable>();
-    // Sanity: the writable form is still structurally assignable.
-    expectTypeOf<Writable>().toExtend<ResMatrixMeta>();
+    type WritableGear = { family: "gear"; role: "inner" | "base" | "outer" };
+    expectTypeOf<GearMatrixMeta>().not.toEqualTypeOf<WritableGear>();
+    // Sanity: structurally the writable form is still assignable.
+    expectTypeOf<WritableGear>().toExtend<GearMatrixMeta>();
   });
 });
 
@@ -51,11 +67,17 @@ describe("ResMatrix", () => {
     expectTypeOf<Specific["plug"]>().toEqualTypeOf<MyPlug>();
   });
 
+  it("exposes `clone` as a method returning a new ResMatrix of the same shape", () => {
+    type Specific = ResMatrix<AnyRes, AnyResPlug>;
+    expectTypeOf<Specific["clone"]>().toEqualTypeOf<(overrides?: ResMatrixCloneOverrides) => Specific>();
+  });
+
   it("marks `factory` and `plug` as readonly", () => {
     // Structural test: the mutable twin must not be equal to the interface.
     type Writable<R extends AnyRes, P extends AnyResPlug> = {
       factory: () => Promise<R>;
       plug: P;
+      clone: (overrides?: ResMatrixCloneOverrides) => ResMatrix<R, P>;
     };
     expectTypeOf<ResMatrix<AnyRes, AnyResPlug>>().not.toEqualTypeOf<Writable<AnyRes, AnyResPlug>>();
   });
@@ -79,81 +101,68 @@ describe("AnyResMatrix", () => {
 });
 
 describe("createResMatrix — signature", () => {
-  it("takes (meta, factory, plug) in this exact order with the declared parameter types", () => {
-    expectTypeOf(createResMatrix).parameter(0).toEqualTypeOf<ResMatrixMeta>();
-    // parameter(1) is generic-dependent; we check via the full parameter tuple below.
-    expectTypeOf(createResMatrix).parameter(2).toExtend<AnyResPlug>();
+  it("takes a single options object and returns AnyResMatrix (the erased variant)", () => {
+    // The signature is non-generic now: callers wire the options through and
+    // get the erased `AnyResMatrix` back. Generic R/P are recovered later via
+    // `as ResMatrix<R, P>` at the boundary.
+    expectTypeOf(createResMatrix).returns.toEqualTypeOf<AnyResMatrix>();
   });
 
-  it("has exactly three required positional parameters (no optional tail)", () => {
-    // We pin the arity via Parameters<> to catch accidental additions.
-    // Using the `AnyRes`/`AnyResPlug` instantiation because a bare
-    // reference to the generic function widens unpredictably in Parameters<>.
-    type Args = Parameters<typeof createResMatrix<AnyRes, AnyResPlug>>;
-    expectTypeOf<Args>().toEqualTypeOf<[meta: ResMatrixMeta, factory: () => Promise<AnyRes>, plug: AnyResPlug]>();
+  it("has exactly one required positional parameter", () => {
+    type Args = Parameters<typeof createResMatrix>;
+    expectTypeOf<Args["length"]>().toEqualTypeOf<1>();
   });
 
-  it("returns a ResMatrix<R, P> that preserves both generic parameters at the call site", () => {
-    interface MyResource extends AnyRes {
-      readonly greeting: string;
-    }
-    // Type alias (not interface) because `AnyResPlug` is a union — see the
-    // earlier `exposes plug as the exact P type` test for the rationale.
-    type MyPlug = AnyResPlug & { readonly marker: "my-plug" };
-    const meta: ResMatrixMeta = { family: "gear", isReactive: false };
-    const factory = async (): Promise<MyResource> => ({ greeting: "hi" });
-    const plug = {} as MyPlug;
-
-    const mat = createResMatrix(meta, factory, plug);
-
-    // The return type must preserve BOTH generic parameters — neither
-    // widened to AnyRes nor dropped to AnyResMatrix.
-    expectTypeOf(mat).toEqualTypeOf<ResMatrix<MyResource, MyPlug>>();
-    expectTypeOf(mat.factory).toEqualTypeOf<() => Promise<MyResource>>();
-    expectTypeOf(mat.plug).toEqualTypeOf<MyPlug>();
+  it("the options object accepts both gear and shell metas at the meta slot", () => {
+    expectTypeOf(createResMatrix).parameter(0).toHaveProperty("meta").toEqualTypeOf<AnyMatrixMeta>();
   });
 
-  it("is assignable to AnyResMatrix at the return position", () => {
-    // Sanity for the `AnyResMatrix` alias — a specific matrix must
-    // flow into any slot typed with the erased variant.
-    const mat: AnyResMatrix = createResMatrix(
-      { family: "gear", isReactive: false },
-      async () => ({}),
-      {} as AnyResPlug
-    );
-    expectTypeOf(mat).toExtend<AnyResMatrix>();
+  it("rejects a meta whose family is not a known literal", () => {
+    createResMatrix({
+      // @ts-expect-error — "shell:mono" is a layout, not a family
+      meta: { family: "shell:mono" },
+      connector: {} as never,
+      head: {} as never,
+      cursor: undefined,
+      userFactory: async () => ({}),
+    });
+    createResMatrix({
+      // @ts-expect-error — arbitrary strings are not valid families
+      meta: { family: "custom" },
+      connector: {} as never,
+      head: {} as never,
+      cursor: undefined,
+      userFactory: async () => ({}),
+    });
   });
 
-  it("rejects a meta whose family is not a ResFamily literal", () => {
-    // @ts-expect-error — "shell:mono" is a layout, not a family
-    createResMatrix({ family: "shell:mono", isReactive: false }, async () => ({}), {});
-    // @ts-expect-error — arbitrary strings are not valid families
-    createResMatrix({ family: "custom", isReactive: false }, async () => ({}), {});
+  it("rejects a gear meta missing the required `role` discriminator", () => {
+    createResMatrix({
+      // @ts-expect-error — gear matrices require `role`
+      meta: { family: "gear" },
+      connector: {} as never,
+      head: {} as never,
+      cursor: undefined,
+      userFactory: async () => ({}),
+    });
   });
 
-  it("rejects a meta missing required fields", () => {
-    // @ts-expect-error — isReactive is required
-    createResMatrix({ family: "gear" }, async () => ({}), {});
-    // @ts-expect-error — family is required
-    createResMatrix({ isReactive: false }, async () => ({}), {});
-  });
-
-  it("rejects a factory whose return type is not a Promise", () => {
-    // @ts-expect-error — synchronous return is not assignable to () => Promise<R>
-    createResMatrix({ family: "gear", isReactive: false }, () => ({}), {});
-  });
-
-  it("rejects a factory that takes arguments (it must be nullary)", () => {
-    const meta: ResMatrixMeta = { family: "gear", isReactive: false };
-    // @ts-expect-error — extra parameters are not permitted
-    createResMatrix(meta, async (arg: string) => ({ arg }), {});
+  it("rejects an options object missing `userFactory`", () => {
+    const opts = {
+      meta: { family: "shell" } as ShellMatrixMeta,
+      connector: {} as never,
+      head: {} as never,
+      cursor: undefined,
+    };
+    // @ts-expect-error — userFactory is required
+    createResMatrix(opts);
   });
 });
 
 describe("tryGetResMatrixMeta — signature", () => {
-  it("takes an AnyResOrigin and returns ResMatrixMeta | undefined", () => {
+  it("takes an AnyResOrigin and returns the meta union or undefined", () => {
     expectTypeOf(tryGetResMatrixMeta).parameter(0).toEqualTypeOf<AnyResOrigin>();
-    expectTypeOf(tryGetResMatrixMeta).returns.toEqualTypeOf<ResMatrixMeta | undefined>();
+    expectTypeOf(tryGetResMatrixMeta).returns.toEqualTypeOf<AnyMatrixMeta | undefined>();
   });
 
   it("has exactly one required positional parameter", () => {
@@ -165,14 +174,16 @@ describe("tryGetResMatrixMeta — signature", () => {
   });
 
   it("accepts both variants of AnyResOrigin at the call site", () => {
-    const mat: AnyResMatrix = createResMatrix(
-      { family: "gear", isReactive: false },
-      async () => ({}),
-      {} as AnyResPlug
-    );
+    const mat: AnyResMatrix = createResMatrix({
+      meta: { family: "gear", role: "inner" },
+      connector: {} as never,
+      head: {} as never,
+      cursor: undefined,
+      userFactory: async () => ({}),
+    });
     const raw: AnyRes = { greeting: "hi" };
 
-    expectTypeOf(tryGetResMatrixMeta(mat)).toEqualTypeOf<ResMatrixMeta | undefined>();
-    expectTypeOf(tryGetResMatrixMeta(raw)).toEqualTypeOf<ResMatrixMeta | undefined>();
+    expectTypeOf(tryGetResMatrixMeta(mat)).toEqualTypeOf<AnyMatrixMeta | undefined>();
+    expectTypeOf(tryGetResMatrixMeta(raw)).toEqualTypeOf<AnyMatrixMeta | undefined>();
   });
 });

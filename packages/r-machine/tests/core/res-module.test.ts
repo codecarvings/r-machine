@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createResMatrix } from "../../src/core/res-matrix.js";
 import { validateResModule } from "../../src/core/res-module.js";
-import type { AnyResPlug } from "../../src/core/res-plug.js";
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "../../src/errors/index.js";
 
 describe("validateResModule", () => {
@@ -11,7 +10,16 @@ describe("validateResModule", () => {
     });
 
     it("returns null when `r` is a ResMatrix", () => {
-      const mat = createResMatrix({ family: "gear", isReactive: false }, async () => ({}), {} as AnyResPlug);
+      // validateResModule only checks that `r` is a non-null object. The
+      // matrix's internal wiring is irrelevant here — pass minimal fakes
+      // through `as never` casts.
+      const mat = createResMatrix({
+        connector: { getWire: async () => ({ plugin: undefined }) } as never,
+        meta: { family: "gear", role: "inner" } as never,
+        head: { realm: "res", family: "gear", mode: "list", deps: [], nsDeps: [], nsDepList: [], ports: {} } as never,
+        cursor: undefined,
+        userFactory: async () => ({}),
+      });
 
       expect(validateResModule({ r: mat })).toBeNull();
     });

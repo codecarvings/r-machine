@@ -3,39 +3,50 @@ import type { AnyRes } from "../../src/core/res.js";
 import {
   type AnyResMatrix,
   createResMatrix,
-  type ResMatrixMeta,
+  type GearMatrixMeta,
+  type ShellMatrixMeta,
   tryGetResMatrixMeta,
 } from "../../src/core/res-matrix.js";
-import type { AnyResPlug } from "../../src/core/res-plug.js";
 
 // --- helpers -----------------------------------------------------------------
 
-function makeMeta(overrides: Partial<ResMatrixMeta> = {}): ResMatrixMeta {
-  return { family: "gear", isReactive: false, ...overrides };
+type AnyMeta = GearMatrixMeta | ShellMatrixMeta;
+
+// Default options the tests share. createResMatrix takes a single options
+// object now; the connector / head / cursor are wired by the manager in
+// production. The tests under this file don't exercise resolution — they
+// pin construction-time behavior — so passing minimal `as never` fakes is
+// the same pattern blueprint-manager.test.ts uses.
+function makeOptions(meta: AnyMeta, overrides?: { userFactory?: () => Promise<unknown> }) {
+  return {
+    connector: { getWire: async () => ({ plugin: undefined }) } as never,
+    meta,
+    head: { realm: "res", family: meta.family, mode: "list", deps: [], nsDeps: [], nsDepList: [], ports: {} } as never,
+    cursor: undefined,
+    userFactory: overrides?.userFactory ?? (async () => ({})),
+  };
 }
 
-// A sentinel plug — we only care that the exact reference survives round-trip
-// through createResMatrix without being cloned or wrapped.
-const sentinelPlug = {} as AnyResPlug;
+const gearMeta: GearMatrixMeta = { family: "gear", role: "inner" };
 
 // --- createResMatrix ---------------------------------------------------------
 
 describe("createResMatrix", () => {
   describe("shape of the returned matrix", () => {
-    it("returns an object that exposes factory and plug as own properties", () => {
-      const factory = async () => ({});
-      const mat = createResMatrix(makeMeta(), factory, sentinelPlug);
+    it("returns an object that exposes factory, plug and clone as own properties", () => {
+      const mat = createResMatrix(makeOptions(gearMeta));
 
-      expect(mat.factory).toBe(factory);
-      expect(mat.plug).toBe(sentinelPlug);
+      expect(typeof mat.factory).toBe("function");
+      expect(mat.plug).toBeDefined();
+      expect(typeof mat.clone).toBe("function");
     });
 
     it("stores the meta under an internal key retrievable via tryGetResMatrixMeta", () => {
       // The symbol key is module-private, so the only legitimate way to read
       // the meta back is through the dedicated accessor. This test pins
       // that contract: construct + read must round-trip exactly.
-      const meta = makeMeta({ family: "shell", isReactive: true });
-      const mat = createResMatrix(meta, async () => ({}), sentinelPlug);
+      const meta: ShellMatrixMeta = { family: "shell" };
+      const mat = createResMatrix(makeOptions(meta));
 
       expect(tryGetResMatrixMeta(mat)).toBe(meta);
     });
@@ -44,17 +55,17 @@ describe("createResMatrix", () => {
       // Regression guard: the interface deliberately keeps the meta under a
       // symbol key. A public mirror would defeat the encapsulation — callers
       // must go through tryGetResMatrixMeta.
-      const mat = createResMatrix(makeMeta(), async () => ({}), sentinelPlug);
+      const mat = createResMatrix(makeOptions(gearMeta));
 
       expect("meta" in mat).toBe(false);
     });
 
-    it("lists exactly two string-keyed own properties: `factory` and `plug`", () => {
+    it("lists exactly the public string-keyed own properties: `factory`, `plug`, `clone`", () => {
       // No accidental extras leaking into the public surface. The meta
       // lives under a symbol key and must not appear in Object.keys().
-      const mat = createResMatrix(makeMeta(), async () => ({}), sentinelPlug);
+      const mat = createResMatrix(makeOptions(gearMeta));
 
-      expect(Object.keys(mat).sort()).toEqual(["factory", "plug"]);
+      expect(Object.keys(mat).sort()).toEqual(["clone", "factory", "plug"]);
     });
   });
 
@@ -62,33 +73,33 @@ describe("createResMatrix", () => {
     it("stores the meta by reference — no clone, no defensive copy", () => {
       // We rely on this to keep meta construction O(1) and to let
       // callers compare by identity if they ever need to dedupe.
-      const meta = makeMeta({ family: "shell" });
-      const mat = createResMatrix(meta, async () => ({}), sentinelPlug);
+      const meta: ShellMatrixMeta = { family: "shell" };
+      const mat = createResMatrix(makeOptions(meta));
 
       expect(tryGetResMatrixMeta(mat)).toBe(meta);
     });
 
     it("does not mutate the meta argument", () => {
-      const meta = makeMeta({ family: "shell", isReactive: true });
-      const snapshot = { ...meta }; // shallow snapshot is enough since the fields are primitives
+      const meta: GearMatrixMeta = { family: "gear", role: "outer" };
+      const snapshot = { ...meta };
 
-      createResMatrix(meta, async () => ({}), sentinelPlug);
+      createResMatrix(makeOptions(meta));
 
       expect(meta).toEqual(snapshot);
     });
 
     it("does not freeze the meta argument (freezing is the caller's choice)", () => {
-      const meta = makeMeta();
+      const meta: GearMatrixMeta = { family: "gear", role: "inner" };
 
-      createResMatrix(meta, async () => ({}), sentinelPlug);
+      createResMatrix(makeOptions(meta));
 
       expect(Object.isFrozen(meta)).toBe(false);
     });
 
     it("accepts a frozen meta and preserves its frozen state end-to-end", () => {
-      const frozen = Object.freeze(makeMeta({ family: "shell" }));
+      const frozen = Object.freeze({ family: "shell" } as const) satisfies ShellMatrixMeta;
 
-      const mat = createResMatrix(frozen, async () => ({}), sentinelPlug);
+      const mat = createResMatrix(makeOptions(frozen));
       const retrieved = tryGetResMatrixMeta(mat);
 
       expect(retrieved).toBe(frozen);
@@ -97,49 +108,40 @@ describe("createResMatrix", () => {
 
     it("produces distinct matrix objects on every call, even with the same arguments", () => {
       // The factory must not memoize — two call sites that happen to pass the
-      // same meta/factory/plug should still get independent matrices
-      // so they can be tracked, cached, or disposed independently.
-      const meta = makeMeta();
-      const factory = async () => ({});
+      // same meta should still get independent matrices so they can be
+      // tracked, cached, or disposed independently.
+      const meta: GearMatrixMeta = { family: "gear", role: "base" };
 
-      const m1 = createResMatrix(meta, factory, sentinelPlug);
-      const m2 = createResMatrix(meta, factory, sentinelPlug);
+      const m1 = createResMatrix(makeOptions(meta));
+      const m2 = createResMatrix(makeOptions(meta));
 
       expect(m1).not.toBe(m2);
-      // But the pieces they share are still identity-equal.
-      expect(m1.factory).toBe(m2.factory);
-      expect(m1.plug).toBe(m2.plug);
+      // Meta is shared by reference (same object), but the matrices and
+      // their wrapped factories/plugs are independent.
       expect(tryGetResMatrixMeta(m1)).toBe(tryGetResMatrixMeta(m2));
     });
   });
 
-  describe("factory parameter is stored, not invoked", () => {
-    it("never calls the factory at construction time", () => {
-      // The factory is for lazy resolution — invoking it here would pull in
+  describe("userFactory is wrapped, not invoked at construction time", () => {
+    it("never calls userFactory at construction time", () => {
+      // userFactory is for lazy resolution — invoking it here would pull in
       // the resource eagerly and defeat the entire async-loading design.
-      const factory = vi.fn(async () => ({ greeting: "hi" }) satisfies AnyRes);
+      const userFactory = vi.fn(async () => ({ greeting: "hi" }) satisfies AnyRes);
 
-      createResMatrix(makeMeta(), factory, sentinelPlug);
+      createResMatrix(makeOptions(gearMeta, { userFactory }));
 
-      expect(factory).not.toHaveBeenCalled();
+      expect(userFactory).not.toHaveBeenCalled();
     });
 
-    it("stores the exact factory reference (no wrapping, no binding)", () => {
-      const factory = async () => ({ a: 1 }) satisfies AnyRes;
-      const mat = createResMatrix(makeMeta(), factory, sentinelPlug);
-
-      expect(mat.factory).toBe(factory);
-    });
-
-    it("does not introspect the factory's return value at construction time", () => {
+    it("does not introspect userFactory's return value at construction time", () => {
       // A factory that throws when called must not affect createResMatrix,
-      // because createResMatrix should never call it.
-      const boom = new Error("factory must not be called");
-      const throwingFactory = async (): Promise<AnyRes> => {
+      // because createResMatrix should never call it during construction.
+      const boom = new Error("userFactory must not be called at construction");
+      const throwing = async (): Promise<AnyRes> => {
         throw boom;
       };
 
-      expect(() => createResMatrix(makeMeta(), throwingFactory, sentinelPlug)).not.toThrow();
+      expect(() => createResMatrix(makeOptions(gearMeta, { userFactory: throwing }))).not.toThrow();
     });
   });
 });
@@ -148,18 +150,15 @@ describe("createResMatrix", () => {
 
 describe("tryGetResMatrixMeta", () => {
   it("returns the meta for a matrix built via createResMatrix", () => {
-    const meta = makeMeta({ family: "shell", isReactive: true });
-    const mat = createResMatrix(meta, async () => ({}), sentinelPlug);
+    const meta: GearMatrixMeta = { family: "gear", role: "outer" };
+    const mat = createResMatrix(makeOptions(meta));
 
-    expect(tryGetResMatrixMeta(mat)).toEqual({
-      family: "shell",
-      isReactive: true,
-    });
+    expect(tryGetResMatrixMeta(mat)).toEqual({ family: "gear", role: "outer" });
   });
 
   it("returns the exact same reference stored at construction time (identity round-trip)", () => {
-    const meta = makeMeta();
-    const mat = createResMatrix(meta, async () => ({}), sentinelPlug);
+    const meta: GearMatrixMeta = { family: "gear", role: "inner" };
+    const mat = createResMatrix(makeOptions(meta));
 
     expect(tryGetResMatrixMeta(mat)).toBe(meta);
   });
@@ -200,24 +199,23 @@ describe("tryGetResMatrixMeta", () => {
 
 describe("createResMatrix ⇄ tryGetResMatrixMeta round-trip", () => {
   it("treats the matrix as assignable to AnyResMatrix at the type level", () => {
-    // Lightweight sanity check that the generic signature does not leak into
-    // anything incompatible with AnyResMatrix (the erased variant used
-    // throughout the runtime).
-    const mat: AnyResMatrix = createResMatrix(makeMeta(), async () => ({}), sentinelPlug);
+    // Lightweight sanity check that createResMatrix's return type flows into
+    // any slot typed with the erased AnyResMatrix variant.
+    const mat: AnyResMatrix = createResMatrix(makeOptions(gearMeta));
 
     expect(tryGetResMatrixMeta(mat)).toBeDefined();
   });
 
-  it("round-trips every canonical family/flag combination without drift", () => {
-    const cases: ResMatrixMeta[] = [
-      { family: "gear", isReactive: false },
-      { family: "gear", isReactive: true },
-      { family: "shell", isReactive: false },
-      { family: "shell", isReactive: true },
+  it("round-trips every canonical family/role combination without drift", () => {
+    const cases: AnyMeta[] = [
+      { family: "gear", role: "inner" },
+      { family: "gear", role: "base" },
+      { family: "gear", role: "outer" },
+      { family: "shell" },
     ];
 
     for (const meta of cases) {
-      const mat = createResMatrix(meta, async () => ({}), sentinelPlug);
+      const mat = createResMatrix(makeOptions(meta));
       expect(tryGetResMatrixMeta(mat)).toEqual(meta);
     }
   });
