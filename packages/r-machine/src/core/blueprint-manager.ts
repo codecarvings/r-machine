@@ -32,14 +32,25 @@ export class BlueprintManager {
     protected loadResModuleFn: ResModuleLoaderFn,
     protected kitDepList: {
       [F in ResFamily]: AnyNamespaceList;
+    },
+    priority: AnyNamespaceList
+  ) {
+    this.priorityIndex = new Map();
+    for (let i = 0; i < priority.length; i++) {
+      this.priorityIndex.set(priority[i] as AnyNamespace, i);
     }
-  ) {}
+  }
 
   protected readonly cache = new Map<string, Blueprint | Promise<Blueprint>>();
   protected readonly waits = new Map<string, Set<string>>();
   protected readonly forwardDeps = new Map<AnyNamespace, Set<AnyNamespace>>();
   protected readonly reverseDeps = new Map<AnyNamespace, Set<AnyNamespace>>();
   protected readonly keysByNs = new Map<AnyNamespace, Set<string>>();
+  // Lower index = higher priority. Namespaces not in the priority list are
+  // absent from this map. Currently unused — predisposition for the future
+  // deterministic relay system, where sibling-update order will need to
+  // respect user-declared priority.
+  protected readonly priorityIndex: Map<AnyNamespace, number>;
   protected onInvalidate?: (ns: AnyNamespace) => void;
 
   setOnInvalidate(callback: (ns: AnyNamespace) => void): void {
@@ -102,8 +113,14 @@ export class BlueprintManager {
   ): Promise<AnyNamespace[]> {
     const kitDeps = this.kitDepList[family].filter((n) => n !== namespace);
     const allNsDeps = [...new Set([...nsDepList, ...kitDeps])];
+    // Eager preload only the explicit plug deps. Kit deps are tracked in
+    // the dep graph (via the returned allNsDeps) for HMR cascade purposes,
+    // but loaded lazily by the JunctureManager at factory-runtime. Eagerly
+    // preloading them would deadlock when the kit holds two or more gears
+    // of the same family: each kit-mate conservatively waits for every
+    // other kit-mate, triggering the concurrent-resolution cycle detector.
     await Promise.all(
-      allNsDeps.map((depNs) => {
+      nsDepList.map((depNs) => {
         const depLayout = this.resLayoutResolver.resolveLayoutEntryType(depNs);
         const depKey = getResCacheKey(depNs, locale, depLayout);
         return this.getBlueprintInternal(depNs, locale, depLayout, depKey, chain);
@@ -149,11 +166,14 @@ export class BlueprintManager {
         }
       } catch (error) {
         // Identity check on cleanup: if our entry was already replaced by
-        // another resolve (race after evict), don't touch the cache.
+        // another resolve (race after evict), the new resolve owns all shared
+        // state — don't touch cache, waits, or keysByNs. Our error still
+        // propagates to whoever was awaiting our promise.
         if (this.cache.get(key) === pendingPromise) {
           this.cache.delete(key);
+          this.waits.delete(key);
+          this.keysByNs.get(namespace)?.delete(key);
         }
-        this.waits.delete(key);
         throw error;
       }
       // Identity check before committing side effects: if the cache entry was

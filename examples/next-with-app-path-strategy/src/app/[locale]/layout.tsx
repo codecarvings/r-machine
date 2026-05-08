@@ -1,34 +1,34 @@
 import "../globals.css";
 import { DelayedSuspense } from "@r-machine/react/utils";
-import type { Metadata } from "next";
 import ContentLoading from "@/components/server/content-loading";
 import Footer from "@/components/server/footer";
 import Header from "@/components/server/header";
-import { bindLocale, generateLocaleStaticParams, NextServerRMachine, ServerPlug } from "@/r-machine/server-toolset";
+import { generateLocaleStaticParams, NextServerRMachine, ServerPlug } from "@/r-machine/server-toolset";
 
 // Pre-render the static params for all locales
 export const generateStaticParams = generateLocaleStaticParams;
 export const dynamicParams = false;
 
+/*
+// ----- SKIP THIS PART ----
 // Generate dynamic metadata based on the locale
 export const metaPlug = ServerPlug("shell/common");
 export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Promise<Metadata> {
   const { locale } = await bindLocale(params);
-  const [common] = await metaPlug.use();
+  const [common, $] = await metaPlug.use(params, false);
 
   return {
     title: common.title(locale),
   };
 }
+*/
 
 export const pagePlug = ServerPlug("shell/common");
 export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
-  // Bind the locale based on the route parameter
-  const { locale } = await bindLocale(params);
-  const [common] = await pagePlug.use();
+  const [common, $] = await pagePlug.use(params);
 
   return (
-    <html lang={locale}>
+    <html lang={$.params.locale}>
       <body>
         <NextServerRMachine>
           <DelayedSuspense fallback={<ContentLoading />}>

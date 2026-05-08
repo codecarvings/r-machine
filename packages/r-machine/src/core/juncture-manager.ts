@@ -126,15 +126,16 @@ export class JunctureManager {
       if (creatorSlot !== undefined && this.isSlotFresh(creatorSlot)) {
         return creatorSlot.content;
       }
-      const promise = this.resolveJuncture(namespace, locale, creatorKey, { namespace, genId });
-      // Register vertex creation in genId index (idempotent set add).
+      // Register vertex creation in genId index before spawning the resolve,
+      // so the index and slots map are populated together (resolveJuncture
+      // creates the slot synchronously before returning the promise).
       let vertexSet = this.vertexSlotsByGenId.get(genId);
       if (!vertexSet) {
         vertexSet = new Set();
         this.vertexSlotsByGenId.set(genId, vertexSet);
       }
       vertexSet.add(namespace);
-      return promise;
+      return this.resolveJuncture(namespace, locale, creatorKey, { namespace, genId });
     }
 
     const key = getResCacheKey(namespace, locale, layoutType);

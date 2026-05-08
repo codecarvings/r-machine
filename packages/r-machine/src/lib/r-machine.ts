@@ -66,10 +66,15 @@ export class RMachine<
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
 
     const resLayoutResolver = new ResLayoutResolver(this.config.layout);
-    const blueprintManager = new BlueprintManager(resLayoutResolver, this.config.load, {
-      gear: Object.values(this.config.equipment.gearKit),
-      shell: Object.values(this.config.equipment.shellKit),
-    });
+    const blueprintManager = new BlueprintManager(
+      resLayoutResolver,
+      this.config.load,
+      {
+        gear: Object.values(this.config.equipment.gearKit),
+        shell: Object.values(this.config.equipment.shellKit),
+      },
+      this.config.priority
+    );
     this.junctureManager = new JunctureManager(resLayoutResolver, this.config.equipment, blueprintManager);
     this.gateWireManager = new GateWireManager(this.junctureManager);
 
