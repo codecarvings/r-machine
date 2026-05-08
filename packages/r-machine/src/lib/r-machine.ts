@@ -32,6 +32,7 @@ import {
   type HandleList,
   isNamespaceList,
   JunctureManager,
+  type NamespaceMap,
   type ResComposerConnector,
   type ResEquipment,
   ResLayoutResolver,
@@ -108,17 +109,8 @@ export class RMachine<
 
   protected createResComposerConnector(kit: AnyNamespaceMap): ResComposerConnector {
     return {
-      getWire: async (deps, locale, augmentCtx, selfNamespace, chain) => {
-        const plugin = await this.junctureManager.getPlugin(
-          kit,
-          deps,
-          locale,
-          augmentCtx,
-          selfNamespace,
-          chain,
-          0,
-          undefined
-        );
+      getWire: async (deps, locale, augmentCtx, chain) => {
+        const plugin = await this.junctureManager.getPlugin(kit, deps, locale, augmentCtx, chain, 0, undefined);
         return {
           plugin,
         };
@@ -149,7 +141,7 @@ export class RMachine<
   }
   */
 
-  async WIP_GET<DL extends HandleList<RA>>(deps: DL, locale: L): Promise<SurfaceList<RA, DL>> {
+  async WIP_GET<DL extends HandleList<RA>>(kit: NamespaceMap<RA>, deps: DL, locale: L): Promise<SurfaceList<RA, DL>> {
     const isList = isNamespaceList(deps as any);
     let nsDeps: AnyNamespaceCollection;
     if (isList) {
@@ -159,13 +151,12 @@ export class RMachine<
     }
 
     const result = await this.junctureManager.getPlugin(
-      {},
+      kit,
       nsDeps,
       locale,
       ($) => {
         $.locale = locale;
       },
-      undefined,
       [],
       0,
       undefined

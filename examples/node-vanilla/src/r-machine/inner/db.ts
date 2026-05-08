@@ -1,9 +1,9 @@
 import { InnerGear, type RShape } from "../setup";
 
-export const db = InnerGear.define(() => {
+export const r = InnerGear.define(() => {
   return {
     name: "db",
   };
 });
 
-export type Inner_Db = RShape<typeof db>;
+export type Inner_Db = RShape<typeof r>;

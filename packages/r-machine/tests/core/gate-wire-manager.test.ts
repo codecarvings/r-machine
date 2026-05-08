@@ -13,10 +13,9 @@ interface GetPluginCall {
   readonly nsDeps: AnyNamespaceCollection;
   readonly locale: string | undefined;
   readonly augmentCtx: PluginCtxAugmenter;
-  readonly selfNamespace: AnyNamespace | undefined;
+  readonly chain: readonly AnyNamespace[];
   readonly genId: number;
   readonly vertexGearMap: VertexGearMap | undefined;
-  readonly chain: readonly AnyNamespace[];
 }
 
 interface MockJm {
@@ -43,12 +42,11 @@ function createMockJm(): MockJm {
       nsDeps: AnyNamespaceCollection,
       locale: string | undefined,
       augmentCtx: PluginCtxAugmenter,
-      selfNamespace: AnyNamespace | undefined,
       chain: readonly AnyNamespace[],
       genId: number,
       vertexGearMap: VertexGearMap | undefined
     ): Promise<unknown> {
-      getPluginCalls.push({ kit, nsDeps, locale, augmentCtx, selfNamespace, chain, genId, vertexGearMap });
+      getPluginCalls.push({ kit, nsDeps, locale, augmentCtx, chain, genId, vertexGearMap });
       return Promise.resolve({ pluginId: pluginIdx++ });
     },
     subscribe(nsList: Iterable<AnyNamespace>, callback: () => void): () => void {
@@ -114,7 +112,6 @@ describe("GateWireManager — setup", () => {
       nsDeps,
       locale: "en-US",
       augmentCtx: noopAugmentCtx,
-      selfNamespace: undefined,
       vertexGearMap: vgm,
     });
     // genId is positive (manager allocates monotonically).

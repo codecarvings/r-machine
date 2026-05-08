@@ -54,7 +54,6 @@ function createGateWire(
     nsDeps,
     currentLocale,
     augmentCtx,
-    undefined,
     [],
     genId,
     currentVertexGearMap
@@ -82,7 +81,6 @@ function createGateWire(
       nsDeps,
       currentLocale,
       augmentCtx,
-      undefined,
       [],
       genId,
       currentVertexGearMap

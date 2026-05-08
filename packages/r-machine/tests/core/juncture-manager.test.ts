@@ -50,8 +50,8 @@ function makeVertexModule(jm: JunctureManager, kit: AnyNamespaceMap, resource: A
     ports: {},
   };
   const connector: ResComposerConnector = {
-    getWire: async (nsDeps, locale, augmentCtx, selfNamespace, chain) => {
-      const plugin = await jm.getPlugin(kit, nsDeps, locale, augmentCtx, selfNamespace, chain, 0, undefined);
+    getWire: async (nsDeps, locale, augmentCtx, chain) => {
+      const plugin = await jm.getPlugin(kit, nsDeps, locale, augmentCtx, chain, 0, undefined);
       return { plugin };
     },
   };
@@ -86,8 +86,8 @@ function makeGearModule(
     ports: {},
   };
   const connector: ResComposerConnector = {
-    getWire: async (nsDeps, locale, augmentCtx, selfNamespace, chain) => {
-      const plugin = await jm.getPlugin(kit, nsDeps, locale, augmentCtx, selfNamespace, chain, 0, undefined);
+    getWire: async (nsDeps, locale, augmentCtx, chain) => {
+      const plugin = await jm.getPlugin(kit, nsDeps, locale, augmentCtx, chain, 0, undefined);
       return { plugin };
     },
   };

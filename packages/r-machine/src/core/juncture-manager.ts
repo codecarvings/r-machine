@@ -11,12 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import {
-  ERR_CIRCULAR_DEPENDENCY,
-  ERR_RESOLVE_FAILED,
-  ERR_VERTEX_INSTANCE_NOT_FOUND,
-  RMachineResolveError,
-} from "#r-machine/errors";
+import { ERR_CIRCULAR_DEPENDENCY, ERR_VERTEX_INSTANCE_NOT_FOUND, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { Blueprint } from "./blueprint.js";
 import type { BlueprintManager } from "./blueprint-manager.js";
@@ -38,24 +33,6 @@ interface Slot {
   readonly namespace: AnyNamespace;
   readonly generation: number;
   content: Juncture | Promise<Juncture>;
-}
-
-// Returned in place of a kit entry whose namespace is currently a transitive
-// ancestor of the running factory. Pre-resolving it would deadlock; the
-// factory body typically does not touch this entry, so the substitution is
-// invisible. An actual access raises a clear circular-dependency error.
-function makeCyclicKitAccessor(namespace: AnyNamespace): unknown {
-  return new Proxy(
-    {},
-    {
-      get(_target, prop) {
-        throw new RMachineResolveError(
-          ERR_CIRCULAR_DEPENDENCY,
-          `Circular kit access: cannot read "${String(prop)}" from $.kit entry "${namespace}" — that namespace is currently being resolved as a transitive ancestor.`
-        );
-      },
-    }
-  );
 }
 
 export class JunctureManager {
@@ -91,13 +68,13 @@ export class JunctureManager {
         } else {
           const factory = blueprint.origin.factory as (
             locale: AnyLocale | undefined,
-            selfNamespace: AnyNamespace,
             chain: readonly AnyNamespace[]
           ) => Promise<AnyRes>;
           // Extend the chain with our own namespace before invoking the factory:
           // any nested loadKit / getJuncture under us will see us as in-flight
-          // and break cycles via the cyclic-kit accessor.
-          const res = await factory(locale, namespace, [...chain, namespace]);
+          // and break cycles via the deferred-kit getter. The "self" of the
+          // running factory is implicitly chain[chain.length - 1].
+          const res = await factory(locale, [...chain, namespace]);
           juncture = blueprint.isOuterGear ? buildOuterJuncture(res, vertexTag) : buildKernelJuncture(res, vertexTag);
         }
         // Stale check: generation mismatch (HMR happened) OR slot identity mismatch
@@ -180,43 +157,53 @@ export class JunctureManager {
     nsDeps: AnyNamespaceCollection,
     locale: AnyLocale | undefined,
     augmentCtx: PluginCtxAugmenter,
-    selfNamespace: AnyNamespace | undefined,
     chain: readonly AnyNamespace[],
     genId: number,
     vertexGearMap: VertexGearMap | undefined
   ): Promise<unknown> {
     const isList = isNamespaceList(nsDeps);
-    const entries = Object.entries(kit);
-    let selfKitKey: string | undefined;
-    const kitEntries = entries.filter(([key, ns]) => {
-      if (ns === selfNamespace) {
-        selfKitKey = key;
-        return false;
+    // Partition kit entries:
+    //   - eager: ns is NOT in chain → resolved now.
+    //   - deferred: ns IS in chain (a transitive ancestor — includes self,
+    //     which is chain[chain.length - 1]) → installed as a lazy getter
+    //     after the eager resolves, since pre-resolving them would deadlock.
+    const eagerKitEntries: Array<readonly [string, AnyNamespace]> = [];
+    const deferredKitEntries: Array<readonly [string, AnyNamespace]> = [];
+    for (const entry of Object.entries(kit)) {
+      if (chain.includes(entry[1])) {
+        deferredKitEntries.push(entry);
+      } else {
+        eagerKitEntries.push(entry);
       }
-      return true;
-    });
+    }
 
     const [kitDeps, deps] = await Promise.all([
-      this.loadKit(kitEntries, locale, chain),
+      this.loadKit(eagerKitEntries, locale, chain),
       isList
         ? this.loadListDeps(nsDeps, locale, genId, vertexGearMap, chain)
         : this.loadMapDeps(nsDeps, locale, genId, vertexGearMap, chain),
     ]);
 
     return isList
-      ? this.buildListPlugin(kitDeps, deps as AnyResolvedNamespaceList, locale, augmentCtx, selfNamespace, selfKitKey)
-      : this.buildMapPlugin(kitDeps, deps as AnyResolvedNamespaceMap, locale, augmentCtx, selfNamespace, selfKitKey);
+      ? this.buildListPlugin(kitDeps, deps as AnyResolvedNamespaceList, locale, augmentCtx, deferredKitEntries)
+      : this.buildMapPlugin(kitDeps, deps as AnyResolvedNamespaceMap, locale, augmentCtx, deferredKitEntries);
   }
 
-  protected createSelfRefGetter(selfNamespace: AnyNamespace, locale: AnyLocale | undefined): () => AnySurface {
-    const selfLayoutType = this.resLayoutResolver.resolveLayoutEntryType(selfNamespace);
-    const selfKey = getResCacheKey(selfNamespace, locale, selfLayoutType);
+  // Returns a getter that resolves a chain-deferred kit entry from its slot
+  // at access time. While the slot is still mid-resolution (Promise content),
+  // accessing it would mean a real cyclic kit dependency — throw with a clear
+  // message. Once the ancestor's factory has committed its juncture, the
+  // captured reference works (supports late-bound recursive patterns,
+  // including self-reference: self is just chain[last]).
+  protected createDeferredKitGetter(namespace: AnyNamespace, locale: AnyLocale | undefined): () => AnySurface {
+    const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
+    const slotKey = getResCacheKey(namespace, locale, layoutType);
     return () => {
-      const slot = this.slots.get(selfKey);
+      const slot = this.slots.get(slotKey);
       if (slot === undefined || slot.content instanceof Promise) {
         throw new RMachineResolveError(
-          ERR_RESOLVE_FAILED,
-          `Kit self-reference "${selfNamespace}" is not available while its own factory is running.`
+          ERR_CIRCULAR_DEPENDENCY,
+          `Kit access on "${namespace}" is not available: that namespace is currently being resolved as a transitive ancestor.`
         );
       }
       return getCurrentSurface(slot.content);
@@ -229,17 +216,9 @@ export class JunctureManager {
     chain: readonly AnyNamespace[]
   ): Promise<AnyResolvedNamespaceMap> {
     const resolved = await Promise.all(
-      entries.map(async ([k, ns]) => {
-        // Cycle break: if a kit-mate is currently in resolution as a
-        // transitive ancestor, eagerly awaiting its juncture would deadlock.
-        // Substitute a throwing accessor so the factory body can still run
-        // (it typically does not access this kit entry); only an actual
-        // attempt to read it raises a clear ERR_CIRCULAR_DEPENDENCY.
-        if (chain.includes(ns)) {
-          return [k, makeCyclicKitAccessor(ns)] as const;
-        }
-        return [k, getCurrentSurface(await this.getJuncture(ns, locale, 0, undefined, chain))] as const;
-      })
+      entries.map(
+        async ([k, ns]) => [k, getCurrentSurface(await this.getJuncture(ns, locale, 0, undefined, chain))] as const
+      )
     );
     return Object.fromEntries(resolved);
   }
@@ -279,15 +258,15 @@ export class JunctureManager {
     deps: AnyResolvedNamespaceList,
     locale: AnyLocale | undefined,
     augmentCtx: PluginCtxAugmenter,
-    selfNamespace: AnyNamespace | undefined,
-    selfKitKey: string | undefined
+    deferredKitEntries: ReadonlyArray<readonly [string, AnyNamespace]>
   ): unknown {
     const $ = { kit };
     augmentCtx($);
     const plugin = [...deps, $];
-    if (selfNamespace !== undefined && selfKitKey !== undefined) {
-      const getter = this.createSelfRefGetter(selfNamespace, locale);
-      Object.defineProperty(kit, selfKitKey, { enumerable: true, configurable: true, get: getter });
+    // Install deferred-resolve getters AFTER any spread, so they remain lazy.
+    for (const [k, ns] of deferredKitEntries) {
+      const getter = this.createDeferredKitGetter(ns, locale);
+      Object.defineProperty(kit, k, { enumerable: true, configurable: true, get: getter });
     }
     return plugin;
   }
@@ -297,17 +276,19 @@ export class JunctureManager {
     deps: AnyResolvedNamespaceMap,
     locale: AnyLocale | undefined,
     augmentCtx: PluginCtxAugmenter,
-    selfNamespace: AnyNamespace | undefined,
-    selfKitKey: string | undefined
+    deferredKitEntries: ReadonlyArray<readonly [string, AnyNamespace]>
   ): unknown {
     const $ = { kit };
     augmentCtx($);
+    // Spread happens with eager kit values only; deferred entries are added
+    // below as lazy getters on both the kit object (for $.kit access) and
+    // the top-level plugin (unless shadowed by a same-named dep).
     const plugin: AnyResolvedNamespaceMap = { ...kit, ...deps, $ };
-    if (selfNamespace !== undefined && selfKitKey !== undefined) {
-      const getter = this.createSelfRefGetter(selfNamespace, locale);
-      Object.defineProperty(kit, selfKitKey, { enumerable: true, configurable: true, get: getter });
-      if (!(selfKitKey in deps)) {
-        Object.defineProperty(plugin, selfKitKey, { enumerable: true, configurable: true, get: getter });
+    for (const [k, ns] of deferredKitEntries) {
+      const getter = this.createDeferredKitGetter(ns, locale);
+      Object.defineProperty(kit, k, { enumerable: true, configurable: true, get: getter });
+      if (!(k in deps)) {
+        Object.defineProperty(plugin, k, { enumerable: true, configurable: true, get: getter });
       }
     }
     return plugin;
