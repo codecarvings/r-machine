@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { GateWireManager } from "../../src/core/gate-wire-manager.js";
 import type { JunctureManager } from "../../src/core/juncture-manager.js";
 import type { PluginCtxAugmenter } from "../../src/core/plug.js";
-import type { AnyNamespace, AnyNamespaceCollection, AnyNamespaceMap } from "../../src/core/res-domain.js";
+import type { AnyNamespace, AnyNamespaceCollection } from "../../src/core/res-domain.js";
+import type { AnyNamespaceMap } from "../../src/core/res-map.js";
 import type { VertexGearMap } from "../../src/core/vertex-gear.js";
 
 // --- helpers -----------------------------------------------------------------

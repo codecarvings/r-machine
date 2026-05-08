@@ -3,10 +3,12 @@ import { BlueprintManager } from "../../src/core/blueprint-manager.js";
 import { JunctureManager } from "../../src/core/juncture-manager.js";
 import { managed } from "../../src/core/managed.js";
 import type { AnyRes } from "../../src/core/res.js";
-import type { AnyNamespace, AnyNamespaceMap } from "../../src/core/res-domain.js";
+import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
+import type { AnyNamespace } from "../../src/core/res-domain.js";
 import { getResCacheKey } from "../../src/core/res-domain.js";
 import type { AnyResEquipment } from "../../src/core/res-equipment.js";
 import { type AnyResLayout, ResLayoutResolver } from "../../src/core/res-layout.js";
+import type { AnyNamespaceMap } from "../../src/core/res-map.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
 import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-module.js";
 import { ERR_VERTEX_INSTANCE_NOT_FOUND, RMachineResolveError } from "../../src/errors/index.js";
@@ -43,14 +45,15 @@ function makeVertexModule(jm: JunctureManager, kit: AnyNamespaceMap, resource: A
     nsDepList: [],
     ports: {},
   };
+  const connector: ResComposerConnector = {
+    getWire: async (nsDeps, locale, augmentCtx, selfNamespace) => {
+      const plugin = await jm.getPlugin(kit, nsDeps, locale, augmentCtx, selfNamespace, 0, undefined);
+      return { plugin };
+    },
+  };
   const matrix = createResMatrix({
-    connector: {
-      getWire: async (nsDeps, locale, augmentCtx, selfNamespace) => {
-        const plugin = await jm.getPlugin(kit, nsDeps, locale, augmentCtx, selfNamespace, 0, undefined);
-        return { plugin };
-      },
-    } as never,
-    meta: { family: "gear", role: "outer" } as never,
+    connector,
+    meta: { family: "gear", role: "outer" },
     head: head as never,
     cursor: undefined,
     userFactory: async () => resource,
