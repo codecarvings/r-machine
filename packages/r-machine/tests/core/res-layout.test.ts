@@ -1,175 +1,184 @@
 import { describe, expect, it } from "vitest";
-import { type AnyResLayout, createResLayoutEntryTypeResolver, resolveResPath } from "../../src/core/res-layout.js";
+import {
+  type AnyResLayout,
+  getGearRoleFromLayoutType,
+  getResFamilyFromLayoutType,
+  isOuterGearLayoutType,
+  isVertexGearLayoutType,
+  ResLayoutResolver,
+} from "../../src/core/res-layout.js";
 import { ERR_RESOLVE_FAILED } from "../../src/errors/error-codes.js";
 import { RMachineResolveError } from "../../src/errors/r-machine-resolve-error.js";
 
-describe("createResLayoutEntryTypeResolver", () => {
+// --- helpers -----------------------------------------------------------------
+
+function captureResolveError(fn: () => void): RMachineResolveError {
+  try {
+    fn();
+    expect.unreachable("expected RMachineResolveError to be thrown");
+  } catch (error) {
+    expect(error).toBeInstanceOf(RMachineResolveError);
+    return error as RMachineResolveError;
+  }
+  // unreachable per the assertion above; keeps TS happy.
+  throw new Error("unreachable");
+}
+
+// --- ResLayoutResolver — resolveLayoutEntryType ------------------------------
+
+describe("ResLayoutResolver — resolveLayoutEntryType", () => {
   describe("exact-match semantics", () => {
     it("resolves when the namespace equals a registered prefix's base (prefix without trailing '/')", () => {
-      const resolve = createResLayoutEntryTypeResolver({ "app/": "gear" });
-      expect(resolve("app")).toBe("gear");
+      const resolver = new ResLayoutResolver({ "app/": "gear:inner" });
+      expect(resolver.resolveLayoutEntryType("app")).toBe("gear:inner");
     });
 
-    it("returns undefined when no prefix matches", () => {
-      const resolve = createResLayoutEntryTypeResolver({ "app/": "gear" });
-      expect(resolve("other")).toBeUndefined();
+    it("throws RMachineResolveError when no prefix matches", () => {
+      const resolver = new ResLayoutResolver({ "app/": "gear:inner" });
+      const error = captureResolveError(() => resolver.resolveLayoutEntryType("other"));
+      expect(error.code).toBe(ERR_RESOLVE_FAILED);
+      expect(error.message).toContain('"other"');
     });
 
-    it("returns undefined for an empty layout regardless of namespace", () => {
-      const resolve = createResLayoutEntryTypeResolver({});
-      expect(resolve("")).toBeUndefined();
-      expect(resolve("anything")).toBeUndefined();
-      expect(resolve("a/b/c")).toBeUndefined();
+    it("throws for an empty layout regardless of namespace", () => {
+      const resolver = new ResLayoutResolver({});
+      captureResolveError(() => resolver.resolveLayoutEntryType(""));
+      captureResolveError(() => resolver.resolveLayoutEntryType("anything"));
+      captureResolveError(() => resolver.resolveLayoutEntryType("a/b/c"));
     });
   });
 
   describe("path-boundary prefix matching", () => {
     it("matches a child namespace only at a '/' boundary", () => {
-      const resolve = createResLayoutEntryTypeResolver({ "app/": "gear" });
-      expect(resolve("app/home")).toBe("gear");
-      expect(resolve("app/deeply/nested/key")).toBe("gear");
+      const resolver = new ResLayoutResolver({ "app/": "gear:inner" });
+      expect(resolver.resolveLayoutEntryType("app/home")).toBe("gear:inner");
+      expect(resolver.resolveLayoutEntryType("app/deeply/nested/key")).toBe("gear:inner");
     });
 
     it("does not treat a longer namespace that merely starts with the prefix's base as a match", () => {
       // Classic boundary bug: "app/" must NOT match "application".
-      const resolve = createResLayoutEntryTypeResolver({ "app/": "gear" });
-      expect(resolve("application")).toBeUndefined();
-      expect(resolve("apps")).toBeUndefined();
-      expect(resolve("app-extra")).toBeUndefined();
+      const resolver = new ResLayoutResolver({ "app/": "gear:inner" });
+      captureResolveError(() => resolver.resolveLayoutEntryType("application"));
+      captureResolveError(() => resolver.resolveLayoutEntryType("apps"));
+      captureResolveError(() => resolver.resolveLayoutEntryType("app-extra"));
     });
 
     it("does not match when the namespace is strictly shorter than the prefix's base", () => {
-      const resolve = createResLayoutEntryTypeResolver({ "app/home/": "gear" });
-      expect(resolve("app")).toBeUndefined();
-      expect(resolve("app/hom")).toBeUndefined();
+      const resolver = new ResLayoutResolver({ "app/home/": "gear:inner" });
+      captureResolveError(() => resolver.resolveLayoutEntryType("app"));
+      captureResolveError(() => resolver.resolveLayoutEntryType("app/hom"));
     });
 
     it("requires the character immediately after the prefix's base to be '/', not any other separator", () => {
-      const resolve = createResLayoutEntryTypeResolver({ "app/": "gear" });
-      expect(resolve("app.home")).toBeUndefined();
-      expect(resolve("app:home")).toBeUndefined();
-      expect(resolve("app_home")).toBeUndefined();
+      const resolver = new ResLayoutResolver({ "app/": "gear:inner" });
+      captureResolveError(() => resolver.resolveLayoutEntryType("app.home"));
+      captureResolveError(() => resolver.resolveLayoutEntryType("app:home"));
+      captureResolveError(() => resolver.resolveLayoutEntryType("app_home"));
     });
   });
 
   describe("longest-prefix-wins precedence", () => {
     it("picks the most specific (longest) matching prefix over a shorter one", () => {
-      const resolve = createResLayoutEntryTypeResolver({
-        "app/": "gear",
+      const resolver = new ResLayoutResolver({
+        "app/": "gear:inner",
         "app/settings/": "shell",
       });
-      expect(resolve("app/settings")).toBe("shell");
-      expect(resolve("app/settings/theme")).toBe("shell");
-      expect(resolve("app/home")).toBe("gear");
+      expect(resolver.resolveLayoutEntryType("app/settings")).toBe("shell");
+      expect(resolver.resolveLayoutEntryType("app/settings/theme")).toBe("shell");
+      expect(resolver.resolveLayoutEntryType("app/home")).toBe("gear:inner");
     });
 
     it("is independent of the declaration order in the input object", () => {
-      const shortFirst = createResLayoutEntryTypeResolver({
-        "app/": "gear",
+      const shortFirst = new ResLayoutResolver({
+        "app/": "gear:inner",
         "app/settings/": "shell",
       });
-      const longFirst = createResLayoutEntryTypeResolver({
+      const longFirst = new ResLayoutResolver({
         "app/settings/": "shell",
-        "app/": "gear",
+        "app/": "gear:inner",
       });
       for (const ns of ["app", "app/home", "app/settings", "app/settings/theme"]) {
-        expect(shortFirst(ns)).toBe(longFirst(ns));
+        expect(shortFirst.resolveLayoutEntryType(ns)).toBe(longFirst.resolveLayoutEntryType(ns));
       }
     });
 
     it("selects the deepest prefix across three overlapping levels", () => {
-      const resolve = createResLayoutEntryTypeResolver({
-        "a/": "gear",
+      const resolver = new ResLayoutResolver({
+        "a/": "gear:inner",
         "a/b/": "shell",
-        "a/b/c/": "shell:mono",
+        "a/b/c/": "shell(mono)",
       });
-      expect(resolve("a")).toBe("gear");
-      expect(resolve("a/x")).toBe("gear");
-      expect(resolve("a/b")).toBe("shell");
-      expect(resolve("a/b/x")).toBe("shell");
-      expect(resolve("a/b/c")).toBe("shell:mono");
-      expect(resolve("a/b/c/x")).toBe("shell:mono");
+      expect(resolver.resolveLayoutEntryType("a")).toBe("gear:inner");
+      expect(resolver.resolveLayoutEntryType("a/x")).toBe("gear:inner");
+      expect(resolver.resolveLayoutEntryType("a/b")).toBe("shell");
+      expect(resolver.resolveLayoutEntryType("a/b/x")).toBe("shell");
+      expect(resolver.resolveLayoutEntryType("a/b/c")).toBe("shell(mono)");
+      expect(resolver.resolveLayoutEntryType("a/b/c/x")).toBe("shell(mono)");
     });
   });
 
   describe("layout-type coverage", () => {
-    it("returns each of the four layout types verbatim", () => {
-      const resolve = createResLayoutEntryTypeResolver({
-        "g/": "gear",
-        "v/": "gear:vertex",
+    it("returns each canonical layout type verbatim", () => {
+      const resolver = new ResLayoutResolver({
+        "i/": "gear:inner",
+        "b/": "gear:base",
+        "o/": "gear:outer",
+        "v/": "gear:outer(vertex)",
         "s/": "shell",
-        "d/": "shell:mono",
+        "m/": "shell(mono)",
       });
-      expect(resolve("g")).toBe("gear");
-      expect(resolve("v")).toBe("gear:vertex");
-      expect(resolve("s")).toBe("shell");
-      expect(resolve("d")).toBe("shell:mono");
+      expect(resolver.resolveLayoutEntryType("i")).toBe("gear:inner");
+      expect(resolver.resolveLayoutEntryType("b")).toBe("gear:base");
+      expect(resolver.resolveLayoutEntryType("o")).toBe("gear:outer");
+      expect(resolver.resolveLayoutEntryType("v")).toBe("gear:outer(vertex)");
+      expect(resolver.resolveLayoutEntryType("s")).toBe("shell");
+      expect(resolver.resolveLayoutEntryType("m")).toBe("shell(mono)");
     });
   });
 
   describe("input-snapshot semantics", () => {
     it("ignores mutations to the layout object performed after resolver creation", () => {
-      const layout: { [k: `${string}/`]: "gear" | "shell" | "shell:mono" } = { "app/": "gear" };
-      const resolve = createResLayoutEntryTypeResolver(layout);
+      const layout: AnyResLayout = { "app/": "gear:inner" };
+      const resolver = new ResLayoutResolver(layout);
 
       // Mutate input after creation.
-      layout["app/"] = "shell";
-      layout["extra/"] = "shell:mono";
-      delete layout["app/"];
+      (layout as Record<`${string}/`, string>)["app/"] = "shell";
+      (layout as Record<`${string}/`, string>)["extra/"] = "shell(mono)";
+      delete (layout as Record<`${string}/`, string>)["app/"];
 
       // Resolver behavior stays pinned to the original snapshot.
-      expect(resolve("app")).toBe("gear");
-      expect(resolve("extra")).toBeUndefined();
+      expect(resolver.resolveLayoutEntryType("app")).toBe("gear:inner");
+      captureResolveError(() => resolver.resolveLayoutEntryType("extra"));
     });
 
     it("only observes own enumerable properties (ignores inherited)", () => {
-      const proto = { "inherited/": "gear" as const };
+      const proto = { "inherited/": "gear:inner" as const };
       const layout = Object.create(proto) as AnyResLayout & { "own/": "shell" };
       (layout as Record<`${string}/`, "shell">)["own/"] = "shell";
 
-      const resolve = createResLayoutEntryTypeResolver(layout);
-      expect(resolve("own")).toBe("shell");
-      expect(resolve("inherited")).toBeUndefined();
+      const resolver = new ResLayoutResolver(layout);
+      expect(resolver.resolveLayoutEntryType("own")).toBe("shell");
+      captureResolveError(() => resolver.resolveLayoutEntryType("inherited"));
     });
   });
 
   describe("caching behavior", () => {
-    it("returns a stable, equal result for repeated lookups of the same namespace", () => {
-      const resolve = createResLayoutEntryTypeResolver({ "app/": "gear", "app/settings/": "shell" });
+    it("returns a stable result for repeated lookups of the same namespace", () => {
+      const resolver = new ResLayoutResolver({ "app/": "gear:inner", "app/settings/": "shell" });
       for (let i = 0; i < 3; i++) {
-        expect(resolve("app/settings/theme")).toBe("shell");
-        expect(resolve("app/home")).toBe("gear");
-        expect(resolve("unknown")).toBeUndefined();
+        expect(resolver.resolveLayoutEntryType("app/settings/theme")).toBe("shell");
+        expect(resolver.resolveLayoutEntryType("app/home")).toBe("gear:inner");
       }
     });
 
-    it("caches undefined results (cache.has guard, not cache.get fall-through)", () => {
-      // Build a layout where the resolver is forced to return undefined; then
-      // inspect repeated behavior. The critical implementation detail is that
-      // the cache must distinguish "namespace was never looked up" from
-      // "namespace was looked up and produced undefined". We verify the contract
-      // is observable: the answer is stable, and it matches what we'd get from
-      // a fresh resolver with the same (unchanged) input.
-      const layout = { "app/": "gear" } as const;
-      const resolve = createResLayoutEntryTypeResolver(layout);
-
-      expect(resolve("unknown")).toBeUndefined();
-      expect(resolve("unknown")).toBeUndefined();
-      expect(resolve("unknown")).toBeUndefined();
-
-      // Cross-check against a freshly-built resolver over the same input.
-      const fresh = createResLayoutEntryTypeResolver(layout);
-      expect(fresh("unknown")).toBeUndefined();
-    });
-
     it("uses a cache that is private per resolver instance", () => {
-      const a = createResLayoutEntryTypeResolver({ "app/": "gear" });
-      const b = createResLayoutEntryTypeResolver({ "app/": "shell" });
-      expect(a("app")).toBe("gear");
-      expect(b("app")).toBe("shell");
+      const a = new ResLayoutResolver({ "app/": "gear:inner" });
+      const b = new ResLayoutResolver({ "app/": "shell" });
+      expect(a.resolveLayoutEntryType("app")).toBe("gear:inner");
+      expect(b.resolveLayoutEntryType("app")).toBe("shell");
       // Second round: if they shared a cache, one would contaminate the other.
-      expect(a("app")).toBe("gear");
-      expect(b("app")).toBe("shell");
+      expect(a.resolveLayoutEntryType("app")).toBe("gear:inner");
+      expect(b.resolveLayoutEntryType("app")).toBe("shell");
     });
   });
 
@@ -177,101 +186,169 @@ describe("createResLayoutEntryTypeResolver", () => {
     it("treats a root '/' prefix as matching '' or namespaces starting with '/'", () => {
       // The minimal prefix allowed by the type system is "/" (empty base + trailing slash).
       // It matches the empty namespace (its base ""), exact "/" itself, and any "/…".
-      const resolve = createResLayoutEntryTypeResolver({ "/": "gear" });
-      expect(resolve("")).toBe("gear");
-      expect(resolve("/anything")).toBe("gear");
-      expect(resolve("app")).toBeUndefined();
+      const resolver = new ResLayoutResolver({ "/": "gear:inner" });
+      expect(resolver.resolveLayoutEntryType("")).toBe("gear:inner");
+      expect(resolver.resolveLayoutEntryType("/anything")).toBe("gear:inner");
+      captureResolveError(() => resolver.resolveLayoutEntryType("app"));
     });
 
     it("matches a namespace that equals the prefix verbatim (trailing slash included)", () => {
-      const resolve = createResLayoutEntryTypeResolver({ "app/": "gear" });
+      const resolver = new ResLayoutResolver({ "app/": "gear:inner" });
       // Exact equality of namespace and prefix — the quirky but valid case.
-      expect(resolve("app/")).toBe("gear");
+      expect(resolver.resolveLayoutEntryType("app/")).toBe("gear:inner");
     });
 
     it("matches a deeply-nested prefix exactly and at boundaries only", () => {
-      const resolve = createResLayoutEntryTypeResolver({ "a/b/c/": "shell" });
-      expect(resolve("a/b/c")).toBe("shell");
-      expect(resolve("a/b/c/d")).toBe("shell");
-      expect(resolve("a/b/cd")).toBeUndefined();
-      expect(resolve("a/b")).toBeUndefined();
+      const resolver = new ResLayoutResolver({ "a/b/c/": "shell" });
+      expect(resolver.resolveLayoutEntryType("a/b/c")).toBe("shell");
+      expect(resolver.resolveLayoutEntryType("a/b/c/d")).toBe("shell");
+      captureResolveError(() => resolver.resolveLayoutEntryType("a/b/cd"));
+      captureResolveError(() => resolver.resolveLayoutEntryType("a/b"));
     });
   });
 });
 
-describe("resolveResPath", () => {
-  describe("gear layout", () => {
-    it("returns the namespace unchanged when locale is undefined", () => {
-      expect(resolveResPath("app", undefined, "gear")).toBe("app");
-    });
+// --- ResLayoutResolver — resolveNamespaceParts -------------------------------
 
-    it("ignores the locale and still returns the namespace when one is provided", () => {
-      expect(resolveResPath("app", "en-US", "gear")).toBe("app");
-      expect(resolveResPath("app/home", "it-IT", "gear")).toBe("app/home");
-    });
+describe("ResLayoutResolver — resolveNamespaceParts", () => {
+  it("splits a namespace into its registered prefix and the remaining suffix", () => {
+    const resolver = new ResLayoutResolver({ "app/": "gear:inner", "app/settings/": "shell" });
+    expect(resolver.resolveNamespaceParts("app/home")).toEqual(["app/", "home"]);
+    expect(resolver.resolveNamespaceParts("app/settings/theme")).toEqual(["app/settings/", "theme"]);
   });
 
-  describe("gear:vertex layout", () => {
-    it("returns the namespace unchanged when locale is undefined", () => {
-      expect(resolveResPath("app", undefined, "gear:vertex")).toBe("app");
-    });
-
-    it("ignores the locale and still returns the namespace when one is provided", () => {
-      // Vertex gears never vary by locale — the path resolver must not
-      // append the locale, same as regular gears.
-      expect(resolveResPath("app", "en-US", "gear:vertex")).toBe("app");
-      expect(resolveResPath("app/home", "it-IT", "gear:vertex")).toBe("app/home");
-    });
+  it("returns the prefix and an empty suffix when the namespace equals the prefix's base", () => {
+    const resolver = new ResLayoutResolver({ "app/": "gear:inner" });
+    expect(resolver.resolveNamespaceParts("app")).toEqual(["app/", ""]);
   });
 
-  describe("shell:mono layout", () => {
+  it("throws RMachineResolveError when no prefix matches", () => {
+    const resolver = new ResLayoutResolver({ "app/": "gear:inner" });
+    captureResolveError(() => resolver.resolveNamespaceParts("other"));
+  });
+});
+
+// --- ResLayoutResolver — resolvePath -----------------------------------------
+
+describe("ResLayoutResolver — resolvePath", () => {
+  const resolver = new ResLayoutResolver({ "app/": "gear:inner" });
+
+  describe("gear layout types — locale is ignored", () => {
+    it.each(["gear:inner", "gear:base", "gear:outer", "gear:outer(vertex)"] as const)(
+      "%s returns the namespace unchanged when locale is undefined",
+      (layoutType) => {
+        expect(resolver.resolvePath("app", undefined, layoutType)).toBe("app");
+      }
+    );
+
+    it.each(["gear:inner", "gear:base", "gear:outer", "gear:outer(vertex)"] as const)(
+      "%s ignores the locale and still returns the namespace when one is provided",
+      (layoutType) => {
+        expect(resolver.resolvePath("app", "en-US", layoutType)).toBe("app");
+        expect(resolver.resolvePath("app/home", "it-IT", layoutType)).toBe("app/home");
+      }
+    );
+  });
+
+  describe("shell(mono) layout — locale is ignored", () => {
     it("returns the namespace unchanged when locale is undefined", () => {
-      expect(resolveResPath("app", undefined, "shell:mono")).toBe("app");
+      expect(resolver.resolvePath("app", undefined, "shell(mono)")).toBe("app");
     });
 
     it("ignores the locale and still returns the namespace when one is provided", () => {
-      // shell:mono is a shell whose locale handling happens elsewhere, so
+      // shell(mono) is a shell whose locale handling happens elsewhere, so
       // the path resolver must not append the locale to the namespace.
-      expect(resolveResPath("app", "en-US", "shell:mono")).toBe("app");
-      expect(resolveResPath("app/home", "it-IT", "shell:mono")).toBe("app/home");
+      expect(resolver.resolvePath("app", "en-US", "shell(mono)")).toBe("app");
+      expect(resolver.resolvePath("app/home", "it-IT", "shell(mono)")).toBe("app/home");
     });
   });
 
   describe("shell layout", () => {
     it("appends the locale as a final path segment", () => {
-      expect(resolveResPath("app", "en-US", "shell")).toBe("app/en-US");
-      expect(resolveResPath("app/home", "it-IT", "shell")).toBe("app/home/it-IT");
+      expect(resolver.resolvePath("app", "en-US", "shell")).toBe("app/en-US");
+      expect(resolver.resolvePath("app/home", "it-IT", "shell")).toBe("app/home/it-IT");
     });
 
     it("appends the locale verbatim, without normalization", () => {
       // The path resolver is a low-level primitive: locale canonicalization
       // must have happened upstream. Document that by asserting raw pass-through.
-      expect(resolveResPath("app", "EN_us", "shell")).toBe("app/EN_us");
+      expect(resolver.resolvePath("app", "EN_us", "shell")).toBe("app/EN_us");
     });
 
     it("throws RMachineResolveError when the locale is undefined", () => {
-      try {
-        resolveResPath("app", undefined, "shell");
-        expect.unreachable("expected resolveResPath to throw for shell without a locale");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineResolveError);
-        expect((error as RMachineResolveError).code).toBe(ERR_RESOLVE_FAILED);
-        expect((error as RMachineResolveError).message).toContain('"app"');
-        expect((error as RMachineResolveError).message).toContain("shell");
-        expect((error as RMachineResolveError).message).toContain("locale is required");
-      }
+      const error = captureResolveError(() => resolver.resolvePath("app", undefined, "shell"));
+      expect(error.code).toBe(ERR_RESOLVE_FAILED);
+      expect(error.message).toContain('"app"');
+      expect(error.message).toContain("shell");
+      expect(error.message).toContain("locale is required");
     });
   });
 
   describe("purity", () => {
-    it("is a pure function of its three arguments — no shared state between calls", () => {
+    it("is a pure function of its three arguments — interleaved layout types do not interfere", () => {
       // Call order must not affect outcome. Interleaving different layout
       // types must produce the same answers as calling each in isolation.
-      expect(resolveResPath("app", "en-US", "shell")).toBe("app/en-US");
-      expect(resolveResPath("app", "en-US", "gear")).toBe("app");
-      expect(resolveResPath("app", "en-US", "shell")).toBe("app/en-US");
-      expect(resolveResPath("app", undefined, "shell:mono")).toBe("app");
-      expect(resolveResPath("app", "en-US", "gear:vertex")).toBe("app");
+      expect(resolver.resolvePath("app", "en-US", "shell")).toBe("app/en-US");
+      expect(resolver.resolvePath("app", "en-US", "gear:inner")).toBe("app");
+      expect(resolver.resolvePath("app", "en-US", "shell")).toBe("app/en-US");
+      expect(resolver.resolvePath("app", undefined, "shell(mono)")).toBe("app");
+      expect(resolver.resolvePath("app", "en-US", "gear:outer(vertex)")).toBe("app");
     });
+  });
+});
+
+// --- helper functions --------------------------------------------------------
+
+describe("getResFamilyFromLayoutType", () => {
+  it.each([
+    ["gear:inner", "gear"],
+    ["gear:base", "gear"],
+    ["gear:outer", "gear"],
+    ["gear:outer(vertex)", "gear"],
+    ["shell", "shell"],
+    ["shell(mono)", "shell"],
+  ] as const)("collapses %s to family %s", (type, family) => {
+    expect(getResFamilyFromLayoutType(type)).toBe(family);
+  });
+});
+
+describe("getGearRoleFromLayoutType", () => {
+  it.each([
+    ["gear:inner", "inner"],
+    ["gear:base", "base"],
+    ["gear:outer", "outer"],
+    ["gear:outer(vertex)", "outer"],
+  ] as const)("returns role %s for %s", (type, role) => {
+    expect(getGearRoleFromLayoutType(type)).toBe(role);
+  });
+
+  it.each(["shell", "shell(mono)"] as const)("returns undefined for non-gear layout %s", (type) => {
+    expect(getGearRoleFromLayoutType(type)).toBeUndefined();
+  });
+});
+
+describe("isOuterGearLayoutType", () => {
+  it.each([
+    ["gear:outer", true],
+    ["gear:outer(vertex)", true],
+    ["gear:inner", false],
+    ["gear:base", false],
+    ["shell", false],
+    ["shell(mono)", false],
+  ] as const)("returns %s for %s", (type, expected) => {
+    expect(isOuterGearLayoutType(type)).toBe(expected);
+  });
+});
+
+describe("isVertexGearLayoutType", () => {
+  it.each([
+    ["gear:outer(vertex)", true],
+    ["gear:outer", false],
+    ["gear:inner", false],
+    ["gear:base", false],
+    ["shell", false],
+    ["shell(mono)", false],
+  ] as const)("returns %s for %s", (type, expected) => {
+    expect(isVertexGearLayoutType(type)).toBe(expected);
   });
 });

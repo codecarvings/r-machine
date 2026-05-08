@@ -1,17 +1,24 @@
 import { describe, expectTypeOf, it } from "vitest";
+import type { GearRole } from "../../src/core/gear-plug.js";
 import {
   type AnyResLayout,
-  createResLayoutEntryTypeResolver,
+  getGearRoleFromLayoutType,
+  getResFamilyFromLayoutType,
+  isOuterGearLayoutType,
+  isVertexGearLayoutType,
   type ResLayoutEntryType,
-  type ResLayoutEntryTypeResolver,
-  type ResPathResolver,
-  resolveResPath,
+  ResLayoutResolver,
+  type ResolveLayoutType,
 } from "../../src/core/res-layout.js";
+import type { NamespaceParts } from "../../src/core/res-domain.js";
+import type { ResFamily } from "../../src/core/res-plug.js";
 import type { AnyLocale } from "../../src/locale/locale.js";
 
 describe("ResLayoutEntryType", () => {
-  it("is the exact union of the four canonical layout literals", () => {
-    expectTypeOf<ResLayoutEntryType>().toEqualTypeOf<"gear" | "gear:vertex" | "shell" | "shell:mono">();
+  it("is the exact union of the six canonical layout literals", () => {
+    expectTypeOf<ResLayoutEntryType>().toEqualTypeOf<
+      "gear:inner" | "gear:base" | "gear:outer" | "gear:outer(vertex)" | "shell" | "shell(mono)"
+    >();
   });
 
   it("does not widen to string", () => {
@@ -25,16 +32,22 @@ describe("AnyResLayout", () => {
     expectTypeOf<AnyResLayout[`${string}/`]>().toEqualTypeOf<ResLayoutEntryType>();
   });
 
-  it("accepts the four canonical layout types as values", () => {
-    expectTypeOf<"gear">().toExtend<ResLayoutEntryType>();
-    expectTypeOf<"gear:vertex">().toExtend<ResLayoutEntryType>();
+  it("accepts the six canonical layout types as values", () => {
+    expectTypeOf<"gear:inner">().toExtend<ResLayoutEntryType>();
+    expectTypeOf<"gear:base">().toExtend<ResLayoutEntryType>();
+    expectTypeOf<"gear:outer">().toExtend<ResLayoutEntryType>();
+    expectTypeOf<"gear:outer(vertex)">().toExtend<ResLayoutEntryType>();
     expectTypeOf<"shell">().toExtend<ResLayoutEntryType>();
-    expectTypeOf<"shell:mono">().toExtend<ResLayoutEntryType>();
+    expectTypeOf<"shell(mono)">().toExtend<ResLayoutEntryType>();
   });
 
   it("rejects unrelated string literals as values", () => {
     expectTypeOf<"not-a-layout">().not.toExtend<ResLayoutEntryType>();
     expectTypeOf<"Gear">().not.toExtend<ResLayoutEntryType>();
+    // Old, no-longer-valid layout literals must NOT slip through.
+    expectTypeOf<"gear">().not.toExtend<ResLayoutEntryType>();
+    expectTypeOf<"gear:vertex">().not.toExtend<ResLayoutEntryType>();
+    expectTypeOf<"shell:mono">().not.toExtend<ResLayoutEntryType>();
     expectTypeOf<string>().not.toExtend<ResLayoutEntryType>();
   });
 
@@ -46,134 +59,136 @@ describe("AnyResLayout", () => {
 
   it("accepts an object literal whose keys end with '/' and values are layout types", () => {
     const layout = {
-      "app/": "gear",
+      "app/": "gear:inner",
       "app/settings/": "shell",
-      "app/live/": "shell:mono",
+      "app/live/": "shell(mono)",
     } as const satisfies AnyResLayout;
     expectTypeOf(layout).toExtend<AnyResLayout>();
   });
 
   it("rejects an object literal whose keys do not end with '/'", () => {
     // @ts-expect-error — "app" does not end with "/" so it fails the index-signature constraint
-    const _bad = { app: "gear" } as const satisfies AnyResLayout;
+    const _bad = { app: "gear:inner" } as const satisfies AnyResLayout;
   });
 });
 
-describe("ResLayoutTypeResolver", () => {
-  it("takes a namespace string and returns a layout type or undefined", () => {
-    expectTypeOf<ResLayoutEntryTypeResolver>().parameter(0).toEqualTypeOf<string>();
-    expectTypeOf<ResLayoutEntryTypeResolver>().returns.toEqualTypeOf<ResLayoutEntryType | undefined>();
+describe("ResLayoutResolver — class signature", () => {
+  it("is constructible with an AnyResLayout", () => {
+    expectTypeOf(ResLayoutResolver).toBeConstructibleWith({} as AnyResLayout);
   });
 
-  it("return type always includes undefined (misses are representable)", () => {
-    expectTypeOf<undefined>().toExtend<ReturnType<ResLayoutEntryTypeResolver>>();
-  });
-});
-
-describe("createResLayoutEntryTypeResolver", () => {
-  it("accepts an AnyResLayout and returns a ResLayoutTypeResolver", () => {
-    expectTypeOf(createResLayoutEntryTypeResolver).parameter(0).toEqualTypeOf<AnyResLayout>();
-    expectTypeOf(createResLayoutEntryTypeResolver).returns.toEqualTypeOf<ResLayoutEntryTypeResolver>();
+  it("constructor parameters are exactly [layout: AnyResLayout]", () => {
+    expectTypeOf(ResLayoutResolver).constructorParameters.toEqualTypeOf<[layout: AnyResLayout]>();
   });
 
-  it("does not narrow the return type based on the literal input (runtime lookup is string-keyed)", () => {
-    // The resolver is intentionally erased: even if we pass a narrowly-typed
-    // literal, the returned function still accepts any namespace string and
-    // still may return undefined. This guards against accidentally tightening
-    // the API into a closed key set.
-    const resolve = createResLayoutEntryTypeResolver({ "app/": "gear" } as const);
-    expectTypeOf(resolve).toEqualTypeOf<ResLayoutEntryTypeResolver>();
-    expectTypeOf(resolve).parameter(0).toEqualTypeOf<string>();
-    expectTypeOf(resolve).returns.toEqualTypeOf<ResLayoutEntryType | undefined>();
+  it("resolveLayoutEntryType takes a namespace string and returns ResLayoutEntryType (no undefined — misses throw)", () => {
+    const resolver = new ResLayoutResolver({});
+    expectTypeOf(resolver.resolveLayoutEntryType).parameter(0).toEqualTypeOf<string>();
+    expectTypeOf(resolver.resolveLayoutEntryType).returns.toEqualTypeOf<ResLayoutEntryType>();
+    // The return type does NOT include undefined: misses are signaled by
+    // throwing RMachineResolveError, not by returning undefined.
+    expectTypeOf<undefined>().not.toExtend<ReturnType<typeof resolver.resolveLayoutEntryType>>();
   });
 
-  it("rejects layouts whose values are not layout types", () => {
-    // @ts-expect-error — "not-a-layout" is not assignable to ResLayoutType
-    createResLayoutEntryTypeResolver({ "app/": "not-a-layout" });
-    // @ts-expect-error — numbers are not layout types
-    createResLayoutEntryTypeResolver({ "app/": 42 });
+  it("resolveNamespaceParts takes a namespace string and returns NamespaceParts", () => {
+    const resolver = new ResLayoutResolver({});
+    expectTypeOf(resolver.resolveNamespaceParts).parameter(0).toEqualTypeOf<string>();
+    expectTypeOf(resolver.resolveNamespaceParts).returns.toEqualTypeOf<NamespaceParts>();
   });
 
-  it("rejects layouts whose keys do not end with '/'", () => {
-    // @ts-expect-error — "app" does not end with "/" so it fails the index-signature constraint
-    createResLayoutEntryTypeResolver({ app: "gear" });
-  });
-});
-
-describe("ResPathResolver", () => {
-  it("takes (namespace, locale | undefined, layoutEntryType) and returns a string", () => {
-    expectTypeOf<ResPathResolver>().parameter(0).toEqualTypeOf<string>();
-    expectTypeOf<ResPathResolver>().parameter(1).toEqualTypeOf<AnyLocale | undefined>();
-    expectTypeOf<ResPathResolver>().parameter(2).toEqualTypeOf<ResLayoutEntryType>();
-    expectTypeOf<ResPathResolver>().returns.toEqualTypeOf<string>();
+  it("resolvePath takes (namespace, locale | undefined, layoutEntryType) and returns string", () => {
+    const resolver = new ResLayoutResolver({});
+    expectTypeOf(resolver.resolvePath).parameter(0).toEqualTypeOf<string>();
+    expectTypeOf(resolver.resolvePath).parameter(1).toEqualTypeOf<AnyLocale | undefined>();
+    expectTypeOf(resolver.resolvePath).parameter(2).toEqualTypeOf<ResLayoutEntryType>();
+    expectTypeOf(resolver.resolvePath).returns.toEqualTypeOf<string>();
   });
 
-  it("has an arity of exactly three required positional parameters", () => {
-    expectTypeOf<Parameters<ResPathResolver>>().toEqualTypeOf<
+  it("resolvePath has an arity of exactly three required positional parameters", () => {
+    const resolver = new ResLayoutResolver({});
+    expectTypeOf<Parameters<typeof resolver.resolvePath>>().toEqualTypeOf<
       [namespace: string, locale: AnyLocale | undefined, layoutEntryType: ResLayoutEntryType]
     >();
   });
 
-  it("does not allow omitting the locale argument (undefined must be passed explicitly)", () => {
-    const resolve: ResPathResolver = (ns) => ns;
-    // @ts-expect-error — locale parameter is required even when undefined
-    resolve("app", "gear");
-    // @ts-expect-error — layoutEntryType parameter is required
-    resolve("app", undefined);
-    // Baseline: all three arguments explicit is accepted.
-    resolve("app", undefined, "gear");
-  });
-
-  it("returns a plain string, never undefined or a layout type", () => {
-    expectTypeOf<ReturnType<ResPathResolver>>().toEqualTypeOf<string>();
-    expectTypeOf<undefined>().not.toExtend<ReturnType<ResPathResolver>>();
-  });
-});
-
-describe("resolveResPath", () => {
-  it("matches the ResPathResolver signature exactly", () => {
-    expectTypeOf(resolveResPath).toEqualTypeOf<ResPathResolver>();
-  });
-
-  it("takes (namespace, locale | undefined, layoutEntryType) and returns a string", () => {
-    expectTypeOf(resolveResPath).parameter(0).toEqualTypeOf<string>();
-    expectTypeOf(resolveResPath).parameter(1).toEqualTypeOf<AnyLocale | undefined>();
-    expectTypeOf(resolveResPath).parameter(2).toEqualTypeOf<ResLayoutEntryType>();
-    expectTypeOf(resolveResPath).returns.toEqualTypeOf<string>();
-  });
-
-  it("rejects a layoutEntryType that is not a canonical literal", () => {
-    // @ts-expect-error — "custom" is not a valid ResLayoutEntryType
-    resolveResPath("app", undefined, "custom");
-    // @ts-expect-error — numbers are not layout types
-    resolveResPath("app", undefined, 42);
-  });
-
-  it("does not permit omitting any parameter at the call site", () => {
+  it("resolvePath rejects calls missing any required argument", () => {
+    const resolver = new ResLayoutResolver({});
+    // @ts-expect-error — locale and layoutEntryType are required
+    resolver.resolvePath("app");
     // @ts-expect-error — layoutEntryType is required
-    resolveResPath("app", undefined);
-    // @ts-expect-error — locale is required (even when undefined)
-    resolveResPath("app");
+    resolver.resolvePath("app", undefined);
     // Baseline: all three explicit is accepted.
-    resolveResPath("app", undefined, "gear");
+    resolver.resolvePath("app", undefined, "gear:inner");
+  });
+
+  it("resolvePath rejects a layoutEntryType that is not a canonical literal", () => {
+    const resolver = new ResLayoutResolver({});
+    // @ts-expect-error — "custom" is not a valid ResLayoutEntryType
+    resolver.resolvePath("app", undefined, "custom");
+    // @ts-expect-error — old "gear" literal is no longer valid
+    resolver.resolvePath("app", undefined, "gear");
+    // @ts-expect-error — numbers are not layout types
+    resolver.resolvePath("app", undefined, 42);
   });
 });
 
-describe("end-to-end inference", () => {
-  it("composes createResLayoutEntryTypeResolver with resolveResPath without extra annotations", () => {
-    const resolveLayoutType = createResLayoutEntryTypeResolver({
-      "app/": "gear",
-      "app/settings/": "shell",
-      "app/live/": "shell:mono",
-    });
+describe("getResFamilyFromLayoutType — signature", () => {
+  it("takes a ResLayoutEntryType and returns ResFamily", () => {
+    expectTypeOf(getResFamilyFromLayoutType).parameter(0).toEqualTypeOf<ResLayoutEntryType>();
+    expectTypeOf(getResFamilyFromLayoutType).returns.toEqualTypeOf<ResFamily>();
+  });
+});
 
-    const layoutType = resolveLayoutType("app/settings");
-    expectTypeOf(layoutType).toEqualTypeOf<ResLayoutEntryType | undefined>();
+describe("getGearRoleFromLayoutType — signature", () => {
+  it("takes a ResLayoutEntryType and returns GearRole | undefined", () => {
+    expectTypeOf(getGearRoleFromLayoutType).parameter(0).toEqualTypeOf<ResLayoutEntryType>();
+    expectTypeOf(getGearRoleFromLayoutType).returns.toEqualTypeOf<GearRole | undefined>();
+  });
+});
 
-    // At the call site the caller must narrow before passing to resolveResPath.
-    if (layoutType !== undefined) {
-      const result = resolveResPath("app/settings", "en-US", layoutType);
-      expectTypeOf(result).toEqualTypeOf<string>();
-    }
+describe("isOuterGearLayoutType / isVertexGearLayoutType — signatures", () => {
+  it("each takes a ResLayoutEntryType and returns boolean", () => {
+    expectTypeOf(isOuterGearLayoutType).parameter(0).toEqualTypeOf<ResLayoutEntryType>();
+    expectTypeOf(isOuterGearLayoutType).returns.toEqualTypeOf<boolean>();
+    expectTypeOf(isVertexGearLayoutType).parameter(0).toEqualTypeOf<ResLayoutEntryType>();
+    expectTypeOf(isVertexGearLayoutType).returns.toEqualTypeOf<boolean>();
+  });
+});
+
+describe("ResolveLayoutType — type-level longest-prefix resolver", () => {
+  it("resolves the entry type for a namespace equal to the prefix's base", () => {
+    type R = ResolveLayoutType<{ "app/": "gear:inner" }, "app">;
+    expectTypeOf<R>().toEqualTypeOf<"gear:inner">();
+  });
+
+  it("resolves the entry type for a child namespace at a '/' boundary", () => {
+    type R = ResolveLayoutType<{ "app/": "gear:inner" }, "app/home">;
+    expectTypeOf<R>().toEqualTypeOf<"gear:inner">();
+  });
+
+  it("returns never when no prefix matches", () => {
+    type R = ResolveLayoutType<{ "app/": "gear:inner" }, "other">;
+    expectTypeOf<R>().toEqualTypeOf<never>();
+  });
+
+  it("does not match a longer namespace that merely starts with the prefix's base", () => {
+    type R = ResolveLayoutType<{ "app/": "gear:inner" }, "application">;
+    expectTypeOf<R>().toEqualTypeOf<never>();
+  });
+
+  it("picks the most specific prefix when multiple prefixes match (longest-prefix-wins)", () => {
+    type Layout = { "app/": "gear:inner"; "app/settings/": "shell" };
+    type R1 = ResolveLayoutType<Layout, "app/settings/theme">;
+    type R2 = ResolveLayoutType<Layout, "app/home">;
+    expectTypeOf<R1>().toEqualTypeOf<"shell">();
+    expectTypeOf<R2>().toEqualTypeOf<"gear:inner">();
+  });
+
+  it("is independent of the declaration order in the layout", () => {
+    type LayoutA = { "app/": "gear:inner"; "app/settings/": "shell" };
+    type LayoutB = { "app/settings/": "shell"; "app/": "gear:inner" };
+    type RA = ResolveLayoutType<LayoutA, "app/settings">;
+    type RB = ResolveLayoutType<LayoutB, "app/settings">;
+    expectTypeOf<RA>().toEqualTypeOf<RB>();
   });
 });
