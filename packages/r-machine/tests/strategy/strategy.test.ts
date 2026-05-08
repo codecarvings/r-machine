@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import type { RMachineConfig } from "#r-machine";
+import { RMachine, type RMachineConfig } from "#r-machine";
 import type { AnyResAtlas } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
-import { RMachine } from "../../src/lib/r-machine.js";
 import { Strategy } from "../../src/strategy/strategy.js";
 
 interface TestAtlas extends AnyResAtlas {
@@ -15,12 +14,17 @@ interface TestResEquipment {
   readonly bridgeGears: readonly [];
   readonly gearKit: {};
   readonly shellKit: {};
-  readonly gateKit: {};
 }
 
+// Strategy has a protected constructor; each test subclass declares its own
+// public constructor so the test harness can instantiate them directly.
 function createSpyStrategyClass<RA extends AnyResAtlas, L extends AnyLocale, C>() {
   const validateConfigSpy = vi.fn();
-  class SpyStrategy extends Strategy<RA, L, TestResEquipment, C> {
+  class SpyStrategy extends Strategy<RA, L, TestResEquipment, {}, C> {
+    // biome-ignore lint/complexity/noUselessConstructor: widens protected base ctor to public for tests
+    constructor(rMachine: RMachine<RA, L, TestResEquipment, {}>, config: C) {
+      super(rMachine, config);
+    }
     protected override validateConfig(): void {
       validateConfigSpy();
     }
@@ -28,15 +32,39 @@ function createSpyStrategyClass<RA extends AnyResAtlas, L extends AnyLocale, C>(
   return { SpyStrategy, validateConfigSpy };
 }
 
-class ThrowingStrategy<RA extends AnyResAtlas, L extends AnyLocale, C> extends Strategy<RA, L, TestResEquipment, C> {
+class ThrowingStrategy<RA extends AnyResAtlas, L extends AnyLocale, C> extends Strategy<
+  RA,
+  L,
+  TestResEquipment,
+  {},
+  C
+> {
+  // biome-ignore lint/complexity/noUselessConstructor: widens protected base ctor to public for tests
+  constructor(rMachine: RMachine<RA, L, TestResEquipment, {}>, config: C) {
+    super(rMachine, config);
+  }
   protected override validateConfig(): void {
     throw new Error("Validation failed");
   }
 }
 
-class DefaultStrategy<RA extends AnyResAtlas, L extends AnyLocale, C> extends Strategy<RA, L, TestResEquipment, C> {}
+class DefaultStrategy<RA extends AnyResAtlas, L extends AnyLocale, C> extends Strategy<RA, L, TestResEquipment, {}, C> {
+  // biome-ignore lint/complexity/noUselessConstructor: widens protected base ctor to public for tests
+  constructor(rMachine: RMachine<RA, L, TestResEquipment, {}>, config: C) {
+    super(rMachine, config);
+  }
+}
 
-const testConfig: RMachineConfig<TestAtlas, string, TestResEquipment> = {
+// RMachine has a protected constructor; expose it via a test-only subclass so
+// we can build instances directly without going through RMachine.create().
+class TestRMachine extends RMachine<TestAtlas, string, TestResEquipment, {}> {
+  // biome-ignore lint/complexity/noUselessConstructor: widens protected base ctor to public for tests
+  constructor(config: RMachineConfig<TestAtlas, string, TestResEquipment, {}>) {
+    super(config);
+  }
+}
+
+const testConfig: RMachineConfig<TestAtlas, string, TestResEquipment, {}> = {
   // Phantom: the config's resourceAtlas is typed as the instance but at
   // runtime holds whatever the caller passes (the class, or — in this test —
   // a plain empty object). Cast to match the generic.
@@ -45,17 +73,19 @@ const testConfig: RMachineConfig<TestAtlas, string, TestResEquipment> = {
   defaultLocale: "en",
   load: async () => ({ r: {} }),
   layout: {},
-  equipment: { bridgeGears: [], gearKit: {}, shellKit: {}, gateKit: {} },
+  priority: [],
+  equipment: { bridgeGears: [], gearKit: {}, shellKit: {} },
+  experimental: {},
 };
 
 function createTestRMachine() {
-  return new RMachine<TestAtlas, string, TestResEquipment>(testConfig);
+  return new TestRMachine(testConfig);
 }
 
 describe("Strategy", () => {
   describe("construction", () => {
     it("should call validateConfig during construction", () => {
-      const { SpyStrategy, validateConfigSpy } = createSpyStrategyClass();
+      const { SpyStrategy, validateConfigSpy } = createSpyStrategyClass<TestAtlas, string, { option: string }>();
       new SpyStrategy(createTestRMachine(), { option: "value" });
       expect(validateConfigSpy).toHaveBeenCalledOnce();
     });

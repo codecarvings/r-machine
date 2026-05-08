@@ -1,5 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type { CustomLocaleDetector, CustomLocaleStore, SwitchableOption } from "../../src/strategy/index.js";
+import type { SwitchableOption } from "../../src/core/index.js";
+import type { CustomLocaleDetector, CustomLocaleStore } from "../../src/strategy/index.js";
 import { Strategy } from "../../src/strategy/index.js";
 
 // Barrel test: uses a single it() to verify export completeness only. Type shape tests belong in dedicated files.
