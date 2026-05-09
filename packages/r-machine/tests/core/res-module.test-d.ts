@@ -51,16 +51,14 @@ describe("AnyResModule", () => {
 });
 
 describe("ResModuleLoaderFn", () => {
-  it("takes (path: string, options?: ResModuleLoaderFnOptions) and returns Promise<AnyResModule>", () => {
+  it("takes (path: string, options: ResModuleLoaderFnOptions) and returns Promise<AnyResModule>", () => {
     expectTypeOf<ResModuleLoaderFn>().parameter(0).toEqualTypeOf<string>();
-    expectTypeOf<ResModuleLoaderFn>().parameter(1).toEqualTypeOf<ResModuleLoaderFnOptions | undefined>();
+    expectTypeOf<ResModuleLoaderFn>().parameter(1).toEqualTypeOf<ResModuleLoaderFnOptions>();
     expectTypeOf<ResModuleLoaderFn>().returns.toEqualTypeOf<Promise<AnyResModule>>();
   });
 
-  it("has arity of exactly two parameters, the second optional", () => {
-    expectTypeOf<Parameters<ResModuleLoaderFn>>().toEqualTypeOf<
-      [path: string, options?: ResModuleLoaderFnOptions | undefined]
-    >();
+  it("has arity of exactly two parameters", () => {
+    expectTypeOf<Parameters<ResModuleLoaderFn>>().toEqualTypeOf<[path: string, options: ResModuleLoaderFnOptions]>();
   });
 
   it("accepts a conforming inline function", () => {
@@ -80,10 +78,11 @@ describe("ResModuleLoaderFn", () => {
     void bad;
   });
 
-  it("permits omitting the options parameter at the call site (it is optional)", () => {
+  it("requires the options parameter at the call site", () => {
     const fn = (async () => ({ r: {} })) as ResModuleLoaderFn;
-    // All three call shapes are accepted.
+    // @ts-expect-error — options is required
     void fn("path");
+    // @ts-expect-error — options cannot be undefined
     void fn("path", undefined);
     void fn("path", {
       namespace: "ns",
