@@ -52,12 +52,6 @@ export async function createNextAppOriginClientImpl<
       router.push(url);
     },
 
-    createUsePathComposer: (useLocale) => {
-      return () => {
-        const locale = useLocale();
-
-        return (path, params) => pathTranslator.get(locale, path, params).value;
-      };
-    },
+    createPathComposer: (locale) => (path, params) => pathTranslator.get(locale, path, params).value,
   } as NextAppClientImpl<L>;
 }

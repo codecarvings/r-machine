@@ -15,9 +15,10 @@
 
 import type { VertexFrameType } from "@r-machine/react/core";
 import { createReactBareToolset } from "@r-machine/react/core";
-import type { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { RMachine } from "r-machine";
 import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
+import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import { type ReactNode, useEffect } from "react";
 import type {
@@ -57,7 +58,7 @@ export interface NextAppClientImpl<L extends AnyLocale> {
     pathname: ReturnType<typeof usePathname>,
     router: ReturnType<typeof useRouter>
   ) => void | Promise<void>;
-  createUsePathComposer: (useLocale: () => L) => () => BoundPathComposer<AnyPathAtlas>;
+  createPathComposer: (locale: L) => BoundPathComposer<AnyPathAtlas>;
 }
 
 export async function createNextAppClientToolset<
@@ -67,47 +68,16 @@ export async function createNextAppClientToolset<
   EF extends ExperimentalFlags,
   CKM extends NextClientPlugKitMap<RA>,
   PA extends AnyPathAtlas,
->(rMachine: RMachine<RA, L, E, EF>, impl: NextAppClientImpl<L>): Promise<NextAppClientToolset<RA, L, EF, CKM, PA>> {
-  const { ReactRMachine, VertexFrame } = await createReactBareToolset(
-    rMachine as RMachine<RA, L, E, { outerGear: "on" }>,
-    {}
-  );
-
-  // TODO: WP
-  const ClientPlug: any = undefined!;
-
-  /*
-  async function setLocale(
-    locale: L,
-    newLocale: L,
-    pathname: ReturnType<typeof usePathname>,
-    router: ReturnType<typeof useRouter>
-  ): Promise<void> {
-    // Do not check if the locale is different
-    // The origin strategy allows same locale on multiple origins, so the navigation might still be necessary
-
-    const error = rMachine.localeHelper.validateLocale(newLocale);
-    if (error) {
-      throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot set invalid locale: ${newLocale}.`, error);
-    }
-
-    const writeLocaleResult = impl.writeLocale(locale, newLocale, pathname, router);
-    if (writeLocaleResult instanceof Promise) {
-      await writeLocaleResult;
-    }
-  }
-
-
-  function useSetLocale(): ReturnType<ReactBareToolset<RA, L, KA>["useSetLocale"]> {
-    const locale = useLocale();
-    const router = useRouter();
-    const pathname = usePathname();
-
-    return (newLocale: L) => setLocale(locale, newLocale, pathname, router);
-  }
-
-  const usePathComposer = impl.createUsePathComposer(useLocale);
-  */
+>(
+  rMachine: RMachine<RA, L, E, EF>,
+  clientKit: CKM,
+  impl: NextAppClientImpl<L>
+): Promise<NextAppClientToolset<RA, L, EF, CKM, PA>> {
+  const {
+    ReactRMachine,
+    VertexFrame,
+    Plug: BasePlug,
+  } = await createReactBareToolset(rMachine as RMachine<RA, L, E, { outerGear: "on" }>, clientKit);
 
   function NextClientRMachine({ locale, children }: NextAppClientRMachineProps<L>) {
     useEffect(() => {
@@ -117,6 +87,45 @@ export async function createNextAppClientToolset<
     }, [locale]);
     return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
   }
+
+  const ClientPlug = ((...args: unknown[]) => {
+    const body = (BasePlug as unknown as (...a: unknown[]) => { use: () => unknown })(...args);
+    const baseUse = body.use;
+
+    body.use = () => {
+      const baseResult = baseUse();
+      const router = useRouter();
+      const pathname = usePathname();
+
+      // The plugin's `$` is recreated on every reresolve (juncture-manager
+      // builds a fresh `$ = { kit }` then runs augmentCtx). Mutating it here
+      // is safe — there is no caching across reresolves to disturb. Reading
+      // `$.locale` keeps us coherent with the resolved plugin instead of the
+      // raw React context.
+      const $ = Array.isArray(baseResult)
+        ? (baseResult[baseResult.length - 1] as Record<string, unknown>)
+        : (baseResult as { $: Record<string, unknown> }).$;
+      const locale = $.locale as L;
+
+      $.getPath = impl.createPathComposer(locale);
+      $.setLocale = async (newLocale: L): Promise<void> => {
+        // Do not check if the locale is different.
+        // The origin strategy allows same locale on multiple origins, so navigation might still be necessary.
+        const error = rMachine.localeHelper.validateLocale(newLocale);
+        if (error) {
+          throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot set invalid locale: "${newLocale}".`, error);
+        }
+        const result = impl.writeLocale(locale, newLocale, pathname, router);
+        if (result instanceof Promise) {
+          await result;
+        }
+      };
+
+      return baseResult;
+    };
+
+    return body;
+  }) as NextClientPlugDefiner<RA, L, CKM, PA>;
 
   return {
     NextClientRMachine,

@@ -94,7 +94,7 @@ export abstract class NextAppStrategyCore<
   async createClientToolset(): Promise<NextAppClientToolset<RA, L, EF, C["clientKit"], InstanceType<C["PathAtlas"]>>> {
     const impl = await this.createClientImpl();
     const module = await import("./next-app-client-toolset.js");
-    return module.createNextAppClientToolset(this.rMachine, impl);
+    return module.createNextAppClientToolset(this.rMachine, this.config.clientKit, impl);
   }
 
   async createServerToolset(
