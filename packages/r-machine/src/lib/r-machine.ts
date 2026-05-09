@@ -29,17 +29,12 @@ import {
   type GateWire,
   GateWireManager,
   type GearPlugKitMap,
-  getNamespaceList,
-  type HandleList,
-  isNamespaceList,
   JunctureManager,
-  type NamespaceMap,
   type PluginCtxAugmenter,
   type ResComposerConnector,
   type ResEquipment,
   ResLayoutResolver,
   type ShellPlugKitMap,
-  type SurfaceList,
   type VertexGearMap,
 } from "#r-machine/core";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
@@ -82,7 +77,7 @@ export class RMachine<
     this.junctureManager = new JunctureManager(resLayoutResolver, this.config.equipment, blueprintManager);
     this.gateWireManager = new GateWireManager(this.junctureManager);
 
-    this.warnExperimental();
+    // this.warnExperimental();
   }
 
   protected warnExperimental() {
@@ -148,27 +143,17 @@ export class RMachine<
     return this.gateWireManager.getWire(kit, nsDeps, locale, augmentCtx, vertexGearMap);
   }
 
-  async WIP_GET<DL extends HandleList<RA>>(kit: NamespaceMap<RA>, deps: DL, locale: L): Promise<SurfaceList<RA, DL>> {
-    const isList = isNamespaceList(deps as any);
-    let nsDeps: AnyNamespaceCollection;
-    if (isList) {
-      nsDeps = getNamespaceList(deps);
-    } else {
-      nsDeps = getNamespaceList(deps);
-    }
-
-    const result = await this.junctureManager.getPlugin(
-      kit,
-      nsDeps,
-      locale,
-      ($) => {
-        $.locale = locale;
-      },
-      [],
-      0,
-      undefined
-    );
-    return result as SurfaceList<RA, DL>;
+  // Single-shot plugin resolve. Unlike `getGateWire`, this does NOT subscribe
+  // to the JunctureManager and creates no persistent wire — intended for
+  // server-side / one-off resolution where reactivity is not needed.
+  resolvePlugin(
+    kit: AnyNamespaceMap,
+    nsDeps: AnyNamespaceCollection,
+    locale: AnyLocale,
+    augmentCtx: PluginCtxAugmenter,
+    vertexGearMap?: VertexGearMap | undefined
+  ): Promise<unknown> {
+    return this.junctureManager.getPlugin(kit, nsDeps, locale, augmentCtx, [], 0, vertexGearMap);
   }
 
   static create<

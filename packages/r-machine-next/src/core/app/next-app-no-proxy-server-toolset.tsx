@@ -40,11 +40,7 @@ interface routeHandlers {
 }
 
 export interface NextAppNoProxyServerImpl<L extends AnyLocale, LK extends string> extends NextAppServerImpl<L, LK> {
-  readonly createRouteHandlers: (
-    cookies: CookiesFn,
-    headers: HeadersFn,
-    setLocale: (newLocale: L) => Promise<void>
-  ) => routeHandlers | Promise<routeHandlers>;
+  readonly createRouteHandlers: (cookies: CookiesFn, headers: HeadersFn) => routeHandlers | Promise<routeHandlers>;
 }
 
 export async function createNextAppNoProxyServerToolset<
@@ -57,23 +53,22 @@ export async function createNextAppNoProxyServerToolset<
   LK extends string,
 >(
   rMachine: RMachine<RA, L, E, EF>,
+  serverKit: SKM,
   impl: NextAppNoProxyServerImpl<L, LK>,
   NextClientRMachine: NextAppClientRMachine<L>
 ): Promise<NextAppNoProxyServerToolset<RA, L, SKM, PA, LK>> {
   const { rMachineProxy: _rMachineProxy, ...otherTools } = await createNextAppServerToolset<RA, L, E, EF, SKM, PA, LK>(
     rMachine,
+    serverKit,
     impl,
     NextClientRMachine
   );
 
-  // Use dynamic import to bypass the "next/headers" import issue in pages/ directory
-  // You're importing a component that needs "next/headers". That only works in a Server Component which is not supported in the pages/ directory. Read more: https://nextjs.org/docs/app/building-your-application/rendering/server-components
-  // TODO: WP - UNCOMMENT
-  // const { cookies, headers } = await import("next/headers");
+  // Dynamic import to bypass the "next/headers" import issue in pages/ directory
+  // (next/headers only works in Server Components / App Router).
+  const { cookies, headers } = await import("next/headers");
 
-  // TODO: WP
-  // const routeHandlers = await impl.createRouteHandlers(cookies, headers, setLocale);
-  const routeHandlers: any = undefined!;
+  const routeHandlers = await impl.createRouteHandlers(cookies, headers);
 
   return {
     ...otherTools,

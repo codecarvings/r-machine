@@ -21,7 +21,7 @@ import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { localeHeaderName, type NextAppNoProxyServerImpl } from "#r-machine/next/core/app";
 import { ERR_FEATURE_REQUIRES_PROXY } from "#r-machine/next/errors";
-import { defaultPathMatcher, type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
+import { type CookiesFn, defaultPathMatcher, type HeadersFn, type NextProxyResult } from "#r-machine/next/internal";
 import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
 
 const sccPathHeaderName = "x-rm-sccpath"; // Static Canonical Content Path
@@ -53,40 +53,42 @@ export async function createNextAppPathServerImpl<
   const cookieSw = cookie !== "off";
   const { name: cookieName, ...cookieConfig } = cookieSw ? (cookie === "on" ? defaultCookieDeclaration : cookie) : {};
 
+  const writeLocale = async (locale: L, newLocale: L, cookies: CookiesFn, headers: HeadersFn) => {
+    if (newLocale === locale) {
+      return;
+    }
+
+    const headersStore = await headers();
+    const contentPath = headersStore.get(sccPathHeaderName);
+    let path: string;
+    if (contentPath !== null) {
+      // Use content path from header if available
+      path = pathTranslator.get(newLocale, contentPath).value;
+    } else {
+      // Fallback
+      path = pathTranslator.get(newLocale, "/").value;
+    }
+
+    if (cookieSw) {
+      try {
+        const cookieStore = await cookies();
+        // 3) Set cookie on write (required when implicitDefaultLocale is on - problem with double redirect on explicit path)
+        cookieStore.set(cookieName!, newLocale, cookieConfig);
+      } catch {
+        // SetLocale not invoked in a Server Action or Route Handler.
+        console.warn(
+          `[r-machine] Warning: Unable to set locale cookie '${cookieName}'. Make sure to call 'setLocale' from a Server Action or Route Handler.`
+        );
+      }
+    }
+    redirect(path);
+  };
+
   return {
     localeKey,
     autoLocaleBinding: autoLBSw,
 
-    async writeLocale(locale, newLocale, cookies, headers) {
-      if (newLocale === locale) {
-        return;
-      }
-
-      const headersStore = await headers();
-      const contentPath = headersStore.get(sccPathHeaderName);
-      let path: string;
-      if (contentPath !== null) {
-        // Use content path from header if available
-        path = pathTranslator.get(newLocale, contentPath).value;
-      } else {
-        // Fallback
-        path = pathTranslator.get(newLocale, "/").value;
-      }
-
-      if (cookieSw) {
-        try {
-          const cookieStore = await cookies();
-          // 3) Set cookie on write (required when implicitDefaultLocale is on - problem with double redirect on explicit path)
-          cookieStore.set(cookieName!, newLocale, cookieConfig);
-        } catch {
-          // SetLocale not invoked in a Server Action or Route Handler.
-          console.warn(
-            `[r-machine] Warning: Unable to set locale cookie '${cookieName}'. Make sure to call 'setLocale' from a Server Action or Route Handler.`
-          );
-        }
-      }
-      redirect(path);
-    },
+    writeLocale,
 
     createLocaleStaticParamsGenerator() {
       return async () =>
@@ -265,7 +267,7 @@ export async function createNextAppPathServerImpl<
       return proxy;
     },
 
-    createRouteHandlers(cookies, headers, setLocale) {
+    createRouteHandlers(cookies, headers) {
       function throwRequiredProxyError(details: string): never {
         throw new RMachineConfigError(
           ERR_FEATURE_REQUIRES_PROXY,
@@ -301,25 +303,18 @@ export async function createNextAppPathServerImpl<
       async function entranceGet() {
         const cookieLocale = await getLocaleFromCookie();
         if (cookieLocale !== undefined) {
-          await setLocale(cookieLocale);
+          await writeLocale(undefined!, cookieLocale, cookies, headers);
         }
 
         const headerStore = await headers();
         const acceptLanguageHeader = headerStore.get("accept-language");
         const detectedLocale = localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
-        await setLocale(detectedLocale);
+        await writeLocale(undefined!, detectedLocale, cookies, headers);
       }
 
       return { entrance: { GET: entranceGet } };
     },
 
-    createBoundPathComposerSupplier: (getLocale) => {
-      return async () => {
-        validateServerOnlyUsage("getPathComposer");
-        const locale = await getLocale();
-
-        return (path, params) => pathTranslator.get(locale, path, params).value;
-      };
-    },
+    createPathComposer: (locale) => (path, params) => pathTranslator.get(locale, path, params).value,
   } as NextAppNoProxyServerImpl<L, C["localeKey"]>;
 }

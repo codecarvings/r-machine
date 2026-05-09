@@ -102,6 +102,6 @@ export abstract class NextAppStrategyCore<
   ): Promise<NextAppServerToolset<RA, L, C["serverKit"], InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     const impl = await this.createServerImpl();
     const module = await import("./next-app-server-toolset.js");
-    return module.createNextAppServerToolset(this.rMachine, impl, NextClientRMachine);
+    return module.createNextAppServerToolset(this.rMachine, this.config.serverKit, impl, NextClientRMachine);
   }
 }

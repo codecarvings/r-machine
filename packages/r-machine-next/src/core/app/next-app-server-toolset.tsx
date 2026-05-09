@@ -13,8 +13,18 @@
 
 import { notFound } from "next/navigation";
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
-import { RMachineUsageError } from "r-machine/errors";
+import type {
+  AnyPlugHead,
+  AnyResAtlas,
+  ExperimentalFlags,
+  HandleList,
+  HandleMap,
+  NamespaceList,
+  PluginCtxAugmenter,
+  ResEquipment,
+} from "r-machine/core";
+import { createPlug, getNamespaceList, getNamespaceMap, getPlugOutline } from "r-machine/core";
+import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
 import type {
@@ -24,9 +34,10 @@ import type {
   NextServerPlugKitMap,
   RMachineProxy,
 } from "#r-machine/next/core";
-import { ERR_LOCALE_BIND_CONFLICT } from "#r-machine/next/errors";
+import { ERR_LOCALE_BIND_CONFLICT, ERR_LOCALE_UNDETERMINED } from "#r-machine/next/errors";
 import { type CookiesFn, type HeadersFn, validateServerOnlyUsage } from "#r-machine/next/internal";
 import type { NextAppClientRMachine } from "./next-app-client-toolset.js";
+import { localeHeaderName } from "./next-app-strategy-core.js";
 
 export interface NextAppServerToolset<
   RA extends AnyResAtlas,
@@ -41,8 +52,6 @@ export interface NextAppServerToolset<
   readonly bindLocale: BindLocale<L, LK>;
   readonly ServerPlug: NextServerPlugDefiner<RA, L, SKM, PA, LK>;
 }
-
-type BoundPathComposerSupplier<PA extends AnyPathAtlas> = () => Promise<BoundPathComposer<PA>>;
 
 type RMachineParams<LK extends string> = {
   [P in LK]: AnyLocale;
@@ -67,9 +76,7 @@ export interface NextAppServerImpl<L extends AnyLocale, LK extends string> {
     | LocaleStaticParamsGenerator<LK>
     | Promise<LocaleStaticParamsGenerator<LK>>;
   readonly createProxy: () => RMachineProxy | Promise<RMachineProxy>;
-  readonly createBoundPathComposerSupplier: (
-    getLocale: () => Promise<L>
-  ) => BoundPathComposerSupplier<AnyPathAtlas> | Promise<BoundPathComposerSupplier<AnyPathAtlas>>;
+  readonly createPathComposer: (locale: L) => BoundPathComposer<AnyPathAtlas>;
 }
 
 export type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
@@ -81,8 +88,7 @@ interface BindLocale<L extends AnyLocale, LK extends string> {
 
 interface NextAppServerRMachineContext<L extends AnyLocale> {
   value: L | null;
-  getSafeLocalePromise: Promise<L> | null;
-  getUnsafeLocalePromise: Promise<L | undefined> | null;
+  getLocalePromise: Promise<L> | null;
 }
 
 export async function createNextAppServerToolset<
@@ -95,22 +101,18 @@ export async function createNextAppServerToolset<
   LK extends string,
 >(
   rMachine: RMachine<RA, L, E, EF>,
+  serverKit: SKM,
   impl: NextAppServerImpl<L, LK>,
   NextClientRMachine: NextAppClientRMachine<L>
 ): Promise<NextAppServerToolset<RA, L, SKM, PA, LK>> {
-  // TODO: WP
-  const getLocale: any = undefined!;
-
   const localeKey = impl.localeKey as LK;
-  // TODO: WP - UNCOMMENT
-  // const { autoLocaleBinding } = impl;
+  const { autoLocaleBinding } = impl;
 
   const validateLocale = rMachine.localeHelper.validateLocale;
 
-  // Use dynamic import to bypass the "next/headers" import issue in pages/ directory
-  // You're importing a component that needs "next/headers". That only works in a Server Component which is not supported in the pages/ directory. Read more: https://nextjs.org/docs/app/building-your-application/rendering/server-components
-  // TODO: WP - UNCOMMENT
-  // const { cookies, headers } = await import("next/headers");
+  // Dynamic import to bypass the "next/headers" import issue in pages/ directory
+  // (next/headers only works in Server Components / App Router).
+  const { cookies, headers } = await import("next/headers");
 
   const rMachineProxy = await impl.createProxy();
   const generateLocaleStaticParams = await impl.createLocaleStaticParamsGenerator();
@@ -118,10 +120,42 @@ export async function createNextAppServerToolset<
   const getContext = cache((): NextAppServerRMachineContext<L> => {
     return {
       value: null,
-      getSafeLocalePromise: null,
-      getUnsafeLocalePromise: null,
+      getLocalePromise: null,
     };
   });
+
+  function getLocale(): L | Promise<L> {
+    const context = getContext();
+    if (context.value !== null) {
+      return context.value;
+    }
+
+    if (autoLocaleBinding) {
+      if (context.getLocalePromise !== null) {
+        return context.getLocalePromise;
+      }
+
+      context.getLocalePromise = headers().then((headersList) => {
+        context.getLocalePromise = null;
+
+        const locale = headersList.get(localeHeaderName);
+        if (locale === null) {
+          throw new RMachineUsageError(
+            ERR_LOCALE_UNDETERMINED,
+            "Cannot determine locale. Ensure that the RMachine proxy is properly configured and applied."
+          );
+        }
+        context.value = locale as L;
+        return locale as L;
+      });
+      return context.getLocalePromise;
+    } else {
+      throw new RMachineUsageError(
+        ERR_LOCALE_UNDETERMINED,
+        "Cannot determine locale. bindLocale function not invoked? (you must invoke bindLocale at the beginning of every page or layout component)."
+      );
+    }
+  }
 
   async function NextServerRMachine({ children }: NextAppServerRMachineProps) {
     validateServerOnlyUsage("NextServerRMachine");
@@ -172,112 +206,65 @@ export async function createNextAppServerToolset<
     }
   }
 
-  // TODO: WP
-  const ServerPlug: any = undefined!;
+  const ServerPlug = ((...args: unknown[]) => {
+    const outline = getPlugOutline<AnyResAtlas>(...args);
 
-  /*
+    const isList = outline.mode === "list";
+    const nsDeps = isList
+      ? getNamespaceList(outline.deps as HandleList<AnyResAtlas>)
+      : getNamespaceMap(outline.deps as HandleMap<AnyResAtlas>);
 
-  function getSafeLocale(): L | Promise<L> {
-    const context = getContext();
-    if (context.value !== null) {
-      return context.value;
-    }
+    const head = {
+      realm: "gate",
+      mode: outline.mode,
+      deps: outline.deps,
+      nsDeps,
+      nsDepList: isList ? [...(nsDeps as NamespaceList<AnyResAtlas>)] : Object.values(nsDeps),
+    };
 
-    if (autoLocaleBinding) {
-      if (context.getSafeLocalePromise !== null) {
-        return context.getSafeLocalePromise;
+    const body = createPlug(head as unknown as AnyPlugHead);
+
+    const use = async (firstArg?: unknown, bindLocaleFlag?: boolean): Promise<unknown> => {
+      validateServerOnlyUsage("ServerPlug.use");
+
+      let locale: L;
+      let resolvedParams: Record<string, unknown> | undefined;
+
+      if (firstArg === undefined) {
+        // Overload 1: use() — locale auto from getLocale
+        locale = await getLocale();
+      } else if (firstArg instanceof Promise) {
+        // Overload 2: use(params, bindLocale?)
+        resolvedParams = (await firstArg) as Record<string, unknown>;
+        const paramLocale = resolvedParams[localeKey] as AnyLocale;
+        locale = bindLocaleFlag ? (bindLocale(paramLocale) as L) : (paramLocale as L);
+      } else {
+        // Overload 3: use(locale, bindLocale?)
+        const explicitLocale = firstArg as AnyLocale;
+        locale = bindLocaleFlag ? (bindLocale(explicitLocale) as L) : (explicitLocale as L);
       }
 
-      context.getSafeLocalePromise = headers().then((headersList) => {
-        context.getSafeLocalePromise = null;
-
-        const locale = headersList.get(localeHeaderName);
-        if (locale === null) {
-          throw new RMachineUsageError(
-            ERR_LOCALE_UNDETERMINED,
-            "Cannot determine locale. Ensure that the RMachine proxy is properly configured and applied."
-          );
+      const augmentCtx: PluginCtxAugmenter = ($) => {
+        $.locale = locale;
+        $.getPath = impl.createPathComposer(locale);
+        $.setLocale = async (newLocale: L): Promise<void> => {
+          const error = validateLocale(newLocale);
+          if (error) {
+            throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot set invalid locale: "${newLocale}".`, error);
+          }
+          await impl.writeLocale(locale, newLocale, cookies, headers);
+        };
+        if (resolvedParams !== undefined) {
+          $.params = resolvedParams;
         }
-        context.value = locale as L;
-        return locale as L;
-      });
-      return context.getSafeLocalePromise;
-    } else {
-      throw new RMachineUsageError(
-        ERR_LOCALE_UNDETERMINED,
-        "Cannot determine locale. bindLocale function not invoked? (you must invoke bindLocale at the beginning of every page or layout component)."
-      );
-    }
-  }
+      };
 
-  function getUnsafeLocale(): L | undefined | Promise<L | undefined> {
-    const context = getContext();
-    if (context.value !== null) {
-      return context.value;
-    }
+      return await rMachine.resolvePlugin(serverKit, nsDeps, locale, augmentCtx);
+    };
 
-    if (autoLocaleBinding) {
-      if (context.getUnsafeLocalePromise !== null) {
-        return context.getUnsafeLocalePromise;
-      }
-
-      context.getUnsafeLocalePromise = headers().then((headersList) => {
-        context.getUnsafeLocalePromise = null;
-        return (headersList.get(localeHeaderName) || undefined) as L | undefined;
-      });
-      return context.getUnsafeLocalePromise;
-    } else {
-      return undefined;
-    }
-  }
-
-  function getLocale(): Promise<L> {
-    validateServerOnlyUsage("getLocale");
-
-    const localeOrPromise = getSafeLocale();
-    if (localeOrPromise instanceof Promise) {
-      return localeOrPromise;
-    } else {
-      return Promise.resolve(localeOrPromise);
-    }
-  }
-
-  async function setLocale(newLocale: L) {
-    validateServerOnlyUsage("setLocale");
-
-    const error = validateLocale(newLocale);
-    if (error) {
-      throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot set locale to invalid locale: "${newLocale}".`, error);
-    }
-
-    const locale = await getUnsafeLocale();
-    await impl.writeLocale(locale, newLocale, cookies, headers);
-  }
-
-  function pickR<N extends Namespace<RA>>(namespace: N): Promise<RA[N]> {
-    validateServerOnlyUsage("pickR");
-
-    const localeOrPromise = getSafeLocale();
-    if (localeOrPromise instanceof Promise) {
-      return localeOrPromise.then((locale) => rMachine.pickR(locale, namespace));
-    } else {
-      return rMachine.pickR(localeOrPromise, namespace);
-    }
-  }
-
-  function pickRKit<NL extends NamespaceList<RA>>(...namespaces: NL): Promise<RList<RA, NL>> {
-    validateServerOnlyUsage("pickRKit");
-
-    const localeOrPromise = getSafeLocale();
-    if (localeOrPromise instanceof Promise) {
-      return localeOrPromise.then((locale) => rMachine.pickRKit(locale, ...namespaces)) as Promise<RList<RA, NL>>;
-    } else {
-      return rMachine.pickRKit(localeOrPromise, ...namespaces) as Promise<RList<RA, NL>>;
-    }
-  }
-
-  const getPathComposer = await impl.createBoundPathComposerSupplier(getLocale);
-  */
+    (body as unknown as { use: typeof use }).use = use;
+    return body;
+  }) as NextServerPlugDefiner<RA, L, SKM, PA, LK>;
 
   return {
     rMachineProxy,

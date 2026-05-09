@@ -1,13 +1,18 @@
+import { getNamespaceList } from "r-machine/core";
 import { common2 } from "./r-machine/resource-atlas";
 import { rMachine } from "./r-machine/setup";
 
-const [config, com2, $] = await rMachine.WIP_GET(
-  {
-    fmt: "shell/lib/fmt",
-  },
-  ["base/config", common2],
-  "en"
-);
+const locale = "en";
+const result = (await rMachine.resolvePlugin(
+  { fmt: "shell/lib/fmt" },
+  getNamespaceList(["base/config", common2]),
+  locale,
+  ($) => {
+    $.locale = locale;
+  }
+)) as [unknown, unknown, unknown];
+
+const [config, com2, $] = result;
 console.log(config);
 console.log("----");
 console.log(com2);

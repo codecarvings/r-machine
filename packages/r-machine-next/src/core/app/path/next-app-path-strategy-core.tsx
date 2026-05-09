@@ -199,7 +199,7 @@ export abstract class NextAppPathStrategyCore<
     this.validateNoProxyConfig();
     const impl = await this.createServerImpl();
     const module = await import("../next-app-no-proxy-server-toolset.js");
-    return module.createNextAppNoProxyServerToolset(this.rMachine, impl, NextClientRMachine);
+    return module.createNextAppNoProxyServerToolset(this.rMachine, this.config.serverKit, impl, NextClientRMachine);
   }
 
   readonly hrefHelper: HrefHelper<L, InstanceType<C["PathAtlas"]>> = {

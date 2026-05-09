@@ -1,6 +1,6 @@
-import type { Shell_ExampleStatic } from "./en";
+import { localized } from "@/r-machine/setup";
 
-export const r: Shell_ExampleStatic = {
+export const r = localized("shell/example-static", {
   page1: {
     title: "Pagina Statica 1",
     description: "Questa pagina dimostra una route statica annidata a 2 livelli: /example-static/page-1",
@@ -11,4 +11,4 @@ export const r: Shell_ExampleStatic = {
     description: "Un'altra route statica annidata a 2 livelli: /example-static/page-2",
     feature: "Usa getPathComposer() per generare link locale-aware",
   },
-};
+});

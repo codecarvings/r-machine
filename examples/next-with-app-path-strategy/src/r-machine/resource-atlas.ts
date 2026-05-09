@@ -1,7 +1,4 @@
 import { defineLayout } from "r-machine";
-import type { Base_Config } from "./base/config";
-import type { Inner_DB } from "./inner/db";
-import type { Outer_ShoppingCart } from "./outer/shopping-cart";
 import type { Shell_Common } from "./shell/common/en";
 import type { Shell_ExampleDynamic } from "./shell/example-dynamic/en";
 import type { Shell_ExampleStatic } from "./shell/example-static/en";
@@ -11,7 +8,6 @@ import type { Shell_Features_IntlDemo } from "./shell/features/intl_demo/en";
 import type { Shell_LandingPage } from "./shell/landing-page/en";
 import type { Shell_Lib_Fmt } from "./shell/lib/fmt";
 import type { Shell_Navigation } from "./shell/navigation/en";
-import type { Vertex_Timer } from "./vertex/timer";
 
 const folders = defineLayout({
   "inner/": "gear:inner",
@@ -23,14 +19,6 @@ const folders = defineLayout({
 });
 
 type ResourceMap = {
-  "inner/db": Inner_DB;
-
-  "base/config": Base_Config;
-
-  "outer/shopping-cart": Outer_ShoppingCart;
-
-  "vertex/timer": Vertex_Timer;
-
   "shell/common": Shell_Common;
   "shell/navigation": Shell_Navigation;
   "shell/landing-page": Shell_LandingPage;
@@ -46,5 +34,4 @@ type ResourceMap = {
 export class ResourceAtlas extends folders<ResourceMap>() {}
 const token = ResourceAtlas.getTokenBuilder();
 
-export const cart = token("outer/shopping-cart");
 export const fmt = token("shell/lib/fmt");

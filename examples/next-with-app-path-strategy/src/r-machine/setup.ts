@@ -7,7 +7,7 @@ const rMachine = RMachine.create({
   ResourceAtlas,
   locales: ["en", "it"],
   defaultLocale: "en",
-  load: (path) => import(path),
+  load: (path) => import(`./${path}`),
   shellKit: {
     fmt: "shell/lib/fmt",
   },

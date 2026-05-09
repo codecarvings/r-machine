@@ -18,7 +18,7 @@ import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/cor
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
-import { type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
+import type { NextProxyResult } from "#r-machine/next/internal";
 import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core.js";
 
 const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
@@ -148,13 +148,6 @@ export async function createNextAppFlatServerImpl<
       return proxy;
     },
 
-    createBoundPathComposerSupplier: (getLocale) => {
-      return async () => {
-        validateServerOnlyUsage("getPathComposer");
-        const locale = await getLocale();
-
-        return (path, params) => pathTranslator.get(locale, path, params).value;
-      };
-    },
+    createPathComposer: (locale) => (path, params) => pathTranslator.get(locale, path, params).value,
   } as NextAppServerImpl<L, C["localeKey"]>;
 }

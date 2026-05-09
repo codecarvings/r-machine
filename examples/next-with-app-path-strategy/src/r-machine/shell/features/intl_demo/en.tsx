@@ -1,7 +1,7 @@
 import { type RShape, Shell } from "@/r-machine/setup";
 
-export const r = Shell.define(($) => {
-  const { date, number, currency, plural } = $.fmt;
+export const r = Shell.define(({ fmt }) => {
+  const { date, number, currency, plural } = fmt;
 
   return {
     sectionTitle: "Locale-Aware Formatting",
