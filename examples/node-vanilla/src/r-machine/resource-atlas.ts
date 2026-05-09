@@ -42,3 +42,4 @@ export class ResourceAtlas extends folders<ResourceMap>() {}
 const token = ResourceAtlas.getTokenBuilder();
 
 export const cart = token("outer/shopping-cart");
+export const common2 = token("shell/common2");

@@ -26,6 +26,7 @@ import {
   createOuterGearComposer,
   createShellComposer,
   type ExperimentalFlags,
+  type GateWire,
   GateWireManager,
   type GearPlugKitMap,
   getNamespaceList,
@@ -33,11 +34,13 @@ import {
   isNamespaceList,
   JunctureManager,
   type NamespaceMap,
+  type PluginCtxAugmenter,
   type ResComposerConnector,
   type ResEquipment,
   ResLayoutResolver,
   type ShellPlugKitMap,
   type SurfaceList,
+  type VertexGearMap,
 } from "#r-machine/core";
 import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
 import { LocaleHelper } from "#r-machine/locale";
@@ -135,11 +138,15 @@ export class RMachine<
     return { InnerGear, BaseGear, OuterGear, Shell, localized };
   }
 
-  /*
-  getGateWire(plugHead: AnyPlugHead, locale: L, vertexGearMap?: VertexGearMap | undefined): GateWire {
-    return this.gateWireManager.getWire("clientGate", plugHead.nsDeps, locale, vertexGearMap);
+  getGateWire(
+    kit: AnyNamespaceMap,
+    nsDeps: AnyNamespaceCollection,
+    locale: AnyLocale,
+    augmentCtx: PluginCtxAugmenter,
+    vertexGearMap?: VertexGearMap | undefined
+  ): GateWire {
+    return this.gateWireManager.getWire(kit, nsDeps, locale, augmentCtx, vertexGearMap);
   }
-  */
 
   async WIP_GET<DL extends HandleList<RA>>(kit: NamespaceMap<RA>, deps: DL, locale: L): Promise<SurfaceList<RA, DL>> {
     const isList = isNamespaceList(deps as any);

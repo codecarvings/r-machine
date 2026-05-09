@@ -109,6 +109,7 @@ function createGateWire(
     // TODO: WIP — concurrent-rendering tracking (next slice)
     startTracking: () => () => {},
 
+    // Update the wire's locale and/or vertexGearMap
     updateRequest: (newLocale: AnyLocale, newVertexGearMap?: VertexGearMap | undefined) => {
       const localeChanged = newLocale !== currentLocale;
       const vertexGearMapChanged = newVertexGearMap !== currentVertexGearMap;

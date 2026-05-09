@@ -18,11 +18,22 @@
 // - NEXT CLIENT TOOLSET
 
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
+import type {
+  AnyNamespaceMap,
+  AnyPlugHead,
+  AnyResAtlas,
+  ExperimentalFlags,
+  GateWire,
+  HandleList,
+  HandleMap,
+  ResEquipment,
+} from "r-machine/core";
+import { createPlug, getNamespaceList, getNamespaceMap, getPlugOutline, isNamespaceList } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
-import { createContext, useMemo } from "react";
+import { createContext, use, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { ERR_CONTEXT_NOT_FOUND } from "../errors/error-codes.js";
 import type { ReactPlugDefiner, ReactPlugKitMap } from "./react-plug.js";
 import { useVertexFrame, VertexFrame } from "./vertex-frame.js";
 
@@ -71,7 +82,6 @@ export async function createReactBareToolset<
   const Context = createContext<ReactBareToolsetContext<L> | null>(null);
   Context.displayName = "ReactBareToolsetContext";
 
-  /*
   function useReactToolsetContext(): ReactBareToolsetContext<L> {
     const context = useContext(Context);
     if (context === null) {
@@ -80,7 +90,10 @@ export async function createReactBareToolset<
 
     return context;
   }
-  */
+
+  const stubSetLocale = async (_: L): Promise<void> => {
+    throw new Error("setLocale is not yet implemented in the React Plug context.");
+  };
 
   function ReactRMachine({ locale, writeLocale, children }: ReactBareRMachineProps<L>) {
     const value = useMemo<ReactBareToolsetContext<L>>(() => {
@@ -107,17 +120,53 @@ export async function createReactBareToolset<
     return locale as L | undefined;
   };
 
-  // TODO: WP
-  const Plug: any = (...args: any[]) => {
-    return {
-      use: () => {
-        // biome-ignore lint/correctness/useHookAtTopLevel: Intentional - This is a plug, not a React component
-        const frame = useVertexFrame();
-        console.log("Plug used with frame:", frame);
-        console.log("Plug args:", args);
-      },
+  const Plug = ((...args: unknown[]) => {
+    const outline = getPlugOutline<AnyResAtlas>(...args);
+
+    const isList = outline.mode === "list";
+    const nsDeps = isList
+      ? getNamespaceList(outline.deps as HandleList<AnyResAtlas>)
+      : getNamespaceMap(outline.deps as HandleMap<AnyResAtlas>);
+
+    const head = {
+      realm: "gate" as const,
+      mode: outline.mode,
+      deps: outline.deps,
+      nsDeps,
+      nsDepList: isNamespaceList(nsDeps) ? [...nsDeps] : Object.values(nsDeps),
     };
-  };
+
+    const body = createPlug(head as unknown as AnyPlugHead);
+
+    const usePlug = () => {
+      const ctx = useReactToolsetContext();
+      const vertexGearMap = useVertexFrame();
+      const locale = ctx.locale;
+
+      const augmentCtx = useMemo(
+        () => ($: any) => {
+          $.locale = locale;
+          $.setLocale = stubSetLocale;
+        },
+        [locale]
+      );
+
+      const [wire] = useState<GateWire>(() =>
+        rMachine.getGateWire({} as AnyNamespaceMap, nsDeps, locale, augmentCtx, vertexGearMap)
+      );
+
+      useEffect(() => {
+        wire.updateRequest(locale, vertexGearMap);
+      });
+
+      const pluginPromise = useSyncExternalStore(wire.subscribe, wire.getPluginPromise, wire.getPluginPromise);
+
+      return use(pluginPromise) as never;
+    };
+
+    (body as unknown as { use: typeof usePlug }).use = usePlug;
+    return body;
+  }) as ReactPlugDefiner<RA, L, KM>;
 
   /*
   function useLocale(): L {

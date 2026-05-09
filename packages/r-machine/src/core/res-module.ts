@@ -28,7 +28,7 @@ export interface ResModuleLoaderFnOptions {
   readonly onUpdate: () => void;
 }
 
-export type ResModuleLoaderFn = (path: string, options?: ResModuleLoaderFnOptions) => Promise<AnyResModule>;
+export type ResModuleLoaderFn = (path: string, options: ResModuleLoaderFnOptions) => Promise<AnyResModule>;
 
 export function validateResModule(input: unknown): RMachineResolveError | null {
   if (typeof input !== "object" || input === null) {
