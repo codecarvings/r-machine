@@ -69,7 +69,8 @@ export async function createNextAppClientToolset<
   PA extends AnyPathAtlas,
 >(rMachine: RMachine<RA, L, E, EF>, impl: NextAppClientImpl<L>): Promise<NextAppClientToolset<RA, L, EF, CKM, PA>> {
   const { ReactRMachine, VertexFrame } = await createReactBareToolset(
-    rMachine as RMachine<RA, L, E, { outerGear: "on" }>
+    rMachine as RMachine<RA, L, E, { outerGear: "on" }>,
+    {}
   );
 
   // TODO: WP

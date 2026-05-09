@@ -1,11 +1,11 @@
 import { ReactRMachine } from "@/r-machine/toolset";
 import ContentLoading from "./components/client/ContentLoading";
-import WipLandingPage from "./WIPLandingPage";
+import LandingPage from "./LandingPage";
 
 export default function App() {
   return (
     <ReactRMachine fallback={<ContentLoading />}>
-      <WipLandingPage />
+      <LandingPage />
     </ReactRMachine>
   );
 }

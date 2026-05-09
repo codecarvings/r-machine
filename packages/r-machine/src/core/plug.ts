@@ -135,11 +135,12 @@ interface ListPlugOutline<RA extends AnyResAtlas> {
   deps: HandleList<RA>;
 }
 
+const emptyMap = {};
 export function getPlugOutline<RA extends AnyResAtlas>(...args: unknown[]): MapPlugOutline<RA> | ListPlugOutline<RA> {
   if (args.length === 0) {
     return {
       mode: "map",
-      deps: {} as HandleMap<RA>,
+      deps: emptyMap as HandleMap<RA>,
     };
   }
   if (args.length === 1 && !isHandle(args[0])) {

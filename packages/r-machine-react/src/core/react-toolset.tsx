@@ -14,7 +14,7 @@
 import type { RMachine } from "r-machine";
 import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
-import { createContext, type ReactNode, use, useMemo, useState } from "react";
+import { createContext, type ReactNode, use, useCallback, useMemo, useState } from "react";
 import { DelayedSuspense, type SuspenseComponent } from "#r-machine/react/utils";
 import { createReactBareToolset, type ReactBareToolset } from "./react-bare-toolset.js";
 import type { ReactPlugKitMap } from "./react-plug.js";
@@ -54,49 +54,14 @@ export async function createReactToolset<
   E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
   KM extends ReactPlugKitMap<RA>,
->(rMachine: RMachine<RA, L, E, EF>, impl: ReactImpl<L>): Promise<ReactToolset<RA, L, EF, KM>> {
+>(rMachine: RMachine<RA, L, E, EF>, kit: KM, impl: ReactImpl<L>): Promise<ReactToolset<RA, L, EF, KM>> {
   const { ReactRMachine: OriginalReactRMachine, ...otherTools } = await createReactBareToolset<RA, L, E, EF, KM>(
-    rMachine
+    rMachine,
+    kit
   );
 
   const Context = createContext<ReactToolsetContext<L> | null>(null);
   Context.displayName = "ReactToolsetContext";
-
-  // TODO: WP
-  /*
-  function useReactToolsetContext(): ReactToolsetContext<L> {
-    const context = useContext(Context);
-    if (context === null) {
-      throw new RMachineUsageError(ERR_CONTEXT_NOT_FOUND, "ReactToolsetContext not found.");
-    }
-
-    return context;
-  }
-
-  async function setLocale(newLocale: L, context: ReactToolsetContext<L>) {
-    const [locale, setLocaleContext] = context;
-    if (newLocale === locale) {
-      return;
-    }
-
-    const error = rMachine.localeHelper.validateLocale(newLocale);
-    if (error) {
-      throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot set invalid locale: "${newLocale}".`, error);
-    }
-
-    setLocaleContext(newLocale);
-    const writeLocaleResult = impl.writeLocale(newLocale);
-    if (writeLocaleResult instanceof Promise) {
-      await writeLocaleResult;
-    }
-  }
-
-  function useSetLocale(): ReturnType<ReactBareToolset<RA, L, KA>["useSetLocale"]> {
-    const context = useReactToolsetContext();
-
-    return (newLocale: L) => setLocale(newLocale, context);
-  }
-  */
 
   function InternalReactRMachine({
     initialLocaleOrPromise,
@@ -108,11 +73,19 @@ export async function createReactToolset<
     const initialLocale =
       initialLocaleOrPromise instanceof Promise ? use(initialLocaleOrPromise) : initialLocaleOrPromise;
     const context = useState(initialLocale);
+    const [locale, setLocaleContext] = context;
+
+    const writeLocale = useCallback((newLocale: L) => {
+      setLocaleContext(newLocale);
+      return impl.writeLocale(newLocale);
+    }, []);
 
     // Suspense is already handled in the outer component
     return (
       <Context.Provider value={context}>
-        <OriginalReactRMachine locale={context[0]}>{children}</OriginalReactRMachine>
+        <OriginalReactRMachine locale={locale} writeLocale={writeLocale}>
+          {children}
+        </OriginalReactRMachine>
       </Context.Provider>
     );
   }

@@ -19,26 +19,25 @@
 
 import type { RMachine } from "r-machine";
 import type {
-  AnyNamespaceMap,
   AnyPlugHead,
   AnyResAtlas,
   ExperimentalFlags,
   GateWire,
   HandleList,
   HandleMap,
+  NamespaceList,
+  PluginCtxAugmenter,
   ResEquipment,
 } from "r-machine/core";
-import { createPlug, getNamespaceList, getNamespaceMap, getPlugOutline, isNamespaceList } from "r-machine/core";
+import { createPlug, getNamespaceList, getNamespaceMap, getPlugOutline } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
-import { createContext, use, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { ERR_CONTEXT_NOT_FOUND } from "../errors/error-codes.js";
+import { createContext, use, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "../errors/error-codes.js";
 import type { ReactPlugDefiner, ReactPlugKitMap } from "./react-plug.js";
 import { useVertexFrame, VertexFrame } from "./vertex-frame.js";
 
-// TODO: WP
-// type SetLocale<L extends AnyLocale> = (newLocale: L) => Promise<void>;
 type WriteLocale<L extends AnyLocale> = (newLocale: L) => void | Promise<void>;
 
 export type ReactBareToolset<
@@ -76,7 +75,7 @@ export async function createReactBareToolset<
   E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
   KM extends ReactPlugKitMap<RA>,
->(rMachine: RMachine<RA, L, E, EF>): Promise<ReactBareToolset<RA, L, EF, KM>> {
+>(rMachine: RMachine<RA, L, E, EF>, kit: KM): Promise<ReactBareToolset<RA, L, EF, KM>> {
   const validateLocale = rMachine.localeHelper.validateLocale;
 
   const Context = createContext<ReactBareToolsetContext<L> | null>(null);
@@ -90,10 +89,6 @@ export async function createReactBareToolset<
 
     return context;
   }
-
-  const stubSetLocale = async (_: L): Promise<void> => {
-    throw new Error("setLocale is not yet implemented in the React Plug context.");
-  };
 
   function ReactRMachine({ locale, writeLocale, children }: ReactBareRMachineProps<L>) {
     const value = useMemo<ReactBareToolsetContext<L>>(() => {
@@ -129,11 +124,11 @@ export async function createReactBareToolset<
       : getNamespaceMap(outline.deps as HandleMap<AnyResAtlas>);
 
     const head = {
-      realm: "gate" as const,
+      realm: "gate",
       mode: outline.mode,
       deps: outline.deps,
       nsDeps,
-      nsDepList: isNamespaceList(nsDeps) ? [...nsDeps] : Object.values(nsDeps),
+      nsDepList: isList ? [...(nsDeps as NamespaceList<AnyResAtlas>)] : Object.values(nsDeps),
     };
 
     const body = createPlug(head as unknown as AnyPlugHead);
@@ -143,17 +138,38 @@ export async function createReactBareToolset<
       const vertexGearMap = useVertexFrame();
       const locale = ctx.locale;
 
-      const augmentCtx = useMemo(
-        () => ($: any) => {
-          $.locale = locale;
-          $.setLocale = stubSetLocale;
-        },
-        [locale]
-      );
+      // Mutable ref kept fresh on every render. augmentCtx closes over this
+      // ref instead of locale/writeLocale so it can stay identity-stable for
+      // the entire lifetime of the wire while still seeing fresh values on
+      // every reresolve.
+      const ctxRef = useRef(ctx);
+      ctxRef.current = ctx;
 
-      const [wire] = useState<GateWire>(() =>
-        rMachine.getGateWire({} as AnyNamespaceMap, nsDeps, locale, augmentCtx, vertexGearMap)
-      );
+      const [augmentCtx] = useState<PluginCtxAugmenter>(() => ($: any) => {
+        const { locale: currentLocale, writeLocale } = ctxRef.current;
+        $.locale = currentLocale;
+        $.setLocale = async (newLocale: L) => {
+          if (newLocale === currentLocale) {
+            return;
+          }
+          const error = validateLocale(newLocale);
+          if (error) {
+            throw error;
+          }
+          if (writeLocale === undefined) {
+            throw new RMachineUsageError(
+              ERR_MISSING_WRITE_LOCALE,
+              "No writeLocale function provided to <ReactRMachine>."
+            );
+          }
+          const result = writeLocale(newLocale);
+          if (result instanceof Promise) {
+            await result;
+          }
+        };
+      });
+
+      const [wire] = useState<GateWire>(() => rMachine.getGateWire(kit, nsDeps, locale, augmentCtx, vertexGearMap));
 
       useEffect(() => {
         wire.updateRequest(locale, vertexGearMap);
@@ -167,60 +183,6 @@ export async function createReactBareToolset<
     (body as unknown as { use: typeof usePlug }).use = usePlug;
     return body;
   }) as ReactPlugDefiner<RA, L, KM>;
-
-  /*
-  function useLocale(): L {
-    return useReactToolsetContext().locale;
-  }
-
-  async function setLocale(newLocale: L, context: ReactBareToolsetContext<L>) {
-    const { locale, writeLocale } = context;
-    if (newLocale === locale) {
-      return;
-    }
-
-    const error = validateLocale(newLocale);
-    if (error) {
-      throw error;
-    }
-
-    if (writeLocale === undefined) {
-      throw new RMachineUsageError(ERR_MISSING_WRITE_LOCALE, "No writeLocale function provided to <ReactRMachine>.");
-    }
-
-    const writeLocaleResult = writeLocale(newLocale);
-    if (writeLocaleResult instanceof Promise) {
-      await writeLocaleResult;
-    }
-  }
-
-  function useSetLocale(): SetLocale<L> {
-    const context = useReactToolsetContext();
-    return useCallback<SetLocale<L>>((newLocale: L) => setLocale(newLocale, context), [context]);
-  }
-
-  const hybridPickR: (typeof rMachine)["hybridPickR"] = (rMachine as any).hybridPickR;
-  function useR<N extends Namespace<RA>>(namespace: N): RA[N] {
-    const context = useReactToolsetContext();
-    const r = hybridPickR(context.locale, namespace);
-
-    if (r instanceof Promise) {
-      throw r;
-    }
-    return r;
-  }
-
-  const hybridPickRKit: (typeof rMachine)["hybridPickRKit"] = (rMachine as any).hybridPickRKit;
-  function useRKit<NL extends NamespaceList<RA>>(...namespaces: NL): RList<RA, NL> {
-    const context = useReactToolsetContext();
-    const rList = hybridPickRKit(context.locale, ...namespaces);
-
-    if (rList instanceof Promise) {
-      throw rList;
-    }
-    return rList as RList<RA, NL>;
-  }
-  */
 
   return {
     ReactRMachine,

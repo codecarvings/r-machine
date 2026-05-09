@@ -23,7 +23,7 @@ const rMachine = RMachine.create({
   ResourceAtlas,
   locales: ["en", "it"],
   defaultLocale: "en",
-  load: (path, options) => {
+  load: async (path, options) => {
     const modulePathTsx = `./${path}.tsx`;
     const modulePathTs = `./${path}.ts`;
     const resolvedPath = moduleLoaders[modulePathTsx]

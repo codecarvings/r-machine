@@ -43,6 +43,6 @@ export abstract class ReactStrategyCore<
 
   async createToolset(): Promise<ReactToolset<RA, L, EF, C["kit"]>> {
     const impl = await this.createImpl();
-    return await createReactToolset<RA, L, E, EF, C["kit"]>(this.rMachine, impl);
+    return await createReactToolset<RA, L, E, EF, C["kit"]>(this.rMachine, this.config.kit, impl);
   }
 }

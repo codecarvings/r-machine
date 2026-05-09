@@ -8,7 +8,7 @@ import Hero from "./components/client/Hero";
 import IntlDemo from "./components/client/IntlDemo";
 import { Plug } from "./r-machine/toolset";
 
-export const plug = Plug("shell/landing-page", "shell/features/box_1_2", "shell/common", "vertex/shopping-cart");
+export const plug = Plug("shell/landing-page", "shell/features/box_1_2", "shell/common");
 export default function LandingPage() {
   const [page, boxes, common] = plug.use();
 
