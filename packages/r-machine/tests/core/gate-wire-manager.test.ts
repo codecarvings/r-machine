@@ -97,14 +97,19 @@ const noopAugmentCtx: PluginCtxAugmenter = ($) => $;
 // --- tests -------------------------------------------------------------------
 
 describe("GateWireManager — setup", () => {
-  it("getPlugin is called once with the wire's setup state at creation", async () => {
+  it("getPlugin is not called at creation (lazy resolve), but on first getPluginPromise read with the wire's setup state", async () => {
     const mock = createMockJm();
     const gwm = new GateWireManager(mock.jm);
     const kit = { foo: "g/foo" } as AnyNamespaceMap;
     const nsDeps = ["g/A", "g/B"];
     const vgm: VertexGearMap = { "v/V": 7 };
 
-    gwm.getWire(kit, nsDeps, "en-US", noopAugmentCtx, vgm);
+    const wire = gwm.getWire(kit, nsDeps, "en-US", noopAugmentCtx, vgm);
+
+    // No resolve until someone reads the promise.
+    expect(mock.getPluginCalls).toHaveLength(0);
+
+    wire.getPluginPromise();
 
     expect(mock.getPluginCalls).toHaveLength(1);
     expect(mock.getPluginCalls[0]).toMatchObject({
@@ -133,10 +138,16 @@ describe("GateWireManager — setup", () => {
 });
 
 describe("GateWireManager — top-level subscription", () => {
-  it("subscribes to top-level namespaces of a list nsDeps", () => {
+  it("does not subscribe to JM at creation (lazy), only on first external subscriber", () => {
     const mock = createMockJm();
     const gwm = new GateWireManager(mock.jm);
-    gwm.getWire({}, ["g/A", "g/B"], "en-US", noopAugmentCtx);
+    const wire = gwm.getWire({}, ["g/A", "g/B"], "en-US", noopAugmentCtx);
+
+    // No JM subscription before someone subscribes to the wire.
+    expect(mock.subscribersByNs.has("g/A")).toBe(false);
+    expect(mock.subscribersByNs.has("g/B")).toBe(false);
+
+    wire.subscribe(() => {});
 
     expect(mock.subscribersByNs.has("g/A")).toBe(true);
     expect(mock.subscribersByNs.has("g/B")).toBe(true);
@@ -145,7 +156,8 @@ describe("GateWireManager — top-level subscription", () => {
   it("subscribes to top-level namespaces of a map nsDeps (the values)", () => {
     const mock = createMockJm();
     const gwm = new GateWireManager(mock.jm);
-    gwm.getWire({}, { x: "g/X", y: "g/Y" }, "en-US", noopAugmentCtx);
+    const wire = gwm.getWire({}, { x: "g/X", y: "g/Y" }, "en-US", noopAugmentCtx);
+    wire.subscribe(() => {});
 
     expect(mock.subscribersByNs.has("g/X")).toBe(true);
     expect(mock.subscribersByNs.has("g/Y")).toBe(true);
@@ -157,8 +169,10 @@ describe("GateWireManager — α (lazy reresolve on notify)", () => {
     const mock = createMockJm();
     const gwm = new GateWireManager(mock.jm);
     const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    // Subscribe to ensure the wire subscribes to the JM (lazy).
+    wire.subscribe(() => {});
     const p1 = wire.getPluginPromise();
-    expect(mock.getPluginCalls).toHaveLength(1); // setup-only
+    expect(mock.getPluginCalls).toHaveLength(1); // first read triggers resolve
 
     // JM-side cascade reaches subscribers of "g/A".
     mock.triggerNotify("g/A");
@@ -228,6 +242,8 @@ describe("GateWireManager — subscribe / dispose", () => {
     const mock = createMockJm();
     const gwm = new GateWireManager(mock.jm);
     const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    // Force a resolve so we can capture the wire's genId.
+    wire.getPluginPromise();
     const genId = mock.getPluginCalls[0].genId;
 
     const cb1 = vi.fn();
@@ -253,57 +269,77 @@ describe("GateWireManager — updateRequest", () => {
     const gwm = new GateWireManager(mock.jm);
     const vgm: VertexGearMap = {};
     const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx, vgm);
+    // Force initial resolve so we can detect any further reresolve.
+    wire.getPluginPromise();
     const callsBefore = mock.getPluginCalls.length;
 
     wire.updateRequest("en-US", vgm);
+    // Reading after no-op update: still cached, no new resolve.
+    wire.getPluginPromise();
 
     expect(mock.getPluginCalls).toHaveLength(callsBefore); // no reresolve
     expect(mock.disposeOwnershipCalls).toEqual([]);
   });
 
-  it("on locale change, reresolves with the new locale and notifies subscribers (no vertex dispose)", () => {
+  it("on locale change, marks dirty and reresolves with the new locale on next read; subscribers notified (no vertex dispose)", () => {
     const mock = createMockJm();
     const gwm = new GateWireManager(mock.jm);
     const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
     const cb = vi.fn();
     wire.subscribe(cb);
+    // Initial resolve.
+    wire.getPluginPromise();
+    expect(mock.getPluginCalls).toHaveLength(1);
 
     wire.updateRequest("it-IT", undefined);
 
-    // Reresolved with new locale.
-    expect(mock.getPluginCalls).toHaveLength(2);
-    expect(mock.getPluginCalls[1].locale).toBe("it-IT");
+    // Lazy: no reresolve yet.
+    expect(mock.getPluginCalls).toHaveLength(1);
+    // React subscribers notified synchronously.
+    expect(cb).toHaveBeenCalledOnce();
     // No vertex dispose for a pure locale change.
     expect(mock.disposeOwnershipCalls).toEqual([]);
-    // React subscribers notified.
-    expect(cb).toHaveBeenCalledOnce();
+
+    // Next read triggers reresolve with the new locale.
+    wire.getPluginPromise();
+    expect(mock.getPluginCalls).toHaveLength(2);
+    expect(mock.getPluginCalls[1].locale).toBe("it-IT");
   });
 
-  it("on vertexGearMap change, disposes ownership-changed vertex BEFORE reresolving", () => {
+  it("on vertexGearMap change, disposes ownership-changed vertex; reresolve carries new vgm on next read", () => {
     const mock = createMockJm();
     const gwm = new GateWireManager(mock.jm);
     const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx, undefined);
+    // Initial resolve to capture the wire's genId.
+    wire.getPluginPromise();
     const genId = mock.getPluginCalls[0].genId;
 
     const newVgm: VertexGearMap = { "v/V": 999 };
     wire.updateRequest("en-US", newVgm);
 
-    // Ownership-change dispose fired with new vgm and the wire's genId.
+    // Ownership-change dispose fired immediately with new vgm and the wire's genId.
     expect(mock.disposeOwnershipCalls).toEqual([{ genId, vgm: newVgm }]);
-    // Reresolve carries the new vgm.
+
+    // Reresolve happens lazily on next read, with the new vgm.
+    wire.getPluginPromise();
     expect(mock.getPluginCalls).toHaveLength(2);
     expect(mock.getPluginCalls[1].vertexGearMap).toBe(newVgm);
   });
 
-  it("on combined locale + vertexGearMap change, both side effects fire", () => {
+  it("on combined locale + vertexGearMap change, both side effects fire and next read reresolves", () => {
     const mock = createMockJm();
     const gwm = new GateWireManager(mock.jm);
     const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx, undefined);
+    wire.getPluginPromise();
     const newVgm: VertexGearMap = { "v/V": 1 };
 
     wire.updateRequest("it-IT", newVgm);
 
+    // Vertex-ownership dispose fired immediately.
     expect(mock.disposeOwnershipCalls).toHaveLength(1);
+
+    // Reresolve happens lazily.
+    wire.getPluginPromise();
     expect(mock.getPluginCalls).toHaveLength(2);
     expect(mock.getPluginCalls[1].locale).toBe("it-IT");
     expect(mock.getPluginCalls[1].vertexGearMap).toBe(newVgm);
@@ -314,9 +350,13 @@ describe("GateWireManager — genId allocation", () => {
   it("each new wire gets a fresh, monotonically increasing genId", () => {
     const mock = createMockJm();
     const gwm = new GateWireManager(mock.jm);
-    gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
-    gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
-    gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const w1 = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const w2 = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const w3 = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    // Force resolves to capture genIds via the JM mock.
+    w1.getPluginPromise();
+    w2.getPluginPromise();
+    w3.getPluginPromise();
 
     const genIds = mock.getPluginCalls.map((c) => c.genId);
     expect(new Set(genIds).size).toBe(3);
