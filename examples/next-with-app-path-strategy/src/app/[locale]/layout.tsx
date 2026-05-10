@@ -1,5 +1,6 @@
 import "../globals.css";
 import { DelayedSuspense } from "@r-machine/react/utils";
+import type { Metadata } from "next";
 import ContentLoading from "@/components/server/content-loading";
 import Footer from "@/components/server/footer";
 import Header from "@/components/server/header";
@@ -9,19 +10,16 @@ import { generateLocaleStaticParams, NextServerRMachine, ServerPlug } from "@/r-
 export const generateStaticParams = generateLocaleStaticParams;
 export const dynamicParams = false;
 
-/*
-// ----- SKIP THIS PART ----
 // Generate dynamic metadata based on the locale
 export const metaPlug = ServerPlug("shell/common");
 export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Promise<Metadata> {
-  const { locale } = await bindLocale(params);
-  const [common, $] = await metaPlug.useR(params, false);
+  // biome-ignore lint/correctness/useHookAtTopLevel: This is not a Hook
+  const [common] = await metaPlug.useUnboundR(params);
 
   return {
-    title: common.title(locale),
+    title: common.title,
   };
 }
-*/
 
 export const pagePlug = ServerPlug("shell/common");
 export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {

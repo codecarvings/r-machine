@@ -49,11 +49,10 @@ interface NextServerMapPlug<
   LK extends string,
 > extends PlugBody<NextMapPlugHead<RA, L, KM, DM, NextPluginCtx<RA, L, KM, PA>>> {
   useR(): Promise<NextMapPlugin<RA, L, KM, DM, PA>>;
-  useR<P extends RMachineParams<LK>>(
-    params: Promise<P>,
-    bindLocale?: boolean
-  ): Promise<NextParamsMapPlugin<RA, L, KM, DM, PA, P>>;
-  useR(locale: AnyLocale, bindLocale?: boolean): Promise<NextMapPlugin<RA, L, KM, DM, PA>>;
+  useR<P extends RMachineParams<LK>>(params: Promise<P>): Promise<NextParamsMapPlugin<RA, L, KM, DM, PA, P>>;
+  useR(locale: AnyLocale): Promise<NextMapPlugin<RA, L, KM, DM, PA>>; // Do not use L as locale type here, to allow more flexible locale handling
+  useUnboundR<P extends RMachineParams<LK>>(params: Promise<P>): Promise<NextParamsMapPlugin<RA, L, KM, DM, PA, P>>;
+  useUnboundR(locale: AnyLocale): Promise<NextMapPlugin<RA, L, KM, DM, PA>>; // Do not use L as locale type here, to allow more flexible locale handling
 }
 
 interface NextServerListPlug<
@@ -65,11 +64,10 @@ interface NextServerListPlug<
   LK extends string,
 > extends PlugBody<NextListPlugHead<RA, L, KM, DL, NextPluginCtx<RA, L, KM, PA>>> {
   useR(): Promise<NextListPlugin<RA, L, KM, DL, PA>>;
-  useR<P extends RMachineParams<LK>>(
-    params: Promise<P>,
-    bindLocale?: boolean
-  ): Promise<NextParamsListPlugin<RA, L, KM, DL, PA, P>>;
-  useR(params: AnyLocale, bindLocale?: boolean): Promise<NextListPlugin<RA, L, KM, DL, PA>>;
+  useR<P extends RMachineParams<LK>>(params: Promise<P>): Promise<NextParamsListPlugin<RA, L, KM, DL, PA, P>>;
+  useR(locale: AnyLocale): Promise<NextListPlugin<RA, L, KM, DL, PA>>; // Do not use L as locale type here, to allow more flexible locale handling
+  useUnboundR<P extends RMachineParams<LK>>(params: Promise<P>): Promise<NextParamsListPlugin<RA, L, KM, DL, PA, P>>;
+  useUnboundR(locale: AnyLocale): Promise<NextListPlugin<RA, L, KM, DL, PA>>; // Do not use L as locale type here, to allow more flexible locale handling
 }
 
 export interface NextServerPlugDefiner<

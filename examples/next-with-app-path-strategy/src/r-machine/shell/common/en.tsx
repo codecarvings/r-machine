@@ -1,7 +1,7 @@
-import type { RShape } from "@/r-machine/setup";
+import { type RShape, Shell } from "@/r-machine/setup";
 
-export const r = {
-  title: (locale: string) => `[${locale}] - R-Machine ⧹ Examples ⧹ Next App ⧹ Path Strategy`,
+export const r = Shell.define(({ $ }) => ({
+  title: `[${$.locale}] - R-Machine ⧹ Examples ⧹ Next App ⧹ Path Strategy`,
   footer: {
     message: (
       <>
@@ -12,6 +12,6 @@ export const r = {
       </>
     ),
   },
-};
+}));
 
 export type Shell_Common = RShape<typeof r>;

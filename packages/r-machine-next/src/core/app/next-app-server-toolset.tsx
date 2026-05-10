@@ -49,7 +49,6 @@ export interface NextAppServerToolset<
   readonly rMachineProxy: RMachineProxy;
   readonly NextServerRMachine: NextAppServerRMachine;
   readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
-  readonly bindLocale: BindLocale<L, LK>;
   readonly ServerPlug: NextServerPlugDefiner<RA, L, SKM, PA, LK>;
 }
 
@@ -80,11 +79,6 @@ export interface NextAppServerImpl<L extends AnyLocale, LK extends string> {
 }
 
 export type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
-
-interface BindLocale<L extends AnyLocale, LK extends string> {
-  <P extends RMachineParams<LK>>(params: Promise<P>): Promise<P>;
-  (locale: AnyLocale): L;
-}
 
 interface NextAppServerRMachineContext<L extends AnyLocale> {
   value: L | null;
@@ -152,7 +146,7 @@ export async function createNextAppServerToolset<
     } else {
       throw new RMachineUsageError(
         ERR_LOCALE_UNDETERMINED,
-        "Cannot determine locale. bindLocale function not invoked? (you must invoke bindLocale at the beginning of every page or layout component)."
+        "Cannot determine locale. ServerPlug.useR(locale | params) not invoked? (you must invoke ServerPlug.useR with a locale or route params at the beginning of every page or layout component)."
       );
     }
   }
@@ -164,8 +158,6 @@ export async function createNextAppServerToolset<
 
   const localeCache = new Map<AnyLocale, L>();
   function bindLocale(locale: AnyLocale | Promise<RMachineParams<LK>>) {
-    validateServerOnlyUsage("bindLocale");
-
     function syncBindLocale(localeOption: AnyLocale): L {
       let locale = localeCache.get(localeOption);
       if (locale === undefined) {
@@ -224,26 +216,7 @@ export async function createNextAppServerToolset<
 
     const body = createPlug(head as unknown as AnyPlugHead);
 
-    const useR = async (firstArg?: unknown, bindLocaleFlag?: boolean): Promise<unknown> => {
-      validateServerOnlyUsage("ServerPlug.useR");
-
-      let locale: L;
-      let resolvedParams: Record<string, unknown> | undefined;
-
-      if (firstArg === undefined) {
-        // Overload 1: use() — locale auto from getLocale
-        locale = await getLocale();
-      } else if (firstArg instanceof Promise) {
-        // Overload 2: use(params, bindLocale?) — defaults to bindLocale=true.
-        resolvedParams = (await firstArg) as Record<string, unknown>;
-        const paramLocale = resolvedParams[localeKey] as AnyLocale;
-        locale = bindLocaleFlag === false ? (paramLocale as L) : (bindLocale(paramLocale) as L);
-      } else {
-        // Overload 3: use(locale, bindLocale?) — defaults to bindLocale=true.
-        const explicitLocale = firstArg as AnyLocale;
-        locale = bindLocaleFlag === false ? (explicitLocale as L) : (bindLocale(explicitLocale) as L);
-      }
-
+    const resolvePlugin = async (locale: L, resolvedParams?: Record<string, unknown>) => {
       const augmentCtx: PluginCtxAugmenter = ($) => {
         $.locale = locale;
         $.getPath = impl.createPathComposer(locale);
@@ -262,7 +235,47 @@ export async function createNextAppServerToolset<
       return await rMachine.resolvePlugin(serverKit, nsDeps, locale, augmentCtx);
     };
 
-    (body as unknown as { useR: typeof useR }).useR = useR;
+    const useR = async (firstArg?: unknown): Promise<unknown> => {
+      validateServerOnlyUsage("ServerPlug.useR");
+
+      let locale: L;
+      let resolvedParams: Record<string, unknown> | undefined;
+
+      if (firstArg === undefined) {
+        // Overload 1: useR() — locale auto from getLocale
+        locale = await getLocale();
+      } else if (firstArg instanceof Promise) {
+        // Overload 2: useR(params) — binds locale from route params
+        resolvedParams = (await firstArg) as Record<string, unknown>;
+        locale = bindLocale(resolvedParams[localeKey] as AnyLocale) as L;
+      } else {
+        // Overload 3: useR(locale) — binds explicit locale
+        locale = bindLocale(firstArg as AnyLocale) as L;
+      }
+
+      return resolvePlugin(locale, resolvedParams);
+    };
+
+    const useUnboundR = async (firstArg: unknown): Promise<unknown> => {
+      validateServerOnlyUsage("ServerPlug.useUnboundR");
+
+      let locale: L;
+      let resolvedParams: Record<string, unknown> | undefined;
+
+      if (firstArg instanceof Promise) {
+        // Overload 1: useUnboundR(params) — uses param locale without binding
+        resolvedParams = (await firstArg) as Record<string, unknown>;
+        locale = resolvedParams[localeKey] as L;
+      } else {
+        // Overload 2: useUnboundR(locale) — uses explicit locale without binding
+        locale = firstArg as L;
+      }
+
+      return resolvePlugin(locale, resolvedParams);
+    };
+
+    (body as unknown as { useR: typeof useR; useUnboundR: typeof useUnboundR }).useR = useR;
+    (body as unknown as { useR: typeof useR; useUnboundR: typeof useUnboundR }).useUnboundR = useUnboundR;
     return body;
   }) as NextServerPlugDefiner<RA, L, SKM, PA, LK>;
 
@@ -270,7 +283,6 @@ export async function createNextAppServerToolset<
     rMachineProxy,
     NextServerRMachine,
     generateLocaleStaticParams: generateLocaleStaticParams,
-    bindLocale: bindLocale as BindLocale<L, LK>,
     ServerPlug,
   };
 }
