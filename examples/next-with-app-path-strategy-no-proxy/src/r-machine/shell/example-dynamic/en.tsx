@@ -1,8 +1,10 @@
+import type { RShape } from "@/r-machine/setup";
+
 export const r = {
   list: {
     title: "Dynamic Routes",
     description: "This page lists items with dynamic slugs",
-    feature: "Uses getPath('/example-dynamic/[slug]', { slug }) for type-safe dynamic links",
+    feature: "Uses $.getPath('/example-dynamic/[slug]', { slug }) for type-safe dynamic links",
   },
   items: [
     { slug: "slug-1", title: "Dynamic Item 1" },
@@ -15,4 +17,4 @@ export const r = {
   },
 };
 
-export type R_ExampleDynamic = typeof r;
+export type Shell_ExampleDynamic = RShape<typeof r>;

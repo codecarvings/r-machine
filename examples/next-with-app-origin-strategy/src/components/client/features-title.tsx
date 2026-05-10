@@ -3,7 +3,6 @@
 import { useR } from "@/r-machine/client-toolset";
 
 export default function FeaturesTitle() {
-  // Load the required localized resources
   const r = useR("landing-page");
 
   return (

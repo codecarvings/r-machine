@@ -1,15 +1,15 @@
 "use client";
 
 import FeatureBox from "@/components/server/feature-box";
-import { useR } from "@/r-machine/client-toolset";
+import { ClientPlug } from "@/r-machine/client-toolset";
 
+export const plug = ClientPlug("shell/features/box_3");
 export default function Box3() {
-  // Load the required localized resource
-  const r = useR("features/box_3");
+  const [box] = plug.useR();
 
   return (
-    <FeatureBox badge={r.badge} title={r.title}>
-      {r.description}
+    <FeatureBox badge={box.badge} title={box.title}>
+      {box.description}
     </FeatureBox>
   );
 }

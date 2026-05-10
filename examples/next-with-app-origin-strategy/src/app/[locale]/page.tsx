@@ -11,7 +11,6 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
   // Bind the locale based on the route parameter
   await bindLocale(params);
 
-  // Load the required localized resources
   const r = await pickR("features/box_1_2");
 
   return (

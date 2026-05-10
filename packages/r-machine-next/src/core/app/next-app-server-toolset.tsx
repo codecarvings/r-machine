@@ -198,6 +198,19 @@ export async function createNextAppServerToolset<
     }
   }
 
+  function getValidLocale(localeOption: AnyLocale): L {
+    let locale = localeCache.get(localeOption);
+    if (locale === undefined) {
+      locale = getCanonicalUnicodeLocaleId(localeOption) as L;
+      const validationError = validateLocale(locale);
+      if (validationError !== null) {
+        throw validationError;
+      }
+      localeCache.set(localeOption, locale);
+    }
+    return locale as L;
+  }
+
   const ServerPlug = ((...args: unknown[]) => {
     const outline = getPlugOutline<AnyResAtlas>(...args);
 
@@ -265,10 +278,10 @@ export async function createNextAppServerToolset<
       if (firstArg instanceof Promise) {
         // Overload 1: useUnboundR(params) — uses param locale without binding
         resolvedParams = (await firstArg) as Record<string, unknown>;
-        locale = resolvedParams[localeKey] as L;
+        locale = getValidLocale(resolvedParams[localeKey] as AnyLocale) as L;
       } else {
         // Overload 2: useUnboundR(locale) — uses explicit locale without binding
-        locale = firstArg as L;
+        locale = getValidLocale(firstArg as AnyLocale) as L;
       }
 
       return resolvePlugin(locale, resolvedParams);

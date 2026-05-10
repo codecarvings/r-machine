@@ -24,7 +24,6 @@ export default async function LocaleLayout({ params, children }: LayoutProps<"/[
   // Bind the locale based on the route parameter
   const { locale } = await bindLocale(params);
 
-  // Load the required localized resources
   const r = await pickR("common");
 
   return (

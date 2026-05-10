@@ -21,10 +21,10 @@ export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 
 export const strategy = NextAppPathStrategy.create(rMachine, {
-  clientKit: {
+  serverKit: {
     fmt: "shell/lib/fmt",
   },
-  serverKit: {
+  clientKit: {
     fmt: "shell/lib/fmt",
   },
   PathAtlas,

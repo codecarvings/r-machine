@@ -1,4 +1,4 @@
-import type { R_Common } from "@/r-machine/resources/common/en";
+import type { R_Common } from "@/r-machine/shell/common/en";
 
 // In this component the resources are passed from the layout to the footer
 export default function Footer({ r }: { r: R_Common["footer"] }) {

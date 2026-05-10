@@ -13,7 +13,6 @@ export const metadata: Metadata = {
 };
 
 export default async function NonLocalizedLayout({ children }: LayoutProps<"/">) {
-  // Load the required localized resources directly from the underlying rMachine instance, using the default locale
   const rCommon = await rMachine.pickR(rMachine.defaultLocale, "common");
 
   return (

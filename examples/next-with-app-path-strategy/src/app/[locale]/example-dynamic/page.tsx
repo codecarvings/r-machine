@@ -21,14 +21,11 @@ export default async function ExampleDynamicPage({ params }: PageProps<"/[locale
         </Card>
 
         <div className="space-y-2">
-          {
-            // TODO: WIP
-            rDynamic.items.map((item: any) => (
-              <Button key={item.slug} variant="outline" className="w-full justify-start" asChild>
-                <Link href={$.getPath("/example-dynamic/[slug]", { slug: item.slug })}>{item.title}</Link>
-              </Button>
-            ))
-          }
+          {rDynamic.items.map((item) => (
+            <Button key={item.slug} variant="outline" className="w-full justify-start" asChild>
+              <Link href={$.getPath("/example-dynamic/[slug]", { slug: item.slug })}>{item.title}</Link>
+            </Button>
+          ))}
         </div>
 
         <Button variant="ghost" asChild>

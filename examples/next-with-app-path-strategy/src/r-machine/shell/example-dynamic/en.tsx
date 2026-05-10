@@ -4,7 +4,7 @@ export const r = {
   list: {
     title: "Dynamic Routes",
     description: "This page lists items with dynamic slugs",
-    feature: "Uses getPath('/example-dynamic/[slug]', { slug }) for type-safe dynamic links",
+    feature: "Uses $.getPath('/example-dynamic/[slug]', { slug }) for type-safe dynamic links",
   },
   items: [
     { slug: "slug-1", title: "Dynamic Item 1" },

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export const plug = ServerPlug("shell/common");
 export default async function NonLocalizedLayout({ children }: LayoutProps<"/">) {
-  const [common] = await plug.useUnboundR(strategy.rMachine.defaultLocale);
+  const [common] = await plug.useR(strategy.rMachine.defaultLocale);
 
   return (
     <html lang="en">

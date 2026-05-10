@@ -12,30 +12,30 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { usePathComposer, useR } from "@/r-machine/client-toolset";
+import { ClientPlug } from "@/r-machine/client-toolset";
 
+export const plug = ClientPlug("shell/navigation");
 export function MainNav() {
-  const r = useR("navigation");
-  const getPath = usePathComposer();
+  const [nav, $] = plug.useR();
 
   return (
     <NavigationMenu>
       <NavigationMenuList>
         <NavigationMenuItem>
           <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link href={getPath("/")}>{r.home}</Link>
+            <Link href={$.getPath("/")}>{nav.home}</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
 
         <NavigationMenuItem>
-          <NavigationMenuTrigger>{r.exampleStatic.label}</NavigationMenuTrigger>
+          <NavigationMenuTrigger>{nav.exampleStatic.label}</NavigationMenuTrigger>
           <NavigationMenuContent>
             <ul className="grid gap-3 p-4 w-[300px]">
-              <ListItem href={getPath("/example-static/page-1")} title={r.exampleStatic.page1.label}>
-                {r.exampleStatic.page1.description}
+              <ListItem href={$.getPath("/example-static/page-1")} title={nav.exampleStatic.page1.label}>
+                {nav.exampleStatic.page1.description}
               </ListItem>
-              <ListItem href={getPath("/example-static/page-2")} title={r.exampleStatic.page2.label}>
-                {r.exampleStatic.page2.description}
+              <ListItem href={$.getPath("/example-static/page-2")} title={nav.exampleStatic.page2.label}>
+                {nav.exampleStatic.page2.description}
               </ListItem>
             </ul>
           </NavigationMenuContent>
@@ -43,7 +43,7 @@ export function MainNav() {
 
         <NavigationMenuItem>
           <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link href={getPath("/example-dynamic")}>{r.exampleDynamic.label}</Link>
+            <Link href={$.getPath("/example-dynamic")}>{nav.exampleDynamic.label}</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>
