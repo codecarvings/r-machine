@@ -20,7 +20,7 @@ import type { RMachine } from "r-machine";
 import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import type {
   AnyPathAtlas,
   BoundPathComposer,
@@ -97,29 +97,39 @@ export async function createNextAppClientToolset<
       const router = useRouter();
       const pathname = usePathname();
 
-      // The plugin's `$` is recreated on every reresolve (juncture-manager
-      // builds a fresh `$ = { kit }` then runs augmentCtx). Mutating it here
-      // is safe — there is no caching across reresolves to disturb. Reading
-      // `$.locale` keeps us coherent with the resolved plugin instead of the
-      // raw React context.
+      const pathnameRef = useRef<string | undefined>(undefined);
+      const localeRef = useRef<L | undefined>(undefined);
+
+      // Same $ is reused across renders for the same wire;
+      // setting these methods conditionally — only on change
+      // of locale/pathname — is safe and avoids unnecessary closures.
       const $ = Array.isArray(baseResult)
         ? (baseResult[baseResult.length - 1] as Record<string, unknown>)
         : (baseResult as { $: Record<string, unknown> }).$;
       const locale = $.locale as L;
 
-      $.getPath = impl.createPathComposer(locale);
-      $.setLocale = async (newLocale: L): Promise<void> => {
-        // Do not check if the locale is different.
-        // The origin strategy allows same locale on multiple origins, so navigation might still be necessary.
-        const error = rMachine.localeHelper.validateLocale(newLocale);
-        if (error) {
-          throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot set invalid locale: "${newLocale}".`, error);
-        }
-        const result = impl.writeLocale(locale, newLocale, pathname, router);
-        if (result instanceof Promise) {
-          await result;
-        }
-      };
+      const localeChanged = locale !== localeRef.current;
+      if (localeChanged) {
+        localeRef.current = locale;
+        $.getPath = impl.createPathComposer(locale);
+      }
+
+      if (pathname !== pathnameRef.current || localeChanged) {
+        pathnameRef.current = pathname;
+
+        $.setLocale = async (newLocale: L): Promise<void> => {
+          // Do not check if the locale is different.
+          // The origin strategy allows same locale on multiple origins, so navigation might still be necessary.
+          const error = rMachine.localeHelper.validateLocale(newLocale);
+          if (error) {
+            throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot set invalid locale: "${newLocale}".`, error);
+          }
+          const result = impl.writeLocale(locale, newLocale, pathname, router);
+          if (result instanceof Promise) {
+            await result;
+          }
+        };
+      }
 
       return baseResult;
     }
