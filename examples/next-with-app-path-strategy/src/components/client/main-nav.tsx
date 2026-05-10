@@ -16,7 +16,7 @@ import { ClientPlug } from "@/r-machine/client-toolset";
 
 export const plug = ClientPlug("shell/navigation");
 export function MainNav() {
-  const [nav, $] = plug.use();
+  const [nav, $] = plug.useR();
 
   return (
     <NavigationMenu>

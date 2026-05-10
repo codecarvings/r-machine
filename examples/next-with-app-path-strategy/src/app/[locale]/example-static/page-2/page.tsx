@@ -5,7 +5,7 @@ import { ServerPlug } from "@/r-machine/server-toolset";
 
 export const plug = ServerPlug("shell/example-static", "shell/navigation");
 export default async function Page2({ params }: PageProps<"/[locale]/example-static/page-2">) {
-  const [rStatic, rNav, $] = await plug.use(params);
+  const [rStatic, rNav, $] = await plug.useR(params);
 
   return (
     <section className="container mx-auto px-4 py-16">

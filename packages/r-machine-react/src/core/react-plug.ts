@@ -73,7 +73,7 @@ interface ReactMapPlug<
   KM extends ReactPlugKitMap<RA>,
   DM extends ReactPlugDepMap<RA>,
 > extends PlugBody<ReactMapPlugHead<RA, L, KM, DM, ReactPluginCtx<RA, L, KM>>> {
-  readonly use: () => ReactMapPlugin<RA, L, KM, DM>;
+  readonly useR: () => ReactMapPlugin<RA, L, KM, DM>;
 }
 
 interface ReactListPlug<
@@ -82,7 +82,7 @@ interface ReactListPlug<
   KM extends ReactPlugKitMap<RA>,
   DL extends ReactPlugDepList<RA>,
 > extends PlugBody<ReactListPlugHead<RA, L, KM, DL, ReactPluginCtx<RA, L, KM>>> {
-  readonly use: () => ReactListPlugin<RA, L, KM, DL>;
+  readonly useR: () => ReactListPlugin<RA, L, KM, DL>;
 }
 
 export interface ReactPlugDefiner<RA extends AnyResAtlas, L extends AnyLocale, KM extends ReactPlugKitMap<RA>> {

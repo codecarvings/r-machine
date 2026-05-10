@@ -224,8 +224,8 @@ export async function createNextAppServerToolset<
 
     const body = createPlug(head as unknown as AnyPlugHead);
 
-    const use = async (firstArg?: unknown, bindLocaleFlag?: boolean): Promise<unknown> => {
-      validateServerOnlyUsage("ServerPlug.use");
+    const useR = async (firstArg?: unknown, bindLocaleFlag?: boolean): Promise<unknown> => {
+      validateServerOnlyUsage("ServerPlug.useR");
 
       let locale: L;
       let resolvedParams: Record<string, unknown> | undefined;
@@ -262,7 +262,7 @@ export async function createNextAppServerToolset<
       return await rMachine.resolvePlugin(serverKit, nsDeps, locale, augmentCtx);
     };
 
-    (body as unknown as { use: typeof use }).use = use;
+    (body as unknown as { useR: typeof useR }).useR = useR;
     return body;
   }) as NextServerPlugDefiner<RA, L, SKM, PA, LK>;
 

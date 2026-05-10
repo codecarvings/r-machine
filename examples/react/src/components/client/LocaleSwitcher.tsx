@@ -18,7 +18,7 @@ const localeItems = {
 export const plug = Plug();
 export function LocaleSwitcher() {
   // Get the current locale and the function to change it
-  const { $ } = plug.use();
+  const { $ } = plug.useR();
 
   const currentLocaleItem = localeItems[$.locale];
   const setLocaleAfterMenuClose = useCallback(

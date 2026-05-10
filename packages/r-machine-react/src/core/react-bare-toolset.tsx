@@ -213,7 +213,7 @@ export async function createReactBareToolset<
       return result as never;
     }
 
-    (body as unknown as { use: typeof useBareReactPlug }).use = useBareReactPlug;
+    (body as unknown as { useR: typeof useBareReactPlug }).useR = useBareReactPlug;
     return body;
   }) as ReactPlugDefiner<RA, L, KM>;
 

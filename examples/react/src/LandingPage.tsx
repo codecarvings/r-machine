@@ -10,7 +10,7 @@ import { Plug } from "./r-machine/toolset";
 
 export const plug = Plug("shell/landing-page", "shell/features/box_1_2", "shell/common");
 export default function LandingPage() {
-  const [page, boxes, common] = plug.use();
+  const [page, boxes, common] = plug.useR();
 
   return (
     <div className="min-h-screen bg-background">

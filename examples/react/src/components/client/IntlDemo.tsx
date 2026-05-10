@@ -6,7 +6,7 @@ import FeatureBox from "./FeatureBox";
 
 export const plug = Plug("shell/features/intl_demo");
 export default function IntlDemo() {
-  const [comp, $] = plug.use();
+  const [comp, $] = plug.useR();
   const { time } = $.kit.fmt;
 
   // Live clock

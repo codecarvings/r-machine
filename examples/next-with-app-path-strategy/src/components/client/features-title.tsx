@@ -5,7 +5,7 @@ import { ClientPlug } from "@/r-machine/client-toolset";
 export const plug = ClientPlug("shell/landing-page");
 export default function FeaturesTitle() {
   // Load the required localized resources
-  const [page] = plug.use();
+  const [page] = plug.useR();
 
   return (
     <>

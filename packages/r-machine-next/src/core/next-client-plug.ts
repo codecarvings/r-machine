@@ -35,7 +35,7 @@ interface NextClientMapPlug<
   DM extends NextClientPlugDepMap<RA>,
   PA extends AnyPathAtlas,
 > extends PlugBody<NextMapPlugHead<RA, L, KM, DM, NextPluginCtx<RA, L, KM, PA>>> {
-  readonly use: () => NextMapPlugin<RA, L, KM, DM, PA>;
+  readonly useR: () => NextMapPlugin<RA, L, KM, DM, PA>;
 }
 
 interface NextClientListPlug<
@@ -45,7 +45,7 @@ interface NextClientListPlug<
   DL extends NextClientPlugDepList<RA>,
   PA extends AnyPathAtlas,
 > extends PlugBody<NextListPlugHead<RA, L, KM, DL, NextPluginCtx<RA, L, KM, PA>>> {
-  readonly use: () => NextListPlugin<RA, L, KM, DL, PA>;
+  readonly useR: () => NextListPlugin<RA, L, KM, DL, PA>;
 }
 
 export interface NextClientPlugDefiner<

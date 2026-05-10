@@ -48,12 +48,12 @@ interface NextServerMapPlug<
   PA extends AnyPathAtlas,
   LK extends string,
 > extends PlugBody<NextMapPlugHead<RA, L, KM, DM, NextPluginCtx<RA, L, KM, PA>>> {
-  use(): Promise<NextMapPlugin<RA, L, KM, DM, PA>>;
-  use<P extends RMachineParams<LK>>(
+  useR(): Promise<NextMapPlugin<RA, L, KM, DM, PA>>;
+  useR<P extends RMachineParams<LK>>(
     params: Promise<P>,
     bindLocale?: boolean
   ): Promise<NextParamsMapPlugin<RA, L, KM, DM, PA, P>>;
-  use(locale: AnyLocale, bindLocale?: boolean): Promise<NextMapPlugin<RA, L, KM, DM, PA>>;
+  useR(locale: AnyLocale, bindLocale?: boolean): Promise<NextMapPlugin<RA, L, KM, DM, PA>>;
 }
 
 interface NextServerListPlug<
@@ -64,12 +64,12 @@ interface NextServerListPlug<
   PA extends AnyPathAtlas,
   LK extends string,
 > extends PlugBody<NextListPlugHead<RA, L, KM, DL, NextPluginCtx<RA, L, KM, PA>>> {
-  use(): Promise<NextListPlugin<RA, L, KM, DL, PA>>;
-  use<P extends RMachineParams<LK>>(
+  useR(): Promise<NextListPlugin<RA, L, KM, DL, PA>>;
+  useR<P extends RMachineParams<LK>>(
     params: Promise<P>,
     bindLocale?: boolean
   ): Promise<NextParamsListPlugin<RA, L, KM, DL, PA, P>>;
-  use(params: AnyLocale, bindLocale?: boolean): Promise<NextListPlugin<RA, L, KM, DL, PA>>;
+  useR(params: AnyLocale, bindLocale?: boolean): Promise<NextListPlugin<RA, L, KM, DL, PA>>;
 }
 
 export interface NextServerPlugDefiner<

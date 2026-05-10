@@ -49,18 +49,6 @@ interface NextAppClientRMachineProps<L extends AnyLocale> {
   readonly children: ReactNode;
 }
 
-// Workaround for React Compiler (Next `reactCompiler: true`).
-// `pathname` is only consumed inside the `$.setLocale` closure, never in the
-// JSX returned by consumers. The compiler analyses consumer output, sees no
-// dependency on `pathname`, and skips re-rendering when `usePathname()`
-// notifies a change — so the closure keeps the stale pathname and locale
-// switching navigates from the wrong URL.
-// Writing `pathname` onto `$` (a value that DOES flow into the JSX) makes
-// the dependency observable to the compiler, restoring the expected
-// re-render on every pathname change. The Symbol key keeps it private so
-// it doesn't leak into the public `$` shape.
-const pathnameSymbol = Symbol("pathnameSymbol");
-
 export interface NextAppClientImpl<L extends AnyLocale> {
   // biome-ignore lint/suspicious/noConfusingVoidType: As per design
   readonly onLoad: ((locale: L) => void | (() => void)) | undefined;
@@ -101,11 +89,11 @@ export async function createNextAppClientToolset<
   }
 
   const ClientPlug = ((...args: unknown[]) => {
-    const body = (BasePlug as unknown as (...a: unknown[]) => { use: () => unknown })(...args);
-    const baseUse = body.use;
+    const body = (BasePlug as unknown as (...a: unknown[]) => { useR: () => unknown })(...args);
+    const baseUseR = body.useR;
 
     function useNextClientPlug() {
-      const baseResult = baseUse();
+      const baseResult = baseUseR();
       const router = useRouter();
       const pathname = usePathname();
 
@@ -119,8 +107,6 @@ export async function createNextAppClientToolset<
         : (baseResult as { $: Record<string, unknown> }).$;
       const locale = $.locale as L;
 
-      // Pin pathname onto `$` so React Compiler tracks the dependency — see note on `pathnameSymbol`.
-      ($ as any)[pathnameSymbol] = pathname;
       $.getPath = impl.createPathComposer(locale);
       $.setLocale = async (newLocale: L): Promise<void> => {
         // Do not check if the locale is different.
@@ -137,7 +123,7 @@ export async function createNextAppClientToolset<
 
       return baseResult;
     }
-    body.use = useNextClientPlug;
+    body.useR = useNextClientPlug;
 
     return body;
   }) as NextClientPlugDefiner<RA, L, CKM, PA>;

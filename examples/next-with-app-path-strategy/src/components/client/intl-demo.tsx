@@ -8,7 +8,7 @@ import FeatureBox from "../server/feature-box";
 
 export const plug = ClientPlug("shell/features/intl_demo");
 export default function IntlDemo() {
-  const [demo, $] = plug.use();
+  const [demo, $] = plug.useR();
   const { time } = $.kit.fmt;
 
   // Live clock — start null to avoid hydration mismatch (server vs client time)

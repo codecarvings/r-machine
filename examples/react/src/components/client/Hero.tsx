@@ -6,7 +6,7 @@ import { Plug } from "@/r-machine/toolset";
 
 export const plug = Plug("shell/landing-page");
 export default function Hero() {
-  const [page] = plug.use();
+  const [page] = plug.useR();
 
   return (
     <section className="relative w-full py-12 sm:py-16 lg:py-20 bg-linear-to-br from-gray-200 via-gray-100 to-slate-100">

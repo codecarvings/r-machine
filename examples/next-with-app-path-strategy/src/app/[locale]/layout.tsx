@@ -15,7 +15,7 @@ export const dynamicParams = false;
 export const metaPlug = ServerPlug("shell/common");
 export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Promise<Metadata> {
   const { locale } = await bindLocale(params);
-  const [common, $] = await metaPlug.use(params, false);
+  const [common, $] = await metaPlug.useR(params, false);
 
   return {
     title: common.title(locale),
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Pr
 
 export const pagePlug = ServerPlug("shell/common");
 export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
-  const [common, $] = await pagePlug.use(params);
+  const [common, $] = await pagePlug.useR(params);
 
   return (
     <html lang={$.params.locale}>

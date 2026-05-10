@@ -5,7 +5,7 @@ import { ServerPlug } from "@/r-machine/server-toolset";
 
 const plug = ServerPlug("shell/example-dynamic", "shell/navigation");
 export default async function ExampleDynamicPage({ params }: PageProps<"/[locale]/example-dynamic">) {
-  const [rDynamic, rNav, $] = await plug.use(params);
+  const [rDynamic, rNav, $] = await plug.useR(params);
 
   return (
     <section className="container mx-auto px-4 py-16">
