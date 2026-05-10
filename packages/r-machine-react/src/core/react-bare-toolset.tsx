@@ -33,7 +33,7 @@ import { createPlug, getNamespaceList, getNamespaceMap, getPlugOutline } from "r
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
-import { createContext, use, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { createContext, use, useContext, useMemo, useSyncExternalStore } from "react";
 import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "../errors/error-codes.js";
 import type { ReactPlugDefiner, ReactPlugKitMap } from "./react-plug.js";
 import { useVertexFrame, VertexFrame } from "./vertex-frame.js";
@@ -81,15 +81,6 @@ export async function createReactBareToolset<
   const Context = createContext<ReactBareToolsetContext<L> | null>(null);
   Context.displayName = "ReactBareToolsetContext";
 
-  function useReactToolsetContext(): ReactBareToolsetContext<L> {
-    const context = useContext(Context);
-    if (context === null) {
-      throw new RMachineUsageError(ERR_CONTEXT_NOT_FOUND, "ReactBareToolsetContext not found.");
-    }
-
-    return context;
-  }
-
   function ReactRMachine({ locale, writeLocale, children }: ReactBareRMachineProps<L>) {
     const value = useMemo<ReactBareToolsetContext<L>>(() => {
       const error = validateLocale(locale);
@@ -133,54 +124,96 @@ export async function createReactBareToolset<
 
     const body = createPlug(head as unknown as AnyPlugHead);
 
-    const usePlug = () => {
-      const ctx = useReactToolsetContext();
-      const vertexGearMap = useVertexFrame();
-      const locale = ctx.locale;
+    // Mutable ref shared across all consumers of this plug, holding the
+    // *current* writeLocale callback. Each consumer's render updates it.
+    // Bound separately from `locale` because writeLocale is a stable
+    // callback that legitimately needs to be the latest one (it carries
+    // the InternalReactRMachine's setState dispatcher), while `locale` is
+    // bound to each wire's identity (see below).
+    const sharedWriteLocaleRef: { current: WriteLocale<L> | undefined } = { current: undefined };
 
-      // Mutable ref kept fresh on every render. augmentCtx closes over this
-      // ref instead of locale/writeLocale so it can stay identity-stable for
-      // the entire lifetime of the wire while still seeing fresh values on
-      // every reresolve.
-      const ctxRef = useRef(ctx);
-      ctxRef.current = ctx;
-
-      const [augmentCtx] = useState<PluginCtxAugmenter>(() => ($: any) => {
-        const { locale: currentLocale, writeLocale } = ctxRef.current;
-        $.locale = currentLocale;
-        $.setLocale = async (newLocale: L) => {
-          if (newLocale === currentLocale) {
-            return;
-          }
-          const error = validateLocale(newLocale);
-          if (error) {
-            throw error;
-          }
-          if (writeLocale === undefined) {
-            throw new RMachineUsageError(
-              ERR_MISSING_WRITE_LOCALE,
-              "No writeLocale function provided to <ReactRMachine>."
-            );
-          }
-          const result = writeLocale(newLocale);
-          if (result instanceof Promise) {
-            await result;
-          }
+    // Wire cache external to React state. Critical for Suspense correctness:
+    // useState's lazy initializer runs again on every render attempt that
+    // suspends before commit, which would create a new wire (and a new
+    // pending promise) every retry, leading to an infinite suspend loop.
+    // Caching the wire by (locale, vertexGearMap) keeps the same promise
+    // identity across retries, so React.use() can settle.
+    const wireCache = new Map<string, GateWire>();
+    const getOrCreateWire = (locale: L, vertexGearMap: ReturnType<typeof useVertexFrame>): GateWire => {
+      const vgmSig = vertexGearMap
+        ? Object.entries(vertexGearMap)
+            .map(([k, v]) => `${k}=${v}`)
+            .join(",")
+        : "";
+      const key = `${locale}|${vgmSig}`;
+      let wire = wireCache.get(key);
+      if (!wire) {
+        // augmentCtx is created per-wire so that `locale` is bound to the
+        // wire's identity. Reading `locale` from a shared ref would race
+        // with concurrent renders in other locales — the wire could end up
+        // emitting a plugin whose `$.locale` doesn't match its cache key.
+        const augmentCtx: PluginCtxAugmenter = ($: any) => {
+          $.locale = locale;
+          $.setLocale = async (newLocale: L) => {
+            if (newLocale === locale) {
+              return;
+            }
+            const error = validateLocale(newLocale);
+            if (error) {
+              throw error;
+            }
+            const writeLocale = sharedWriteLocaleRef.current;
+            if (writeLocale === undefined) {
+              throw new RMachineUsageError(
+                ERR_MISSING_WRITE_LOCALE,
+                "No writeLocale function provided to <ReactRMachine>."
+              );
+            }
+            const result = writeLocale(newLocale);
+            if (result instanceof Promise) {
+              await result;
+            }
+          };
         };
-      });
-
-      const [wire] = useState<GateWire>(() => rMachine.getGateWire(kit, nsDeps, locale, augmentCtx, vertexGearMap));
-
-      useEffect(() => {
-        wire.updateRequest(locale, vertexGearMap);
-      });
-
-      const pluginPromise = useSyncExternalStore(wire.subscribe, wire.getPluginPromise, wire.getPluginPromise);
-
-      return use(pluginPromise) as never;
+        wire = rMachine.getGateWire(kit, nsDeps, locale, augmentCtx, vertexGearMap);
+        wireCache.set(key, wire!);
+      }
+      return wire!;
     };
 
-    (body as unknown as { use: typeof usePlug }).use = usePlug;
+    // Fallback context used when the real context is momentarily null (e.g.
+    // during a React 19 / Next App Router concurrent transition where a
+    // child renders in "preview" mode before its provider is committed).
+    // Using it lets us call every hook unconditionally — throwing mid-chain
+    // would change the hook count between renders and trip
+    // "Rendered fewer hooks than expected".
+    const fallbackCtx: ReactBareToolsetContext<L> = {
+      locale: rMachine.defaultLocale,
+      writeLocale: undefined,
+    };
+
+    function useBareReactPlug() {
+      const ctx = useContext(Context);
+      const vertexGearMap = useVertexFrame();
+
+      const safeCtx = ctx ?? fallbackCtx;
+      sharedWriteLocaleRef.current = safeCtx.writeLocale;
+      const wire = getOrCreateWire(safeCtx.locale, vertexGearMap);
+      const pluginPromise = useSyncExternalStore(wire.subscribe, wire.getPluginPromise, wire.getPluginPromise);
+      const result = use(pluginPromise);
+      // const result = use(wire.getPluginPromise());
+
+      // Throw only AFTER every hook has been called. The throw aborts the
+      // render but the hook count is now stable across renders, which keeps
+      // React 19 + Turbopack happy.
+      if (ctx === null) {
+        throw new RMachineUsageError(ERR_CONTEXT_NOT_FOUND, "ReactBareToolsetContext not found.");
+      }
+
+      return result as never;
+    }
+
+    (body as unknown as { use: typeof useBareReactPlug }).use = useBareReactPlug;
     return body;
   }) as ReactPlugDefiner<RA, L, KM>;
 

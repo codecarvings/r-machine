@@ -234,14 +234,14 @@ export async function createNextAppServerToolset<
         // Overload 1: use() — locale auto from getLocale
         locale = await getLocale();
       } else if (firstArg instanceof Promise) {
-        // Overload 2: use(params, bindLocale?)
+        // Overload 2: use(params, bindLocale?) — defaults to bindLocale=true.
         resolvedParams = (await firstArg) as Record<string, unknown>;
         const paramLocale = resolvedParams[localeKey] as AnyLocale;
-        locale = bindLocaleFlag ? (bindLocale(paramLocale) as L) : (paramLocale as L);
+        locale = bindLocaleFlag === false ? (paramLocale as L) : (bindLocale(paramLocale) as L);
       } else {
-        // Overload 3: use(locale, bindLocale?)
+        // Overload 3: use(locale, bindLocale?) — defaults to bindLocale=true.
         const explicitLocale = firstArg as AnyLocale;
-        locale = bindLocaleFlag ? (bindLocale(explicitLocale) as L) : (explicitLocale as L);
+        locale = bindLocaleFlag === false ? (explicitLocale as L) : (bindLocale(explicitLocale) as L);
       }
 
       const augmentCtx: PluginCtxAugmenter = ($) => {

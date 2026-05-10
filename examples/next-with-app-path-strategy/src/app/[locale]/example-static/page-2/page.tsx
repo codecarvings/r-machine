@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { bindLocale, ServerPlug } from "@/r-machine/server-toolset";
+import { ServerPlug } from "@/r-machine/server-toolset";
 
 export const plug = ServerPlug("shell/example-static", "shell/navigation");
 export default async function Page2({ params }: PageProps<"/[locale]/example-static/page-2">) {
-  await bindLocale(params);
-  const [rStatic, rNav, $] = await plug.use();
+  const [rStatic, rNav, $] = await plug.use(params);
 
   return (
     <section className="container mx-auto px-4 py-16">

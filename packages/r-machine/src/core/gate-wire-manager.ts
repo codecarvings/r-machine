@@ -48,34 +48,21 @@ function createGateWire(
 ): GateWire {
   let currentLocale = locale;
   let currentVertexGearMap = vertexGearMap;
-  let dirty = false;
-  let currentPluginPromise = junctureManager.getPlugin(
-    kit,
-    nsDeps,
-    currentLocale,
-    augmentCtx,
-    [],
-    genId,
-    currentVertexGearMap
-  );
-  const subscribers = new Set<() => void>();
+  // Start dirty so the initial getPluginPromise() triggers a resolve.
+  // No work is done at creation time — keeps createGateWire pure-ish so
+  // Strict Mode's double lazy-init is harmless.
+  let dirty = true;
+  let currentPluginPromise: Promise<unknown> | null = null;
 
-  // Subscribe to top-level namespaces only. Cascades from JM.invalidate(X)
-  // always reach top-level dependents via reverseClosure, so subscribing to
-  // transitive deps would be redundant.
   const topLevelNs: AnyNamespace[] = isNamespaceList(nsDeps) ? [...nsDeps] : Object.values(nsDeps);
-  const unsubFromJm = junctureManager.subscribe(topLevelNs, () => {
-    dirty = true;
-    for (const cb of subscribers) {
-      try {
-        cb();
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  });
 
-  function reresolve() {
+  const subscribers = new Set<() => void>();
+  // Lazy: subscribe to JM only when the first external subscriber arrives.
+  // Disposed when the last one leaves. This keeps short-lived "ghost" wires
+  // (Strict Mode duplicates, abandoned mounts) from leaking JM subscriptions.
+  let unsubFromJm: (() => void) | null = null;
+
+  function resolve() {
     currentPluginPromise = junctureManager.getPlugin(
       kit,
       nsDeps,
@@ -90,18 +77,32 @@ function createGateWire(
 
   return {
     getPluginPromise: () => {
-      if (dirty) {
-        reresolve();
+      if (dirty || currentPluginPromise === null) {
+        resolve();
       }
-      return currentPluginPromise;
+      return currentPluginPromise as Promise<unknown>;
     },
 
     subscribe: (callback: () => void) => {
+      if (subscribers.size === 0) {
+        unsubFromJm = junctureManager.subscribe(topLevelNs, () => {
+          console.log("[gate-wire] notified by JM genId=", genId);
+          dirty = true;
+          for (const cb of subscribers) {
+            try {
+              cb();
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        });
+      }
       subscribers.add(callback);
       return () => {
         subscribers.delete(callback);
-        if (subscribers.size === 0) {
+        if (subscribers.size === 0 && unsubFromJm !== null) {
           unsubFromJm();
+          unsubFromJm = null;
           junctureManager.disposeAllVertexSlotsByGenId(genId);
         }
       };
@@ -127,7 +128,8 @@ function createGateWire(
         currentLocale = newLocale;
       }
 
-      reresolve();
+      // Mark dirty; the actual resolve runs lazily on next getPluginPromise().
+      dirty = true;
 
       for (const cb of subscribers) {
         try {
