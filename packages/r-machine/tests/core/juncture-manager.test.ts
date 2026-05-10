@@ -1,11 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { BlueprintManager } from "../../src/core/blueprint-manager.js";
-import { JunctureManager } from "../../src/core/juncture-manager.js";
+import { getJunctureResCacheKey, JunctureManager } from "../../src/core/juncture-manager.js";
 import { managed } from "../../src/core/managed.js";
 import type { AnyRes } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import type { AnyNamespace } from "../../src/core/res-domain.js";
-import { getResCacheKey } from "../../src/core/res-domain.js";
 import type { AnyResEquipment } from "../../src/core/res-equipment.js";
 import { type AnyResLayout, ResLayoutResolver } from "../../src/core/res-layout.js";
 import type { AnyNamespaceMap } from "../../src/core/res-map.js";
@@ -185,7 +184,7 @@ function createJmTestEnv(options: JmTestEnvOptions) {
     },
     loadCalls,
     keyOf: (ns: string, locale?: string, genId?: number) =>
-      getResCacheKey(ns, locale, resolver.resolveLayoutEntryType(ns), genId),
+      getJunctureResCacheKey(ns, locale, resolver.resolveLayoutEntryType(ns), genId),
     // Manually wire a forward/reverse dep edge to simulate a matrix-loaded
     // blueprint without going through createResMatrix machinery. This keeps
     // JM tests focused on JM behavior — the BM's eager dep graph

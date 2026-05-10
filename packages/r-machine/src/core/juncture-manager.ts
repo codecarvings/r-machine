@@ -20,13 +20,33 @@ import { tryGetManagedTeardown } from "./managed.js";
 import type { PluginCtxAugmenter } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
-import { getResCacheKey } from "./res-domain.js";
 import type { AnyResEquipment } from "./res-equipment.js";
-import type { ResLayoutResolver } from "./res-layout.js";
+import type { ResLayoutEntryType, ResLayoutResolver } from "./res-layout.js";
 import { type AnyNamespaceList, type AnyResolvedNamespaceList, isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap, AnyResolvedNamespaceMap } from "./res-map.js";
 import type { AnySurface } from "./surface.js";
 import type { VertexGearMap, VertexGearTagData } from "./vertex-gear.js";
+
+// SEP = U+001F (Unit Separator). An empty locale prefix means `undefined`.
+// For juncture-manager: both `shell` and `shell(mono)` need a
+// locale-scoped key — at the juncture level the same shell namespace must
+// resolve to different plugin instances per locale.
+export function getJunctureResCacheKey(
+  namespace: AnyNamespace,
+  locale: AnyLocale | undefined,
+  layoutEntryType: ResLayoutEntryType,
+  genId?: number
+): string {
+  switch (layoutEntryType) {
+    case "shell":
+    case "shell(mono)":
+      return `S:${locale}\x1f${namespace}`;
+    case "gear:outer(vertex)":
+      return `V:${genId ?? 0}\x1f${namespace}`;
+    default:
+      return `\x1f${namespace}`;
+  }
+}
 
 interface Slot {
   readonly key: string;
@@ -117,7 +137,7 @@ export class JunctureManager {
     if (layoutType === "gear:outer(vertex)") {
       const existingGenId = vertexGearMap?.[namespace];
       if (existingGenId !== undefined) {
-        const consumerKey = getResCacheKey(namespace, locale, layoutType, existingGenId);
+        const consumerKey = getJunctureResCacheKey(namespace, locale, layoutType, existingGenId);
         const consumerSlot = this.slots.get(consumerKey);
         if (consumerSlot === undefined || !this.isSlotFresh(consumerSlot)) {
           throw new RMachineResolveError(
@@ -127,7 +147,7 @@ export class JunctureManager {
         }
         return consumerSlot.content;
       }
-      const creatorKey = getResCacheKey(namespace, locale, layoutType, genId);
+      const creatorKey = getJunctureResCacheKey(namespace, locale, layoutType, genId);
       const creatorSlot = this.slots.get(creatorKey);
       if (creatorSlot !== undefined && this.isSlotFresh(creatorSlot)) {
         return creatorSlot.content;
@@ -144,7 +164,7 @@ export class JunctureManager {
       return this.resolveJuncture(namespace, locale, creatorKey, { namespace, genId }, chain);
     }
 
-    const key = getResCacheKey(namespace, locale, layoutType);
+    const key = getJunctureResCacheKey(namespace, locale, layoutType);
     const cached = this.slots.get(key);
     if (cached !== undefined && this.isSlotFresh(cached)) {
       return cached.content;
@@ -197,7 +217,7 @@ export class JunctureManager {
   // including self-reference: self is just chain[last]).
   protected createDeferredKitGetter(namespace: AnyNamespace, locale: AnyLocale | undefined): () => AnySurface {
     const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
-    const slotKey = getResCacheKey(namespace, locale, layoutType);
+    const slotKey = getJunctureResCacheKey(namespace, locale, layoutType);
     return () => {
       const slot = this.slots.get(slotKey);
       if (slot === undefined || slot.content instanceof Promise) {
@@ -395,7 +415,7 @@ export class JunctureManager {
     if (set.size === 0) {
       this.vertexSlotsByGenId.delete(genId);
     }
-    const key = getResCacheKey(ns, undefined, "gear:outer(vertex)", genId);
+    const key = getJunctureResCacheKey(ns, undefined, "gear:outer(vertex)", genId);
     this.disposeSlot(key);
   }
 
@@ -405,7 +425,7 @@ export class JunctureManager {
       return;
     }
     for (const ns of set) {
-      const key = getResCacheKey(ns, undefined, "gear:outer(vertex)", genId);
+      const key = getJunctureResCacheKey(ns, undefined, "gear:outer(vertex)", genId);
       this.disposeSlot(key);
     }
     this.vertexSlotsByGenId.delete(genId);

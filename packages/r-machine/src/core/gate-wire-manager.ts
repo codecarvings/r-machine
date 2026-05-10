@@ -86,7 +86,6 @@ function createGateWire(
     subscribe: (callback: () => void) => {
       if (subscribers.size === 0) {
         unsubFromJm = junctureManager.subscribe(topLevelNs, () => {
-          console.log("[gate-wire] notified by JM genId=", genId);
           dirty = true;
           for (const cb of subscribers) {
             try {

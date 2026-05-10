@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { BlueprintManager } from "../../src/core/blueprint-manager.js";
+import { BlueprintManager, getBlueprintResCacheKey } from "../../src/core/blueprint-manager.js";
 import type { GearRole } from "../../src/core/gear-plug.js";
 import type { AnyNamespace } from "../../src/core/res-domain.js";
-import { getResCacheKey } from "../../src/core/res-domain.js";
 import { type AnyResLayout, ResLayoutResolver } from "../../src/core/res-layout.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
 import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-module.js";
@@ -93,7 +92,7 @@ function createTestEnv(options: TestEnvOptions) {
       cb();
     },
     loadCalls,
-    keyOf: (ns: string, locale?: string) => getResCacheKey(ns, locale, resolver.resolveLayoutEntryType(ns)),
+    keyOf: (ns: string, locale?: string) => getBlueprintResCacheKey(ns, locale, resolver.resolveLayoutEntryType(ns)),
     inspect: () =>
       bm as unknown as {
         forwardDeps: Map<AnyNamespace, Set<AnyNamespace>>;

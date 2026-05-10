@@ -11,7 +11,6 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyLocale } from "#r-machine/locale";
 import type { ResLayoutEntryType } from "./res-layout.js";
 import type { AnyNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap } from "./res-map.js";
@@ -58,21 +57,4 @@ export function isHandle(value: unknown): value is Handle<any> {
 
 export function createToken<N extends AnyNamespace>(namespace: N): Token<N> {
   return { [namespaceSymbol]: namespace };
-}
-
-// SEP = U+001F (Unit Separator). An empty locale prefix means `undefined`.
-export function getResCacheKey(
-  namespace: AnyNamespace,
-  locale: AnyLocale | undefined,
-  layoutEntryType: ResLayoutEntryType,
-  genId?: number
-): string {
-  switch (layoutEntryType) {
-    case "shell":
-      return `S:${locale}\x1f${namespace}`;
-    case "gear:outer(vertex)":
-      return `V:${genId ?? 0}\x1f${namespace}`;
-    default:
-      return `\x1f${namespace}`;
-  }
 }

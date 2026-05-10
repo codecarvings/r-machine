@@ -15,7 +15,6 @@ import { ERR_CIRCULAR_DEPENDENCY, RMachineResolveError } from "#r-machine/errors
 import type { AnyLocale } from "#r-machine/locale";
 import { type Blueprint, createBlueprint } from "./blueprint.js";
 import type { AnyNamespace } from "./res-domain.js";
-import { getResCacheKey } from "./res-domain.js";
 import type { ResLayoutEntryType, ResLayoutResolver } from "./res-layout.js";
 import type { AnyNamespaceList } from "./res-list.js";
 import {
@@ -25,6 +24,25 @@ import {
   validateResModule,
 } from "./res-module.js";
 import type { ResFamily } from "./res-plug.js";
+
+// SEP = U+001F (Unit Separator). An empty locale prefix means `undefined`.
+// For blueprint-manager: only `shell` is locale-keyed. `shell(mono)` is unique
+// per blueprint (locale baked in elsewhere), so it falls into the default case.
+export function getBlueprintResCacheKey(
+  namespace: AnyNamespace,
+  locale: AnyLocale | undefined,
+  layoutEntryType: ResLayoutEntryType,
+  genId?: number
+): string {
+  switch (layoutEntryType) {
+    case "shell":
+      return `S:${locale}\x1f${namespace}`;
+    case "gear:outer(vertex)":
+      return `V:${genId ?? 0}\x1f${namespace}`;
+    default:
+      return `\x1f${namespace}`;
+  }
+}
 
 export class BlueprintManager {
   constructor(
@@ -122,7 +140,7 @@ export class BlueprintManager {
     await Promise.all(
       nsDepList.map((depNs) => {
         const depLayout = this.resLayoutResolver.resolveLayoutEntryType(depNs);
-        const depKey = getResCacheKey(depNs, locale, depLayout);
+        const depKey = getBlueprintResCacheKey(depNs, locale, depLayout);
         return this.getBlueprintInternal(depNs, locale, depLayout, depKey, chain);
       })
     );
