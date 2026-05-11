@@ -49,6 +49,7 @@ export interface NextAppServerToolset<
   readonly rMachineProxy: RMachineProxy;
   readonly NextServerRMachine: NextAppServerRMachine;
   readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
+  readonly bindLocale: BindLocale<L, LK>;
   readonly ServerPlug: NextServerPlugDefiner<RA, L, SKM, PA, LK>;
 }
 
@@ -79,6 +80,11 @@ export interface NextAppServerImpl<L extends AnyLocale, LK extends string> {
 }
 
 export type LocaleStaticParamsGenerator<LK extends string> = () => Promise<RMachineParams<LK>[]>;
+
+interface BindLocale<L extends AnyLocale, LK extends string> {
+  <P extends RMachineParams<LK>>(params: Promise<P>): Promise<P>;
+  (locale: AnyLocale): L;
+}
 
 interface NextAppServerRMachineContext<L extends AnyLocale> {
   value: L | null;
@@ -146,7 +152,7 @@ export async function createNextAppServerToolset<
     } else {
       throw new RMachineUsageError(
         ERR_LOCALE_UNDETERMINED,
-        "Cannot determine locale. ServerPlug.useR(locale | params) not invoked? (you must invoke ServerPlug.useR with a locale or route params at the beginning of every page or layout component)."
+        "Cannot determine locale. bindLocale(locale | params) or ServerPlug.useR(locale | params) not invoked? (you must invoke bindLocale or ServerPlug.useR with a locale or route params at the beginning of every page or layout component)."
       );
     }
   }
@@ -158,6 +164,8 @@ export async function createNextAppServerToolset<
 
   const localeCache = new Map<AnyLocale, L>();
   function bindLocale(locale: AnyLocale | Promise<RMachineParams<LK>>) {
+    validateServerOnlyUsage("bindLocale");
+
     function syncBindLocale(localeOption: AnyLocale): L {
       let locale = localeCache.get(localeOption);
       if (locale === undefined) {
@@ -296,6 +304,7 @@ export async function createNextAppServerToolset<
     rMachineProxy,
     NextServerRMachine,
     generateLocaleStaticParams: generateLocaleStaticParams,
+    bindLocale: bindLocale as BindLocale<L, LK>,
     ServerPlug,
   };
 }
