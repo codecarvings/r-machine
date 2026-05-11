@@ -1,30 +1,26 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { bindLocale, getPathComposer, pickR } from "@/r-machine/server-toolset";
-import { type Locale, rMachine } from "@/r-machine/setup";
+import { ServerPlug } from "@/r-machine/server-toolset";
 
 // Generate static params for dynamic routes
+export const paramsPlug = ServerPlug("shell/example-dynamic");
 export async function generateStaticParams({
   params: { locale },
 }: {
   params: Awaited<PageProps<"/[locale]/example-dynamic/[slug]">["params"]>;
 }) {
-  const r = await rMachine.pickR(getCanonicalUnicodeLocaleId(locale) as Locale, "example-dynamic");
-  // TODO: WIP
-  return r.items.map((item: any) => ({ slug: item.slug }));
+  // biome-ignore lint/correctness/useHookAtTopLevel: This is not a Hook
+  const [r] = await paramsPlug.useUnboundR(locale); // No need to bind locale
+  return r.items.map((item) => ({ slug: item.slug }));
 }
 
+export const pagePlug = ServerPlug("shell/example-dynamic");
 export default async function DynamicSlugPage({ params }: PageProps<"/[locale]/example-dynamic/[slug]">) {
-  await bindLocale(params);
-  const r = await pickR("example-dynamic");
-  const getPath = await getPathComposer();
-  const { slug } = await params;
+  const [example, $] = await pagePlug.useR(params);
 
-  // TODO: WIP
-  const item = r.items.find((i: any) => i.slug === slug);
+  const item = example.items.find((i) => i.slug === $.params.slug);
 
   if (!item) {
     notFound();
@@ -36,15 +32,15 @@ export default async function DynamicSlugPage({ params }: PageProps<"/[locale]/e
         <Card>
           <CardHeader>
             <CardTitle>{item.title}</CardTitle>
-            <CardDescription>slug: {slug}</CardDescription>
+            <CardDescription>slug: {$.params.slug}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">{r.detail.feature}</p>
+            <p className="text-sm text-muted-foreground">{example.detail.feature}</p>
           </CardContent>
         </Card>
 
         <Button variant="ghost" asChild>
-          <Link href={getPath("/example-dynamic")}>← {r.detail.backLink}</Link>
+          <Link href={$.getPath("/example-dynamic")}>← {example.detail.backLink}</Link>
         </Button>
       </div>
     </section>

@@ -1,6 +1,6 @@
-import type { R_LandingPage } from "./en";
+import { localized } from "@/r-machine/setup";
 
-export const r: R_LandingPage = {
+export const r = localized("shell/landing-page", {
   hero: {
     title: "i18n Type-Safe per Applicazioni Moderne",
     subtitle:
@@ -14,4 +14,4 @@ export const r: R_LandingPage = {
     title: "Perché R-Machine?",
     subtitle: "Costruito per sviluppatori che richiedono type safety e performance.",
   },
-};
+});
