@@ -1,22 +1,32 @@
 import { NextAppOriginStrategy } from "@r-machine/next/app/origin";
-import { ofType, RMachine, type RMachineLocale } from "r-machine";
+import { RMachine, type RMachineLocale } from "r-machine";
 import { PathAtlas } from "./path-atlas";
-import type { ResourceAtlas } from "./resource-atlas";
+import { ResourceAtlas } from "./resource-atlas";
 
-export const { rMachine, R } = RMachine.create({
-  resourceAtlas: ofType<ResourceAtlas>(),
+const rMachine = RMachine.create({
+  ResourceAtlas,
   locales: ["en", "it"],
   defaultLocale: "en",
-  load: (namespace, locale) => import(`./resources/${namespace}/${locale}`),
-  kit: {
-    landingPage: "landing-page", // TODO: WIP
+  load: (path) => import(`./${path}`),
+  shellKit: {
+    fmt: "shell/lib/fmt",
+  },
+  experimental: {
+    outerGear: "on",
   },
 });
 
+export const { InnerGear, BaseGear, OuterGear, Shell, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
+export type { BrandedResource as RShape } from "r-machine";
 
-// Step 4: setup the strategy
-export const strategy = new NextAppOriginStrategy(rMachine, {
+export const strategy = NextAppOriginStrategy.create(rMachine, {
+  serverKit: {
+    fmt: "shell/lib/fmt",
+  },
+  clientKit: {
+    fmt: "shell/lib/fmt",
+  },
   PathAtlas,
   // Origins per locale - See also next.config.ts
   localeOriginMap: {
@@ -24,5 +34,7 @@ export const strategy = new NextAppOriginStrategy(rMachine, {
     it: ["http://italiano.test:3000"],
   },
   // Exclude non-localized paths
-  pathMatcher: /^(?!\/(__|hello-world)($|\/)).*/,
+  pathMatcher: /^(?!\/(__|hello-world|set-italian)($|\/)).*/,
 });
+
+export const { localeHelper, hrefHelper } = strategy.getHelpers();

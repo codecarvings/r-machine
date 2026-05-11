@@ -85,13 +85,15 @@ describe("LocaleHelper", () => {
     });
   });
 
-  describe("protected members are not publicly accessible", () => {
-    it("should not expose locales", () => {
-      expectTypeOf<LocaleHelper<string>>().not.toHaveProperty("locales");
+  describe("publicly accessible readonly members", () => {
+    it("should expose locales as readonly LocaleList<L>", () => {
+      expectTypeOf<LocaleHelper<string>>().toHaveProperty("locales");
+      expectTypeOf<LocaleHelper<"en" | "it">["locales"]>().toEqualTypeOf<readonly ("en" | "it")[]>();
     });
 
-    it("should not expose defaultLocale", () => {
-      expectTypeOf<LocaleHelper<string>>().not.toHaveProperty("defaultLocale");
+    it("should expose defaultLocale as readonly L", () => {
+      expectTypeOf<LocaleHelper<string>>().toHaveProperty("defaultLocale");
+      expectTypeOf<LocaleHelper<"en" | "it">["defaultLocale"]>().toEqualTypeOf<"en" | "it">();
     });
 
     it("should not expose localeSet", () => {

@@ -16,8 +16,10 @@ interface TestResEquipment {
   readonly shellKit: {};
 }
 
-// Strategy has a protected constructor; each test subclass declares its own
-// public constructor so the test harness can instantiate them directly.
+// Strategy has a protected constructor and protected rMachine/config; each test
+// subclass declares its own public constructor so the test harness can
+// instantiate them directly, and widens rMachine/config to public so tests can
+// assert on stored references.
 function createSpyStrategyClass<RA extends AnyResAtlas, L extends AnyLocale, C>() {
   const validateConfigSpy = vi.fn();
   class SpyStrategy extends Strategy<RA, L, TestResEquipment, {}, C> {
@@ -25,6 +27,8 @@ function createSpyStrategyClass<RA extends AnyResAtlas, L extends AnyLocale, C>(
     constructor(rMachine: RMachine<RA, L, TestResEquipment, {}>, config: C) {
       super(rMachine, config);
     }
+    override readonly rMachine!: RMachine<RA, L, TestResEquipment, {}>;
+    override readonly config!: C;
     protected override validateConfig(): void {
       validateConfigSpy();
     }
@@ -43,6 +47,8 @@ class ThrowingStrategy<RA extends AnyResAtlas, L extends AnyLocale, C> extends S
   constructor(rMachine: RMachine<RA, L, TestResEquipment, {}>, config: C) {
     super(rMachine, config);
   }
+  override readonly rMachine!: RMachine<RA, L, TestResEquipment, {}>;
+  override readonly config!: C;
   protected override validateConfig(): void {
     throw new Error("Validation failed");
   }
@@ -53,6 +59,8 @@ class DefaultStrategy<RA extends AnyResAtlas, L extends AnyLocale, C> extends St
   constructor(rMachine: RMachine<RA, L, TestResEquipment, {}>, config: C) {
     super(rMachine, config);
   }
+  override readonly rMachine!: RMachine<RA, L, TestResEquipment, {}>;
+  override readonly config!: C;
 }
 
 // RMachine has a protected constructor; expose it via a test-only subclass so

@@ -29,7 +29,7 @@ export const strategy = NextAppFlatStrategy.create(rMachine, {
   },
   PathAtlas,
   // Exclude non-localized paths
-  pathMatcher: /^(?!\/(__|hello-world)($|\/)).*/,
+  pathMatcher: /^(?!\/(__|hello-world|set-italian)($|\/)).*/,
 });
 
 export const { localeHelper, hrefHelper } = strategy.getHelpers();

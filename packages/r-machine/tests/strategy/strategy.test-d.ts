@@ -26,14 +26,17 @@ interface TestResEquipment {
   readonly shellKit: {};
 }
 
-// Concrete implementation for type testing. Strategy has a protected ctor —
-// we widen it to public so vitest's expectTypeOf(...).toBeConstructibleWith /
-// constructorParameters / `new TestStrategy(...)` calls resolve correctly.
+// Concrete implementation for type testing. Strategy has a protected ctor and
+// protected rMachine/config — we widen them to public so vitest's
+// expectTypeOf(...).toBeConstructibleWith / constructorParameters /
+// `new TestStrategy(...)` / `TestStrategy["rMachine"]` calls resolve correctly.
 class TestStrategy extends Strategy<TestAtlas, string, TestResEquipment, {}, TestConfig> {
   // biome-ignore lint/complexity/noUselessConstructor: widens protected base ctor to public for tests
   constructor(rMachine: RMachine<TestAtlas, string, TestResEquipment, {}>, config: TestConfig) {
     super(rMachine, config);
   }
+  override readonly rMachine!: RMachine<TestAtlas, string, TestResEquipment, {}>;
+  override readonly config!: TestConfig;
 }
 
 describe("Strategy", () => {

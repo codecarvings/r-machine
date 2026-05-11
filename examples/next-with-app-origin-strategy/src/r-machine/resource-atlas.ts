@@ -1,19 +1,37 @@
-import type { R_Common } from "./resources/common/en";
-import type { R_ExampleDynamic } from "./resources/example-dynamic/en";
-import type { R_ExampleStatic } from "./resources/example-static/en";
-import type { R_Features_Box_1_2 } from "./resources/features/box_1_2/en";
-import type { R_Features_Box_3 } from "./resources/features/box_3/en";
-import type { R_Features_IntlDemo } from "./resources/features/intl_demo/en";
-import type { R_LandingPage } from "./resources/landing-page/en";
-import type { R_Navigation } from "./resources/navigation/en";
+import { defineLayout } from "r-machine";
+import type { Shell_Common } from "./shell/common/en";
+import type { Shell_ExampleDynamic } from "./shell/example-dynamic/en";
+import type { Shell_ExampleStatic } from "./shell/example-static/en";
+import type { Shell_Features_Box_1_2 } from "./shell/features/box_1_2/en";
+import type { Shell_Features_Box_3 } from "./shell/features/box_3/en";
+import type { Shell_Features_IntlDemo } from "./shell/features/intl_demo/en";
+import type { Shell_LandingPage } from "./shell/landing-page/en";
+import type { Shell_Lib_Fmt } from "./shell/lib/fmt";
+import type { Shell_Navigation } from "./shell/navigation/en";
 
-export type ResourceAtlas = {
-  common: R_Common;
-  navigation: R_Navigation;
-  "landing-page": R_LandingPage;
-  "features/box_1_2": R_Features_Box_1_2;
-  "features/box_3": R_Features_Box_3;
-  "features/intl_demo": R_Features_IntlDemo;
-  "example-static": R_ExampleStatic;
-  "example-dynamic": R_ExampleDynamic;
+const folders = defineLayout({
+  "inner/": "gear:inner",
+  "base/": "gear:base",
+  "outer/": "gear:outer",
+  "vertex/": "gear:outer(vertex)",
+  "shell/": "shell",
+  "shell/lib/": "shell(mono)",
+});
+
+type ResourceMap = {
+  "shell/common": Shell_Common;
+  "shell/navigation": Shell_Navigation;
+  "shell/landing-page": Shell_LandingPage;
+  "shell/features/box_1_2": Shell_Features_Box_1_2;
+  "shell/features/box_3": Shell_Features_Box_3;
+  "shell/features/intl_demo": Shell_Features_IntlDemo;
+  "shell/example-static": Shell_ExampleStatic;
+  "shell/example-dynamic": Shell_ExampleDynamic;
+
+  "shell/lib/fmt": Shell_Lib_Fmt;
 };
+
+export class ResourceAtlas extends folders<ResourceMap>() {}
+const token = ResourceAtlas.getTokenBuilder();
+
+export const fmt = token("shell/lib/fmt");

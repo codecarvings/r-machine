@@ -32,7 +32,7 @@ export const strategy = NextAppPathStrategy.create(rMachine, {
   // implicitDefaultLocale: "on",
   implicitDefaultLocale: {
     // Exclude non-localized paths from implicit default locale handling
-    pathMatcher: /^(?!\/(__|hello-world)($|\/)).*/,
+    pathMatcher: /^(?!\/(__|hello-world|set-italian)($|\/)).*/,
   },
 
   // autoLocaleBinding: "on",

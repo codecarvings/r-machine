@@ -1,3 +1,5 @@
+import type { RShape } from "@/r-machine/setup";
+
 export const r = {
   list: {
     title: "Dynamic Routes",
@@ -15,4 +17,4 @@ export const r = {
   },
 };
 
-export type R_ExampleDynamic = typeof r;
+export type Shell_ExampleDynamic = RShape<typeof r>;

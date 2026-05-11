@@ -50,6 +50,7 @@ export interface NextAppServerToolset<
   readonly NextServerRMachine: NextAppServerRMachine;
   readonly generateLocaleStaticParams: LocaleStaticParamsGenerator<LK>;
   readonly bindLocale: BindLocale<L, LK>;
+  readonly setLocale: (newLocale: L) => Promise<void>;
   readonly ServerPlug: NextServerPlugDefiner<RA, L, SKM, PA, LK>;
 }
 
@@ -219,6 +220,17 @@ export async function createNextAppServerToolset<
     return locale as L;
   }
 
+  async function setLocale(newLocale: L) {
+    validateServerOnlyUsage("setLocale");
+
+    const error = validateLocale(newLocale);
+    if (error) {
+      throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot set locale to invalid locale: "${newLocale}".`, error);
+    }
+
+    await impl.writeLocale(undefined!, newLocale, cookies, headers);
+  }
+
   const ServerPlug = ((...args: unknown[]) => {
     const outline = getPlugOutline<AnyResAtlas>(...args);
 
@@ -305,6 +317,7 @@ export async function createNextAppServerToolset<
     NextServerRMachine,
     generateLocaleStaticParams: generateLocaleStaticParams,
     bindLocale: bindLocale as BindLocale<L, LK>,
+    setLocale,
     ServerPlug,
   };
 }

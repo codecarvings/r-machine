@@ -11,10 +11,11 @@ export const r = Shell.define((plugin) => {
   const dateLongFmt = new Intl.DateTimeFormat(locale, { dateStyle: "long" });
   const dateShortFmt = new Intl.DateTimeFormat(locale, { dateStyle: "short" });
   const timeFmt = new Intl.DateTimeFormat(locale, { timeStyle: "medium" });
-  const numberFmt = new Intl.NumberFormat(locale);
+  const numberFmt = new Intl.NumberFormat(locale, { useGrouping: "always" }); // useGrouping: "always" to prevent CLDR mismatch
   const currencyFmt = new Intl.NumberFormat(locale, {
     style: "currency",
     currency: currencyByLocale[locale] ?? "USD",
+    useGrouping: "always", // useGrouping: "always" to prevent CLDR mismatch
   });
   const pluralRules = new Intl.PluralRules(locale);
 
