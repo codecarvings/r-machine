@@ -2,7 +2,7 @@ import { type Locale, type RShape, Shell } from "@/r-machine/setup";
 
 const currencyByLocale: Record<Locale, string> = {
   en: "USD",
-  it: "EUR",
+  "it-IT": "EUR",
 };
 
 export const r = Shell.define((plugin) => {

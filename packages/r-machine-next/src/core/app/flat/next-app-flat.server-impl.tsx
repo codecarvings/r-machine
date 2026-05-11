@@ -35,7 +35,7 @@ export async function createNextAppFlatServerImpl<
   pathTranslator: HrefTranslator,
   pathCanonicalizer: HrefCanonicalizer
 ) {
-  const { locales, localeHelper } = rMachine;
+  const { locales, matchLocalesForAcceptLanguageHeader } = rMachine.localeHelper;
   const { autoLocaleBinding, cookie, pathMatcher } = strategyConfig;
   const localeKey = strategyConfig.localeKey as C["localeKey"]; // Type assertion needed to use localeKey in a typed way, since it's not a generic parameter of the strategy core class
   const autoLBSw = autoLocaleBinding === "on";
@@ -135,7 +135,7 @@ export async function createNextAppFlatServerImpl<
             locale = cookieLocale;
           } else {
             // First time visiting, auto-detect from Accept-Language header
-            locale = localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
+            locale = matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
           }
 
           return rewriteToCanonicalLocalePath(request, locale, pathname);

@@ -13,7 +13,11 @@
 
 import type { RMachine } from "#r-machine";
 import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "#r-machine/core";
-import type { AnyLocale } from "#r-machine/locale";
+import type { AnyLocale, LocaleHelper } from "#r-machine/locale";
+
+export interface StrategyHelpers<L extends AnyLocale> {
+  readonly localeHelper: LocaleHelper<L>;
+}
 
 export abstract class Strategy<
   RA extends AnyResAtlas,
@@ -23,10 +27,20 @@ export abstract class Strategy<
   C,
 > {
   protected constructor(
-    readonly rMachine: RMachine<RA, L, E, EF>,
-    readonly config: C
+    protected readonly rMachine: RMachine<RA, L, E, EF>,
+    protected readonly config: C
   ) {
     this.validateConfig();
+  }
+
+  protected _helpers?: unknown;
+  getHelpers(): StrategyHelpers<L> {
+    if (!this._helpers) {
+      this._helpers = {
+        localeHelper: this.rMachine.localeHelper,
+      };
+    }
+    return this._helpers as StrategyHelpers<L>;
   }
 
   protected validateConfig(): void {

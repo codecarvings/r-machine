@@ -188,7 +188,7 @@ export async function createReactBareToolset<
     // would change the hook count between renders and trip
     // "Rendered fewer hooks than expected".
     const fallbackCtx: ReactBareToolsetContext<L> = {
-      locale: rMachine.defaultLocale,
+      locale: rMachine.localeHelper.defaultLocale,
       writeLocale: undefined,
     };
 

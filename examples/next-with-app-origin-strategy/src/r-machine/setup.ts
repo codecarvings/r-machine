@@ -24,5 +24,5 @@ export const strategy = new NextAppOriginStrategy(rMachine, {
     it: ["http://italiano.test:3000"],
   },
   // Exclude non-localized paths
-  pathMatcher: /^(?!\/(__|hello-world|set-italian)($|\/)).*/,
+  pathMatcher: /^(?!\/(__|hello-world)($|\/)).*/,
 });

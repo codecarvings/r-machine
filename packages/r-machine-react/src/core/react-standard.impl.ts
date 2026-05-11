@@ -44,7 +44,7 @@ export async function createReactStandardImpl<
       }
     }
 
-    return rMachine.defaultLocale;
+    return rMachine.localeHelper.defaultLocale;
   }
 
   function storeLocale(locale: L): L | Promise<L> {

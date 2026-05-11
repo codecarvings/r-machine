@@ -64,3 +64,5 @@ export const strategy = ReactStandardStrategy.create(rMachine, {
     set: (newLocale) => localStorage.setItem("locale", newLocale),
   },
 });
+
+export const { localeHelper } = strategy.getHelpers();

@@ -31,3 +31,5 @@ export const strategy = NextAppPathStrategy.create(rMachine, {
   autoDetectLocale: "off",
   cookie: "on",
 });
+
+export const { localeHelper, hrefHelper } = strategy.getHelpers();

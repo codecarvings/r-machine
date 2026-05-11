@@ -12,6 +12,8 @@
  */
 
 import type {
+  AnyNamespace,
+  AnyRes,
   AnyResAtlas,
   AnyResDomain,
   AnyResEquipment,
@@ -44,3 +46,7 @@ type LocalizerHelper<RD extends AnyResDomain> = <N extends Namespace<RD>, const 
   namespace: N,
   shell: R & Record<Exclude<keyof R, keyof RD[N]>, never>
 ) => R;
+
+export function localized<S extends AnyRes>(_namespace: AnyNamespace, shell: S): S {
+  return shell;
+}

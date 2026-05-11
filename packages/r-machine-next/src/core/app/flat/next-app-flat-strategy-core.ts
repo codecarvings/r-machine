@@ -13,6 +13,7 @@
 
 import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
+import type { StrategyHelpers } from "r-machine/strategy";
 import { type CookieDeclaration, defaultCookieDeclaration } from "r-machine/strategy/web";
 import {
   type AnyPathAtlas,
@@ -75,6 +76,10 @@ const defaultConfig: NextAppFlatStrategyConfig<
   pathMatcher: defaultPathMatcher,
 };
 
+export interface NextAppFlatStrategyHelpers<L extends AnyLocale, PA extends AnyPathAtlas> extends StrategyHelpers<L> {
+  readonly hrefHelper: HrefHelper<PA>;
+}
+
 export abstract class NextAppFlatStrategyCore<
   RA extends AnyResAtlas,
   L extends AnyLocale,
@@ -87,15 +92,15 @@ export abstract class NextAppFlatStrategyCore<
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, false);
   protected readonly pathTranslator = new HrefTranslator(
     this.pathAtlas,
-    this.rMachine.locales,
-    this.rMachine.defaultLocale
+    this.rMachine.localeHelper.locales,
+    this.rMachine.localeHelper.defaultLocale
   );
   protected readonly pathCanonicalizer = new HrefCanonicalizer(
     this.pathAtlas,
-    this.rMachine.locales,
-    this.rMachine.defaultLocale
+    this.rMachine.localeHelper.locales,
+    this.rMachine.localeHelper.defaultLocale
   );
-  private readonly defaultLocale = this.rMachine.defaultLocale;
+  private readonly defaultLocale = this.rMachine.localeHelper.defaultLocale;
 
   protected async createClientImpl() {
     const module = await import("./next-app-flat.client-impl.js");
@@ -107,7 +112,17 @@ export abstract class NextAppFlatStrategyCore<
     return module.createNextAppFlatServerImpl(this.rMachine, this.config, this.pathTranslator, this.pathCanonicalizer);
   }
 
-  readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
+  protected readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
     getPath: (path, ...args) => this.pathTranslator.get(this.defaultLocale, path, args[0]).value,
   };
+
+  override getHelpers(): NextAppFlatStrategyHelpers<L, InstanceType<C["PathAtlas"]>> {
+    if (!this._helpers) {
+      this._helpers = {
+        ...super.getHelpers(),
+        hrefHelper: this.hrefHelper,
+      };
+    }
+    return this._helpers as NextAppFlatStrategyHelpers<L, InstanceType<C["PathAtlas"]>>;
+  }
 }

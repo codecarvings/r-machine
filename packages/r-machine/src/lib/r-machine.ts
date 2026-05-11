@@ -12,10 +12,8 @@
  */
 
 import {
-  type AnyNamespace,
   type AnyNamespaceCollection,
   type AnyNamespaceMap,
-  type AnyRes,
   type AnyResAtlas,
   type AnyResAtlasClass,
   type AnyResEquipment,
@@ -37,8 +35,7 @@ import {
   type ShellPlugKitMap,
   type VertexGearMap,
 } from "#r-machine/core";
-import type { AnyLocale, AnyLocaleList, LocaleList } from "#r-machine/locale";
-import { LocaleHelper } from "#r-machine/locale";
+import { type AnyLocale, type AnyLocaleList, LocaleHelper } from "#r-machine/locale";
 import {
   cloneRMachineConfig,
   convertParamsToConfig,
@@ -46,7 +43,7 @@ import {
   type RMachineConfigParams,
   validateRMachineConfig,
 } from "./r-machine-config.js";
-import type { RMachineToolset } from "./r-machine-toolset.js";
+import { localized, type RMachineToolset } from "./r-machine-toolset.js";
 
 export class RMachine<
   RA extends AnyResAtlas,
@@ -60,8 +57,6 @@ export class RMachine<
       throw configError;
     }
     this.config = cloneRMachineConfig(config);
-    this.locales = this.config.locales;
-    this.defaultLocale = this.config.defaultLocale;
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
 
     const resLayoutResolver = new ResLayoutResolver(this.config.layout);
@@ -89,8 +84,6 @@ export class RMachine<
     }
   }
 
-  readonly locales: LocaleList<L>;
-  readonly defaultLocale: L;
   readonly localeHelper: LocaleHelper<L>;
   protected readonly config: RMachineConfig<RA, L, E, EF>;
   protected readonly junctureManager: JunctureManager;
@@ -174,7 +167,3 @@ export class RMachine<
 
 export type RMachineLocale<RM extends RMachine<any, any, any, any>> =
   RM extends RMachine<any, infer L, any, any> ? L : never;
-
-function localized<S extends AnyRes>(_namespace: AnyNamespace, shell: S): S {
-  return shell;
-}

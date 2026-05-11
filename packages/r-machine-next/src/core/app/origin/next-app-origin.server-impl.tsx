@@ -36,7 +36,7 @@ export async function createNextAppOriginServerImpl<
   urlTranslator: HrefTranslator,
   pathCanonicalizer: HrefCanonicalizer
 ) {
-  const { locales, defaultLocale } = rMachine;
+  const { locales, defaultLocale } = rMachine.localeHelper;
   const { autoLocaleBinding, localeOriginMap, pathMatcher } = strategyConfig;
   const localeKey = strategyConfig.localeKey as C["localeKey"]; // Type assertion needed to use localeKey in a typed way, since it's not a generic parameter of the strategy core class
   const autoLBSw = autoLocaleBinding === "on";
@@ -133,7 +133,7 @@ export async function createNextAppOriginServerImpl<
             originCacheMap.set(origin, locale!);
           }
 
-          return rewriteToCanonicalLocalePath(request, locale, pathname);
+          return rewriteToCanonicalLocalePath(request, locale!, pathname);
         }
 
         // Irrelevant URL, do not proxy

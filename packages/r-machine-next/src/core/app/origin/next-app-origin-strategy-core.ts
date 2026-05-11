@@ -14,6 +14,7 @@
 import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import { RMachineConfigError } from "r-machine/errors";
 import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
+import type { StrategyHelpers } from "r-machine/strategy";
 import {
   type AnyPathAtlas,
   buildPathAtlas,
@@ -92,6 +93,10 @@ const defaultConfig: NextAppOriginStrategyConfig<
   pathMatcher: defaultPathMatcher,
 };
 
+export interface NextAppOriginStrategyHelpers<L extends AnyLocale, PA extends AnyPathAtlas> extends StrategyHelpers<L> {
+  readonly hrefHelper: HrefHelper<L, PA>;
+}
+
 export abstract class NextAppOriginStrategyCore<
   RA extends AnyResAtlas,
   L extends AnyLocale,
@@ -104,19 +109,19 @@ export abstract class NextAppOriginStrategyCore<
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, true);
   protected readonly pathTranslator = new HrefTranslator(
     this.pathAtlas,
-    this.rMachine.locales,
-    this.rMachine.defaultLocale
+    this.rMachine.localeHelper.locales,
+    this.rMachine.localeHelper.defaultLocale
   );
   protected readonly urlTranslator = new NextAppOriginStrategyUrlTranslator(
     this.pathAtlas,
-    this.rMachine.locales,
-    this.rMachine.defaultLocale,
+    this.rMachine.localeHelper.locales,
+    this.rMachine.localeHelper.defaultLocale,
     this.config.localeOriginMap
   );
   protected readonly pathCanonicalizer = new HrefCanonicalizer(
     this.pathAtlas,
-    this.rMachine.locales,
-    this.rMachine.defaultLocale
+    this.rMachine.localeHelper.locales,
+    this.rMachine.localeHelper.defaultLocale
   );
 
   protected async createClientImpl() {
@@ -141,10 +146,20 @@ export abstract class NextAppOriginStrategyCore<
     );
   }
 
-  readonly hrefHelper: HrefHelper<L, InstanceType<C["PathAtlas"]>> = {
+  protected readonly hrefHelper: HrefHelper<L, InstanceType<C["PathAtlas"]>> = {
     getPath: (locale, path, ...args) => this.pathTranslator.get(locale, path, args[0]).value,
     getUrl: (locale, path, ...args) => this.urlTranslator.get(locale, path, args[0]).value,
   };
+
+  override getHelpers(): NextAppOriginStrategyHelpers<L, InstanceType<C["PathAtlas"]>> {
+    if (!this._helpers) {
+      this._helpers = {
+        ...super.getHelpers(),
+        hrefHelper: this.hrefHelper,
+      };
+    }
+    return this._helpers as NextAppOriginStrategyHelpers<L, InstanceType<C["PathAtlas"]>>;
+  }
 }
 
 export class NextAppOriginStrategyUrlTranslator extends HrefTranslator {

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Footer from "@/components/server/footer";
 import NonLocalizedHeader from "@/components/server/non-localized-header";
 import { generateLocaleStaticParams, ServerPlug } from "@/r-machine/server-toolset";
-import { strategy } from "@/r-machine/setup";
+import { localeHelper } from "@/r-machine/setup";
 
 // Pre-render the static params for all locales
 export const generateStaticParams = generateLocaleStaticParams;
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export const plug = ServerPlug("shell/common");
 export default async function NonLocalizedLayout({ children }: LayoutProps<"/">) {
-  const [common] = await plug.useR(strategy.rMachine.defaultLocale);
+  const [common] = await plug.useR(localeHelper.defaultLocale);
 
   return (
     <html lang="en">

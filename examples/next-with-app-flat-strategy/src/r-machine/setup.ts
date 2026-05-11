@@ -19,5 +19,5 @@ export type Locale = RMachineLocale<typeof rMachine>;
 export const strategy = new NextAppFlatStrategy(rMachine, {
   PathAtlas,
   // Exclude non-localized paths
-  pathMatcher: /^(?!\/(__|hello-world|set-italian)($|\/)).*/,
+  pathMatcher: /^(?!\/(__|hello-world)($|\/)).*/,
 });

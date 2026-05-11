@@ -42,7 +42,7 @@ export async function createNextAppPathServerImpl<
   pathTranslator: HrefTranslator,
   contentPathCanonicalizer: HrefCanonicalizer
 ) {
-  const { locales, defaultLocale, localeHelper } = rMachine;
+  const { locales, defaultLocale, matchLocalesForAcceptLanguageHeader } = rMachine.localeHelper;
   const { autoLocaleBinding, basePath, cookie, localeLabel, autoDetectLocale, implicitDefaultLocale } = strategyConfig;
   const localeKey = strategyConfig.localeKey as C["localeKey"]; // Type assertion needed to use localeKey in a typed way, since it's not a generic parameter of the strategy core class
 
@@ -221,7 +221,7 @@ export async function createNextAppPathServerImpl<
                 locale = cookieLocale;
               } else {
                 // Cookie disabled - OR - First time visiting, auto-detect from Accept-Language header
-                locale = localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
+                locale = matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
               }
 
               if (locale !== defaultLocale) {
@@ -252,7 +252,7 @@ export async function createNextAppPathServerImpl<
             locale = cookieLocale;
           } else {
             // Cookie disabled - OR - First time visiting, auto-detect from Accept-Language header
-            locale = localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
+            locale = matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
           }
 
           // Redirect to the URL with the locale prefix
@@ -308,7 +308,7 @@ export async function createNextAppPathServerImpl<
 
         const headerStore = await headers();
         const acceptLanguageHeader = headerStore.get("accept-language");
-        const detectedLocale = localeHelper.matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
+        const detectedLocale = matchLocalesForAcceptLanguageHeader(acceptLanguageHeader);
         await writeLocale(undefined!, detectedLocale, cookies, headers);
       }
 

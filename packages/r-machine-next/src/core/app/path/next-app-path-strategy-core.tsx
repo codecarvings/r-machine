@@ -14,6 +14,7 @@
 import type { AnyResAtlas, ExperimentalFlags, ResEquipment, SwitchableOption } from "r-machine/core";
 import { RMachineConfigError } from "r-machine/errors";
 import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
+import type { StrategyHelpers } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import {
   type AnyPathAtlas,
@@ -109,6 +110,10 @@ const defaultConfig: NextAppPathStrategyConfig<
   implicitDefaultLocale: "off",
 };
 
+export interface NextAppPathStrategyHelpers<L extends AnyLocale, PA extends AnyPathAtlas> extends StrategyHelpers<L> {
+  readonly hrefHelper: HrefHelper<L, PA>;
+}
+
 export abstract class NextAppPathStrategyCore<
   RA extends AnyResAtlas,
   L extends AnyLocale,
@@ -121,22 +126,22 @@ export abstract class NextAppPathStrategyCore<
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, true);
   protected readonly pathTranslator = new NextAppPathStrategyPathTranslator(
     this.pathAtlas,
-    this.rMachine.locales,
-    this.rMachine.defaultLocale,
+    this.rMachine.localeHelper.locales,
+    this.rMachine.localeHelper.defaultLocale,
     this.config.localeLabel === "lowercase",
     this.config.implicitDefaultLocale !== "off"
   );
   // Used by proxy to rewrite incoming requests
   protected readonly contentPathCanonicalizer = new HrefCanonicalizer(
     this.pathAtlas,
-    this.rMachine.locales,
-    this.rMachine.defaultLocale
+    this.rMachine.localeHelper.locales,
+    this.rMachine.localeHelper.defaultLocale
   );
   // Used by setLocale to keep the content path when changing locale
   protected readonly pathCanonicalizer = new NextAppPathStrategyPathCanonicalizer(
     this.pathAtlas,
-    this.rMachine.locales,
-    this.rMachine.defaultLocale,
+    this.rMachine.localeHelper.locales,
+    this.rMachine.localeHelper.defaultLocale,
     this.config.implicitDefaultLocale !== "off"
   );
 
@@ -202,9 +207,19 @@ export abstract class NextAppPathStrategyCore<
     return module.createNextAppNoProxyServerToolset(this.rMachine, this.config.serverKit, impl, NextClientRMachine);
   }
 
-  readonly hrefHelper: HrefHelper<L, InstanceType<C["PathAtlas"]>> = {
+  protected readonly hrefHelper: HrefHelper<L, InstanceType<C["PathAtlas"]>> = {
     getPath: (locale, path, ...args) => this.pathTranslator.get(locale, path, args[0]).value,
   };
+
+  override getHelpers(): NextAppPathStrategyHelpers<L, InstanceType<C["PathAtlas"]>> {
+    if (!this._helpers) {
+      this._helpers = {
+        ...super.getHelpers(),
+        hrefHelper: this.hrefHelper,
+      };
+    }
+    return this._helpers as NextAppPathStrategyHelpers<L, InstanceType<C["PathAtlas"]>>;
+  }
 }
 
 export class NextAppPathStrategyPathTranslator extends HrefTranslator {

@@ -11,5 +11,5 @@
  * contact: licensing@codecarvings.com
  */
 
-export { Strategy } from "./strategy.js";
+export { Strategy, type StrategyHelpers } from "./strategy.js";
 export type { CustomLocaleDetector, CustomLocaleStore } from "./strategy-options.js";
