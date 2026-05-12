@@ -44,10 +44,14 @@ export type FilterResAtlasKeys<RL extends AnyResLayout, RD> = RD extends AnyResD
 
 type ValidLayoutPrefix<RL extends AnyResLayout> = Extract<keyof RL, `${string}/`>;
 
+type ReservedLayoutKeyChar = "@" | "#" | ":";
+
 type ValidLayoutKeys<RL> = {
-  readonly [K in keyof RL]: K extends `${string}/`
-    ? RL[K]
-    : RMachineTypeError<`Layout key '${K & string}' must end with '/' to indicate a namespace prefix (e.g. 'gear/').`>;
+  readonly [K in keyof RL]: K extends `${string}${ReservedLayoutKeyChar}${string}`
+    ? RMachineTypeError<`Layout key '${K & string}' contains a reserved character ('@', '#' or ':'). These characters are reserved.`>
+    : K extends `${string}/`
+      ? RL[K]
+      : RMachineTypeError<`Layout key '${K & string}' must end with '/' to indicate a namespace prefix (e.g. 'gear/').`>;
 };
 
 type ResAtlasBuilder<RL extends AnyResLayout> = <const RD>() => ResAtlasClass<RL, FilterResAtlasKeys<RL, RD>, RD>;
