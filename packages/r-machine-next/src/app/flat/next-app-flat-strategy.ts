@@ -17,8 +17,8 @@ import type { AnyLocale } from "r-machine/locale";
 import type { AnyPathAtlas, NextClientPlugKitMap, NextServerPlugKitMap } from "#r-machine/next/core";
 import {
   type NextAppFlatStrategyConfig,
+  type NextAppFlatStrategyConfigParams,
   NextAppFlatStrategyCore,
-  type PartialNextAppFlatStrategyConfig,
 } from "#r-machine/next/core/app/flat";
 
 export class NextAppFlatStrategy<
@@ -42,7 +42,7 @@ export class NextAppFlatStrategy<
     LK extends string = typeof NextAppFlatStrategyCore.defaultConfig.localeKey,
   >(
     rMachine: RMachine<RA, L, E, EF>,
-    config: PartialNextAppFlatStrategyConfig<RA, CKM, SKM, PA, LK>
+    config: NextAppFlatStrategyConfigParams<RA, CKM, SKM, PA, LK>
   ): NextAppFlatStrategy<RA, L, E, EF, CKM, SKM, PA, LK> {
     return new NextAppFlatStrategy<RA, L, E, EF, CKM, SKM, PA, LK>(rMachine, {
       ...NextAppFlatStrategyCore.defaultConfig,

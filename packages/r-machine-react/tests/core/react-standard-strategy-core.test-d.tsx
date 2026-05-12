@@ -3,8 +3,8 @@ import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
-  PartialReactStandardStrategyConfig,
   ReactStandardStrategyConfig,
+  ReactStandardStrategyConfigParams,
 } from "../../src/core/react-standard-strategy-core.js";
 import { ReactStandardStrategyCore } from "../../src/core/react-standard-strategy-core.js";
 import type { ReactStrategyCore } from "../../src/core/react-strategy-core.js";
@@ -106,28 +106,28 @@ describe("ReactStandardStrategyConfig", () => {
 
 describe("PartialReactStandardStrategyConfig", () => {
   it("has the same keys as ReactStandardStrategyConfig", () => {
-    type Keys = keyof PartialReactStandardStrategyConfig;
+    type Keys = keyof ReactStandardStrategyConfigParams;
     expectTypeOf<Keys>().toEqualTypeOf<"localeDetector" | "localeStore">();
   });
 
   it("allows omitting localeDetector", () => {
-    expectTypeOf<{ readonly localeStore: undefined }>().toExtend<PartialReactStandardStrategyConfig>();
+    expectTypeOf<{ readonly localeStore: undefined }>().toExtend<ReactStandardStrategyConfigParams>();
   });
 
   it("allows omitting localeStore", () => {
-    expectTypeOf<{ readonly localeDetector: undefined }>().toExtend<PartialReactStandardStrategyConfig>();
+    expectTypeOf<{ readonly localeDetector: undefined }>().toExtend<ReactStandardStrategyConfigParams>();
   });
 
   it("allows an empty object", () => {
-    expectTypeOf<{}>().toExtend<PartialReactStandardStrategyConfig>();
+    expectTypeOf<{}>().toExtend<ReactStandardStrategyConfigParams>();
   });
 
   it("is a supertype of ReactStandardStrategyConfig", () => {
-    expectTypeOf<ReactStandardStrategyConfig>().toExtend<PartialReactStandardStrategyConfig>();
+    expectTypeOf<ReactStandardStrategyConfig>().toExtend<ReactStandardStrategyConfigParams>();
   });
 
   it("is not a subtype of ReactStandardStrategyConfig", () => {
-    expectTypeOf<PartialReactStandardStrategyConfig>().not.toEqualTypeOf<ReactStandardStrategyConfig>();
+    expectTypeOf<ReactStandardStrategyConfigParams>().not.toEqualTypeOf<ReactStandardStrategyConfig>();
   });
 });
 

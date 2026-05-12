@@ -15,7 +15,7 @@ export {
   type AnyNextAppOriginStrategyConfig,
   type LocaleOriginMap,
   type NextAppOriginStrategyConfig,
+  type NextAppOriginStrategyConfigParams,
   NextAppOriginStrategyCore,
   NextAppOriginStrategyUrlTranslator,
-  type PartialNextAppOriginStrategyConfig,
 } from "./next-app-origin-strategy-core.js";

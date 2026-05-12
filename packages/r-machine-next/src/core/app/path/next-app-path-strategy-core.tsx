@@ -32,8 +32,8 @@ import {
   type NextAppNoProxyServerImpl,
   type NextAppNoProxyServerToolset,
   type NextAppStrategyConfig,
+  type NextAppStrategyConfigParams,
   NextAppStrategyCore,
-  type PartialNextAppStrategyConfig,
 } from "#r-machine/next/core/app";
 import { ERR_INVALID_STRATEGY_CONFIG } from "#r-machine/next/errors";
 
@@ -83,13 +83,13 @@ export interface NextAppPathStrategyConfig<
   readonly implicitDefaultLocale: ImplicitDefaultLocaleOption;
 }
 export type AnyNextAppPathStrategyConfig = NextAppPathStrategyConfig<any, any, any, any, any>;
-export interface PartialNextAppPathStrategyConfig<
+export interface NextAppPathStrategyConfigParams<
   RA extends AnyResAtlas,
   CKM extends NextClientPlugKitMap<RA>,
   SKM extends NextServerPlugKitMap<RA>,
   PA extends AnyPathAtlas,
   LK extends string,
-> extends PartialNextAppStrategyConfig<RA, CKM, SKM, PA, LK> {
+> extends NextAppStrategyConfigParams<RA, CKM, SKM, PA, LK> {
   readonly cookie?: CookieOption;
   readonly localeLabel?: LocaleLabelOption;
   readonly autoDetectLocale?: AutoDetectLocaleOption;

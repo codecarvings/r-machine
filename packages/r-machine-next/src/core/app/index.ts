@@ -32,6 +32,6 @@ export {
   type AnyNextAppStrategyConfig,
   localeHeaderName,
   type NextAppStrategyConfig,
+  type NextAppStrategyConfigParams,
   NextAppStrategyCore,
-  type PartialNextAppStrategyConfig,
 } from "./next-app-strategy-core.js";

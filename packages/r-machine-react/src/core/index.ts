@@ -21,8 +21,8 @@ export {
 export type { ReactPlugKitMap } from "./react-plug.js";
 export {
   type AnyReactStandardStrategyConfig,
-  type PartialReactStandardStrategyConfig,
   type ReactStandardStrategyConfig,
+  type ReactStandardStrategyConfigParams,
   ReactStandardStrategyCore,
 } from "./react-standard-strategy-core.js";
 export { ReactStrategyCore } from "./react-strategy-core.js";

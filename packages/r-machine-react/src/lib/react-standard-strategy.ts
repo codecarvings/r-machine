@@ -16,9 +16,9 @@ import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/cor
 import type { RMachineTypeError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import {
-  type PartialReactStandardStrategyConfig,
   type ReactPlugKitMap,
   type ReactStandardStrategyConfig,
+  type ReactStandardStrategyConfigParams,
   ReactStandardStrategyCore,
 } from "#r-machine/react/core";
 
@@ -37,7 +37,7 @@ export class ReactStandardStrategy<
     KM extends ReactPlugKitMap<RA> = {},
   >(
     rMachine: RMachine<RA, L, E, EF>,
-    config: PartialReactStandardStrategyConfig<RA, KM>,
+    config: ReactStandardStrategyConfigParams<RA, KM>,
     ..._atlas_error: [Extract<keyof RA["let@gear:inner"], string>] extends [never]
       ? []
       : [

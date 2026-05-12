@@ -17,8 +17,8 @@ import type { AnyLocale } from "r-machine/locale";
 import type { AnyPathAtlas, NextClientPlugKitMap, NextServerPlugKitMap } from "#r-machine/next/core";
 import {
   type NextAppPathStrategyConfig,
+  type NextAppPathStrategyConfigParams,
   NextAppPathStrategyCore,
-  type PartialNextAppPathStrategyConfig,
 } from "#r-machine/next/core/app/path";
 
 export class NextAppPathStrategy<
@@ -42,7 +42,7 @@ export class NextAppPathStrategy<
     LK extends string = typeof NextAppPathStrategyCore.defaultConfig.localeKey,
   >(
     rMachine: RMachine<RA, L, E, EF>,
-    config: PartialNextAppPathStrategyConfig<RA, CKM, SKM, PA, LK>
+    config: NextAppPathStrategyConfigParams<RA, CKM, SKM, PA, LK>
   ): NextAppPathStrategy<RA, L, E, EF, CKM, SKM, PA, LK> {
     return new NextAppPathStrategy<RA, L, E, EF, CKM, SKM, PA, LK>(rMachine, {
       ...NextAppPathStrategyCore.defaultConfig,

@@ -28,8 +28,8 @@ import {
 } from "#r-machine/next/core";
 import {
   type NextAppStrategyConfig,
+  type NextAppStrategyConfigParams,
   NextAppStrategyCore,
-  type PartialNextAppStrategyConfig,
 } from "#r-machine/next/core/app";
 import { defaultPathMatcher } from "#r-machine/next/internal";
 
@@ -53,13 +53,13 @@ export interface NextAppFlatStrategyConfig<
   readonly pathMatcher: RegExp | null;
 }
 export type AnyNextAppFlatStrategyConfig = NextAppFlatStrategyConfig<any, any, any, any, any>;
-export interface PartialNextAppFlatStrategyConfig<
+export interface NextAppFlatStrategyConfigParams<
   RA extends AnyResAtlas,
   CKM extends NextClientPlugKitMap<RA>,
   SKM extends NextServerPlugKitMap<RA>,
   PA extends AnyPathAtlas,
   LK extends string,
-> extends PartialNextAppStrategyConfig<RA, CKM, SKM, PA, LK> {
+> extends NextAppStrategyConfigParams<RA, CKM, SKM, PA, LK> {
   readonly cookie?: CookieDeclaration;
   readonly pathMatcher?: RegExp | null;
 }

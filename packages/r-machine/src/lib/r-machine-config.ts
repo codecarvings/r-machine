@@ -38,6 +38,22 @@ import {
   validateCanonicalUnicodeLocaleId,
 } from "#r-machine/locale";
 
+export interface RMachineConfig<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
+> {
+  readonly locales: LocaleList<L>;
+  readonly defaultLocale: L;
+  readonly resourceAtlas: RA;
+  readonly load: ResModuleLoaderFn;
+  readonly layout: AnyResLayout;
+  readonly priority: NamespaceList<RA>;
+  readonly equipment: E;
+  readonly experimental: EF;
+}
+
 export interface RMachineConfigParams<
   RAC extends AnyResAtlasClass,
   LL extends AnyLocaleList,
@@ -54,22 +70,6 @@ export interface RMachineConfigParams<
   readonly gearKit?: GK;
   readonly shellKit?: SK;
   readonly experimental?: EF & ExperimentalFlags;
-}
-
-export interface RMachineConfig<
-  RA extends AnyResAtlas,
-  L extends AnyLocale,
-  E extends AnyResEquipment<RA>,
-  EF extends ExperimentalFlags,
-> {
-  readonly locales: LocaleList<L>;
-  readonly defaultLocale: L;
-  readonly resourceAtlas: RA;
-  readonly load: ResModuleLoaderFn;
-  readonly layout: AnyResLayout;
-  readonly priority: NamespaceList<RA>;
-  readonly equipment: E;
-  readonly experimental: EF;
 }
 
 export function convertParamsToConfig<

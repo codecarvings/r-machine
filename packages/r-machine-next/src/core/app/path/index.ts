@@ -14,8 +14,8 @@
 export {
   type AnyNextAppPathStrategyConfig,
   type NextAppPathStrategyConfig,
+  type NextAppPathStrategyConfigParams,
   NextAppPathStrategyCore,
   NextAppPathStrategyPathCanonicalizer,
   NextAppPathStrategyPathTranslator,
-  type PartialNextAppPathStrategyConfig,
 } from "./next-app-path-strategy-core.js";

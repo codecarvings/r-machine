@@ -41,7 +41,7 @@ export interface NextAppStrategyConfig<
   readonly basePath: string;
 }
 export type AnyNextAppStrategyConfig = NextAppStrategyConfig<any, any, any, any, any>;
-export interface PartialNextAppStrategyConfig<
+export interface NextAppStrategyConfigParams<
   RA extends AnyResAtlas,
   CKM extends NextClientPlugKitMap<RA>,
   SKM extends NextServerPlugKitMap<RA>,

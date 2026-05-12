@@ -21,7 +21,7 @@ export interface ReactStrategyConfig<RA extends AnyResAtlas, KM extends ReactPlu
   readonly kit: KM;
 }
 type AnyReactStrategyConfig<RA extends AnyResAtlas = AnyResAtlas> = ReactStrategyConfig<RA, ReactPlugKitMap<RA>>;
-export interface PartialReactStrategyConfig<RA extends AnyResAtlas, KM extends ReactPlugKitMap<RA>> {
+export interface ReactStrategyConfigParams<RA extends AnyResAtlas, KM extends ReactPlugKitMap<RA>> {
   readonly kit?: KM;
 }
 

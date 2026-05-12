@@ -14,6 +14,6 @@
 export {
   type AnyNextAppFlatStrategyConfig,
   type NextAppFlatStrategyConfig,
+  type NextAppFlatStrategyConfigParams,
   NextAppFlatStrategyCore,
-  type PartialNextAppFlatStrategyConfig,
 } from "./next-app-flat-strategy-core.js";

@@ -19,7 +19,7 @@ import type {
 import { createReactBareToolset as originalCreateReactBareToolset } from "../../src/core/react-bare-toolset.js";
 import type {
   ReactStandardStrategyConfig as OriginalConfig,
-  PartialReactStandardStrategyConfig as OriginalPartialConfig,
+  ReactStandardStrategyConfigParams as OriginalPartialConfig,
   ReactStandardStrategyCore as OriginalStandardStrategyCore,
 } from "../../src/core/react-standard-strategy-core.js";
 import type { ReactStrategyCore as OriginalReactStrategyCore } from "../../src/core/react-strategy-core.js";

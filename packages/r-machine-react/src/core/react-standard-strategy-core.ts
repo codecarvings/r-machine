@@ -16,7 +16,7 @@ import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import type { ReactPlugKitMap } from "./react-plug.js";
 import { createReactStandardImpl } from "./react-standard.impl.js";
-import { type PartialReactStrategyConfig, type ReactStrategyConfig, ReactStrategyCore } from "./react-strategy-core.js";
+import { type ReactStrategyConfig, type ReactStrategyConfigParams, ReactStrategyCore } from "./react-strategy-core.js";
 
 export interface ReactStandardStrategyConfig<RA extends AnyResAtlas, KM extends ReactPlugKitMap<RA>>
   extends ReactStrategyConfig<RA, KM> {
@@ -27,8 +27,8 @@ export type AnyReactStandardStrategyConfig<RA extends AnyResAtlas = AnyResAtlas>
   RA,
   ReactPlugKitMap<RA>
 >;
-export interface PartialReactStandardStrategyConfig<RA extends AnyResAtlas, KM extends ReactPlugKitMap<RA>>
-  extends PartialReactStrategyConfig<RA, KM> {
+export interface ReactStandardStrategyConfigParams<RA extends AnyResAtlas, KM extends ReactPlugKitMap<RA>>
+  extends ReactStrategyConfigParams<RA, KM> {
   readonly localeDetector?: CustomLocaleDetector | undefined;
   readonly localeStore?: CustomLocaleStore | undefined;
 }
