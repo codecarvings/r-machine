@@ -63,6 +63,35 @@ export type ResAtlasCatalog =
 
 type DroppedAtlasKeys<RA, RD> = Exclude<keyof RA, keyof RD>;
 
+// Key-only check on the raw atlas shape RA (preserved via phantom symbol).
+// Accessing RA[K] here would risk re-triggering the declaration-site
+// circularity trap (see project_atlas_silent_filter memory).
+type ReservedAtlasKeyChar = "@" | "#" | ":";
+type ReservedCharAtlasKeys<RA> = Extract<keyof RA, `${string}${ReservedAtlasKeyChar}${string}`>;
+
+// When the atlas shape RA has issues, getTokenBuilder is brand-typed directly
+// (not a callable function). Calling `Class.getTokenBuilder()` then fails with
+// TS2349 "This expression is not callable. Type 'RMachineTypeError<…>' has no
+// call signatures." — the brand message resolves inline in CLI diagnostics.
+// This fires at the getTokenBuilder() call itself (which is canonical, always
+// present in atlas declaration files), rather than waiting for a later token()
+// invocation. Keeping the class itself structurally valid prevents downstream
+// `any` cascades in consumer files.
+//
+// Reserved-char violations take precedence over dropped-key violations:
+// reserved chars are typically the *root cause* of the failure, while the
+// dropped-key diagnostic is downstream noise that confuses developers.
+type GetTokenBuilderProperty<RA, RD extends AnyResDomain> = [ReservedCharAtlasKeys<RA>] extends [never]
+  ? [DroppedAtlasKeys<RA, RD>] extends [never]
+    ? () => TokenBuilder<RD>
+    : RMachineTypeError<`Invalid namespaces declared in atlas shape (dropped by layout filter): ${DroppedAtlasKeys<
+        RA,
+        RD
+      > &
+        string}`>
+  : RMachineTypeError<`Atlas keys contain a reserved character ('@', '#' or ':'). These characters are reserved. Offending keys: ${ReservedCharAtlasKeys<RA> &
+      string}`>;
+
 declare const rawResAtlasShapeSymbol: unique symbol;
 export type ResAtlasClass<RL extends AnyResLayout, RD extends AnyResDomain, RA = RD> = (abstract new () => ResAtlas<
   RL,
@@ -74,17 +103,7 @@ export type ResAtlasClass<RL extends AnyResLayout, RD extends AnyResDomain, RA =
 
   readonly withPriority: <P extends readonly Namespace<RD>[]>(priority: P) => ResAtlasClass<RL, RD, RA>;
 
-  readonly getTokenBuilder: (
-    ..._atlas_error: [DroppedAtlasKeys<RA, RD>] extends [never]
-      ? []
-      : [
-          RMachineTypeError<`Invalid namespaces declared in atlas shape (dropped by layout filter): *** ${DroppedAtlasKeys<
-            RA,
-            RD
-          > &
-            string} ***`>,
-        ]
-  ) => TokenBuilder<RD>;
+  readonly getTokenBuilder: GetTokenBuilderProperty<RA, RD>;
 };
 
 export type AnyResAtlasClass = (abstract new () => AnyResAtlas) & {
@@ -92,5 +111,5 @@ export type AnyResAtlasClass = (abstract new () => AnyResAtlas) & {
   readonly [rawResAtlasShapeSymbol]: AnyResDomain;
   readonly priority: AnyNamespaceList;
   readonly withPriority: (...args: never[]) => AnyResAtlasClass;
-  readonly getTokenBuilder: (...args: never[]) => TokenBuilder<AnyResDomain>;
+  readonly getTokenBuilder: ((...args: never[]) => TokenBuilder<AnyResDomain>) | RMachineTypeError<string>;
 };
