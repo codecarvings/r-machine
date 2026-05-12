@@ -4,9 +4,9 @@ import { PathAtlas } from "./path-atlas";
 import { ResourceAtlas } from "./resource-atlas";
 
 const rMachine = RMachine.create({
-  ResourceAtlas,
   locales: ["en", "it-IT"],
   defaultLocale: "en",
+  ResourceAtlas,
   load: (path) => import(`./${path}`),
   shellKit: {
     fmt: "shell/lib/fmt",

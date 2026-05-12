@@ -46,9 +46,9 @@ export interface RMachineConfigParams<
   SK extends ShellPlugKitMap<InstanceType<RAC>, BGL>,
   EF extends ExperimentalFlags,
 > {
-  readonly ResourceAtlas: RAC;
   readonly locales: LL;
   readonly defaultLocale: LL[number];
+  readonly ResourceAtlas: RAC;
   readonly load: ResModuleLoaderFn;
   readonly bridgeGears?: BGL;
   readonly gearKit?: GK;
@@ -62,9 +62,9 @@ export interface RMachineConfig<
   E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
 > {
-  readonly resourceAtlas: RA;
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
+  readonly resourceAtlas: RA;
   readonly load: ResModuleLoaderFn;
   readonly layout: AnyResLayout;
   readonly priority: NamespaceList<RA>;
@@ -83,9 +83,9 @@ export function convertParamsToConfig<
   params: RMachineConfigParams<RAC, LL, BGL, GK, SK, EF>
 ): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF> {
   return {
-    resourceAtlas: undefined!,
     locales: [...params.locales],
     defaultLocale: params.defaultLocale,
+    resourceAtlas: undefined!,
     load: params.load,
     layout: params.ResourceAtlas.layout,
     priority: params.ResourceAtlas.priority as NamespaceList<InstanceType<RAC>>,

@@ -5,24 +5,24 @@ import { ServerPlug } from "@/r-machine/server-toolset";
 
 export const plug = ServerPlug("shell/example-static", "shell/navigation");
 export default async function Page2({ params }: PageProps<"/[locale]/example-static/page-2">) {
-  const [rStatic, rNav, $] = await plug.useR(params);
+  const [stat, nav, $] = await plug.useR(params);
 
   return (
     <section className="container mx-auto px-4 py-16">
       <div className="max-w-2xl mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle>{rStatic.page2.title}</CardTitle>
-            <CardDescription>{rStatic.page2.description}</CardDescription>
+            <CardTitle>{stat.page2.title}</CardTitle>
+            <CardDescription>{stat.page2.description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">{rStatic.page2.feature}</p>
+            <p className="text-sm text-muted-foreground">{stat.page2.feature}</p>
             <div className="flex gap-2">
               <Button variant="outline" asChild>
-                <Link href={$.getPath("/")}>{rNav.home}</Link>
+                <Link href={$.getPath("/")}>{nav.home}</Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link href={$.getPath("/example-static/page-1")}>{rNav.exampleStatic.page1.label}</Link>
+                <Link href={$.getPath("/example-static/page-1")}>{nav.exampleStatic.page1.label}</Link>
               </Button>
             </div>
           </CardContent>

@@ -12,8 +12,8 @@ export async function generateStaticParams({
   params: Awaited<PageProps<"/[locale]/example-dynamic/[slug]">["params"]>;
 }) {
   // biome-ignore lint/correctness/useHookAtTopLevel: This is not a Hook
-  const [r] = await paramsPlug.useUnboundR(locale); // No need to bind locale
-  return r.items.map((item) => ({ slug: item.slug }));
+  const [dynamic] = await paramsPlug.useUnboundR(locale); // No need to bind locale
+  return dynamic.items.map((item) => ({ slug: item.slug }));
 }
 
 export const pagePlug = ServerPlug("shell/example-dynamic");

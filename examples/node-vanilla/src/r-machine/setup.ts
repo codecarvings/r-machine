@@ -2,9 +2,9 @@ import { RMachine, type RMachineLocale } from "r-machine";
 import { ResourceAtlas } from "./resource-atlas";
 
 export const rMachine = RMachine.create({
-  ResourceAtlas,
   locales: ["en", "it"],
   defaultLocale: "en",
+  ResourceAtlas,
   load: (path) => import(`./${path}.ts`),
   bridgeGears: ["base/config"],
   gearKit: {

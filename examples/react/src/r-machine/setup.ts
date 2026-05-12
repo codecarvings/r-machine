@@ -20,9 +20,9 @@ if (import.meta.hot) {
 }
 
 const rMachine = RMachine.create({
-  ResourceAtlas,
   locales: ["en", "it"],
   defaultLocale: "en",
+  ResourceAtlas,
   load: async (path, options) => {
     const modulePathTsx = `./${path}.tsx`;
     const modulePathTs = `./${path}.ts`;

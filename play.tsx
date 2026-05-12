@@ -11,9 +11,9 @@ type ResourceMap = {};
 class ResourceAtlas extends folders<ResourceMap>() {}
 
 const rMachine = RMachine.create({
-  ResourceAtlas,
   locales: ["en", "it"],
   defaultLocale: "en",
+  ResourceAtlas,
   load: (path) => import(`./${path}.ts`),
 });
 
