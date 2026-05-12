@@ -139,14 +139,14 @@ export class RMachine<
   // Single-shot plugin resolve. Unlike `getGateWire`, this does NOT subscribe
   // to the JunctureManager and creates no persistent wire — intended for
   // server-side / one-off resolution where reactivity is not needed.
-  resolvePlugin(
+  // Outer gear cannot be resolved through this method, as it relies on the gate wire's update mechanism to trigger re-resolution when outer gear changes.
+  getGatePlugin(
     kit: AnyNamespaceMap,
     nsDeps: AnyNamespaceCollection,
     locale: AnyLocale,
-    augmentCtx: PluginCtxAugmenter,
-    vertexGearMap?: VertexGearMap | undefined
+    augmentCtx: PluginCtxAugmenter
   ): Promise<unknown> {
-    return this.junctureManager.getPlugin(kit, nsDeps, locale, augmentCtx, [], 0, vertexGearMap);
+    return this.junctureManager.getPlugin(kit, nsDeps, locale, augmentCtx, [], 0, undefined);
   }
 
   static create<

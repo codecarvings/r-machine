@@ -25,7 +25,9 @@ declare const surfaceLayoutEntryTypeSymbol: unique symbol;
 export type Surface<R extends AnyRes, N extends AnyNamespace, LET extends ResLayoutEntryType> = {
   readonly [surfaceNamespaceSymbol]: N;
   readonly [surfaceLayoutEntryTypeSymbol]: LET;
-} & {
+} & SurfaceBody<R>;
+
+export type SurfaceBody<R> = {
   readonly [K in keyof R as K extends `$${string}` ? never : K]: SurfaceItem<R[K]>;
 };
 

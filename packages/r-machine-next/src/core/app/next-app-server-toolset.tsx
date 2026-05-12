@@ -265,7 +265,7 @@ export async function createNextAppServerToolset<
         }
       };
 
-      return await rMachine.resolvePlugin(serverKit, nsDeps, locale, augmentCtx);
+      return await rMachine.getGatePlugin(serverKit, nsDeps, locale, augmentCtx);
     };
 
     const useR = async (firstArg?: unknown): Promise<unknown> => {
