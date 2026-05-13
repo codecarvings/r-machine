@@ -11,4 +11,5 @@
  * contact: licensing@codecarvings.com
  */
 
+export { createEventCollector, type EventCollector } from "./event-collector.js";
 export { mockPlug } from "./mock-plug.js";

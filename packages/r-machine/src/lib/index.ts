@@ -13,6 +13,7 @@
 
 export { managed } from "../core/managed.js";
 export type { BrandedResource } from "./branded-resource.js";
+export { enableRMachineDevMode } from "./dev-mode.js";
 export { defineLayout } from "./layout.js";
 export {
   RMachine,

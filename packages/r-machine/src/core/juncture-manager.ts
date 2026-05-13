@@ -15,6 +15,7 @@ import { ERR_CIRCULAR_DEPENDENCY, ERR_VERTEX_INSTANCE_NOT_FOUND, RMachineResolve
 import type { AnyLocale } from "#r-machine/locale";
 import type { Blueprint } from "./blueprint.js";
 import type { BlueprintManager } from "./blueprint-manager.js";
+import type { BusHost } from "./event-bus.js";
 import { buildKernelJuncture, buildOuterJuncture, getCurrentSurface, type Juncture } from "./juncture.js";
 import { tryGetManagedTeardown } from "./managed.js";
 import type { PluginCtxAugmenter } from "./plug.js";
@@ -59,7 +60,8 @@ export class JunctureManager {
   constructor(
     protected resLayoutResolver: ResLayoutResolver,
     protected equipment: AnyResEquipment,
-    protected blueprintManager: BlueprintManager
+    protected blueprintManager: BlueprintManager,
+    protected busHost: BusHost
   ) {
     blueprintManager.setOnInvalidate((ns) => this.invalidate(ns));
   }
@@ -77,6 +79,13 @@ export class JunctureManager {
     chain: readonly AnyNamespace[]
   ): Promise<Juncture> {
     const generation = this.generationByNs.get(namespace) ?? 0;
+    this.busHost.bus?.emit({
+      type: "juncture:resolveStart",
+      namespace,
+      locale,
+      generation,
+      vertexGenId: vertexTag?.genId,
+    });
     let slot!: Slot;
     const juncturePromise = (async () => {
       try {
@@ -85,6 +94,7 @@ export class JunctureManager {
         let juncture: Juncture;
         if (blueprint.originType === "res") {
           juncture = buildKernelJuncture(blueprint.origin as AnyRes, vertexTag);
+          this.busHost.bus?.emit({ type: "juncture:built", namespace, kind: "kernel" });
         } else {
           const factory = blueprint.origin.factory as (
             locale: AnyLocale | undefined,
@@ -94,26 +104,45 @@ export class JunctureManager {
           // any nested loadKit / getJuncture under us will see us as in-flight
           // and break cycles via the deferred-kit getter. The "self" of the
           // running factory is implicitly chain[chain.length - 1].
+          this.busHost.bus?.emit({ type: "juncture:factoryInvoked", namespace, locale });
           const res = await factory(locale, [...chain, namespace]);
           juncture = blueprint.isOuterGear ? buildOuterJuncture(res, vertexTag) : buildKernelJuncture(res, vertexTag);
+          this.busHost.bus?.emit({
+            type: "juncture:built",
+            namespace,
+            kind: blueprint.isOuterGear ? "outer" : "kernel",
+          });
         }
         // Stale check: generation mismatch (HMR happened) OR slot identity mismatch
         // (slot was disposed and possibly re-created during this resolve).
         const currentGen = this.generationByNs.get(namespace) ?? 0;
-        if (currentGen !== generation || this.slots.get(key) !== slot) {
-          try {
-            tryGetManagedTeardown(juncture.res)?.();
-          } catch (e) {
-            console.error(e);
+        const generationStale = currentGen !== generation;
+        const slotIdentityStale = this.slots.get(key) !== slot;
+        if (generationStale || slotIdentityStale) {
+          const teardown = tryGetManagedTeardown(juncture.res);
+          if (teardown) {
+            try {
+              teardown();
+            } catch (e) {
+              console.error(e);
+            }
           }
+          this.busHost.bus?.emit({
+            type: "juncture:resolveStale",
+            namespace,
+            reason: generationStale ? "generation" : "slotIdentity",
+            teardownInvoked: teardown !== undefined,
+          });
           return juncture;
         }
         slot.content = juncture;
+        this.busHost.bus?.emit({ type: "juncture:slotCommitted", namespace, generation });
         return juncture;
       } catch (error) {
         if (this.slots.get(key) === slot) {
           this.slots.delete(key);
         }
+        this.busHost.bus?.emit({ type: "juncture:resolveError", namespace, error });
         throw error;
       }
     })();
@@ -140,16 +169,24 @@ export class JunctureManager {
         const consumerKey = getJunctureResCacheKey(namespace, locale, layoutType, existingGenId);
         const consumerSlot = this.slots.get(consumerKey);
         if (consumerSlot === undefined || !this.isSlotFresh(consumerSlot)) {
+          this.busHost.bus?.emit({ type: "juncture:vertexConsumerMissing", namespace, genId: existingGenId });
           throw new RMachineResolveError(
             ERR_VERTEX_INSTANCE_NOT_FOUND,
             `Vertex gear instance "${namespace}" with genId ${existingGenId} not found in JunctureManager cache.`
           );
         }
+        this.busHost.bus?.emit({ type: "juncture:vertexConsumerResolved", namespace, consumerGenId: existingGenId });
         return consumerSlot.content;
       }
       const creatorKey = getJunctureResCacheKey(namespace, locale, layoutType, genId);
       const creatorSlot = this.slots.get(creatorKey);
       if (creatorSlot !== undefined && this.isSlotFresh(creatorSlot)) {
+        this.busHost.bus?.emit({
+          type: "juncture:cacheHit",
+          namespace,
+          locale,
+          generation: creatorSlot.generation,
+        });
         return creatorSlot.content;
       }
       // Register vertex creation in genId index before spawning the resolve,
@@ -161,12 +198,14 @@ export class JunctureManager {
         this.vertexSlotsByGenId.set(genId, vertexSet);
       }
       vertexSet.add(namespace);
+      this.busHost.bus?.emit({ type: "juncture:vertexSlotRegistered", namespace, genId });
       return this.resolveJuncture(namespace, locale, creatorKey, { namespace, genId }, chain);
     }
 
     const key = getJunctureResCacheKey(namespace, locale, layoutType);
     const cached = this.slots.get(key);
     if (cached !== undefined && this.isSlotFresh(cached)) {
+      this.busHost.bus?.emit({ type: "juncture:cacheHit", namespace, locale, generation: cached.generation });
       return cached.content;
     }
     return this.resolveJuncture(namespace, locale, key, undefined, chain);
@@ -196,6 +235,12 @@ export class JunctureManager {
         eagerKitEntries.push(entry);
       }
     }
+    this.busHost.bus?.emit({
+      type: "juncture:kitPartitioned",
+      selfNamespace: chain.length > 0 ? chain[chain.length - 1] : undefined,
+      eager: eagerKitEntries.map(([, ns]) => ns),
+      deferred: deferredKitEntries.map(([, ns]) => ns),
+    });
 
     const [kitDeps, deps] = await Promise.all([
       this.loadKit(eagerKitEntries, locale, chain),
@@ -221,11 +266,13 @@ export class JunctureManager {
     return () => {
       const slot = this.slots.get(slotKey);
       if (slot === undefined || slot.content instanceof Promise) {
+        this.busHost.bus?.emit({ type: "juncture:deferredKitAccessed", namespace, ready: false });
         throw new RMachineResolveError(
           ERR_CIRCULAR_DEPENDENCY,
           `Kit access on "${namespace}" is not available: that namespace is currently being resolved as a transitive ancestor.`
         );
       }
+      this.busHost.bus?.emit({ type: "juncture:deferredKitAccessed", namespace, ready: true });
       return getCurrentSurface(slot.content);
     };
   }
@@ -319,22 +366,29 @@ export class JunctureManager {
     if (!slot) {
       return;
     }
+    let teardownInvoked = false;
     if (!(slot.content instanceof Promise)) {
-      try {
-        tryGetManagedTeardown(slot.content.res)?.();
-      } catch (e) {
-        console.error(e);
+      const teardown = tryGetManagedTeardown(slot.content.res);
+      if (teardown) {
+        teardownInvoked = true;
+        try {
+          teardown();
+        } catch (e) {
+          console.error(e);
+        }
       }
     }
     // In-flight: stale check at completion intercepts (slots.delete causes
     // identity mismatch and the resolved juncture is discarded with teardown).
     this.slots.delete(key);
+    this.busHost.bus?.emit({ type: "juncture:slotDisposed", namespace: slot.namespace, teardownInvoked });
   }
 
   invalidate(ns: AnyNamespace): void {
     // The closure is iterated in dispose-safe order: dependents first, ns last.
     // (See BlueprintManager.getReverseClosure.)
     const closure = this.blueprintManager.getReverseClosure(ns);
+    this.busHost.bus?.emit({ type: "juncture:invalidationStart", rootNamespace: ns, closure: [...closure] });
     // 1. Bump generation for every namespace in the closure. An in-flight
     //    resolve started before this point will see the new generation at its
     //    completion check and discard its juncture.
@@ -369,10 +423,16 @@ export class JunctureManager {
     for (const n of closure) {
       this.blueprintManager.evictBlueprint(n);
     }
-    // 4. Notify subscribers.
+    // 4. Notify subscribers. The "subscribersNotified" event fires BEFORE the
+    //    callbacks run so the test transcript reads: notify → callback effects.
     for (const n of closure) {
       const subs = this.subscribersByNs.get(n);
       if (subs) {
+        this.busHost.bus?.emit({
+          type: "juncture:subscribersNotified",
+          namespace: n,
+          subscriberCount: subs.size,
+        });
         for (const cb of subs) {
           try {
             cb();
@@ -395,6 +455,7 @@ export class JunctureManager {
       set.add(callback);
       subscribed.push(ns);
     }
+    this.busHost.bus?.emit({ type: "juncture:subscribed", namespaces: subscribed });
     return () => {
       for (const ns of subscribed) {
         const set = this.subscribersByNs.get(ns);
@@ -403,6 +464,7 @@ export class JunctureManager {
           this.subscribersByNs.delete(ns);
         }
       }
+      this.busHost.bus?.emit({ type: "juncture:unsubscribed", namespaces: subscribed });
     };
   }
 
@@ -419,16 +481,18 @@ export class JunctureManager {
     this.disposeSlot(key);
   }
 
-  disposeAllVertexSlotsByGenId(genId: number): void {
+  disposeAllVertexSlotsByGenId(genId: number): number {
     const set = this.vertexSlotsByGenId.get(genId);
     if (!set) {
-      return;
+      return 0;
     }
+    const count = set.size;
     for (const ns of set) {
       const key = getJunctureResCacheKey(ns, undefined, "gear:outer(vertex)", genId);
       this.disposeSlot(key);
     }
     this.vertexSlotsByGenId.delete(genId);
+    return count;
   }
 
   disposeVertexSlotsByOwnershipChange(genId: number, newVertexGearMap: VertexGearMap | undefined): void {

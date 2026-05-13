@@ -3,7 +3,7 @@ import { common2 } from "./r-machine/resource-atlas";
 import { rMachine } from "./r-machine/setup";
 
 const locale = "en";
-const result = (await rMachine.resolvePlugin(
+const result = (await rMachine.getGatePlugin(
   { fmt: "shell/lib/fmt" },
   getNamespaceList(["base/config", common2]),
   locale,

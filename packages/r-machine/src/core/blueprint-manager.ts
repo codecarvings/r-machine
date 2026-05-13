@@ -14,6 +14,7 @@
 import { ERR_CIRCULAR_DEPENDENCY, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import { type Blueprint, createBlueprint } from "./blueprint.js";
+import type { BusHost } from "./event-bus.js";
 import type { AnyNamespace } from "./res-domain.js";
 import type { ResLayoutEntryType, ResLayoutResolver } from "./res-layout.js";
 import type { AnyNamespaceList } from "./res-list.js";
@@ -51,7 +52,8 @@ export class BlueprintManager {
     protected kitDepList: {
       [F in ResFamily]: AnyNamespaceList;
     },
-    priority: AnyNamespaceList
+    priority: AnyNamespaceList,
+    protected busHost: BusHost
   ) {
     this.priorityIndex = new Map();
     for (let i = 0; i < priority.length; i++) {
@@ -111,10 +113,12 @@ export class BlueprintManager {
       pathParts: [prefix, path.slice(prefix.length)],
       locale,
       onUpdate: () => {
+        this.busHost.bus?.emit({ type: "blueprint:moduleInvalidated", namespace });
         this.onInvalidate?.(namespace);
       },
     };
     const module = await this.loadResModuleFn(path, options);
+    this.busHost.bus?.emit({ type: "blueprint:moduleLoaded", namespace, locale });
     const error = validateResModule(module);
     if (error) {
       throw error;
@@ -166,6 +170,7 @@ export class BlueprintManager {
     layoutEntryType: ResLayoutEntryType,
     chain: readonly string[]
   ): Promise<Blueprint> {
+    this.busHost.bus?.emit({ type: "blueprint:resolveStart", namespace, locale, layoutEntryType });
     let pendingPromise!: Promise<Blueprint>;
     const blueprintPromise = (async () => {
       let blueprint: Blueprint;
@@ -192,12 +197,14 @@ export class BlueprintManager {
           this.waits.delete(key);
           this.keysByNs.get(namespace)?.delete(key);
         }
+        this.busHost.bus?.emit({ type: "blueprint:resolveError", namespace, locale, error });
         throw error;
       }
       // Identity check before committing side effects: if the cache entry was
       // evicted (and possibly replaced) while this resolve was in flight, our
       // result is stale — return it but don't write cache nor dep graph.
       if (this.cache.get(key) !== pendingPromise) {
+        this.busHost.bus?.emit({ type: "blueprint:resolveStale", namespace, locale });
         return blueprint;
       }
       this.cache.set(key, blueprint);
@@ -205,6 +212,7 @@ export class BlueprintManager {
         this.registerDepsInGraph(namespace, allNsDeps);
       }
       this.waits.delete(key);
+      this.busHost.bus?.emit({ type: "blueprint:resolved", namespace, locale, depList: allNsDeps ?? [] });
       return blueprint;
     })();
     pendingPromise = blueprintPromise;
@@ -226,8 +234,17 @@ export class BlueprintManager {
     chain: readonly string[]
   ): Promise<Blueprint> {
     if (chain.includes(key)) {
-      const path = [...chain, key].join(" -> ");
-      throw new RMachineResolveError(ERR_CIRCULAR_DEPENDENCY, `Circular dependency detected: ${path}.`);
+      const cycleChain = [...chain, key];
+      this.busHost.bus?.emit({
+        type: "blueprint:circularDepDetected",
+        namespace,
+        locale,
+        chain: cycleChain,
+      });
+      throw new RMachineResolveError(
+        ERR_CIRCULAR_DEPENDENCY,
+        `Circular dependency detected: ${cycleChain.join(" -> ")}.`
+      );
     }
 
     const cached = this.cache.get(key);
@@ -236,9 +253,16 @@ export class BlueprintManager {
         for (const ancestor of chain) {
           const cyclePath = this.findWaitCyclePath(key, ancestor);
           if (cyclePath) {
+            const cycleChain = [ancestor, ...cyclePath];
+            this.busHost.bus?.emit({
+              type: "blueprint:circularDepDetected",
+              namespace,
+              locale,
+              chain: cycleChain,
+            });
             throw new RMachineResolveError(
               ERR_CIRCULAR_DEPENDENCY,
-              `Circular dependency detected across concurrent resolutions: ${[ancestor, ...cyclePath].join(" -> ")}.`
+              `Circular dependency detected across concurrent resolutions: ${cycleChain.join(" -> ")}.`
             );
           }
         }
@@ -251,6 +275,7 @@ export class BlueprintManager {
           set.add(key);
         }
       }
+      this.busHost.bus?.emit({ type: "blueprint:cacheHit", namespace, locale, layoutEntryType });
       return cached;
     }
     return this.resolveBlueprint(namespace, locale, key, layoutEntryType, chain);
@@ -311,6 +336,7 @@ export class BlueprintManager {
 
   evictBlueprint(ns: AnyNamespace): void {
     const keys = this.keysByNs.get(ns);
+    const keyCount = keys?.size ?? 0;
     if (keys) {
       for (const key of keys) {
         this.cache.delete(key);
@@ -328,5 +354,6 @@ export class BlueprintManager {
     // current cascade closure and gets evicted in this same pass — its own
     // forwardDeps cleanup removes it from reverseDeps[ns]. Edges are rebuilt
     // when those dependents are re-loaded.
+    this.busHost.bus?.emit({ type: "blueprint:evicted", namespace: ns, keyCount });
   }
 }

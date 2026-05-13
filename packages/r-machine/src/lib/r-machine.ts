@@ -19,7 +19,10 @@ import {
   type AnyResEquipment,
   type BaseGearNamespaceList,
   BlueprintManager,
+  BUS_ACCESSOR,
+  type BusHost,
   createBaseGearComposer,
+  createEventBus,
   createInnerGearComposer,
   createOuterGearComposer,
   createShellComposer,
@@ -27,6 +30,7 @@ import {
   type GateWire,
   GateWireManager,
   type GearPlugKitMap,
+  type InternalEventBus,
   JunctureManager,
   type PluginCtxAugmenter,
   type ResComposerConnector,
@@ -67,10 +71,16 @@ export class RMachine<
         gear: Object.values(this.config.equipment.gearKit),
         shell: Object.values(this.config.equipment.shellKit),
       },
-      this.config.priority
+      this.config.priority,
+      this.busHost
     );
-    this.junctureManager = new JunctureManager(resLayoutResolver, this.config.equipment, blueprintManager);
-    this.gateWireManager = new GateWireManager(this.junctureManager);
+    this.junctureManager = new JunctureManager(
+      resLayoutResolver,
+      this.config.equipment,
+      blueprintManager,
+      this.busHost
+    );
+    this.gateWireManager = new GateWireManager(this.junctureManager, this.busHost);
 
     // this.warnExperimental();
   }
@@ -88,6 +98,21 @@ export class RMachine<
   protected readonly config: RMachineConfig<RA, L, E, EF>;
   protected readonly junctureManager: JunctureManager;
   protected readonly gateWireManager: GateWireManager;
+
+  // Lazy: undefined until the first DevTools/test consumer attaches via
+  // BUS_ACCESSOR. While undefined, manager call-sites `this.busHost.bus?.emit(...)`
+  // short-circuit at zero cost — argument evaluation is skipped too.
+  private readonly busHost: BusHost = {
+    bus: undefined,
+  };
+
+  /** @internal */
+  [BUS_ACCESSOR](): InternalEventBus {
+    if (!this.busHost.bus) {
+      (this.busHost as { bus: InternalEventBus }).bus = createEventBus();
+    }
+    return this.busHost.bus!;
+  }
 
   /*
   protected validateLocaleForPick(locale: L) {

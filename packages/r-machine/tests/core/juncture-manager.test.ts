@@ -139,6 +139,7 @@ function createJmTestEnv(options: JmTestEnvOptions) {
     shellKit: options.shellKit ?? {},
     bridgeGears: options.bridgeGears ?? [],
   };
+  const busHost = { bus: undefined };
   const bm = new BlueprintManager(
     resolver,
     loader,
@@ -146,9 +147,10 @@ function createJmTestEnv(options: JmTestEnvOptions) {
       gear: Object.values(equipment.gearKit),
       shell: Object.values(equipment.shellKit),
     },
-    options.priority ?? []
+    options.priority ?? [],
+    busHost
   );
-  jm = new JunctureManager(resolver, equipment, bm);
+  jm = new JunctureManager(resolver, equipment, bm, busHost);
 
   // Test-only inspectors: protected fields are read-only here for assertions.
   const bmInternal = bm as unknown as {

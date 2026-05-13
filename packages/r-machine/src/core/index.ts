@@ -16,6 +16,17 @@ export { type BaseGearComposer, createBaseGearComposer } from "./base-gear-compo
 export type { BaseGearNamespaceList } from "./base-gear-plug.js";
 export { BlueprintManager } from "./blueprint-manager.js";
 export type { SwitchableOption } from "./config-options.js";
+export {
+  type BlueprintEvent,
+  BUS_ACCESSOR,
+  type BusBridge,
+  type BusHost,
+  createEventBus,
+  type GateWireEvent,
+  type InternalEvent,
+  type InternalEventBus,
+  type JunctureEvent,
+} from "./event-bus.js";
 export type { ExperimentalFlags } from "./experimental-flags.js";
 export type {
   GateListPlugHead,

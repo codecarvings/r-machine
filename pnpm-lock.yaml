@@ -132,6 +132,9 @@ importers:
         specifier: ^3.5.0
         version: 3.5.0
     devDependencies:
+      '@r-machine/testing':
+        specifier: workspace:*
+        version: link:../../packages/r-machine-testing
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.1.17
@@ -199,6 +202,9 @@ importers:
         specifier: ^3.5.0
         version: 3.5.0
     devDependencies:
+      '@r-machine/testing':
+        specifier: workspace:*
+        version: link:../../packages/r-machine-testing
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.1.17
@@ -266,6 +272,9 @@ importers:
         specifier: ^3.5.0
         version: 3.5.0
     devDependencies:
+      '@r-machine/testing':
+        specifier: workspace:*
+        version: link:../../packages/r-machine-testing
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.1.17
@@ -333,6 +342,9 @@ importers:
         specifier: ^3.5.0
         version: 3.5.0
     devDependencies:
+      '@r-machine/testing':
+        specifier: workspace:*
+        version: link:../../packages/r-machine-testing
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.1.17

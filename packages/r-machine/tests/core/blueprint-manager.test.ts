@@ -79,7 +79,8 @@ function createTestEnv(options: TestEnvOptions) {
       gear: options.kitDeps?.gear ?? [],
       shell: options.kitDeps?.shell ?? [],
     },
-    options.priority ?? []
+    options.priority ?? [],
+    { bus: undefined }
   );
 
   return {

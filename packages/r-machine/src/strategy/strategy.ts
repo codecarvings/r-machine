@@ -12,7 +12,13 @@
  */
 
 import type { RMachine } from "#r-machine";
-import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "#r-machine/core";
+import {
+  type AnyResAtlas,
+  type AnyResEquipment,
+  BUS_ACCESSOR,
+  type ExperimentalFlags,
+  type InternalEventBus,
+} from "#r-machine/core";
 import type { AnyLocale, LocaleHelper } from "#r-machine/locale";
 
 export interface StrategyHelpers<L extends AnyLocale> {
@@ -45,5 +51,10 @@ export abstract class Strategy<
 
   protected validateConfig(): void {
     // Default implementation does nothing
+  }
+
+  /** @internal */
+  [BUS_ACCESSOR](): InternalEventBus {
+    return this.rMachine[BUS_ACCESSOR]();
   }
 }
