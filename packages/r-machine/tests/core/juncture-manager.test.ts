@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { BlueprintManager } from "../../src/core/blueprint-manager.js";
+import type { BusHost } from "../../src/core/event-bus.js";
 import { getJunctureResCacheKey, JunctureManager } from "../../src/core/juncture-manager.js";
 import { managed } from "../../src/core/managed.js";
 import type { AnyRes } from "../../src/core/res.js";
@@ -15,6 +16,12 @@ import {
   ERR_VERTEX_INSTANCE_NOT_FOUND,
   RMachineResolveError,
 } from "../../src/errors/index.js";
+import {
+  collectEvents,
+  expectEventBefore,
+  expectEventSequence,
+  makeTestBridge,
+} from "../_fixtures/event-bus-helpers.js";
 
 // --- helpers -----------------------------------------------------------------
 
@@ -109,6 +116,10 @@ interface JmTestEnvOptions {
   readonly shellKit?: Record<string, AnyNamespace>;
   readonly bridgeGears?: AnyNamespace[];
   readonly priority?: AnyNamespace[];
+  // Optional bus host. When omitted, the env wires `{ bus: undefined }` —
+  // emit call-sites short-circuit at zero cost and no event flows. Pass a
+  // bridge from `makeTestBridge()` when the test needs to observe events.
+  readonly busHost?: BusHost;
 }
 
 function createJmTestEnv(options: JmTestEnvOptions) {
@@ -139,7 +150,7 @@ function createJmTestEnv(options: JmTestEnvOptions) {
     shellKit: options.shellKit ?? {},
     bridgeGears: options.bridgeGears ?? [],
   };
-  const busHost = { bus: undefined };
+  const busHost: BusHost = options.busHost ?? { bus: undefined };
   const bm = new BlueprintManager(
     resolver,
     loader,
@@ -294,6 +305,31 @@ describe("JunctureManager — vertex slot tracking", () => {
     expect(env.jmInternal.slots.has(env.keyOf("v/V", undefined, 42))).toBe(true);
   });
 
+  it("emits vertexSlotRegistered, then resolveStart, then slotCommitted on the creator path", async () => {
+    const bridge = makeTestBridge();
+    const env = createJmTestEnv({
+      modules: {
+        "v/V": (jm) => makeVertexModule(jm, {}, { v: 1 }),
+      },
+      busHost: bridge,
+    });
+    const collector = collectEvents(bridge);
+
+    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, []);
+
+    // Sparse match: between resolveStart and slotCommitted the resolve path
+    // also emits factoryInvoked and built — irrelevant for the ordering
+    // invariant under test.
+    expectEventSequence(collector.events, [
+      { type: "juncture:vertexSlotRegistered", namespace: "v/V", genId: 42 },
+      { type: "juncture:resolveStart", namespace: "v/V", vertexGenId: 42 },
+      { type: "juncture:built", namespace: "v/V", kind: "outer" },
+      { type: "juncture:slotCommitted", namespace: "v/V" },
+    ]);
+
+    collector.dispose();
+  });
+
   it("reuses an existing vertex slot for the same (ns, genId) pair", async () => {
     const env = createJmTestEnv({
       modules: {
@@ -412,6 +448,89 @@ describe("JunctureManager — vertex dispose APIs", () => {
   });
 });
 
+describe("JunctureManager — stale resolve teardown", () => {
+  it("emits resolveStale with reason 'generation' and teardownInvoked=true when generation bumps mid-flight", async () => {
+    const bridge = makeTestBridge();
+    const teardown = vi.fn();
+    let releaseGate!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseGate = resolve;
+    });
+    const env = createJmTestEnv({
+      modules: {
+        "g/X": async () => {
+          await gate;
+          return makeRawModule(managed({ x: 1 }, teardown));
+        },
+      },
+      busHost: bridge,
+    });
+    const collector = collectEvents(bridge);
+
+    // Kick off the resolve without awaiting — it will park on `gate` inside
+    // the module factory (which is awaited inside BlueprintManager.loadModule).
+    const inflight = env.jmInternal.getJuncture("g/X", undefined, 0, undefined, []);
+    // Bump the generation while the factory is suspended. invalidate also
+    // calls disposeSlot, but the slot's content is still a Promise at this
+    // point — disposeSlot only removes the entry from the slots map, the
+    // teardown will be invoked on the discarded juncture at the stale-check
+    // path in resolveJuncture.
+    env.jm.invalidate("g/X");
+    // Now release the factory — the resolve completes, builds the juncture,
+    // hits the stale check, and emits resolveStale.
+    releaseGate();
+    await inflight;
+
+    expectEventSequence(collector.events, [
+      "juncture:resolveStart",
+      "juncture:invalidationStart",
+      { type: "juncture:resolveStale", namespace: "g/X", reason: "generation", teardownInvoked: true },
+    ]);
+    // The discarded juncture's managed teardown was actually invoked.
+    expect(teardown).toHaveBeenCalledOnce();
+    // No slotCommitted event for this resolve — the juncture was thrown away.
+    expect(collector.events.some((e) => e.type === "juncture:slotCommitted")).toBe(false);
+
+    collector.dispose();
+  });
+
+  it("emits resolveStale with reason 'slotIdentity' when the slot is dropped mid-flight without a generation bump", async () => {
+    const bridge = makeTestBridge();
+    const teardown = vi.fn();
+    let releaseGate!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseGate = resolve;
+    });
+    const env = createJmTestEnv({
+      modules: {
+        "g/X": async () => {
+          await gate;
+          return makeRawModule(managed({ x: 1 }, teardown));
+        },
+      },
+      busHost: bridge,
+    });
+    const collector = collectEvents(bridge);
+
+    const inflight = env.jmInternal.getJuncture("g/X", undefined, 0, undefined, []);
+    // Drop the slot directly from the protected map. No generation bump
+    // happens, so the only stale-check trigger left is slot-identity
+    // mismatch (slot's captured reference !== slots.get(key)).
+    env.jmInternal.slots.delete(env.keyOf("g/X"));
+    releaseGate();
+    await inflight;
+
+    expectEventSequence(collector.events, [
+      "juncture:resolveStart",
+      { type: "juncture:resolveStale", namespace: "g/X", reason: "slotIdentity", teardownInvoked: true },
+    ]);
+    expect(teardown).toHaveBeenCalledOnce();
+    expect(collector.events.some((e) => e.type === "juncture:slotCommitted")).toBe(false);
+
+    collector.dispose();
+  });
+});
+
 describe("JunctureManager — invalidate cascade", () => {
   it("bumps generation, evicts the blueprint, and notifies subscribers", async () => {
     const env = createJmTestEnv({
@@ -449,12 +568,14 @@ describe("JunctureManager — invalidate cascade", () => {
   it("disposes slots in dispose-safe order (dependents before deps)", async () => {
     // Dep graph: g/A depends on g/B. Reverse closure of B = [A, B].
     // Dispose order must be [A, B] — A's teardown could reference B.
+    const bridge = makeTestBridge();
     const teardownOrder: string[] = [];
     const env = createJmTestEnv({
       modules: {
         "g/A": () => makeRawModule(managed({ a: 1 }, () => teardownOrder.push("g/A"))),
         "g/B": () => makeRawModule(managed({ b: 1 }, () => teardownOrder.push("g/B"))),
       },
+      busHost: bridge,
     });
     // Manually wire the dep graph: A → B.
     env.addDepEdge("g/A", "g/B");
@@ -462,9 +583,21 @@ describe("JunctureManager — invalidate cascade", () => {
     await env.jmInternal.getJuncture("g/A", undefined, 0, undefined, []);
     await env.jmInternal.getJuncture("g/B", undefined, 0, undefined, []);
 
+    // Attach the collector only now so the buffer captures the invalidate
+    // pass alone (no warm-up resolveStart/slotCommitted noise).
+    const collector = collectEvents(bridge);
+
     env.jm.invalidate("g/B");
 
     expect(teardownOrder).toEqual(["g/A", "g/B"]);
+
+    // Cross-check via the bus: juncture:slotDisposed events must mirror the
+    // teardown order. Catches a future bug where teardown still runs but
+    // the dispose event is forgotten / fired out of order.
+    const disposedNs = collector.events.flatMap((e) => (e.type === "juncture:slotDisposed" ? [e.namespace] : []));
+    expect(disposedNs).toEqual(["g/A", "g/B"]);
+
+    collector.dispose();
   });
 
   it("notifies all subscribers of namespaces in the closure", async () => {
@@ -502,6 +635,51 @@ describe("JunctureManager — invalidate cascade", () => {
     env.jm.invalidate("g/A");
 
     expect(cbOther).not.toHaveBeenCalled();
+  });
+
+  it("emits blueprint:evicted before juncture:subscribersNotified for each namespace in the closure", async () => {
+    // Invariant: any subscriber callback triggered by an invalidate must
+    // see a FRESH BPM cache. The JM cascade enforces this by evicting all
+    // blueprints in the closure (step 3) BEFORE firing the
+    // subscribersNotified events (step 4). A regression where the loops
+    // are interleaved would silently re-introduce stale-cache reads from
+    // subscriber callbacks — undetectable without bus assertions.
+    const bridge = makeTestBridge();
+    const env = createJmTestEnv({
+      modules: {
+        "g/A": () => makeRawModule({ a: 1 }),
+        "g/B": () => makeRawModule({ b: 1 }),
+      },
+      busHost: bridge,
+    });
+    // Dep graph: A depends on B. Reverse closure of B = [A, B].
+    env.addDepEdge("g/A", "g/B");
+    await env.jmInternal.getJuncture("g/A", undefined, 0, undefined, []);
+    await env.jmInternal.getJuncture("g/B", undefined, 0, undefined, []);
+
+    // Two subscribers — one per namespace in the closure. Both must be
+    // present so notifications actually fire (and the order assertion has
+    // both endpoints to compare).
+    env.jm.subscribe(["g/A"], () => {});
+    env.jm.subscribe(["g/B"], () => {});
+
+    const collector = collectEvents(bridge);
+
+    env.jm.invalidate("g/B");
+
+    // Per-namespace ordering: each ns's eviction precedes its notify.
+    expectEventBefore(
+      collector.events,
+      { type: "blueprint:evicted", namespace: "g/A" },
+      { type: "juncture:subscribersNotified", namespace: "g/A" }
+    );
+    expectEventBefore(
+      collector.events,
+      { type: "blueprint:evicted", namespace: "g/B" },
+      { type: "juncture:subscribersNotified", namespace: "g/B" }
+    );
+
+    collector.dispose();
   });
 });
 
@@ -575,6 +753,92 @@ describe("JunctureManager — HMR end-to-end via BM onUpdate", () => {
   });
 });
 
+describe("JunctureManager — getPlugin kit partition", () => {
+  it("partitions all kit entries as eager when chain is empty", async () => {
+    const bridge = makeTestBridge();
+    const env = createJmTestEnv({
+      modules: {
+        "g/A": () => makeRawModule({ a: 1 }),
+        "g/B": () => makeRawModule({ b: 1 }),
+      },
+      busHost: bridge,
+    });
+    const collector = collectEvents(bridge);
+
+    await env.jm.getPlugin({ a: "g/A", b: "g/B" }, [], undefined, () => {}, [], 0, undefined);
+
+    const partition = collector.events.find((e) => e.type === "juncture:kitPartitioned");
+    expect(partition).toMatchObject({
+      type: "juncture:kitPartitioned",
+      selfNamespace: undefined,
+      eager: ["g/A", "g/B"],
+      deferred: [],
+    });
+
+    collector.dispose();
+  });
+
+  it("partitions in-chain entries as deferred and the rest as eager", async () => {
+    const bridge = makeTestBridge();
+    const env = createJmTestEnv({
+      modules: {
+        // Only g/A needs to be loadable — g/B is deferred (in chain), and
+        // the deferred-kit getter that JM installs for it is never invoked
+        // in this test (no consumer reads $.kit.b).
+        "g/A": () => makeRawModule({ a: 1 }),
+      },
+      busHost: bridge,
+    });
+    const collector = collectEvents(bridge);
+
+    await env.jm.getPlugin({ a: "g/A", b: "g/B" }, [], undefined, () => {}, ["g/B"], 0, undefined);
+
+    const partition = collector.events.find((e) => e.type === "juncture:kitPartitioned");
+    expect(partition).toMatchObject({
+      type: "juncture:kitPartitioned",
+      selfNamespace: "g/B",
+      eager: ["g/A"],
+      deferred: ["g/B"],
+    });
+
+    collector.dispose();
+  });
+
+  it("emits selfNamespace = chain[last] when the chain has multiple ancestors", async () => {
+    const bridge = makeTestBridge();
+    const env = createJmTestEnv({
+      modules: {
+        "g/A": () => makeRawModule({ a: 1 }),
+      },
+      busHost: bridge,
+    });
+    const collector = collectEvents(bridge);
+
+    await env.jm.getPlugin(
+      { a: "g/A", b: "g/B", c: "g/C" },
+      [],
+      undefined,
+      () => {},
+      // g/B and g/C are both transitive ancestors. g/C is the innermost
+      // (most recently entered) — its juncture is what `chain[last]`
+      // semantically identifies as "self" for kit purposes.
+      ["g/B", "g/C"],
+      0,
+      undefined
+    );
+
+    const partition = collector.events.find((e) => e.type === "juncture:kitPartitioned");
+    expect(partition).toMatchObject({
+      type: "juncture:kitPartitioned",
+      selfNamespace: "g/C",
+      eager: ["g/A"],
+      deferred: ["g/B", "g/C"],
+    });
+
+    collector.dispose();
+  });
+});
+
 describe("JunctureManager — runtime cycle through kit", () => {
   it("kit-mate access during recursive resolve does not deadlock when the factory does not touch the cyclic kit entry", async () => {
     // b/A is a kit gear (in gearKit). b/B is a regular gear that A depends on.
@@ -630,5 +894,50 @@ describe("JunctureManager — runtime cycle through kit", () => {
       expect(e.code).toBe(ERR_CIRCULAR_DEPENDENCY);
       expect(e.message).toContain("b/A");
     }
+  });
+
+  it("emits juncture:deferredKitAccessed with ready=false on the cyclic accessor read", async () => {
+    // Same setup as the previous test; here we observe the bus event that
+    // fires inside the deferred-kit getter just before it throws. This is
+    // the only place where `deferredKitAccessed { ready: false }` is
+    // emitted — no state on the JM or BPM exposes this signal otherwise.
+    const bridge = makeTestBridge();
+    const env = createJmTestEnv({
+      gearKit: { a: "b/A" },
+      modules: {
+        "b/A": (jm) =>
+          makeGearModule(jm, { a: "b/A" }, "base", ["b/B"], ([b]) => ({
+            value: (b as { name: string }).name,
+          })),
+        "b/B": (jm) =>
+          makeGearModule(jm, { a: "b/A" }, "base", [], (plugin) => {
+            const $ = plugin[plugin.length - 1] as { kit: { a: { something: unknown } } };
+            return { stolenFromA: $.kit.a.something };
+          }),
+      },
+      busHost: bridge,
+    });
+    const collector = collectEvents(bridge);
+
+    try {
+      await env.jmInternal.getJuncture("b/A", "en", 0, undefined, []);
+      expect.unreachable("expected getJuncture to throw a circular-kit error");
+    } catch {
+      // Expected — see previous test for the error-shape assertions.
+    }
+
+    // The accessor for b/A (the cyclic ancestor) fires exactly once, with
+    // ready=false. The throw inside the getter follows synchronously, but
+    // the event is emitted BEFORE the throw (see source comment in
+    // juncture-manager.ts:createDeferredKitGetter).
+    const accessEvents = collector.events.filter((e) => e.type === "juncture:deferredKitAccessed");
+    expect(accessEvents).toHaveLength(1);
+    expect(accessEvents[0]).toMatchObject({
+      type: "juncture:deferredKitAccessed",
+      namespace: "b/A",
+      ready: false,
+    });
+
+    collector.dispose();
   });
 });
