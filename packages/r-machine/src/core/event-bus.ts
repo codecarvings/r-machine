@@ -106,7 +106,10 @@ export type GateWireEvent =
   | { type: "gateWire:markedDirty"; genId: number; subscriberCount: number }
   | { type: "gateWire:updateRequested"; genId: number; localeChanged: boolean; vertexGearMapChanged: boolean }
   | { type: "gateWire:subscribed"; genId: number }
-  | { type: "gateWire:unsubscribed"; genId: number };
+  | { type: "gateWire:unsubscribed"; genId: number }
+  | { type: "gateWire:trackingStarted"; genId: number }
+  | { type: "gateWire:trackingCommitted"; genId: number; depCount: number }
+  | { type: "gateWire:cassetteNotified"; genId: number; subscriberCount: number };
 
 // ─── Aggregato ──────────────────────────────────────────────────────────
 

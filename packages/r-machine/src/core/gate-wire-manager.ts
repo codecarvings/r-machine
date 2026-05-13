@@ -16,7 +16,7 @@ import type { BusHost } from "./event-bus.js";
 import type { GateWire } from "./gate-wire.js";
 import type { JunctureManager } from "./juncture-manager.js";
 import type { PluginCtxAugmenter } from "./plug.js";
-import { insertCassette } from "./reactivity/cassette-recorder.js";
+import { type Cassette, insertCassette } from "./reactivity/cassette-recorder.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap } from "./res-map.js";
@@ -77,6 +77,36 @@ function createGateWire(
   // (Strict Mode duplicates, abandoned mounts) from leaking JM subscriptions.
   let unsubFromJm: (() => void) | null = null;
 
+  // Cassette-side tracking: deps collected during a consumer's render and
+  // subscribed at commit. Replaced on each re-commit; cleared on wire disposal.
+  let cassetteUnsubs: Array<() => void> = [];
+  // The cassette currently open between startTracking() and its commit. A
+  // second startTracking() before commit ejects this one (consumer abandoned
+  // the prior render; common under React strict-mode double-invoke).
+  let pendingCassette: { cassette: Cassette; eject: () => void } | null = null;
+
+  function clearCassetteSubs(): void {
+    for (const unsub of cassetteUnsubs) unsub();
+    cassetteUnsubs = [];
+  }
+
+  function notifyFromCassette(): void {
+    // Bust Promise identity without re-resolving: useSyncExternalStore's
+    // `getSnapshot` returns a different reference, triggering a rerender,
+    // but `await getPluginPromise()` resolves to the same underlying plugin.
+    if (currentPluginPromise !== null) {
+      currentPluginPromise = currentPluginPromise.then((p) => p);
+    }
+    busHost.bus?.emit({ type: "gateWire:cassetteNotified", genId, subscriberCount: subscribers.size });
+    for (const cb of subscribers) {
+      try {
+        cb();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }
+
   function resolve() {
     busHost.bus?.emit({ type: "gateWire:resolveTriggered", genId });
     currentPluginPromise = junctureManager.getPlugin(
@@ -124,16 +154,48 @@ function createGateWire(
         if (subscribers.size === 0 && unsubFromJm !== null) {
           unsubFromJm();
           unsubFromJm = null;
+          clearCassetteSubs();
+          if (pendingCassette !== null) {
+            pendingCassette.eject();
+            pendingCassette = null;
+          }
           const vertexSlotsDisposed = junctureManager.disposeAllVertexSlotsByGenId(genId);
           busHost.bus?.emit({ type: "gateWire:jmUnsubscribed", genId, vertexSlotsDisposed });
         }
       };
     },
-    // Phase 1: opens a Cassette that records every $.state / memo read during
-    // tracking. Commit-tracking (subscribing to collected deps) is the next slice.
+    // Open a Cassette that records every $.state / memo read until the
+    // returned commit fn fires. Commit ejects the cassette, replaces the
+    // prior cassette-deps subscriptions, and wires each collected dep to the
+    // wire's cassette-notify path (subscribers fire, Promise identity busts,
+    // no plugin re-resolve).
     startTracking: () => {
+      // A previous startTracking without commit (abandoned render) gets
+      // cleaned up here so we don't leak cassette handles into the recorder's
+      // active set.
+      if (pendingCassette !== null) {
+        pendingCassette.eject();
+      }
       const handle = insertCassette();
-      return handle.eject;
+      pendingCassette = handle;
+      busHost.bus?.emit({ type: "gateWire:trackingStarted", genId });
+      let committed = false;
+      return () => {
+        if (committed) return;
+        if (pendingCassette !== handle) {
+          // A newer startTracking superseded this one; do nothing.
+          return;
+        }
+        committed = true;
+        pendingCassette = null;
+        handle.eject();
+        clearCassetteSubs();
+        const deps = handle.cassette.getDeps();
+        for (const dep of deps) {
+          cassetteUnsubs.push(dep.subscribe(notifyFromCassette));
+        }
+        busHost.bus?.emit({ type: "gateWire:trackingCommitted", genId, depCount: deps.size });
+      };
     },
 
     // Update the wire's locale and/or vertexGearMap

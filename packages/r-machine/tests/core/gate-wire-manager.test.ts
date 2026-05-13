@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { GateWireManager } from "../../src/core/gate-wire-manager.js";
 import type { JunctureManager } from "../../src/core/juncture-manager.js";
 import type { PluginCtxAugmenter } from "../../src/core/plug.js";
+import { createStateCell } from "../../src/core/reactivity/state-cell.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "../../src/core/res-domain.js";
 import type { AnyNamespaceMap } from "../../src/core/res-map.js";
 import type { VertexGearMap } from "../../src/core/vertex-gear.js";
@@ -363,5 +364,147 @@ describe("GateWireManager — genId allocation", () => {
     // Strictly increasing within this test (regardless of cross-suite state).
     expect(genIds[1]).toBeGreaterThan(genIds[0]);
     expect(genIds[2]).toBeGreaterThan(genIds[1]);
+  });
+});
+
+describe("GateWireManager — commit-tracking (cassette → wire wiring)", () => {
+  it("after commit, a tracked dep mutation notifies the wire's subscribers", () => {
+    const mock = createMockJm();
+    const gwm = new GateWireManager(mock.jm, { bus: undefined });
+    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const cb = vi.fn();
+    wire.subscribe(cb);
+
+    const cell = createStateCell({ v: 0 });
+    const commit = wire.startTracking();
+    cell.read(); // captured by the open cassette
+    commit();
+
+    expect(cb).not.toHaveBeenCalled();
+    cell.publish({ v: 1 });
+    expect(cb).toHaveBeenCalledTimes(1);
+  });
+
+  it("cassette-driven notify busts getPluginPromise identity WITHOUT triggering a re-resolve", async () => {
+    const mock = createMockJm();
+    const gwm = new GateWireManager(mock.jm, { bus: undefined });
+    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    wire.subscribe(() => {});
+
+    const p1 = wire.getPluginPromise();
+    expect(mock.getPluginCalls).toHaveLength(1);
+    const plugin1 = await p1;
+
+    const cell = createStateCell({ v: 0 });
+    const commit = wire.startTracking();
+    cell.read();
+    commit();
+
+    cell.publish({ v: 1 });
+
+    // No re-resolve: JM.getPlugin was not called again.
+    expect(mock.getPluginCalls).toHaveLength(1);
+
+    // But the Promise identity is fresh (so useSyncExternalStore sees a change).
+    const p2 = wire.getPluginPromise();
+    expect(p2).not.toBe(p1);
+
+    // And the new Promise resolves to the same underlying plugin (no work redone).
+    const plugin2 = await p2;
+    expect(plugin2).toBe(plugin1);
+  });
+
+  it("re-commit replaces prior cassette subscriptions: stale deps no longer notify", () => {
+    const mock = createMockJm();
+    const gwm = new GateWireManager(mock.jm, { bus: undefined });
+    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const cb = vi.fn();
+    wire.subscribe(cb);
+
+    const oldCell = createStateCell({ v: 0 });
+    const newCell = createStateCell({ v: 0 });
+
+    // First tracking pass: reads oldCell.
+    const commit1 = wire.startTracking();
+    oldCell.read();
+    commit1();
+    cb.mockClear();
+
+    // Second tracking pass: reads newCell only.
+    const commit2 = wire.startTracking();
+    newCell.read();
+    commit2();
+
+    oldCell.publish({ v: 99 });
+    expect(cb).not.toHaveBeenCalled();
+
+    newCell.publish({ v: 99 });
+    expect(cb).toHaveBeenCalledTimes(1);
+  });
+
+  it("abandoned tracking (startTracking without commit) is ejected when a new startTracking begins", () => {
+    const mock = createMockJm();
+    const gwm = new GateWireManager(mock.jm, { bus: undefined });
+    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const cb = vi.fn();
+    wire.subscribe(cb);
+
+    const ghost = createStateCell({ v: 0 });
+    const real = createStateCell({ v: 0 });
+
+    // First startTracking that never commits (abandoned by the consumer).
+    wire.startTracking();
+    ghost.read();
+
+    // Second startTracking takes over. The first cassette must have been
+    // ejected, so reads inside it stop landing in any active cassette.
+    const commit2 = wire.startTracking();
+    real.read();
+    commit2();
+
+    // Only `real` (recorded by the committed second cassette) notifies.
+    real.publish({ v: 1 });
+    expect(cb).toHaveBeenCalledTimes(1);
+    cb.mockClear();
+
+    // `ghost` reads were never committed; mutating it must not notify.
+    ghost.publish({ v: 1 });
+    expect(cb).not.toHaveBeenCalled();
+  });
+
+  it("calling the commit fn twice is idempotent (second call is a no-op)", () => {
+    const mock = createMockJm();
+    const gwm = new GateWireManager(mock.jm, { bus: undefined });
+    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const cb = vi.fn();
+    wire.subscribe(cb);
+
+    const cell = createStateCell({ v: 0 });
+    const commit = wire.startTracking();
+    cell.read();
+    commit();
+    commit(); // second call should be a no-op
+
+    cell.publish({ v: 1 });
+    // Single subscription: exactly one notification on the wire's subscriber.
+    expect(cb).toHaveBeenCalledTimes(1);
+  });
+
+  it("on last subscriber leaving, cassette-deps subscriptions are cleared", () => {
+    const mock = createMockJm();
+    const gwm = new GateWireManager(mock.jm, { bus: undefined });
+    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const cb = vi.fn();
+    const unsub = wire.subscribe(cb);
+
+    const cell = createStateCell({ v: 0 });
+    const commit = wire.startTracking();
+    cell.read();
+    commit();
+
+    unsub(); // last subscriber leaves — wire fully tears down
+
+    cell.publish({ v: 1 });
+    expect(cb).not.toHaveBeenCalled();
   });
 });

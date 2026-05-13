@@ -583,7 +583,8 @@ function buildStatefulOuterGearMapMatrix<
     connector,
     meta,
     head,
-    cursor: (plugin: unknown) => _buildStatefulOuterGearCursor<S>((plugin as PluginWithStateCell<S>)[_stateCellSlot]),
+    cursor: (plugin: unknown) =>
+      _buildStatefulOuterGearCursor<S>((plugin as { $: PluginWithStateCell<S> }).$[_stateCellSlot]),
     userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
     augmentCtx: ($) => {
       const cell = createStateCell(defaultState);
@@ -651,7 +652,8 @@ function buildStatefulOuterGearListMatrix<
     connector,
     meta,
     head,
-    cursor: (plugin: unknown) => _buildStatefulOuterGearCursor<S>((plugin as PluginWithStateCell<S>)[_stateCellSlot]),
+    cursor: (plugin: unknown) =>
+      _buildStatefulOuterGearCursor<S>((plugin as { $: PluginWithStateCell<S> }).$[_stateCellSlot]),
     userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
     augmentCtx: ($) => {
       const cell = createStateCell(defaultState);
