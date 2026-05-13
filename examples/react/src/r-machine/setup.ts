@@ -6,24 +6,11 @@ import { ResourceAtlas } from "./resource-atlas";
 // Vite statically analyzes this at build time and creates chunk files for all matching modules
 const moduleLoaders = import.meta.glob<AnyResModule>("./**/*.{tsx,ts}");
 
-// For HMR, we need to keep track of the paths and their corresponding onUpdate callbacks
-const onUpdateByPath = new Map<string, () => void>();
-if (import.meta.hot) {
-  const paths = Object.keys(moduleLoaders);
-  import.meta.hot.accept(paths, (updated) => {
-    updated?.forEach((mod, i) => {
-      if (mod) {
-        onUpdateByPath.get(paths[i])?.();
-      }
-    });
-  });
-}
-
 const rMachine = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
   ResourceAtlas,
-  load: async (path, options) => {
+  load: async (path) => {
     const modulePathTsx = `./${path}.tsx`;
     const modulePathTs = `./${path}.ts`;
     const resolvedPath = moduleLoaders[modulePathTsx]
@@ -34,10 +21,6 @@ const rMachine = RMachine.create({
 
     if (!resolvedPath) {
       throw new Error(`Module not found: ${path}`);
-    }
-
-    if (import.meta.hot) {
-      onUpdateByPath.set(resolvedPath, options.onUpdate);
     }
 
     return moduleLoaders[resolvedPath]!();
