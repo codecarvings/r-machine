@@ -11,11 +11,11 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { DefaultAction } from "./action.js";
+import type { ActionComposer, DefaultAction } from "./action.js";
 import type { BaseGearPlugPortMap } from "./base-gear-plug.js";
 import { lazyGetters } from "./composer-utils.js";
 import { createGearListPlugHead, createGearMapPlugHead, type GearPluginCtx, type GearPlugKitMap } from "./gear-plug.js";
-import type { DefaultGetter } from "./getter.js";
+import type { DefaultGetter, Getter, GetterComposer, StatelessGetterComposer } from "./getter.js";
 import type { AnyOuterGear, AnyState, RejectAsyncValueProps } from "./outer-gear.js";
 import {
   createStatefulOuterGearListPlugHead,
@@ -36,6 +36,9 @@ import {
   type StatelessOuterGearMapPlugin,
 } from "./outer-gear-plug.js";
 import { getPlugOutline } from "./plug.js";
+import { makeAction } from "./reactivity/action-runtime.js";
+import { createMemoCell } from "./reactivity/memo-cell.js";
+import { createStateCell, type StateCell } from "./reactivity/state-cell.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
@@ -342,14 +345,45 @@ type StatelessOuterGearListDefiner<
 
 // #region Runtime
 
-function buildStatefulOuterGearCursor<S extends AnyState>(_state: S): StatefulOuterGearCursor<S> {
+/** @internal — exposed for testing the resolution wiring */
+export const _stateCellSlot = Symbol("r-machine.stateCell");
+
+interface PluginWithStateCell<S> {
+  readonly [_stateCellSlot]: StateCell<S>;
+}
+
+/** @internal — exposed for testing */
+export function _buildStatelessGetterComposer(): StatelessGetterComposer {
+  return ((...args: unknown[]): unknown => {
+    if (args[0] === "memoized" && typeof args[1] === "function") {
+      const memo = createMemoCell(args[1] as () => unknown);
+      return (() => memo.read()) as Getter<unknown>;
+    }
+    if (typeof args[0] === "function") {
+      return args[0] as Getter<unknown>;
+    }
+    throw new Error("cursor.getter: invalid arguments");
+  }) as unknown as StatelessGetterComposer;
+}
+
+/** @internal — exposed for testing the resolution wiring */
+export function _buildStatefulOuterGearCursor<S extends AnyState>(cell: StateCell<S>): StatefulOuterGearCursor<S> {
+  const stateless = _buildStatelessGetterComposer() as unknown as (...a: unknown[]) => unknown;
+  const getter = ((...args: unknown[]): unknown => {
+    if (args.length === 0) {
+      return (() => cell.read()) as Getter<unknown>;
+    }
+    return stateless(...args);
+  }) as unknown as GetterComposer<S>;
+
+  const action = ((reducer?: (...a: unknown[]) => unknown) => {
+    const r = reducer ?? ((partial: unknown) => partial);
+    return makeAction(cell, r as (...a: unknown[]) => unknown);
+  }) as unknown as ActionComposer<S>;
+
   return {
-    getter: () => {
-      throw new Error("getter: not yet implemented");
-    },
-    action: () => {
-      throw new Error("action: not yet implemented");
-    },
+    getter,
+    action,
     relay: () => {
       throw new Error("relay: not yet implemented");
     },
@@ -360,9 +394,7 @@ function buildStatefulOuterGearCursor<S extends AnyState>(_state: S): StatefulOu
 }
 
 const statelessOuterGearCursor: StatelessOuterGearCursor = {
-  getter: () => {
-    throw new Error("getter: not yet implemented");
-  },
+  getter: _buildStatelessGetterComposer(),
   relay: () => {
     throw new Error("relay: not yet implemented");
   },
@@ -547,16 +579,19 @@ function buildStatefulOuterGearMapMatrix<
     defaultState
   );
 
-  const cursor = buildStatefulOuterGearCursor(defaultState);
-
   const matrix = createResMatrix({
     connector,
     meta,
     head,
-    cursor,
+    cursor: (plugin: unknown) => _buildStatefulOuterGearCursor<S>((plugin as PluginWithStateCell<S>)[_stateCellSlot]),
     userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
     augmentCtx: ($) => {
-      $.state = defaultState;
+      const cell = createStateCell(defaultState);
+      ($ as unknown as { [_stateCellSlot]: StateCell<S> })[_stateCellSlot] = cell;
+      Object.defineProperty($, "state", {
+        get: () => cell.read(),
+        enumerable: true,
+      });
       $.defaultState = defaultState;
     },
     postProcess: (raw, c) => statefulPostProcess(raw, c as StatefulOuterGearCursor<S>),
@@ -612,16 +647,19 @@ function buildStatefulOuterGearListMatrix<
     defaultState
   );
 
-  const cursor = buildStatefulOuterGearCursor(defaultState);
-
   const matrix = createResMatrix({
     connector,
     meta,
     head,
-    cursor,
+    cursor: (plugin: unknown) => _buildStatefulOuterGearCursor<S>((plugin as PluginWithStateCell<S>)[_stateCellSlot]),
     userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
     augmentCtx: ($) => {
-      $.state = defaultState;
+      const cell = createStateCell(defaultState);
+      ($ as unknown as { [_stateCellSlot]: StateCell<S> })[_stateCellSlot] = cell;
+      Object.defineProperty($, "state", {
+        get: () => cell.read(),
+        enumerable: true,
+      });
       $.defaultState = defaultState;
     },
     postProcess: (raw, c) => statefulPostProcess(raw, c as unknown as StatefulOuterGearCursor<S>),

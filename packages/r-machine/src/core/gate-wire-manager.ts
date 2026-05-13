@@ -16,6 +16,7 @@ import type { BusHost } from "./event-bus.js";
 import type { GateWire } from "./gate-wire.js";
 import type { JunctureManager } from "./juncture-manager.js";
 import type { PluginCtxAugmenter } from "./plug.js";
+import { insertCassette } from "./reactivity/cassette-recorder.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap } from "./res-map.js";
@@ -128,8 +129,12 @@ function createGateWire(
         }
       };
     },
-    // TODO: WIP — concurrent-rendering tracking (next slice)
-    startTracking: () => () => {},
+    // Phase 1: opens a Cassette that records every $.state / memo read during
+    // tracking. Commit-tracking (subscribing to collected deps) is the next slice.
+    startTracking: () => {
+      const handle = insertCassette();
+      return handle.eject;
+    },
 
     // Update the wire's locale and/or vertexGearMap
     updateRequest: (newLocale: AnyLocale, newVertexGearMap?: VertexGearMap | undefined) => {

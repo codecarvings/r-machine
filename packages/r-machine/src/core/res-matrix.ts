@@ -49,11 +49,13 @@ export function tryGetResMatrixMeta(origin: AnyResOrigin): ResMatrixMeta | undef
   return (origin as Partial<AnyResMatrix>)[resMatrixMetaSymbol];
 }
 
+type CursorFactory = (plugin: unknown) => unknown;
+
 interface CreateResMatrixOptions {
   readonly connector: ResComposerConnector;
   readonly meta: ResMatrixMeta;
   readonly head: AnyResPlugHead;
-  readonly cursor: unknown;
+  readonly cursor: unknown | CursorFactory;
   readonly userFactory: (plugin: unknown, cursor: never) => unknown | Promise<unknown>;
   readonly augmentCtx?: PluginCtxAugmenter;
   readonly postProcess?: (raw: unknown, cursor: never) => unknown;
@@ -80,8 +82,9 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
 
   const factory = async (locale: AnyLocale | undefined, chain: readonly AnyNamespace[]): Promise<AnyRes> => {
     const plugin = await getPlugResolve(plug)(locale, chain);
-    const raw = await userFactory(plugin, cursor as never);
-    return (postProcess ? postProcess(raw, cursor as never) : raw) as AnyRes;
+    const resolvedCursor = typeof cursor === "function" ? (cursor as CursorFactory)(plugin) : cursor;
+    const raw = await userFactory(plugin, resolvedCursor as never);
+    return (postProcess ? postProcess(raw, resolvedCursor as never) : raw) as AnyRes;
   };
 
   const clone = (overrides?: ResMatrixCloneOverrides): AnyResMatrix => {
