@@ -181,7 +181,9 @@ function createGateWire(
       busHost.bus?.emit({ type: "gateWire:trackingStarted", genId });
       let committed = false;
       return () => {
-        if (committed) return;
+        if (committed) {
+          return;
+        }
         if (myEpoch !== trackingEpoch) {
           // A newer startTracking superseded this one; do nothing.
           return;

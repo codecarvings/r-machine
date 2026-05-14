@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import { getterReadSlot, isGetterDef } from "./getter.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResolvedNamespaceMap } from "./res-map.js";
 import type { AnySurface } from "./surface.js";
@@ -38,20 +39,27 @@ export function getCurrentSurface(juncture: Juncture): AnySurface {
   return juncture.kind === "outer" ? juncture.current : juncture.surface;
 }
 
-// TODO: brand-aware handling (Getter → accessor materialized, Action → wrapped
-// with suspend+swap+notify, Relay → excluded) when the runtime composers for
-// Getter/Action/Relay are implemented. Today brands are phantom types with no
-// runtime marker, so this is a shallow pass-through clone that excludes $* keys.
+// TODO: brand-aware handling for Action (suspend+swap+notify) and Relay
+// (excluded). Getter specs are already materialized as JS accessors below.
 function buildSurface(res: AnyRes, vertexTag: VertexGearTagData | undefined): AnySurface {
   const surface = Object.create(null) as AnyResolvedNamespaceMap;
   for (const key of Object.keys(res)) {
     if (key.startsWith("$")) continue;
-    Object.defineProperty(surface, key, {
-      enumerable: true,
-      configurable: false,
-      writable: false,
-      value: (res as AnyResolvedNamespaceMap)[key],
-    });
+    const entry = (res as AnyResolvedNamespaceMap)[key];
+    if (isGetterDef(entry)) {
+      Object.defineProperty(surface, key, {
+        enumerable: true,
+        configurable: false,
+        get: entry[getterReadSlot],
+      });
+    } else {
+      Object.defineProperty(surface, key, {
+        enumerable: true,
+        configurable: false,
+        writable: false,
+        value: entry,
+      });
+    }
   }
   if (vertexTag !== undefined) {
     setVertexGearTag(surface as AnyRes, vertexTag);

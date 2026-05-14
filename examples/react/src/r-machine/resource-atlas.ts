@@ -1,4 +1,5 @@
 import { defineLayout } from "r-machine";
+import type { Outer_Timer } from "./outer/timer";
 import type { Shell_Common } from "./shell/common/en";
 import type { Shell_Features_Box_1_2 } from "./shell/features/box_1_2/en";
 import type { Shell_Features_Box_3 } from "./shell/features/box_3/en";
@@ -15,6 +16,8 @@ const folders = defineLayout({
 });
 
 type ResourceMap = {
+  "outer/timer": Outer_Timer;
+
   "shell/common": Shell_Common;
   "shell/landing-page": Shell_LandingPage;
   "shell/features/box_1_2": Shell_Features_Box_1_2;

@@ -1,15 +1,25 @@
 import { describe, expect, it, vi } from "vitest";
+import { getterReadSlot } from "../../src/core/getter.js";
+import { buildKernelJuncture } from "../../src/core/juncture.js";
 import { _buildStatelessGetterComposer } from "../../src/core/outer-gear-composer.js";
 import { createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
 import { createStateCell } from "../../src/core/reactivity/state-cell.js";
+import type { AnyRes } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
 
 // --- helpers -----------------------------------------------------------------
 
 type InternalFactoryCall = (locale: undefined, chain: never[]) => Promise<unknown>;
-function resolve(matrix: { factory: () => Promise<unknown> }): Promise<unknown> {
-  return (matrix.factory as unknown as InternalFactoryCall)(undefined, []);
+async function resolve(matrix: { factory: () => Promise<unknown> }): Promise<unknown> {
+  const raw = await (matrix.factory as unknown as InternalFactoryCall)(undefined, []);
+  return buildKernelJuncture(raw as AnyRes, undefined).surface;
+}
+
+// Direct-read helper for unit tests that exercise the composer at the spec layer
+// (i.e. before surface materialization installs the JS accessor).
+function readSpec(spec: unknown): unknown {
+  return (spec as { [getterReadSlot]: () => unknown })[getterReadSlot]();
 }
 
 function makeConnector(): ResComposerConnector {
@@ -25,24 +35,25 @@ function makeConnector(): ResComposerConnector {
 // --- unit tests on the stateless getter composer -----------------------------
 
 describe("_buildStatelessGetterComposer", () => {
-  it("getter(body) returns the body function as the Getter (no memoization)", () => {
+  it("getter(body) returns a GetterDef whose [getterReadSlot] reads through the body", () => {
     const recorder = createCassetteRecorder();
     const composer = _buildStatelessGetterComposer(recorder);
     const body = () => 42;
     const g = composer(body);
-    expect(g()).toBe(42);
-    expect(g).toBe(body);
+    expect(readSpec(g)).toBe(42);
+    // The spec's read slot points at the original body (no memoization wrapping).
+    expect((g as unknown as { [getterReadSlot]: () => unknown })[getterReadSlot]).toBe(body);
   });
 
-  it("getter('memoized', body) returns a memoized thunk backed by a MemoCell", () => {
+  it("getter('memoized', body) returns a GetterDef backed by a MemoCell", () => {
     const recorder = createCassetteRecorder();
     const composer = _buildStatelessGetterComposer(recorder);
     const body = vi.fn(() => 7);
     const g = composer("memoized", body);
 
-    expect(g()).toBe(7);
-    expect(g()).toBe(7);
-    // Cache hit on the second call — body invoked exactly once.
+    expect(readSpec(g)).toBe(7);
+    expect(readSpec(g)).toBe(7);
+    // Cache hit on the second read — body invoked exactly once.
     expect(body).toHaveBeenCalledTimes(1);
   });
 
@@ -52,12 +63,12 @@ describe("_buildStatelessGetterComposer", () => {
     const upstream = createStateCell({ v: 1 }, recorder);
     const g = composer("memoized", () => upstream.read().v * 10);
 
-    // Prime so the next call is a cache hit.
-    g();
+    // Prime so the next read is a cache hit.
+    readSpec(g);
 
     const outer = recorder.createCassette();
     outer.insert();
-    g();
+    readSpec(g);
     outer.eject();
 
     // Cache hit registers the memo cell only (not the upstream cell).
@@ -105,14 +116,14 @@ describe("Stateless OuterGear — end-to-end via createResMatrix", () => {
       }),
     });
 
-    const resource = (await resolve(matrix)) as { doubled: () => number };
+    const resource = (await resolve(matrix)) as { doubled: number };
 
-    expect(resource.doubled()).toBe(10);
+    expect(resource.doubled).toBe(10);
 
     // Cache hit: outer cassette should pick up the memo cell only.
     const outer = recorder.createCassette();
     outer.insert();
-    expect(resource.doubled()).toBe(10);
+    expect(resource.doubled).toBe(10);
     outer.eject();
     expect(outer.getDeps().size).toBe(1);
     expect(outer.getDeps()).not.toContain(upstream);

@@ -99,15 +99,15 @@ describe("OuterGear stateful — full blueprint stack", () => {
     });
 
     const resource = (await resolveResource(jmInternal, "g/counter")) as {
-      read: () => number;
+      read: number;
       add: (n: number) => unknown;
     };
 
-    expect(resource.read()).toBe(0);
+    expect(resource.read).toBe(0);
     resource.add(5);
-    expect(resource.read()).toBe(5);
+    expect(resource.read).toBe(5);
     resource.add(3);
-    expect(resource.read()).toBe(8);
+    expect(resource.read).toBe(8);
   });
 
   it("memoized getter resolved via the blueprint stack short-circuits on equal output", async () => {
@@ -124,27 +124,27 @@ describe("OuterGear stateful — full blueprint stack", () => {
     });
 
     const resource = (await resolveResource(jmInternal, "g/cart")) as {
-      subtotal: () => number;
+      subtotal: number;
       setItems: (items: { price: number }[]) => unknown;
       setOther: (n: number) => unknown;
     };
 
-    expect(resource.subtotal()).toBe(30);
+    expect(resource.subtotal).toBe(30);
     expect(bodyCalls).toHaveBeenCalledTimes(1);
 
     // Hit: body must not run again.
-    expect(resource.subtotal()).toBe(30);
+    expect(resource.subtotal).toBe(30);
     expect(bodyCalls).toHaveBeenCalledTimes(1);
 
     // Invalidation via an action that touches a different key (items unchanged):
     // memo body re-runs once on next read, but returns the same total → still 30.
     resource.setOther(99);
-    expect(resource.subtotal()).toBe(30);
+    expect(resource.subtotal).toBe(30);
     expect(bodyCalls).toHaveBeenCalledTimes(2);
 
     // Now actually change items.
     resource.setItems([{ price: 5 }, { price: 5 }]);
-    expect(resource.subtotal()).toBe(10);
+    expect(resource.subtotal).toBe(10);
     expect(bodyCalls).toHaveBeenCalledTimes(3);
   });
 
@@ -157,7 +157,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
     });
 
     const resource = (await resolveResource(jmInternal, "g/counter")) as {
-      read: () => number;
+      read: number;
       add: (n: number) => unknown;
     };
 
@@ -168,7 +168,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
     wire.subscribe(notify);
 
     const commit = wire.startTracking();
-    expect(resource.read()).toBe(0);
+    expect(resource.read).toBe(0);
     commit();
 
     // No mutation yet → no notification.
@@ -178,13 +178,13 @@ describe("OuterGear stateful — full blueprint stack", () => {
     // wire's notifyFromCassette path fires subscribers.
     resource.add(5);
     expect(notify).toHaveBeenCalledTimes(1);
-    expect(resource.read()).toBe(5);
+    expect(resource.read).toBe(5);
 
     // A second action on the same dep fires the subscriber again (subscription
     // is persistent until next commit or wire teardown).
     resource.add(3);
     expect(notify).toHaveBeenCalledTimes(2);
-    expect(resource.read()).toBe(8);
+    expect(resource.read).toBe(8);
   });
 
   it("memoized getter equality short-circuit propagates through the real GateWire: no notify when output unchanged", async () => {
@@ -199,7 +199,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
     });
 
     const resource = (await resolveResource(jmInternal, "g/cart")) as {
-      subtotal: () => number;
+      subtotal: number;
       setOther: (n: number) => unknown;
       setItems: (items: { price: number }[]) => unknown;
     };
@@ -211,10 +211,10 @@ describe("OuterGear stateful — full blueprint stack", () => {
     // Prime the memo OUTSIDE the consumer's tracking cassette. The next read
     // inside the cassette will be a cache hit, so the cassette captures only
     // the memo cell (not the underlying StateCell transitively).
-    expect(resource.subtotal()).toBe(30);
+    expect(resource.subtotal).toBe(30);
 
     const commit = wire.startTracking();
-    expect(resource.subtotal()).toBe(30); // cache hit — captures the memo cell as the sole dep
+    expect(resource.subtotal).toBe(30); // cache hit — captures the memo cell as the sole dep
     commit();
 
     // Touch a field the memo does not depend on → state cell publishes →
@@ -226,7 +226,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
     // Now actually change the total.
     resource.setItems([{ price: 5 }, { price: 5 }]);
     expect(notify).toHaveBeenCalledTimes(1);
-    expect(resource.subtotal()).toBe(10);
+    expect(resource.subtotal).toBe(10);
   });
 
   it("action with a no-op partial does not change state and a memoized getter still returns the same value", async () => {
@@ -237,10 +237,10 @@ describe("OuterGear stateful — full blueprint stack", () => {
       })),
     });
 
-    const resource = (await resolveResource(jmInternal, "g/state")) as { readA: () => number; noop: () => unknown };
+    const resource = (await resolveResource(jmInternal, "g/state")) as { readA: number; noop: () => unknown };
 
-    expect(resource.readA()).toBe(1);
+    expect(resource.readA).toBe(1);
     resource.noop();
-    expect(resource.readA()).toBe(1);
+    expect(resource.readA).toBe(1);
   });
 });

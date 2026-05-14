@@ -9,7 +9,7 @@
     "url": "git+https://github.com/codecarvings/r-machine.git"
   },
   "bugs": "https://github.com/codecarvings/r-machine/issues",
-  "packageManager": "pnpm@11.1.1",
+  "packageManager": "pnpm@11.1.2",
   "scripts": {
     "check": "biome check --write .",
     "check:dry": "biome check .",
@@ -100,8 +100,8 @@
   ],
   "pnpm": {
     "overrides": {
-      "react": "19.2.5",
-      "react-dom": "19.2.5"
+      "react": "19.2.6",
+      "react-dom": "19.2.6"
     }
   },
   "devDependencies": {

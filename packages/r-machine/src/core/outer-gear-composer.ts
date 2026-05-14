@@ -15,7 +15,7 @@ import type { ActionComposer, DefaultAction } from "./action.js";
 import type { BaseGearPlugPortMap } from "./base-gear-plug.js";
 import { lazyGetters } from "./composer-utils.js";
 import { createGearListPlugHead, createGearMapPlugHead, type GearPluginCtx, type GearPlugKitMap } from "./gear-plug.js";
-import type { DefaultGetter, Getter, GetterComposer, StatelessGetterComposer } from "./getter.js";
+import { createGetterDef, type DefaultGetter, type GetterComposer, type StatelessGetterComposer } from "./getter.js";
 import type { AnyOuterGear, AnyState, RejectAsyncValueProps } from "./outer-gear.js";
 import {
   createStatefulOuterGearListPlugHead,
@@ -358,10 +358,10 @@ export function _buildStatelessGetterComposer(recorder: CassetteRecorder): State
   return ((...args: unknown[]): unknown => {
     if (args[0] === "memoized" && typeof args[1] === "function") {
       const memo = createMemoCell(args[1] as () => unknown, recorder);
-      return (() => memo.read()) as Getter<unknown>;
+      return createGetterDef(() => memo.read());
     }
     if (typeof args[0] === "function") {
-      return args[0] as Getter<unknown>;
+      return createGetterDef(args[0] as () => unknown);
     }
     throw new Error("cursor.getter: invalid arguments");
   }) as unknown as StatelessGetterComposer;
@@ -375,7 +375,7 @@ export function _buildStatefulOuterGearCursor<S extends AnyState>(
   const stateless = _buildStatelessGetterComposer(recorder) as unknown as (...a: unknown[]) => unknown;
   const getter = ((...args: unknown[]): unknown => {
     if (args.length === 0) {
-      return (() => cell.read()) as Getter<unknown>;
+      return createGetterDef(() => cell.read());
     }
     return stateless(...args);
   }) as unknown as GetterComposer<S>;

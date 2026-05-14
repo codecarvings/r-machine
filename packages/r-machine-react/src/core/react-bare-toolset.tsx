@@ -33,7 +33,7 @@ import { createPlug, getNamespaceList, getNamespaceMap, getPlugOutline } from "r
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
-import { createContext, use, useContext, useMemo, useSyncExternalStore } from "react";
+import { createContext, use, useContext, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "../errors/error-codes.js";
 import type { ReactPlugDefiner, ReactPlugKitMap } from "./react-plug.js";
 import { useVertexFrame, VertexFrame } from "./vertex-frame.js";
@@ -199,9 +199,31 @@ export async function createReactBareToolset<
       const safeCtx = ctx ?? fallbackCtx;
       sharedWriteLocaleRef.current = safeCtx.writeLocale;
       const wire = getOrCreateWire(safeCtx.locale, vertexGearMap);
+
+      // Open the wire's tracking cassette synchronously on every render. The
+      // cassette's `insert()` is idempotent under the recorder model: a
+      // re-render, a React Strict Mode double-invoke, or a Suspense retry
+      // simply clears the prior deps.
+      const commit = wire.startTracking();
+
+      // Stash the latest commit fn so the post-commit effect (below) fires
+      // exactly the closure of the render that actually committed. Earlier
+      // closures (from abandoned / suspended renders) get overwritten and
+      // never fire — they would be no-ops anyway thanks to the wire's epoch
+      // check, but skipping them avoids stale work.
+      const commitRef = useRef<(() => void) | null>(null);
+      commitRef.current = commit;
+
       const pluginPromise = useSyncExternalStore(wire.subscribe, wire.getPluginPromise, wire.getPluginPromise);
       const result = use(pluginPromise);
-      // const result = use(wire.getPluginPromise());
+
+      // useEffect with no deps runs after every successful commit. The commit
+      // fn itself is idempotent (its own `committed` flag + epoch check), so
+      // React Strict Mode's setup/cleanup/setup cycle is safe — the second
+      // setup re-fires the same commit closure, which is then a no-op.
+      useEffect(() => {
+        commitRef.current?.();
+      });
 
       // Throw only AFTER every hook has been called. The throw aborts the
       // render but the hook count is now stable across renders, which keeps

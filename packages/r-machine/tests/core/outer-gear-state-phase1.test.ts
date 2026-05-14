@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
+import { buildKernelJuncture } from "../../src/core/juncture.js";
 import { _buildStatefulOuterGearCursor, _stateCellSlot } from "../../src/core/outer-gear-composer.js";
 import { createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
 import { createStateCell, type StateCell } from "../../src/core/reactivity/state-cell.js";
+import type { AnyRes } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
 
@@ -10,10 +12,12 @@ import { createResMatrix } from "../../src/core/res-matrix.js";
 // The public ResMatrix.factory is typed as `() => Promise<R>` but the actual
 // implementation expects (locale, chain). For phase-1 tests we bypass the
 // blueprint stack and invoke the resolution directly, so we need the wider
-// signature.
+// signature. We also wrap the raw resource in a kernel juncture so getter specs
+// are materialized as JS accessors (matching what consumers see in production).
 type InternalFactoryCall = (locale: undefined, chain: never[]) => Promise<unknown>;
-function resolve(matrix: { factory: () => Promise<unknown> }): Promise<unknown> {
-  return (matrix.factory as unknown as InternalFactoryCall)(undefined, []);
+async function resolve(matrix: { factory: () => Promise<unknown> }): Promise<unknown> {
+  const raw = await (matrix.factory as unknown as InternalFactoryCall)(undefined, []);
+  return buildKernelJuncture(raw as AnyRes, undefined).surface;
 }
 
 // Mock connector that wires a fresh ctx ($) through the augmentCtx pipeline
@@ -73,11 +77,11 @@ describe("OuterGear state — phase 1 end-to-end", () => {
       read: cursor.getter(() => $.state.count),
     }));
 
-    const resource = (await resolve(matrix)) as { read: () => number };
+    const resource = (await resolve(matrix)) as { read: number };
 
     const handle = recorder.createCassette();
     handle.insert();
-    const value = resource.read();
+    const value = resource.read;
     handle.eject();
 
     expect(value).toBe(0);
@@ -96,19 +100,19 @@ describe("OuterGear state — phase 1 end-to-end", () => {
       })
     );
 
-    const resource = (await resolve(matrix)) as { subtotal: () => number };
+    const resource = (await resolve(matrix)) as { subtotal: number };
 
-    // First call: cache miss — outer cassette accumulates transitive deps.
+    // First read: cache miss — outer cassette accumulates transitive deps.
     const first = recorder.createCassette();
     first.insert();
-    expect(resource.subtotal()).toBe(30);
+    expect(resource.subtotal).toBe(30);
     first.eject();
     const firstDeps = first.getDeps().size;
 
-    // Second call: cache hit — outer cassette receives only the memo cell.
+    // Second read: cache hit — outer cassette receives only the memo cell.
     const second = recorder.createCassette();
     second.insert();
-    expect(resource.subtotal()).toBe(30);
+    expect(resource.subtotal).toBe(30);
     second.eject();
     expect(second.getDeps().size).toBe(1);
     expect(second.getDeps().size).toBeLessThan(firstDeps);
@@ -131,16 +135,16 @@ describe("OuterGear state — phase 1 end-to-end", () => {
     );
 
     const resource = (await resolve(matrix)) as {
-      subtotal: () => number;
+      subtotal: number;
       setItems: (items: { price: number }[]) => unknown;
       setOther: (n: number) => unknown;
     };
 
     // Prime the memo and subscribe.
-    expect(resource.subtotal()).toBe(30);
+    expect(resource.subtotal).toBe(30);
     const second = recorder.createCassette();
     second.insert();
-    resource.subtotal();
+    void resource.subtotal;
     second.eject();
     const memoCell = [...second.getDeps()][0]!;
     const memoSub = vi.fn();
@@ -157,7 +161,7 @@ describe("OuterGear state — phase 1 end-to-end", () => {
     // Mutate items to change total: 30 → 10 → memo notifies once.
     resource.setItems([{ price: 5 }, { price: 5 }]);
     expect(memoSub).toHaveBeenCalledTimes(1);
-    expect(resource.subtotal()).toBe(10);
+    expect(resource.subtotal).toBe(10);
   });
 
   it("two OuterGear instances have independent state cells: action on one does not affect the other's subscribers", async () => {
@@ -172,18 +176,18 @@ describe("OuterGear state — phase 1 end-to-end", () => {
     }));
 
     const cart = (await resolve(cartMatrix)) as {
-      read: () => number[];
+      read: number[];
       setItems: (items: number[]) => unknown;
     };
     const other = (await resolve(otherMatrix)) as {
-      read: () => number[];
+      read: number[];
       setItems: (items: number[]) => unknown;
     };
 
     // Subscribe via cassette to each gear's state cell.
     const cartHandle = recorder.createCassette();
     cartHandle.insert();
-    cart.read();
+    void cart.read;
     cartHandle.eject();
     const cartCell = [...cartHandle.getDeps()][0]!;
     const cartSub = vi.fn();
@@ -191,7 +195,7 @@ describe("OuterGear state — phase 1 end-to-end", () => {
 
     const otherHandle = recorder.createCassette();
     otherHandle.insert();
-    other.read();
+    void other.read;
     otherHandle.eject();
     const otherCell = [...otherHandle.getDeps()][0]!;
     const otherSub = vi.fn();
