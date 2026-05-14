@@ -16,61 +16,88 @@ export interface ReadableCell {
 }
 
 export interface Cassette {
-  readonly id: number;
-  readonly silent: boolean;
+  insert(): void;
+  eject(): void;
   record(cell: ReadableCell): void;
   getDeps(): ReadonlySet<ReadableCell>;
 }
 
-let nextCassetteId = 0;
+export interface CassetteRecorder {
+  createCassette(): Cassette;
+  recordRead(cell: ReadableCell): void;
+  pushSilent(): void;
+  popSilent(): void;
+  withSilentZone<T>(fn: () => T): T;
+}
 
-const active = new Set<Cassette>();
-let silentDepth = 0;
+// Per-instance recorder: each RMachine instance owns one. The active Set
+// and silentDepth live in this closure — never shared
+// across machines. Two R-Machines in the same process (SSR multi-tenant,
+// micro-frontend) won't cross-contaminate cassettes or silent zones.
+export function createCassetteRecorder(): CassetteRecorder {
+  const active = new Set<Cassette>();
+  let silentDepth = 0;
 
-export function recordRead(cell: ReadableCell): void {
-  if (silentDepth > 0) return;
-  for (const cassette of active) {
-    cassette.record(cell);
+  function recordRead(cell: ReadableCell): void {
+    if (silentDepth > 0) {
+      return;
+    }
+    for (const cassette of active) {
+      cassette.record(cell);
+    }
   }
-}
 
-export interface InsertCassetteResult {
-  readonly cassette: Cassette;
-  eject(): void;
-}
-
-export function insertCassette(options?: { silent?: boolean }): InsertCassetteResult {
-  const silent = options?.silent === true;
-  const deps = new Set<ReadableCell>();
-  const cassette: Cassette = {
-    id: ++nextCassetteId,
-    silent,
-    record(cell) {
-      deps.add(cell);
-    },
-    getDeps() {
-      return deps;
-    },
-  };
-  active.add(cassette);
-  if (silent) silentDepth++;
-  let ejected = false;
-  return {
-    cassette,
-    eject() {
-      if (ejected) return;
-      ejected = true;
-      active.delete(cassette);
-      if (silent) silentDepth--;
-    },
-  };
-}
-
-export function withSilentZone<T>(fn: () => T): T {
-  const handle = insertCassette({ silent: true });
-  try {
-    return fn();
-  } finally {
-    handle.eject();
+  // Cassettes are designed to be created once per long-lived owner (GateWire,
+  // MemoCell, …) and re-used across many recording passes. `insert()` clears
+  // the previously-collected deps before re-activating — calling insert on an
+  // already-inserted cassette is idempotent and resets the recording state.
+  // `eject()` is also idempotent. The deps remain readable via `getDeps()`
+  // between eject and the next insert, so commit-time consumers can walk them.
+  function createCassette(): Cassette {
+    const deps = new Set<ReadableCell>();
+    let inserted = false;
+    const cassette: Cassette = {
+      record(cell) {
+        deps.add(cell);
+      },
+      getDeps() {
+        return deps;
+      },
+      insert() {
+        deps.clear();
+        if (!inserted) {
+          inserted = true;
+          active.add(cassette);
+        }
+      },
+      eject() {
+        if (!inserted) return;
+        inserted = false;
+        active.delete(cassette);
+      },
+    };
+    return cassette;
   }
+
+  // Silent zones are a pure counter mechanism — they have no deps to record,
+  // so they don't participate in the Cassette lifecycle. While the counter
+  // is positive, `recordRead` skips every active cassette.
+  function pushSilent(): void {
+    silentDepth++;
+  }
+
+  function popSilent(): void {
+    silentDepth--;
+  }
+
+  function withSilentZone<T>(fn: () => T): T {
+    pushSilent();
+    try {
+      return fn();
+    } finally {
+      popSilent();
+    }
+  }
+
+  return { createCassette, recordRead, pushSilent, popSilent, withSilentZone };
 }

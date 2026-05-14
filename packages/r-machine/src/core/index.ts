@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-export type { Action, Atomic } from "./action.js";
+export type { Action } from "./action.js";
 export { type BaseGearComposer, createBaseGearComposer } from "./base-gear-composer.js";
 export type { BaseGearNamespaceList } from "./base-gear-plug.js";
 export { BlueprintManager } from "./blueprint-manager.js";
@@ -59,6 +59,8 @@ export {
   type PlugResolve,
   setPlugResolve,
 } from "./plug.js";
+export type { Cassette, CassetteRecorder, ReadableCell } from "./reactivity/cassette-recorder.js";
+export { createCassetteRecorder } from "./reactivity/cassette-recorder.js";
 export type { RelayBrand } from "./relay.js";
 export type { AnyRes, AnyResOrigin } from "./res.js";
 export type {

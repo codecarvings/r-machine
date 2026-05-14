@@ -11,20 +11,25 @@
  * contact: licensing@codecarvings.com
  */
 
-import { withSilentZone } from "./cassette-recorder.js";
+import type { CassetteRecorder } from "./cassette-recorder.js";
 import { deepPartialMerge } from "./deep-partial-merge.js";
 import type { StateCell } from "./state-cell.js";
 
 export function makeAction<S, A extends unknown[]>(
   cell: StateCell<S>,
-  reducer: (...args: A) => unknown
+  reducer: (...args: A) => unknown,
+  recorder: CassetteRecorder
 ): (...args: A) => S {
   return (...args: A): S => {
-    const raw = withSilentZone(() => reducer(...args));
+    const raw = recorder.withSilentZone(() => reducer(...args));
     const prev = cell.peek();
-    if (raw === prev) return prev;
+    if (raw === prev) {
+      return prev;
+    }
     const merged = deepPartialMerge(prev, raw);
-    if (merged === prev) return prev;
+    if (merged === prev) {
+      return prev;
+    }
     cell.publish(merged);
     return merged;
   };

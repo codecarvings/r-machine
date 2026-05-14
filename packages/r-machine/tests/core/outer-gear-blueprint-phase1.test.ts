@@ -5,6 +5,7 @@ import { GateWireManager } from "../../src/core/gate-wire-manager.js";
 import { getCurrentSurface, type Juncture } from "../../src/core/juncture.js";
 import { JunctureManager } from "../../src/core/juncture-manager.js";
 import { createOuterGearComposer } from "../../src/core/outer-gear-composer.js";
+import { type CassetteRecorder, createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
 import type { AnyRes } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import type { AnyNamespace } from "../../src/core/res-domain.js";
@@ -16,18 +17,18 @@ import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-
 
 const LAYOUT: AnyResLayout = { "g/": "gear:outer" };
 
-// Build BM + JM + GWM with the public OuterGear composer. Mirrors juncture-manager.test.ts's
-// createJmTestEnv, but registers a real ResMatrix produced by `createOuterGearComposer`
-// rather than a hand-stitched fake matrix. This validates the full path:
-// composer → matrix → JM resolve → augmentCtx → cursor → state cell + getter + action.
-function buildEnv(modules: Record<string, (jm: JunctureManager) => AnyResModule>) {
+// Build BM + JM + GWM with a shared CassetteRecorder (per-instance, matching the
+// real RMachine wiring). The module factories receive the same recorder so
+// their composer-built matrices stay coherent with the wire's tracking.
+function buildEnv(modules: Record<string, (jm: JunctureManager, recorder: CassetteRecorder) => AnyResModule>) {
   let jm!: JunctureManager;
+  const recorder = createCassetteRecorder();
 
   const loader = async (_p: string, opts?: ResModuleLoaderFnOptions): Promise<AnyResModule> => {
     if (!opts) throw new Error("expected ResModuleLoaderFnOptions");
     const factory = modules[opts.namespace];
     if (!factory) throw new Error(`No module registered for "${opts.namespace}"`);
-    return factory(jm);
+    return factory(jm, recorder);
   };
 
   const resolver = new ResLayoutResolver(LAYOUT);
@@ -37,7 +38,7 @@ function buildEnv(modules: Record<string, (jm: JunctureManager) => AnyResModule>
   const busHost: BusHost = { bus: undefined };
   const bm = new BlueprintManager(resolver, loader, { gear: gearNs, shell: [] }, [], busHost);
   jm = new JunctureManager(resolver, equipment, bm, busHost);
-  const gwm = new GateWireManager(jm, busHost);
+  const gwm = new GateWireManager(jm, busHost, recorder);
 
   const jmInternal = jm as unknown as {
     getJuncture(
@@ -49,17 +50,19 @@ function buildEnv(modules: Record<string, (jm: JunctureManager) => AnyResModule>
     ): Promise<Juncture>;
   };
 
-  return { jm, jmInternal, gwm };
+  return { jm, jmInternal, gwm, recorder };
 }
 
 async function resolveResource(jmInternal: { getJuncture: (...a: never[]) => Promise<Juncture> }, ns: AnyNamespace) {
-  const juncture = await (jmInternal.getJuncture as (
-    ns: AnyNamespace,
-    locale: string | undefined,
-    genId: number,
-    vgm: undefined,
-    chain: readonly AnyNamespace[]
-  ) => Promise<Juncture>)(ns, undefined, 0, undefined, []);
+  const juncture = await (
+    jmInternal.getJuncture as (
+      ns: AnyNamespace,
+      locale: string | undefined,
+      genId: number,
+      vgm: undefined,
+      chain: readonly AnyNamespace[]
+    ) => Promise<Juncture>
+  )(ns, undefined, 0, undefined, []);
   return getCurrentSurface(juncture);
 }
 
@@ -71,14 +74,14 @@ function makeStatefulOuterGearModule<S>(
   defaultState: S,
   factory: (plugin: { $: { state: S; defaultState: S } }, cursor: any) => unknown
 ) {
-  return (jm: JunctureManager): AnyResModule => {
+  return (jm: JunctureManager, recorder: CassetteRecorder): AnyResModule => {
     const connector: ResComposerConnector = {
       getWire: async (nsDeps, locale, augmentCtx, chain) => {
         const plugin = await jm.getPlugin({}, nsDeps, locale, augmentCtx, chain, 0, undefined);
         return { plugin };
       },
     };
-    const composer = createOuterGearComposer<any, any>(connector);
+    const composer = createOuterGearComposer<any, any>(connector, recorder);
     const matrix = composer.withState(defaultState).define(factory as never);
     return { r: matrix as unknown as AnyRes };
   };
@@ -110,17 +113,14 @@ describe("OuterGear stateful — full blueprint stack", () => {
   it("memoized getter resolved via the blueprint stack short-circuits on equal output", async () => {
     const bodyCalls = vi.fn();
     const { jmInternal } = buildEnv({
-      "g/cart": makeStatefulOuterGearModule(
-        { items: [{ price: 10 }, { price: 20 }], other: 0 },
-        (plugin, cursor) => ({
-          subtotal: cursor.getter("memoized", () => {
-            bodyCalls();
-            return plugin.$.state.items.reduce((s: number, i: { price: number }) => s + i.price, 0);
-          }),
-          setItems: cursor.action((items: { price: number }[]) => ({ items })),
-          setOther: cursor.action((n: number) => ({ other: n })),
-        })
-      ),
+      "g/cart": makeStatefulOuterGearModule({ items: [{ price: 10 }, { price: 20 }], other: 0 }, (plugin, cursor) => ({
+        subtotal: cursor.getter("memoized", () => {
+          bodyCalls();
+          return plugin.$.state.items.reduce((s: number, i: { price: number }) => s + i.price, 0);
+        }),
+        setItems: cursor.action((items: { price: number }[]) => ({ items })),
+        setOther: cursor.action((n: number) => ({ other: n })),
+      })),
     });
 
     const resource = (await resolveResource(jmInternal, "g/cart")) as {
@@ -189,16 +189,13 @@ describe("OuterGear stateful — full blueprint stack", () => {
 
   it("memoized getter equality short-circuit propagates through the real GateWire: no notify when output unchanged", async () => {
     const { jmInternal, gwm } = buildEnv({
-      "g/cart": makeStatefulOuterGearModule(
-        { items: [{ price: 10 }, { price: 20 }], other: 0 },
-        (plugin, cursor) => ({
-          subtotal: cursor.getter("memoized", () =>
-            plugin.$.state.items.reduce((s: number, i: { price: number }) => s + i.price, 0)
-          ),
-          setOther: cursor.action((n: number) => ({ other: n })),
-          setItems: cursor.action((items: { price: number }[]) => ({ items })),
-        })
-      ),
+      "g/cart": makeStatefulOuterGearModule({ items: [{ price: 10 }, { price: 20 }], other: 0 }, (plugin, cursor) => ({
+        subtotal: cursor.getter("memoized", () =>
+          plugin.$.state.items.reduce((s: number, i: { price: number }) => s + i.price, 0)
+        ),
+        setOther: cursor.action((n: number) => ({ other: n })),
+        setItems: cursor.action((items: { price: number }[]) => ({ items })),
+      })),
     });
 
     const resource = (await resolveResource(jmInternal, "g/cart")) as {

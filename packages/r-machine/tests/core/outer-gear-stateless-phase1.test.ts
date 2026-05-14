@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { _buildStatelessGetterComposer } from "../../src/core/outer-gear-composer.js";
-import { insertCassette } from "../../src/core/reactivity/cassette-recorder.js";
+import { createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
 import { createStateCell } from "../../src/core/reactivity/state-cell.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
@@ -26,7 +26,8 @@ function makeConnector(): ResComposerConnector {
 
 describe("_buildStatelessGetterComposer", () => {
   it("getter(body) returns the body function as the Getter (no memoization)", () => {
-    const composer = _buildStatelessGetterComposer();
+    const recorder = createCassetteRecorder();
+    const composer = _buildStatelessGetterComposer(recorder);
     const body = () => 42;
     const g = composer(body);
     expect(g()).toBe(42);
@@ -34,7 +35,8 @@ describe("_buildStatelessGetterComposer", () => {
   });
 
   it("getter('memoized', body) returns a memoized thunk backed by a MemoCell", () => {
-    const composer = _buildStatelessGetterComposer();
+    const recorder = createCassetteRecorder();
+    const composer = _buildStatelessGetterComposer(recorder);
     const body = vi.fn(() => 7);
     const g = composer("memoized", body);
 
@@ -45,24 +47,27 @@ describe("_buildStatelessGetterComposer", () => {
   });
 
   it("memoized getter participates in cassette tracking like the stateful counterpart", () => {
-    const composer = _buildStatelessGetterComposer();
-    const upstream = createStateCell({ v: 1 });
+    const recorder = createCassetteRecorder();
+    const composer = _buildStatelessGetterComposer(recorder);
+    const upstream = createStateCell({ v: 1 }, recorder);
     const g = composer("memoized", () => upstream.read().v * 10);
 
     // Prime so the next call is a cache hit.
     g();
 
-    const outer = insertCassette();
+    const outer = recorder.createCassette();
+    outer.insert();
     g();
     outer.eject();
 
     // Cache hit registers the memo cell only (not the upstream cell).
-    expect(outer.cassette.getDeps().size).toBe(1);
-    expect(outer.cassette.getDeps()).not.toContain(upstream);
+    expect(outer.getDeps().size).toBe(1);
+    expect(outer.getDeps()).not.toContain(upstream);
   });
 
   it("throws on invalid arguments shape", () => {
-    const composer = _buildStatelessGetterComposer() as unknown as (...a: unknown[]) => unknown;
+    const recorder = createCassetteRecorder();
+    const composer = _buildStatelessGetterComposer(recorder) as unknown as (...a: unknown[]) => unknown;
     expect(() => composer()).toThrow(/invalid arguments/);
     expect(() => composer("not-memoized", () => 1)).toThrow(/invalid arguments/);
     expect(() => composer(42)).toThrow(/invalid arguments/);
@@ -73,17 +78,18 @@ describe("_buildStatelessGetterComposer", () => {
 
 describe("Stateless OuterGear — end-to-end via createResMatrix", () => {
   it("user-factory can declare a memoized getter on a stateless gear and it tracks deps via cassettes", async () => {
+    const recorder = createCassetteRecorder();
     // Build an external state cell to act as the gear's dependency surface — the
     // stateless gear's factory closes over it directly. In production this is
     // what `plugin.<depName>` would expose; here we wire it manually.
-    const upstream = createStateCell({ count: 5 });
+    const upstream = createStateCell({ count: 5 }, recorder);
 
     const matrix = createResMatrix({
       connector: makeConnector(),
       meta: { family: "gear", role: "outer" },
       head: { realm: "res", family: "gear", mode: "map", deps: [], nsDeps: [], nsDepList: [], ports: {} } as never,
       cursor: {
-        getter: _buildStatelessGetterComposer(),
+        getter: _buildStatelessGetterComposer(recorder),
         relay: () => {
           throw new Error("relay: stub");
         },
@@ -104,10 +110,11 @@ describe("Stateless OuterGear — end-to-end via createResMatrix", () => {
     expect(resource.doubled()).toBe(10);
 
     // Cache hit: outer cassette should pick up the memo cell only.
-    const outer = insertCassette();
+    const outer = recorder.createCassette();
+    outer.insert();
     expect(resource.doubled()).toBe(10);
     outer.eject();
-    expect(outer.cassette.getDeps().size).toBe(1);
-    expect(outer.cassette.getDeps()).not.toContain(upstream);
+    expect(outer.getDeps().size).toBe(1);
+    expect(outer.getDeps()).not.toContain(upstream);
   });
 });

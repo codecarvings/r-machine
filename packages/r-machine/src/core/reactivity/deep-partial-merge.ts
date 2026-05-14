@@ -12,18 +12,28 @@
  */
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
-  if (value === null || typeof value !== "object") return false;
-  if (Array.isArray(value)) return false;
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+  if (Array.isArray(value)) {
+    return false;
+  }
   const proto = Object.getPrototypeOf(value);
-  if (proto === null) return true;
-  if (proto !== Object.prototype) return false;
+  if (proto === null) {
+    return true;
+  }
+  if (proto !== Object.prototype) {
+    return false;
+  }
   // Reject branded atomics (Date, Map, Set, RegExp, URL, Promise, Error, ArrayBuffer, ArrayBufferView).
   // Plain objects share Object.prototype; any wrapped builtin has its own prototype chain and was rejected above.
   return true;
 }
 
 export function deepPartialMerge<S>(prev: S, partial: unknown): S {
-  if (partial === undefined) return prev;
+  if (partial === undefined) {
+    return prev;
+  }
 
   if (!isPlainObject(prev) || !isPlainObject(partial)) {
     return partial as S;
@@ -33,7 +43,9 @@ export function deepPartialMerge<S>(prev: S, partial: unknown): S {
   const result: Record<string, unknown> = { ...prev };
   for (const key of Object.keys(partial)) {
     const partialValue = partial[key];
-    if (partialValue === undefined) continue;
+    if (partialValue === undefined) {
+      continue;
+    }
     const prevValue = result[key];
     const nextValue = deepPartialMerge(prevValue, partialValue);
     if (!Object.is(prevValue, nextValue)) {

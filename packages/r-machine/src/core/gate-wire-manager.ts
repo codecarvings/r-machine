@@ -16,7 +16,7 @@ import type { BusHost } from "./event-bus.js";
 import type { GateWire } from "./gate-wire.js";
 import type { JunctureManager } from "./juncture-manager.js";
 import type { PluginCtxAugmenter } from "./plug.js";
-import { type Cassette, insertCassette } from "./reactivity/cassette-recorder.js";
+import type { CassetteRecorder } from "./reactivity/cassette-recorder.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap } from "./res-map.js";
@@ -28,7 +28,8 @@ let nextGenId = 0;
 export class GateWireManager {
   constructor(
     protected readonly junctureManager: JunctureManager,
-    protected readonly busHost: BusHost
+    protected readonly busHost: BusHost,
+    protected readonly recorder: CassetteRecorder
   ) {}
 
   getWire(
@@ -46,7 +47,8 @@ export class GateWireManager {
       augmentCtx,
       vertexGearMap,
       ++nextGenId,
-      this.busHost
+      this.busHost,
+      this.recorder
     );
   }
 }
@@ -59,7 +61,8 @@ function createGateWire(
   augmentCtx: PluginCtxAugmenter,
   vertexGearMap: VertexGearMap | undefined,
   genId: number,
-  busHost: BusHost
+  busHost: BusHost,
+  recorder: CassetteRecorder
 ): GateWire {
   let currentLocale = locale;
   let currentVertexGearMap = vertexGearMap;
@@ -80,10 +83,12 @@ function createGateWire(
   // Cassette-side tracking: deps collected during a consumer's render and
   // subscribed at commit. Replaced on each re-commit; cleared on wire disposal.
   let cassetteUnsubs: Array<() => void> = [];
-  // The cassette currently open between startTracking() and its commit. A
-  // second startTracking() before commit ejects this one (consumer abandoned
-  // the prior render; common under React strict-mode double-invoke).
-  let pendingCassette: { cassette: Cassette; eject: () => void } | null = null;
+  // One persistent Cassette for this wire — insert clears prior deps; eject is
+  // idempotent. `trackingEpoch` lets commit closures detect supersedure: a
+  // new startTracking() before commit (Strict Mode double-invoke, abandoned
+  // render) bumps the epoch, so the prior commit closure becomes a no-op.
+  const cassette = recorder.createCassette();
+  let trackingEpoch = 0;
 
   function clearCassetteSubs(): void {
     for (const unsub of cassetteUnsubs) unsub();
@@ -155,10 +160,7 @@ function createGateWire(
           unsubFromJm();
           unsubFromJm = null;
           clearCassetteSubs();
-          if (pendingCassette !== null) {
-            pendingCassette.eject();
-            pendingCassette = null;
-          }
+          cassette.eject();
           const vertexSlotsDisposed = junctureManager.disposeAllVertexSlotsByGenId(genId);
           busHost.bus?.emit({ type: "gateWire:jmUnsubscribed", genId, vertexSlotsDisposed });
         }
@@ -170,27 +172,24 @@ function createGateWire(
     // wire's cassette-notify path (subscribers fire, Promise identity busts,
     // no plugin re-resolve).
     startTracking: () => {
-      // A previous startTracking without commit (abandoned render) gets
-      // cleaned up here so we don't leak cassette handles into the recorder's
-      // active set.
-      if (pendingCassette !== null) {
-        pendingCassette.eject();
-      }
-      const handle = insertCassette();
-      pendingCassette = handle;
+      // insert() is idempotent: if a prior startTracking didn't commit
+      // (abandoned render under Strict Mode), insert() simply clears the stale
+      // deps. Bump the epoch so the stale commit closure detects supersedure.
+      cassette.insert();
+      trackingEpoch++;
+      const myEpoch = trackingEpoch;
       busHost.bus?.emit({ type: "gateWire:trackingStarted", genId });
       let committed = false;
       return () => {
         if (committed) return;
-        if (pendingCassette !== handle) {
+        if (myEpoch !== trackingEpoch) {
           // A newer startTracking superseded this one; do nothing.
           return;
         }
         committed = true;
-        pendingCassette = null;
-        handle.eject();
+        cassette.eject();
         clearCassetteSubs();
-        const deps = handle.cassette.getDeps();
+        const deps = cassette.getDeps();
         for (const dep of deps) {
           cassetteUnsubs.push(dep.subscribe(notifyFromCassette));
         }

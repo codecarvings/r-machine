@@ -1,30 +1,35 @@
 import { describe, expect, it, vi } from "vitest";
-import { insertCassette } from "../../../src/core/reactivity/cassette-recorder.js";
+import { createCassetteRecorder } from "../../../src/core/reactivity/cassette-recorder.js";
 import { createStateCell } from "../../../src/core/reactivity/state-cell.js";
 
 describe("createStateCell", () => {
   it("read() tracks the cell into the active cassette and returns current value", () => {
-    const cell = createStateCell({ count: 0 });
-    const handle = insertCassette();
+    const recorder = createCassetteRecorder();
+    const cell = createStateCell({ count: 0 }, recorder);
+    const cassette = recorder.createCassette();
+    cassette.insert();
     const value = cell.read();
-    handle.eject();
+    cassette.eject();
 
     expect(value).toEqual({ count: 0 });
-    expect(handle.cassette.getDeps()).toContain(cell);
+    expect(cassette.getDeps()).toContain(cell);
   });
 
   it("peek() returns current value without tracking", () => {
-    const cell = createStateCell({ count: 0 });
-    const handle = insertCassette();
+    const recorder = createCassetteRecorder();
+    const cell = createStateCell({ count: 0 }, recorder);
+    const cassette = recorder.createCassette();
+    cassette.insert();
     const value = cell.peek();
-    handle.eject();
+    cassette.eject();
 
     expect(value).toEqual({ count: 0 });
-    expect(handle.cassette.getDeps()).not.toContain(cell);
+    expect(cassette.getDeps()).not.toContain(cell);
   });
 
   it("publish() updates current and notifies subscribers", () => {
-    const cell = createStateCell({ count: 0 });
+    const recorder = createCassetteRecorder();
+    const cell = createStateCell({ count: 0 }, recorder);
     const sub = vi.fn();
     cell.subscribe(sub);
 
@@ -35,7 +40,8 @@ describe("createStateCell", () => {
   });
 
   it("subscribe() returns an unsubscribe that detaches the listener", () => {
-    const cell = createStateCell(0);
+    const recorder = createCassetteRecorder();
+    const cell = createStateCell(0, recorder);
     const sub = vi.fn();
     const unsub = cell.subscribe(sub);
     unsub();
@@ -45,7 +51,8 @@ describe("createStateCell", () => {
   });
 
   it("publish() notifies multiple subscribers in registration order", () => {
-    const cell = createStateCell(0);
+    const recorder = createCassetteRecorder();
+    const cell = createStateCell(0, recorder);
     const order: number[] = [];
     cell.subscribe(() => order.push(1));
     cell.subscribe(() => order.push(2));

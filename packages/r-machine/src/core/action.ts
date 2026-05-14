@@ -26,10 +26,7 @@ type BuiltinAtomic =
   | ArrayBuffer
   | ArrayBufferView;
 
-declare const atomicBrand: unique symbol;
-export type Atomic = { readonly [atomicBrand]?: undefined };
-
-type IsAtomic<T> = T extends BuiltinAtomic ? true : T extends Atomic ? true : false;
+type IsAtomic<T> = T extends BuiltinAtomic ? true : false;
 
 type DeepPartial<T> =
   IsAtomic<T> extends true

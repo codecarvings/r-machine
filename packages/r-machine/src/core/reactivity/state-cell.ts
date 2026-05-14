@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import { type ReadableCell, recordRead } from "./cassette-recorder.js";
+import type { CassetteRecorder, ReadableCell } from "./cassette-recorder.js";
 
 export interface StateCell<S> extends ReadableCell {
   read(): S;
@@ -19,13 +19,13 @@ export interface StateCell<S> extends ReadableCell {
   publish(next: S): void;
 }
 
-export function createStateCell<S>(initial: S): StateCell<S> {
+export function createStateCell<S>(initial: S, recorder: CassetteRecorder): StateCell<S> {
   let current = initial;
   const subscribers = new Set<() => void>();
 
   const cell: StateCell<S> = {
     read() {
-      recordRead(cell);
+      recorder.recordRead(cell);
       return current;
     },
     peek() {

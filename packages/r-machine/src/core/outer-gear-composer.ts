@@ -37,6 +37,7 @@ import {
 } from "./outer-gear-plug.js";
 import { getPlugOutline } from "./plug.js";
 import { makeAction } from "./reactivity/action-runtime.js";
+import type { CassetteRecorder } from "./reactivity/cassette-recorder.js";
 import { createMemoCell } from "./reactivity/memo-cell.js";
 import { createStateCell, type StateCell } from "./reactivity/state-cell.js";
 import type { AnyRes } from "./res.js";
@@ -353,10 +354,10 @@ interface PluginWithStateCell<S> {
 }
 
 /** @internal — exposed for testing */
-export function _buildStatelessGetterComposer(): StatelessGetterComposer {
+export function _buildStatelessGetterComposer(recorder: CassetteRecorder): StatelessGetterComposer {
   return ((...args: unknown[]): unknown => {
     if (args[0] === "memoized" && typeof args[1] === "function") {
-      const memo = createMemoCell(args[1] as () => unknown);
+      const memo = createMemoCell(args[1] as () => unknown, recorder);
       return (() => memo.read()) as Getter<unknown>;
     }
     if (typeof args[0] === "function") {
@@ -367,8 +368,11 @@ export function _buildStatelessGetterComposer(): StatelessGetterComposer {
 }
 
 /** @internal — exposed for testing the resolution wiring */
-export function _buildStatefulOuterGearCursor<S extends AnyState>(cell: StateCell<S>): StatefulOuterGearCursor<S> {
-  const stateless = _buildStatelessGetterComposer() as unknown as (...a: unknown[]) => unknown;
+export function _buildStatefulOuterGearCursor<S extends AnyState>(
+  cell: StateCell<S>,
+  recorder: CassetteRecorder
+): StatefulOuterGearCursor<S> {
+  const stateless = _buildStatelessGetterComposer(recorder) as unknown as (...a: unknown[]) => unknown;
   const getter = ((...args: unknown[]): unknown => {
     if (args.length === 0) {
       return (() => cell.read()) as Getter<unknown>;
@@ -378,7 +382,7 @@ export function _buildStatefulOuterGearCursor<S extends AnyState>(cell: StateCel
 
   const action = ((reducer?: (...a: unknown[]) => unknown) => {
     const r = reducer ?? ((partial: unknown) => partial);
-    return makeAction(cell, r as (...a: unknown[]) => unknown);
+    return makeAction(cell, r as (...a: unknown[]) => unknown, recorder);
   }) as unknown as ActionComposer<S>;
 
   return {
@@ -393,15 +397,17 @@ export function _buildStatefulOuterGearCursor<S extends AnyState>(cell: StateCel
   };
 }
 
-const statelessOuterGearCursor: StatelessOuterGearCursor = {
-  getter: _buildStatelessGetterComposer(),
-  relay: () => {
-    throw new Error("relay: not yet implemented");
-  },
-  cmd: () => {
-    throw new Error("cmd: not yet implemented");
-  },
-};
+function buildStatelessOuterGearCursor(recorder: CassetteRecorder): StatelessOuterGearCursor {
+  return {
+    getter: _buildStatelessGetterComposer(recorder),
+    relay: () => {
+      throw new Error("relay: not yet implemented");
+    },
+    cmd: () => {
+      throw new Error("cmd: not yet implemented");
+    },
+  };
+}
 
 const meta: GearMatrixMeta = { family: "gear", role: "outer" };
 
@@ -421,21 +427,27 @@ function statefulPostProcess<S extends AnyState>(raw: unknown, cursor: StatefulO
 }
 
 export function createOuterGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>>(
-  connector: ResComposerConnector
+  connector: ResComposerConnector,
+  recorder: CassetteRecorder
 ): OuterGearComposer<RA, KM> {
   const withDeps = ((...args: unknown[]) => {
     const mask = getPlugOutline<RA>(...args);
     if (mask.mode === "map") {
-      return createOuterGearMapComposer<RA, KM, any>(connector, mask.deps);
+      return createOuterGearMapComposer<RA, KM, any>(connector, recorder, mask.deps);
     }
-    return createOuterGearListComposer<RA, KM, any>(connector, mask.deps);
+    return createOuterGearListComposer<RA, KM, any>(connector, recorder, mask.deps);
   }) as OuterGearComposer<RA, KM>["withDeps"];
 
-  const withPorts = createInertOuterGearMapPortsConfigurator<RA, KM, {}>(connector, {} as OuterGearPlugDepMap<RA>);
+  const withPorts = createInertOuterGearMapPortsConfigurator<RA, KM, {}>(
+    connector,
+    recorder,
+    {} as OuterGearPlugDepMap<RA>
+  );
 
   const withState = (<S extends AnyState>(defaultState: S) => ({
     define: createStatefulOuterGearMapDefiner<RA, KM, {}, {}, S>(
       connector,
+      recorder,
       {} as HandleMap<RA>,
       emptyPorts,
       defaultState
@@ -444,6 +456,7 @@ export function createOuterGearComposer<RA extends AnyResAtlas, KM extends GearP
 
   const define = createStatelessOuterGearMapDefiner<RA, KM, {}, {}>(
     connector,
+    recorder,
     {} as OuterGearPlugDepMap<RA>,
     emptyPorts
   ) as unknown as InertOuterGearMapDefiner<RA, KM, {}, {}>;
@@ -455,11 +468,11 @@ function createOuterGearMapComposer<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends OuterGearPlugDepMap<RA>,
->(connector: ResComposerConnector, deps: DM): OuterGearMapComposer<RA, KM, DM> {
+>(connector: ResComposerConnector, recorder: CassetteRecorder, deps: DM): OuterGearMapComposer<RA, KM, DM> {
   return lazyGetters({
-    withPorts: () => createOuterGearMapPortsConfigurator<RA, KM, DM>(connector, deps),
-    withState: () => createOuterGearMapStateConfigurator<RA, KM, DM, {}>(connector, deps, emptyPorts),
-    define: () => createStatelessOuterGearMapDefiner<RA, KM, DM, {}>(connector, deps, emptyPorts),
+    withPorts: () => createOuterGearMapPortsConfigurator<RA, KM, DM>(connector, recorder, deps),
+    withState: () => createOuterGearMapStateConfigurator<RA, KM, DM, {}>(connector, recorder, deps, emptyPorts),
+    define: () => createStatelessOuterGearMapDefiner<RA, KM, DM, {}>(connector, recorder, deps, emptyPorts),
   });
 }
 
@@ -467,11 +480,11 @@ function createOuterGearListComposer<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends OuterGearPlugDepList<RA>,
->(connector: ResComposerConnector, deps: DL): OuterGearListComposer<RA, KM, DL> {
+>(connector: ResComposerConnector, recorder: CassetteRecorder, deps: DL): OuterGearListComposer<RA, KM, DL> {
   return lazyGetters({
-    withPorts: () => createOuterGearListPortsConfigurator<RA, KM, DL>(connector, deps),
-    withState: () => createOuterGearListStateConfigurator<RA, KM, DL, {}>(connector, deps, emptyPorts),
-    define: () => createStatelessOuterGearListDefiner<RA, KM, DL, {}>(connector, deps, emptyPorts),
+    withPorts: () => createOuterGearListPortsConfigurator<RA, KM, DL>(connector, recorder, deps),
+    withState: () => createOuterGearListStateConfigurator<RA, KM, DL, {}>(connector, recorder, deps, emptyPorts),
+    define: () => createStatelessOuterGearListDefiner<RA, KM, DL, {}>(connector, recorder, deps, emptyPorts),
   });
 }
 
@@ -479,11 +492,11 @@ function createOuterGearMapPortsConfigurator<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends OuterGearPlugDepMap<RA>,
->(connector: ResComposerConnector, deps: DM): OuterGearMapPortsConfigurator<RA, KM, DM> {
+>(connector: ResComposerConnector, recorder: CassetteRecorder, deps: DM): OuterGearMapPortsConfigurator<RA, KM, DM> {
   return (<PM extends BaseGearPlugPortMap>(ports: PM) =>
     lazyGetters({
-      withState: () => createOuterGearMapStateConfigurator<RA, KM, DM, PM>(connector, deps, ports),
-      define: () => createStatelessOuterGearMapDefiner<RA, KM, DM, PM>(connector, deps, ports),
+      withState: () => createOuterGearMapStateConfigurator<RA, KM, DM, PM>(connector, recorder, deps, ports),
+      define: () => createStatelessOuterGearMapDefiner<RA, KM, DM, PM>(connector, recorder, deps, ports),
     })) as OuterGearMapPortsConfigurator<RA, KM, DM>;
 }
 
@@ -491,11 +504,11 @@ function createOuterGearListPortsConfigurator<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DL extends OuterGearPlugDepList<RA>,
->(connector: ResComposerConnector, deps: DL): OuterGearListPortsConfigurator<RA, KM, DL> {
+>(connector: ResComposerConnector, recorder: CassetteRecorder, deps: DL): OuterGearListPortsConfigurator<RA, KM, DL> {
   return (<PM extends BaseGearPlugPortMap>(ports: PM) =>
     lazyGetters({
-      withState: () => createOuterGearListStateConfigurator<RA, KM, DL, PM>(connector, deps, ports),
-      define: () => createStatelessOuterGearListDefiner<RA, KM, DL, PM>(connector, deps, ports),
+      withState: () => createOuterGearListStateConfigurator<RA, KM, DL, PM>(connector, recorder, deps, ports),
+      define: () => createStatelessOuterGearListDefiner<RA, KM, DL, PM>(connector, recorder, deps, ports),
     })) as OuterGearListPortsConfigurator<RA, KM, DL>;
 }
 
@@ -503,13 +516,18 @@ function createInertOuterGearMapPortsConfigurator<
   RA extends AnyResAtlas,
   KM extends GearPlugKitMap<RA>,
   DM extends OuterGearPlugDepMap<RA>,
->(connector: ResComposerConnector, deps: DM): InertOuterGearMapPortsConfigurator<RA, KM, DM> {
+>(
+  connector: ResComposerConnector,
+  recorder: CassetteRecorder,
+  deps: DM
+): InertOuterGearMapPortsConfigurator<RA, KM, DM> {
   return (<PM extends BaseGearPlugPortMap>(ports: PM) =>
     lazyGetters({
-      withState: () => createOuterGearMapStateConfigurator<RA, KM, DM, PM>(connector, deps, ports),
+      withState: () => createOuterGearMapStateConfigurator<RA, KM, DM, PM>(connector, recorder, deps, ports),
       define: () =>
         createStatelessOuterGearMapDefiner<RA, KM, DM, PM>(
           connector,
+          recorder,
           deps,
           ports
         ) as unknown as InertOuterGearMapDefiner<RA, KM, DM, PM>,
@@ -521,9 +539,14 @@ function createOuterGearMapStateConfigurator<
   KM extends GearPlugKitMap<RA>,
   DM extends OuterGearPlugDepMap<RA>,
   PM extends BaseGearPlugPortMap,
->(connector: ResComposerConnector, deps: DM, ports: PM): OuterGearMapStateConfigurator<RA, KM, DM, PM> {
+>(
+  connector: ResComposerConnector,
+  recorder: CassetteRecorder,
+  deps: DM,
+  ports: PM
+): OuterGearMapStateConfigurator<RA, KM, DM, PM> {
   return (<S extends AnyState>(defaultState: S) => ({
-    define: createStatefulOuterGearMapDefiner<RA, KM, DM, PM, S>(connector, deps, ports, defaultState),
+    define: createStatefulOuterGearMapDefiner<RA, KM, DM, PM, S>(connector, recorder, deps, ports, defaultState),
   })) as OuterGearMapStateConfigurator<RA, KM, DM, PM>;
 }
 
@@ -532,9 +555,14 @@ function createOuterGearListStateConfigurator<
   KM extends GearPlugKitMap<RA>,
   DL extends OuterGearPlugDepList<RA>,
   PM extends BaseGearPlugPortMap,
->(connector: ResComposerConnector, deps: DL, ports: PM): OuterGearListStateConfigurator<RA, KM, DL, PM> {
+>(
+  connector: ResComposerConnector,
+  recorder: CassetteRecorder,
+  deps: DL,
+  ports: PM
+): OuterGearListStateConfigurator<RA, KM, DL, PM> {
   return (<S extends AnyState>(defaultState: S) => ({
-    define: createStatefulOuterGearListDefiner<RA, KM, DL, PM, S>(connector, deps, ports, defaultState),
+    define: createStatefulOuterGearListDefiner<RA, KM, DL, PM, S>(connector, recorder, deps, ports, defaultState),
   })) as OuterGearListStateConfigurator<RA, KM, DL, PM>;
 }
 
@@ -546,6 +574,7 @@ function createStatefulOuterGearMapDefiner<
   S extends AnyState,
 >(
   connector: ResComposerConnector,
+  recorder: CassetteRecorder,
   deps: DM,
   ports: PM,
   defaultState: S
@@ -553,6 +582,7 @@ function createStatefulOuterGearMapDefiner<
   return ((factory: (plugin: never, cursor: never) => unknown) =>
     buildStatefulOuterGearMapMatrix<RA, KM, DM, PM, S>(
       connector,
+      recorder,
       deps,
       ports,
       defaultState,
@@ -568,6 +598,7 @@ function buildStatefulOuterGearMapMatrix<
   S extends AnyState,
 >(
   connector: ResComposerConnector,
+  recorder: CassetteRecorder,
   deps: DM,
   ports: PM,
   defaultState: S,
@@ -584,10 +615,10 @@ function buildStatefulOuterGearMapMatrix<
     meta,
     head,
     cursor: (plugin: unknown) =>
-      _buildStatefulOuterGearCursor<S>((plugin as { $: PluginWithStateCell<S> }).$[_stateCellSlot]),
+      _buildStatefulOuterGearCursor<S>((plugin as { $: PluginWithStateCell<S> }).$[_stateCellSlot], recorder),
     userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
     augmentCtx: ($) => {
-      const cell = createStateCell(defaultState);
+      const cell = createStateCell(defaultState, recorder);
       ($ as unknown as { [_stateCellSlot]: StateCell<S> })[_stateCellSlot] = cell;
       Object.defineProperty($, "state", {
         get: () => cell.read(),
@@ -601,7 +632,7 @@ function buildStatefulOuterGearMapMatrix<
   const clone = (overrides?: StatefulCloneOverrides<PM, S>) => {
     const nextPorts = overrides?.ports !== undefined ? ({ ...ports, ...overrides.ports } as PM) : ports;
     const nextState = overrides?.defaultState !== undefined ? overrides.defaultState : defaultState;
-    return buildStatefulOuterGearMapMatrix<RA, KM, DM, PM, S>(connector, deps, nextPorts, nextState, factory);
+    return buildStatefulOuterGearMapMatrix<RA, KM, DM, PM, S>(connector, recorder, deps, nextPorts, nextState, factory);
   };
 
   return { ...matrix, clone } as unknown as StatefulOuterGearResMatrix<
@@ -618,10 +649,17 @@ function createStatefulOuterGearListDefiner<
   DL extends OuterGearPlugDepList<RA>,
   PM extends BaseGearPlugPortMap,
   S extends AnyState,
->(connector: ResComposerConnector, deps: DL, ports: PM, state: S): StatefulOuterGearListDefiner<RA, KM, DL, PM, S> {
+>(
+  connector: ResComposerConnector,
+  recorder: CassetteRecorder,
+  deps: DL,
+  ports: PM,
+  state: S
+): StatefulOuterGearListDefiner<RA, KM, DL, PM, S> {
   return ((factory: (plugin: never, cursor: never) => unknown) =>
     buildStatefulOuterGearListMatrix<RA, KM, DL, PM, S>(
       connector,
+      recorder,
       deps,
       ports,
       state,
@@ -637,6 +675,7 @@ function buildStatefulOuterGearListMatrix<
   S extends AnyState,
 >(
   connector: ResComposerConnector,
+  recorder: CassetteRecorder,
   deps: DL,
   ports: PM,
   defaultState: S,
@@ -653,10 +692,10 @@ function buildStatefulOuterGearListMatrix<
     meta,
     head,
     cursor: (plugin: unknown) =>
-      _buildStatefulOuterGearCursor<S>((plugin as { $: PluginWithStateCell<S> }).$[_stateCellSlot]),
+      _buildStatefulOuterGearCursor<S>((plugin as { $: PluginWithStateCell<S> }).$[_stateCellSlot], recorder),
     userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
     augmentCtx: ($) => {
-      const cell = createStateCell(defaultState);
+      const cell = createStateCell(defaultState, recorder);
       ($ as unknown as { [_stateCellSlot]: StateCell<S> })[_stateCellSlot] = cell;
       Object.defineProperty($, "state", {
         get: () => cell.read(),
@@ -670,7 +709,14 @@ function buildStatefulOuterGearListMatrix<
   const clone = (overrides?: StatefulCloneOverrides<PM, S>) => {
     const nextPorts = overrides?.ports !== undefined ? ({ ...ports, ...overrides.ports } as PM) : ports;
     const nextState = overrides?.defaultState !== undefined ? overrides.defaultState : defaultState;
-    return buildStatefulOuterGearListMatrix<RA, KM, DL, PM, S>(connector, deps, nextPorts, nextState, factory);
+    return buildStatefulOuterGearListMatrix<RA, KM, DL, PM, S>(
+      connector,
+      recorder,
+      deps,
+      nextPorts,
+      nextState,
+      factory
+    );
   };
 
   return { ...matrix, clone } as unknown as StatefulOuterGearResMatrix<
@@ -686,7 +732,12 @@ function createStatelessOuterGearMapDefiner<
   KM extends GearPlugKitMap<RA>,
   DM extends OuterGearPlugDepMap<RA>,
   PM extends BaseGearPlugPortMap,
->(connector: ResComposerConnector, deps: DM, ports: PM): StatelessOuterGearMapDefiner<RA, KM, DM, PM> {
+>(
+  connector: ResComposerConnector,
+  recorder: CassetteRecorder,
+  deps: DM,
+  ports: PM
+): StatelessOuterGearMapDefiner<RA, KM, DM, PM> {
   const head = createGearMapPlugHead<"outer", RA, KM, DM, PM, GearPluginCtx<RA, KM, PM>>("outer", deps, ports);
 
   return (factory: (plugin: never, cursor: never) => unknown) =>
@@ -694,7 +745,7 @@ function createStatelessOuterGearMapDefiner<
       connector: connector,
       meta,
       head,
-      cursor: statelessOuterGearCursor,
+      cursor: buildStatelessOuterGearCursor(recorder),
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
     });
 }
@@ -704,7 +755,12 @@ function createStatelessOuterGearListDefiner<
   KM extends GearPlugKitMap<RA>,
   DL extends OuterGearPlugDepList<RA>,
   PM extends BaseGearPlugPortMap,
->(connector: ResComposerConnector, deps: DL, ports: PM): StatelessOuterGearListDefiner<RA, KM, DL, PM> {
+>(
+  connector: ResComposerConnector,
+  recorder: CassetteRecorder,
+  deps: DL,
+  ports: PM
+): StatelessOuterGearListDefiner<RA, KM, DL, PM> {
   const head = createGearListPlugHead<"outer", RA, KM, DL, PM, GearPluginCtx<RA, KM, PM>>("outer", deps, ports);
 
   return ((factory: (plugin: never, cursor: never) => unknown) =>
@@ -712,7 +768,7 @@ function createStatelessOuterGearListDefiner<
       connector: connector,
       meta,
       head,
-      cursor: statelessOuterGearCursor,
+      cursor: buildStatelessOuterGearCursor(recorder),
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
     })) as StatelessOuterGearListDefiner<RA, KM, DL, PM>;
 }

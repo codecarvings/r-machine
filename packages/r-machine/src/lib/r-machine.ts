@@ -21,7 +21,9 @@ import {
   BlueprintManager,
   BUS_ACCESSOR,
   type BusHost,
+  type CassetteRecorder,
   createBaseGearComposer,
+  createCassetteRecorder,
   createEventBus,
   createInnerGearComposer,
   createOuterGearComposer,
@@ -80,7 +82,8 @@ export class RMachine<
       blueprintManager,
       this.busHost
     );
-    this.gateWireManager = new GateWireManager(this.junctureManager, this.busHost);
+    this.cassetteRecorder = createCassetteRecorder();
+    this.gateWireManager = new GateWireManager(this.junctureManager, this.busHost, this.cassetteRecorder);
 
     // this.warnExperimental();
   }
@@ -98,6 +101,7 @@ export class RMachine<
   protected readonly config: RMachineConfig<RA, L, E, EF>;
   protected readonly junctureManager: JunctureManager;
   protected readonly gateWireManager: GateWireManager;
+  protected readonly cassetteRecorder!: CassetteRecorder;
 
   // Lazy: undefined until the first DevTools/test consumer attaches via
   // BUS_ACCESSOR. While undefined, manager call-sites `this.busHost.bus?.emit(...)`
@@ -143,7 +147,10 @@ export class RMachine<
     );
     const OuterGear =
       this.config.experimental.outerGear === "on"
-        ? createOuterGearComposer<RA, E["gearKit"]>(this.createResComposerConnector(this.config.equipment.gearKit))
+        ? createOuterGearComposer<RA, E["gearKit"]>(
+            this.createResComposerConnector(this.config.equipment.gearKit),
+            this.cassetteRecorder
+          )
         : undefined!;
     const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(
       this.createResComposerConnector(this.config.equipment.shellKit)
