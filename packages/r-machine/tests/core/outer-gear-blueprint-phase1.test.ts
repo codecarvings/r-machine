@@ -87,6 +87,30 @@ function makeStatefulOuterGearModule<S>(
   };
 }
 
+// List-deps variant. Plugin shape under JM is `[...deps, $]` — the cursor
+// factory must read `$` from the array's tail, not from `plugin.$` (which is
+// undefined on arrays). This module shape exists specifically to exercise that
+// path; a regression on the list cursor would surface here.
+function makeStatefulOuterGearListModule<S>(
+  depNs: readonly AnyNamespace[],
+  defaultState: S,
+  factory: (plugin: ReadonlyArray<unknown>, cursor: any) => unknown
+) {
+  return (jm: JunctureManager, recorder: CassetteRecorder): AnyResModule => {
+    const connector: ResComposerConnector = {
+      getWire: async (nsDeps, locale, augmentCtx, chain) => {
+        const plugin = await jm.getPlugin({}, nsDeps, locale, augmentCtx, chain, 0, undefined);
+        return { plugin };
+      },
+    };
+    const composer = createOuterGearComposer<any, any>(connector, recorder);
+    const matrix = (composer.withDeps as unknown as (...d: AnyNamespace[]) => any)(...depNs)
+      .withState(defaultState)
+      .define(factory as never);
+    return { r: matrix as unknown as AnyRes };
+  };
+}
+
 // --- tests -------------------------------------------------------------------
 
 describe("OuterGear stateful — full blueprint stack", () => {
@@ -226,6 +250,35 @@ describe("OuterGear stateful — full blueprint stack", () => {
     resource.setItems([{ price: 5 }, { price: 5 }]);
     expect(notify).toHaveBeenCalledTimes(1);
     expect(resource.subtotal).toBe(10);
+  });
+
+  it("withDeps(list) + withState — plugin shape `[...deps, $]` resolves the state cell from the array tail", async () => {
+    const { jmInternal } = buildEnv({
+      "g/session": makeStatefulOuterGearModule({ id: "abc" }, (plugin, cursor) => ({
+        getId: cursor.getter(() => plugin.$.state.id),
+      })),
+      "g/timer": makeStatefulOuterGearListModule(
+        ["g/session" as AnyNamespace],
+        0,
+        ([session, $]: any, cursor: any) => ({
+          tick: cursor.getter(),
+          label: cursor.getter(() => `${session.getId}:${$.state}`),
+          inc: cursor.action(() => $.state + 1),
+        })
+      ),
+    });
+
+    const resource = (await resolveResource(jmInternal, "g/timer" as AnyNamespace)) as {
+      tick: number;
+      label: string;
+      inc: () => unknown;
+    };
+
+    expect(resource.tick).toBe(0);
+    expect(resource.label).toBe("abc:0");
+    resource.inc();
+    expect(resource.tick).toBe(1);
+    expect(resource.label).toBe("abc:1");
   });
 
   it("action with a no-op partial does not change state and a memoized getter still returns the same value", async () => {

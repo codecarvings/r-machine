@@ -692,8 +692,11 @@ function buildStatefulOuterGearListMatrix<
     connector,
     meta,
     head,
-    cursor: (plugin: unknown) =>
-      _buildStatefulOuterGearCursor<S>((plugin as { $: PluginWithStateCell<S> }).$[_stateCellSlot], recorder),
+    cursor: (plugin: unknown) => {
+      const arr = plugin as ReadonlyArray<unknown>;
+      const ctx = arr[arr.length - 1] as PluginWithStateCell<S>;
+      return _buildStatefulOuterGearCursor<S>(ctx[_stateCellSlot], recorder);
+    },
     userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
     augmentCtx: ($) => {
       const cell = createStateCell(defaultState, recorder);
