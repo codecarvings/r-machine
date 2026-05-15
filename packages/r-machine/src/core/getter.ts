@@ -13,11 +13,19 @@
 
 import type { AnyState } from "./outer-gear.js";
 
-declare const getterBrand: unique symbol;
+const getterBrand: unique symbol = Symbol("getter");
 export interface GetterBrand {
   readonly [getterBrand]: true;
 }
-export type Getter<V> = V & GetterBrand;
+export type Getter<V> = (() => V) & GetterBrand;
+
+export function isGetter(v: unknown): v is Getter<unknown> {
+  return typeof v === "function" && getterBrand in v;
+}
+
+export function createGetter<V>(read: () => V): Getter<V> {
+  return Object.defineProperty(read, getterBrand, { value: true }) as Getter<V>;
+}
 
 export interface StatelessGetterComposer {
   <V>(getter: () => V): Getter<V>;
@@ -29,20 +37,3 @@ export interface GetterComposer<S extends AnyState> extends StatelessGetterCompo
 }
 
 export type DefaultGetter<S extends AnyState> = Getter<S>;
-
-// Runtime marker carried on the spec object returned by the composer. The surface
-// materializer (juncture.ts:buildSurface) detects this slot and installs the kit
-// entry as a JS accessor (Object.defineProperty get) instead of a plain value, so
-// consumers read state with property syntax (`surface.value`) and the cassette
-// recorder sees the underlying cell read on every access.
-export const getterReadSlot: unique symbol = Symbol("r-machine.getterRead");
-export interface GetterDef {
-  readonly [getterReadSlot]: () => unknown;
-}
-export function isGetterDef(v: unknown): v is GetterDef {
-  return typeof v === "object" && v !== null && getterReadSlot in v;
-}
-
-export function createGetterDef(read: () => unknown): GetterDef {
-  return { [getterReadSlot]: read };
-}

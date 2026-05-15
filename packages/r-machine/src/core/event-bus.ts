@@ -166,7 +166,7 @@ export interface BusHost {
 // retrieve a guaranteed-non-null bus (created on first call). Not part
 // of the package's typed public API surface.
 
-export const BUS_ACCESSOR: unique symbol = Symbol("rMachine.bus.accessor");
+export const BUS_ACCESSOR: unique symbol = Symbol("busAccessor");
 
 // ─── BusBridge ──────────────────────────────────────────────────────────
 // Structural interface for anything that exposes the bus accessor.

@@ -37,11 +37,19 @@ type DeepPartial<T> =
         ? { [K in keyof T]?: DeepPartial<T[K]> }
         : T;
 
-declare const actionBrand: unique symbol;
+const actionBrand: unique symbol = Symbol("action");
 export interface ActionBrand {
   readonly [actionBrand]: true;
 }
 export type Action<F extends (...args: any[]) => any> = F & ActionBrand;
+
+export function isAction(v: unknown): v is Action<(...args: any[]) => any> {
+  return typeof v === "function" && actionBrand in v;
+}
+
+export function createAction<F extends (...args: any[]) => any>(fn: F): Action<F> {
+  return Object.defineProperty(fn, actionBrand, { value: true }) as Action<F>;
+}
 
 export interface ActionComposer<S extends AnyState> {
   (): Action<(partialState: DeepPartial<S>) => S>;

@@ -11,7 +11,8 @@
  * contact: licensing@codecarvings.com
  */
 
-import { getterReadSlot, isGetterDef } from "./getter.js";
+import { isGetter } from "./getter.js";
+import { isRelay } from "./relay.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResolvedNamespaceMap } from "./res-map.js";
 import type { AnySurface } from "./surface.js";
@@ -39,18 +40,18 @@ export function getCurrentSurface(juncture: Juncture): AnySurface {
   return juncture.kind === "outer" ? juncture.current : juncture.surface;
 }
 
-// TODO: brand-aware handling for Action (suspend+swap+notify) and Relay
-// (excluded). Getter specs are already materialized as JS accessors below.
 function buildSurface(res: AnyRes, vertexTag: VertexGearTagData | undefined): AnySurface {
   const surface = Object.create(null) as AnyResolvedNamespaceMap;
   for (const key of Object.keys(res)) {
     if (key.startsWith("$")) continue;
     const entry = (res as AnyResolvedNamespaceMap)[key];
-    if (isGetterDef(entry)) {
+    // Relay items are wiring, not consumer-facing values — excluded from the surface.
+    if (isRelay(entry)) continue;
+    if (isGetter(entry)) {
       Object.defineProperty(surface, key, {
         enumerable: true,
         configurable: false,
-        get: entry[getterReadSlot],
+        get: entry,
       });
     } else {
       Object.defineProperty(surface, key, {

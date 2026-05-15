@@ -21,10 +21,18 @@ interface RelayConfig<T> {
   readonly onChange: (current: T, prev: T) => RelayOnChangeResult | Promise<RelayOnChangeResult>;
 }
 
-declare const relayBrand: unique symbol;
+const relayBrand: unique symbol = Symbol("relay");
 export interface RelayBrand {
   readonly [relayBrand]: true;
 }
-interface Relay<T> extends RelayConfig<T>, RelayBrand {}
+export interface Relay<T> extends RelayConfig<T>, RelayBrand {}
+
+export function isRelay(v: unknown): v is Relay<unknown> {
+  return typeof v === "object" && v !== null && relayBrand in v;
+}
+
+export function createRelay<T>(config: RelayConfig<T>): Relay<T> {
+  return Object.defineProperty({ ...config }, relayBrand, { value: true }) as Relay<T>;
+}
 
 export type RelayComposer = <T>(config: RelayConfig<T>) => Relay<T>;

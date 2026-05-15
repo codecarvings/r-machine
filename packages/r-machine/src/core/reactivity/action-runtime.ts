@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import { type Action, createAction } from "../action.js";
 import type { CassetteRecorder } from "./cassette-recorder.js";
 import { deepPartialMerge } from "./deep-partial-merge.js";
 import type { StateCell } from "./state-cell.js";
@@ -19,8 +20,8 @@ export function makeAction<S, A extends unknown[]>(
   cell: StateCell<S>,
   reducer: (...args: A) => unknown,
   recorder: CassetteRecorder
-): (...args: A) => S {
-  return (...args: A): S => {
+): Action<(...args: A) => S> {
+  return createAction((...args: A): S => {
     const raw = recorder.withSilentZone(() => reducer(...args));
     const prev = cell.peek();
     if (raw === prev) {
@@ -32,5 +33,5 @@ export function makeAction<S, A extends unknown[]>(
     }
     cell.publish(merged);
     return merged;
-  };
+  });
 }

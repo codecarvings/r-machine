@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getterReadSlot } from "../../src/core/getter.js";
+import { type Getter, isGetter } from "../../src/core/getter.js";
 import { buildKernelJuncture } from "../../src/core/juncture.js";
 import { _buildStatelessGetterComposer } from "../../src/core/outer-gear-composer.js";
 import { createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
@@ -16,12 +16,6 @@ async function resolve(matrix: { factory: () => Promise<unknown> }): Promise<unk
   return buildKernelJuncture(raw as AnyRes, undefined).surface;
 }
 
-// Direct-read helper for unit tests that exercise the composer at the spec layer
-// (i.e. before surface materialization installs the JS accessor).
-function readSpec(spec: unknown): unknown {
-  return (spec as { [getterReadSlot]: () => unknown })[getterReadSlot]();
-}
-
 function makeConnector(): ResComposerConnector {
   return {
     getWire: async (_nsDeps: unknown, _locale: unknown, buildCtx: (ctx: unknown) => void, _chain: unknown) => {
@@ -35,24 +29,28 @@ function makeConnector(): ResComposerConnector {
 // --- unit tests on the stateless getter composer -----------------------------
 
 describe("_buildStatelessGetterComposer", () => {
-  it("getter(body) returns a GetterDef whose [getterReadSlot] reads through the body", () => {
+  it("getter(body) returns a branded callable Getter that reads through the body", () => {
     const recorder = createCassetteRecorder();
     const composer = _buildStatelessGetterComposer(recorder);
-    const body = () => 42;
+    const body = vi.fn(() => 42);
     const g = composer(body);
-    expect(readSpec(g)).toBe(42);
-    // The spec's read slot points at the original body (no memoization wrapping).
-    expect((g as unknown as { [getterReadSlot]: () => unknown })[getterReadSlot]).toBe(body);
+
+    expect(isGetter(g)).toBe(true);
+    expect((g as Getter<number>)()).toBe(42);
+    // No memoization: each invocation goes through to the body.
+    expect((g as Getter<number>)()).toBe(42);
+    expect(body).toHaveBeenCalledTimes(2);
   });
 
-  it("getter('memoized', body) returns a GetterDef backed by a MemoCell", () => {
+  it("getter('memoized', body) returns a Getter backed by a MemoCell", () => {
     const recorder = createCassetteRecorder();
     const composer = _buildStatelessGetterComposer(recorder);
     const body = vi.fn(() => 7);
-    const g = composer("memoized", body);
+    const g = composer("memoized", body) as Getter<number>;
 
-    expect(readSpec(g)).toBe(7);
-    expect(readSpec(g)).toBe(7);
+    expect(isGetter(g)).toBe(true);
+    expect(g()).toBe(7);
+    expect(g()).toBe(7);
     // Cache hit on the second read — body invoked exactly once.
     expect(body).toHaveBeenCalledTimes(1);
   });
@@ -61,14 +59,14 @@ describe("_buildStatelessGetterComposer", () => {
     const recorder = createCassetteRecorder();
     const composer = _buildStatelessGetterComposer(recorder);
     const upstream = createStateCell({ v: 1 }, recorder);
-    const g = composer("memoized", () => upstream.read().v * 10);
+    const g = composer("memoized", () => upstream.read().v * 10) as Getter<number>;
 
     // Prime so the next read is a cache hit.
-    readSpec(g);
+    g();
 
     const outer = recorder.createCassette();
     outer.insert();
-    readSpec(g);
+    g();
     outer.eject();
 
     // Cache hit registers the memo cell only (not the upstream cell).

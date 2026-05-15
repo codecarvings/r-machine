@@ -15,7 +15,7 @@ import type { ActionComposer, DefaultAction } from "./action.js";
 import type { BaseGearPlugPortMap } from "./base-gear-plug.js";
 import { lazyGetters } from "./composer-utils.js";
 import { createGearListPlugHead, createGearMapPlugHead, type GearPluginCtx, type GearPlugKitMap } from "./gear-plug.js";
-import { createGetterDef, type DefaultGetter, type GetterComposer, type StatelessGetterComposer } from "./getter.js";
+import { createGetter, type DefaultGetter, type GetterComposer, type StatelessGetterComposer } from "./getter.js";
 import type { AnyOuterGear, AnyState, RejectAsyncValueProps } from "./outer-gear.js";
 import {
   createStatefulOuterGearListPlugHead,
@@ -347,7 +347,7 @@ type StatelessOuterGearListDefiner<
 // #region Runtime
 
 /** @internal — exposed for testing the resolution wiring */
-export const _stateCellSlot = Symbol("r-machine.stateCell");
+export const _stateCellSlot = Symbol("stateCell");
 
 interface PluginWithStateCell<S> {
   readonly [_stateCellSlot]: StateCell<S>;
@@ -358,10 +358,11 @@ export function _buildStatelessGetterComposer(recorder: CassetteRecorder): State
   return ((...args: unknown[]): unknown => {
     if (args[0] === "memoized" && typeof args[1] === "function") {
       const memo = createMemoCell(args[1] as () => unknown, recorder);
-      return createGetterDef(() => memo.read());
+      return createGetter(() => memo.read());
     }
     if (typeof args[0] === "function") {
-      return createGetterDef(args[0] as () => unknown);
+      const fn = args[0] as () => unknown;
+      return createGetter(() => fn());
     }
     throw new Error("cursor.getter: invalid arguments");
   }) as unknown as StatelessGetterComposer;
@@ -375,7 +376,7 @@ export function _buildStatefulOuterGearCursor<S extends AnyState>(
   const stateless = _buildStatelessGetterComposer(recorder) as unknown as (...a: unknown[]) => unknown;
   const getter = ((...args: unknown[]): unknown => {
     if (args.length === 0) {
-      return createGetterDef(() => cell.read());
+      return createGetter(() => cell.read());
     }
     return stateless(...args);
   }) as unknown as GetterComposer<S>;

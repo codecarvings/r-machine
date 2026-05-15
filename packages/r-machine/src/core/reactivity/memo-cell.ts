@@ -31,19 +31,19 @@ export function createMemoCell<V>(
   let recomputing = false;
   // Persistent private cassette for capturing the body's reads on each
   // recompute. `insert()` clears prior deps; `eject()` is idempotent.
-  const privateCassette = recorder.createCassette();
+  const cassette = recorder.createCassette();
 
   function recompute(): void {
-    privateCassette.insert();
+    cassette.insert();
     let next: V;
     try {
       next = body();
     } finally {
-      privateCassette.eject();
+      cassette.eject();
     }
     for (const unsub of depUnsubs) unsub();
     depUnsubs = [];
-    for (const dep of privateCassette.getDeps()) {
+    for (const dep of cassette.getDeps()) {
       depUnsubs.push(dep.subscribe(invalidate));
     }
     value = next;
