@@ -33,7 +33,7 @@ import { createPlug, getNamespaceList, getNamespaceMap, getPlugOutline } from "r
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
-import { createContext, use, useContext, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { createContext, use, useContext, useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from "react";
 import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "../errors/error-codes.js";
 import type { ReactPlugDefiner, ReactPlugKitMap } from "./react-plug.js";
 import { useVertexFrame, VertexFrame } from "./vertex-frame.js";
@@ -200,11 +200,25 @@ export async function createReactBareToolset<
       sharedWriteLocaleRef.current = safeCtx.writeLocale;
       const wire = getOrCreateWire(safeCtx.locale, vertexGearMap);
 
+      // Local re-render channel for cassette-tracked dep changes. Kept
+      // SEPARATE from useSyncExternalStore (which is the JM-driven re-resolve
+      // channel and busts the plugin Promise identity) so cassette mutations
+      // do not force a Suspense throw + retry of the consumer's subtree on
+      // every state change.
+      const [, forceRerender] = useReducer((c: boolean) => !c, false);
+      const forceRerenderRef = useRef<() => void>(forceRerender);
+      forceRerenderRef.current = forceRerender;
+
       // Open the wire's tracking cassette synchronously on every render. The
       // cassette's `insert()` is idempotent under the recorder model: a
       // re-render, a React Strict Mode double-invoke, or a Suspense retry
-      // simply clears the prior deps.
-      const commit = wire.startTracking();
+      // simply clears the prior deps. The notify callback is read indirectly
+      // through a ref so the wire's stored cassette subscriptions always
+      // point at the latest setState dispatch (which is stable per mount
+      // but safer behind a ref).
+      const commit = wire.startTracking(() => {
+        forceRerenderRef.current();
+      });
 
       // Stash the latest commit fn so the post-commit effect (below) fires
       // exactly the closure of the render that actually committed. Earlier

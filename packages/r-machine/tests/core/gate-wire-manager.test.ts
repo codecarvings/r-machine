@@ -368,26 +368,25 @@ describe("GateWireManager — genId allocation", () => {
   });
 });
 
-describe("GateWireManager — commit-tracking (cassette → wire wiring)", () => {
-  it("after commit, a tracked dep mutation notifies the wire's subscribers", () => {
+describe("GateWireManager — commit-tracking (cassette → consumer-notify channel)", () => {
+  it("after commit, a tracked dep mutation fires the consumer-supplied notify", () => {
     const mock = createMockJm();
     const recorder = createCassetteRecorder();
     const gwm = new GateWireManager(mock.jm, { bus: undefined }, recorder);
     const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
-    const cb = vi.fn();
-    wire.subscribe(cb);
+    const notify = vi.fn();
 
     const cell = createStateCell({ v: 0 }, recorder);
-    const commit = wire.startTracking();
+    const commit = wire.startTracking(notify);
     cell.read(); // captured by the open cassette
     commit();
 
-    expect(cb).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
     cell.publish({ v: 1 });
-    expect(cb).toHaveBeenCalledTimes(1);
+    expect(notify).toHaveBeenCalledTimes(1);
   });
 
-  it("cassette-driven notify busts getPluginPromise identity WITHOUT triggering a re-resolve", async () => {
+  it("cassette-driven notify does NOT bust getPluginPromise identity (no Suspense churn)", async () => {
     const mock = createMockJm();
     const recorder = createCassetteRecorder();
     const gwm = new GateWireManager(mock.jm, { bus: undefined }, recorder);
@@ -396,25 +395,40 @@ describe("GateWireManager — commit-tracking (cassette → wire wiring)", () =>
 
     const p1 = wire.getPluginPromise();
     expect(mock.getPluginCalls).toHaveLength(1);
-    const plugin1 = await p1;
 
     const cell = createStateCell({ v: 0 }, recorder);
-    const commit = wire.startTracking();
+    const commit = wire.startTracking(() => {});
     cell.read();
     commit();
 
     cell.publish({ v: 1 });
 
-    // No re-resolve: JM.getPlugin was not called again.
+    // No re-resolve and no Promise identity churn: the Promise is the JM
+    // resolution channel only. Cassette deps notify the consumer directly.
     expect(mock.getPluginCalls).toHaveLength(1);
-
-    // But the Promise identity is fresh (so useSyncExternalStore sees a change).
     const p2 = wire.getPluginPromise();
-    expect(p2).not.toBe(p1);
+    expect(p2).toBe(p1);
+  });
 
-    // And the new Promise resolves to the same underlying plugin (no work redone).
-    const plugin2 = await p2;
-    expect(plugin2).toBe(plugin1);
+  it("the wire's `subscribe` channel does NOT fire on cassette-tracked mutations", () => {
+    const mock = createMockJm();
+    const recorder = createCassetteRecorder();
+    const gwm = new GateWireManager(mock.jm, { bus: undefined }, recorder);
+    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const wireSub = vi.fn();
+    wire.subscribe(wireSub);
+
+    const cell = createStateCell({ v: 0 }, recorder);
+    const commit = wire.startTracking(() => {});
+    cell.read();
+    commit();
+
+    cell.publish({ v: 1 });
+
+    // wire.subscribers is the JM-driven channel only. Cassette mutations do
+    // NOT flow through it. (A JM-side notify or updateRequest is what fires
+    // wire subscribers — see the α tests above.)
+    expect(wireSub).not.toHaveBeenCalled();
   });
 
   it("re-commit replaces prior cassette subscriptions: stale deps no longer notify", () => {
@@ -422,59 +436,58 @@ describe("GateWireManager — commit-tracking (cassette → wire wiring)", () =>
     const recorder = createCassetteRecorder();
     const gwm = new GateWireManager(mock.jm, { bus: undefined }, recorder);
     const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
-    const cb = vi.fn();
-    wire.subscribe(cb);
+    const notify = vi.fn();
 
     const oldCell = createStateCell({ v: 0 }, recorder);
     const newCell = createStateCell({ v: 0 }, recorder);
 
     // First tracking pass: reads oldCell.
-    const commit1 = wire.startTracking();
+    const commit1 = wire.startTracking(notify);
     oldCell.read();
     commit1();
-    cb.mockClear();
+    notify.mockClear();
 
     // Second tracking pass: reads newCell only.
-    const commit2 = wire.startTracking();
+    const commit2 = wire.startTracking(notify);
     newCell.read();
     commit2();
 
     oldCell.publish({ v: 99 });
-    expect(cb).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
 
     newCell.publish({ v: 99 });
-    expect(cb).toHaveBeenCalledTimes(1);
+    expect(notify).toHaveBeenCalledTimes(1);
   });
 
-  it("abandoned tracking (startTracking without commit) is ejected when a new startTracking begins", () => {
+  it("abandoned tracking (startTracking without commit) is superseded by a new startTracking", () => {
     const mock = createMockJm();
     const recorder = createCassetteRecorder();
     const gwm = new GateWireManager(mock.jm, { bus: undefined }, recorder);
     const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
-    const cb = vi.fn();
-    wire.subscribe(cb);
+    const notify = vi.fn();
 
     const ghost = createStateCell({ v: 0 }, recorder);
     const real = createStateCell({ v: 0 }, recorder);
 
     // First startTracking that never commits (abandoned by the consumer).
-    wire.startTracking();
+    wire.startTracking(notify);
     ghost.read();
 
-    // Second startTracking takes over. The first cassette must have been
-    // ejected, so reads inside it stop landing in any active cassette.
-    const commit2 = wire.startTracking();
+    // Second startTracking takes over. insert() on the persistent cassette
+    // clears the ghost deps; trackingEpoch bumps, making the first commit
+    // closure a no-op even if it were to fire.
+    const commit2 = wire.startTracking(notify);
     real.read();
     commit2();
 
     // Only `real` (recorded by the committed second cassette) notifies.
     real.publish({ v: 1 });
-    expect(cb).toHaveBeenCalledTimes(1);
-    cb.mockClear();
+    expect(notify).toHaveBeenCalledTimes(1);
+    notify.mockClear();
 
     // `ghost` reads were never committed; mutating it must not notify.
     ghost.publish({ v: 1 });
-    expect(cb).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
   });
 
   it("calling the commit fn twice is idempotent (second call is a no-op)", () => {
@@ -482,36 +495,39 @@ describe("GateWireManager — commit-tracking (cassette → wire wiring)", () =>
     const recorder = createCassetteRecorder();
     const gwm = new GateWireManager(mock.jm, { bus: undefined }, recorder);
     const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
-    const cb = vi.fn();
-    wire.subscribe(cb);
+    const notify = vi.fn();
 
     const cell = createStateCell({ v: 0 }, recorder);
-    const commit = wire.startTracking();
+    const commit = wire.startTracking(notify);
     cell.read();
     commit();
     commit(); // second call should be a no-op
 
     cell.publish({ v: 1 });
-    // Single subscription: exactly one notification on the wire's subscriber.
-    expect(cb).toHaveBeenCalledTimes(1);
+    // Single subscription: exactly one notification.
+    expect(notify).toHaveBeenCalledTimes(1);
   });
 
-  it("on last subscriber leaving, cassette-deps subscriptions are cleared", () => {
+  it("cassette-deps subscriptions persist across wire-subscribe drops to zero (Strict Mode dev safety)", () => {
     const mock = createMockJm();
     const recorder = createCassetteRecorder();
     const gwm = new GateWireManager(mock.jm, { bus: undefined }, recorder);
     const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
-    const cb = vi.fn();
-    const unsub = wire.subscribe(cb);
 
+    const notify = vi.fn();
     const cell = createStateCell({ v: 0 }, recorder);
-    const commit = wire.startTracking();
+    const commit = wire.startTracking(notify);
     cell.read();
     commit();
 
-    unsub(); // last subscriber leaves — wire fully tears down
+    // Simulate the Strict Mode subscribe→unsubscribe→subscribe dance:
+    // useSyncExternalStore drops subscribers to zero between mounts.
+    const unsub = wire.subscribe(() => {});
+    unsub();
 
+    // Cassette subs MUST survive — they are owned by the commit lifecycle,
+    // not by the wire-subscriber count.
     cell.publish({ v: 1 });
-    expect(cb).not.toHaveBeenCalled();
+    expect(notify).toHaveBeenCalledTimes(1);
   });
 });

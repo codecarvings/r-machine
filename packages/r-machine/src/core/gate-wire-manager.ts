@@ -95,23 +95,6 @@ function createGateWire(
     cassetteUnsubs = [];
   }
 
-  function notifyFromCassette(): void {
-    // Bust Promise identity without re-resolving: useSyncExternalStore's
-    // `getSnapshot` returns a different reference, triggering a rerender,
-    // but `await getPluginPromise()` resolves to the same underlying plugin.
-    if (currentPluginPromise !== null) {
-      currentPluginPromise = currentPluginPromise.then((p) => p);
-    }
-    busHost.bus?.emit({ type: "gateWire:cassetteNotified", genId, subscriberCount: subscribers.size });
-    for (const cb of subscribers) {
-      try {
-        cb();
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  }
-
   function resolve() {
     busHost.bus?.emit({ type: "gateWire:resolveTriggered", genId });
     currentPluginPromise = junctureManager.getPlugin(
@@ -159,8 +142,14 @@ function createGateWire(
         if (subscribers.size === 0 && unsubFromJm !== null) {
           unsubFromJm();
           unsubFromJm = null;
-          clearCassetteSubs();
-          cassette.eject();
+          // NOTE: do NOT clear cassetteUnsubs or eject the cassette here.
+          // Under React Strict Mode dev, useSyncExternalStore performs a
+          // subscribe → unsubscribe → subscribe dance at mount. Tearing the
+          // cassette deps down on the intermediate unsubscribe would orphan
+          // the cell subscriptions installed by commit() — the resubscribe
+          // would only restore the React notify channel, not the cassette
+          // deps. Cassette subs are owned by the commit lifecycle (replaced
+          // on each re-commit), not by the wire-subscriber count.
           const vertexSlotsDisposed = junctureManager.disposeAllVertexSlotsByGenId(genId);
           busHost.bus?.emit({ type: "gateWire:jmUnsubscribed", genId, vertexSlotsDisposed });
         }
@@ -169,12 +158,12 @@ function createGateWire(
     // Open a Cassette that records every $.state / memo read until the
     // returned commit fn fires. Commit ejects the cassette, replaces the
     // prior cassette-deps subscriptions, and wires each collected dep to the
-    // wire's cassette-notify path (subscribers fire, Promise identity busts,
-    // no plugin re-resolve).
-    startTracking: () => {
-      // insert() is idempotent: if a prior startTracking didn't commit
-      // (abandoned render under Strict Mode), insert() simply clears the stale
-      // deps. Bump the epoch so the stale commit closure detects supersedure.
+    // consumer-supplied `notify` callback. This channel is SEPARATE from the
+    // wire's `subscribers` (which carries JM-driven plugin re-resolves) — a
+    // cassette-tracked dep mutation does NOT bust the plugin Promise identity,
+    // so React consumers reading via `use(pluginPromise)` are not forced to
+    // re-suspend through the Suspense boundary on every state change.
+    startTracking: (notify: () => void) => {
       cassette.insert();
       trackingEpoch++;
       const myEpoch = trackingEpoch;
@@ -185,7 +174,6 @@ function createGateWire(
           return;
         }
         if (myEpoch !== trackingEpoch) {
-          // A newer startTracking superseded this one; do nothing.
           return;
         }
         committed = true;
@@ -193,7 +181,7 @@ function createGateWire(
         clearCassetteSubs();
         const deps = cassette.getDeps();
         for (const dep of deps) {
-          cassetteUnsubs.push(dep.subscribe(notifyFromCassette));
+          cassetteUnsubs.push(dep.subscribe(notify));
         }
         busHost.bus?.emit({ type: "gateWire:trackingCommitted", genId, depCount: deps.size });
       };

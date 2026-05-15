@@ -26,19 +26,41 @@ describe("createCassetteRecorder + Cassette", () => {
     expect(cassette.getDeps()).not.toContain(other);
   });
 
-  it("fans out a single read to every active cassette of the same recorder", () => {
+  it("records into the topmost cassette only (innermost scope wins)", () => {
     const recorder = createCassetteRecorder();
     const cell = makeFakeCell();
     const a = recorder.createCassette();
     const b = recorder.createCassette();
     a.insert();
     b.insert();
+    // b was inserted last → it's the topmost. Only b records.
     recorder.recordRead(cell);
     a.eject();
     b.eject();
 
-    expect(a.getDeps()).toContain(cell);
+    expect(a.getDeps()).not.toContain(cell);
     expect(b.getDeps()).toContain(cell);
+  });
+
+  it("after the top cassette ejects, the next-most-recent becomes the top", () => {
+    const recorder = createCassetteRecorder();
+    const cell1 = makeFakeCell();
+    const cell2 = makeFakeCell();
+    const a = recorder.createCassette();
+    const b = recorder.createCassette();
+    a.insert();
+    b.insert();
+
+    recorder.recordRead(cell1);
+    b.eject(); // a is now the top
+
+    recorder.recordRead(cell2);
+    a.eject();
+
+    expect(b.getDeps()).toContain(cell1);
+    expect(b.getDeps()).not.toContain(cell2);
+    expect(a.getDeps()).not.toContain(cell1);
+    expect(a.getDeps()).toContain(cell2);
   });
 
   it("eject is idempotent", () => {
@@ -116,7 +138,7 @@ describe("createCassetteRecorder + Cassette", () => {
     cassetteA.insert();
     cassetteB.insert();
 
-    // recordRead on A only lands in A's active cassettes.
+    // recordRead on A goes to A's top only.
     recorderA.recordRead(cell);
     expect(cassetteA.getDeps()).toContain(cell);
     expect(cassetteB.getDeps()).not.toContain(cell);

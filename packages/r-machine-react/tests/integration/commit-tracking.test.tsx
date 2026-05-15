@@ -294,4 +294,109 @@ describe("Counter — end-to-end via real RMachine + OuterGear stateful + Plug.u
     });
     expect(button.textContent).toBe("count: 2");
   });
+
+  // Regression: setInterval-driven actions (fired outside any React event
+  // handler) must still trigger the consumer's re-render under StrictMode.
+  // The cell mutates after a real-time delay, long after the StrictMode
+  // mount dance has settled. If anything in the wire teardown / cassette
+  // lifecycle drops the cell subscription, the consumer stops updating.
+  it("re-renders on a setInterval-driven action under React.StrictMode (with parent consumer that does NOT read the cell)", async () => {
+    const { fakeMachine } = buildRealEnv();
+    const { ReactRMachine, Plug } = await createReactBareToolset(fakeMachine as never, {} as never);
+    const CounterPlug = (Plug as any)("v/counter");
+    // Define a second OG-less plug stand-in by reusing the same Plug — in
+    // production this would be a different Plug instance for a different
+    // namespace. For the sake of this regression we exercise the same plug
+    // twice; the wireCache will return the same wire, but the OUTER hook
+    // call still pushes a separate cassette per useR invocation.
+    const ParentPlug = (Plug as any)("v/counter");
+
+    let parentRenders = 0;
+    let childRenders = 0;
+    let tick: (() => unknown) | null = null;
+
+    function Child() {
+      childRenders++;
+      const [counter] = (CounterPlug as any).useR() as [{ count: number; inc: () => unknown }];
+      tick = counter.inc;
+      return <span data-testid="count">{counter.count}</span>;
+    }
+
+    function Parent() {
+      parentRenders++;
+      // Parent uses useR but does NOT read any state cell from it — it just
+      // touches the resource so it has a wire + cassette of its own (mirrors
+      // LandingPage that holds a Plug but reads only static i18n strings).
+      (ParentPlug as any).useR();
+      return <Child />;
+    }
+
+    await act(async () => {
+      render(
+        <React.StrictMode>
+          <ReactRMachine locale="en">
+            <React.Suspense fallback={<div>loading</div>}>
+              <Parent />
+            </React.Suspense>
+          </ReactRMachine>
+        </React.StrictMode>
+      );
+    });
+
+    expect((await screen.findByTestId("count")).textContent).toBe("0");
+    const parentBeforeTick = parentRenders;
+    const childBeforeTick = childRenders;
+
+    // Fire the action outside any React event handler — simulates setInterval.
+    await act(async () => {
+      tick!();
+    });
+
+    expect(screen.getByTestId("count").textContent).toBe("1");
+    // Child must have re-rendered.
+    expect(childRenders).toBeGreaterThan(childBeforeTick);
+    // Parent must NOT have re-rendered (it never read the cell).
+    expect(parentRenders).toBe(parentBeforeTick);
+  });
+
+  // Regression: under React Strict Mode dev, useSyncExternalStore performs a
+  // subscribe → unsubscribe → subscribe dance at mount. If the wire's
+  // unsubscribe path tore down cassette-deps subscriptions, the resubscribe
+  // would only restore the React notify channel — actions on the OG would no
+  // longer re-render the consumer. This test pins that the wire keeps
+  // cassette subs alive across the Strict Mode dance.
+  it("re-renders on action under React.StrictMode (the subscribe/unsubscribe/subscribe dance)", async () => {
+    const { fakeMachine } = buildRealEnv();
+    const { ReactRMachine, Plug } = await createReactBareToolset(fakeMachine as never, {} as never);
+    const CounterPlug = (Plug as any)("v/counter");
+
+    function Counter() {
+      const [counter] = (CounterPlug as any).useR() as [{ count: number; inc: () => unknown }];
+      return (
+        <button type="button" onClick={() => counter.inc()}>
+          count: {counter.count}
+        </button>
+      );
+    }
+
+    await act(async () => {
+      render(
+        <React.StrictMode>
+          <ReactRMachine locale="en">
+            <React.Suspense fallback={<div>loading</div>}>
+              <Counter />
+            </React.Suspense>
+          </ReactRMachine>
+        </React.StrictMode>
+      );
+    });
+
+    const button = await screen.findByRole("button");
+    expect(button.textContent).toBe("count: 0");
+
+    await act(async () => {
+      fireEvent.click(button);
+    });
+    expect(button.textContent).toBe("count: 1");
+  });
 });

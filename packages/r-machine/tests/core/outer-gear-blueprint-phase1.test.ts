@@ -148,7 +148,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
     expect(bodyCalls).toHaveBeenCalledTimes(3);
   });
 
-  it("commit-tracking via real GateWire: action on a tracked OG fires the wire's subscribers", async () => {
+  it("commit-tracking via real GateWire: action on a tracked OG fires the consumer-supplied notify", async () => {
     const { jmInternal, gwm } = buildEnv({
       "g/counter": makeStatefulOuterGearModule({ count: 0 }, (plugin, cursor) => ({
         read: cursor.getter(() => plugin.$.state.count),
@@ -162,26 +162,26 @@ describe("OuterGear stateful — full blueprint stack", () => {
     };
 
     // Pure consumer-side wire: no nsDeps, just used as a notification channel
-    // for cassette-tracked reads.
+    // for cassette-tracked reads. The notify callback is consumer-supplied —
+    // in a React hook this is typically a `useReducer`-style forceRerender.
     const wire = gwm.getWire({}, [], "en", ($) => $);
     const notify = vi.fn();
-    wire.subscribe(notify);
 
-    const commit = wire.startTracking();
+    const commit = wire.startTracking(notify);
     expect(resource.read).toBe(0);
     commit();
 
     // No mutation yet → no notification.
     expect(notify).not.toHaveBeenCalled();
 
-    // Mutate via the action: the cassette-tracked StateCell publishes, the
-    // wire's notifyFromCassette path fires subscribers.
+    // Mutate via the action: the cassette-tracked StateCell publishes →
+    // notify fires.
     resource.add(5);
     expect(notify).toHaveBeenCalledTimes(1);
     expect(resource.read).toBe(5);
 
-    // A second action on the same dep fires the subscriber again (subscription
-    // is persistent until next commit or wire teardown).
+    // A second action on the same dep fires notify again (subscription is
+    // persistent until next commit replaces it).
     resource.add(3);
     expect(notify).toHaveBeenCalledTimes(2);
     expect(resource.read).toBe(8);
@@ -206,20 +206,19 @@ describe("OuterGear stateful — full blueprint stack", () => {
 
     const wire = gwm.getWire({}, [], "en", ($) => $);
     const notify = vi.fn();
-    wire.subscribe(notify);
 
     // Prime the memo OUTSIDE the consumer's tracking cassette. The next read
     // inside the cassette will be a cache hit, so the cassette captures only
     // the memo cell (not the underlying StateCell transitively).
     expect(resource.subtotal).toBe(30);
 
-    const commit = wire.startTracking();
+    const commit = wire.startTracking(notify);
     expect(resource.subtotal).toBe(30); // cache hit — captures the memo cell as the sole dep
     commit();
 
     // Touch a field the memo does not depend on → state cell publishes →
     // memo invalidates → recomputes eagerly → output unchanged → memo does
-    // NOT notify its subscribers → wire's cassette-dep (the memo) doesn't fire.
+    // NOT notify its subscribers → notify doesn't fire.
     resource.setOther(99);
     expect(notify).not.toHaveBeenCalled();
 

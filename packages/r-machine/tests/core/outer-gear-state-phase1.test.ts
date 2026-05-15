@@ -102,20 +102,20 @@ describe("OuterGear state — phase 1 end-to-end", () => {
 
     const resource = (await resolve(matrix)) as { subtotal: number };
 
-    // First read: cache miss — outer cassette accumulates transitive deps.
+    // Under top-of-stack scoping, both cache miss and cache hit produce the
+    // same outer deps: only the memo cell itself. The memo's private cassette
+    // holds the transitive deps (where they belong for proper invalidation).
     const first = recorder.createCassette();
     first.insert();
     expect(resource.subtotal).toBe(30);
     first.eject();
-    const firstDeps = first.getDeps().size;
+    expect(first.getDeps().size).toBe(1);
 
-    // Second read: cache hit — outer cassette receives only the memo cell.
     const second = recorder.createCassette();
     second.insert();
     expect(resource.subtotal).toBe(30);
     second.eject();
     expect(second.getDeps().size).toBe(1);
-    expect(second.getDeps().size).toBeLessThan(firstDeps);
   });
 
   it("action publishes new state; consumer subscribers fire; equality short-circuit prevents memo notify on unchanged output", async () => {

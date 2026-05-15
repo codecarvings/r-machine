@@ -5,7 +5,7 @@ import { createMemoCell } from "../../../src/core/reactivity/memo-cell.js";
 import { createStateCell } from "../../../src/core/reactivity/state-cell.js";
 
 describe("createMemoCell", () => {
-  it("cache miss accumulates transitive deps into the outer cassette", () => {
+  it("cache miss: the memo's private cassette captures transitive deps; outer captures only the memo", () => {
     const recorder = createCassetteRecorder();
     const cell = createStateCell({ items: [1, 2, 3] }, recorder);
     const count = createMemoCell(() => cell.read().items.length, recorder);
@@ -15,7 +15,13 @@ describe("createMemoCell", () => {
     count.read();
     outer.eject();
 
-    expect(outer.getDeps()).toContain(cell);
+    // Top-of-stack scoping: during the memo body, its private cassette is
+    // on top → only the memo captures `cell`. After the body, the memo's
+    // private cassette pops and the outer (now top) captures only the memo
+    // itself. Reactivity is preserved: when `cell` mutates, the memo
+    // invalidates and (if its output changed) notifies its subscribers —
+    // which include the outer's commit-time subscription.
+    expect(outer.getDeps()).not.toContain(cell);
     expect(outer.getDeps()).toContain(count);
   });
 
