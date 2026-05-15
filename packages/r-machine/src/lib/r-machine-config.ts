@@ -44,6 +44,7 @@ export interface RMachineConfig<
   E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
 > {
+  readonly instanceName: string;
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly resourceAtlas: RA;
@@ -62,6 +63,7 @@ export interface RMachineConfigParams<
   SK extends ShellPlugKitMap<InstanceType<RAC>, BGL>,
   EF extends ExperimentalFlags,
 > {
+  readonly instanceName?: string;
   readonly locales: LL;
   readonly defaultLocale: LL[number];
   readonly ResourceAtlas: RAC;
@@ -83,6 +85,7 @@ export function convertParamsToConfig<
   params: RMachineConfigParams<RAC, LL, BGL, GK, SK, EF>
 ): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF> {
   return {
+    instanceName: params.instanceName ?? "default",
     locales: [...params.locales],
     defaultLocale: params.defaultLocale,
     resourceAtlas: undefined!,

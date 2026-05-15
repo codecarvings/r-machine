@@ -151,6 +151,18 @@ function createGateWire(
           // deps. Cassette subs are owned by the commit lifecycle (replaced
           // on each re-commit), not by the wire-subscriber count.
           const vertexSlotsDisposed = junctureManager.disposeAllVertexSlotsByGenId(genId);
+          if (vertexSlotsDisposed > 0) {
+            // Vertex slots created by this wire's prior resolves are gone, so
+            // the cached `currentPluginPromise` references slots that no
+            // longer exist. Mark dirty so the next getPluginPromise() is
+            // forced to re-resolve and re-create the vertex slots. Only do
+            // this when slots were actually disposed: under React Strict
+            // Mode the subscribe → unsubscribe → subscribe dance can hit
+            // this branch with zero slots (no VertexFrame in the tree), in
+            // which case marking dirty would needlessly bust the plugin
+            // promise identity and cause an extra re-render after the dance.
+            dirty = true;
+          }
           busHost.bus?.emit({ type: "gateWire:jmUnsubscribed", genId, vertexSlotsDisposed });
         }
       };

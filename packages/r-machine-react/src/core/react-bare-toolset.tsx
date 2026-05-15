@@ -27,15 +27,17 @@ import type {
   HandleMap,
   NamespaceList,
   PluginCtxAugmenter,
+  RequestScope,
   ResEquipment,
 } from "r-machine/core";
-import { createPlug, getNamespaceList, getNamespaceMap, getPlugOutline } from "r-machine/core";
+import { createPlug, getNamespaceList, getNamespaceMap, getPlugId, getPlugOutline } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import { createContext, use, useContext, useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from "react";
 import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "../errors/error-codes.js";
 import type { ReactPlugDefiner, ReactPlugKitMap } from "./react-plug.js";
+import { RequestScopeContext } from "./scope-context.js";
 import { useVertexFrame, VertexFrame } from "./vertex-frame.js";
 
 type WriteLocale<L extends AnyLocale> = (newLocale: L) => void | Promise<void>;
@@ -137,29 +139,55 @@ export async function createReactBareToolset<
     // suspends before commit, which would create a new wire (and a new
     // pending promise) every retry, leading to an infinite suspend loop.
     //
-    // The cache is keyed by vertexGearMap signature only — NOT by locale.
-    // Locale changes route through `wire.updateRequest()`, which preserves
-    // wire identity. This matters for two reasons:
-    //   1. useSyncExternalStore stays subscribed across locale changes
-    //      instead of unsubscribing the old wire (which would orphan its
-    //      cassette subscriptions to cells, causing extra forceRerender
-    //      dispatches and useReducer bailouts on surviving consumers).
-    //   2. The wire's cassette state survives, so we don't leak cell
-    //      subscriptions across locale switches.
+    // Keyed by `${locale}|${vgmSig}`. Locale MUST be part of the key under
+    // React 19 concurrent rendering: during a navigation transition React
+    // renders the old subtree (locale A) and the new subtree (locale B)
+    // concurrently — if both shared one wire, each render would call
+    // `updateRequest` to flip the wire's locale to its own, dirtying the
+    // wire and forcing the other render to re-resolve, producing an
+    // infinite ping-pong loop. Per-locale wires let each concurrent render
+    // own its own wire; the old wire is disposed naturally when React
+    // unmounts the old subtree (last `subscribe` returns → JM unsubscribe →
+    // outer vertex slots disposed by genId).
     type WireEntry = { wire: GateWire; localeHolder: { current: L } };
-    const wireCache = new Map<string, WireEntry>();
-    const getOrCreateWire = (locale: L, vertexGearMap: ReturnType<typeof useVertexFrame>): GateWire => {
-      const key = vertexGearMap
+    // Module-level fallback cache for client-side (no request scope active).
+    const fallbackWireCache = new Map<string, WireEntry>();
+    const plugId = getPlugId(body);
+    // Resolves which cache backs `wireCache` for this consumer's render:
+    //   - Server inside an active request scope: a fresh-per-request Map kept
+    //     under scope.wireCachesByPlugId[plugId]. A wire stored there points
+    //     at a plugin promise whose JM slot lives in scope.outerSlots; when
+    //     the request ends, both the slot and this cache go away together,
+    //     so wires can never outlive the plugin they reference.
+    //   - Client (no scope): the module-level `fallbackWireCache`.
+    const getWireCache = (requestScope: RequestScope | null): Map<string, WireEntry> => {
+      if (!requestScope) return fallbackWireCache;
+      let cache = requestScope.wireCachesByPlugId.get(plugId) as Map<string, WireEntry> | undefined;
+      if (!cache) {
+        cache = new Map<string, WireEntry>();
+        requestScope.wireCachesByPlugId.set(plugId, cache as Map<string, unknown>);
+      }
+      return cache;
+    };
+    const getOrCreateWire = (
+      locale: L,
+      vertexGearMap: ReturnType<typeof useVertexFrame>,
+      requestScope: RequestScope | null
+    ): GateWire => {
+      const vgmSig = vertexGearMap
         ? Object.entries(vertexGearMap)
             .map(([k, v]) => `${k}=${v}`)
             .join(",")
         : "";
+      const key = `${locale}|${vgmSig}`;
+      const wireCache = getWireCache(requestScope);
       let entry = wireCache.get(key);
       if (!entry) {
-        // augmentCtx reads locale dynamically from `localeHolder.current` so
-        // that wire.updateRequest's re-resolve picks up the new locale on
-        // the $ context. JM calls augmentCtx fresh for every buildPlugin
-        // pass, so the latest holder value always wins.
+        // localeHolder is now constant (locale is part of the cache key, so
+        // each entry has a fixed locale for its lifetime). Kept as a holder
+        // shape so augmentCtx's closure signature stays uniform with prior
+        // code; $.setLocale still routes through the latest writeLocale via
+        // sharedWriteLocaleRef.
         const localeHolder = { current: locale };
         const augmentCtx: PluginCtxAugmenter = ($: any) => {
           $.locale = localeHolder.current;
@@ -187,9 +215,6 @@ export async function createReactBareToolset<
         const wire = rMachine.getGateWire(kit, nsDeps, locale, augmentCtx, vertexGearMap);
         entry = { wire, localeHolder };
         wireCache.set(key, entry);
-      } else if (entry.localeHolder.current !== locale) {
-        entry.localeHolder.current = locale;
-        entry.wire.updateRequest(locale, vertexGearMap);
       }
       return entry.wire;
     };
@@ -208,10 +233,19 @@ export async function createReactBareToolset<
     function useBareReactPlug() {
       const ctx = useContext(Context);
       const vertexGearMap = useVertexFrame();
+      // RequestScope (per-request OuterGear tier) is propagated from an
+      // adapter boundary component (e.g. NextClientRMachine) via this
+      // context. When present, the wire's plugin resolution must run with
+      // this scope installed as the scope-provider's override so JM's
+      // `slotsForLayout` captures the request-scoped outerSlots map.
+      // When null (client browser, plain React, tests), JM falls back to
+      // its process-tier slots map — the correct behavior outside a
+      // request lifecycle.
+      const requestScope = useContext(RequestScopeContext);
 
       const safeCtx = ctx ?? fallbackCtx;
       sharedWriteLocaleRef.current = safeCtx.writeLocale;
-      const wire = getOrCreateWire(safeCtx.locale, vertexGearMap);
+      const wire = getOrCreateWire(safeCtx.locale, vertexGearMap, requestScope);
 
       // Local re-render channel for cassette-tracked dep changes. Kept
       // SEPARATE from useSyncExternalStore (which is the JM-driven re-resolve
@@ -250,7 +284,30 @@ export async function createReactBareToolset<
       const commitRef = useRef<(() => void) | null>(null);
       commitRef.current = commit;
 
-      const pluginPromise = useSyncExternalStore(wire.subscribe, wire.getPluginPromise, wire.getPluginPromise);
+      // Wrap getSnapshot/getServerSnapshot so the active request scope is
+      // installed as the JM provider's sync override around the wire's
+      // plugin resolution call. Critical for server-side: when this hook
+      // runs inside a client-component SSR pass, async-context primitives
+      // (AsyncLocalStorage, React.cache) don't propagate from the parent
+      // server component, so the React Context is our only reliable
+      // channel. The sync window from setOverride to wire.getPluginPromise
+      // (which itself runs the JM resolution sync until first await,
+      // capturing slotsMap into the promise closure) is uninterruptable —
+      // JS is single-threaded, so concurrent requests on the same Node
+      // process can't interleave here. Reset to null afterwards so we
+      // don't leak the override into other components' resolutions.
+      const wireSnapshot = (): Promise<unknown> => {
+        if (requestScope) {
+          rMachine.getScopeProvider().setOverride?.(requestScope);
+          try {
+            return wire.getPluginPromise();
+          } finally {
+            rMachine.getScopeProvider().setOverride?.(null);
+          }
+        }
+        return wire.getPluginPromise();
+      };
+      const pluginPromise = useSyncExternalStore(wire.subscribe, wireSnapshot, wireSnapshot);
       const result = use(pluginPromise);
 
       // useEffect with no deps runs after every successful commit. The commit

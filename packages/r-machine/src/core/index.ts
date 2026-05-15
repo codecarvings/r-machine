@@ -49,6 +49,7 @@ export {
   type ExtractKit,
   type ExtractResAtlas,
   getPlugHead,
+  getPlugId,
   getPlugOutline,
   getPlugResolve,
   type ListPlugin,
@@ -109,6 +110,13 @@ export {
 } from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";
 export type { AnyResModule, ResModuleLoaderFn } from "./res-module.js";
+export {
+  createRequestScope,
+  PROCESS_SCOPE_PROVIDER,
+  type RequestScope,
+  type RequestScopeProvider,
+  type Slot,
+} from "./scope.js";
 export { createShellComposer, type ShellComposer } from "./shell-composer.js";
 export type { ShellPlugKitMap } from "./shell-plug.js";
 export type { AnyClientGearSurface, AnySurface, Surface, SurfaceBody } from "./surface.js";

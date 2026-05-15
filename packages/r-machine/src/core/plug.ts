@@ -100,9 +100,17 @@ export type PlugResolve<PH extends AnyPlugHead> = (
 
 const plugHeadSymbol = Symbol("plugHead");
 const plugResolveSymbol = Symbol("plugResolve");
+const plugIdSymbol = Symbol("plugId");
 export interface PlugBody<PH extends AnyPlugHead> {
   readonly [plugHeadSymbol]: PH;
   [plugResolveSymbol]: PlugResolve<PH>;
+  // Stable identity for the lifetime of this Plug instance. Used by the
+  // React adapter to key per-Plug request-scoped wireCaches (so server SSR
+  // of client components doesn't reuse a wire whose plugin was disposed at
+  // the previous request's end). A unique Symbol per createPlug call —
+  // module HMR creates a new Plug with a new id; the prior id becomes
+  // unreachable and any scope-bound caches keyed by it are GC'd.
+  readonly [plugIdSymbol]: symbol;
 }
 
 const defaultPlugResolve: PlugResolve<any> = () => {
@@ -114,6 +122,7 @@ export function createPlug<H extends AnyPlugHead>(head: H): PlugBody<H> {
   Plug.displayName = "RMachinePlug";
   (Plug as any)[plugHeadSymbol] = head;
   (Plug as any)[plugResolveSymbol] = defaultPlugResolve as PlugResolve<H>;
+  (Plug as any)[plugIdSymbol] = Symbol("plug");
   return Plug as unknown as PlugBody<H>;
 }
 
@@ -126,6 +135,10 @@ export function getPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>): PlugRe
 }
 export function setPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>, resolve: PlugResolve<H>): void {
   plug[plugResolveSymbol] = resolve;
+}
+
+export function getPlugId(plug: PlugBody<AnyPlugHead>): symbol {
+  return plug[plugIdSymbol];
 }
 
 interface MapPlugOutline<RA extends AnyResAtlas> {

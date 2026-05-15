@@ -1,5 +1,5 @@
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ResEquipment } from "r-machine/core";
+import { type AnyResAtlas, PROCESS_SCOPE_PROVIDER, type ResEquipment } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { MockInstance } from "vitest";
@@ -39,6 +39,9 @@ export function createMockMachine(
     },
     hybridPickR: vi.fn(overrides.hybridPickR ?? (() => ({ greeting: "hello" }))),
     hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
+    // No request scope on the client — return the process-default provider so
+    // the React adapter falls back to its module-level wireCache.
+    getScopeProvider: vi.fn(() => PROCESS_SCOPE_PROVIDER),
   } as unknown as RMachine<TestAtlas, AnyLocale, ResEquipment<TestAtlas>>;
 }
 

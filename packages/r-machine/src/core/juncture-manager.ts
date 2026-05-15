@@ -22,9 +22,10 @@ import type { PluginCtxAugmenter } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import type { AnyResEquipment } from "./res-equipment.js";
-import type { ResLayoutEntryType, ResLayoutResolver } from "./res-layout.js";
+import { isOuterGearLayoutType, type ResLayoutEntryType, type ResLayoutResolver } from "./res-layout.js";
 import { type AnyNamespaceList, type AnyResolvedNamespaceList, isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap, AnyResolvedNamespaceMap } from "./res-map.js";
+import { PROCESS_SCOPE_PROVIDER, type RequestScope, type RequestScopeProvider, type Slot } from "./scope.js";
 import type { AnySurface } from "./surface.js";
 import type { VertexGearMap, VertexGearTagData } from "./vertex-gear.js";
 
@@ -49,13 +50,6 @@ export function getJunctureResCacheKey(
   }
 }
 
-interface Slot {
-  readonly key: string;
-  readonly namespace: AnyNamespace;
-  readonly generation: number;
-  content: Juncture | Promise<Juncture>;
-}
-
 export class JunctureManager {
   constructor(
     protected resLayoutResolver: ResLayoutResolver,
@@ -66,15 +60,46 @@ export class JunctureManager {
     blueprintManager.setOnInvalidate((ns) => this.invalidate(ns));
   }
 
+  // Process-tier slots: Base + Inner + Shell live here for the lifetime of the
+  // RMachine instance. Outer (and Outer-vertex) slots are routed via
+  // `slotsForLayout` to either a request-scoped map (when a scope is active)
+  // or this same `slots` map (fallback for client browser, tests, etc.).
   protected readonly slots = new Map<string, Slot>();
   protected readonly generationByNs = new Map<AnyNamespace, number>();
   protected readonly subscribersByNs = new Map<AnyNamespace, Set<() => void>>();
   protected readonly vertexSlotsByGenId = new Map<number, Set<AnyNamespace>>();
 
+  protected scopeProvider: RequestScopeProvider = PROCESS_SCOPE_PROVIDER;
+
+  setScopeProvider(p: RequestScopeProvider): void {
+    this.scopeProvider = p;
+  }
+
+  getScopeProvider(): RequestScopeProvider {
+    return this.scopeProvider;
+  }
+
+  // Routes Outer/Vertex slot lookups to the active request scope when one is
+  // installed (e.g. inside an HTTP request); otherwise falls back to the
+  // process-shared `slots` map. Base/Inner/Shell always use `slots` directly —
+  // they're stateless or locale-keyed and safe to cache across requests.
+  protected slotsForLayout(layoutType: ResLayoutEntryType): Map<string, Slot> {
+    if (!isOuterGearLayoutType(layoutType)) return this.slots;
+    const scope = this.scopeProvider.getActiveScope();
+    if (!scope) return this.slots;
+    return layoutType === "gear:outer(vertex)" ? scope.vertexSlots : scope.outerSlots;
+  }
+
+  protected vertexIndex(): Map<number, Set<AnyNamespace>> {
+    const scope = this.scopeProvider.getActiveScope();
+    return scope ? scope.vertexSlotsByGenId : this.vertexSlotsByGenId;
+  }
+
   protected resolveJuncture(
     namespace: AnyNamespace,
     locale: AnyLocale | undefined,
     key: string,
+    layoutType: ResLayoutEntryType,
     vertexTag: VertexGearTagData | undefined,
     chain: readonly AnyNamespace[]
   ): Promise<Juncture> {
@@ -86,10 +111,15 @@ export class JunctureManager {
       generation,
       vertexGenId: vertexTag?.genId,
     });
+    // Capture the slot map once: same instance must back both the SET below
+    // and the identity / delete checks inside the async closure. If the active
+    // request scope changes mid-flight (extremely unlikely — would require
+    // ALS context-hopping during a single resolve), we'd otherwise risk
+    // mismatch. Capture-once guarantees consistency.
+    const slotsMap = this.slotsForLayout(layoutType);
     let slot!: Slot;
     const juncturePromise = (async () => {
       try {
-        const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
         const blueprint: Blueprint = await this.blueprintManager.getBlueprint(namespace, locale, layoutType, key);
         let juncture: Juncture;
         if (blueprint.originType === "res") {
@@ -117,7 +147,7 @@ export class JunctureManager {
         // (slot was disposed and possibly re-created during this resolve).
         const currentGen = this.generationByNs.get(namespace) ?? 0;
         const generationStale = currentGen !== generation;
-        const slotIdentityStale = this.slots.get(key) !== slot;
+        const slotIdentityStale = slotsMap.get(key) !== slot;
         if (generationStale || slotIdentityStale) {
           const teardown = tryGetManagedTeardown(juncture.res);
           if (teardown) {
@@ -139,15 +169,15 @@ export class JunctureManager {
         this.busHost.bus?.emit({ type: "juncture:slotCommitted", namespace, generation });
         return juncture;
       } catch (error) {
-        if (this.slots.get(key) === slot) {
-          this.slots.delete(key);
+        if (slotsMap.get(key) === slot) {
+          slotsMap.delete(key);
         }
         this.busHost.bus?.emit({ type: "juncture:resolveError", namespace, error });
         throw error;
       }
     })();
     slot = { key, namespace, generation, content: juncturePromise };
-    this.slots.set(key, slot);
+    slotsMap.set(key, slot);
     return juncturePromise;
   }
 
@@ -163,11 +193,12 @@ export class JunctureManager {
     chain: readonly AnyNamespace[]
   ): Promise<Juncture> {
     const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
+    const slotsMap = this.slotsForLayout(layoutType);
     if (layoutType === "gear:outer(vertex)") {
       const existingGenId = vertexGearMap?.[namespace];
       if (existingGenId !== undefined) {
         const consumerKey = getJunctureResCacheKey(namespace, locale, layoutType, existingGenId);
-        const consumerSlot = this.slots.get(consumerKey);
+        const consumerSlot = slotsMap.get(consumerKey);
         if (consumerSlot === undefined || !this.isSlotFresh(consumerSlot)) {
           this.busHost.bus?.emit({ type: "juncture:vertexConsumerMissing", namespace, genId: existingGenId });
           throw new RMachineResolveError(
@@ -179,7 +210,7 @@ export class JunctureManager {
         return consumerSlot.content;
       }
       const creatorKey = getJunctureResCacheKey(namespace, locale, layoutType, genId);
-      const creatorSlot = this.slots.get(creatorKey);
+      const creatorSlot = slotsMap.get(creatorKey);
       if (creatorSlot !== undefined && this.isSlotFresh(creatorSlot)) {
         this.busHost.bus?.emit({
           type: "juncture:cacheHit",
@@ -192,23 +223,24 @@ export class JunctureManager {
       // Register vertex creation in genId index before spawning the resolve,
       // so the index and slots map are populated together (resolveJuncture
       // creates the slot synchronously before returning the promise).
-      let vertexSet = this.vertexSlotsByGenId.get(genId);
+      const vertexIdx = this.vertexIndex();
+      let vertexSet = vertexIdx.get(genId);
       if (!vertexSet) {
         vertexSet = new Set();
-        this.vertexSlotsByGenId.set(genId, vertexSet);
+        vertexIdx.set(genId, vertexSet);
       }
       vertexSet.add(namespace);
       this.busHost.bus?.emit({ type: "juncture:vertexSlotRegistered", namespace, genId });
-      return this.resolveJuncture(namespace, locale, creatorKey, { namespace, genId }, chain);
+      return this.resolveJuncture(namespace, locale, creatorKey, layoutType, { namespace, genId }, chain);
     }
 
     const key = getJunctureResCacheKey(namespace, locale, layoutType);
-    const cached = this.slots.get(key);
+    const cached = slotsMap.get(key);
     if (cached !== undefined && this.isSlotFresh(cached)) {
       this.busHost.bus?.emit({ type: "juncture:cacheHit", namespace, locale, generation: cached.generation });
       return cached.content;
     }
-    return this.resolveJuncture(namespace, locale, key, undefined, chain);
+    return this.resolveJuncture(namespace, locale, key, layoutType, undefined, chain);
   }
 
   async getPlugin(
@@ -264,7 +296,12 @@ export class JunctureManager {
     const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
     const slotKey = getJunctureResCacheKey(namespace, locale, layoutType);
     return () => {
-      const slot = this.slots.get(slotKey);
+      // Re-resolve the slot map each call: a deferred-kit getter created
+      // during one resolution may be called later (inside a child plugin's
+      // builder) and the active request scope at that later moment is what
+      // matters. For Outer types this hits the same scope as the original
+      // resolve when invocation stays within the same async chain.
+      const slot = this.slotsForLayout(layoutType).get(slotKey);
       if (slot === undefined || slot.content instanceof Promise) {
         this.busHost.bus?.emit({ type: "juncture:deferredKitAccessed", namespace, ready: false });
         throw new RMachineResolveError(
@@ -361,8 +398,11 @@ export class JunctureManager {
     return plugin;
   }
 
-  protected disposeSlot(key: string): void {
-    const slot = this.slots.get(key);
+  // Dispose a slot from a given slot map. Used by invalidate (process tier
+  // map), disposeVertex* (process tier or request scope, via slotsForLayout),
+  // and disposeRequestScope (each request-scope map).
+  protected disposeSlotIn(slotsMap: Map<string, Slot>, key: string): void {
+    const slot = slotsMap.get(key);
     if (!slot) {
       return;
     }
@@ -380,8 +420,13 @@ export class JunctureManager {
     }
     // In-flight: stale check at completion intercepts (slots.delete causes
     // identity mismatch and the resolved juncture is discarded with teardown).
-    this.slots.delete(key);
+    slotsMap.delete(key);
     this.busHost.bus?.emit({ type: "juncture:slotDisposed", namespace: slot.namespace, teardownInvoked });
+  }
+
+  // Back-compat shim: dispose from the process-tier slots map.
+  protected disposeSlot(key: string): void {
+    this.disposeSlotIn(this.slots, key);
   }
 
   invalidate(ns: AnyNamespace): void {
@@ -469,34 +514,37 @@ export class JunctureManager {
   }
 
   disposeVertexSlot(ns: AnyNamespace, genId: number): void {
-    const set = this.vertexSlotsByGenId.get(genId);
+    const vertexIdx = this.vertexIndex();
+    const set = vertexIdx.get(genId);
     if (!set?.has(ns)) {
       return;
     }
     set.delete(ns);
     if (set.size === 0) {
-      this.vertexSlotsByGenId.delete(genId);
+      vertexIdx.delete(genId);
     }
     const key = getJunctureResCacheKey(ns, undefined, "gear:outer(vertex)", genId);
-    this.disposeSlot(key);
+    this.disposeSlotIn(this.slotsForLayout("gear:outer(vertex)"), key);
   }
 
   disposeAllVertexSlotsByGenId(genId: number): number {
-    const set = this.vertexSlotsByGenId.get(genId);
+    const vertexIdx = this.vertexIndex();
+    const set = vertexIdx.get(genId);
     if (!set) {
       return 0;
     }
     const count = set.size;
+    const slotsMap = this.slotsForLayout("gear:outer(vertex)");
     for (const ns of set) {
       const key = getJunctureResCacheKey(ns, undefined, "gear:outer(vertex)", genId);
-      this.disposeSlot(key);
+      this.disposeSlotIn(slotsMap, key);
     }
-    this.vertexSlotsByGenId.delete(genId);
+    vertexIdx.delete(genId);
     return count;
   }
 
   disposeVertexSlotsByOwnershipChange(genId: number, newVertexGearMap: VertexGearMap | undefined): void {
-    const set = this.vertexSlotsByGenId.get(genId);
+    const set = this.vertexIndex().get(genId);
     if (!set) {
       return;
     }
@@ -506,5 +554,57 @@ export class JunctureManager {
         this.disposeVertexSlot(ns, genId);
       }
     }
+  }
+
+  // Tears down all OuterGear slots that were resolved within this scope, in
+  // reverse-topological order (dependents first). Used by adapter packages at
+  // end of request to free per-request state (cells, setInterval handles,
+  // listeners) while leaving the process-tier slots (Base/Inner/Shell)
+  // untouched. Errors in individual teardowns are caught and logged so one
+  // broken teardown doesn't abort the rest.
+  disposeRequestScope(scope: RequestScope): void {
+    // Collect all root namespaces present in the scope's Outer + Vertex maps.
+    const roots = new Set<AnyNamespace>();
+    for (const slot of scope.outerSlots.values()) roots.add(slot.namespace);
+    for (const slot of scope.vertexSlots.values()) roots.add(slot.namespace);
+    if (roots.size === 0) return;
+
+    // Union of reverse closures preserving dispose-safe order. Set insertion
+    // order is preserved; for a dependent that appears in multiple closures
+    // its first encountered position wins — which already satisfies its own
+    // topological constraint relative to its dependencies.
+    const ordered = new Set<AnyNamespace>();
+    for (const root of roots) {
+      const closure = this.blueprintManager.getReverseClosure(root);
+      for (const n of closure) ordered.add(n);
+    }
+
+    // Bucket scope slot keys by namespace once.
+    const keysByNs = new Map<AnyNamespace, Array<{ key: string; map: Map<string, Slot> }>>();
+    const bucket = (slot: Slot, map: Map<string, Slot>): void => {
+      let arr = keysByNs.get(slot.namespace);
+      if (!arr) {
+        arr = [];
+        keysByNs.set(slot.namespace, arr);
+      }
+      arr.push({ key: slot.key, map });
+    };
+    for (const slot of scope.outerSlots.values()) bucket(slot, scope.outerSlots);
+    for (const slot of scope.vertexSlots.values()) bucket(slot, scope.vertexSlots);
+
+    for (const n of ordered) {
+      const arr = keysByNs.get(n);
+      if (!arr) continue;
+      for (const { key, map } of arr) {
+        try {
+          this.disposeSlotIn(map, key);
+        } catch (e) {
+          console.error("[r-machine] disposeRequestScope error for", n, e);
+        }
+      }
+    }
+    scope.vertexSlotsByGenId.clear();
+    scope.wireCachesByPlugId.clear();
+    this.busHost.bus?.emit({ type: "juncture:requestScopeDisposed" });
   }
 }

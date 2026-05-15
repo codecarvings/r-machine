@@ -94,7 +94,8 @@ export type JunctureEvent =
   | { type: "juncture:invalidationStart"; rootNamespace: AnyNamespace; closure: readonly AnyNamespace[] }
   | { type: "juncture:subscribersNotified"; namespace: AnyNamespace; subscriberCount: number }
   | { type: "juncture:subscribed"; namespaces: readonly AnyNamespace[] }
-  | { type: "juncture:unsubscribed"; namespaces: readonly AnyNamespace[] };
+  | { type: "juncture:unsubscribed"; namespaces: readonly AnyNamespace[] }
+  | { type: "juncture:requestScopeDisposed" };
 
 // ─── GateWire events ────────────────────────────────────────────────────
 

@@ -77,6 +77,7 @@ const testConfig: RMachineConfig<TestAtlas, string, TestResEquipment, {}> = {
   // runtime holds whatever the caller passes (the class, or — in this test —
   // a plain empty object). Cast to match the generic.
   resourceAtlas: {} as unknown as TestAtlas,
+  instanceName: "test",
   locales: ["en", "it"],
   defaultLocale: "en",
   load: async () => ({ r: {} }),

@@ -14,7 +14,7 @@
 "use client";
 
 import type { VertexFrameType } from "@r-machine/react/core";
-import { createReactBareToolset } from "@r-machine/react/core";
+import { createReactBareToolset, RequestScopeContext } from "@r-machine/react/core";
 import { usePathname, useRouter } from "next/navigation";
 import type { RMachine } from "r-machine";
 import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
@@ -27,6 +27,7 @@ import type {
   NextClientPlugDefiner,
   NextClientPlugKitMap,
 } from "#r-machine/next/core";
+import { lookupScope } from "./scope-registry.js";
 
 export type NextAppClientToolset<
   RA extends AnyResAtlas,
@@ -47,6 +48,11 @@ export type NextAppClientRMachine<L extends AnyLocale> = (props: NextAppClientRM
 interface NextAppClientRMachineProps<L extends AnyLocale> {
   readonly locale: L;
   readonly children: ReactNode;
+  // Opaque per-request id set by NextServerRMachine. NextClientRMachine
+  // resolves it (server-side via the globalThis registry, browser-side
+  // unavailable so resolves to null) and exposes the resulting RequestScope
+  // through RequestScopeContext for `useBareReactPlug` to consume.
+  readonly scopeId?: string;
 }
 
 export interface NextAppClientImpl<L extends AnyLocale> {
@@ -79,13 +85,25 @@ export async function createNextAppClientToolset<
     Plug: BasePlug,
   } = await createReactBareToolset(rMachine as RMachine<RA, L, E, { outerGear: "on" }>, clientKit);
 
-  function NextClientRMachine({ locale, children }: NextAppClientRMachineProps<L>) {
+  function NextClientRMachine({ locale, scopeId, children }: NextAppClientRMachineProps<L>) {
     useEffect(() => {
       if (impl.onLoad !== undefined) {
         return impl.onLoad(locale);
       }
     }, [locale]);
-    return <ReactRMachine locale={locale}>{children}</ReactRMachine>;
+
+    // Resolve the per-request scope from the global registry. On the server
+    // (SSR pass for this client component), the registry was populated by
+    // NextServerRMachine; on the browser, `globalThis` is a different
+    // instance with an empty registry, so this falls through to null and
+    // the JM uses its process-tier slots map.
+    const scope = typeof scopeId === "string" ? lookupScope(scopeId) : null;
+
+    return (
+      <RequestScopeContext.Provider value={scope}>
+        <ReactRMachine locale={locale}>{children}</ReactRMachine>
+      </RequestScopeContext.Provider>
+    );
   }
 
   const ClientPlug = ((...args: unknown[]) => {

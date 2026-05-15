@@ -35,6 +35,8 @@ import {
   type InternalEventBus,
   JunctureManager,
   type PluginCtxAugmenter,
+  type RequestScope,
+  type RequestScopeProvider,
   type ResComposerConnector,
   type ResEquipment,
   ResLayoutResolver,
@@ -181,6 +183,53 @@ export class RMachine<
     return this.junctureManager.getPlugin(kit, nsDeps, locale, augmentCtx, [], 0, undefined);
   }
 
+  // Install a provider that JM consults to discover the active request scope
+  // (e.g. an AsyncLocalStorage-backed lookup in @r-machine/next). Outer/Vertex
+  // slot accesses route to the scope's maps when one is active; otherwise
+  // they fall back to the process-tier slots. Adapter packages call this once
+  // at toolset construction. Subsequent installs replace the previous provider
+  // (single-adapter assumption).
+  installRequestScopeProvider(p: RequestScopeProvider): void {
+    this.junctureManager.setScopeProvider(p);
+  }
+
+  // Returns the currently installed provider (the no-op `PROCESS_SCOPE_PROVIDER`
+  // by default). The React adapter uses this to discover the request-scoped
+  // wireCache map on the server during SSR of client components.
+  getScopeProvider(): RequestScopeProvider {
+    return this.junctureManager.getScopeProvider();
+  }
+
+  // Tears down all Outer-tier slots created within a request scope, in
+  // dispose-safe order (dependents before dependencies). Invoked by adapter
+  // packages at end of render (e.g. Next's `after()` callback in
+  // `NextServerRMachine`). Errors are caught per-slot — one broken teardown
+  // doesn't abort the rest.
+  disposeRequestScope(scope: RequestScope): void {
+    this.junctureManager.disposeRequestScope(scope);
+  }
+
+  // `RMachine.create` is intended to produce a single canonical instance per
+  // (process, instanceName) pair. In environments where multiple module-loads
+  // can occur within a single Node process — Next App Router bundles
+  // `setup.ts` separately for middleware, server components, client component
+  // SSR, etc. (Turbopack evaluates the same file once per bundle context) —
+  // naive instantiation would yield distinct RMachine objects that don't
+  // share JM state. This breaks request scoping (the install side and the
+  // resolve side would reference different JMs) and any other singleton-by-
+  // intent state.
+  //
+  // The fix: cache the instance on `globalThis` under a `Symbol.for` key
+  // derived from the user-supplied `instanceName`. All bundle contexts in the
+  // same Node process see the same instance. Browsers get their own
+  // `globalThis`, so the client runtime instantiates its own copy — which is
+  // correct (the browser is a separate runtime, no shared state with the
+  // server). Vitest workers and other Node processes likewise get their own
+  // instance — also correct (isolated test environments).
+  //
+  // To run multiple distinct RMachines in the same process (rare — e.g. a
+  // monorepo that runs several apps in one Node, or test scenarios that need
+  // parallel isolated instances), give each call a unique `instanceName`.
   static create<
     RAC extends AnyResAtlasClass,
     const LL extends AnyLocaleList,
@@ -191,9 +240,18 @@ export class RMachine<
   >(
     config: RMachineConfigParams<RAC, LL, BGL, GK, SK, EF>
   ): RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF> {
-    return new RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF>(
+    type Out = RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF>;
+    const key = Symbol.for(`@r-machine/instance:${config.instanceName}`);
+    const slot = globalThis as unknown as Record<symbol, Out | undefined>;
+    const existing = slot[key];
+    if (existing) {
+      return existing;
+    }
+    const created = new RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF>(
       convertParamsToConfig(config)
     );
+    slot[key] = created;
+    return created;
   }
 }
 

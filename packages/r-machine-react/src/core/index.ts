@@ -31,5 +31,6 @@ export {
   type ReactImpl,
   type ReactToolset,
 } from "./react-toolset.js";
+export { RequestScopeContext } from "./scope-context.js";
 
 export type VertexFrameType = typeof VertexFrame;

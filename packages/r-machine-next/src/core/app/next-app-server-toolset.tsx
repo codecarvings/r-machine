@@ -23,7 +23,7 @@ import type {
   PluginCtxAugmenter,
   ResEquipment,
 } from "r-machine/core";
-import { createPlug, getNamespaceList, getNamespaceMap, getPlugOutline } from "r-machine/core";
+import { createPlug, createRequestScope, getNamespaceList, getNamespaceMap, getPlugOutline } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
@@ -115,8 +115,24 @@ export async function createNextAppServerToolset<
   // (next/headers only works in Server Components / App Router).
   const { cookies, headers } = await import("next/headers");
 
+  // Dynamic import: the request-scope and scope-registry modules are
+  // server-side coordination plumbing. The provider is installed on the
+  // rMachine once at toolset construction; per-request entry/dispose happens
+  // inside `NextServerRMachine` below.
+  const { nextRequestScopeProvider } = await import("./request-scope.js");
+  const { registerScope, unregisterScope } = await import("./scope-registry.js");
+
   const rMachineProxy = await impl.createProxy();
   const generateLocaleStaticParams = await impl.createLocaleStaticParamsGenerator();
+
+  // Install the ALS-backed scope provider on the shared RMachine. The JM
+  // will now route Outer/Vertex slot resolutions to a per-request map when
+  // one is active (see `NextServerRMachine` below). Base/Inner/Shell stay
+  // process-cached and unaffected. A single toolset construction per Next
+  // app process is assumed; subsequent installs replace the previous
+  // provider, which is fine for hot-reload but indicates a misuse in
+  // production.
+  rMachine.installRequestScopeProvider(nextRequestScopeProvider);
 
   const getContext = cache((): NextAppServerRMachineContext<L> => {
     return {
@@ -160,7 +176,45 @@ export async function createNextAppServerToolset<
 
   async function NextServerRMachine({ children }: NextAppServerRMachineProps) {
     validateServerOnlyUsage("NextServerRMachine");
-    return <NextClientRMachine locale={await getLocale()}>{children}</NextClientRMachine>;
+
+    // Create a fresh request scope for this render. The scope holds the
+    // OuterGear slot map plus per-Plug wireCaches; it's request-scoped so the
+    // server's render-time `setInterval`s, action listeners, etc. get disposed
+    // at end of response and don't leak across requests.
+    //
+    // The scope itself can't be passed as a prop to a client component (Maps
+    // aren't serializable across the server→client boundary). Instead we
+    // register it under a UUID and pass the UUID as a prop; the client
+    // component (server-SSR'd in the same Node process) looks it back up via
+    // `lookupScope` and exposes it through `RequestScopeContext` so
+    // `useBareReactPlug` can install it as the JM scope-provider's override.
+    const scope = createRequestScope();
+    const scopeId = crypto.randomUUID();
+    registerScope(scopeId, scope);
+
+    // Dynamic import: `next/server` is only available in App Router server
+    // contexts. Static import would fail at module load in Pages Router or
+    // certain edge-runtime configurations.
+    const { after } = await import("next/server");
+
+    // Tear down at end-of-response. `after()` runs the callback after the
+    // response has been streamed to the client. Wrapped in try/catch because
+    // dispose is best-effort cleanup: a single broken teardown must not throw
+    // out of `after()` and disturb other registered callbacks.
+    after(() => {
+      try {
+        rMachine.disposeRequestScope(scope);
+      } catch (e) {
+        console.error("[r-machine/next] disposeRequestScope failed", e);
+      }
+      unregisterScope(scopeId);
+    });
+
+    return (
+      <NextClientRMachine locale={await getLocale()} scopeId={scopeId}>
+        {children}
+      </NextClientRMachine>
+    );
   }
 
   const localeCache = new Map<AnyLocale, L>();
