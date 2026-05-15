@@ -142,14 +142,27 @@ function createGateWire(
         if (subscribers.size === 0 && unsubFromJm !== null) {
           unsubFromJm();
           unsubFromJm = null;
-          // NOTE: do NOT clear cassetteUnsubs or eject the cassette here.
-          // Under React Strict Mode dev, useSyncExternalStore performs a
-          // subscribe → unsubscribe → subscribe dance at mount. Tearing the
-          // cassette deps down on the intermediate unsubscribe would orphan
-          // the cell subscriptions installed by commit() — the resubscribe
-          // would only restore the React notify channel, not the cassette
-          // deps. Cassette subs are owned by the commit lifecycle (replaced
-          // on each re-commit), not by the wire-subscriber count.
+          // Cassette subs (cell-level subscriptions installed by commit()) are
+          // NOT cleared synchronously here. React Strict Mode performs a
+          // subscribe → unsubscribe → subscribe dance at mount; the
+          // intermediate unsubscribe must NOT tear cassette deps down, or the
+          // resubscribe (which only restores the React notify channel) would
+          // leave the consumer without cell subscriptions.
+          //
+          // Instead, defer the cleanup to a microtask. If a resubscribe lands
+          // in the same tick (Strict Mode case), `subscribers.size > 0` at
+          // microtask time and we skip. If no resubscribe arrives (HMR case:
+          // the parent Plug body has been replaced by Fast Refresh, so this
+          // wire is permanently abandoned), we clear the cassette subs and
+          // break the otherwise-stranded `cell.subscribers → notify →
+          // forceRerenderRef` reference chain that would keep firing
+          // re-renders on the live component every time a tracked cell
+          // mutates.
+          queueMicrotask(() => {
+            if (subscribers.size === 0) {
+              clearCassetteSubs();
+            }
+          });
           const vertexSlotsDisposed = junctureManager.disposeAllVertexSlotsByGenId(genId);
           if (vertexSlotsDisposed > 0) {
             // Vertex slots created by this wire's prior resolves are gone, so

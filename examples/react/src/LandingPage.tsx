@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Box3 from "./components/client/Box3";
 import Exp from "./components/client/Exp";
+import Exp2 from "./components/client/Exp2";
 import FeatureBox from "./components/client/FeatureBox";
 import FeatureBoxLoading from "./components/client/FeatureBoxLoading";
 import Footer from "./components/client/Footer";
@@ -12,7 +13,6 @@ import { Plug } from "./r-machine/toolset";
 export const plug = Plug("shell/landing-page", "shell/features/box_1_2", "shell/common");
 export default function LandingPage() {
   const [page, boxes, common] = plug.useR();
-  console.log("LandingPage render");
 
   return (
     <div className="min-h-screen bg-background">
@@ -23,6 +23,7 @@ export default function LandingPage() {
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <div className="max-w-6xl mx-auto">
           <Exp />
+          <Exp2 />
         </div>
       </section>
 
