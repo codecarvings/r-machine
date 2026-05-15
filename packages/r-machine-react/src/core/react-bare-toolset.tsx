@@ -136,26 +136,35 @@ export async function createReactBareToolset<
     // useState's lazy initializer runs again on every render attempt that
     // suspends before commit, which would create a new wire (and a new
     // pending promise) every retry, leading to an infinite suspend loop.
-    // Caching the wire by (locale, vertexGearMap) keeps the same promise
-    // identity across retries, so React.use() can settle.
-    const wireCache = new Map<string, GateWire>();
+    //
+    // The cache is keyed by vertexGearMap signature only — NOT by locale.
+    // Locale changes route through `wire.updateRequest()`, which preserves
+    // wire identity. This matters for two reasons:
+    //   1. useSyncExternalStore stays subscribed across locale changes
+    //      instead of unsubscribing the old wire (which would orphan its
+    //      cassette subscriptions to cells, causing extra forceRerender
+    //      dispatches and useReducer bailouts on surviving consumers).
+    //   2. The wire's cassette state survives, so we don't leak cell
+    //      subscriptions across locale switches.
+    type WireEntry = { wire: GateWire; localeHolder: { current: L } };
+    const wireCache = new Map<string, WireEntry>();
     const getOrCreateWire = (locale: L, vertexGearMap: ReturnType<typeof useVertexFrame>): GateWire => {
-      const vgmSig = vertexGearMap
+      const key = vertexGearMap
         ? Object.entries(vertexGearMap)
             .map(([k, v]) => `${k}=${v}`)
             .join(",")
         : "";
-      const key = `${locale}|${vgmSig}`;
-      let wire = wireCache.get(key);
-      if (!wire) {
-        // augmentCtx is created per-wire so that `locale` is bound to the
-        // wire's identity. Reading `locale` from a shared ref would race
-        // with concurrent renders in other locales — the wire could end up
-        // emitting a plugin whose `$.locale` doesn't match its cache key.
+      let entry = wireCache.get(key);
+      if (!entry) {
+        // augmentCtx reads locale dynamically from `localeHolder.current` so
+        // that wire.updateRequest's re-resolve picks up the new locale on
+        // the $ context. JM calls augmentCtx fresh for every buildPlugin
+        // pass, so the latest holder value always wins.
+        const localeHolder = { current: locale };
         const augmentCtx: PluginCtxAugmenter = ($: any) => {
-          $.locale = locale;
+          $.locale = localeHolder.current;
           $.setLocale = async (newLocale: L) => {
-            if (newLocale === locale) {
+            if (newLocale === localeHolder.current) {
               return;
             }
             const error = validateLocale(newLocale);
@@ -175,10 +184,14 @@ export async function createReactBareToolset<
             }
           };
         };
-        wire = rMachine.getGateWire(kit, nsDeps, locale, augmentCtx, vertexGearMap);
-        wireCache.set(key, wire!);
+        const wire = rMachine.getGateWire(kit, nsDeps, locale, augmentCtx, vertexGearMap);
+        entry = { wire, localeHolder };
+        wireCache.set(key, entry);
+      } else if (entry.localeHolder.current !== locale) {
+        entry.localeHolder.current = locale;
+        entry.wire.updateRequest(locale, vertexGearMap);
       }
-      return wire!;
+      return entry.wire;
     };
 
     // Fallback context used when the real context is momentarily null (e.g.
@@ -205,7 +218,16 @@ export async function createReactBareToolset<
       // channel and busts the plugin Promise identity) so cassette mutations
       // do not force a Suspense throw + retry of the consumer's subtree on
       // every state change.
-      const [, forceRerender] = useReducer((c: boolean) => !c, false);
+      //
+      // The reducer increments a counter rather than toggling a boolean.
+      // This is defense-in-depth against useReducer bailout: when multiple
+      // notify callbacks fire within the same batch (e.g. an HMR cycle
+      // leaves a stale wire whose cassette subs survive alongside the
+      // current wire's, so a cell publish fans out to N notifies), N
+      // dispatches with `!c` toggling return to the start and React skips
+      // the commit. With a counter, N dispatches always change the state
+      // by N, so a commit is guaranteed regardless of fan-out.
+      const [, forceRerender] = useReducer((c: number) => c + 1, 0);
       const forceRerenderRef = useRef<() => void>(forceRerender);
       forceRerenderRef.current = forceRerender;
 

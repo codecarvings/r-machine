@@ -210,13 +210,26 @@ function createGateWire(
       dirty = true;
       busHost.bus?.emit({ type: "gateWire:markedDirty", genId, subscriberCount: subscribers.size });
 
-      for (const cb of subscribers) {
-        try {
-          cb();
-        } catch (e) {
-          console.error(e);
+      // Defer subscriber notification. updateRequest is typically invoked
+      // mid-render (a React consumer switching locale calls it from inside
+      // its render function). Firing useSyncExternalStore's internal store-
+      // changed callbacks synchronously here would scheduleUpdateOnFiber on
+      // those subscribed components mid-render, which React flags as "Cannot
+      // update a component while rendering a different component."
+      // The current render already picks up the new plugin promise via
+      // getPluginPromise (it sees dirty=true on the next getSnapshot read
+      // and re-resolves), so React's tearing prevention is unaffected. The
+      // deferred fire is for non-useSyncExternalStore subscribers (if any)
+      // that don't poll getSnapshot every render.
+      queueMicrotask(() => {
+        for (const cb of subscribers) {
+          try {
+            cb();
+          } catch (e) {
+            console.error(e);
+          }
         }
-      }
+      });
     },
   };
 }

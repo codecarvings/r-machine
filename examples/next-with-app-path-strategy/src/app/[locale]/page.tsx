@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Box3 from "@/components/client/box3";
+import { Exp } from "@/components/client/Exp";
 import FeaturesTitle from "@/components/client/features-title";
 import IntlDemo from "@/components/client/intl-demo";
 import FeatureBox from "@/components/server/feature-box";
@@ -14,6 +15,12 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
   return (
     <>
       <Hero />
+
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+        <div className="max-w-6xl mx-auto">
+          <Exp />
+        </div>
+      </section>
 
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <div className="max-w-6xl mx-auto">

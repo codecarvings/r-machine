@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Box3 from "./components/client/Box3";
-import { Exp } from "./components/client/Exp";
+import Exp from "./components/client/Exp";
 import FeatureBox from "./components/client/FeatureBox";
 import FeatureBoxLoading from "./components/client/FeatureBoxLoading";
 import Footer from "./components/client/Footer";
@@ -22,13 +22,15 @@ export default function LandingPage() {
 
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <div className="max-w-6xl mx-auto">
+          <Exp />
+        </div>
+      </section>
+
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center space-y-4 mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">{page.features.title}</h2>
             <p className="text-lg text-muted-foreground">{page.features.subtitle}</p>
-          </div>
-
-          <div className="my-12">
-            <Exp />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

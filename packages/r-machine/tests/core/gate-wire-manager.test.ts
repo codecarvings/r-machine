@@ -283,7 +283,7 @@ describe("GateWireManager — updateRequest", () => {
     expect(mock.disposeOwnershipCalls).toEqual([]);
   });
 
-  it("on locale change, marks dirty and reresolves with the new locale on next read; subscribers notified (no vertex dispose)", () => {
+  it("on locale change, marks dirty and reresolves with the new locale on next read; subscribers notified (no vertex dispose)", async () => {
     const mock = createMockJm();
     const gwm = new GateWireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
     const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
@@ -297,10 +297,17 @@ describe("GateWireManager — updateRequest", () => {
 
     // Lazy: no reresolve yet.
     expect(mock.getPluginCalls).toHaveLength(1);
-    // React subscribers notified synchronously.
-    expect(cb).toHaveBeenCalledOnce();
     // No vertex dispose for a pure locale change.
     expect(mock.disposeOwnershipCalls).toEqual([]);
+
+    // Subscribers notified after a microtask. updateRequest is typically
+    // invoked mid-render (a consumer switching locale calls it from inside
+    // its render fn); deferring shields React from "Cannot update a
+    // component while rendering a different component" warnings when those
+    // subscribers are useSyncExternalStore callbacks.
+    expect(cb).not.toHaveBeenCalled();
+    await Promise.resolve();
+    expect(cb).toHaveBeenCalledOnce();
 
     // Next read triggers reresolve with the new locale.
     wire.getPluginPromise();

@@ -109,10 +109,12 @@ const defaultPlugResolve: PlugResolve<any> = () => {
   throw new RMachineResolveError(ERR_RESOLVE_FAILED, "Plug resolve not set.");
 };
 export function createPlug<H extends AnyPlugHead>(head: H): PlugBody<H> {
-  return {
-    [plugHeadSymbol]: head,
-    [plugResolveSymbol]: defaultPlugResolve as PlugResolve<H>,
-  };
+  // Workaround for HMR warnings (export not being a React component)
+  function Plug() {}
+  Plug.displayName = "RMachinePlug";
+  (Plug as any)[plugHeadSymbol] = head;
+  (Plug as any)[plugResolveSymbol] = defaultPlugResolve as PlugResolve<H>;
+  return Plug as unknown as PlugBody<H>;
 }
 
 export function getPlugHead<H extends AnyPlugHead>(plug: PlugBody<H>): H {
