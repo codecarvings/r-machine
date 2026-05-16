@@ -53,6 +53,17 @@ import {
 } from "./r-machine-config.js";
 import { localized, type RMachineToolset } from "./r-machine-toolset.js";
 
+// Ambient `process` is not in the package's type surface (no @types/node —
+// r-machine is kept runtime-agnostic). Declare the slice we read so we can
+// reference `process.env.NODE_ENV` and let consumer bundlers (Vite, webpack,
+// Next/Turbopack) statically replace it at build time, while the `typeof`
+// guard keeps it safe on the browser where bundlers don't replace.
+declare const process: { env: { NODE_ENV?: string } } | undefined;
+
+function isDevEnv(): boolean {
+  return typeof process !== "undefined" && process.env.NODE_ENV !== "production";
+}
+
 export class RMachine<
   RA extends AnyResAtlas,
   L extends AnyLocale,
@@ -76,7 +87,12 @@ export class RMachine<
         shell: Object.values(this.config.equipment.shellKit),
       },
       this.config.priority,
-      this.busHost
+      this.busHost,
+      // Bypass blueprint cache in dev: Node/Turbopack hot-reload their module
+      // cache on file change, but our cached Blueprint still wraps the prior
+      // factory closure, causing server SSR to render stale output and break
+      // hydration. Cache stays on in production.
+      isDevEnv()
     );
     this.junctureManager = new JunctureManager(
       resLayoutResolver,

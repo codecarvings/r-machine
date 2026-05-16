@@ -15,6 +15,7 @@
       "#r-machine/next/app/flat": ["./src/app/flat"],
       "#r-machine/next/app/origin": ["./src/app/origin"],
       "#r-machine/next/app/path": ["./src/app/path"],
+      "#r-machine/next/dev": ["./src/dev"],
       "#r-machine/next": ["./src/lib"],
     }
   }

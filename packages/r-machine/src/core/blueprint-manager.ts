@@ -53,7 +53,16 @@ export class BlueprintManager {
       [F in ResFamily]: AnyNamespaceList;
     },
     priority: AnyNamespaceList,
-    protected busHost: BusHost
+    protected busHost: BusHost,
+    // When true, every getBlueprint() call evicts any resolved-Blueprint entry
+    // for the requested namespace before serving — forcing a fresh module
+    // import. Used in dev to break HMR staleness: Node/Turbopack invalidate
+    // their import cache on file change, but a cached Blueprint still
+    // references the prior factory closure, leading to server SSR rendering
+    // stale output and producing a hydration mismatch on the next request.
+    // In-flight Promises in the cache are NOT evicted, so concurrent resolves
+    // within a single request still share work.
+    protected readonly bypassCache: boolean = false
   ) {
     this.priorityIndex = new Map();
     for (let i = 0; i < priority.length; i++) {
@@ -247,7 +256,14 @@ export class BlueprintManager {
       );
     }
 
-    const cached = this.cache.get(key);
+    let cached = this.cache.get(key);
+    if (this.bypassCache && cached !== undefined && !(cached instanceof Promise)) {
+      // Resolved blueprint in cache — under dev mode, evict and force a fresh
+      // resolve so the latest module version (Node/Turbopack already
+      // hot-reloaded its module cache on file change) is picked up.
+      this.evictBlueprint(namespace);
+      cached = undefined;
+    }
     if (cached !== undefined) {
       if (cached instanceof Promise && chain.length > 0) {
         for (const ancestor of chain) {

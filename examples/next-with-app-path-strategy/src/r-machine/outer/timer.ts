@@ -9,11 +9,13 @@ export const r = OuterGear.withDeps("base/session")
       inc();
     }, 1000);
 
+    const marker = "3";
+
     return managed(
       {
         value: _.getter(),
         valueWithSession: _.getter(() => {
-          return `${session.getSession()} - ${$.state}`;
+          return `${session.getSession()} - ${marker} - ${$.state}`;
         }),
       },
       () => {
