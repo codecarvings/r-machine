@@ -89,7 +89,6 @@ describe("ResModuleLoaderFn", () => {
       namespaceParts: ["", "ns"],
       pathParts: [],
       locale: undefined,
-      onUpdate: () => {},
     });
   });
 });

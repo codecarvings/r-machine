@@ -57,7 +57,7 @@ export class JunctureManager {
     protected blueprintManager: BlueprintManager,
     protected busHost: BusHost
   ) {
-    blueprintManager.setOnInvalidate((ns) => this.invalidate(ns));
+    blueprintManager.setOnInvalidate((ns, locale) => this.invalidate(ns, locale));
   }
 
   // Process-tier slots: Base + Inner + Shell live here for the lifetime of the
@@ -429,31 +429,48 @@ export class JunctureManager {
     this.disposeSlotIn(this.slots, key);
   }
 
-  invalidate(ns: AnyNamespace): void {
+  invalidate(ns: AnyNamespace, locale?: AnyLocale | undefined): void {
     // The closure is iterated in dispose-safe order: dependents first, ns last.
     // (See BlueprintManager.getReverseClosure.)
     const closure = this.blueprintManager.getReverseClosure(ns);
-    this.busHost.bus?.emit({ type: "juncture:invalidationStart", rootNamespace: ns, closure: [...closure] });
+    this.busHost.bus?.emit({
+      type: "juncture:invalidationStart",
+      rootNamespace: ns,
+      locale,
+      closure: [...closure],
+    });
     // 1. Bump generation for every namespace in the closure. An in-flight
     //    resolve started before this point will see the new generation at its
-    //    completion check and discard its juncture.
+    //    completion check and discard its juncture. Generation is
+    //    namespace-only — locale-scoped invalidation still bumps the whole
+    //    namespace, so wires rendering in any locale observe staleness and
+    //    re-resolve (re-resolves of unaffected locales hit the still-cached
+    //    blueprint and produce the same plugin, so the work is bounded).
     for (const n of closure) {
       this.generationByNs.set(n, (this.generationByNs.get(n) ?? 0) + 1);
     }
     // 2. Eager dispose of resolved slots in the closure (teardown invoked).
     //    Group slot keys by namespace once, then walk the closure in dispose
     //    order — A is disposed before B if A depends on B, so A's teardown
-    //    can safely reference resources held by B.
+    //    can safely reference resources held by B. When `locale` is given,
+    //    shell slots are filtered to that locale (their key is prefixed
+    //    `S:${locale}\x1f`); non-shell slots have locale-agnostic keys and
+    //    are always included.
+    const shellLocalePrefix = locale !== undefined ? `S:${locale}\x1f` : undefined;
     const keysByNs = new Map<AnyNamespace, string[]>();
     for (const slot of this.slots.values()) {
-      if (closure.has(slot.namespace)) {
-        let keys = keysByNs.get(slot.namespace);
-        if (!keys) {
-          keys = [];
-          keysByNs.set(slot.namespace, keys);
-        }
-        keys.push(slot.key);
+      if (!closure.has(slot.namespace)) {
+        continue;
       }
+      if (shellLocalePrefix !== undefined && slot.key.startsWith("S:") && !slot.key.startsWith(shellLocalePrefix)) {
+        continue;
+      }
+      let keys = keysByNs.get(slot.namespace);
+      if (!keys) {
+        keys = [];
+        keysByNs.set(slot.namespace, keys);
+      }
+      keys.push(slot.key);
     }
     for (const n of closure) {
       const keys = keysByNs.get(n);
@@ -465,8 +482,10 @@ export class JunctureManager {
     }
     // 3. Evict blueprints in the closure (must happen before notify so any
     //    re-resolve triggered by a subscriber callback loads fresh modules).
+    //    Locale scope is forwarded — evictBlueprint applies it only when the
+    //    layout entry is locale-keyed (i.e. `shell`).
     for (const n of closure) {
-      this.blueprintManager.evictBlueprint(n);
+      this.blueprintManager.evictBlueprint(n, locale);
     }
     // 4. Notify subscribers. The "subscribersNotified" event fires BEFORE the
     //    callbacks run so the test transcript reads: notify → callback effects.

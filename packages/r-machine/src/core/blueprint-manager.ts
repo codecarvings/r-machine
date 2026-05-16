@@ -75,14 +75,22 @@ export class BlueprintManager {
   protected readonly forwardDeps = new Map<AnyNamespace, Set<AnyNamespace>>();
   protected readonly reverseDeps = new Map<AnyNamespace, Set<AnyNamespace>>();
   protected readonly keysByNs = new Map<AnyNamespace, Set<string>>();
+  // Reverse index path → { namespace, locale }, recorded at loadModule time.
+  // The host's HMR hook calls `reloadModule(path)` with the same `path` the
+  // loader received as its first argument; this map turns it back into the
+  // pair needed to drive the invalidate cascade. `locale` is recorded only
+  // when the layout entry is locale-keyed (`shell`) — for everything else
+  // the file identity does not depend on locale, so we store `undefined` and
+  // the cascade falls back to full-namespace scope.
+  protected readonly nsByPath = new Map<string, { namespace: AnyNamespace; locale: AnyLocale | undefined }>();
   // Lower index = higher priority. Namespaces not in the priority list are
   // absent from this map. Currently unused — predisposition for the future
   // deterministic relay system, where sibling-update order will need to
   // respect user-declared priority.
   protected readonly priorityIndex: Map<AnyNamespace, number>;
-  protected onInvalidate?: (ns: AnyNamespace) => void;
+  protected onInvalidate?: (ns: AnyNamespace, locale: AnyLocale | undefined) => void;
 
-  setOnInvalidate(callback: (ns: AnyNamespace) => void): void {
+  setOnInvalidate(callback: (ns: AnyNamespace, locale: AnyLocale | undefined) => void): void {
     this.onInvalidate = callback;
   }
 
@@ -121,11 +129,14 @@ export class BlueprintManager {
       namespaceParts,
       pathParts: [prefix, path.slice(prefix.length)],
       locale,
-      onUpdate: () => {
-        this.busHost.bus?.emit({ type: "blueprint:moduleInvalidated", namespace });
-        this.onInvalidate?.(namespace);
-      },
     };
+    // Only locale-keyed entries (`shell`) record the locale: for everything
+    // else the file is shared across locales, so any incoming `reloadModule`
+    // must invalidate the whole namespace.
+    this.nsByPath.set(path, {
+      namespace,
+      locale: layoutEntryType === "shell" ? locale : undefined,
+    });
     const module = await this.loadResModuleFn(path, options);
     this.busHost.bus?.emit({ type: "blueprint:moduleLoaded", namespace, locale });
     const error = validateResModule(module);
@@ -350,7 +361,29 @@ export class BlueprintManager {
     return result;
   }
 
-  evictBlueprint(ns: AnyNamespace): void {
+  evictBlueprint(ns: AnyNamespace, locale?: AnyLocale | undefined): void {
+    const layoutType = this.resLayoutResolver.resolveLayoutEntryType(ns);
+    // Locale-scoped eviction is meaningful only for `shell` (the one
+    // locale-keyed layout type). For any other entry type the cache key is
+    // locale-agnostic, so a `locale` argument is ignored and we fall through
+    // to the full-namespace eviction below.
+    if (locale !== undefined && layoutType === "shell") {
+      const targetKey = getBlueprintResCacheKey(ns, locale, layoutType);
+      const keys = this.keysByNs.get(ns);
+      const removed = this.cache.delete(targetKey);
+      const keyCount = removed ? 1 : 0;
+      if (keys) {
+        keys.delete(targetKey);
+        if (keys.size === 0) {
+          this.keysByNs.delete(ns);
+        }
+      }
+      // Dep graph is namespace-level and survives per-locale eviction: other
+      // locales of this shell may still be cached, and dependents still
+      // reference `ns` regardless of locale.
+      this.busHost.bus?.emit({ type: "blueprint:evicted", namespace: ns, locale, keyCount });
+      return;
+    }
     const keys = this.keysByNs.get(ns);
     const keyCount = keys?.size ?? 0;
     if (keys) {
@@ -370,6 +403,17 @@ export class BlueprintManager {
     // current cascade closure and gets evicted in this same pass — its own
     // forwardDeps cleanup removes it from reverseDeps[ns]. Edges are rebuilt
     // when those dependents are re-loaded.
-    this.busHost.bus?.emit({ type: "blueprint:evicted", namespace: ns, keyCount });
+    this.busHost.bus?.emit({ type: "blueprint:evicted", namespace: ns, locale: undefined, keyCount });
+  }
+
+  reloadModule(path: string): void {
+    const entry = this.nsByPath.get(path);
+    if (entry === undefined) {
+      // Module was never loaded under this path — nothing to invalidate.
+      return;
+    }
+    const { namespace, locale } = entry;
+    this.busHost.bus?.emit({ type: "blueprint:moduleInvalidated", namespace, locale });
+    this.onInvalidate?.(namespace, locale);
   }
 }

@@ -79,7 +79,7 @@ export class RMachine<
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
 
     const resLayoutResolver = new ResLayoutResolver(this.config.layout);
-    const blueprintManager = new BlueprintManager(
+    this.blueprintManager = new BlueprintManager(
       resLayoutResolver,
       this.config.load,
       {
@@ -97,7 +97,7 @@ export class RMachine<
     this.junctureManager = new JunctureManager(
       resLayoutResolver,
       this.config.equipment,
-      blueprintManager,
+      this.blueprintManager,
       this.busHost
     );
     this.cassetteRecorder = createCassetteRecorder();
@@ -117,6 +117,7 @@ export class RMachine<
 
   readonly localeHelper: LocaleHelper<L>;
   protected readonly config: RMachineConfig<RA, L, E, EF>;
+  protected readonly blueprintManager: BlueprintManager;
   protected readonly junctureManager: JunctureManager;
   protected readonly gateWireManager: GateWireManager;
   protected readonly cassetteRecorder!: CassetteRecorder;
@@ -223,6 +224,16 @@ export class RMachine<
   // doesn't abort the rest.
   disposeRequestScope(scope: RequestScope): void {
     this.junctureManager.disposeRequestScope(scope);
+  }
+
+  // Invalidate a resource module previously delivered via the loader. `path`
+  // is the same string the loader received as its first argument. Triggers
+  // the standard HMR cascade: bus event → cache eviction → generation bump
+  // → reactive notify. Hosts wire this into their bundler's HMR hook
+  // (e.g. `import.meta.hot.accept` in Vite). Paths that were never loaded
+  // are a no-op.
+  reloadModule(path: string): void {
+    this.blueprintManager.reloadModule(path);
   }
 
   // `RMachine.create` is intended to produce a single canonical instance per

@@ -83,12 +83,10 @@ interface EnvOptions {
 }
 
 function createEnv(options: EnvOptions) {
-  const callbacks = new Map<string, () => void>();
   let jm!: JunctureManager;
 
   const loader = async (_path: string, opts?: ResModuleLoaderFnOptions): Promise<AnyResModule> => {
     if (!opts) throw new Error("expected options");
-    callbacks.set(opts.namespace, opts.onUpdate);
     const factory = options.modules[opts.namespace];
     if (!factory) throw new Error(`No module for ${opts.namespace}`);
     return factory(() => jm);

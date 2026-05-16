@@ -123,7 +123,6 @@ interface JmTestEnvOptions {
 }
 
 function createJmTestEnv(options: JmTestEnvOptions) {
-  const callbacks = new Map<string, () => void>();
   const loadCalls: string[] = [];
 
   // jm is captured by the loader closure but only constructed below.
@@ -136,7 +135,6 @@ function createJmTestEnv(options: JmTestEnvOptions) {
       throw new Error("expected ResModuleLoaderFnOptions");
     }
     loadCalls.push(opts.namespace);
-    callbacks.set(opts.namespace, opts.onUpdate);
     const factory = options.modules[opts.namespace];
     if (!factory) {
       throw new Error(`No module registered for "${opts.namespace}"`);
@@ -188,12 +186,10 @@ function createJmTestEnv(options: JmTestEnvOptions) {
     jm,
     bmInternal,
     jmInternal,
-    triggerHmr: (ns: string) => {
-      const cb = callbacks.get(ns);
-      if (!cb) {
-        throw new Error(`No onUpdate captured for "${ns}"`);
-      }
-      cb();
+    triggerHmr: (ns: string, locale?: string) => {
+      const layoutType = resolver.resolveLayoutEntryType(ns as AnyNamespace);
+      const path = resolver.resolvePath(ns as AnyNamespace, locale, layoutType);
+      bm.reloadModule(path);
     },
     loadCalls,
     keyOf: (ns: string, locale?: string, genId?: number) =>
@@ -736,8 +732,8 @@ describe("JunctureManager — subscribe", () => {
   });
 });
 
-describe("JunctureManager — HMR end-to-end via BM onUpdate", () => {
-  it("HMR triggered through the loader's onUpdate flows into invalidate", async () => {
+describe("JunctureManager — HMR end-to-end via reloadModule", () => {
+  it("HMR triggered through bm.reloadModule flows into invalidate", async () => {
     const env = createJmTestEnv({
       modules: {
         "g/X": () => makeRawModule({ x: 1 }),
@@ -750,6 +746,30 @@ describe("JunctureManager — HMR end-to-end via BM onUpdate", () => {
 
     expect(env.jmInternal.generationByNs.get("g/X")).toBe(1);
     expect(env.jmInternal.slots.has(env.keyOf("g/X"))).toBe(false);
+  });
+
+  it("locale-scoped reloadModule disposes only the matching shell slot", async () => {
+    const env = createJmTestEnv({
+      modules: {
+        "s/Y": () => makeRawModule({ greeting: "hi" }),
+      },
+    });
+
+    await env.jmInternal.getJuncture("s/Y", "en", 0, undefined, []);
+    await env.jmInternal.getJuncture("s/Y", "it", 0, undefined, []);
+
+    const enKey = env.keyOf("s/Y", "en");
+    const itKey = env.keyOf("s/Y", "it");
+    expect(env.jmInternal.slots.has(enKey)).toBe(true);
+    expect(env.jmInternal.slots.has(itKey)).toBe(true);
+
+    // HMR on the `en` shell file: only the `en` slot must be disposed.
+    env.triggerHmr("s/Y", "en");
+
+    expect(env.jmInternal.slots.has(enKey)).toBe(false);
+    expect(env.jmInternal.slots.has(itKey)).toBe(true);
+    // Generation is namespace-only — both locales now read stale on next get.
+    expect(env.jmInternal.generationByNs.get("s/Y")).toBe(1);
   });
 });
 

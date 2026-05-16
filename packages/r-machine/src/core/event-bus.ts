@@ -56,8 +56,12 @@ export type BlueprintEvent =
       locale: AnyLocale | undefined;
       chain: readonly string[];
     }
-  | { type: "blueprint:evicted"; namespace: AnyNamespace; keyCount: number }
-  | { type: "blueprint:moduleInvalidated"; namespace: AnyNamespace };
+  | { type: "blueprint:evicted"; namespace: AnyNamespace; locale: AnyLocale | undefined; keyCount: number }
+  | {
+      type: "blueprint:moduleInvalidated";
+      namespace: AnyNamespace;
+      locale: AnyLocale | undefined;
+    };
 
 // ─── Juncture events ────────────────────────────────────────────────────
 
@@ -91,7 +95,12 @@ export type JunctureEvent =
   | { type: "juncture:vertexConsumerResolved"; namespace: AnyNamespace; consumerGenId: number }
   | { type: "juncture:vertexConsumerMissing"; namespace: AnyNamespace; genId: number }
   | { type: "juncture:vertexSlotRegistered"; namespace: AnyNamespace; genId: number }
-  | { type: "juncture:invalidationStart"; rootNamespace: AnyNamespace; closure: readonly AnyNamespace[] }
+  | {
+      type: "juncture:invalidationStart";
+      rootNamespace: AnyNamespace;
+      locale: AnyLocale | undefined;
+      closure: readonly AnyNamespace[];
+    }
   | { type: "juncture:subscribersNotified"; namespace: AnyNamespace; subscriberCount: number }
   | { type: "juncture:subscribed"; namespaces: readonly AnyNamespace[] }
   | { type: "juncture:unsubscribed"; namespaces: readonly AnyNamespace[] }

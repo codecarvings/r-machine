@@ -53,9 +53,6 @@ interface TestEnvOptions {
 }
 
 function createTestEnv(options: TestEnvOptions) {
-  // Captured onUpdate per ns. Fresh modules overwrite so the latest callback
-  // is always reachable — that mirrors what a real Vite plugin would do.
-  const callbacks = new Map<string, () => void>();
   const loadCalls: string[] = [];
 
   const loader = async (_path: string, opts?: ResModuleLoaderFnOptions): Promise<AnyResModule> => {
@@ -63,7 +60,6 @@ function createTestEnv(options: TestEnvOptions) {
       throw new Error("expected ResModuleLoaderFnOptions");
     }
     loadCalls.push(opts.namespace);
-    callbacks.set(opts.namespace, opts.onUpdate);
     const factory = options.modules[opts.namespace];
     if (!factory) {
       throw new Error(`No module registered for "${opts.namespace}"`);
@@ -85,12 +81,10 @@ function createTestEnv(options: TestEnvOptions) {
 
   return {
     bm,
-    triggerHmr: (ns: string) => {
-      const cb = callbacks.get(ns);
-      if (!cb) {
-        throw new Error(`No onUpdate captured for "${ns}"`);
-      }
-      cb();
+    triggerHmr: (ns: string, locale?: string) => {
+      const layoutType = resolver.resolveLayoutEntryType(ns as AnyNamespace);
+      const path = resolver.resolvePath(ns as AnyNamespace, locale, layoutType);
+      bm.reloadModule(path);
     },
     loadCalls,
     keyOf: (ns: string, locale?: string) => getBlueprintResCacheKey(ns, locale, resolver.resolveLayoutEntryType(ns)),
@@ -323,8 +317,8 @@ describe("BlueprintManager — evictBlueprint", () => {
   });
 });
 
-describe("BlueprintManager — HMR wiring", () => {
-  it("triggers onInvalidate when the captured onUpdate fires", async () => {
+describe("BlueprintManager — HMR wiring via reloadModule", () => {
+  it("triggers onInvalidate when reloadModule fires for a loaded path", async () => {
     const env = createTestEnv({
       modules: {
         "g/X": () => makeMatrixModule("gear", "inner", []),
@@ -338,6 +332,93 @@ describe("BlueprintManager — HMR wiring", () => {
     env.triggerHmr("g/X");
 
     expect(invalidated).toEqual(["g/X"]);
+  });
+
+  it("reloadModule on a never-loaded path is a no-op", () => {
+    const env = createTestEnv({
+      modules: {
+        "g/X": () => makeMatrixModule("gear", "inner", []),
+      },
+    });
+
+    const invalidated: AnyNamespace[] = [];
+    env.bm.setOnInvalidate((ns) => invalidated.push(ns));
+
+    env.bm.reloadModule("g/never-loaded");
+
+    expect(invalidated).toEqual([]);
+  });
+
+  it("reloadModule on a shell path invalidates the underlying namespace and forwards the locale", async () => {
+    const env = createTestEnv({
+      modules: {
+        "s/Y": () => makeRawModule({ greeting: "hi" }),
+      },
+    });
+
+    const invalidated: Array<[AnyNamespace, string | undefined]> = [];
+    env.bm.setOnInvalidate((ns, locale) => invalidated.push([ns, locale]));
+
+    await loadByNs(env, "s/Y", "en");
+    env.bm.reloadModule("s/Y/en");
+
+    expect(invalidated).toEqual([["s/Y", "en"]]);
+  });
+
+  it("reloadModule on a gear path forwards locale=undefined (gears are not locale-keyed)", async () => {
+    const env = createTestEnv({
+      modules: {
+        "g/X": () => makeMatrixModule("gear", "inner", []),
+      },
+    });
+
+    const invalidated: Array<[AnyNamespace, string | undefined]> = [];
+    env.bm.setOnInvalidate((ns, locale) => invalidated.push([ns, locale]));
+
+    await loadByNs(env, "g/X");
+    env.bm.reloadModule("g/X");
+
+    expect(invalidated).toEqual([["g/X", undefined]]);
+  });
+});
+
+describe("BlueprintManager — evictBlueprint locale scope", () => {
+  it("evicts only the matching locale entry for shells when locale is given", async () => {
+    const env = createTestEnv({
+      modules: {
+        "s/Y": () => makeRawModule({ greeting: "hi" }),
+      },
+    });
+
+    await loadByNs(env, "s/Y", "en");
+    await loadByNs(env, "s/Y", "it");
+
+    const { cache } = env.inspect();
+    expect(cache.has(env.keyOf("s/Y", "en"))).toBe(true);
+    expect(cache.has(env.keyOf("s/Y", "it"))).toBe(true);
+
+    env.bm.evictBlueprint("s/Y", "en");
+
+    expect(cache.has(env.keyOf("s/Y", "en"))).toBe(false);
+    expect(cache.has(env.keyOf("s/Y", "it"))).toBe(true);
+  });
+
+  it("falls back to full-namespace eviction when locale is given for a non-shell namespace", async () => {
+    const env = createTestEnv({
+      modules: {
+        "g/X": () => makeMatrixModule("gear", "inner", []),
+      },
+    });
+
+    await loadByNs(env, "g/X");
+
+    const { cache } = env.inspect();
+    expect(cache.has(env.keyOf("g/X"))).toBe(true);
+
+    // locale is ignored for non-shells.
+    env.bm.evictBlueprint("g/X", "en");
+
+    expect(cache.has(env.keyOf("g/X"))).toBe(false);
   });
 });
 

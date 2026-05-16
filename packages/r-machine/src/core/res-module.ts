@@ -25,7 +25,6 @@ export interface ResModuleLoaderFnOptions {
   readonly namespaceParts: NamespaceParts;
   readonly pathParts: string[];
   readonly locale: AnyLocale | undefined;
-  readonly onUpdate: () => void;
 }
 
 export type ResModuleLoaderFn = (path: string, options: ResModuleLoaderFnOptions) => Promise<AnyResModule>;
