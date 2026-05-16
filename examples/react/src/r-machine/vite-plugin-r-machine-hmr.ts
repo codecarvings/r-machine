@@ -21,16 +21,21 @@ export function rMachineHmr(): Plugin {
       if (!EXT_RE.test(file)) {
         return;
       }
-      if (type !== "update") {
-        return;
-      }
-
       const prefix = `${R_MACHINE_DIR}/`;
       if (!file.startsWith(prefix)) {
         return;
       }
       const relativePath = file.slice(prefix.length).replace(EXT_RE, "");
       if (!relativePath.includes("/")) {
+        return;
+      }
+
+      if (type === "delete") {
+        this.environment.hot.send({ type: "full-reload" });
+        return [];
+      }
+
+      if (type !== "update") {
         return;
       }
 

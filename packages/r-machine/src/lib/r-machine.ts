@@ -200,31 +200,33 @@ export class RMachine<
     return this.junctureManager.getPlugin(kit, nsDeps, locale, augmentCtx, [], 0, undefined);
   }
 
-  // Install a provider that JM consults to discover the active request scope
-  // (e.g. an AsyncLocalStorage-backed lookup in @r-machine/next). Outer/Vertex
-  // slot accesses route to the scope's maps when one is active; otherwise
-  // they fall back to the process-tier slots. Adapter packages call this once
-  // at toolset construction. Subsequent installs replace the previous provider
-  // (single-adapter assumption).
-  installRequestScopeProvider(p: RequestScopeProvider): void {
-    this.junctureManager.setScopeProvider(p);
-  }
+  readonly requestScope = {
+    // Install a provider that JM consults to discover the active request scope
+    // (e.g. an AsyncLocalStorage-backed lookup in @r-machine/next). Outer/Vertex
+    // slot accesses route to the scope's maps when one is active; otherwise
+    // they fall back to the process-tier slots. Adapter packages call this once
+    // at toolset construction. Subsequent installs replace the previous provider
+    // (single-adapter assumption).
+    installProvider: (p: RequestScopeProvider): void => {
+      this.junctureManager.setScopeProvider(p);
+    },
 
-  // Returns the currently installed provider (the no-op `PROCESS_SCOPE_PROVIDER`
-  // by default). The React adapter uses this to discover the request-scoped
-  // wireCache map on the server during SSR of client components.
-  getScopeProvider(): RequestScopeProvider {
-    return this.junctureManager.getScopeProvider();
-  }
+    // Returns the currently installed provider (the no-op `PROCESS_SCOPE_PROVIDER`
+    // by default). The React adapter uses this to discover the request-scoped
+    // wireCache map on the server during SSR of client components.
+    getProvider: (): RequestScopeProvider => {
+      return this.junctureManager.getScopeProvider();
+    },
 
-  // Tears down all Outer-tier slots created within a request scope, in
-  // dispose-safe order (dependents before dependencies). Invoked by adapter
-  // packages at end of render (e.g. Next's `after()` callback in
-  // `NextServerRMachine`). Errors are caught per-slot — one broken teardown
-  // doesn't abort the rest.
-  disposeRequestScope(scope: RequestScope): void {
-    this.junctureManager.disposeRequestScope(scope);
-  }
+    // Tears down all Outer-tier slots created within a request scope, in
+    // dispose-safe order (dependents before dependencies). Invoked by adapter
+    // packages at end of render (e.g. Next's `after()` callback in
+    // `NextServerRMachine`). Errors are caught per-slot — one broken teardown
+    // doesn't abort the rest.
+    dispose: (scope: RequestScope): void => {
+      this.junctureManager.disposeRequestScope(scope);
+    },
+  };
 
   // Invalidate a resource module previously delivered via the loader. `path`
   // is the same string the loader received as its first argument. Triggers

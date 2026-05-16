@@ -41,7 +41,9 @@ export function createMockMachine(
     hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
     // No request scope on the client — return the process-default provider so
     // the React adapter falls back to its module-level wireCache.
-    getScopeProvider: vi.fn(() => PROCESS_SCOPE_PROVIDER),
+    requestScope: {
+      getProvider: vi.fn(() => PROCESS_SCOPE_PROVIDER),
+    },
   } as unknown as RMachine<TestAtlas, AnyLocale, ResEquipment<TestAtlas>>;
 }
 

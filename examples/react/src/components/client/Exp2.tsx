@@ -1,15 +1,13 @@
 import { Plug } from "@/r-machine/toolset";
 import { Button } from "../ui/button";
 
-export const plug = Plug("outer/operator", "shell/landing-page");
+export const plug = Plug("outer/operator", "shell/exp");
 export default function Exp2() {
-  const [operator, page] = plug.useR();
+  const [operator, shell] = plug.useR();
   return (
     <div>
-      <div>
-        {page.hero.cta.primary} : {operator.negative}
-      </div>
-      <Button onClick={operator.plus10}>Sum 10</Button>
+      <div>{operator.negative}</div>
+      <Button onClick={operator.plus10}>{shell.addButton}</Button>
     </div>
   );
 }

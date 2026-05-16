@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Box3 from "./components/client/Box3";
 import Exp from "./components/client/Exp";
 import Exp2 from "./components/client/Exp2";
+import Exp3 from "./components/client/Exp3";
 import FeatureBox from "./components/client/FeatureBox";
 import FeatureBoxLoading from "./components/client/FeatureBoxLoading";
 import Footer from "./components/client/Footer";
@@ -24,6 +25,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <Exp />
           <Exp2 />
+          <Exp3 />
         </div>
       </section>
 

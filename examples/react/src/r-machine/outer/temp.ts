@@ -10,9 +10,7 @@ export const r = OuterGear.withState(0).define(({ $ }, _) => {
   return managed(
     {
       $inc,
-      value: _.getter(),
-      valueToString: _.getter(() => `...${$.state.toString()}`),
-      plus: _.action((n: number) => $.state + n),
+      value: _.getter(() => $.state * -4),
     },
     () => {
       clearInterval(intervalId);
@@ -20,4 +18,4 @@ export const r = OuterGear.withState(0).define(({ $ }, _) => {
   );
 });
 
-export type Outer_Timer = RShape<typeof r>;
+export type Outer_Temp = RShape<typeof r>;

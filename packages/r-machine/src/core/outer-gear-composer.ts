@@ -414,15 +414,15 @@ const meta: GearMatrixMeta = { family: "gear", role: "outer" };
 
 const emptyPorts: BaseGearPlugPortMap = {};
 
-function statefulPostProcess<S extends AnyState>(raw: unknown, cursor: StatefulOuterGearCursor<S>): AnyRes {
+function statefulPostProcess<S extends AnyState>(raw: unknown, _: StatefulOuterGearCursor<S>): AnyRes {
   if (!Array.isArray(raw)) {
     return raw as AnyRes;
   }
 
   const [getterName, actionName] = raw;
-  const resource: Record<string, unknown> = { [getterName]: cursor.getter() };
+  const resource: Record<string, unknown> = { [getterName]: _.getter() };
   if (actionName !== undefined) {
-    resource[actionName] = cursor.action();
+    resource[actionName] = _.action();
   }
   return resource;
 }

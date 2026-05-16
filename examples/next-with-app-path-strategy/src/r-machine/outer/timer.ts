@@ -4,22 +4,23 @@ import { OuterGear, type RShape } from "../setup";
 export const r = OuterGear.withDeps("base/session")
   .withState(0)
   .define(([session, $], _) => {
-    const inc = _.action(() => $.state + 1);
-    const clear = setInterval(() => {
-      inc();
+    const $inc = _.action(() => $.state + 1);
+    const intervalId = setInterval(() => {
+      $inc();
     }, 1000);
 
     const marker = "3";
 
     return managed(
       {
+        $inc,
         value: _.getter(),
         valueWithSession: _.getter(() => {
           return `${session.getSession()} - ${marker} - ${$.state}`;
         }),
       },
       () => {
-        clearInterval(clear);
+        clearInterval(intervalId);
       }
     );
   });

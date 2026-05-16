@@ -132,7 +132,7 @@ export async function createNextAppServerToolset<
   // app process is assumed; subsequent installs replace the previous
   // provider, which is fine for hot-reload but indicates a misuse in
   // production.
-  rMachine.installRequestScopeProvider(nextRequestScopeProvider);
+  rMachine.requestScope.installProvider(nextRequestScopeProvider);
 
   const getContext = cache((): NextAppServerRMachineContext<L> => {
     return {
@@ -203,9 +203,9 @@ export async function createNextAppServerToolset<
     // out of `after()` and disturb other registered callbacks.
     after(() => {
       try {
-        rMachine.disposeRequestScope(scope);
+        rMachine.requestScope.dispose(scope);
       } catch (e) {
-        console.error("[r-machine/next] disposeRequestScope failed", e);
+        console.error("[r-machine/next] requestScope.dispose failed", e);
       }
       unregisterScope(scopeId);
     });

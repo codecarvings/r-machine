@@ -298,11 +298,11 @@ export async function createReactBareToolset<
       // don't leak the override into other components' resolutions.
       const wireSnapshot = (): Promise<unknown> => {
         if (requestScope) {
-          rMachine.getScopeProvider().setOverride?.(requestScope);
+          rMachine.requestScope.getProvider().setOverride?.(requestScope);
           try {
             return wire.getPluginPromise();
           } finally {
-            rMachine.getScopeProvider().setOverride?.(null);
+            rMachine.requestScope.getProvider().setOverride?.(null);
           }
         }
         return wire.getPluginPromise();
