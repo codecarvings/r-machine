@@ -10,6 +10,7 @@ export const r = OuterGear.withState(0).define(({ $ }, _) => {
   return managed(
     {
       value: _.getter(),
+      valueToString: _.getter(() => `...${$.state.toString()}`),
       plus: _.action((n: number) => $.state + n),
     },
     () => {

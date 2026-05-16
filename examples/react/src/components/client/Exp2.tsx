@@ -3,7 +3,6 @@ import { Button } from "../ui/button";
 
 export const plug = Plug("outer/operator", "shell/landing-page");
 export default function Exp2() {
-  console.log("Exp2 render");
   const [operator, page] = plug.useR();
   return (
     <div>
