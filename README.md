@@ -10,7 +10,7 @@
 
 # R-Machine — Uniformity Under Change for TypeScript
 
-Monorepo containing [`r-machine`](https://www.npmjs.com/package/r-machine), [`@r-machine/react`](https://www.npmjs.com/package/@r-machine/react), [`@r-machine/next`](https://www.npmjs.com/package/@r-machine/next), and [`@r-machine/testing`](https://www.npmjs.com/package/@r-machine/testing).
+Monorepo containing the R-Machine packages.
 
 [![NPM Version](https://img.shields.io/npm/v/r-machine?label=latest)](https://www.npmjs.com/package/r-machine)
 [![R-Machine CI status](https://github.com/codecarvings/r-machine/actions/workflows/ci.yml/badge.svg?event=push&branch=main)](https://github.com/codecarvings/r-machine/actions/workflows/ci.yml?query=branch%3Amain)
@@ -23,6 +23,7 @@ Monorepo containing [`r-machine`](https://www.npmjs.com/package/r-machine), [`@r
 | [`@r-machine/react`](./packages/r-machine-react) | [![npm](https://img.shields.io/npm/v/@r-machine/react)](https://www.npmjs.com/package/@r-machine/react) | React integration |
 | [`@r-machine/next`](./packages/r-machine-next) | [![npm](https://img.shields.io/npm/v/@r-machine/next)](https://www.npmjs.com/package/@r-machine/next) | Next.js App Router integration |
 | [`@r-machine/testing`](./packages/r-machine-testing) | [![npm](https://img.shields.io/npm/v/@r-machine/testing)](https://www.npmjs.com/package/@r-machine/testing) | Testing utilities |
+| [`rmachine`](./packages/r-machine-cli) | [![npm](https://img.shields.io/npm/v/@rmachine)](https://www.npmjs.com/package/rmachine) | Command-line interface for R-Machine |
 
 ## Examples
 
@@ -44,7 +45,8 @@ r-machine/
 │   ├── r-machine/           # Core library
 │   ├── r-machine-react/     # React bindings
 │   ├── r-machine-next/      # Next.js integration
-│   └── r-machine-testing/   # Testing utilities
+│   ├── r-machine-testing/   # Testing utilities
+│   └── r-machine-cli/       # Command-line interface for R-Machine
 ├── examples/                # Example applications
 ├── configs/                 # Shared TypeScript configs
 └── scripts/                 # Utility scripts
@@ -79,6 +81,7 @@ pnpm check
 | `@r-machine/react` | [AGPL-3.0](./LICENSE) |
 | `@r-machine/next` | [AGPL-3.0](./LICENSE) |
 | `@r-machine/testing` | [AGPL-3.0](./LICENSE) |
+| `rmachine` | [AGPL-3.0](./LICENSE) |
 
 > All packages are free for open source projects.
 > If you need to use them in a proprietary project, reach out at 

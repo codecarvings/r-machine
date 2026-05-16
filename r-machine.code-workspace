@@ -21,6 +21,10 @@
       "path": "packages/r-machine-testing"
     },
     {
+      "name": "🟩 packages ― r-machine-cli",
+      "path": "packages/r-machine-cli"
+    },    
+    {
       "name": "🟥 examples",
       "path": "examples"
     }
@@ -41,6 +45,7 @@
     ],
     "cSpell.words": [
       "npmjs",
+      "rmachine",
       "sccpath",
       "scpath",
       "unsub",

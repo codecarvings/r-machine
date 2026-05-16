@@ -22,7 +22,7 @@ import type {
 } from "r-machine/core";
 
 type MockSurfaceItem<I> =
-  I extends Getter<infer V> ? () => V : I extends Action<infer F> ? F : I extends RelayBrand ? never : I;
+  I extends Getter<infer V> ? V : I extends Action<infer F> ? F : I extends RelayBrand ? never : I;
 
 type MockSurface<RD extends AnyResDomain> = {
   [K in keyof RD as K extends `$${string}` ? never : K]?: MockSurfaceItem<RD[K]>;
