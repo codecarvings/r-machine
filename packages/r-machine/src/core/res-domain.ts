@@ -43,11 +43,20 @@ export type ExtractNamespace<H extends Handle<any>> = H extends Token<infer N> ?
 
 export type AnyNamespaceCollection = AnyNamespaceMap | AnyNamespaceList;
 
+// A leading `#` marks a namespace as internal (consumer-hidden) at the type
+// level. At runtime the marker is invisible: this single normalization at the
+// canonical extraction point ensures registry keys, loader paths, juncture
+// chains and caches all use bare namespaces, regardless of whether the user
+// wrote "#base/jwt" or "base/jwt".
+function stripInternalMarker(namespace: string): string {
+  return namespace.charCodeAt(0) === 0x23 /* '#' */ ? namespace.slice(1) : namespace;
+}
+
 export function getNamespace<H extends Handle<any>>(handle: H): ExtractNamespace<H> {
   if (typeof handle === "string") {
-    return handle as ExtractNamespace<H>;
+    return stripInternalMarker(handle) as ExtractNamespace<H>;
   } else {
-    return handle[namespaceSymbol] as ExtractNamespace<H>;
+    return stripInternalMarker(handle[namespaceSymbol]) as ExtractNamespace<H>;
   }
 }
 

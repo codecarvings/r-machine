@@ -11,18 +11,20 @@
  * contact: licensing@codecarvings.com
  */
 
-import type {
-  AnyResAtlas,
-  AnyResAtlasClass,
-  AnyResEquipment,
-  AnyResLayout,
-  BaseGearNamespaceList,
-  ExperimentalFlags,
-  GearPlugKitMap,
-  NamespaceList,
-  ResEquipment,
-  ResModuleLoaderFn,
-  ShellPlugKitMap,
+import {
+  type AnyResAtlas,
+  type AnyResAtlasClass,
+  type AnyResEquipment,
+  type AnyResLayout,
+  type BaseGearNamespaceList,
+  type ExperimentalFlags,
+  type GearPlugKitMap,
+  getNamespaceList,
+  getNamespaceMap,
+  type NamespaceList,
+  type ResEquipment,
+  type ResModuleLoaderFn,
+  type ShellPlugKitMap,
 } from "#r-machine/core";
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
@@ -84,6 +86,16 @@ export function convertParamsToConfig<
 >(
   params: RMachineConfigParams<RAC, LL, BGL, GK, SK, EF>
 ): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF> {
+  // Normalize all user-supplied namespace collections through getNamespaceList /
+  // getNamespaceMap — these route every entry through getNamespace(), which
+  // strips a leading `#` (internal-namespace marker). After this single
+  // materialization the rest of the runtime (BlueprintManager kit deps,
+  // JunctureManager kit injection, composer dep tracking) sees only bare names.
+  const priority = getNamespaceList(params.ResourceAtlas.priority as never) as NamespaceList<InstanceType<RAC>>;
+  const bridgeGears = getNamespaceList((params.bridgeGears ?? []) as never) as BGL;
+  const gearKit = getNamespaceMap((params.gearKit ?? {}) as never) as GK;
+  const shellKit = getNamespaceMap((params.shellKit ?? {}) as never) as SK;
+
   return {
     instanceName: params.instanceName ?? "default",
     locales: [...params.locales],
@@ -91,11 +103,11 @@ export function convertParamsToConfig<
     resourceAtlas: undefined!,
     load: params.load,
     layout: params.ResourceAtlas.layout,
-    priority: params.ResourceAtlas.priority as NamespaceList<InstanceType<RAC>>,
+    priority,
     equipment: {
-      bridgeGears: (params.bridgeGears ?? ([] as readonly unknown[])) as BGL,
-      gearKit: params.gearKit ?? ({} as GK),
-      shellKit: params.shellKit ?? ({} as SK),
+      bridgeGears,
+      gearKit,
+      shellKit,
     },
     experimental: params.experimental ?? ({} as EF),
   };

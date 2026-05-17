@@ -180,7 +180,16 @@ type HasMoreSpecificPrefix<RL extends AnyResLayout, N extends string, P extends 
 // Longest-prefix layout-type resolution at the type level. Returns the entry
 // type for the prefix P in RL with IsPrefixOf<P, N> and no more-specific
 // matching prefix. Returns never when no prefix matches.
-export type ResolveLayoutType<RL extends AnyResLayout, N extends string> = {
+//
+// A leading `#` marks a namespace as internal (consumer-hidden) but does not
+// change its layout classification — "#outer/temp" must resolve to the same
+// layout type as "outer/temp". The marker is stripped before prefix matching.
+export type ResolveLayoutType<RL extends AnyResLayout, N extends string> = ResolveLayoutTypeFromBase<
+  RL,
+  N extends `#${infer Rest}` ? Rest : N
+>;
+
+type ResolveLayoutTypeFromBase<RL extends AnyResLayout, N extends string> = {
   [P in keyof RL]: P extends string
     ? IsPrefixOf<P, N> extends true
       ? [HasMoreSpecificPrefix<RL, N, P>] extends [never]

@@ -7,6 +7,23 @@ type ShapeMap<RL extends AnyResLayout, RD extends AnyResDomain, T extends ResLay
   readonly [K in keyof RD as K extends string ? (ResolveLayoutType<RL, K> extends T ? K : never) : never]: RD[K];
 };
 
+// Namespaces starting with `#` are "internal": visible to gear→gear deps but
+// hidden from consumer-facing surfaces (server/client/client:kit). PublicShapeMap
+// is identical to ShapeMap, plus a guard that drops leading-`#` keys.
+// ResolveLayoutType internally strips the leading `#` before matching layout
+// prefixes, so "#outer/temp" still classifies as "gear:outer".
+export type IsInternalNamespace<K> = K extends `#${string}` ? true : false;
+
+type PublicShapeMap<RL extends AnyResLayout, RD extends AnyResDomain, T extends ResLayoutEntryType> = {
+  readonly [K in keyof RD as K extends string
+    ? ResolveLayoutType<RL, K> extends T
+      ? IsInternalNamespace<K> extends true
+        ? never
+        : K
+      : never
+    : never]: RD[K];
+};
+
 type ResLayoutEntryTypeMap<RL extends AnyResLayout, RD extends AnyResDomain> = {
   readonly [K in keyof RD]: K extends string ? ResolveLayoutType<RL, K> : never;
 };
@@ -24,13 +41,13 @@ export interface ResAtlas<RL extends AnyResLayout, RD extends AnyResDomain> {
   readonly "shape@shell": ShapeMap<RL, RD, "shell" | "shell(mono)">;
   readonly "valid@gear:inner": ShapeMap<RL, RD, "gear:inner" | "gear:base">;
   readonly "valid@gear:outer": ShapeMap<RL, RD, "gear:base" | "gear:outer">;
-  readonly "valid@server": ShapeMap<RL, RD, "gear:inner" | "gear:base" | "shell" | "shell(mono)">;
-  readonly "valid@client": ShapeMap<
+  readonly "valid@server": PublicShapeMap<RL, RD, "gear:inner" | "gear:base" | "shell" | "shell(mono)">;
+  readonly "valid@client": PublicShapeMap<
     RL,
     RD,
     "gear:base" | "gear:outer" | "gear:outer(vertex)" | "shell" | "shell(mono)"
   >;
-  readonly "valid@client:kit": ShapeMap<RL, RD, "gear:base" | "gear:outer" | "shell" | "shell(mono)">;
+  readonly "valid@client:kit": PublicShapeMap<RL, RD, "gear:base" | "gear:outer" | "shell" | "shell(mono)">;
   readonly let: ResLayoutEntryTypeMap<RL, RD>;
   readonly "let@gear:inner": LetMap<RL, "gear:inner">;
 }
@@ -66,8 +83,21 @@ type DroppedAtlasKeys<RA, RD> = Exclude<keyof RA, keyof RD>;
 // Key-only check on the raw atlas shape RA (preserved via phantom symbol).
 // Accessing RA[K] here would risk re-triggering the declaration-site
 // circularity trap (see project_atlas_silent_filter memory).
-type ReservedAtlasKeyChar = "@" | "#" | ":";
-type ReservedCharAtlasKeys<RA> = Extract<keyof RA, `${string}${ReservedAtlasKeyChar}${string}`>;
+//
+// `@` and `:` are reserved anywhere in a namespace (future resource-pack
+// scoping grammar). `#` is reserved only when it appears in non-leading
+// position — a single leading `#` is the "internal namespace" marker.
+type StrictReservedAtlasKeyChar = "@" | ":";
+// Strip exactly one leading `#` (if present), then check whether the
+// remainder still contains a `#`. If yes, the key has `#` in a forbidden
+// (non-leading) position.
+type StripLeadingHash<K extends string> = K extends `#${infer Rest}` ? Rest : K;
+type HasNonLeadingHash<K extends string> = StripLeadingHash<K> extends `${string}#${string}` ? true : false;
+type ReservedCharAtlasKeys<RA> =
+  | Extract<keyof RA, `${string}${StrictReservedAtlasKeyChar}${string}`>
+  | {
+      [K in keyof RA]: K extends string ? (HasNonLeadingHash<K> extends true ? K : never) : never;
+    }[keyof RA];
 
 // When the atlas shape RA has issues, getTokenBuilder is brand-typed directly
 // (not a callable function). Calling `Class.getTokenBuilder()` then fails with
@@ -89,7 +119,7 @@ type GetTokenBuilderProperty<RA, RD extends AnyResDomain> = [ReservedCharAtlasKe
         RD
       > &
         string}`>
-  : RMachineTypeError<`Atlas keys contain a reserved character ('@', '#' or ':'). These characters are reserved. Offending keys: ${ReservedCharAtlasKeys<RA> &
+  : RMachineTypeError<`Atlas keys use a reserved character in an invalid position. '@' and ':' are fully reserved; '#' is allowed only as the first character (to mark a namespace as internal). Offending keys: ${ReservedCharAtlasKeys<RA> &
       string}`>;
 
 declare const rawResAtlasShapeSymbol: unique symbol;

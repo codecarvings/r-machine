@@ -37,12 +37,19 @@ import type { RMachineTypeError } from "#r-machine/errors";
 // Net effect: silent-drop semantics preserved for invalid layout keys, while
 // self-circular gears no longer cascade through this type.
 export type FilterResAtlasKeys<RL extends AnyResLayout, RD> = RD extends AnyResDomain
-  ? Extract<keyof RD, string> extends `${ValidLayoutPrefix<RL>}${string}`
+  ? Extract<keyof RD, string> extends AcceptedNamespaceShape<RL>
     ? RD
-    : Omit<RD, Exclude<keyof RD, `${ValidLayoutPrefix<RL>}${string}`>>
+    : Omit<RD, Exclude<keyof RD, AcceptedNamespaceShape<RL>>>
   : never;
 
 type ValidLayoutPrefix<RL extends AnyResLayout> = Extract<keyof RL, `${string}/`>;
+
+// An atlas namespace may optionally start with `#` to mark it as internal
+// (consumer-hidden). The marker is layout-orthogonal: "#outer/temp" still
+// matches the "outer/" layout prefix.
+type AcceptedNamespaceShape<RL extends AnyResLayout> =
+  | `${ValidLayoutPrefix<RL>}${string}`
+  | `#${ValidLayoutPrefix<RL>}${string}`;
 
 type ReservedLayoutKeyChar = "@" | "#" | ":";
 
