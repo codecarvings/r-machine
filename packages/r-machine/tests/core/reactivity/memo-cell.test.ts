@@ -52,7 +52,7 @@ describe("createMemoCell", () => {
     expect(body).toHaveBeenCalledTimes(1);
 
     // No subscriber → dep change must NOT trigger body re-eval.
-    const setItems = makeAction(cell, (items: number[]) => ({ items }), recorder);
+    const setItems = makeAction(cell, (items: number[]) => ({ items }), recorder, "setItems");
     setItems([1, 2, 3, 4]);
     expect(body).toHaveBeenCalledTimes(1);
 
@@ -71,7 +71,7 @@ describe("createMemoCell", () => {
     count.subscribe(sub);
 
     // Mutate `other`; items.length unchanged → memo re-evals to 3 → equal → no notify.
-    const setOther = makeAction(cell, (n: number) => ({ other: n }), recorder);
+    const setOther = makeAction(cell, (n: number) => ({ other: n }), recorder, "setOther");
     setOther(99);
 
     expect(sub).not.toHaveBeenCalled();
@@ -86,7 +86,7 @@ describe("createMemoCell", () => {
     count.read();
     count.subscribe(sub);
 
-    const setItems = makeAction(cell, (items: number[]) => ({ items }), recorder);
+    const setItems = makeAction(cell, (items: number[]) => ({ items }), recorder, "setItems");
     setItems([1, 2]);
 
     expect(sub).toHaveBeenCalledTimes(1);
@@ -104,7 +104,7 @@ describe("createMemoCell", () => {
     formatted.subscribe(sub);
 
     // Replace with new array of items that has the same total → subtotal returns 30 still.
-    const setItems = makeAction(cart, (items: { price: number }[]) => ({ items }), recorder);
+    const setItems = makeAction(cart, (items: { price: number }[]) => ({ items }), recorder, "setItems");
     setItems([{ price: 15 }, { price: 15 }]);
 
     // subtotal output unchanged (30 === 30) → formatted is not notified.

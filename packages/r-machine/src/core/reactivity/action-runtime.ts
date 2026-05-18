@@ -19,7 +19,8 @@ import type { StateCell } from "./state-cell.js";
 export function makeAction<S, A extends unknown[]>(
   cell: StateCell<S>,
   reducer: (...args: A) => unknown,
-  recorder: CassetteRecorder
+  recorder: CassetteRecorder,
+  name: string
 ): Action<(...args: A) => S> {
   return createAction((...args: A): S => {
     const raw = recorder.withSilentZone(() => reducer(...args));
@@ -33,5 +34,5 @@ export function makeAction<S, A extends unknown[]>(
     }
     cell.publish(merged);
     return merged;
-  });
+  }, name);
 }

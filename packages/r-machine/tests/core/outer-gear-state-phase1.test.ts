@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildKernelJuncture } from "../../src/core/juncture.js";
-import { _buildStatefulOuterGearCursor, _stateCellSlot } from "../../src/core/outer-gear-composer.js";
+import { buildStatefulOuterGearCursor, stateCellSlot } from "../../src/core/outer-gear-composer.js";
 import { createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
 import { createStateCell, type StateCell } from "../../src/core/reactivity/state-cell.js";
 import type { AnyRes } from "../../src/core/res.js";
@@ -43,25 +43,22 @@ interface ShoppingCartState {
 function buildStatefulMatrix<S>(
   recorder: ReturnType<typeof createCassetteRecorder>,
   defaultState: S,
-  userFactory: (
-    $: { state: S; defaultState: S },
-    cursor: ReturnType<typeof _buildStatefulOuterGearCursor<S>>
-  ) => unknown
+  userFactory: ($: { state: S; defaultState: S }, cursor: ReturnType<typeof buildStatefulOuterGearCursor<S>>) => unknown
 ) {
   return createResMatrix({
     connector: makeConnector(),
     meta: { family: "gear", role: "outer" },
     head: { realm: "res", family: "gear", mode: "map", deps: [], nsDeps: [], nsDepList: [], ports: {} } as never,
     cursor: (plugin: unknown) =>
-      _buildStatefulOuterGearCursor<S>((plugin as { [_stateCellSlot]: StateCell<S> })[_stateCellSlot], recorder),
+      buildStatefulOuterGearCursor<S>((plugin as { [stateCellSlot]: StateCell<S> })[stateCellSlot], recorder),
     userFactory: async (plugin, cursor) =>
       userFactory(
         plugin as { state: S; defaultState: S },
-        cursor as ReturnType<typeof _buildStatefulOuterGearCursor<S>>
+        cursor as ReturnType<typeof buildStatefulOuterGearCursor<S>>
       ),
     augmentCtx: ($) => {
       const cell = createStateCell(defaultState, recorder);
-      ($ as unknown as { [_stateCellSlot]: StateCell<S> })[_stateCellSlot] = cell;
+      ($ as unknown as { [stateCellSlot]: StateCell<S> })[stateCellSlot] = cell;
       Object.defineProperty($, "state", { get: () => cell.read(), enumerable: true });
       $.defaultState = defaultState;
     },

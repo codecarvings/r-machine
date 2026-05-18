@@ -16,6 +16,7 @@ import type { BaseGearPlugPortMap } from "./base-gear-plug.js";
 import { lazyGetters } from "./composer-utils.js";
 import { createGearListPlugHead, createGearMapPlugHead, type GearPluginCtx, type GearPlugKitMap } from "./gear-plug.js";
 import { createGetter, type DefaultGetter, type GetterComposer, type StatelessGetterComposer } from "./getter.js";
+import { promoteMemberNames } from "./member-name.js";
 import type { AnyOuterGear, AnyState, RejectAsyncValueProps } from "./outer-gear.js";
 import {
   createStatefulOuterGearListPlugHead,
@@ -347,43 +348,58 @@ type StatelessOuterGearListDefiner<
 // #region Runtime
 
 /** @internal — exposed for testing the resolution wiring */
-export const _stateCellSlot = Symbol("stateCell");
+export const stateCellSlot = Symbol("stateCell");
 
 interface PluginWithStateCell<S> {
-  readonly [_stateCellSlot]: StateCell<S>;
+  readonly [stateCellSlot]: StateCell<S>;
 }
 
 /** @internal — exposed for testing */
-export function _buildStatelessGetterComposer(recorder: CassetteRecorder): StatelessGetterComposer {
+export function buildStatelessGetterComposer(recorder: CassetteRecorder): StatelessGetterComposer {
+  let counter = 0;
   return ((...args: unknown[]): unknown => {
+    counter += 1;
+    const name = `getter:${counter}`;
     if (args[0] === "memoized" && typeof args[1] === "function") {
       const memo = createMemoCell(args[1] as () => unknown, recorder);
-      return createGetter(() => memo.read());
+      return createGetter(() => memo.read(), name);
     }
     if (typeof args[0] === "function") {
       const fn = args[0] as () => unknown;
-      return createGetter(() => fn());
+      return createGetter(() => fn(), name);
     }
     throw new Error("cursor.getter: invalid arguments");
   }) as unknown as StatelessGetterComposer;
 }
 
 /** @internal — exposed for testing the resolution wiring */
-export function _buildStatefulOuterGearCursor<S extends AnyState>(
+export function buildStatefulOuterGearCursor<S extends AnyState>(
   cell: StateCell<S>,
   recorder: CassetteRecorder
 ): StatefulOuterGearCursor<S> {
-  const stateless = _buildStatelessGetterComposer(recorder) as unknown as (...a: unknown[]) => unknown;
+  let getterCounter = 0;
   const getter = ((...args: unknown[]): unknown => {
+    getterCounter += 1;
+    const name = `getter:${getterCounter}`;
     if (args.length === 0) {
-      return createGetter(() => cell.read());
+      return createGetter(() => cell.read(), name);
     }
-    return stateless(...args);
+    if (args[0] === "memoized" && typeof args[1] === "function") {
+      const memo = createMemoCell(args[1] as () => unknown, recorder);
+      return createGetter(() => memo.read(), name);
+    }
+    if (typeof args[0] === "function") {
+      const fn = args[0] as () => unknown;
+      return createGetter(() => fn(), name);
+    }
+    throw new Error("cursor.getter: invalid arguments");
   }) as unknown as GetterComposer<S>;
 
+  let actionCounter = 0;
   const action = ((reducer?: (...a: unknown[]) => unknown) => {
+    actionCounter += 1;
     const r = reducer ?? ((partial: unknown) => partial);
-    return makeAction(cell, r as (...a: unknown[]) => unknown, recorder);
+    return makeAction(cell, r as (...a: unknown[]) => unknown, recorder, `action:${actionCounter}`);
   }) as unknown as ActionComposer<S>;
 
   return {
@@ -400,7 +416,7 @@ export function _buildStatefulOuterGearCursor<S extends AnyState>(
 
 function buildStatelessOuterGearCursor(recorder: CassetteRecorder): StatelessOuterGearCursor {
   return {
-    getter: _buildStatelessGetterComposer(recorder),
+    getter: buildStatelessGetterComposer(recorder),
     relay: () => {
       throw new Error("relay: not yet implemented");
     },
@@ -415,16 +431,24 @@ const meta: GearMatrixMeta = { family: "gear", role: "outer" };
 const emptyPorts: BaseGearPlugPortMap = {};
 
 function statefulPostProcess<S extends AnyState>(raw: unknown, _: StatefulOuterGearCursor<S>): AnyRes {
-  if (!Array.isArray(raw)) {
-    return raw as AnyRes;
+  let resource: AnyRes;
+  if (Array.isArray(raw)) {
+    const [getterName, actionName] = raw;
+    const obj: Record<string, unknown> = { [getterName]: _.getter() };
+    if (actionName !== undefined) {
+      obj[actionName] = _.action();
+    }
+    resource = obj as AnyRes;
+  } else {
+    resource = raw as AnyRes;
   }
-
-  const [getterName, actionName] = raw;
-  const resource: Record<string, unknown> = { [getterName]: _.getter() };
-  if (actionName !== undefined) {
-    resource[actionName] = _.action();
-  }
+  promoteMemberNames(resource);
   return resource;
+}
+
+function statelessPostProcess(raw: unknown): AnyRes {
+  promoteMemberNames(raw);
+  return raw as AnyRes;
 }
 
 export function createOuterGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>>(
@@ -616,11 +640,11 @@ function buildStatefulOuterGearMapMatrix<
     meta,
     head,
     cursor: (plugin: unknown) =>
-      _buildStatefulOuterGearCursor<S>((plugin as { $: PluginWithStateCell<S> }).$[_stateCellSlot], recorder),
+      buildStatefulOuterGearCursor<S>((plugin as { $: PluginWithStateCell<S> }).$[stateCellSlot], recorder),
     userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
     augmentCtx: ($) => {
       const cell = createStateCell(defaultState, recorder);
-      ($ as unknown as { [_stateCellSlot]: StateCell<S> })[_stateCellSlot] = cell;
+      ($ as unknown as { [stateCellSlot]: StateCell<S> })[stateCellSlot] = cell;
       Object.defineProperty($, "state", {
         get: () => cell.read(),
         enumerable: true,
@@ -695,12 +719,12 @@ function buildStatefulOuterGearListMatrix<
     cursor: (plugin: unknown) => {
       const arr = plugin as ReadonlyArray<unknown>;
       const ctx = arr[arr.length - 1] as PluginWithStateCell<S>;
-      return _buildStatefulOuterGearCursor<S>(ctx[_stateCellSlot], recorder);
+      return buildStatefulOuterGearCursor<S>(ctx[stateCellSlot], recorder);
     },
     userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
     augmentCtx: ($) => {
       const cell = createStateCell(defaultState, recorder);
-      ($ as unknown as { [_stateCellSlot]: StateCell<S> })[_stateCellSlot] = cell;
+      ($ as unknown as { [stateCellSlot]: StateCell<S> })[stateCellSlot] = cell;
       Object.defineProperty($, "state", {
         get: () => cell.read(),
         enumerable: true,
@@ -751,6 +775,7 @@ function createStatelessOuterGearMapDefiner<
       head,
       cursor: buildStatelessOuterGearCursor(recorder),
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
+      postProcess: (raw) => statelessPostProcess(raw),
     });
 }
 
@@ -774,6 +799,7 @@ function createStatelessOuterGearListDefiner<
       head,
       cursor: buildStatelessOuterGearCursor(recorder),
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
+      postProcess: (raw) => statelessPostProcess(raw),
     })) as StatelessOuterGearListDefiner<RA, KM, DL, PM>;
 }
 

@@ -11,12 +11,15 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { Action } from "./action.js";
+import type { Action, AnyAction } from "./action.js";
 
-declare const cmdBrand: unique symbol;
+const cmdBrand: unique symbol = Symbol("cmd");
+
 export interface Cmd {
   readonly [cmdBrand]: true;
-  readonly name: string;
+  // readonly target: string | [string, number];
+  // readonly action: string;
+  readonly action: AnyAction;
   readonly payload: unknown[];
 }
 

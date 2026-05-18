@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { type Getter, isGetter } from "../../src/core/getter.js";
 import { buildKernelJuncture } from "../../src/core/juncture.js";
-import { _buildStatelessGetterComposer } from "../../src/core/outer-gear-composer.js";
+import { buildStatelessGetterComposer } from "../../src/core/outer-gear-composer.js";
 import { createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
 import { createStateCell } from "../../src/core/reactivity/state-cell.js";
 import type { AnyRes } from "../../src/core/res.js";
@@ -28,10 +28,10 @@ function makeConnector(): ResComposerConnector {
 
 // --- unit tests on the stateless getter composer -----------------------------
 
-describe("_buildStatelessGetterComposer", () => {
+describe("buildStatelessGetterComposer", () => {
   it("getter(body) returns a branded callable Getter that reads through the body", () => {
     const recorder = createCassetteRecorder();
-    const composer = _buildStatelessGetterComposer(recorder);
+    const composer = buildStatelessGetterComposer(recorder);
     const body = vi.fn(() => 42);
     const g = composer(body);
 
@@ -44,7 +44,7 @@ describe("_buildStatelessGetterComposer", () => {
 
   it("getter('memoized', body) returns a Getter backed by a MemoCell", () => {
     const recorder = createCassetteRecorder();
-    const composer = _buildStatelessGetterComposer(recorder);
+    const composer = buildStatelessGetterComposer(recorder);
     const body = vi.fn(() => 7);
     const g = composer("memoized", body) as Getter<number>;
 
@@ -57,7 +57,7 @@ describe("_buildStatelessGetterComposer", () => {
 
   it("memoized getter participates in cassette tracking like the stateful counterpart", () => {
     const recorder = createCassetteRecorder();
-    const composer = _buildStatelessGetterComposer(recorder);
+    const composer = buildStatelessGetterComposer(recorder);
     const upstream = createStateCell({ v: 1 }, recorder);
     const g = composer("memoized", () => upstream.read().v * 10) as Getter<number>;
 
@@ -76,7 +76,7 @@ describe("_buildStatelessGetterComposer", () => {
 
   it("throws on invalid arguments shape", () => {
     const recorder = createCassetteRecorder();
-    const composer = _buildStatelessGetterComposer(recorder) as unknown as (...a: unknown[]) => unknown;
+    const composer = buildStatelessGetterComposer(recorder) as unknown as (...a: unknown[]) => unknown;
     expect(() => composer()).toThrow(/invalid arguments/);
     expect(() => composer("not-memoized", () => 1)).toThrow(/invalid arguments/);
     expect(() => composer(42)).toThrow(/invalid arguments/);
@@ -98,7 +98,7 @@ describe("Stateless OuterGear — end-to-end via createResMatrix", () => {
       meta: { family: "gear", role: "outer" },
       head: { realm: "res", family: "gear", mode: "map", deps: [], nsDeps: [], nsDepList: [], ports: {} } as never,
       cursor: {
-        getter: _buildStatelessGetterComposer(recorder),
+        getter: buildStatelessGetterComposer(recorder),
         relay: () => {
           throw new Error("relay: stub");
         },

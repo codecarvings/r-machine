@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import { setMemberName } from "./member-name.js";
 import type { AnyState } from "./outer-gear.js";
 
 const getterBrand: unique symbol = Symbol("getter");
@@ -19,12 +20,16 @@ export interface GetterBrand {
 }
 export type Getter<V> = (() => V) & GetterBrand;
 
-export function isGetter(v: unknown): v is Getter<unknown> {
+export type AnyGetter = Getter<unknown>;
+
+export function isGetter(v: unknown): v is AnyGetter {
   return typeof v === "function" && getterBrand in v;
 }
 
-export function createGetter<V>(read: () => V): Getter<V> {
-  return Object.defineProperty(read, getterBrand, { value: true }) as Getter<V>;
+export function createGetter<V>(read: () => V, name: string): Getter<V> {
+  Object.defineProperty(read, getterBrand, { value: true });
+  setMemberName(read, name);
+  return read as Getter<V>;
 }
 
 export interface StatelessGetterComposer {

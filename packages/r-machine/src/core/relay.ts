@@ -12,6 +12,7 @@
  */
 
 import type { Cmd } from "./cmd.js";
+import { setMemberName } from "./member-name.js";
 
 // biome-ignore lint/suspicious/noConfusingVoidType: This is intentional
 type RelayOnChangeResult = void | Cmd | Cmd[];
@@ -27,12 +28,17 @@ export interface RelayBrand {
 }
 export interface Relay<T> extends RelayConfig<T>, RelayBrand {}
 
-export function isRelay(v: unknown): v is Relay<unknown> {
+export type AnyRelay = Relay<unknown>;
+
+export function isRelay(v: unknown): v is AnyRelay {
   return typeof v === "object" && v !== null && relayBrand in v;
 }
 
-export function createRelay<T>(config: RelayConfig<T>): Relay<T> {
-  return Object.defineProperty({ ...config }, relayBrand, { value: true }) as Relay<T>;
+export function createRelay<T>(config: RelayConfig<T>, name: string = "relay"): Relay<T> {
+  const relay = { ...config };
+  Object.defineProperty(relay, relayBrand, { value: true });
+  setMemberName(relay, name);
+  return relay as Relay<T>;
 }
 
 export type RelayComposer = <T>(config: RelayConfig<T>) => Relay<T>;

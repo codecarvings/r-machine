@@ -10,7 +10,7 @@ describe("makeAction", () => {
     const sub = vi.fn();
     cell.subscribe(sub);
 
-    const setA = makeAction(cell, (next: number) => ({ a: next }), recorder);
+    const setA = makeAction(cell, (next: number) => ({ a: next }), recorder, "setA");
     const result = setA(9);
 
     expect(result).toEqual({ a: 9, b: 2 });
@@ -25,7 +25,7 @@ describe("makeAction", () => {
     cell.subscribe(sub);
 
     // Partial that produces no leaf change → deepPartialMerge returns prev by reference.
-    const noop = makeAction(cell, () => ({ a: 1 }), recorder);
+    const noop = makeAction(cell, () => ({ a: 1 }), recorder, "noop");
     noop();
 
     expect(sub).not.toHaveBeenCalled();
@@ -38,7 +38,7 @@ describe("makeAction", () => {
     const sub = vi.fn();
     cell.subscribe(sub);
 
-    const identity = makeAction(cell, () => cell.peek(), recorder);
+    const identity = makeAction(cell, () => cell.peek(), recorder, "identity");
     const result = identity();
 
     expect(result).toBe(cell.peek());
@@ -48,7 +48,7 @@ describe("makeAction", () => {
   it("reads inside the reducer body do NOT leak into outer cassettes (silent zone)", () => {
     const recorder = createCassetteRecorder();
     const cell = createStateCell({ a: 1 }, recorder);
-    const incr = makeAction(cell, () => ({ a: cell.peek().a + 1 }), recorder);
+    const incr = makeAction(cell, () => ({ a: cell.peek().a + 1 }), recorder, "incr");
 
     const outer = recorder.createCassette();
     outer.insert();
@@ -68,14 +68,15 @@ describe("makeAction", () => {
     cellA.subscribe(subA);
     cellB.subscribe(subB);
 
-    const setB = makeAction(cellB, (n: number) => ({ v: n }), recorder);
+    const setB = makeAction(cellB, (n: number) => ({ v: n }), recorder, "setB");
     const setA = makeAction(
       cellA,
       (n: number) => {
         setB(n * 10);
         return { v: n };
       },
-      recorder
+      recorder,
+      "setA"
     );
 
     const outer = recorder.createCassette();

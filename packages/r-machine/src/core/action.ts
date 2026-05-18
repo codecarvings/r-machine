@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import { setMemberName } from "./member-name.js";
 import type { AnyState } from "./outer-gear.js";
 
 type BuiltinAtomic =
@@ -43,12 +44,16 @@ export interface ActionBrand {
 }
 export type Action<F extends (...args: any[]) => any> = F & ActionBrand;
 
-export function isAction(v: unknown): v is Action<(...args: any[]) => any> {
+export type AnyAction = Action<(...args: any[]) => any>;
+
+export function isAction(v: unknown): v is AnyAction {
   return typeof v === "function" && actionBrand in v;
 }
 
-export function createAction<F extends (...args: any[]) => any>(fn: F): Action<F> {
-  return Object.defineProperty(fn, actionBrand, { value: true }) as Action<F>;
+export function createAction<F extends (...args: any[]) => any>(fn: F, name: string): Action<F> {
+  Object.defineProperty(fn, actionBrand, { value: true });
+  setMemberName(fn, name);
+  return fn as Action<F>;
 }
 
 export interface ActionComposer<S extends AnyState> {
