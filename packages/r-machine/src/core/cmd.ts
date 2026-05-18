@@ -23,4 +23,12 @@ export interface Cmd {
   readonly payload: unknown[];
 }
 
+export function isCmd(v: unknown): v is Cmd {
+  return typeof v === "object" && v !== null && cmdBrand in v;
+}
+
+export function createCmd(action: AnyAction, payload: unknown[]): Cmd {
+  return Object.defineProperty({ action, payload }, cmdBrand, { value: true }) as Cmd;
+}
+
 export type CmdComposer = <F extends (...args: any[]) => any>(action: Action<F>, ...args: Parameters<F>) => Cmd;

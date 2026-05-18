@@ -11,8 +11,9 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { ActionComposer, DefaultAction } from "./action.js";
+import type { ActionComposer, AnyAction, DefaultAction } from "./action.js";
 import type { BaseGearPlugPortMap } from "./base-gear-plug.js";
+import { type CmdComposer, createCmd } from "./cmd.js";
 import { lazyGetters } from "./composer-utils.js";
 import { createGearListPlugHead, createGearMapPlugHead, type GearPluginCtx, type GearPlugKitMap } from "./gear-plug.js";
 import { createGetter, type DefaultGetter, type GetterComposer, type StatelessGetterComposer } from "./getter.js";
@@ -408,9 +409,7 @@ export function buildStatefulOuterGearCursor<S extends AnyState>(
     relay: () => {
       throw new Error("relay: not yet implemented");
     },
-    cmd: () => {
-      throw new Error("cmd: not yet implemented");
-    },
+    cmd: ((action: AnyAction, ...payload: unknown[]) => createCmd(action, payload)) as CmdComposer,
   };
 }
 
@@ -420,9 +419,7 @@ function buildStatelessOuterGearCursor(recorder: CassetteRecorder): StatelessOut
     relay: () => {
       throw new Error("relay: not yet implemented");
     },
-    cmd: () => {
-      throw new Error("cmd: not yet implemented");
-    },
+    cmd: ((action: AnyAction, ...payload: unknown[]) => createCmd(action, payload)) as CmdComposer,
   };
 }
 
