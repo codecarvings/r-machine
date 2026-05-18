@@ -12,7 +12,6 @@
  */
 
 import {
-  type AnyNamespaceCollection,
   type AnyNamespaceMap,
   type AnyResAtlas,
   type AnyResAtlasClass,
@@ -34,6 +33,7 @@ import {
   type GearPlugKitMap,
   type InternalEventBus,
   JunctureManager,
+  type NamespaceMap,
   type PluginCtxAugmenter,
   type RequestScope,
   type RequestScopeProvider,
@@ -44,9 +44,9 @@ import {
   type VertexGearMap,
 } from "#r-machine/core";
 import { type AnyLocale, type AnyLocaleList, LocaleHelper } from "#r-machine/locale";
+import type { NamespaceCollection } from "../core/res-domain.js";
 import {
-  cloneRMachineConfig,
-  convertParamsToConfig,
+  convertRMachineConfigParamsToConfig,
   type RMachineConfig,
   type RMachineConfigParams,
   validateRMachineConfig,
@@ -70,12 +70,11 @@ export class RMachine<
   E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
 > {
-  protected constructor(config: RMachineConfig<RA, L, E, EF>) {
+  protected constructor(protected readonly config: RMachineConfig<RA, L, E, EF>) {
     const configError = validateRMachineConfig(config);
     if (configError) {
       throw configError;
     }
-    this.config = cloneRMachineConfig(config);
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
 
     const resLayoutResolver = new ResLayoutResolver(this.config.layout);
@@ -116,7 +115,6 @@ export class RMachine<
   }
 
   readonly localeHelper: LocaleHelper<L>;
-  protected readonly config: RMachineConfig<RA, L, E, EF>;
   protected readonly blueprintManager: BlueprintManager;
   protected readonly junctureManager: JunctureManager;
   protected readonly gateWireManager: GateWireManager;
@@ -136,15 +134,6 @@ export class RMachine<
     }
     return this.busHost.bus!;
   }
-
-  /*
-  protected validateLocaleForPick(locale: L) {
-    const error = this.localeHelper.validateLocale(locale);
-    if (error) {
-      throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot use invalid locale: "${locale}".`, error);
-    }
-  }
-  */
 
   protected createResComposerConnector(kit: AnyNamespaceMap): ResComposerConnector {
     return {
@@ -178,9 +167,9 @@ export class RMachine<
   }
 
   getGateWire(
-    kit: AnyNamespaceMap,
-    nsDeps: AnyNamespaceCollection,
-    locale: AnyLocale,
+    kit: NamespaceMap<RA>,
+    nsDeps: NamespaceCollection<RA>,
+    locale: L,
     augmentCtx: PluginCtxAugmenter,
     vertexGearMap?: VertexGearMap | undefined
   ): GateWire {
@@ -192,9 +181,9 @@ export class RMachine<
   // server-side / one-off resolution where reactivity is not needed.
   // Outer gear cannot be resolved through this method, as it relies on the gate wire's update mechanism to trigger re-resolution when outer gear changes.
   getGatePlugin(
-    kit: AnyNamespaceMap,
-    nsDeps: AnyNamespaceCollection,
-    locale: AnyLocale,
+    kit: NamespaceMap<RA>,
+    nsDeps: NamespaceCollection<RA>,
+    locale: L,
     augmentCtx: PluginCtxAugmenter
   ): Promise<unknown> {
     return this.junctureManager.getPlugin(kit, nsDeps, locale, augmentCtx, [], 0, undefined);
@@ -277,7 +266,7 @@ export class RMachine<
       return existing;
     }
     const created = new RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF>(
-      convertParamsToConfig(config)
+      convertRMachineConfigParamsToConfig(config)
     );
     slot[key] = created;
     return created;

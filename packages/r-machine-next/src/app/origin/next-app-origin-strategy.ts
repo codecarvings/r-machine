@@ -12,7 +12,7 @@
  */
 
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
+import { type AnyResAtlas, type ExperimentalFlags, getNamespaceMap, type ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { AnyPathAtlas, NextClientPlugKitMap, NextServerPlugKitMap } from "#r-machine/next/core";
 import {
@@ -20,6 +20,25 @@ import {
   type NextAppOriginStrategyConfigParams,
   NextAppOriginStrategyCore,
 } from "#r-machine/next/core/app/origin";
+
+export const convertNextAppOriginStrategyConfigParamsToConfig = <
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+>(
+  params: NextAppOriginStrategyConfigParams<RA, CKM, SKM, PA, LK>
+): NextAppOriginStrategyConfig<RA, CKM, SKM, PA, LK> => {
+  const { clientKit, serverKit, ...restParams } = params;
+
+  return {
+    ...NextAppOriginStrategyCore.defaultConfig,
+    ...restParams,
+    clientKit: Object.freeze(getNamespaceMap(clientKit ?? {})),
+    serverKit: Object.freeze(getNamespaceMap(serverKit ?? {})),
+  } as NextAppOriginStrategyConfig<RA, CKM, SKM, PA, LK>;
+};
 
 export class NextAppOriginStrategy<
   RA extends AnyResAtlas,
@@ -44,9 +63,9 @@ export class NextAppOriginStrategy<
     rMachine: RMachine<RA, L, E, EF>,
     config: NextAppOriginStrategyConfigParams<RA, CKM, SKM, PA, LK>
   ): NextAppOriginStrategy<RA, L, E, EF, CKM, SKM, PA, LK> {
-    return new NextAppOriginStrategy<RA, L, E, EF, CKM, SKM, PA, LK>(rMachine, {
-      ...NextAppOriginStrategyCore.defaultConfig,
-      ...config,
-    } as NextAppOriginStrategyConfig<RA, CKM, SKM, PA, LK>);
+    return new NextAppOriginStrategy<RA, L, E, EF, CKM, SKM, PA, LK>(
+      rMachine,
+      convertNextAppOriginStrategyConfigParamsToConfig(config)
+    );
   }
 }

@@ -2,10 +2,8 @@ import { BaseGear, type RShape } from "../setup";
 
 export const r = BaseGear.define(() => {
   return {
-    parseData() {
-      return "session";
-    },
+    sessionDuration: 30,
   };
 });
 
-export type Base_JWT = RShape<typeof r>;
+export type Base_Config = RShape<typeof r>;

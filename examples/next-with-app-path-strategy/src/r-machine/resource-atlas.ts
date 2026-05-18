@@ -1,6 +1,5 @@
 import { defineLayout } from "r-machine";
-import type { Base_JWT } from "./base/jwt";
-import type { Base_Session } from "./base/session";
+import type { Base_Config } from "./base/config";
 import type { Outer_Timer } from "./outer/timer";
 import type { Shell_Common } from "./shell/common/en";
 import type { Shell_ExampleDynamic } from "./shell/example-dynamic/en";
@@ -22,8 +21,7 @@ const folders = defineLayout({
 });
 
 type ResourceMap = {
-  "base/session": Base_Session;
-  "#base/jwt": Base_JWT;
+  "#base/config": Base_Config;
   "outer/timer": Outer_Timer;
 
   "shell/common": Shell_Common;

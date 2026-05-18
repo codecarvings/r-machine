@@ -12,7 +12,7 @@
  */
 
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
+import { type AnyResAtlas, type ExperimentalFlags, getNamespaceMap, type ResEquipment } from "r-machine/core";
 import type { RMachineTypeError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import {
@@ -21,6 +21,19 @@ import {
   type ReactStandardStrategyConfigParams,
   ReactStandardStrategyCore,
 } from "#r-machine/react/core";
+
+export function convertReactStandardStrategyConfigParamsToConfig<
+  RA extends AnyResAtlas,
+  KM extends ReactPlugKitMap<RA>,
+>(params: ReactStandardStrategyConfigParams<RA, KM>): ReactStandardStrategyConfig<RA, KM> {
+  const { kit, ...restParams } = params;
+
+  return {
+    ...ReactStandardStrategyCore.defaultConfig,
+    ...restParams,
+    kit: Object.freeze(getNamespaceMap(kit ?? {})),
+  } as ReactStandardStrategyConfig<RA, KM>;
+}
 
 export class ReactStandardStrategy<
   RA extends AnyResAtlas,
@@ -37,7 +50,7 @@ export class ReactStandardStrategy<
     KM extends ReactPlugKitMap<RA> = {},
   >(
     rMachine: RMachine<RA, L, E, EF>,
-    config: ReactStandardStrategyConfigParams<RA, KM>,
+    params: ReactStandardStrategyConfigParams<RA, KM>,
     ..._atlas_error: [Extract<keyof RA["let@gear:inner"], string>] extends [never]
       ? []
       : [
@@ -47,9 +60,9 @@ export class ReactStandardStrategy<
           >} ***`>,
         ]
   ): ReactStandardStrategy<RA, L, E, EF, KM> {
-    return new ReactStandardStrategy<RA, L, E, EF, KM>(rMachine, {
-      ...ReactStandardStrategyCore.defaultConfig,
-      ...config,
-    } as ReactStandardStrategyConfig<RA, KM>);
+    return new ReactStandardStrategy<RA, L, E, EF, KM>(
+      rMachine,
+      convertReactStandardStrategyConfigParamsToConfig(params)
+    );
   }
 }

@@ -76,7 +76,7 @@ export interface RMachineConfigParams<
   readonly experimental?: EF & ExperimentalFlags;
 }
 
-export function convertParamsToConfig<
+export function convertRMachineConfigParamsToConfig<
   RAC extends AnyResAtlasClass,
   LL extends AnyLocaleList,
   BGL extends BaseGearNamespaceList<InstanceType<RAC>>,
@@ -91,25 +91,27 @@ export function convertParamsToConfig<
   // strips a leading `#` (internal-namespace marker). After this single
   // materialization the rest of the runtime (BlueprintManager kit deps,
   // JunctureManager kit injection, composer dep tracking) sees only bare names.
-  const priority = getNamespaceList(params.ResourceAtlas.priority as never) as NamespaceList<InstanceType<RAC>>;
-  const bridgeGears = getNamespaceList((params.bridgeGears ?? []) as never) as BGL;
-  const gearKit = getNamespaceMap((params.gearKit ?? {}) as never) as GK;
-  const shellKit = getNamespaceMap((params.shellKit ?? {}) as never) as SK;
+  const priority = Object.freeze(getNamespaceList(params.ResourceAtlas.priority as never)) as NamespaceList<
+    InstanceType<RAC>
+  >;
+  const bridgeGears = Object.freeze(getNamespaceList((params.bridgeGears ?? []) as never)) as BGL;
+  const gearKit = Object.freeze(getNamespaceMap((params.gearKit ?? {}) as never)) as GK;
+  const shellKit = Object.freeze(getNamespaceMap((params.shellKit ?? {}) as never)) as SK;
 
   return {
     instanceName: params.instanceName ?? "default",
-    locales: [...params.locales],
+    locales: Object.freeze([...params.locales]),
     defaultLocale: params.defaultLocale,
     resourceAtlas: undefined!,
     load: params.load,
-    layout: params.ResourceAtlas.layout,
+    layout: Object.freeze({ ...params.ResourceAtlas.layout }),
     priority,
     equipment: {
       bridgeGears,
       gearKit,
       shellKit,
     },
-    experimental: params.experimental ?? ({} as EF),
+    experimental: Object.freeze({ ...(params.experimental ?? ({} as EF)) }),
   };
 }
 
@@ -154,19 +156,4 @@ export function validateRMachineConfig(config: RMachineConfig<any, any, any, any
   }
 
   return null;
-}
-
-export function cloneRMachineConfig<C extends RMachineConfig<any, any, any, any>>(config: C): C {
-  return {
-    ...config,
-    locales: Object.freeze([...config.locales]) as LocaleList<C["defaultLocale"]>,
-    layout: { ...config.layout },
-    priority: Object.freeze([...config.priority]),
-    equipment: {
-      bridgeGears: Object.freeze([...config.equipment.bridgeGears]),
-      gearKit: { ...config.equipment.gearKit },
-      shellKit: { ...config.equipment.shellKit },
-    },
-    experimental: { ...config.experimental },
-  };
 }

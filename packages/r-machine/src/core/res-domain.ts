@@ -11,9 +11,10 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { AnyResAtlas, ResAtlasCatalog } from "./res-atlas.js";
 import type { ResLayoutEntryType } from "./res-layout.js";
-import type { AnyNamespaceList } from "./res-list.js";
-import type { AnyNamespaceMap } from "./res-map.js";
+import type { AnyNamespaceList, NamespaceList } from "./res-list.js";
+import type { AnyNamespaceMap, NamespaceMap } from "./res-map.js";
 
 export type AnyNamespace = string;
 export type NamespaceParts = readonly [prefix: string, suffix: string];
@@ -40,6 +41,10 @@ export type TokenBuilder<RD extends AnyResDomain> = <N extends Namespace<RD>>(na
 export type Handle<RD extends AnyResDomain> = Namespace<RD> | Token<Namespace<RD>>;
 
 export type ExtractNamespace<H extends Handle<any>> = H extends Token<infer N> ? N : H;
+
+export type NamespaceCollection<RA extends AnyResAtlas, C extends ResAtlasCatalog = "shape"> =
+  | NamespaceMap<RA, C>
+  | NamespaceList<RA, C>;
 
 export type AnyNamespaceCollection = AnyNamespaceMap | AnyNamespaceList;
 

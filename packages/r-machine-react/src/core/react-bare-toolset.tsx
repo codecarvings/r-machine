@@ -25,6 +25,7 @@ import type {
   GateWire,
   HandleList,
   HandleMap,
+  NamespaceCollection,
   NamespaceList,
   PluginCtxAugmenter,
   RequestScope,
@@ -212,7 +213,7 @@ export async function createReactBareToolset<
             }
           };
         };
-        const wire = rMachine.getGateWire(kit, nsDeps, locale, augmentCtx, vertexGearMap);
+        const wire = rMachine.getGateWire(kit, nsDeps as NamespaceCollection<RA>, locale, augmentCtx, vertexGearMap);
         entry = { wire, localeHolder };
         wireCache.set(key, entry);
       }

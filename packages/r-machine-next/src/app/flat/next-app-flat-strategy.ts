@@ -12,7 +12,7 @@
  */
 
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
+import { type AnyResAtlas, type ExperimentalFlags, getNamespaceMap, type ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { AnyPathAtlas, NextClientPlugKitMap, NextServerPlugKitMap } from "#r-machine/next/core";
 import {
@@ -20,6 +20,25 @@ import {
   type NextAppFlatStrategyConfigParams,
   NextAppFlatStrategyCore,
 } from "#r-machine/next/core/app/flat";
+
+export const convertNextAppFlatStrategyConfigParamsToConfig = <
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+>(
+  params: NextAppFlatStrategyConfigParams<RA, CKM, SKM, PA, LK>
+): NextAppFlatStrategyConfig<RA, CKM, SKM, PA, LK> => {
+  const { clientKit, serverKit, ...restParams } = params;
+
+  return {
+    ...NextAppFlatStrategyCore.defaultConfig,
+    ...restParams,
+    clientKit: Object.freeze(getNamespaceMap(clientKit ?? {})),
+    serverKit: Object.freeze(getNamespaceMap(serverKit ?? {})),
+  } as NextAppFlatStrategyConfig<RA, CKM, SKM, PA, LK>;
+};
 
 export class NextAppFlatStrategy<
   RA extends AnyResAtlas,
@@ -44,9 +63,9 @@ export class NextAppFlatStrategy<
     rMachine: RMachine<RA, L, E, EF>,
     config: NextAppFlatStrategyConfigParams<RA, CKM, SKM, PA, LK>
   ): NextAppFlatStrategy<RA, L, E, EF, CKM, SKM, PA, LK> {
-    return new NextAppFlatStrategy<RA, L, E, EF, CKM, SKM, PA, LK>(rMachine, {
-      ...NextAppFlatStrategyCore.defaultConfig,
-      ...config,
-    } as NextAppFlatStrategyConfig<RA, CKM, SKM, PA, LK>);
+    return new NextAppFlatStrategy<RA, L, E, EF, CKM, SKM, PA, LK>(
+      rMachine,
+      convertNextAppFlatStrategyConfigParamsToConfig(config)
+    );
   }
 }

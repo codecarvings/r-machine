@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { convertParamsToConfig } from "../../src/lib/r-machine-config.js";
+import { convertRMachineConfigParamsToConfig } from "../../src/lib/r-machine-config.js";
 
-// `convertParamsToConfig` is the canonical user-input materialization point.
+// `convertRMachineConfigParamsToConfig` is the canonical user-input materialization point.
 // User-supplied namespace collections (priority, bridgeGears, gearKit,
 // shellKit) may contain `#`-prefixed internal namespaces — these must be
 // stripped here so the rest of the runtime sees bare names.
@@ -19,9 +19,9 @@ const baseParams = {
   load: async () => ({}) as never,
 };
 
-describe("convertParamsToConfig — internal-marker normalization", () => {
+describe("convertRMachineConfigParamsToConfig — internal-marker normalization", () => {
   it("strips `#` from priority entries", () => {
-    const config = convertParamsToConfig({
+    const config = convertRMachineConfigParamsToConfig({
       ...baseParams,
       ResourceAtlas: fakeResourceAtlas(["#base/jwt", "outer/timer"]),
     } as never);
@@ -30,7 +30,7 @@ describe("convertParamsToConfig — internal-marker normalization", () => {
   });
 
   it("strips `#` from bridgeGears entries", () => {
-    const config = convertParamsToConfig({
+    const config = convertRMachineConfigParamsToConfig({
       ...baseParams,
       ResourceAtlas: fakeResourceAtlas([]),
       bridgeGears: ["#base/jwt", "base/foo"],
@@ -40,7 +40,7 @@ describe("convertParamsToConfig — internal-marker normalization", () => {
   });
 
   it("strips `#` from gearKit values", () => {
-    const config = convertParamsToConfig({
+    const config = convertRMachineConfigParamsToConfig({
       ...baseParams,
       ResourceAtlas: fakeResourceAtlas([]),
       gearKit: { jwt: "#base/jwt", foo: "base/foo" },
@@ -50,7 +50,7 @@ describe("convertParamsToConfig — internal-marker normalization", () => {
   });
 
   it("strips `#` from shellKit values", () => {
-    const config = convertParamsToConfig({
+    const config = convertRMachineConfigParamsToConfig({
       ...baseParams,
       ResourceAtlas: fakeResourceAtlas([]),
       shellKit: { secret: "#shell/lib/secret", fmt: "shell/lib/fmt" },
@@ -60,7 +60,7 @@ describe("convertParamsToConfig — internal-marker normalization", () => {
   });
 
   it("preserves empty defaults when params omit the optional collections", () => {
-    const config = convertParamsToConfig({
+    const config = convertRMachineConfigParamsToConfig({
       ...baseParams,
       ResourceAtlas: fakeResourceAtlas([]),
     } as never);

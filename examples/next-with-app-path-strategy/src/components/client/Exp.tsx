@@ -8,7 +8,7 @@ export function Exp() {
   return (
     <div>
       Exp {$.kit.fmt.currency(timer.value)}
-      <div>{timer.valueWithSession}</div>
+      <div>{timer.valueWithConfig}</div>
     </div>
   );
 }

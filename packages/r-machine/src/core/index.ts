@@ -71,7 +71,7 @@ export type {
   ResAtlasClass,
 } from "./res-atlas.js";
 export type { ResComposerConnector } from "./res-composer-connector.js";
-export type { Handle } from "./res-domain.js";
+export type { Handle, NamespaceCollection } from "./res-domain.js";
 export {
   type AnyNamespace,
   type AnyNamespaceCollection,

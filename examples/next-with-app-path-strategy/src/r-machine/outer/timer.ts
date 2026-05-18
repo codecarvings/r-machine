@@ -1,22 +1,22 @@
 import { managed } from "r-machine";
 import { OuterGear, type RShape } from "../setup";
 
-export const r = OuterGear.withDeps("base/session")
+export const r = OuterGear.withDeps("#base/config")
   .withState(0)
-  .define(([session, $], _) => {
+  .define(([config, $], _) => {
     const $inc = _.action(() => $.state + 1);
     const intervalId = setInterval(() => {
       $inc();
     }, 1000);
 
-    const marker = "3";
+    const marker = "X";
 
     return managed(
       {
         $inc,
         value: _.getter(),
-        valueWithSession: _.getter(() => {
-          return `${session.getSession()} - ${marker} - ${$.state}`;
+        valueWithConfig: _.getter(() => {
+          return `${config.sessionDuration} - ${marker} - ${$.state}`;
         }),
       },
       () => {

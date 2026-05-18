@@ -19,6 +19,7 @@ import type {
   ExperimentalFlags,
   HandleList,
   HandleMap,
+  NamespaceCollection,
   NamespaceList,
   PluginCtxAugmenter,
   ResEquipment,
@@ -319,7 +320,7 @@ export async function createNextAppServerToolset<
         }
       };
 
-      return await rMachine.getGatePlugin(serverKit, nsDeps, locale, augmentCtx);
+      return await rMachine.getGatePlugin(serverKit, nsDeps as NamespaceCollection<RA>, locale, augmentCtx);
     };
 
     const useR = async (firstArg?: unknown): Promise<unknown> => {
