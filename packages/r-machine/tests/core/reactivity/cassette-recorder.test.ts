@@ -6,6 +6,7 @@ import { createCassetteRecorder, type ReadableCell } from "../../../src/core/rea
 function makeFakeCell(): ReadableCell {
   return {
     subscribe: () => () => {},
+    subscribeInternal: () => () => {},
   };
 }
 

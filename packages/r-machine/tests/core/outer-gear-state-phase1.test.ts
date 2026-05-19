@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildKernelJuncture } from "../../src/core/juncture.js";
-import { buildStatefulOuterGearCursor, stateCellSlot } from "../../src/core/outer-gear-composer.js";
+import { tryGetManagedTeardown } from "../../src/core/managed.js";
+import {
+  buildStatefulOuterGearCursor,
+  stateCellSlot,
+  wrapWithRelayCleanup,
+} from "../../src/core/outer-gear-composer.js";
 import { createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
 import { createStateCell, type StateCell } from "../../src/core/reactivity/state-cell.js";
 import type { AnyRes } from "../../src/core/res.js";
@@ -62,6 +67,10 @@ function buildStatefulMatrix<S>(
       Object.defineProperty($, "state", { get: () => cell.read(), enumerable: true });
       $.defaultState = defaultState;
     },
+    // Mirror production behavior: wrap the resource with managed teardown
+    // for any relays registered during the user factory invocation. Member
+    // name promotion is irrelevant here (these tests don't assert names).
+    postProcess: (raw, cursor) => wrapWithRelayCleanup(raw as AnyRes, cursor),
   });
 }
 
@@ -203,5 +212,65 @@ describe("OuterGear state — phase 1 end-to-end", () => {
 
     expect(cartSub).toHaveBeenCalledTimes(1);
     expect(otherSub).not.toHaveBeenCalled();
+  });
+
+  it("relay registered via cursor.relay observes state mutations; cleanup disposes it", async () => {
+    const recorder = createCassetteRecorder();
+    const onChange = vi.fn();
+    const matrix = buildStatefulMatrix(recorder, { count: 0 }, ($, cursor) => {
+      cursor.relay({
+        select: () => $.state.count,
+        onChange,
+      });
+      return {
+        read: cursor.getter(() => $.state.count),
+        inc: cursor.action(() => ({ count: $.state.count + 1 })),
+      };
+    });
+    const raw = await (matrix.factory as unknown as InternalFactoryCall)(undefined, []);
+    const resource = raw as { read: () => number; inc: () => unknown };
+    const surface = buildKernelJuncture(raw as AnyRes, undefined).surface as {
+      read: number;
+      inc: () => unknown;
+      // Relays are filtered from the surface, so this property MUST be absent.
+      [k: string]: unknown;
+    };
+
+    // Relay NOT in surface
+    expect("relay:1" in surface).toBe(false);
+    expect(Object.keys(surface)).not.toContain("relay:1");
+
+    // No spurious onChange before any mutation.
+    expect(onChange).not.toHaveBeenCalled();
+
+    // Mutate via action → onChange fires exactly once with (next, prev).
+    resource.inc();
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith(1, 0);
+
+    // Teardown disposes the relay; subsequent mutations don't fire.
+    const teardown = tryGetManagedTeardown(raw as AnyRes);
+    expect(teardown).toBeDefined();
+    teardown?.();
+    resource.inc();
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("relay does NOT need to be returned from the factory to be active (side-effect-only registration)", async () => {
+    const recorder = createCassetteRecorder();
+    const onChange = vi.fn();
+    const matrix = buildStatefulMatrix(recorder, { v: 0 }, ($, cursor) => {
+      // Side-effect-only: not exposed on returned resource.
+      cursor.relay({ select: () => $.state.v, onChange });
+      return {
+        read: cursor.getter(() => $.state.v),
+        set: cursor.action((v: number) => ({ v })),
+      };
+    });
+    const raw = await (matrix.factory as unknown as InternalFactoryCall)(undefined, []);
+    const resource = raw as { set: (v: number) => unknown };
+    resource.set(7);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith(7, 0);
   });
 });

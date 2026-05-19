@@ -99,7 +99,7 @@ export class RMachine<
       this.blueprintManager,
       this.busHost
     );
-    this.cassetteRecorder = createCassetteRecorder();
+    this.cassetteRecorder = createCassetteRecorder(this.busHost);
     this.gateWireManager = new GateWireManager(this.junctureManager, this.busHost, this.cassetteRecorder);
 
     // this.warnExperimental();

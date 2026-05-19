@@ -17,6 +17,7 @@ import { type CmdComposer, createCmd } from "./cmd.js";
 import { lazyGetters } from "./composer-utils.js";
 import { createGearListPlugHead, createGearMapPlugHead, type GearPluginCtx, type GearPlugKitMap } from "./gear-plug.js";
 import { createGetter, type DefaultGetter, type GetterComposer, type StatelessGetterComposer } from "./getter.js";
+import { managed } from "./managed.js";
 import { promoteMemberNames } from "./member-name.js";
 import type { AnyOuterGear, AnyState, RejectAsyncValueProps } from "./outer-gear.js";
 import {
@@ -42,6 +43,7 @@ import { makeAction } from "./reactivity/action-runtime.js";
 import type { CassetteRecorder } from "./reactivity/cassette-recorder.js";
 import { createMemoCell } from "./reactivity/memo-cell.js";
 import { createStateCell, type StateCell } from "./reactivity/state-cell.js";
+import { type AnyRelay, createRelay, createRelayRuntime, type RelayComposer } from "./relay.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
@@ -351,6 +353,18 @@ type StatelessOuterGearListDefiner<
 /** @internal — exposed for testing the resolution wiring */
 export const stateCellSlot = Symbol("stateCell");
 
+/** @internal — opaque slot used by the cursor to hand its relay-cleanup list to the postProcess. */
+const relayCleanupSlot: unique symbol = Symbol("relayCleanup");
+
+function attachRelayCleanup<C extends object>(cursor: C, disposes: Array<() => void>): C {
+  Object.defineProperty(cursor, relayCleanupSlot, { value: disposes, enumerable: false });
+  return cursor;
+}
+
+function takeRelayCleanup(cursor: unknown): Array<() => void> | undefined {
+  return (cursor as { [relayCleanupSlot]?: Array<() => void> })[relayCleanupSlot];
+}
+
 interface PluginWithStateCell<S> {
   readonly [stateCellSlot]: StateCell<S>;
 }
@@ -403,29 +417,60 @@ export function buildStatefulOuterGearCursor<S extends AnyState>(
     return makeAction(cell, r as (...a: unknown[]) => unknown, recorder, `action:${actionCounter}`);
   }) as unknown as ActionComposer<S>;
 
-  return {
-    getter,
-    action,
-    relay: () => {
-      throw new Error("relay: not yet implemented");
+  const relayDisposes: Array<() => void> = [];
+  let relayCounter = 0;
+  const relay = ((config: unknown) => {
+    relayCounter += 1;
+    const branded = createRelay(config as never, `relay:${relayCounter}`);
+    const rt = createRelayRuntime(branded as AnyRelay, recorder);
+    relayDisposes.push(() => rt.dispose());
+    return branded;
+  }) as unknown as RelayComposer;
+
+  return attachRelayCleanup(
+    {
+      getter,
+      action,
+      relay,
+      cmd: ((action: AnyAction, ...payload: unknown[]) => createCmd(action, payload)) as CmdComposer,
     },
-    cmd: ((action: AnyAction, ...payload: unknown[]) => createCmd(action, payload)) as CmdComposer,
-  };
+    relayDisposes
+  );
 }
 
 function buildStatelessOuterGearCursor(recorder: CassetteRecorder): StatelessOuterGearCursor {
-  return {
-    getter: buildStatelessGetterComposer(recorder),
-    relay: () => {
-      throw new Error("relay: not yet implemented");
+  const relayDisposes: Array<() => void> = [];
+  let relayCounter = 0;
+  const relay = ((config: unknown) => {
+    relayCounter += 1;
+    const branded = createRelay(config as never, `relay:${relayCounter}`);
+    const rt = createRelayRuntime(branded as AnyRelay, recorder);
+    relayDisposes.push(() => rt.dispose());
+    return branded;
+  }) as unknown as RelayComposer;
+
+  return attachRelayCleanup(
+    {
+      getter: buildStatelessGetterComposer(recorder),
+      relay,
+      cmd: ((action: AnyAction, ...payload: unknown[]) => createCmd(action, payload)) as CmdComposer,
     },
-    cmd: ((action: AnyAction, ...payload: unknown[]) => createCmd(action, payload)) as CmdComposer,
-  };
+    relayDisposes
+  );
 }
 
 const meta: GearMatrixMeta = { family: "gear", role: "outer" };
 
 const emptyPorts: BaseGearPlugPortMap = {};
+
+/** @internal — exposed for tests that bypass the production composer and build res-matrix directly. */
+export function wrapWithRelayCleanup(resource: AnyRes, cursor: unknown): AnyRes {
+  const disposes = takeRelayCleanup(cursor);
+  if (!disposes || disposes.length === 0) return resource;
+  return managed(resource, () => {
+    for (const d of disposes) d();
+  });
+}
 
 function statefulPostProcess<S extends AnyState>(raw: unknown, _: StatefulOuterGearCursor<S>): AnyRes {
   let resource: AnyRes;
@@ -440,12 +485,12 @@ function statefulPostProcess<S extends AnyState>(raw: unknown, _: StatefulOuterG
     resource = raw as AnyRes;
   }
   promoteMemberNames(resource);
-  return resource;
+  return wrapWithRelayCleanup(resource, _);
 }
 
-function statelessPostProcess(raw: unknown): AnyRes {
+function statelessPostProcess(raw: unknown, cursor: unknown): AnyRes {
   promoteMemberNames(raw);
-  return raw as AnyRes;
+  return wrapWithRelayCleanup(raw as AnyRes, cursor);
 }
 
 export function createOuterGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>>(
@@ -770,9 +815,12 @@ function createStatelessOuterGearMapDefiner<
       connector: connector,
       meta,
       head,
-      cursor: buildStatelessOuterGearCursor(recorder),
+      // Per-resolve factory so each instance has its own relay-cleanup
+      // closure; the cursor object is shared as the `cursor` arg to both
+      // the user factory and the postProcess for relay teardown wiring.
+      cursor: () => buildStatelessOuterGearCursor(recorder),
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
-      postProcess: (raw) => statelessPostProcess(raw),
+      postProcess: (raw, c) => statelessPostProcess(raw, c as unknown),
     });
 }
 
@@ -794,9 +842,9 @@ function createStatelessOuterGearListDefiner<
       connector: connector,
       meta,
       head,
-      cursor: buildStatelessOuterGearCursor(recorder),
+      cursor: () => buildStatelessOuterGearCursor(recorder),
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
-      postProcess: (raw) => statelessPostProcess(raw),
+      postProcess: (raw, c) => statelessPostProcess(raw, c as unknown),
     })) as StatelessOuterGearListDefiner<RA, KM, DL, PM>;
 }
 

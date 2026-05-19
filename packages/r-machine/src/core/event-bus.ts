@@ -121,9 +121,17 @@ export type GateWireEvent =
   | { type: "gateWire:trackingCommitted"; genId: number; depCount: number }
   | { type: "gateWire:cassetteNotified"; genId: number; subscriberCount: number };
 
+// ─── Relay events ───────────────────────────────────────────────────────
+
+export type RelayEvent = {
+  type: "relay:onChangeError";
+  relayName: string;
+  error: unknown;
+};
+
 // ─── Aggregato ──────────────────────────────────────────────────────────
 
-export type InternalEvent = BlueprintEvent | JunctureEvent | GateWireEvent;
+export type InternalEvent = BlueprintEvent | JunctureEvent | GateWireEvent | RelayEvent;
 
 // ─── Bus interface + factory ────────────────────────────────────────────
 

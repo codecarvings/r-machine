@@ -22,17 +22,26 @@ export function makeAction<S, A extends unknown[]>(
   recorder: CassetteRecorder,
   name: string
 ): Action<(...args: A) => S> {
-  return createAction((...args: A): S => {
-    const raw = recorder.withSilentZone(() => reducer(...args));
-    const prev = cell.peek();
-    if (raw === prev) {
-      return prev;
-    }
-    const merged = deepPartialMerge(prev, raw);
-    if (merged === prev) {
-      return prev;
-    }
-    cell.publish(merged);
-    return merged;
-  }, name);
+  return createAction(
+    (...args: A): S =>
+      // The outermost action opens the transaction; nested action calls
+      // (re-entrant) take the passthrough path inside runInTransaction
+      // and contribute to the same dirty queues. The outermost frame
+      // flushes once — external subscribers receive at most one
+      // notification per affected cell regardless of nesting depth.
+      recorder.runInTransaction(() => {
+        const raw = recorder.withSilentZone(() => reducer(...args));
+        const prev = cell.peek();
+        if (raw === prev) {
+          return prev;
+        }
+        const merged = deepPartialMerge(prev, raw);
+        if (merged === prev) {
+          return prev;
+        }
+        cell.publish(merged);
+        return merged;
+      }),
+    name
+  );
 }

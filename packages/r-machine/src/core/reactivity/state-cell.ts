@@ -21,7 +21,18 @@ export interface StateCell<S> extends ReadableCell {
 
 export function createStateCell<S>(initial: S, recorder: CassetteRecorder): StateCell<S> {
   let current = initial;
-  const subscribers = new Set<() => void>();
+  // Two tiers: internal subscribers (memo invalidate, relay markDirty)
+  // always fire inline; external subscribers (GateWire, consumer code)
+  // are deferred via the recorder's dirty-cell queue when a transaction
+  // is active, then flushed once at the end of the outermost transaction
+  // (deduplicated per cell). Outside any transaction, externals fire
+  // inline (legacy backwards-compatible path).
+  const internalSubs = new Set<() => void>();
+  const externalSubs = new Set<() => void>();
+
+  function notifyExternal(): void {
+    for (const cb of [...externalSubs]) cb();
+  }
 
   const cell: StateCell<S> = {
     read() {
@@ -32,15 +43,25 @@ export function createStateCell<S>(initial: S, recorder: CassetteRecorder): Stat
       return current;
     },
     publish(next) {
+      if (Object.is(next, current)) return;
       current = next;
-      for (const cb of [...subscribers]) {
-        cb();
+      for (const cb of [...internalSubs]) cb();
+      if (recorder.isInTransaction()) {
+        recorder.enqueueDirtyCell({ notifyExternal });
+      } else {
+        notifyExternal();
       }
     },
     subscribe(cb) {
-      subscribers.add(cb);
+      externalSubs.add(cb);
       return () => {
-        subscribers.delete(cb);
+        externalSubs.delete(cb);
+      };
+    },
+    subscribeInternal(cb) {
+      internalSubs.add(cb);
+      return () => {
+        internalSubs.delete(cb);
       };
     },
   };

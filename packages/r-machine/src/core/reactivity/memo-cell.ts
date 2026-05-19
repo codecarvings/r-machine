@@ -27,24 +27,42 @@ export function createMemoCell<V>(
   let value: V | typeof UNSET = UNSET;
   let dirty = true;
   let depUnsubs: Array<() => void> = [];
-  const subscribers = new Set<() => void>();
+  // Two tiers, mirroring StateCell: internal subscribers (relay markDirty,
+  // other memos invalidating) fire inline; external subscribers (GateWire,
+  // consumer) are deferred through the recorder's dirty-cell queue when a
+  // transaction is active, otherwise inline (legacy path).
+  const internalSubs = new Set<() => void>();
+  const externalSubs = new Set<() => void>();
   let recomputing = false;
+  let hasExternalDirtyTrigger = false; // active flag while memo is enqueued for external flush
   // Persistent private cassette for capturing the body's reads on each
   // recompute. `insert()` clears prior deps; `eject()` is idempotent.
   const cassette = recorder.createCassette();
+
+  function notifyExternal(): void {
+    hasExternalDirtyTrigger = false;
+    for (const cb of [...externalSubs]) cb();
+  }
 
   function recompute(): void {
     cassette.insert();
     let next: V;
     try {
-      next = body();
+      // runOutsideSilent: when this recompute is triggered by an action
+      // (whose reducer runs in a silent zone), reads inside body() must
+      // still be tracked into this memo's private cassette so deps are
+      // re-subscribed correctly. Top-of-stack scoping in the recorder
+      // keeps these reads scoped to THIS cassette only — no leak.
+      next = recorder.runOutsideSilent(body);
     } finally {
       cassette.eject();
     }
     for (const unsub of depUnsubs) unsub();
     depUnsubs = [];
+    // Deps subscribe via the INTERNAL tier so invalidate fires inside the
+    // tick — never deferred. This keeps the reactivity cascade consistent.
     for (const dep of cassette.getDeps()) {
-      depUnsubs.push(dep.subscribe(invalidate));
+      depUnsubs.push(dep.subscribeInternal(invalidate));
     }
     value = next;
     dirty = false;
@@ -54,7 +72,8 @@ export function createMemoCell<V>(
     if (recomputing) {
       return;
     }
-    if (subscribers.size === 0) {
+    // Lazy when nothing depends on us (no subs, internal or external).
+    if (internalSubs.size === 0 && externalSubs.size === 0) {
       dirty = true;
       return;
     }
@@ -67,10 +86,20 @@ export function createMemoCell<V>(
     } finally {
       recomputing = false;
     }
-    if (hadValue && !equals(prevValue as V, value as V)) {
-      for (const cb of [...subscribers]) {
-        cb();
+    if (!hadValue || equals(prevValue as V, value as V)) {
+      return;
+    }
+    // Output changed: notify internal subs inline (relays in the same tick);
+    // schedule external subs for deferred flush if a tx is active, else inline.
+    for (const cb of [...internalSubs]) cb();
+    if (externalSubs.size === 0) return;
+    if (recorder.isInTransaction()) {
+      if (!hasExternalDirtyTrigger) {
+        hasExternalDirtyTrigger = true;
+        recorder.enqueueDirtyCell({ notifyExternal });
       }
+    } else {
+      notifyExternal();
     }
   }
 
@@ -88,9 +117,15 @@ export function createMemoCell<V>(
       return value as V;
     },
     subscribe(cb) {
-      subscribers.add(cb);
+      externalSubs.add(cb);
       return () => {
-        subscribers.delete(cb);
+        externalSubs.delete(cb);
+      };
+    },
+    subscribeInternal(cb) {
+      internalSubs.add(cb);
+      return () => {
+        internalSubs.delete(cb);
       };
     },
   };
