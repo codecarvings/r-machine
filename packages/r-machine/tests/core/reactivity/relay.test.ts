@@ -7,8 +7,8 @@ import { createStateCell } from "../../../src/core/reactivity/state-cell.js";
 import { type AnyRelay, createRelay, createRelayRuntime } from "../../../src/core/relay.js";
 
 // Local helper: createRelay is generic in T but createRelayRuntime accepts
-// AnyRelay (Relay<unknown>) — variance-unsafe cast needed in tests.
-function mk(config: { select: () => unknown; onChange: (c: unknown, p: unknown) => void }, name: string): AnyRelay {
+// AnyRelay (Relay<any>) — variance-unsafe cast needed in tests.
+function mk(config: { select: () => any; onChange: (c: any, p: any) => any }, name: string): AnyRelay {
   return createRelay(config, name) as AnyRelay;
 }
 

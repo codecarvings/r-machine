@@ -123,11 +123,9 @@ export type GateWireEvent =
 
 // ─── Relay events ───────────────────────────────────────────────────────
 
-export type RelayEvent = {
-  type: "relay:onChangeError";
-  relayName: string;
-  error: unknown;
-};
+export type RelayEvent =
+  | { type: "relay:onChangeError"; relayName: string; error: unknown }
+  | { type: "relay:loopDetected"; relayName: string; runCount: number };
 
 // ─── Aggregato ──────────────────────────────────────────────────────────
 

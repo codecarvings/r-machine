@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { Cmd } from "../cmd.js";
 import type { BusHost } from "../event-bus.js";
 import type { AnyNamespace } from "../res-domain.js";
 
@@ -33,9 +34,31 @@ export interface DirtyCell {
 
 /** Minimal contract for the relay runtime, as seen by the recorder. */
 export interface RelayRuntime {
-  runIfDirty(): void;
+  /**
+   * Re-runs `select`; if value changed, invokes `onChange(next, prev)`.
+   * Returns the sync cmds produced by `onChange` (empty if none, void, or
+   * async — async cmds are dispatched out-of-band by the runtime itself).
+   * Also returns the relay's identifying name so the recorder can attribute
+   * loop-detection events.
+   */
+  runIfDirty(): { cmds: readonly Cmd[]; relayName: string };
   dispose(): void;
 }
+
+/** Custom error thrown by the recorder when a relay's onChange fires more than the loop-detection threshold within one flush. */
+export class RelayLoopError extends Error {
+  constructor(
+    readonly relayName: string,
+    readonly runCount: number
+  ) {
+    super(
+      `R-Machine relay "${relayName}" fired onChange ${runCount} times in a single flush — possible infinite loop.`
+    );
+    this.name = "RelayLoopError";
+  }
+}
+
+const RELAY_LOOP_LIMIT = 3;
 
 /** A registered relay together with its hosting OG namespace (for ordering). */
 export interface RegisteredRelay {
@@ -259,38 +282,88 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
   }
 
   function flush(): void {
+    // Per-flush counters for relay loop detection. A relay fires onChange
+    // at most RELAY_LOOP_LIMIT times within one outermost-tx flush. Beyond
+    // that, we abort with a `relay:loopDetected` bus event + RelayLoopError.
+    const runCounts = new Map<RelayRuntime, number>();
+    // Hold txDepth > 0 for the entire flush so any action dispatched by
+    // Phase-2 cmd handling becomes a nested passthrough (txDepth 1→2→1)
+    // instead of opening a fresh outermost tx (which would recursively
+    // re-enter flush with its own runCounts — defeating loop detection
+    // and risking unbounded recursion).
+    txDepth++;
     let iterations = 0;
-    while (dirtyRelays.size > 0 || dirtyCells.size > 0) {
-      iterations++;
-      if (iterations > FLUSH_HARD_CAP) {
-        console.error(
-          `R-Machine: relay flush exceeded ${FLUSH_HARD_CAP} iterations — aborting to prevent infinite loop.`
-        );
-        dirtyRelays.clear();
-        dirtyCells.clear();
-        return;
-      }
-      // Relays first: their onChange may indirectly mutate cells (Step 3
-      // will dispatch returned cmds; for now any inline action call inside
-      // onChange feeds back into the same dirty queues via the nested-tx
-      // passthrough path).
-      if (dirtyRelays.size > 0) {
-        const snapshot = new Set(dirtyRelays);
-        dirtyRelays.clear();
-        const ordered = orderingProvider
-          ? orderingProvider.order(snapshot, txSources, relays)
-          : // Fallback: registration order, filtered to dirty.
-            relays.filter((entry) => snapshot.has(entry.runtime)).map((entry) => entry.runtime);
-        for (const r of ordered) {
-          r.runIfDirty();
+    try {
+      while (dirtyRelays.size > 0 || dirtyCells.size > 0) {
+        iterations++;
+        if (iterations > FLUSH_HARD_CAP) {
+          console.error(
+            `R-Machine: relay flush exceeded ${FLUSH_HARD_CAP} iterations — aborting to prevent infinite loop.`
+          );
+          dirtyRelays.clear();
+          dirtyCells.clear();
+          return;
+        }
+        // ─── Phase 1: relays ──────────────────────────────────────────────
+        // Each dirty relay fires onChange and returns the sync cmds it
+        // produced. We COLLECT them here; we do NOT dispatch them inline.
+        // Cmd application happens in Phase 2 — this ensures all relays in
+        // the current snapshot see the same world state before cmd-driven
+        // mutations start a new round of dirtying.
+        const collectedCmds: Cmd[] = [];
+        if (dirtyRelays.size > 0) {
+          const snapshot = new Set(dirtyRelays);
+          dirtyRelays.clear();
+          const ordered = orderingProvider
+            ? orderingProvider.order(snapshot, txSources, relays)
+            : // Fallback: registration order, filtered to dirty.
+              relays.filter((entry) => snapshot.has(entry.runtime)).map((entry) => entry.runtime);
+          for (const r of ordered) {
+            const result = r.runIfDirty();
+            // Bump fire counter; abort if over the loop-detection threshold.
+            const current = (runCounts.get(r) ?? 0) + 1;
+            runCounts.set(r, current);
+            if (current > RELAY_LOOP_LIMIT) {
+              busHost?.bus?.emit({
+                type: "relay:loopDetected",
+                relayName: result.relayName,
+                runCount: current,
+              });
+              // Clear pending state so the next flush starts clean even if
+              // the throw is caught (or swallowed) somewhere upstream.
+              dirtyRelays.clear();
+              dirtyCells.clear();
+              throw new RelayLoopError(result.relayName, current);
+            }
+            if (result.cmds.length > 0) {
+              collectedCmds.push(...result.cmds);
+            }
+          }
+        }
+        // ─── Phase 2: cmd dispatch ────────────────────────────────────────
+        // Each cmd is `cmd.action(...cmd.payload)`. Since `cmd.action` is
+        // wrapped in makeAction → runInTransaction, the call opens a nested
+        // tx (passthrough): the mutations feed into the SAME dirty queues
+        // and the outer while-loop picks them up in a new iteration.
+        for (const cmd of collectedCmds) {
+          try {
+            cmd.action(...cmd.payload);
+          } catch (e) {
+            // A cmd dispatched by a relay is a side-effect — same swallow +
+            // bus event semantics as a direct onChange throw, attributed to
+            // the action's name (best-effort).
+            busHost?.bus?.emit({ type: "relay:onChangeError", relayName: "<cmd-dispatch>", error: e });
+          }
+        }
+        // ─── Phase 3: external cell notifications, deduped per cell ──────
+        if (dirtyCells.size > 0) {
+          const snapshot = [...dirtyCells];
+          dirtyCells.clear();
+          for (const c of snapshot) c.notifyExternal();
         }
       }
-      // Then external cell notifications, deduplicated per cell.
-      if (dirtyCells.size > 0) {
-        const snapshot = [...dirtyCells];
-        dirtyCells.clear();
-        for (const c of snapshot) c.notifyExternal();
-      }
+    } finally {
+      txDepth--;
     }
   }
 

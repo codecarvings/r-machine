@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { Cmd } from "./cmd.js";
+import { type Cmd, isCmd } from "./cmd.js";
 import { getMemberName, setMemberName } from "./member-name.js";
 import type { CassetteRecorder, RelayRuntime } from "./reactivity/cassette-recorder.js";
 import type { AnyNamespace } from "./res-domain.js";
@@ -76,7 +76,8 @@ export function createRelayRuntime(
 
   const runtime: RelayRuntime = {
     runIfDirty() {
-      if (disposed) return;
+      const relayName = getMemberName(relay);
+      if (disposed) return { cmds: [], relayName };
       // Re-capture deps; if select throws, swallow + emit, preserve prev.
       for (const unsub of depUnsubs) unsub();
       depUnsubs = [];
@@ -89,14 +90,14 @@ export function createRelayRuntime(
           cassette.eject();
         }
       } catch (e) {
-        recorder.emitRelayError(getMemberName(relay), e);
+        recorder.emitRelayError(relayName, e);
         // Re-subscribe to deps from the last successful capture so we still
         // react to future mutations. Since cassette.insert() cleared the
         // deps, getDeps() is empty here — but that's acceptable: the next
         // action that mutates a previously-known dep won't fire this relay.
         // Users with a throwing select() get a documented event and a relay
         // that effectively stalls until the next successful select() pass.
-        return;
+        return { cmds: [], relayName };
       }
       for (const dep of cassette.getDeps()) {
         depUnsubs.push(
@@ -106,17 +107,18 @@ export function createRelayRuntime(
         );
       }
       if (prev !== UNSET && Object.is(prev, next)) {
-        return;
+        return { cmds: [], relayName };
       }
       const prevForCallback = prev === UNSET ? next : prev;
       prev = next;
+      let result: unknown;
       try {
-        // Step 3 will dispatch the returned cmds (Cmd | Cmd[]) and
-        // handle Promise<RelayOnChangeResult> as out-of-band cycles.
-        relay.onChange(next, prevForCallback);
+        result = relay.onChange(next, prevForCallback);
       } catch (e) {
-        recorder.emitRelayError(getMemberName(relay), e);
+        recorder.emitRelayError(relayName, e);
+        return { cmds: [], relayName };
       }
+      return extractSyncResult(result, relayName, recorder);
     },
     dispose() {
       if (disposed) return;
@@ -150,4 +152,65 @@ export function createRelayRuntime(
   unregister = recorder.registerRelay(runtime, namespace);
 
   return { dispose: () => runtime.dispose() };
+}
+
+/**
+ * Parses the user's onChange return value into the sync portion (cmds to be
+ * dispatched in Phase 2 of the current flush) and schedules any Promise
+ * result as an out-of-band cycle. The sync cmds are returned to the
+ * recorder; the async path is fully handled here.
+ *
+ * Out-of-band semantics: when onChange returns a Promise, the relay does
+ * NOT block the current flush. The Promise is awaited via a microtask;
+ * once it resolves, any returned cmds are dispatched inside a fresh
+ * `runInTransaction`, which triggers a separate flush cycle. Rejections
+ * are swallowed and reported as `relay:onChangeError`.
+ */
+function extractSyncResult(
+  result: unknown,
+  relayName: string,
+  recorder: CassetteRecorder
+): { cmds: readonly Cmd[]; relayName: string } {
+  if (result == null) {
+    return { cmds: [], relayName };
+  }
+  if (isThenable(result)) {
+    // Out-of-band: do NOT await synchronously. Schedule on microtask;
+    // resolved value's cmds are dispatched as a new tx (separate flush).
+    void result.then(
+      (resolved) => {
+        const cmds = normalizeCmds(resolved);
+        if (cmds.length === 0) return;
+        recorder.runInTransaction(() => {
+          for (const cmd of cmds) {
+            try {
+              cmd.action(...cmd.payload);
+            } catch (e) {
+              recorder.emitRelayError(relayName, e);
+            }
+          }
+        });
+      },
+      (e) => {
+        recorder.emitRelayError(relayName, e);
+      }
+    );
+    return { cmds: [], relayName };
+  }
+  return { cmds: normalizeCmds(result), relayName };
+}
+
+function isThenable(v: unknown): v is PromiseLike<unknown> {
+  return typeof v === "object" && v !== null && typeof (v as { then?: unknown }).then === "function";
+}
+
+function normalizeCmds(v: unknown): Cmd[] {
+  if (v == null) return [];
+  if (Array.isArray(v)) {
+    return v.filter(isCmd);
+  }
+  if (isCmd(v)) {
+    return [v];
+  }
+  return [];
 }
