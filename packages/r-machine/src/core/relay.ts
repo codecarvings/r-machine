@@ -14,6 +14,7 @@
 import type { Cmd } from "./cmd.js";
 import { getMemberName, setMemberName } from "./member-name.js";
 import type { CassetteRecorder, RelayRuntime } from "./reactivity/cassette-recorder.js";
+import type { AnyNamespace } from "./res-domain.js";
 
 // biome-ignore lint/suspicious/noConfusingVoidType: This is intentional
 type RelayOnChangeResult = void | Cmd | Cmd[];
@@ -29,7 +30,7 @@ export interface RelayBrand {
 }
 export interface Relay<T> extends RelayConfig<T>, RelayBrand {}
 
-export type AnyRelay = Relay<unknown>;
+export type AnyRelay = Relay<any>;
 
 export function isRelay(v: unknown): v is AnyRelay {
   return typeof v === "object" && v !== null && relayBrand in v;
@@ -62,7 +63,11 @@ const UNSET: unique symbol = Symbol("relay-prev-unset");
  *
  * @internal
  */
-export function createRelayRuntime(relay: AnyRelay, recorder: CassetteRecorder): { dispose(): void } {
+export function createRelayRuntime(
+  relay: AnyRelay,
+  recorder: CassetteRecorder,
+  namespace?: AnyNamespace
+): { dispose(): void } {
   const cassette = recorder.createCassette();
   let prev: unknown | typeof UNSET = UNSET;
   let depUnsubs: Array<() => void> = [];
@@ -142,7 +147,7 @@ export function createRelayRuntime(relay: AnyRelay, recorder: CassetteRecorder):
       })
     );
   }
-  unregister = recorder.registerRelay(runtime);
+  unregister = recorder.registerRelay(runtime, namespace);
 
   return { dispose: () => runtime.dispose() };
 }

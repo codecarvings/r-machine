@@ -47,7 +47,7 @@ import { type AnyRelay, createRelay, createRelayRuntime, type RelayComposer } fr
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
-import type { ExtractNamespace } from "./res-domain.js";
+import type { AnyNamespace, ExtractNamespace } from "./res-domain.js";
 import type { ValidatedDepListType } from "./res-list.js";
 import type { HandleMap, ValidatedDepMapType } from "./res-map.js";
 import type { GearMatrixMeta, ResMatrix } from "./res-matrix.js";
@@ -390,7 +390,8 @@ export function buildStatelessGetterComposer(recorder: CassetteRecorder): Statel
 /** @internal — exposed for testing the resolution wiring */
 export function buildStatefulOuterGearCursor<S extends AnyState>(
   cell: StateCell<S>,
-  recorder: CassetteRecorder
+  recorder: CassetteRecorder,
+  namespace?: AnyNamespace
 ): StatefulOuterGearCursor<S> {
   let getterCounter = 0;
   const getter = ((...args: unknown[]): unknown => {
@@ -414,7 +415,7 @@ export function buildStatefulOuterGearCursor<S extends AnyState>(
   const action = ((reducer?: (...a: unknown[]) => unknown) => {
     actionCounter += 1;
     const r = reducer ?? ((partial: unknown) => partial);
-    return makeAction(cell, r as (...a: unknown[]) => unknown, recorder, `action:${actionCounter}`);
+    return makeAction(cell, r as (...a: unknown[]) => unknown, recorder, `action:${actionCounter}`, namespace);
   }) as unknown as ActionComposer<S>;
 
   const relayDisposes: Array<() => void> = [];
@@ -422,7 +423,7 @@ export function buildStatefulOuterGearCursor<S extends AnyState>(
   const relay = ((config: unknown) => {
     relayCounter += 1;
     const branded = createRelay(config as never, `relay:${relayCounter}`);
-    const rt = createRelayRuntime(branded as AnyRelay, recorder);
+    const rt = createRelayRuntime(branded as AnyRelay, recorder, namespace);
     relayDisposes.push(() => rt.dispose());
     return branded;
   }) as unknown as RelayComposer;
@@ -438,13 +439,13 @@ export function buildStatefulOuterGearCursor<S extends AnyState>(
   );
 }
 
-function buildStatelessOuterGearCursor(recorder: CassetteRecorder): StatelessOuterGearCursor {
+function buildStatelessOuterGearCursor(recorder: CassetteRecorder, namespace?: AnyNamespace): StatelessOuterGearCursor {
   const relayDisposes: Array<() => void> = [];
   let relayCounter = 0;
   const relay = ((config: unknown) => {
     relayCounter += 1;
     const branded = createRelay(config as never, `relay:${relayCounter}`);
-    const rt = createRelayRuntime(branded as AnyRelay, recorder);
+    const rt = createRelayRuntime(branded as AnyRelay, recorder, namespace);
     relayDisposes.push(() => rt.dispose());
     return branded;
   }) as unknown as RelayComposer;
@@ -681,8 +682,8 @@ function buildStatefulOuterGearMapMatrix<
     connector,
     meta,
     head,
-    cursor: (plugin: unknown) =>
-      buildStatefulOuterGearCursor<S>((plugin as { $: PluginWithStateCell<S> }).$[stateCellSlot], recorder),
+    cursor: (plugin: unknown, selfNs?: AnyNamespace) =>
+      buildStatefulOuterGearCursor<S>((plugin as { $: PluginWithStateCell<S> }).$[stateCellSlot], recorder, selfNs),
     userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
     augmentCtx: ($) => {
       const cell = createStateCell(defaultState, recorder);
@@ -758,10 +759,10 @@ function buildStatefulOuterGearListMatrix<
     connector,
     meta,
     head,
-    cursor: (plugin: unknown) => {
+    cursor: (plugin: unknown, selfNs?: AnyNamespace) => {
       const arr = plugin as ReadonlyArray<unknown>;
       const ctx = arr[arr.length - 1] as PluginWithStateCell<S>;
-      return buildStatefulOuterGearCursor<S>(ctx[stateCellSlot], recorder);
+      return buildStatefulOuterGearCursor<S>(ctx[stateCellSlot], recorder, selfNs);
     },
     userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
     augmentCtx: ($) => {
@@ -818,7 +819,7 @@ function createStatelessOuterGearMapDefiner<
       // Per-resolve factory so each instance has its own relay-cleanup
       // closure; the cursor object is shared as the `cursor` arg to both
       // the user factory and the postProcess for relay teardown wiring.
-      cursor: () => buildStatelessOuterGearCursor(recorder),
+      cursor: (_plugin: unknown, selfNs?: AnyNamespace) => buildStatelessOuterGearCursor(recorder, selfNs),
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
       postProcess: (raw, c) => statelessPostProcess(raw, c as unknown),
     });
@@ -842,7 +843,7 @@ function createStatelessOuterGearListDefiner<
       connector: connector,
       meta,
       head,
-      cursor: () => buildStatelessOuterGearCursor(recorder),
+      cursor: (_plugin: unknown, selfNs?: AnyNamespace) => buildStatelessOuterGearCursor(recorder, selfNs),
       userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
       postProcess: (raw, c) => statelessPostProcess(raw, c as unknown),
     })) as StatelessOuterGearListDefiner<RA, KM, DL, PM>;

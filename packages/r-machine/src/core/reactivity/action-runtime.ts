@@ -12,6 +12,7 @@
  */
 
 import { type Action, createAction } from "../action.js";
+import type { AnyNamespace } from "../res-domain.js";
 import type { CassetteRecorder } from "./cassette-recorder.js";
 import { deepPartialMerge } from "./deep-partial-merge.js";
 import type { StateCell } from "./state-cell.js";
@@ -20,7 +21,8 @@ export function makeAction<S, A extends unknown[]>(
   cell: StateCell<S>,
   reducer: (...args: A) => unknown,
   recorder: CassetteRecorder,
-  name: string
+  name: string,
+  namespace?: AnyNamespace
 ): Action<(...args: A) => S> {
   return createAction(
     (...args: A): S =>
@@ -29,6 +31,8 @@ export function makeAction<S, A extends unknown[]>(
       // and contribute to the same dirty queues. The outermost frame
       // flushes once — external subscribers receive at most one
       // notification per affected cell regardless of nesting depth.
+      // `namespace`, when known, is accumulated into the tx's source set
+      // and used by the relay ordering provider to compute depth(relay).
       recorder.runInTransaction(() => {
         const raw = recorder.withSilentZone(() => reducer(...args));
         const prev = cell.peek();
@@ -41,7 +45,7 @@ export function makeAction<S, A extends unknown[]>(
         }
         cell.publish(merged);
         return merged;
-      }),
+      }, namespace),
     name
   );
 }

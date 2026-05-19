@@ -253,6 +253,58 @@ describe("BlueprintManager — closures", () => {
     const closure = env.bm.getForwardClosure(["g/X"]);
     expect(closure).toEqual(new Set(["g/X", "g/Y", "g/Z"]));
   });
+
+  it("reverseBfsDepths computes min distance from any source in reverseDeps", async () => {
+    // Graph: A → B → C (A depends on B, B depends on C).
+    // reverseDeps(C) = {B}, reverseDeps(B) = {A}.
+    // BFS from source C → depths: C=0, B=1, A=2.
+    const env = createTestEnv({
+      modules: {
+        "g/A": () => makeMatrixModule("gear", "inner", ["g/B"]),
+        "g/B": () => makeMatrixModule("gear", "inner", ["g/C"]),
+        "g/C": () => makeMatrixModule("gear", "inner", []),
+      },
+    });
+    await loadByNs(env, "g/A");
+
+    const depths = env.bm.reverseBfsDepths(["g/C"]);
+    expect(depths.get("g/C")).toBe(0);
+    expect(depths.get("g/B")).toBe(1);
+    expect(depths.get("g/A")).toBe(2);
+  });
+
+  it("reverseBfsDepths takes MIN distance across multiple sources", async () => {
+    const env = createTestEnv({
+      modules: {
+        "g/A": () => makeMatrixModule("gear", "inner", ["g/B"]),
+        "g/B": () => makeMatrixModule("gear", "inner", ["g/C"]),
+        "g/C": () => makeMatrixModule("gear", "inner", []),
+      },
+    });
+    await loadByNs(env, "g/A");
+
+    // Sources = {B, C}. From B: A=1, B=0. From C: A=2, B=1, C=0.
+    // Min: A=1, B=0, C=0.
+    const depths = env.bm.reverseBfsDepths(["g/B", "g/C"]);
+    expect(depths.get("g/A")).toBe(1);
+    expect(depths.get("g/B")).toBe(0);
+    expect(depths.get("g/C")).toBe(0);
+  });
+
+  it("getPriority returns the atlas priority index (lower = higher priority)", async () => {
+    const env = createTestEnv({
+      modules: {
+        "g/A": () => makeMatrixModule("gear", "inner", []),
+        "g/B": () => makeMatrixModule("gear", "inner", []),
+      },
+      priority: ["g/B", "g/A"],
+    });
+    await loadByNs(env, "g/A");
+
+    expect(env.bm.getPriority("g/B")).toBe(0);
+    expect(env.bm.getPriority("g/A")).toBe(1);
+    expect(env.bm.getPriority("g/unknown")).toBeUndefined();
+  });
 });
 
 describe("BlueprintManager — evictBlueprint", () => {

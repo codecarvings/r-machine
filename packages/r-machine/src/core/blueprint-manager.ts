@@ -84,9 +84,8 @@ export class BlueprintManager {
   // the cascade falls back to full-namespace scope.
   protected readonly nsByPath = new Map<string, { namespace: AnyNamespace; locale: AnyLocale | undefined }>();
   // Lower index = higher priority. Namespaces not in the priority list are
-  // absent from this map. Currently unused — predisposition for the future
-  // deterministic relay system, where sibling-update order will need to
-  // respect user-declared priority.
+  // absent from this map. Consumed by the relay ordering system as the
+  // tie-breaker between sibling relays at the same dep depth.
   protected readonly priorityIndex: Map<AnyNamespace, number>;
   protected onInvalidate?: (ns: AnyNamespace, locale: AnyLocale | undefined) => void;
 
@@ -334,6 +333,43 @@ export class BlueprintManager {
       }
     }
     return result;
+  }
+
+  /**
+   * BFS over reverseDeps from each `source` namespace. Returns a Map where
+   * each reachable namespace maps to its MIN distance from any source
+   * (sources themselves have distance 0). Used by the relay ordering
+   * provider to compute depth(relay) = distance from the mutated OG's
+   * namespace to the relay's hosting OG namespace.
+   */
+  reverseBfsDepths(sources: Iterable<AnyNamespace>): Map<AnyNamespace, number> {
+    const depths = new Map<AnyNamespace, number>();
+    const queue: AnyNamespace[] = [];
+    for (const s of sources) {
+      if (!depths.has(s)) {
+        depths.set(s, 0);
+        queue.push(s);
+      }
+    }
+    let head = 0;
+    while (head < queue.length) {
+      const n = queue[head++]!;
+      const d = depths.get(n)!;
+      const dependents = this.reverseDeps.get(n);
+      if (!dependents) continue;
+      for (const dep of dependents) {
+        if (!depths.has(dep)) {
+          depths.set(dep, d + 1);
+          queue.push(dep);
+        }
+      }
+    }
+    return depths;
+  }
+
+  /** Returns the priority index for a namespace (lower = higher priority), or undefined if not in the atlas priority list. */
+  getPriority(ns: AnyNamespace): number | undefined {
+    return this.priorityIndex.get(ns);
   }
 
   getReverseClosure(ns: AnyNamespace): Set<AnyNamespace> {

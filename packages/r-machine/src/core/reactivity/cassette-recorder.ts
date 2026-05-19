@@ -12,6 +12,7 @@
  */
 
 import type { BusHost } from "../event-bus.js";
+import type { AnyNamespace } from "../res-domain.js";
 
 export interface ReadableCell {
   subscribe(cb: () => void): () => void;
@@ -36,6 +37,26 @@ export interface RelayRuntime {
   dispose(): void;
 }
 
+/** A registered relay together with its hosting OG namespace (for ordering). */
+export interface RegisteredRelay {
+  readonly runtime: RelayRuntime;
+  readonly namespace: AnyNamespace | undefined;
+}
+
+/**
+ * Pluggable ordering for relays at flush time. Step 1 uses the recorder's
+ * built-in FIFO order; Step 2 boot-installs a blueprint-backed provider
+ * that sorts by (dep-depth from any source, atlas priority, registration
+ * index).
+ */
+export interface RelayOrderingProvider {
+  order(
+    dirtyRelays: ReadonlySet<RelayRuntime>,
+    sources: ReadonlySet<AnyNamespace>,
+    fullList: readonly RegisteredRelay[]
+  ): RelayRuntime[];
+}
+
 export interface CassetteRecorder {
   createCassette(): Cassette;
   recordRead(cell: ReadableCell): void;
@@ -51,13 +72,22 @@ export interface CassetteRecorder {
    */
   runOutsideSilent<T>(fn: () => T): T;
   // ─── Transaction API (used by makeAction + cell.publish) ─────────────
-  runInTransaction<T>(fn: () => T): T;
+  /**
+   * Opens a transaction frame. The outermost frame flushes on exit.
+   * `sourceNamespace` (when known — the namespace of the OG whose action
+   * triggered this frame) is accumulated into the current tx's source set;
+   * the flush ordering uses this set to compute depth(relay).
+   */
+  runInTransaction<T>(fn: () => T, sourceNamespace?: AnyNamespace): T;
   isInTransaction(): boolean;
   enqueueDirtyCell(cell: DirtyCell): void;
   // ─── Relay registry ──────────────────────────────────────────────────
-  registerRelay(r: RelayRuntime): () => void;
+  /** Registers a relay; `namespace` (when known) is the OG hosting the relay. */
+  registerRelay(r: RelayRuntime, namespace?: AnyNamespace): () => void;
   markRelayDirty(r: RelayRuntime): void;
   emitRelayError(relayName: string, error: unknown): void;
+  // ─── Ordering provider (Step 2) ──────────────────────────────────────
+  setRelayOrderingProvider(provider: RelayOrderingProvider | undefined): void;
 }
 
 const FLUSH_HARD_CAP = 100;
@@ -88,9 +118,16 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
   let txDepth = 0;
   const dirtyCells = new Set<DirtyCell>();
   const dirtyRelays = new Set<RelayRuntime>();
-  // Registration-ordered list so flush is deterministic (FIFO). Step 1 has
-  // no topo-sort / priority; Step 2 will sort by dep depth + priority.
-  const relays: RelayRuntime[] = [];
+  // Registration-ordered list so flush is deterministic (FIFO when no
+  // ordering provider is installed). Step 2 installs a blueprint-backed
+  // provider that sorts dirty relays by (depth, priority, registration).
+  const relays: RegisteredRelay[] = [];
+  // Source namespaces accumulated across all action frames within the
+  // outermost transaction. Cleared after each flush. Used by the ordering
+  // provider to compute depth(relay) = min distance from any source to
+  // the relay's hosting OG namespace.
+  const txSources = new Set<AnyNamespace>();
+  let orderingProvider: RelayOrderingProvider | undefined;
 
   function recordRead(cell: ReadableCell): void {
     if (silentDepth > 0) {
@@ -176,14 +213,18 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
     }
   }
 
-  function runInTransaction<T>(fn: () => T): T {
+  function runInTransaction<T>(fn: () => T, sourceNamespace?: AnyNamespace): T {
     txDepth++;
+    if (sourceNamespace !== undefined) {
+      txSources.add(sourceNamespace);
+    }
     try {
       return fn();
     } finally {
       txDepth--;
       if (txDepth === 0) {
         flush();
+        txSources.clear();
       }
     }
   }
@@ -196,10 +237,10 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
     dirtyCells.add(cell);
   }
 
-  function registerRelay(r: RelayRuntime): () => void {
-    relays.push(r);
+  function registerRelay(r: RelayRuntime, namespace?: AnyNamespace): () => void {
+    relays.push({ runtime: r, namespace });
     return () => {
-      const idx = relays.indexOf(r);
+      const idx = relays.findIndex((entry) => entry.runtime === r);
       if (idx >= 0) relays.splice(idx, 1);
       dirtyRelays.delete(r);
     };
@@ -211,6 +252,10 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
 
   function emitRelayError(relayName: string, error: unknown): void {
     busHost?.bus?.emit({ type: "relay:onChangeError", relayName, error });
+  }
+
+  function setRelayOrderingProvider(provider: RelayOrderingProvider | undefined): void {
+    orderingProvider = provider;
   }
 
   function flush(): void {
@@ -232,8 +277,12 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
       if (dirtyRelays.size > 0) {
         const snapshot = new Set(dirtyRelays);
         dirtyRelays.clear();
-        for (const r of relays) {
-          if (snapshot.has(r)) r.runIfDirty();
+        const ordered = orderingProvider
+          ? orderingProvider.order(snapshot, txSources, relays)
+          : // Fallback: registration order, filtered to dirty.
+            relays.filter((entry) => snapshot.has(entry.runtime)).map((entry) => entry.runtime);
+        for (const r of ordered) {
+          r.runIfDirty();
         }
       }
       // Then external cell notifications, deduplicated per cell.
@@ -258,5 +307,6 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
     registerRelay,
     markRelayDirty,
     emitRelayError,
+    setRelayOrderingProvider,
   };
 }

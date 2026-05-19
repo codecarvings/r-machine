@@ -49,7 +49,7 @@ export function tryGetResMatrixMeta(origin: AnyResOrigin): ResMatrixMeta | undef
   return (origin as Partial<AnyResMatrix>)[resMatrixMetaSymbol];
 }
 
-type CursorFactory = (plugin: unknown) => unknown;
+type CursorFactory = (plugin: unknown, selfNs?: AnyNamespace) => unknown;
 
 interface CreateResMatrixOptions {
   readonly connector: ResComposerConnector;
@@ -82,7 +82,13 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
 
   const factory = async (locale: AnyLocale | undefined, chain: readonly AnyNamespace[]): Promise<AnyRes> => {
     const plugin = await getPlugResolve(plug)(locale, chain);
-    const resolvedCursor = typeof cursor === "function" ? (cursor as CursorFactory)(plugin) : cursor;
+    // selfNs is the last entry of the chain (the namespace currently being
+    // resolved). Passed to the cursor factory so namespace-aware cursors
+    // (e.g., OuterGear's stateful cursor) can tag the actions/relays they
+    // build with the OG's own namespace — needed by the relay ordering
+    // provider to compute depth(relay) relative to mutation sources.
+    const selfNs = chain.length > 0 ? chain[chain.length - 1] : undefined;
+    const resolvedCursor = typeof cursor === "function" ? (cursor as CursorFactory)(plugin, selfNs) : cursor;
     const raw = await userFactory(plugin, resolvedCursor as never);
     return (postProcess ? postProcess(raw, resolvedCursor as never) : raw) as AnyRes;
   };

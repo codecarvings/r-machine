@@ -44,6 +44,7 @@ import {
   type VertexGearMap,
 } from "#r-machine/core";
 import { type AnyLocale, type AnyLocaleList, LocaleHelper } from "#r-machine/locale";
+import { createBlueprintRelayOrderingProvider } from "../core/relay-ordering.js";
 import type { NamespaceCollection } from "../core/res-domain.js";
 import {
   convertRMachineConfigParamsToConfig,
@@ -100,6 +101,10 @@ export class RMachine<
       this.busHost
     );
     this.cassetteRecorder = createCassetteRecorder(this.busHost);
+    // Install the deterministic relay ordering provider (Step 2). The
+    // recorder defaults to FIFO registration order when no provider is
+    // set — used by tests and by the bare reactivity layer.
+    this.cassetteRecorder.setRelayOrderingProvider(createBlueprintRelayOrderingProvider(this.blueprintManager));
     this.gateWireManager = new GateWireManager(this.junctureManager, this.busHost, this.cassetteRecorder);
 
     // this.warnExperimental();
