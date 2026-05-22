@@ -58,7 +58,7 @@ type ValidLayoutKeys<RL> = {
     ? RMachineTypeError<`Layout key '${K & string}' contains a reserved character ('@', '#' or ':'). These characters are reserved.`>
     : K extends `${string}/`
       ? RL[K]
-      : RMachineTypeError<`Layout key '${K & string}' must end with '/' to indicate a namespace prefix (e.g. 'gear/').`>;
+      : RMachineTypeError<`Layout key '${K & string}' must end with '/' to indicate a namespace prefix (e.g. '${K & string}/').`>;
 };
 
 type ResAtlasBuilder<RL extends AnyResLayout> = <const RD>() => ResAtlasClass<RL, FilterResAtlasKeys<RL, RD>, RD>;

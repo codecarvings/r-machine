@@ -47,6 +47,7 @@ import { type AnyLocale, type AnyLocaleList, LocaleHelper } from "#r-machine/loc
 import { createBlueprintRelayOrderingProvider } from "../core/relay-ordering.js";
 import type { NamespaceCollection } from "../core/res-domain.js";
 import {
+  CONFIG_ACCESSOR,
   convertRMachineConfigParamsToConfig,
   type RMachineConfig,
   type RMachineConfigParams,
@@ -138,6 +139,11 @@ export class RMachine<
       (this.busHost as { bus: InternalEventBus }).bus = createEventBus();
     }
     return this.busHost.bus!;
+  }
+
+  /** @internal */
+  [CONFIG_ACCESSOR](): RMachineConfig<RA, L, E, EF> {
+    return this.config;
   }
 
   protected createResComposerConnector(kit: AnyNamespaceMap): ResComposerConnector {

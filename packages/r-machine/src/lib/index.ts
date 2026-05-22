@@ -19,4 +19,9 @@ export {
   RMachine,
   type RMachineLocale,
 } from "./r-machine.js";
-export type { RMachineConfig, RMachineConfigParams } from "./r-machine-config.js";
+export {
+  CONFIG_ACCESSOR,
+  type ConfigBridge,
+  type RMachineConfig,
+  type RMachineConfigParams,
+} from "./r-machine-config.js";

@@ -110,7 +110,12 @@ export {
   type ValidatedDepMapType,
 } from "./res-map.js";
 export type { ResMatrix } from "./res-matrix.js";
-export type { AnyResModule, ResModuleLoaderFn } from "./res-module.js";
+export {
+  type AnyResModule,
+  type ResModuleLoaderFn,
+  type ResModuleLoaderFnOptions,
+  validateResModule,
+} from "./res-module.js";
 export {
   createRequestScope,
   PROCESS_SCOPE_PROVIDER,

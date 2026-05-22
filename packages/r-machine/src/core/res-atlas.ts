@@ -114,11 +114,11 @@ type ReservedCharAtlasKeys<RA> =
 type GetTokenBuilderProperty<RA, RD extends AnyResDomain> = [ReservedCharAtlasKeys<RA>] extends [never]
   ? [DroppedAtlasKeys<RA, RD>] extends [never]
     ? () => TokenBuilder<RD>
-    : RMachineTypeError<`Invalid namespaces declared in atlas shape (dropped by layout filter): ${DroppedAtlasKeys<
+    : RMachineTypeError<`Invalid namespaces declared in atlas shape (dropped by layout filter): *** ${DroppedAtlasKeys<
         RA,
         RD
       > &
-        string}`>
+        string} ***`>
   : RMachineTypeError<`Atlas keys use a reserved character in an invalid position. '@' and ':' are fully reserved; '#' is allowed only as the first character (to mark a namespace as internal). Offending keys: ${ReservedCharAtlasKeys<RA> &
       string}`>;
 

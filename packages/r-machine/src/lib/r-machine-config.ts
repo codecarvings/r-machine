@@ -76,6 +76,25 @@ export interface RMachineConfigParams<
   readonly experimental?: EF & ExperimentalFlags;
 }
 
+// ─── Internal access symbol ─────────────────────────────────────────────
+// Bridge between the public-facing Strategy/RMachine surfaces and the
+// underlying RMachineConfig. Tooling that needs to inspect the config
+// (e.g. `@r-machine/testing`'s `verifyResourceAtlas`) calls
+// `target[CONFIG_ACCESSOR]()`. Not part of the package's typed public
+// API surface. Co-located with `RMachineConfig` and `ConfigBridge` for
+// the same `unique symbol` identity reason documented on `BUS_ACCESSOR`.
+
+export const CONFIG_ACCESSOR: unique symbol = Symbol("configAccessor");
+
+export interface ConfigBridge<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
+> {
+  [CONFIG_ACCESSOR](): RMachineConfig<RA, L, E, EF>;
+}
+
 export function convertRMachineConfigParamsToConfig<
   RAC extends AnyResAtlasClass,
   LL extends AnyLocaleList,

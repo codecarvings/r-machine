@@ -13,3 +13,10 @@
 
 export { createEventCollector, type EventCollector } from "./event-collector.js";
 export { mockPlug } from "./mock-plug.js";
+export {
+  type SourceLocation,
+  type VerifyIssue,
+  type VerifyReport,
+  type VerifyResourceAtlasOptions,
+  verifyResourceAtlas,
+} from "./verify-resource-atlas.js";

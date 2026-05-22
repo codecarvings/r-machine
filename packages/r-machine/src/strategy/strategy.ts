@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { RMachine } from "#r-machine";
+import { CONFIG_ACCESSOR, type RMachine, type RMachineConfig } from "#r-machine";
 import {
   type AnyResAtlas,
   type AnyResEquipment,
@@ -56,5 +56,10 @@ export abstract class Strategy<
   /** @internal */
   [BUS_ACCESSOR](): InternalEventBus {
     return this.rMachine[BUS_ACCESSOR]();
+  }
+
+  /** @internal */
+  [CONFIG_ACCESSOR](): RMachineConfig<RA, L, E, EF> {
+    return this.rMachine[CONFIG_ACCESSOR]();
   }
 }
