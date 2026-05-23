@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import { ERR_INVALID_ARGUMENTS, RMachineUsageError } from "#r-machine/errors";
 import type { ActionComposer, AnyAction, DefaultAction } from "./action.js";
 import type { BaseGearPlugPortMap } from "./base-gear-plug.js";
 import { type CmdComposer, createCmd } from "./cmd.js";
@@ -383,7 +384,7 @@ export function buildStatelessGetterComposer(recorder: CassetteRecorder): Statel
       const fn = args[0] as () => unknown;
       return createGetter(() => fn(), name);
     }
-    throw new Error("cursor.getter: invalid arguments");
+    throw new RMachineUsageError(ERR_INVALID_ARGUMENTS, "cursor.getter: invalid arguments.");
   }) as unknown as StatelessGetterComposer;
 }
 
@@ -408,7 +409,7 @@ export function buildStatefulOuterGearCursor<S extends AnyState>(
       const fn = args[0] as () => unknown;
       return createGetter(() => fn(), name);
     }
-    throw new Error("cursor.getter: invalid arguments");
+    throw new RMachineUsageError(ERR_INVALID_ARGUMENTS, "cursor.getter: invalid arguments.");
   }) as unknown as GetterComposer<S>;
 
   let actionCounter = 0;

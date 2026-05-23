@@ -11,4 +11,4 @@
  * contact: licensing@codecarvings.com
  */
 
-export { ERR_PLUG_ALREADY_MOCKED } from "./error-codes.js";
+export { ERR_PLUG_ALREADY_MOCKED, ERR_VERIFY_SETUP_INVALID } from "./error-codes.js";

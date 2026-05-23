@@ -21,7 +21,9 @@ import {
   type ResModuleLoaderFnOptions,
   validateResModule,
 } from "r-machine/core";
+import { RMachineUsageError } from "r-machine/errors";
 import type ts from "typescript";
+import { ERR_VERIFY_SETUP_INVALID } from "#r-machine/testing/errors";
 
 export type SourceLocation = {
   file: string;
@@ -175,11 +177,12 @@ export async function verifyResourceAtlas(
       const module = (await import(pathToFileURL(absoluteSetupFile).href)) as Record<string, unknown>;
       const strategy = module[strategyExportName];
       if (strategy === undefined || strategy === null) {
-        throw new Error(`Setup file does not export "${strategyExportName}".`);
+        throw new RMachineUsageError(ERR_VERIFY_SETUP_INVALID, `Setup file does not export "${strategyExportName}".`);
       }
       const accessor = (strategy as Record<symbol, unknown>)[CONFIG_ACCESSOR];
       if (typeof accessor !== "function") {
-        throw new Error(
+        throw new RMachineUsageError(
+          ERR_VERIFY_SETUP_INVALID,
           `Export "${strategyExportName}" does not expose CONFIG_ACCESSOR — make sure it is a r-machine Strategy or RMachine instance.`
         );
       }
@@ -340,12 +343,13 @@ async function extractAtlasKeys(setupFile: string, tsconfigPath?: string): Promi
   const checker = program.getTypeChecker();
   const sourceFile = program.getSourceFile(setupFile);
   if (!sourceFile) {
-    throw new Error(`Could not load source file: ${setupFile}`);
+    throw new RMachineUsageError(ERR_VERIFY_SETUP_INVALID, `Could not load source file: ${setupFile}`);
   }
 
   const atlasClass = findResourceAtlasClass(tsModule, sourceFile, checker, new Set());
   if (!atlasClass) {
-    throw new Error(
+    throw new RMachineUsageError(
+      ERR_VERIFY_SETUP_INVALID,
       `Could not locate a "ResourceAtlas" class reachable from ${setupFile}. The check follows the import graph starting from the setup file.`
     );
   }
@@ -353,7 +357,10 @@ async function extractAtlasKeys(setupFile: string, tsconfigPath?: string): Promi
   const classType = checker.getTypeAtLocation(atlasClass);
   const shapeProp = checker.getPropertiesOfType(classType).find((s) => s.name === "shape");
   if (!shapeProp) {
-    throw new Error(`The "ResourceAtlas" class has no "shape" property — is it built from defineLayout()?`);
+    throw new RMachineUsageError(
+      ERR_VERIFY_SETUP_INVALID,
+      `The "ResourceAtlas" class has no "shape" property — is it built from defineLayout()?`
+    );
   }
 
   const shapeType = checker.getTypeOfSymbolAtLocation(shapeProp, atlasClass);
@@ -424,8 +431,10 @@ async function loadTypeScript(): Promise<typeof ts> {
   try {
     return (await import("typescript")).default;
   } catch (err) {
-    throw new Error(
-      `verifyResourceAtlas requires the "typescript" package as a peer dependency. Install it in your project. Underlying error: ${errorMessage(err)}`
+    throw new RMachineUsageError(
+      ERR_VERIFY_SETUP_INVALID,
+      `verifyResourceAtlas requires the "typescript" package as a peer dependency. Install it in your project.`,
+      err instanceof Error ? err : undefined
     );
   }
 }

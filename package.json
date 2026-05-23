@@ -98,37 +98,31 @@
       ]
     }
   ],
-  "pnpm": {
-    "overrides": {
-      "react": "19.2.6",
-      "react-dom": "19.2.6"
-    }
-  },
   "devDependencies": {
-    "@biomejs/biome": "2.4.14",
+    "@biomejs/biome": "2.4.15",
     "@changesets/cli": "^2.31.0",
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "^1.60.0",
     "@r-machine/next": "workspace:*",
     "@r-machine/react": "workspace:*",
     "@size-limit/esbuild-why": "^12.1.0",
     "@size-limit/preset-small-lib": "^12.1.0",
     "@testing-library/react": "^16.3.2",
-    "@types/node": "^24.12.2",
-    "@types/react": "^19.2.14",
+    "@types/node": "^24.12.4",
+    "@types/react": "^19.2.15",
     "@types/semver": "^7.7.1",
-    "@vitest/coverage-v8": "^4.1.5",
-    "@vitest/ui": "^4.1.5",
+    "@vitest/coverage-v8": "^4.1.7",
+    "@vitest/ui": "^4.1.7",
     "husky": "9.1.7",
     "jsdom": "^29.1.1",
-    "lint-staged": "^17.0.3",
+    "lint-staged": "^17.0.5",
     "next": "^16.2.6",
     "prettier": "^3.8.3",
     "r-machine": "workspace:*",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "semver": "^7.7.4",
+    "semver": "^7.8.1",
     "size-limit": "^12.1.0",
-    "tsx": "^4.21.0",
+    "tsx": "^4.22.3",
     "typescript": "~6.0.3",
     "vitest": "^4.1.7",
     "zshy": "0.7.2"
