@@ -10,7 +10,8 @@ const rMachine = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
   ResourceAtlas,
-  load: (path) => (devImport ? devImport(`./${path}`) : import(`./${path}`)),
+  // `@vite-ignore` is needed for `verifyResourceAtlas` tests under vitest; Webpack/Turbopack ignore the comment.
+  load: (path) => (devImport ? devImport(`./${path}`) : import(/* @vite-ignore */ `./${path}`)),
   shellKit: {
     fmt: "shell/lib/fmt",
   },

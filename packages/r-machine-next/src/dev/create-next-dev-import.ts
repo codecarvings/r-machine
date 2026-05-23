@@ -64,6 +64,45 @@ function getCache(): Cache {
   return cache;
 }
 
+// Cross-package coordination flag. Set on `globalThis` by tooling that needs
+// the dev importer (jiti) to activate regardless of the `typeof window`
+// check — primarily `@r-machine/testing`'s `verifyResourceAtlas`, which may
+// run inside a jsdom-based vitest environment where `window` is defined.
+// Contract: ref-counted; presence of any positive count force-activates.
+// Identity is via `Symbol.for(...)` (registry symbol), stable across realms
+// and packages without sharing code.
+const FORCE_DEV_LOADER_FLAG = Symbol.for("@r-machine:force-dev-loader");
+
+function isForceDevLoaderActive(): boolean {
+  const slot = globalThis as unknown as { [FORCE_DEV_LOADER_FLAG]?: number };
+  return (slot[FORCE_DEV_LOADER_FLAG] ?? 0) > 0;
+}
+
+// ─── Observation flags (cross-package diagnostic signal) ────────────────
+// `@r-machine/testing`'s `verifyResourceAtlas` reads these to differentiate
+// "loader errors in a Next project where jiti didn't activate" (actionable
+// hint: install jiti) from generic loader errors (real bugs to investigate).
+//
+// `attempted` is set on every `createNextDevImport` call: presence means
+// "this is a Next project that opted into the dev importer." `enabled` is
+// set only when `jiti.createJiti()` succeeds. Both use `Symbol.for(...)` so
+// identity is stable across packages without sharing code. The verifier
+// clears these before each run so observations are per-verification.
+const DEV_LOADER_ATTEMPTED_FLAG = Symbol.for("@r-machine:dev-loader-attempted");
+const DEV_LOADER_ENABLED_FLAG = Symbol.for("@r-machine:dev-loader-enabled");
+type ObservationSlot = {
+  [DEV_LOADER_ATTEMPTED_FLAG]?: true;
+  [DEV_LOADER_ENABLED_FLAG]?: true;
+};
+
+function markDevLoaderAttempted(): void {
+  (globalThis as unknown as ObservationSlot)[DEV_LOADER_ATTEMPTED_FLAG] = true;
+}
+
+function markDevLoaderEnabled(): void {
+  (globalThis as unknown as ObservationSlot)[DEV_LOADER_ENABLED_FLAG] = true;
+}
+
 /**
  * Attempts to build a development-mode module importer backed by `jiti`,
  * bypassing Next/Turbopack's server-side module cache so that file edits on
@@ -94,6 +133,18 @@ function getCache(): Cache {
  *     });
  */
 export function createNextDevImport(importMetaUrl: string): Promise<DevImport> {
+  // Diagnostic signal: every call marks the project as "Next setup that
+  // opted into the dev importer." Read by `verifyResourceAtlas` to tell
+  // jiti-missing apart from generic loader errors.
+  markDevLoaderAttempted();
+  // Bypass cache when the testing flag is active. A prior evaluation under
+  // `typeof window !== "undefined"` would have cached `null`; under the flag
+  // we want the jiti branch re-evaluated. Skipping the cache entirely keeps
+  // the logic simple — there's no cache-pollution risk because the only
+  // caller in this mode is a one-shot verifier test.
+  if (isForceDevLoaderActive()) {
+    return buildDevImport(importMetaUrl);
+  }
   const cache = getCache();
   let result = cache.get(importMetaUrl);
   if (result === undefined) {
@@ -127,8 +178,13 @@ async function buildDevImport(importMetaUrl: string): Promise<DevImport> {
   const isDev = typeof process !== "undefined" && process.env.NODE_ENV !== "production";
   const isServer = typeof window === "undefined";
   const isEdge = typeof EdgeRuntime === "string";
+  // The testing flag forces activation under jsdom (window is defined) so
+  // `verifyResourceAtlas` can run without requiring the user to add a
+  // `// @vitest-environment node` pragma. Edge and production checks are
+  // unaffected — jiti still won't load there.
+  const forceDevLoader = isForceDevLoaderActive();
 
-  if (!isDev || !isServer || isEdge) {
+  if (!isDev || isEdge || (!isServer && !forceDevLoader)) {
     return null;
   }
 
@@ -165,6 +221,11 @@ async function buildDevImport(importMetaUrl: string): Promise<DevImport> {
     // resource modules.
     jsx: { runtime: "automatic" },
   });
+
+  // Diagnostic signal: jiti loaded successfully. Read by `verifyResourceAtlas`
+  // to distinguish "loader errors with jiti active" (real bugs) from
+  // "loader errors with jiti unavailable" (install hint).
+  markDevLoaderEnabled();
 
   if (shouldFireOnceLog(ENV_JITI_ACTIVE_LOGGED)) {
     console.info(
