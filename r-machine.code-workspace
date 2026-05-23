@@ -21,9 +21,9 @@
       "path": "packages/r-machine-testing"
     },
     {
-      "name": "🟩 packages ― rmac",
-      "path": "packages/rmac"
-    },    
+      "name": "🟩 packages ― rforge",
+      "path": "packages/rforge"
+    },
     {
       "name": "🟥 examples",
       "path": "examples"
@@ -46,7 +46,7 @@
     "cSpell.words": [
       "npmjs",
       "rmachine",
-      "rmac",
+      "rforge",
       "sccpath",
       "scpath",
       "unsub",

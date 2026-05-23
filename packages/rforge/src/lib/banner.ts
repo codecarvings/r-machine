@@ -19,7 +19,7 @@ export function printBanner(): void {
     "",
     pc.redBright(" ⠀⠀⠀⠀⣀⣴⣾⣷⣦⣀⠀⠀⠀⠀ "),
     pc.redBright(" ⠀⣀⣴⣿⠟⠉⠀⠀⠉⠻⣷⣦⣀⠀ "),
-    pc.redBright(" ⣿⠟⠉⠀⣀⣴⣾⣷⣦⣀⠀⠉⠻⣿ ") + `      ${pc.whiteBright("R-MACHINE")}`,
+    pc.redBright(" ⣿⠟⠉⠀⣀⣴⣾⣷⣦⣀⠀⠉⠻⣿ ") + `      ${pc.redBright("R-MACHINE")} ${pc.dim(":")} ${pc.whiteBright("FORGE")}`,
     pc.redBright(" ⣿⣀⣴⣾⠟⠉⠀⣀⣿⡿⠗⠀⠀⣿ ") + `      ${pc.dim("───────────────────────")}`,
     pc.redBright(" ⣿⠟⠉⠀⣀⣴⣾⠟⠉⠀⣀⣴⣿⠟ ") + `      ${pc.dim("Uniformity Under Change")}`,
     pc.redBright(" ⠀⣀⣴⣿⠟⠉⠀⠀⠀⠻⣿⣯⣀⠀ ") + `      ${pc.dim("https://rmachine.dev")}`,

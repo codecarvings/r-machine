@@ -15,7 +15,7 @@ import { defineCommand } from "citty";
 import { skillCommand } from "./commands/skill.js";
 import { CLI_VERSION } from "./version.js";
 
-export const CLI_NAME = "rmac";
+export const CLI_NAME = "rforge";
 
 export const main = defineCommand({
   meta: {

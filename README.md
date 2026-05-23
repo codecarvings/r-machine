@@ -23,7 +23,7 @@ Monorepo containing the R-Machine packages.
 | [`@r-machine/react`](./packages/r-machine-react) | [![npm](https://img.shields.io/npm/v/@r-machine/react)](https://www.npmjs.com/package/@r-machine/react) | React integration |
 | [`@r-machine/next`](./packages/r-machine-next) | [![npm](https://img.shields.io/npm/v/@r-machine/next)](https://www.npmjs.com/package/@r-machine/next) | Next.js App Router integration |
 | [`@r-machine/testing`](./packages/r-machine-testing) | [![npm](https://img.shields.io/npm/v/@r-machine/testing)](https://www.npmjs.com/package/@r-machine/testing) | Testing utilities |
-| [`rmac`](./packages/r-machine-cli) | [![npm](https://img.shields.io/npm/v/@rmac)](https://www.npmjs.com/package/rmac) | Command-line interface for R-Machine |
+| [`rforge`](./packages/rforge) | [![npm](https://img.shields.io/npm/v/rforge)](https://www.npmjs.com/package/rforge) | Command-line interface for R-Machine |
 
 ## Examples
 
@@ -46,7 +46,7 @@ r-machine/
 │   ├── r-machine-react/     # React bindings
 │   ├── r-machine-next/      # Next.js integration
 │   ├── r-machine-testing/   # Testing utilities
-│   └── rmac/                # Command-line interface for R-Machine
+│   └── rforge/              # Command-line interface for R-Machine
 ├── examples/                # Example applications
 ├── configs/                 # Shared TypeScript configs
 └── scripts/                 # Utility scripts
@@ -81,7 +81,7 @@ pnpm check
 | `@r-machine/react` | [AGPL-3.0](./LICENSE) |
 | `@r-machine/next` | [AGPL-3.0](./LICENSE) |
 | `@r-machine/testing` | [AGPL-3.0](./LICENSE) |
-| `rmac` | [AGPL-3.0](./LICENSE) |
+| `rforge` | [AGPL-3.0](./LICENSE) |
 
 > All packages are free for open source projects.
 > If you need to use them in a proprietary project, reach out at 
