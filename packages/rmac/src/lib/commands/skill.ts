@@ -32,8 +32,8 @@ export const skillCommand = defineCommand({
   },
   async run({ args }) {
     const out = args.out ?? "./.claude/skills";
-    console.log(`[rmachine skill] (draft) would write Skill to: ${out}`);
-    console.log(`[rmachine skill] force=${args.force}`);
-    console.log("[rmachine skill] Not implemented yet — initial draft.");
+    console.log(`[rmac skill] (draft) would write Skill to: ${out}`);
+    console.log(`[rmac skill] force=${args.force}`);
+    console.log("[rmac skill] Not implemented yet — initial draft.");
   },
 });

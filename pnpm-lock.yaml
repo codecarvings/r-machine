@@ -479,18 +479,6 @@ importers:
 
   packages/r-machine: {}
 
-  packages/r-machine-cli:
-    dependencies:
-      '@clack/prompts':
-        specifier: ^1.4.0
-        version: 1.4.0
-      citty:
-        specifier: ^0.2.2
-        version: 0.2.2
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
-
   packages/r-machine-next:
     dependencies:
       '@r-machine/react':
@@ -526,6 +514,18 @@ importers:
       typescript:
         specifier: '>=5.0.0'
         version: 6.0.3
+
+  packages/rmac:
+    dependencies:
+      '@clack/prompts':
+        specifier: ^1.4.0
+        version: 1.4.0
+      citty:
+        specifier: ^0.2.2
+        version: 0.2.2
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
 
 packages:
 

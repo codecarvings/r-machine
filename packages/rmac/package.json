@@ -1,5 +1,5 @@
 {
-  "name": "rmachine",
+  "name": "rmac",
   "version": "1.0.0-alpha.11",
   "description": "Command-line interface for R-Machine — scaffolding, diagnostics, and LLM-agent skill generation.",
   "author": "Sergio Turolla <hello@codecarvings.com>",
@@ -33,7 +33,9 @@
   "main": "./lib/index.cjs",
   "types": "./lib/index.d.cts",
   "module": "./lib/index.js",
-  "bin": "./bin.cjs",
+  "bin": {
+    "rmac": "bin.cjs"
+  },
   "zshy": {
     "bin": "./src/bin.ts",
     "exports": {
@@ -52,7 +54,7 @@
     }
   },
   "imports": {
-    "#rmachine": {
+    "#rmac": {
       "@r-machine/source": "./src/lib/index.ts",
       "types": "./lib/index.d.cts",
       "default": "./lib/index.js"
@@ -60,7 +62,7 @@
   },
   "scripts": {
     "clean": "git clean -xdf . -e node_modules",
-    "sync-version": "tsx ../../scripts/sync-r-machine-cli-version.ts",
+    "sync-version": "tsx ../../scripts/sync-rmac-version.ts",
     "prebuild": "pnpm sync-version",
     "build": "zshy --project tsconfig.build.json",
     "postbuild": "pnpm biome check --write .",

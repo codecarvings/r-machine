@@ -15,7 +15,7 @@ import { defineCommand } from "citty";
 import { skillCommand } from "./commands/skill.js";
 import { CLI_VERSION } from "./version.js";
 
-export const CLI_NAME = "rmachine";
+export const CLI_NAME = "rmac";
 
 export const main = defineCommand({
   meta: {
@@ -24,7 +24,7 @@ export const main = defineCommand({
     description: "Command-line interface for R-Machine.",
   },
   subCommands: {
-    skill: skillCommand,
+    // skill: skillCommand,
   },
 });
 

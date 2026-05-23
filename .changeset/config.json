@@ -3,7 +3,7 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [],
-  "linked": [["r-machine", "@r-machine/react", "@r-machine/next", "@r-machine/testing", "rmachine"]],
+  "linked": [["r-machine", "@r-machine/react", "@r-machine/next", "@r-machine/testing", "rmac"]],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
