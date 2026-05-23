@@ -21,7 +21,7 @@ export function printBanner(): void {
     pc.red(" ██╔══██╗████╗ ████║") + `      ${pc.whiteBright("R-MACHINE")}`,
     pc.red(" ██████╔╝██╔████╔██║") + `      ${pc.dim("──────────────────────────────────")}`,
     pc.red(" ██╔══██╗██║╚██╔╝██║") + `      ${pc.dim("Uniformity Under Change")}`,
-    pc.red(" ██║  ██║██║ ╚═╝ ██║") + `      ${pc.dim("https://r-machine.codecarvings.com")}`,
+    pc.red(" ██║  ██║██║ ╚═╝ ██║") + `      ${pc.dim("https://rmachine.dev")}`,
     pc.red(" ╚═╝  ╚═╝╚═╝     ╚═╝"),
     "",
   ];

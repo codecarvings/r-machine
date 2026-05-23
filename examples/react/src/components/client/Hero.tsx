@@ -36,12 +36,7 @@ export default function Hero() {
               </h1>
               <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">{page.hero.subtitle}</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center lg:items-start">
-                <a
-                  href="https://r-machine.codecarvings.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center"
-                >
+                <a href="https://rmachine.dev" target="_blank" rel="noopener noreferrer" className="flex items-center">
                   <Button size="lg" className="gap-2 text-base">
                     <ArrowRight className="size-4" />
                     {page.hero.cta.primary}
