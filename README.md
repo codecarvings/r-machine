@@ -31,11 +31,12 @@ The [`examples/`](./examples) directory contains working applications:
 
 | Example | Description |
 |---------|-------------|
-| [`react`](./examples/react) | React + Vite with client-side locale detection |
+| [`next`](./examples/next) | Next.js App Router |
+| [`next-with-app-flat-strategy`](./examples/next-with-app-flat-strategy) | Next.js App Router with cookie-based locale detection |
+| [`next-with-app-origin-strategy`](./examples/next-with-app-origin-strategy) | Next.js App Router with origin-based routing |
 | [`next-with-app-path-strategy`](./examples/next-with-app-path-strategy) | Next.js App Router with path segment routing |
 | [`next-with-app-path-strategy-no-proxy`](./examples/next-with-app-path-strategy-no-proxy) | Path strategy without proxy |
-| [`next-with-app-origin-strategy`](./examples/next-with-app-origin-strategy) | Next.js App Router with origin-based routing |
-| [`next-with-app-flat-strategy`](./examples/next-with-app-flat-strategy) | Next.js App Router with cookie-based locale detection |
+| [`react`](./examples/react) | React + Vite |
 
 ## Monorepo Structure
 

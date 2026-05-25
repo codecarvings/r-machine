@@ -1,0 +1,57 @@
+"use client";
+
+import { Languages } from "lucide-react";
+import { useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ClientPlug } from "@/r-machine/client-toolset";
+import type { Locale } from "@/r-machine/setup";
+
+const localeItems = {
+  en: { name: "English" },
+  it: { name: "Italiano" },
+} as const;
+
+export const plug = ClientPlug();
+
+export function LocaleSwitcher() {
+  const { $ } = plug.useR();
+
+  const currentLocaleItem = localeItems[$.locale];
+  const setLocaleAfterMenuClose = useCallback(
+    (newLocale: Locale) => {
+      setTimeout(() => {
+        // Delay setting the locale to allow the dropdown to close smoothly
+        $.setLocale(newLocale);
+      }, 200);
+    },
+    [$.setLocale]
+  );
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="default" className="gap-2 font-semibold" id="locale-switcher-button">
+          <Languages className="size-5" />
+          <span className="hidden sm:inline text-base">{currentLocaleItem.name}</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-40">
+        {Object.entries(localeItems).map(([key, { name }]) => (
+          <DropdownMenuItem
+            key={key}
+            onClick={() => setLocaleAfterMenuClose(key as Locale)}
+            className="cursor-pointer gap-2 text-base py-2"
+          >
+            <span>{name}</span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}

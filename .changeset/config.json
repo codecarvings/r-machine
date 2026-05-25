@@ -8,6 +8,7 @@
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [
+    "@r-machine/examples-next",
     "@r-machine/examples-next-with-app-flat-strategy",
     "@r-machine/examples-next-with-app-origin-strategy",
     "@r-machine/examples-next-with-app-path-strategy",

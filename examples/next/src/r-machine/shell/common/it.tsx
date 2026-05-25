@@ -1,0 +1,17 @@
+import { localized, Shell } from "@/r-machine/setup";
+
+export const r = Shell.define(({ $ }) =>
+  localized("shell/common", {
+    title: `[${$.locale}] - R-Machine ⧹ Examples ⧹ Next App`,
+    footer: {
+      message: (
+        <>
+          Progetto di esempio <strong>R-Machine</strong>. Scopri di più su
+          <a href="https://rmachine.dev/it/" className="underline ml-1 font-semibold">
+            rmachine.dev/it
+          </a>
+        </>
+      ),
+    },
+  })
+);
