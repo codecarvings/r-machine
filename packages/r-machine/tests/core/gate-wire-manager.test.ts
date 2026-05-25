@@ -240,7 +240,7 @@ describe("GateWireManager — subscribe / dispose", () => {
     expect(cb).not.toHaveBeenCalled();
   });
 
-  it("on the last unsubscribe, unsubscribes from the JM and disposes all vertex slots for the wire", () => {
+  it("on the last unsubscribe, defers JM unsub + vertex slot dispose to a microtask (skipped if a resubscribe lands first)", async () => {
     const mock = createMockJm();
     const gwm = new GateWireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
     const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
@@ -253,15 +253,42 @@ describe("GateWireManager — subscribe / dispose", () => {
     const dispose1 = wire.subscribe(cb1);
     const dispose2 = wire.subscribe(cb2);
 
-    // First unsubscribe — still has cb2, no cleanup yet.
+    // First unsubscribe — still has cb2, no cleanup queued.
     dispose1();
+    await Promise.resolve();
     expect(mock.disposeAllCalls).toEqual([]);
     expect(mock.subscribersByNs.get("g/A")?.size).toBe(1);
 
-    // Last unsubscribe — JM unsub + dispose vertex slots.
+    // Last unsubscribe — deferred to microtask; nothing torn down synchronously.
     dispose2();
+    expect(mock.disposeAllCalls).toEqual([]);
+    expect(mock.subscribersByNs.get("g/A")?.size).toBe(1);
+
+    // After microtask flush — JM unsub + vertex slot dispose.
+    await Promise.resolve();
     expect(mock.disposeAllCalls).toEqual([genId]);
     expect(mock.subscribersByNs.get("g/A")?.size).toBe(0);
+  });
+
+  it("if a resubscribe lands in the same tick as the last unsubscribe, no teardown fires (React Strict Mode / Suspense fallback toggle)", async () => {
+    const mock = createMockJm();
+    const gwm = new GateWireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
+    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    wire.getPluginPromise();
+
+    const cb1 = vi.fn();
+    const dispose1 = wire.subscribe(cb1);
+
+    // Last unsubscribe followed immediately by a fresh subscribe — the
+    // microtask should see subscribers.size > 0 and bail.
+    dispose1();
+    const cb2 = vi.fn();
+    wire.subscribe(cb2);
+
+    await Promise.resolve();
+
+    expect(mock.disposeAllCalls).toEqual([]);
+    expect(mock.subscribersByNs.get("g/A")?.size).toBe(1);
   });
 });
 

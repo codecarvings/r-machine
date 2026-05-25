@@ -120,7 +120,10 @@ function createGateWire(
     },
 
     subscribe: (callback: () => void) => {
-      if (subscribers.size === 0) {
+      // Re-use an existing JM subscription if the prior teardown is still
+      // pending in a microtask (Strict Mode / Suspense toggle case) — the
+      // sub is still wired up, no need to register a second one and leak.
+      if (subscribers.size === 0 && unsubFromJm === null) {
         unsubFromJm = junctureManager.subscribe(topLevelNs, () => {
           dirty = true;
           busHost.bus?.emit({ type: "gateWire:markedDirty", genId, subscriberCount: subscribers.size });
@@ -140,43 +143,43 @@ function createGateWire(
         subscribers.delete(callback);
         busHost.bus?.emit({ type: "gateWire:unsubscribed", genId });
         if (subscribers.size === 0 && unsubFromJm !== null) {
-          unsubFromJm();
-          unsubFromJm = null;
-          // Cassette subs (cell-level subscriptions installed by commit()) are
-          // NOT cleared synchronously here. React Strict Mode performs a
-          // subscribe → unsubscribe → subscribe dance at mount; the
-          // intermediate unsubscribe must NOT tear cassette deps down, or the
-          // resubscribe (which only restores the React notify channel) would
-          // leave the consumer without cell subscriptions.
+          // All teardown (JM subscription, cassette cell subs, vertex slots)
+          // is deferred to a microtask. React's
+          // subscribe → unsubscribe → subscribe dance happens in two flavors:
+          //   - Strict Mode mount: deliberate test of cleanup correctness.
+          //   - React 19 concurrent rendering: a Suspense fallback toggle
+          //     (sibling suspends, transition retries, Activity hides) tears
+          //     down and re-establishes useSyncExternalStore subscriptions
+          //     mid-render — the consumer is still alive, just paused.
           //
-          // Instead, defer the cleanup to a microtask. If a resubscribe lands
-          // in the same tick (Strict Mode case), `subscribers.size > 0` at
-          // microtask time and we skip. If no resubscribe arrives (HMR case:
-          // the parent Plug body has been replaced by Fast Refresh, so this
-          // wire is permanently abandoned), we clear the cassette subs and
-          // break the otherwise-stranded `cell.subscribers → notify →
-          // forceRerenderRef` reference chain that would keep firing
-          // re-renders on the live component every time a tracked cell
-          // mutates.
+          // A synchronous vertex-slot dispose in either case kills the slot's
+          // setInterval/listeners and flips `dirty=true`, so the resubscribe
+          // hits `getPluginPromise` → new promise → `use()` re-suspends →
+          // fallback again → unsubscribe → dispose → infinite Suspense loop
+          // (cell state never has time to advance, page stays blank).
+          //
+          // Deferring to a microtask lets a same-tick resubscribe short-
+          // circuit: if `subscribers.size > 0` at microtask time, skip
+          // everything (JM stays subscribed, cassette subs intact, vertex
+          // slots alive). If no resubscribe arrives (real unmount / HMR),
+          // the microtask runs and tears down.
           queueMicrotask(() => {
-            if (subscribers.size === 0) {
-              clearCassetteSubs();
+            if (subscribers.size > 0) {
+              return;
             }
+            unsubFromJm?.();
+            unsubFromJm = null;
+            clearCassetteSubs();
+            const vertexSlotsDisposed = junctureManager.disposeAllVertexSlotsByGenId(genId);
+            if (vertexSlotsDisposed > 0) {
+              // Vertex slots created by this wire's prior resolves are gone,
+              // so the cached `currentPluginPromise` references slots that no
+              // longer exist. Mark dirty so the next getPluginPromise() is
+              // forced to re-resolve and re-create the vertex slots.
+              dirty = true;
+            }
+            busHost.bus?.emit({ type: "gateWire:jmUnsubscribed", genId, vertexSlotsDisposed });
           });
-          const vertexSlotsDisposed = junctureManager.disposeAllVertexSlotsByGenId(genId);
-          if (vertexSlotsDisposed > 0) {
-            // Vertex slots created by this wire's prior resolves are gone, so
-            // the cached `currentPluginPromise` references slots that no
-            // longer exist. Mark dirty so the next getPluginPromise() is
-            // forced to re-resolve and re-create the vertex slots. Only do
-            // this when slots were actually disposed: under React Strict
-            // Mode the subscribe → unsubscribe → subscribe dance can hit
-            // this branch with zero slots (no VertexFrame in the tree), in
-            // which case marking dirty would needlessly bust the plugin
-            // promise identity and cause an extra re-render after the dance.
-            dirty = true;
-          }
-          busHost.bus?.emit({ type: "gateWire:jmUnsubscribed", genId, vertexSlotsDisposed });
         }
       };
     },
