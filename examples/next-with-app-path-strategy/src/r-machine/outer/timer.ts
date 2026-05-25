@@ -1,4 +1,3 @@
-import { managed } from "r-machine";
 import { OuterGear, type RShape } from "../setup";
 
 export const r = OuterGear.withDeps("#base/config")
@@ -11,18 +10,16 @@ export const r = OuterGear.withDeps("#base/config")
 
     const marker = "X";
 
-    return managed(
-      {
-        $inc,
-        value: _.getter(),
-        valueWithConfig: _.getter(() => {
-          return `${config.sessionDuration} - ${marker} - ${$.state}`;
-        }),
-      },
-      () => {
+    return {
+      $inc,
+      value: _.getter(),
+      valueWithConfig: _.getter(() => {
+        return `${config.sessionDuration} - ${marker} - ${$.state}`;
+      }),
+      [Symbol.dispose]: () => {
         clearInterval(intervalId);
-      }
-    );
+      },
+    };
   });
 
 export type Outer_Timer = RShape<typeof r>;

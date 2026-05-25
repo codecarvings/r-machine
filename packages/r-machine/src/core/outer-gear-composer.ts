@@ -18,7 +18,6 @@ import { type CmdComposer, createCmd } from "./cmd.js";
 import { lazyGetters } from "./composer-utils.js";
 import { createGearListPlugHead, createGearMapPlugHead, type GearPluginCtx, type GearPlugKitMap } from "./gear-plug.js";
 import { createGetter, type DefaultGetter, type GetterComposer, type StatelessGetterComposer } from "./getter.js";
-import { managed } from "./managed.js";
 import { promoteMemberNames } from "./member-name.js";
 import type { AnyOuterGear, AnyState, RejectAsyncValueProps } from "./outer-gear.js";
 import {
@@ -45,7 +44,7 @@ import type { CassetteRecorder } from "./reactivity/cassette-recorder.js";
 import { createMemoCell } from "./reactivity/memo-cell.js";
 import { createStateCell, type StateCell } from "./reactivity/state-cell.js";
 import { type AnyRelay, createRelay, createRelayRuntime, type RelayComposer } from "./relay.js";
-import type { AnyRes } from "./res.js";
+import { type AnyRes, tryGetDispose } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { AnyNamespace, ExtractNamespace } from "./res-domain.js";
@@ -467,11 +466,30 @@ const emptyPorts: BaseGearPlugPortMap = {};
 
 /** @internal — exposed for tests that bypass the production composer and build res-matrix directly. */
 export function wrapWithRelayCleanup(resource: AnyRes, cursor: unknown): AnyRes {
-  const disposes = takeRelayCleanup(cursor);
-  if (!disposes || disposes.length === 0) return resource;
-  return managed(resource, () => {
-    for (const d of disposes) d();
-  });
+  const relayDisposes = takeRelayCleanup(cursor) ?? [];
+  const userDispose = tryGetDispose(resource);
+  if (relayDisposes.length === 0 && !userDispose) return resource;
+  let disposed = false;
+  const combined = () => {
+    if (disposed) return;
+    disposed = true;
+    if (userDispose) {
+      try {
+        userDispose();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    for (const d of relayDisposes) {
+      try {
+        d();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+  (resource as { [Symbol.dispose]: () => void })[Symbol.dispose] = combined;
+  return resource;
 }
 
 function statefulPostProcess<S extends AnyState>(raw: unknown, _: StatefulOuterGearCursor<S>): AnyRes {

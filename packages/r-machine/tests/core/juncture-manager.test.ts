@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import { BlueprintManager } from "../../src/core/blueprint-manager.js";
 import type { BusHost } from "../../src/core/event-bus.js";
 import { getJunctureResCacheKey, JunctureManager } from "../../src/core/juncture-manager.js";
-import { managed } from "../../src/core/managed.js";
 import type { AnyRes } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import type { AnyNamespace } from "../../src/core/res-domain.js";
@@ -429,11 +428,11 @@ describe("JunctureManager — vertex dispose APIs", () => {
     expect(env.jmInternal.slots.has(env.keyOf("v/B", undefined, 42))).toBe(true);
   });
 
-  it("invokes the managed teardown when disposing a resolved vertex slot", async () => {
+  it("invokes Symbol.dispose when disposing a resolved vertex slot", async () => {
     const teardown = vi.fn();
     const env = createJmTestEnv({
       modules: {
-        "v/A": (jm) => makeVertexModule(jm, {}, managed({ a: 1 }, teardown)),
+        "v/A": (jm) => makeVertexModule(jm, {}, { a: 1, [Symbol.dispose]: teardown }),
       },
     });
     await env.jmInternal.getJuncture("v/A", undefined, 42, undefined, []);
@@ -456,7 +455,7 @@ describe("JunctureManager — stale resolve teardown", () => {
       modules: {
         "g/X": async () => {
           await gate;
-          return makeRawModule(managed({ x: 1 }, teardown));
+          return makeRawModule({ x: 1, [Symbol.dispose]: teardown });
         },
       },
       busHost: bridge,
@@ -482,7 +481,7 @@ describe("JunctureManager — stale resolve teardown", () => {
       "juncture:invalidationStart",
       { type: "juncture:resolveStale", namespace: "g/X", reason: "generation", teardownInvoked: true },
     ]);
-    // The discarded juncture's managed teardown was actually invoked.
+    // The discarded juncture's Symbol.dispose was actually invoked.
     expect(teardown).toHaveBeenCalledOnce();
     // No slotCommitted event for this resolve — the juncture was thrown away.
     expect(collector.events.some((e) => e.type === "juncture:slotCommitted")).toBe(false);
@@ -501,7 +500,7 @@ describe("JunctureManager — stale resolve teardown", () => {
       modules: {
         "g/X": async () => {
           await gate;
-          return makeRawModule(managed({ x: 1 }, teardown));
+          return makeRawModule({ x: 1, [Symbol.dispose]: teardown });
         },
       },
       busHost: bridge,
@@ -546,11 +545,11 @@ describe("JunctureManager — invalidate cascade", () => {
     expect(callback).toHaveBeenCalledOnce();
   });
 
-  it("disposes resolved slots in the closure (with managed teardown invoked)", async () => {
+  it("disposes resolved slots in the closure (with Symbol.dispose invoked)", async () => {
     const teardown = vi.fn();
     const env = createJmTestEnv({
       modules: {
-        "g/X": () => makeRawModule(managed({ x: 1 }, teardown)),
+        "g/X": () => makeRawModule({ x: 1, [Symbol.dispose]: teardown }),
       },
     });
     await env.jmInternal.getJuncture("g/X", undefined, 0, undefined, []);
@@ -568,8 +567,8 @@ describe("JunctureManager — invalidate cascade", () => {
     const teardownOrder: string[] = [];
     const env = createJmTestEnv({
       modules: {
-        "g/A": () => makeRawModule(managed({ a: 1 }, () => teardownOrder.push("g/A"))),
-        "g/B": () => makeRawModule(managed({ b: 1 }, () => teardownOrder.push("g/B"))),
+        "g/A": () => makeRawModule({ a: 1, [Symbol.dispose]: () => teardownOrder.push("g/A") }),
+        "g/B": () => makeRawModule({ b: 1, [Symbol.dispose]: () => teardownOrder.push("g/B") }),
       },
       busHost: bridge,
     });

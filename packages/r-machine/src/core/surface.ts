@@ -27,8 +27,8 @@ export type Surface<R extends AnyRes, N extends AnyNamespace, LET extends ResLay
   readonly [surfaceLayoutEntryTypeSymbol]: LET;
 } & SurfaceBody<R>;
 
-export type SurfaceBody<R> = {
-  readonly [K in keyof R as K extends `$${string}` ? never : K]: SurfaceItem<R[K]>;
+type SurfaceBody<R> = {
+  readonly [K in keyof R as K extends `$${string}` | symbol ? never : K]: SurfaceItem<R[K]>;
 };
 
 // export type AnyClientVertexGearSurface = Surface<AnyRes, AnyNamespace, "gear:outer(vertex)">;

@@ -1,4 +1,3 @@
-import { managed } from "r-machine";
 import { OuterGear, type RShape } from "../setup";
 
 export const r = OuterGear.withState({
@@ -23,18 +22,17 @@ export const r = OuterGear.withState({
     },
   });
 
-  return managed(
-    {
-      $inc,
-      value: _.getter(),
-      plus: _.action((n: number) => ({
-        value: $.state.value + n,
-      })),
-    },
-    () => {
+  return {
+    $inc,
+    value: _.getter(),
+    plus: _.action((n: number) => ({
+      value: $.state.value + n,
+    })),
+    [Symbol.dispose]: () => {
       clearInterval(intervalId);
-    }
-  );
+    },
+  };
 });
 
 export type Outer_Timer = RShape<typeof r>;
+// await using x = await r.factory();

@@ -17,9 +17,8 @@ import type { Blueprint } from "./blueprint.js";
 import type { BlueprintManager } from "./blueprint-manager.js";
 import type { BusHost } from "./event-bus.js";
 import { buildKernelJuncture, buildOuterJuncture, getCurrentSurface, type Juncture } from "./juncture.js";
-import { tryGetManagedTeardown } from "./managed.js";
 import type { PluginCtxAugmenter } from "./plug.js";
-import type { AnyRes } from "./res.js";
+import { type AnyRes, tryGetDispose } from "./res.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import type { AnyResEquipment } from "./res-equipment.js";
 import { isOuterGearLayoutType, type ResLayoutEntryType, type ResLayoutResolver } from "./res-layout.js";
@@ -149,7 +148,7 @@ export class JunctureManager {
         const generationStale = currentGen !== generation;
         const slotIdentityStale = slotsMap.get(key) !== slot;
         if (generationStale || slotIdentityStale) {
-          const teardown = tryGetManagedTeardown(juncture.res);
+          const teardown = tryGetDispose(juncture.res);
           if (teardown) {
             try {
               teardown();
@@ -408,7 +407,7 @@ export class JunctureManager {
     }
     let teardownInvoked = false;
     if (!(slot.content instanceof Promise)) {
-      const teardown = tryGetManagedTeardown(slot.content.res);
+      const teardown = tryGetDispose(slot.content.res);
       if (teardown) {
         teardownInvoked = true;
         try {

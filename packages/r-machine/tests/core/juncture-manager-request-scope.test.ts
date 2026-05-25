@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { BlueprintManager } from "../../src/core/blueprint-manager.js";
 import type { BusHost } from "../../src/core/event-bus.js";
 import { getJunctureResCacheKey, JunctureManager } from "../../src/core/juncture-manager.js";
-import { managed } from "../../src/core/managed.js";
 import type { AnyRes } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import type { AnyNamespace } from "../../src/core/res-domain.js";
@@ -19,7 +18,7 @@ import {
 } from "../../src/core/scope.js";
 
 // Layout: g/* inner (raw), b/* base (raw), s/* shell (raw),
-// o/* outer (matrix — exercise factory path + managed teardown).
+// o/* outer (matrix — exercise factory path + Symbol.dispose).
 const TEST_LAYOUT: AnyResLayout = {
   "g/": "gear:inner",
   "b/": "gear:base",
@@ -27,7 +26,7 @@ const TEST_LAYOUT: AnyResLayout = {
   "o/": "gear:outer",
 };
 
-// Build an outer-gear matrix module whose factory returns a `managed` resource
+// Build an outer-gear matrix module whose factory returns a Disposable resource
 // — the teardown callback is recorded so tests can assert call order.
 function makeOuterModule(
   jm: () => JunctureManager,
@@ -56,7 +55,7 @@ function makeOuterModule(
     meta: { family: "gear", role: "outer" },
     head: head as never,
     cursor: undefined,
-    userFactory: async () => managed(resource, teardown),
+    userFactory: async () => ({ ...(resource as Record<string, unknown>), [Symbol.dispose]: teardown }) as AnyRes,
   });
   return { r: matrix };
 }
@@ -195,7 +194,7 @@ describe("JunctureManager — request scope routing", () => {
 });
 
 describe("JunctureManager — disposeRequestScope", () => {
-  it("invokes managed teardowns for all Outer slots created in the scope", async () => {
+  it("invokes Symbol.dispose for all Outer slots created in the scope", async () => {
     const teardownOrder: string[] = [];
     const env = createEnv({
       modules: {

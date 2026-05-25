@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildKernelJuncture } from "../../src/core/juncture.js";
-import { tryGetManagedTeardown } from "../../src/core/managed.js";
 import {
   buildStatefulOuterGearCursor,
   stateCellSlot,
@@ -8,7 +7,7 @@ import {
 } from "../../src/core/outer-gear-composer.js";
 import { createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
 import { createStateCell, type StateCell } from "../../src/core/reactivity/state-cell.js";
-import type { AnyRes } from "../../src/core/res.js";
+import { type AnyRes, tryGetDispose } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
 
@@ -67,7 +66,7 @@ function buildStatefulMatrix<S>(
       Object.defineProperty($, "state", { get: () => cell.read(), enumerable: true });
       $.defaultState = defaultState;
     },
-    // Mirror production behavior: wrap the resource with managed teardown
+    // Mirror production behavior: wrap the resource with Symbol.dispose
     // for any relays registered during the user factory invocation. Member
     // name promotion is irrelevant here (these tests don't assert names).
     postProcess: (raw, cursor) => wrapWithRelayCleanup(raw as AnyRes, cursor),
@@ -249,7 +248,7 @@ describe("OuterGear state — phase 1 end-to-end", () => {
     expect(onChange).toHaveBeenCalledWith(1, 0);
 
     // Teardown disposes the relay; subsequent mutations don't fire.
-    const teardown = tryGetManagedTeardown(raw as AnyRes);
+    const teardown = tryGetDispose(raw as AnyRes);
     expect(teardown).toBeDefined();
     teardown?.();
     resource.inc();
