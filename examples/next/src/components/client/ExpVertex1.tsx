@@ -3,12 +3,12 @@
 import { ClientPlug } from "@/r-machine/client-toolset";
 
 export const plug = ClientPlug("vertex/timer");
-export function Exp2({ title }: { title: string }) {
-  console.log("Exp2 rendered", title);
+export function ExpVertex1({ title }: { title: string }) {
   const [timer, $] = plug.useR();
+
   return (
     <div>
-      <h4>{title}</h4> {$.kit.fmt.currency(timer.value.value)}
+      <h4>{title}</h4> {$.kit.fmt.currency(timer.value.value)} [{timer.value.id}]
     </div>
   );
 }

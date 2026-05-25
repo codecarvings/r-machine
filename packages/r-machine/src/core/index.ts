@@ -88,6 +88,7 @@ export type {
 } from "./res-equipment.js";
 export {
   type AnyResLayout,
+  isVertexGearLayoutType,
   type ResLayoutEntryType,
   ResLayoutResolver,
   type ResolveLayoutType,

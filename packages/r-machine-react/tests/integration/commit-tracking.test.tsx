@@ -49,6 +49,7 @@ function createFakeWire(): {
       };
     },
     startTracking: startTrackingSpy as never,
+    disposeConsumer: vi.fn(),
     updateRequest: vi.fn(),
   };
 
@@ -209,9 +210,9 @@ describe("useBareReactPlug — commit-tracking integration", () => {
 // OuterGear, with the full blueprint stack (BM + JM + GWM + real composer).
 // ---------------------------------------------------------------------------
 
-function buildRealEnv() {
+function buildRealEnv(layoutType: "gear:outer" | "gear:outer(vertex)" = "gear:outer") {
   const recorder = createCassetteRecorder();
-  const resolver = new ResLayoutResolver({ "v/": "gear:outer" });
+  const resolver = new ResLayoutResolver({ "v/": layoutType });
   const busHost: BusHost = { bus: undefined };
 
   let jm!: JunctureManager;
@@ -241,13 +242,16 @@ function buildRealEnv() {
   const gwm = new GateWireManager(jm, busHost, recorder);
 
   // Fake machine surface: just what createReactBareToolset and useBareReactPlug
-  // actually touch — validateLocale + defaultLocale + getGateWire.
+  // actually touch — validateLocale + defaultLocale + getGateWire +
+  // isVertexNamespace (used by the Plug factory to decide per-consumer vs
+  // shared wire caching).
   const fakeMachine = {
     localeHelper: {
       validateLocale: () => null,
       defaultLocale: "en",
     },
     getGateWire: gwm.getWire.bind(gwm),
+    isVertexNamespace: (ns: string) => resolver.resolveLayoutEntryType(ns as never) === "gear:outer(vertex)",
   };
 
   return { fakeMachine };

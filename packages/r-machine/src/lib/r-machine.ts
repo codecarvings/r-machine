@@ -32,6 +32,7 @@ import {
   GateWireManager,
   type GearPlugKitMap,
   type InternalEventBus,
+  isVertexGearLayoutType,
   JunctureManager,
   type NamespaceMap,
   type PluginCtxAugmenter,
@@ -45,7 +46,7 @@ import {
 } from "#r-machine/core";
 import { type AnyLocale, type AnyLocaleList, LocaleHelper } from "#r-machine/locale";
 import { createBlueprintRelayOrderingProvider } from "../core/relay-ordering.js";
-import type { NamespaceCollection } from "../core/res-domain.js";
+import type { AnyNamespace, NamespaceCollection } from "../core/res-domain.js";
 import {
   CONFIG_ACCESSOR,
   convertRMachineConfigParamsToConfig,
@@ -79,7 +80,8 @@ export class RMachine<
     }
     this.localeHelper = new LocaleHelper(this.config.locales, this.config.defaultLocale);
 
-    const resLayoutResolver = new ResLayoutResolver(this.config.layout);
+    this.resLayoutResolver = new ResLayoutResolver(this.config.layout);
+    const resLayoutResolver = this.resLayoutResolver;
     this.blueprintManager = new BlueprintManager(
       resLayoutResolver,
       this.config.load,
@@ -121,10 +123,24 @@ export class RMachine<
   }
 
   readonly localeHelper: LocaleHelper<L>;
+  protected readonly resLayoutResolver: ResLayoutResolver;
   protected readonly blueprintManager: BlueprintManager;
   protected readonly junctureManager: JunctureManager;
   protected readonly gateWireManager: GateWireManager;
   protected readonly cassetteRecorder!: CassetteRecorder;
+
+  /**
+   * Returns true when the namespace resolves to a vertex layout entry
+   * (`gear:outer(vertex)`). Used by client toolsets to decide whether a Plug
+   * needs per-consumer wire instances (each consumer is its own creator
+   * unless a `VertexFrame` ancestor claims the namespace) or can share a
+   * wire across consumers (the default for stateless / process-tier deps).
+   *
+   * @internal
+   */
+  isVertexNamespace(ns: AnyNamespace): boolean {
+    return isVertexGearLayoutType(this.resLayoutResolver.resolveLayoutEntryType(ns));
+  }
 
   // Lazy: undefined until the first DevTools/test consumer attaches via
   // BUS_ACCESSOR. While undefined, manager call-sites `this.busHost.bus?.emit(...)`

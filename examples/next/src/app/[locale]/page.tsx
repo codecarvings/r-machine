@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Exp } from "@/components/client/Exp";
-import { Exp2 } from "@/components/client/Exp2";
+import { ExpOuter1 } from "@/components/client/ExpOuter1";
+import { ExpVertex1 } from "@/components/client/ExpVertex1";
 import Hero from "@/components/server/hero";
 import { ServerPlug } from "@/r-machine/server-toolset";
 
@@ -14,8 +14,9 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
 
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <div className="max-w-6xl mx-auto">
-          <Exp />
-          <Exp2 title="Timer 2" />
+          <ExpOuter1 />
+          <ExpVertex1 title="Vertex Timer Page 1" />
+          <ExpVertex1 title="Vertex Timer Page 2" />
         </div>
       </section>
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">

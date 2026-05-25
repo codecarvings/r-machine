@@ -39,6 +39,9 @@ export function createMockMachine(
     },
     hybridPickR: vi.fn(overrides.hybridPickR ?? (() => ({ greeting: "hello" }))),
     hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
+    // Default to non-vertex so plugs in tests use the shared wireCache path.
+    // Real plugs that need per-consumer vertex wires set an override.
+    isVertexNamespace: vi.fn(() => false),
     // No request scope on the client — return the process-default provider so
     // the React adapter falls back to its module-level wireCache.
     requestScope: {

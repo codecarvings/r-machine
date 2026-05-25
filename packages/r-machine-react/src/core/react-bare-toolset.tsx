@@ -127,6 +127,14 @@ export async function createReactBareToolset<
 
     const body = createPlug(head as unknown as AnyPlugHead);
 
+    // Pre-compute the subset of top-level deps that resolve to a vertex
+    // layout (`gear:outer(vertex)`). Used below to decide whether a
+    // consumer can share a wire with siblings or needs its own wire. The
+    // resolution is sync (layout-config lookup, no blueprint load), so
+    // doing it once at plug-construction time is cheap.
+    const vertexDepsSet = new Set<string>(head.nsDepList.filter((ns) => rMachine.isVertexNamespace(ns)));
+    const hasAnyVertexDep = vertexDepsSet.size > 0;
+
     // Mutable ref shared across all consumers of this plug, holding the
     // *current* writeLocale callback. Each consumer's render updates it.
     // Bound separately from `locale` because writeLocale is a stable
@@ -153,6 +161,14 @@ export async function createReactBareToolset<
     type WireEntry = { wire: GateWire; localeHolder: { current: L } };
     // Module-level fallback cache for client-side (no request scope active).
     const fallbackWireCache = new Map<string, WireEntry>();
+    // Per-consumer caches for plugs whose vertex deps are NOT covered by a
+    // VertexFrame ancestor. Each consumer is the CREATOR of its own vertex
+    // slot, so it must own its own wire (a shared wire would mean a shared
+    // slot, defeating "vertex = per-instance" semantics). Keyed by the
+    // consumer's stable token (useRef-held empty object) via WeakMap so the
+    // cache is GC-bound to the consumer's lifetime even if explicit dispose
+    // is missed.
+    const perConsumerWireCaches = new WeakMap<object, Map<string, WireEntry>>();
     const plugId = getPlugId(body);
     // Resolves which cache backs `wireCache` for this consumer's render:
     //   - Server inside an active request scope: a fresh-per-request Map kept
@@ -173,7 +189,8 @@ export async function createReactBareToolset<
     const getOrCreateWire = (
       locale: L,
       vertexGearMap: ReturnType<typeof useVertexFrame>,
-      requestScope: RequestScope | null
+      requestScope: RequestScope | null,
+      consumerKey: object
     ): GateWire => {
       const vgmSig = vertexGearMap
         ? Object.entries(vertexGearMap)
@@ -181,7 +198,36 @@ export async function createReactBareToolset<
             .join(",")
         : "";
       const key = `${locale}|${vgmSig}`;
-      const wireCache = getWireCache(requestScope);
+      // Pick the cache: per-consumer when this consumer owns any uncovered
+      // vertex dep (each consumer = its own vertex instance, see [[project-
+      // vertex-per-consumer-instance]]); shared otherwise.
+      //
+      // A vertex dep is "covered" when its namespace appears in
+      // `vertexGearMap` — a `VertexFrame` ancestor has claimed it and all
+      // descendants resolving the same dep should share that instance.
+      // An "uncovered" vertex dep means the consumer is the creator: it
+      // gets its own genId (one wire = one genId = one vertex slot) and
+      // its own state cell. Without this split, sibling consumers reading
+      // the same plug under no VertexFrame end up sharing one slot — the
+      // "3 instances tick in sync, all show the same value" symptom.
+      let wireCache: Map<string, WireEntry>;
+      if (hasAnyVertexDep) {
+        const hasUncoveredVertex = vertexGearMap
+          ? [...vertexDepsSet].some((ns) => vertexGearMap[ns] === undefined)
+          : true;
+        if (hasUncoveredVertex) {
+          let pcc = perConsumerWireCaches.get(consumerKey);
+          if (pcc === undefined) {
+            pcc = new Map<string, WireEntry>();
+            perConsumerWireCaches.set(consumerKey, pcc);
+          }
+          wireCache = pcc;
+        } else {
+          wireCache = getWireCache(requestScope);
+        }
+      } else {
+        wireCache = getWireCache(requestScope);
+      }
       let entry = wireCache.get(key);
       if (!entry) {
         // localeHolder is now constant (locale is part of the cache key, so
@@ -246,7 +292,21 @@ export async function createReactBareToolset<
 
       const safeCtx = ctx ?? fallbackCtx;
       sharedWriteLocaleRef.current = safeCtx.writeLocale;
-      const wire = getOrCreateWire(safeCtx.locale, vertexGearMap, requestScope);
+
+      // Stable per-consumer identity. Used both for the wire cache (when
+      // the plug has uncovered vertex deps, each consumer gets its own
+      // wire = its own genId = its own vertex slot — see [[project-vertex-
+      // per-consumer-instance]]) AND for the wire's internal per-consumer
+      // cassette/unsubs/epoch state (so siblings sharing a wire don't tear
+      // down each other's subscriptions on commit). The same opaque token
+      // serves both purposes; the wire treats it as identity, never reads
+      // it.
+      const consumerKeyRef = useRef<object | null>(null);
+      if (consumerKeyRef.current === null) {
+        consumerKeyRef.current = {};
+      }
+
+      const wire = getOrCreateWire(safeCtx.locale, vertexGearMap, requestScope, consumerKeyRef.current);
 
       // Local re-render channel for cassette-tracked dep changes. Kept
       // SEPARATE from useSyncExternalStore (which is the JM-driven re-resolve
@@ -272,10 +332,12 @@ export async function createReactBareToolset<
       // simply clears the prior deps. The notify callback is read indirectly
       // through a ref so the wire's stored cassette subscriptions always
       // point at the latest setState dispatch (which is stable per mount
-      // but safer behind a ref).
+      // but safer behind a ref). `consumerKeyRef` (declared above) is the
+      // per-consumer identity passed to the wire; see its comment for why
+      // it exists.
       const commit = wire.startTracking(() => {
         forceRerenderRef.current();
-      });
+      }, consumerKeyRef.current);
 
       // Stash the latest commit fn so the post-commit effect (below) fires
       // exactly the closure of the render that actually committed. Earlier
@@ -318,6 +380,35 @@ export async function createReactBareToolset<
       useEffect(() => {
         commitRef.current?.();
       });
+
+      // Per-consumer cleanup. Fires when the wire identity changes (e.g.
+      // locale switch) and on unmount. We dispose this consumer's entry on
+      // the OLD wire so its cassette + cell subs don't leak. Wire-level
+      // teardown (last subscriber leaves) disposes ALL remaining consumers
+      // wholesale, so this is only the per-consumer path.
+      //
+      // The dispose is deferred to a microtask + guarded by a `mounted`
+      // ref. React Strict Mode runs setup → cleanup → setup synchronously
+      // in the same tick: if the dispose ran inline during the cleanup it
+      // would wipe the cassette + cell subs, the immediate re-setup would
+      // bring us back without subs (the render isn't re-run during the
+      // dance), and subsequent action ticks would notify nothing. By
+      // deferring, the re-setup flips `mounted` back to true before the
+      // microtask reads it, so the dispose is skipped. On a real unmount
+      // (no re-setup follows), the microtask sees `mounted === false` and
+      // disposes as intended.
+      const mountedRef = useRef(true);
+      useEffect(() => {
+        mountedRef.current = true;
+        const key = consumerKeyRef.current;
+        return () => {
+          mountedRef.current = false;
+          queueMicrotask(() => {
+            if (mountedRef.current) return;
+            if (key !== null) wire.disposeConsumer(key);
+          });
+        };
+      }, [wire]);
 
       // Throw only AFTER every hook has been called. The throw aborts the
       // render but the hook count is now stable across renders, which keeps

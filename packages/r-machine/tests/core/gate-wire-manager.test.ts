@@ -411,7 +411,7 @@ describe("GateWireManager — commit-tracking (cassette → consumer-notify chan
     const notify = vi.fn();
 
     const cell = createStateCell({ v: 0 }, recorder);
-    const commit = wire.startTracking(notify);
+    const commit = wire.startTracking(notify, {});
     cell.read(); // captured by the open cassette
     commit();
 
@@ -431,7 +431,7 @@ describe("GateWireManager — commit-tracking (cassette → consumer-notify chan
     expect(mock.getPluginCalls).toHaveLength(1);
 
     const cell = createStateCell({ v: 0 }, recorder);
-    const commit = wire.startTracking(() => {});
+    const commit = wire.startTracking(() => {}, {});
     cell.read();
     commit();
 
@@ -453,7 +453,7 @@ describe("GateWireManager — commit-tracking (cassette → consumer-notify chan
     wire.subscribe(wireSub);
 
     const cell = createStateCell({ v: 0 }, recorder);
-    const commit = wire.startTracking(() => {});
+    const commit = wire.startTracking(() => {}, {});
     cell.read();
     commit();
 
@@ -474,15 +474,18 @@ describe("GateWireManager — commit-tracking (cassette → consumer-notify chan
 
     const oldCell = createStateCell({ v: 0 }, recorder);
     const newCell = createStateCell({ v: 0 }, recorder);
+    // Same consumer across both passes — re-commit semantics applies to a
+    // single consumer's repeated render cycle, not to two sibling consumers.
+    const consumer = {};
 
     // First tracking pass: reads oldCell.
-    const commit1 = wire.startTracking(notify);
+    const commit1 = wire.startTracking(notify, consumer);
     oldCell.read();
     commit1();
     notify.mockClear();
 
     // Second tracking pass: reads newCell only.
-    const commit2 = wire.startTracking(notify);
+    const commit2 = wire.startTracking(notify, consumer);
     newCell.read();
     commit2();
 
@@ -502,15 +505,19 @@ describe("GateWireManager — commit-tracking (cassette → consumer-notify chan
 
     const ghost = createStateCell({ v: 0 }, recorder);
     const real = createStateCell({ v: 0 }, recorder);
+    // Same consumer: epoch supersedure is what guarantees the ghost reads
+    // don't end up wired (the per-consumer cassette is bubbled to top and
+    // its deps cleared on the second insert).
+    const consumer = {};
 
     // First startTracking that never commits (abandoned by the consumer).
-    wire.startTracking(notify);
+    wire.startTracking(notify, consumer);
     ghost.read();
 
-    // Second startTracking takes over. insert() on the persistent cassette
-    // clears the ghost deps; trackingEpoch bumps, making the first commit
-    // closure a no-op even if it were to fire.
-    const commit2 = wire.startTracking(notify);
+    // Second startTracking takes over. insert() on the consumer's cassette
+    // clears the ghost deps; the per-consumer epoch bumps, making the first
+    // commit closure a no-op even if it were to fire.
+    const commit2 = wire.startTracking(notify, consumer);
     real.read();
     commit2();
 
@@ -532,7 +539,7 @@ describe("GateWireManager — commit-tracking (cassette → consumer-notify chan
     const notify = vi.fn();
 
     const cell = createStateCell({ v: 0 }, recorder);
-    const commit = wire.startTracking(notify);
+    const commit = wire.startTracking(notify, {});
     cell.read();
     commit();
     commit(); // second call should be a no-op
@@ -550,7 +557,7 @@ describe("GateWireManager — commit-tracking (cassette → consumer-notify chan
 
     const notify = vi.fn();
     const cell = createStateCell({ v: 0 }, recorder);
-    const commit = wire.startTracking(notify);
+    const commit = wire.startTracking(notify, {});
     cell.read();
     commit();
 
@@ -559,9 +566,76 @@ describe("GateWireManager — commit-tracking (cassette → consumer-notify chan
     const unsub = wire.subscribe(() => {});
     unsub();
 
-    // Cassette subs MUST survive — they are owned by the commit lifecycle,
-    // not by the wire-subscriber count.
+    // Cassette subs MUST survive synchronously — wire-level teardown
+    // (including disposeAllConsumers) is now deferred to a microtask. The
+    // dance's resubscribe lands before the microtask and short-circuits it.
     cell.publish({ v: 1 });
     expect(notify).toHaveBeenCalledTimes(1);
+  });
+
+  it("disposeConsumer clears a single consumer's subs without touching siblings (multi-consumer wire)", () => {
+    const mock = createMockJm();
+    const recorder = createCassetteRecorder();
+    const gwm = new GateWireManager(mock.jm, { bus: undefined }, recorder);
+    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+
+    const cellA = createStateCell({ v: 0 }, recorder);
+    const cellB = createStateCell({ v: 0 }, recorder);
+    const notifyA = vi.fn();
+    const notifyB = vi.fn();
+    const consumerA = {};
+    const consumerB = {};
+
+    // Each consumer tracks its own cell on the SAME wire.
+    const commitA = wire.startTracking(notifyA, consumerA);
+    cellA.read();
+    commitA();
+
+    const commitB = wire.startTracking(notifyB, consumerB);
+    cellB.read();
+    commitB();
+
+    // Both alive: each cell publish fires only its own notify.
+    cellA.publish({ v: 1 });
+    expect(notifyA).toHaveBeenCalledTimes(1);
+    expect(notifyB).not.toHaveBeenCalled();
+    cellB.publish({ v: 1 });
+    expect(notifyB).toHaveBeenCalledTimes(1);
+
+    // Dispose A only — B must keep working.
+    wire.disposeConsumer(consumerA);
+    notifyA.mockClear();
+    notifyB.mockClear();
+
+    cellA.publish({ v: 2 });
+    expect(notifyA).not.toHaveBeenCalled();
+
+    cellB.publish({ v: 2 });
+    expect(notifyB).toHaveBeenCalledTimes(1);
+  });
+
+  it("two consumers on the same wire each receive notifications when they share a tracked cell (regression: clearCassetteSubs / shared-epoch bug)", () => {
+    const mock = createMockJm();
+    const recorder = createCassetteRecorder();
+    const gwm = new GateWireManager(mock.jm, { bus: undefined }, recorder);
+    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+
+    const sharedCell = createStateCell({ v: 0 }, recorder);
+    const notifyA = vi.fn();
+    const notifyB = vi.fn();
+
+    const commitA = wire.startTracking(notifyA, {});
+    sharedCell.read();
+    commitA();
+
+    const commitB = wire.startTracking(notifyB, {});
+    sharedCell.read();
+    commitB();
+
+    sharedCell.publish({ v: 1 });
+    // Pre-fix: only the latest commit's notify fired (notifyB), because
+    // clearCassetteSubs() was wire-wide.
+    expect(notifyA).toHaveBeenCalledTimes(1);
+    expect(notifyB).toHaveBeenCalledTimes(1);
   });
 });

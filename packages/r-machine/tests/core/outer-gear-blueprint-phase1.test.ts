@@ -191,7 +191,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
     const wire = gwm.getWire({}, [], "en", ($) => $);
     const notify = vi.fn();
 
-    const commit = wire.startTracking(notify);
+    const commit = wire.startTracking(notify, {});
     expect(resource.read).toBe(0);
     commit();
 
@@ -236,7 +236,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
     // the memo cell (not the underlying StateCell transitively).
     expect(resource.subtotal).toBe(30);
 
-    const commit = wire.startTracking(notify);
+    const commit = wire.startTracking(notify, {});
     expect(resource.subtotal).toBe(30); // cache hit — captures the memo cell as the sole dep
     commit();
 

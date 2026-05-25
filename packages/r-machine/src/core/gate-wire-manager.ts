@@ -80,19 +80,44 @@ function createGateWire(
   // (Strict Mode duplicates, abandoned mounts) from leaking JM subscriptions.
   let unsubFromJm: (() => void) | null = null;
 
-  // Cassette-side tracking: deps collected during a consumer's render and
-  // subscribed at commit. Replaced on each re-commit; cleared on wire disposal.
-  let cassetteUnsubs: Array<() => void> = [];
-  // One persistent Cassette for this wire — insert clears prior deps; eject is
-  // idempotent. `trackingEpoch` lets commit closures detect supersedure: a
-  // new startTracking() before commit (Strict Mode double-invoke, abandoned
-  // render) bumps the epoch, so the prior commit closure becomes a no-op.
-  const cassette = recorder.createCassette();
-  let trackingEpoch = 0;
+  // Per-consumer cassette tracking state. A wire is shared across all
+  // consumers that resolve to the same (locale, vgmSig) cache key (see
+  // [[project-wirecache-per-locale]]), so a single shared cassette + sub
+  // list would mean each consumer's commit tears down every other
+  // consumer's subscriptions, leaving only the last-committing consumer
+  // wired up to cell publishes. We key cassette state by an opaque
+  // consumer key (a useRef-held empty object on the React side) so each
+  // consumer's render → commit cycle is independent of the others.
+  //
+  // The `trackingEpoch` is also per-consumer: a Suspense retry from
+  // consumer A bumps A's epoch (superseding A's pending commit) without
+  // touching B's, so a sibling consumer's commit isn't accidentally
+  // discarded by an unrelated retry.
+  interface ConsumerState {
+    cassette: ReturnType<typeof recorder.createCassette>;
+    unsubs: Array<() => void>;
+    epoch: number;
+  }
+  const consumers = new Map<object, ConsumerState>();
 
-  function clearCassetteSubs(): void {
-    for (const unsub of cassetteUnsubs) unsub();
-    cassetteUnsubs = [];
+  function getOrCreateConsumer(key: object): ConsumerState {
+    let state = consumers.get(key);
+    if (state === undefined) {
+      state = { cassette: recorder.createCassette(), unsubs: [], epoch: 0 };
+      consumers.set(key, state);
+    }
+    return state;
+  }
+
+  function disposeConsumerState(state: ConsumerState): void {
+    state.cassette.eject();
+    for (const unsub of state.unsubs) unsub();
+    state.unsubs = [];
+  }
+
+  function disposeAllConsumers(): void {
+    for (const state of consumers.values()) disposeConsumerState(state);
+    consumers.clear();
   }
 
   function resolve() {
@@ -169,7 +194,7 @@ function createGateWire(
             }
             unsubFromJm?.();
             unsubFromJm = null;
-            clearCassetteSubs();
+            disposeAllConsumers();
             const vertexSlotsDisposed = junctureManager.disposeAllVertexSlotsByGenId(genId);
             if (vertexSlotsDisposed > 0) {
               // Vertex slots created by this wire's prior resolves are gone,
@@ -183,36 +208,53 @@ function createGateWire(
         }
       };
     },
-    // Open a Cassette that records every $.state / memo read until the
-    // returned commit fn fires. Commit ejects the cassette, replaces the
-    // prior cassette-deps subscriptions, and wires each collected dep to the
-    // consumer-supplied `notify` callback. This channel is SEPARATE from the
-    // wire's `subscribers` (which carries JM-driven plugin re-resolves) — a
-    // cassette-tracked dep mutation does NOT bust the plugin Promise identity,
-    // so React consumers reading via `use(pluginPromise)` are not forced to
-    // re-suspend through the Suspense boundary on every state change.
-    startTracking: (notify: () => void) => {
-      cassette.insert();
-      trackingEpoch++;
-      const myEpoch = trackingEpoch;
+    // Open this consumer's tracking cassette + return a commit fn. Cassette
+    // state (deps, subs, epoch) is per-consumer (see `consumers` Map above)
+    // so multiple consumers sharing this wire don't tear down each other's
+    // subscriptions on commit. This channel is SEPARATE from the wire's
+    // `subscribers` (which carries JM-driven plugin re-resolves) — a
+    // cassette-tracked dep mutation does NOT bust the plugin Promise
+    // identity, so React consumers reading via `use(pluginPromise)` are not
+    // forced to re-suspend through the Suspense boundary on every state
+    // change.
+    startTracking: (notify: () => void, consumerKey: object) => {
+      const state = getOrCreateConsumer(consumerKey);
+      state.cassette.insert();
+      state.epoch++;
+      const myEpoch = state.epoch;
       busHost.bus?.emit({ type: "gateWire:trackingStarted", genId });
       let committed = false;
       return () => {
         if (committed) {
           return;
         }
-        if (myEpoch !== trackingEpoch) {
+        // Per-consumer epoch: a later startTracking from THIS consumer (e.g.
+        // a Suspense retry of the same component) bumps the epoch and
+        // supersedes this commit. Sibling consumers on the same wire have
+        // their own epoch counters and aren't affected.
+        if (myEpoch !== state.epoch) {
           return;
         }
         committed = true;
-        cassette.eject();
-        clearCassetteSubs();
-        const deps = cassette.getDeps();
+        state.cassette.eject();
+        for (const unsub of state.unsubs) unsub();
+        state.unsubs = [];
+        const deps = state.cassette.getDeps();
         for (const dep of deps) {
-          cassetteUnsubs.push(dep.subscribe(notify));
+          state.unsubs.push(dep.subscribe(notify));
         }
         busHost.bus?.emit({ type: "gateWire:trackingCommitted", genId, depCount: deps.size });
       };
+    },
+
+    // Tear down a single consumer's tracking state. Called by the consumer
+    // on unmount (or when the active wire identity changes — e.g. a locale
+    // switch routes the consumer to a different cached wire).
+    disposeConsumer: (consumerKey: object) => {
+      const state = consumers.get(consumerKey);
+      if (state === undefined) return;
+      disposeConsumerState(state);
+      consumers.delete(consumerKey);
     },
 
     // Update the wire's locale and/or vertexGearMap
