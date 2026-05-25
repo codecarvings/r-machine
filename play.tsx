@@ -1,8 +1,7 @@
 import { defineLayout, RMachine, type RMachineLocale } from "r-machine";
 
 const folders = defineLayout({
-  "gear/": "gear",
-  "vertex/": "gear:vertex",
+  "base/": "gear:base",
   "shell/": "shell",
 });
 
@@ -14,8 +13,8 @@ const rMachine = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
   ResourceAtlas,
-  load: (path) => import(`./${path}.ts`),
+  load: async () => undefined!, // Implement your resource loading logic here
 });
 
-export const { Gear, Shell, localized } = rMachine.createToolset();
+export const { BaseGear, InnerGear, Shell, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;

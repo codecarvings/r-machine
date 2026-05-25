@@ -72,7 +72,7 @@ function createFakeWire(): {
 function createMockMachineWithWire(wire: GateWire) {
   const mock = createMockMachine() as unknown as Record<string, unknown>;
   mock.getGateWire = vi.fn(() => wire);
-  return mock as Parameters<typeof createReactBareToolset>[0];
+  return mock as unknown as Parameters<typeof createReactBareToolset>[0];
 }
 
 // ---------------------------------------------------------------------------
