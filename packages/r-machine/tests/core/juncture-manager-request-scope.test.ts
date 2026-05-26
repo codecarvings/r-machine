@@ -126,8 +126,9 @@ function createEnv(options: EnvOptions) {
       namespace: AnyNamespace,
       locale: string | undefined,
       genId: number,
-      vertexGearMap: Record<AnyNamespace, number> | undefined,
-      chain: readonly AnyNamespace[]
+      vertexGearMap: Record<AnyNamespace, string> | undefined,
+      chain: readonly AnyNamespace[],
+      occurrenceTag?: string
     ): Promise<unknown>;
   };
 

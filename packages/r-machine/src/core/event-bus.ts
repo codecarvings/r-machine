@@ -92,9 +92,9 @@ export type JunctureEvent =
       deferred: readonly AnyNamespace[];
     }
   | { type: "juncture:deferredKitAccessed"; namespace: AnyNamespace; ready: boolean }
-  | { type: "juncture:vertexConsumerResolved"; namespace: AnyNamespace; consumerGenId: number }
-  | { type: "juncture:vertexConsumerMissing"; namespace: AnyNamespace; genId: number }
-  | { type: "juncture:vertexSlotRegistered"; namespace: AnyNamespace; genId: number }
+  | { type: "juncture:vertexConsumerResolved"; namespace: AnyNamespace; consumerVertexKey: string }
+  | { type: "juncture:vertexConsumerMissing"; namespace: AnyNamespace; vertexKey: string }
+  | { type: "juncture:vertexSlotRegistered"; namespace: AnyNamespace; genId: number; occurrenceTag: string }
   | {
       type: "juncture:invalidationStart";
       rootNamespace: AnyNamespace;

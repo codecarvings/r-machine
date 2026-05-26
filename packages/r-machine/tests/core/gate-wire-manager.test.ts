@@ -104,7 +104,8 @@ describe("GateWireManager — setup", () => {
     const gwm = new GateWireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
     const kit = { foo: "g/foo" } as AnyNamespaceMap;
     const nsDeps = ["g/A", "g/B"];
-    const vgm: VertexGearMap = { "v/V": 7 };
+    // vgm value side is now an opaque composite vertexKey (string).
+    const vgm: VertexGearMap = { "v/V": "7\x1f0" };
 
     const wire = gwm.getWire(kit, nsDeps, "en-US", noopAugmentCtx, vgm);
 
@@ -350,7 +351,7 @@ describe("GateWireManager — updateRequest", () => {
     wire.getPluginPromise();
     const genId = mock.getPluginCalls[0].genId;
 
-    const newVgm: VertexGearMap = { "v/V": 999 };
+    const newVgm: VertexGearMap = { "v/V": "999\x1f0" };
     wire.updateRequest("en-US", newVgm);
 
     // Ownership-change dispose fired immediately with new vgm and the wire's genId.
@@ -367,7 +368,7 @@ describe("GateWireManager — updateRequest", () => {
     const gwm = new GateWireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
     const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx, undefined);
     wire.getPluginPromise();
-    const newVgm: VertexGearMap = { "v/V": 1 };
+    const newVgm: VertexGearMap = { "v/V": "1\x1f0" };
 
     wire.updateRequest("it-IT", newVgm);
 

@@ -14,7 +14,7 @@
 "use client";
 
 import type { AnyClientGearSurface } from "r-machine/core";
-import { tryGetVertexGearTag, type VertexGearMap, type VertexGearTagData } from "r-machine/core";
+import { buildVertexKey, tryGetVertexGearTag, type VertexGearMap, type VertexGearTagData } from "r-machine/core";
 import { createContext, type ReactNode, useContext, useRef } from "react";
 
 const Context = createContext<VertexGearMap | undefined>(undefined);
@@ -71,10 +71,15 @@ export function VertexFrame({ gear, children }: VertexFrameProps) {
       tags: gearArray !== undefined ? gearArray.map((g) => tryGetVertexGearTag(g)) : tryGetVertexGearTag(gearSingle!),
     };
 
+    // vgm value side is the opaque composite `vertexKey` (genId+occurrenceTag)
+    // built from the tag — descendants' JM lookup reuses it verbatim to land
+    // on the parent's exact slot, even when the parent created the instance
+    // at a specific position/key within a duplicated-deps Plug.
     if (gearArray === undefined) {
       const tag = tryGetVertexGearTag(gearSingle!);
       if (tag !== undefined) {
-        value.current = parentMap ? { ...parentMap, [tag.namespace]: tag.genId } : { [tag.namespace]: tag.genId };
+        const vKey = buildVertexKey(tag.genId, tag.occurrenceTag);
+        value.current = parentMap ? { ...parentMap, [tag.namespace]: vKey } : { [tag.namespace]: vKey };
       } else {
         value.current = parentMap ? parentMap : {};
       }
@@ -83,7 +88,7 @@ export function VertexFrame({ gear, children }: VertexFrameProps) {
       for (let i = 0; i < length; i++) {
         const tag = tryGetVertexGearTag(gearArray[i]);
         if (tag !== undefined) {
-          map[tag.namespace] = tag.genId;
+          map[tag.namespace] = buildVertexKey(tag.genId, tag.occurrenceTag);
         }
       }
       value.current = map;

@@ -26,24 +26,34 @@ import { type AnyNamespaceList, type AnyResolvedNamespaceList, isNamespaceList }
 import type { AnyNamespaceMap, AnyResolvedNamespaceMap } from "./res-map.js";
 import { PROCESS_SCOPE_PROVIDER, type RequestScope, type RequestScopeProvider, type Slot } from "./scope.js";
 import type { AnySurface } from "./surface.js";
-import type { VertexGearMap, VertexGearTagData } from "./vertex-gear.js";
+import { buildVertexKey, type VertexGearMap, type VertexGearTagData } from "./vertex-gear.js";
 
 // SEP = U+001F (Unit Separator). An empty locale prefix means `undefined`.
 // For juncture-manager: both `shell` and `shell(mono)` need a
 // locale-scoped key — at the juncture level the same shell namespace must
 // resolve to different plugin instances per locale.
+//
+// For `gear:outer(vertex)` the third argument is the composite `vertexKey`
+// (`${genId}\x1f${occurrenceTag}`, see `buildVertexKey`). Same formula in
+// both creator and covered paths — the creator builds it from
+// `(wire.genId, depOccurrenceTag)`, the covered path reads it as-is from
+// `VertexGearMap[ns]`. The composite means duplicate vertex deps under one
+// wire produce DISTINCT slot keys (because their `occurrenceTag` differs),
+// while a VertexFrame-covered descendant lookup lands on the parent's slot
+// by reusing the parent's `vertexKey` verbatim. See [[project-vertex-per-
+// consumer-instance]].
 export function getJunctureResCacheKey(
   namespace: AnyNamespace,
   locale: AnyLocale | undefined,
   layoutEntryType: ResLayoutEntryType,
-  genId?: number
+  vertexKey?: string
 ): string {
   switch (layoutEntryType) {
     case "shell":
     case "shell(mono)":
       return `S:${locale}\x1f${namespace}`;
     case "gear:outer(vertex)":
-      return `V:${genId ?? 0}\x1f${namespace}`;
+      return `V:${namespace}\x1f${vertexKey ?? ""}`;
     default:
       return `\x1f${namespace}`;
   }
@@ -66,7 +76,12 @@ export class JunctureManager {
   protected readonly slots = new Map<string, Slot>();
   protected readonly generationByNs = new Map<AnyNamespace, number>();
   protected readonly subscribersByNs = new Map<AnyNamespace, Set<() => void>>();
-  protected readonly vertexSlotsByGenId = new Map<number, Set<AnyNamespace>>();
+  // Two-level index of vertex slots created under each wire's `genId`.
+  // Outer key: genId. Inner map: namespace → set of `occurrenceTag`s active
+  // for that (genId, namespace). Multiple tags coexist when a Plug declares
+  // the same vertex namespace at multiple positions/keys — each tag identifies
+  // a distinct slot. See [[project-vertex-per-consumer-instance]].
+  protected readonly vertexSlotsByGenId = new Map<number, Map<AnyNamespace, Set<string>>>();
 
   protected scopeProvider: RequestScopeProvider = PROCESS_SCOPE_PROVIDER;
 
@@ -89,7 +104,7 @@ export class JunctureManager {
     return layoutType === "gear:outer(vertex)" ? scope.vertexSlots : scope.outerSlots;
   }
 
-  protected vertexIndex(): Map<number, Set<AnyNamespace>> {
+  protected vertexIndex(): Map<number, Map<AnyNamespace, Set<string>>> {
     const scope = this.scopeProvider.getActiveScope();
     return scope ? scope.vertexSlotsByGenId : this.vertexSlotsByGenId;
   }
@@ -189,26 +204,38 @@ export class JunctureManager {
     locale: AnyLocale | undefined,
     genId: number,
     vertexGearMap: VertexGearMap | undefined,
-    chain: readonly AnyNamespace[]
+    chain: readonly AnyNamespace[],
+    // Discriminator within a single wire's deps list/map. For list-mode
+    // plugs the caller passes `String(index)`; for map-mode plugs the dep
+    // key. Required for vertex creator path so duplicate vertex deps under
+    // one wire get distinct slots. Ignored for non-vertex layouts and for
+    // the vertex covered path (which uses the parent's tag transported via
+    // `vertexGearMap`). Defaults to `""` only as a defensive fallback.
+    occurrenceTag: string = ""
   ): Promise<Juncture> {
     const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
     const slotsMap = this.slotsForLayout(layoutType);
     if (layoutType === "gear:outer(vertex)") {
-      const existingGenId = vertexGearMap?.[namespace];
-      if (existingGenId !== undefined) {
-        const consumerKey = getJunctureResCacheKey(namespace, locale, layoutType, existingGenId);
+      const parentVertexKey = vertexGearMap?.[namespace];
+      if (parentVertexKey !== undefined) {
+        const consumerKey = getJunctureResCacheKey(namespace, locale, layoutType, parentVertexKey);
         const consumerSlot = slotsMap.get(consumerKey);
         if (consumerSlot === undefined || !this.isSlotFresh(consumerSlot)) {
-          this.busHost.bus?.emit({ type: "juncture:vertexConsumerMissing", namespace, genId: existingGenId });
+          this.busHost.bus?.emit({ type: "juncture:vertexConsumerMissing", namespace, vertexKey: parentVertexKey });
           throw new RMachineResolveError(
             ERR_VERTEX_INSTANCE_NOT_FOUND,
-            `Vertex gear instance "${namespace}" with genId ${existingGenId} not found in JunctureManager cache.`
+            `Vertex gear instance "${namespace}" with vertexKey "${parentVertexKey}" not found in JunctureManager cache.`
           );
         }
-        this.busHost.bus?.emit({ type: "juncture:vertexConsumerResolved", namespace, consumerGenId: existingGenId });
+        this.busHost.bus?.emit({
+          type: "juncture:vertexConsumerResolved",
+          namespace,
+          consumerVertexKey: parentVertexKey,
+        });
         return consumerSlot.content;
       }
-      const creatorKey = getJunctureResCacheKey(namespace, locale, layoutType, genId);
+      const myVertexKey = buildVertexKey(genId, occurrenceTag);
+      const creatorKey = getJunctureResCacheKey(namespace, locale, layoutType, myVertexKey);
       const creatorSlot = slotsMap.get(creatorKey);
       if (creatorSlot !== undefined && this.isSlotFresh(creatorSlot)) {
         this.busHost.bus?.emit({
@@ -221,16 +248,30 @@ export class JunctureManager {
       }
       // Register vertex creation in genId index before spawning the resolve,
       // so the index and slots map are populated together (resolveJuncture
-      // creates the slot synchronously before returning the promise).
+      // creates the slot synchronously before returning the promise). The
+      // inner Map<ns, Set<occurrenceTag>> lets multiple slots for the same
+      // (genId, ns) coexist when a Plug has duplicate vertex deps.
       const vertexIdx = this.vertexIndex();
-      let vertexSet = vertexIdx.get(genId);
-      if (!vertexSet) {
-        vertexSet = new Set();
-        vertexIdx.set(genId, vertexSet);
+      let byNs = vertexIdx.get(genId);
+      if (!byNs) {
+        byNs = new Map();
+        vertexIdx.set(genId, byNs);
       }
-      vertexSet.add(namespace);
-      this.busHost.bus?.emit({ type: "juncture:vertexSlotRegistered", namespace, genId });
-      return this.resolveJuncture(namespace, locale, creatorKey, layoutType, { namespace, genId }, chain);
+      let tags = byNs.get(namespace);
+      if (!tags) {
+        tags = new Set();
+        byNs.set(namespace, tags);
+      }
+      tags.add(occurrenceTag);
+      this.busHost.bus?.emit({ type: "juncture:vertexSlotRegistered", namespace, genId, occurrenceTag });
+      return this.resolveJuncture(
+        namespace,
+        locale,
+        creatorKey,
+        layoutType,
+        { namespace, genId, occurrenceTag },
+        chain
+      );
     }
 
     const key = getJunctureResCacheKey(namespace, locale, layoutType);
@@ -333,10 +374,13 @@ export class JunctureManager {
     vertexGearMap: VertexGearMap | undefined,
     chain: readonly AnyNamespace[]
   ): Promise<AnyResolvedNamespaceMap> {
+    // Pass the map key as `occurrenceTag` so two entries pointing to the same
+    // vertex namespace (e.g. `{ a: "vertex/timer", b: "vertex/timer" }`)
+    // resolve to distinct slots — the keys `a` / `b` discriminate them.
     const entries = await Promise.all(
       Object.entries(nsDeps).map(async ([key, namespace]) => [
         key,
-        getCurrentSurface(await this.getJuncture(namespace, locale, genId, vertexGearMap, chain)),
+        getCurrentSurface(await this.getJuncture(namespace, locale, genId, vertexGearMap, chain, key)),
       ])
     );
     return Object.fromEntries(entries);
@@ -349,9 +393,14 @@ export class JunctureManager {
     vertexGearMap: VertexGearMap | undefined,
     chain: readonly AnyNamespace[]
   ): Promise<AnyResolvedNamespaceList> {
+    // Pass the list index as `occurrenceTag` so duplicate vertex namespaces
+    // (`["vertex/timer", "vertex/timer"]`) resolve to distinct slots — the
+    // positions `"0"` / `"1"` discriminate them.
     return Promise.all(
-      nsDeps.map(async (namespace) =>
-        getCurrentSurface(await this.getJuncture(namespace as AnyNamespace, locale, genId, vertexGearMap, chain))
+      nsDeps.map(async (namespace, index) =>
+        getCurrentSurface(
+          await this.getJuncture(namespace as AnyNamespace, locale, genId, vertexGearMap, chain, String(index))
+        )
       )
     );
   }
@@ -531,45 +580,58 @@ export class JunctureManager {
     };
   }
 
-  disposeVertexSlot(ns: AnyNamespace, genId: number): void {
+  // Dispose ALL slots of `ns` created under `genId`. With per-occurrence
+  // tags a single (genId, ns) pair can have multiple slots — when the
+  // namespace becomes covered by a new ancestor `VertexFrame`, every
+  // occurrence-owned slot must go (their resolution now routes through the
+  // frame's slot). Caller: `disposeVertexSlotsByOwnershipChange`.
+  disposeVertexSlotsForNamespace(ns: AnyNamespace, genId: number): void {
     const vertexIdx = this.vertexIndex();
-    const set = vertexIdx.get(genId);
-    if (!set?.has(ns)) {
+    const byNs = vertexIdx.get(genId);
+    const tags = byNs?.get(ns);
+    if (!byNs || !tags) {
       return;
     }
-    set.delete(ns);
-    if (set.size === 0) {
+    const slotsMap = this.slotsForLayout("gear:outer(vertex)");
+    for (const tag of tags) {
+      const key = getJunctureResCacheKey(ns, undefined, "gear:outer(vertex)", buildVertexKey(genId, tag));
+      this.disposeSlotIn(slotsMap, key);
+    }
+    byNs.delete(ns);
+    if (byNs.size === 0) {
       vertexIdx.delete(genId);
     }
-    const key = getJunctureResCacheKey(ns, undefined, "gear:outer(vertex)", genId);
-    this.disposeSlotIn(this.slotsForLayout("gear:outer(vertex)"), key);
   }
 
   disposeAllVertexSlotsByGenId(genId: number): number {
     const vertexIdx = this.vertexIndex();
-    const set = vertexIdx.get(genId);
-    if (!set) {
+    const byNs = vertexIdx.get(genId);
+    if (!byNs) {
       return 0;
     }
-    const count = set.size;
+    let count = 0;
     const slotsMap = this.slotsForLayout("gear:outer(vertex)");
-    for (const ns of set) {
-      const key = getJunctureResCacheKey(ns, undefined, "gear:outer(vertex)", genId);
-      this.disposeSlotIn(slotsMap, key);
+    for (const [ns, tags] of byNs) {
+      for (const tag of tags) {
+        const key = getJunctureResCacheKey(ns, undefined, "gear:outer(vertex)", buildVertexKey(genId, tag));
+        this.disposeSlotIn(slotsMap, key);
+        count++;
+      }
     }
     vertexIdx.delete(genId);
     return count;
   }
 
   disposeVertexSlotsByOwnershipChange(genId: number, newVertexGearMap: VertexGearMap | undefined): void {
-    const set = this.vertexIndex().get(genId);
-    if (!set) {
+    const byNs = this.vertexIndex().get(genId);
+    if (!byNs) {
       return;
     }
-    // Copy iteration source: disposeVertexSlot mutates the set.
-    for (const ns of [...set]) {
+    // Copy namespace iteration source: disposeVertexSlotsForNamespace mutates
+    // `byNs` by deleting entries it disposes.
+    for (const ns of [...byNs.keys()]) {
       if (newVertexGearMap?.[ns] !== undefined) {
-        this.disposeVertexSlot(ns, genId);
+        this.disposeVertexSlotsForNamespace(ns, genId);
       }
     }
   }

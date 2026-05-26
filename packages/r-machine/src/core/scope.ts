@@ -31,7 +31,14 @@ export interface Slot {
 export interface RequestScope {
   readonly outerSlots: Map<string, Slot>;
   readonly vertexSlots: Map<string, Slot>;
-  readonly vertexSlotsByGenId: Map<number, Set<AnyNamespace>>;
+  // Two-level index of vertex slots created under each wire's `genId`. Inner
+  // map is keyed by namespace, value is the set of `occurrenceTag`s active
+  // for that (genId, namespace) pair — multiple tags coexist when a single
+  // Plug declares the same vertex namespace at multiple positions/keys (see
+  // [[project-vertex-per-consumer-instance]]). Used for `disposeAll…ByGenId`
+  // (wire-wide teardown) and `disposeVertexSlotsForNamespace` (namespace
+  // becomes covered by an ancestor frame).
+  readonly vertexSlotsByGenId: Map<number, Map<AnyNamespace, Set<string>>>;
   readonly wireCachesByPlugId: Map<symbol, Map<string, unknown>>;
 }
 

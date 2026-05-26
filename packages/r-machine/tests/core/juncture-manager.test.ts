@@ -10,6 +10,7 @@ import { type AnyResLayout, ResLayoutResolver } from "../../src/core/res-layout.
 import type { AnyNamespaceMap } from "../../src/core/res-map.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
 import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-module.js";
+import { buildVertexKey } from "../../src/core/vertex-gear.js";
 import {
   ERR_CIRCULAR_DEPENDENCY,
   ERR_VERTEX_INSTANCE_NOT_FOUND,
@@ -170,13 +171,14 @@ function createJmTestEnv(options: JmTestEnvOptions) {
     slots: Map<string, { key: string; namespace: AnyNamespace; generation: number; content: unknown }>;
     generationByNs: Map<AnyNamespace, number>;
     subscribersByNs: Map<AnyNamespace, Set<() => void>>;
-    vertexSlotsByGenId: Map<number, Set<AnyNamespace>>;
+    vertexSlotsByGenId: Map<number, Map<AnyNamespace, Set<string>>>;
     getJuncture(
       namespace: AnyNamespace,
       locale: string | undefined,
       genId: number,
-      vertexGearMap: Record<AnyNamespace, number> | undefined,
-      chain: readonly AnyNamespace[]
+      vertexGearMap: Record<AnyNamespace, string> | undefined,
+      chain: readonly AnyNamespace[],
+      occurrenceTag?: string
     ): Promise<unknown>;
   };
 
@@ -191,8 +193,13 @@ function createJmTestEnv(options: JmTestEnvOptions) {
       bm.reloadModule(path);
     },
     loadCalls,
-    keyOf: (ns: string, locale?: string, genId?: number) =>
-      getJunctureResCacheKey(ns, locale, resolver.resolveLayoutEntryType(ns), genId),
+    // For non-vertex layouts (kit, base, inner, shell, outer non-vertex) the
+    // 3rd arg is ignored. For vertex, pass the composite `vertexKey`
+    // (= `buildVertexKey(genId, occurrenceTag)`) or a pre-built `genId`+`tag`
+    // pair via the convenience overload below.
+    keyOf: (ns: string, locale?: string, vertexKey?: string) =>
+      getJunctureResCacheKey(ns, locale, resolver.resolveLayoutEntryType(ns), vertexKey),
+    vKey: (genId: number, occurrenceTag = "") => buildVertexKey(genId, occurrenceTag),
     // Manually wire a forward/reverse dep edge to simulate a matrix-loaded
     // blueprint without going through createResMatrix machinery. This keeps
     // JM tests focused on JM behavior — the BM's eager dep graph
@@ -294,10 +301,11 @@ describe("JunctureManager — vertex slot tracking", () => {
       },
     });
 
-    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, []);
+    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, [], "tagA");
 
-    expect(env.jmInternal.vertexSlotsByGenId.get(42)).toEqual(new Set(["v/V"]));
-    expect(env.jmInternal.slots.has(env.keyOf("v/V", undefined, 42))).toBe(true);
+    // Two-level index: outer genId → inner Map<ns, Set<occurrenceTag>>.
+    expect(env.jmInternal.vertexSlotsByGenId.get(42)).toEqual(new Map([["v/V", new Set(["tagA"])]]));
+    expect(env.jmInternal.slots.has(env.keyOf("v/V", undefined, env.vKey(42, "tagA")))).toBe(true);
   });
 
   it("emits vertexSlotRegistered, then resolveStart, then slotCommitted on the creator path", async () => {
@@ -310,13 +318,13 @@ describe("JunctureManager — vertex slot tracking", () => {
     });
     const collector = collectEvents(bridge);
 
-    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, []);
+    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, [], "0");
 
     // Sparse match: between resolveStart and slotCommitted the resolve path
     // also emits factoryInvoked and built — irrelevant for the ordering
     // invariant under test.
     expectEventSequence(collector.events, [
-      { type: "juncture:vertexSlotRegistered", namespace: "v/V", genId: 42 },
+      { type: "juncture:vertexSlotRegistered", namespace: "v/V", genId: 42, occurrenceTag: "0" },
       { type: "juncture:resolveStart", namespace: "v/V", vertexGenId: 42 },
       { type: "juncture:built", namespace: "v/V", kind: "outer" },
       { type: "juncture:slotCommitted", namespace: "v/V" },
@@ -325,17 +333,34 @@ describe("JunctureManager — vertex slot tracking", () => {
     collector.dispose();
   });
 
-  it("reuses an existing vertex slot for the same (ns, genId) pair", async () => {
+  it("reuses an existing vertex slot for the same (ns, genId, occurrenceTag) triple", async () => {
     const env = createJmTestEnv({
       modules: {
         "v/V": (jm) => makeVertexModule(jm, {}, { v: 1 }),
       },
     });
 
-    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, []);
-    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, []);
+    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, [], "0");
+    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, [], "0");
 
     expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(1);
+  });
+
+  it("creates TWO distinct slots for the same (ns, genId) with different occurrenceTags", async () => {
+    const env = createJmTestEnv({
+      modules: {
+        "v/V": (jm) => makeVertexModule(jm, {}, { v: 1 }),
+      },
+    });
+
+    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, [], "0");
+    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, [], "1");
+
+    // Two factory invocations because the tags discriminate distinct slots.
+    expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(2);
+    expect(env.jmInternal.vertexSlotsByGenId.get(42)).toEqual(new Map([["v/V", new Set(["0", "1"])]]));
+    expect(env.jmInternal.slots.has(env.keyOf("v/V", undefined, env.vKey(42, "0")))).toBe(true);
+    expect(env.jmInternal.slots.has(env.keyOf("v/V", undefined, env.vKey(42, "1")))).toBe(true);
   });
 
   it("resolves a vertex consumer to the parent's existing slot via vertexGearMap", async () => {
@@ -344,12 +369,15 @@ describe("JunctureManager — vertex slot tracking", () => {
         "v/V": (jm) => makeVertexModule(jm, {}, { v: 1 }),
       },
     });
-    // Parent creates the vertex with genId 42.
-    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, []);
-    const parentSlot = env.jmInternal.slots.get(env.keyOf("v/V", undefined, 42));
+    // Parent creates the vertex with genId 42 at tag "0".
+    await env.jmInternal.getJuncture("v/V", undefined, 42, undefined, [], "0");
+    const parentVKey = env.vKey(42, "0");
+    const parentSlot = env.jmInternal.slots.get(env.keyOf("v/V", undefined, parentVKey));
 
-    // Child consumes it via the inherited vertexGearMap.
-    const consumed = await env.jmInternal.getJuncture("v/V", undefined, 999, { "v/V": 42 }, []);
+    // Child consumes it via the inherited vertexGearMap. The vgm value is
+    // the parent's opaque composite `vertexKey` — child uses it verbatim
+    // to land on the same slot.
+    const consumed = await env.jmInternal.getJuncture("v/V", undefined, 999, { "v/V": parentVKey }, []);
 
     // Same juncture content as the parent — no new load triggered.
     expect(consumed).toBe(parentSlot?.content);
@@ -364,7 +392,7 @@ describe("JunctureManager — vertex slot tracking", () => {
     });
 
     try {
-      await env.jmInternal.getJuncture("v/V", undefined, 999, { "v/V": 42 }, []);
+      await env.jmInternal.getJuncture("v/V", undefined, 999, { "v/V": env.vKey(42, "0") }, []);
       expect.unreachable("expected getJuncture to throw");
     } catch (error) {
       expect(error).toBeInstanceOf(RMachineResolveError);
@@ -374,39 +402,45 @@ describe("JunctureManager — vertex slot tracking", () => {
 });
 
 describe("JunctureManager — vertex dispose APIs", () => {
-  it("disposeVertexSlot removes a single (ns, genId) slot from the index and the slots map", async () => {
+  it("disposeVertexSlotsForNamespace removes ALL slots of (ns, genId) — including multiple occurrence tags — from the index and the slots map", async () => {
     const env = createJmTestEnv({
       modules: {
         "v/A": (jm) => makeVertexModule(jm, {}, { a: 1 }),
         "v/B": (jm) => makeVertexModule(jm, {}, { b: 2 }),
       },
     });
-    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined, []);
-    await env.jmInternal.getJuncture("v/B", undefined, 42, undefined, []);
+    // Two distinct slots for v/A (tags "0" and "1") under the same genId.
+    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined, [], "0");
+    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined, [], "1");
+    await env.jmInternal.getJuncture("v/B", undefined, 42, undefined, [], "0");
 
-    env.jm.disposeVertexSlot("v/A", 42);
+    env.jm.disposeVertexSlotsForNamespace("v/A", 42);
 
-    expect(env.jmInternal.vertexSlotsByGenId.get(42)).toEqual(new Set(["v/B"]));
-    expect(env.jmInternal.slots.has(env.keyOf("v/A", undefined, 42))).toBe(false);
-    // The other vertex of the same genId is untouched.
-    expect(env.jmInternal.slots.has(env.keyOf("v/B", undefined, 42))).toBe(true);
+    // Both v/A occurrences gone; v/B intact.
+    expect(env.jmInternal.vertexSlotsByGenId.get(42)).toEqual(new Map([["v/B", new Set(["0"])]]));
+    expect(env.jmInternal.slots.has(env.keyOf("v/A", undefined, env.vKey(42, "0")))).toBe(false);
+    expect(env.jmInternal.slots.has(env.keyOf("v/A", undefined, env.vKey(42, "1")))).toBe(false);
+    expect(env.jmInternal.slots.has(env.keyOf("v/B", undefined, env.vKey(42, "0")))).toBe(true);
   });
 
-  it("disposeAllVertexSlotsByGenId removes every vertex created under a genId", async () => {
+  it("disposeAllVertexSlotsByGenId removes every vertex slot (any ns, any tag) created under a genId", async () => {
     const env = createJmTestEnv({
       modules: {
         "v/A": (jm) => makeVertexModule(jm, {}, { a: 1 }),
         "v/B": (jm) => makeVertexModule(jm, {}, { b: 2 }),
       },
     });
-    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined, []);
-    await env.jmInternal.getJuncture("v/B", undefined, 42, undefined, []);
+    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined, [], "0");
+    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined, [], "1");
+    await env.jmInternal.getJuncture("v/B", undefined, 42, undefined, [], "0");
 
-    env.jm.disposeAllVertexSlotsByGenId(42);
+    const disposed = env.jm.disposeAllVertexSlotsByGenId(42);
 
+    expect(disposed).toBe(3);
     expect(env.jmInternal.vertexSlotsByGenId.has(42)).toBe(false);
-    expect(env.jmInternal.slots.has(env.keyOf("v/A", undefined, 42))).toBe(false);
-    expect(env.jmInternal.slots.has(env.keyOf("v/B", undefined, 42))).toBe(false);
+    expect(env.jmInternal.slots.has(env.keyOf("v/A", undefined, env.vKey(42, "0")))).toBe(false);
+    expect(env.jmInternal.slots.has(env.keyOf("v/A", undefined, env.vKey(42, "1")))).toBe(false);
+    expect(env.jmInternal.slots.has(env.keyOf("v/B", undefined, env.vKey(42, "0")))).toBe(false);
   });
 
   it("disposeVertexSlotsByOwnershipChange disposes only vertex now owned by a parent", async () => {
@@ -416,16 +450,18 @@ describe("JunctureManager — vertex dispose APIs", () => {
         "v/B": (jm) => makeVertexModule(jm, {}, { b: 2 }),
       },
     });
-    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined, []);
-    await env.jmInternal.getJuncture("v/B", undefined, 42, undefined, []);
+    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined, [], "0");
+    await env.jmInternal.getJuncture("v/B", undefined, 42, undefined, [], "0");
 
-    // Simulate an updateRequest where v/A now has a parent owner.
-    env.jm.disposeVertexSlotsByOwnershipChange(42, { "v/A": 7 });
+    // Simulate an updateRequest where v/A now has a parent owner. The vgm
+    // value is the parent's opaque vertexKey — its content doesn't matter
+    // for the "is this ns now covered" decision.
+    env.jm.disposeVertexSlotsByOwnershipChange(42, { "v/A": env.vKey(7, "0") });
 
     // v/A disposed, v/B kept.
-    expect(env.jmInternal.vertexSlotsByGenId.get(42)).toEqual(new Set(["v/B"]));
-    expect(env.jmInternal.slots.has(env.keyOf("v/A", undefined, 42))).toBe(false);
-    expect(env.jmInternal.slots.has(env.keyOf("v/B", undefined, 42))).toBe(true);
+    expect(env.jmInternal.vertexSlotsByGenId.get(42)).toEqual(new Map([["v/B", new Set(["0"])]]));
+    expect(env.jmInternal.slots.has(env.keyOf("v/A", undefined, env.vKey(42, "0")))).toBe(false);
+    expect(env.jmInternal.slots.has(env.keyOf("v/B", undefined, env.vKey(42, "0")))).toBe(true);
   });
 
   it("invokes Symbol.dispose when disposing a resolved vertex slot", async () => {
@@ -435,11 +471,73 @@ describe("JunctureManager — vertex dispose APIs", () => {
         "v/A": (jm) => makeVertexModule(jm, {}, { a: 1, [Symbol.dispose]: teardown }),
       },
     });
-    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined, []);
+    await env.jmInternal.getJuncture("v/A", undefined, 42, undefined, [], "0");
 
-    env.jm.disposeVertexSlot("v/A", 42);
+    env.jm.disposeVertexSlotsForNamespace("v/A", 42);
 
     expect(teardown).toHaveBeenCalledOnce();
+  });
+});
+
+describe("JunctureManager — vertex duplicate-deps in a single Plug", () => {
+  it("list-mode: two duplicate vertex deps under one wire create two distinct slots, each factory invoked once", async () => {
+    const env = createJmTestEnv({
+      modules: {
+        "v/V": (jm) => makeVertexModule(jm, {}, { v: 1 }),
+      },
+    });
+
+    // Simulates `Plug("v/V", "v/V").useR()` resolving under one wire's genId.
+    const plugin = (await env.jm.getPlugin({}, ["v/V", "v/V"], undefined, () => {}, [], 42, undefined)) as unknown[];
+
+    // Two distinct slots → two factory invocations → distinct resource
+    // identities exposed in the plugin's deps array.
+    expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(2);
+    expect(plugin[0]).not.toBe(plugin[1]);
+    expect(env.jmInternal.vertexSlotsByGenId.get(42)).toEqual(new Map([["v/V", new Set(["0", "1"])]]));
+  });
+
+  it("list-mode: two duplicate vertex deps under one wire, COVERED by vertexGearMap, share the parent's slot", async () => {
+    const env = createJmTestEnv({
+      modules: {
+        "v/V": (jm) => makeVertexModule(jm, {}, { v: 1 }),
+      },
+    });
+
+    // Parent wire creates the vertex once.
+    await env.jmInternal.getJuncture("v/V", undefined, 7, undefined, [], "0");
+    const parentVKey = env.vKey(7, "0");
+
+    // Consumer wire has two duplicate deps but the namespace is covered by
+    // the parent's vgm — both occurrences must resolve to the parent's slot.
+    const plugin = (await env.jm.getPlugin({}, ["v/V", "v/V"], undefined, () => {}, [], 99, {
+      "v/V": parentVKey,
+    })) as unknown[];
+
+    // Only the parent's single factory invocation; no extra loads.
+    expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(1);
+    expect(plugin[0]).toBe(plugin[1]);
+    // No NEW vertex slots were registered under the consumer wire's genId.
+    expect(env.jmInternal.vertexSlotsByGenId.has(99)).toBe(false);
+  });
+
+  it("map-mode: two map keys mapped to the same vertex namespace create two distinct slots", async () => {
+    const env = createJmTestEnv({
+      modules: {
+        "v/V": (jm) => makeVertexModule(jm, {}, { v: 1 }),
+      },
+    });
+
+    // Simulates `Plug({ a: "v/V", b: "v/V" }).useR()`.
+    const plugin = (await env.jm.getPlugin({}, { a: "v/V", b: "v/V" }, undefined, () => {}, [], 42, undefined)) as {
+      a: unknown;
+      b: unknown;
+    };
+
+    expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(2);
+    expect(plugin.a).not.toBe(plugin.b);
+    // Tags come from the map keys (`"a"`, `"b"`), not numeric positions.
+    expect(env.jmInternal.vertexSlotsByGenId.get(42)).toEqual(new Map([["v/V", new Set(["a", "b"])]]));
   });
 });
 

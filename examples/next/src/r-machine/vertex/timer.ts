@@ -4,11 +4,6 @@ export const r = OuterGear.withState({
   value: 0,
   id: 0,
 }).define(({ $ }, _) => {
-  /*
-  _.action()({
-    value: Math.floor(Math.random() * 100),
-  });
-  */
   const setRandomId = _.action(() => ({
     id: Math.floor(Math.random() * 1000),
   }));
@@ -16,7 +11,7 @@ export const r = OuterGear.withState({
   _.relay({
     select: () => $.state.value,
     onChange: (newValue: number) => {
-      if (newValue === 1) {
+      if (newValue === 1 || newValue % 5 === 0) {
         return _.cmd(setRandomId);
       }
     },

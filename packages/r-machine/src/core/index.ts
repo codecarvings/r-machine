@@ -128,6 +128,7 @@ export { createShellComposer, type ShellComposer } from "./shell-composer.js";
 export type { ShellPlugKitMap } from "./shell-plug.js";
 export type { AnyClientGearSurface, AnySurface, Surface } from "./surface.js";
 export {
+  buildVertexKey,
   tryGetVertexGearTag,
   type VertexGearMap,
   type VertexGearTagData,
