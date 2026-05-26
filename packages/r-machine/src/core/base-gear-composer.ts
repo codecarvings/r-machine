@@ -31,9 +31,11 @@ import type { ValidatedDepMapType } from "./res-map.js";
 import { createResMatrix, type GearMatrixMeta, type ResMatrix } from "./res-matrix.js";
 import type { AnyResPlug } from "./res-plug.js";
 
-interface CloneOverrides<PM> {
-  ports?: Partial<PM>;
-}
+type CloneOverrides<PM> = keyof PM extends never
+  ? {}
+  : {
+      ports?: Partial<PM>;
+    };
 export interface BaseGearResMatrix<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap> extends ResMatrix<R, P> {
   clone(): BaseGearResMatrix<R, P, PM>;
   clone(overrides: CloneOverrides<PM>): BaseGearResMatrix<R, P, PM>;

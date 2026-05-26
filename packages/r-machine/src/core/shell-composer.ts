@@ -35,7 +35,7 @@ import type {
 } from "./shell-plug.js";
 
 interface CloneOverrides<PM> {
-  ports?: Partial<PM>;
+  ports?: keyof PM extends never ? never : Partial<PM>;
 }
 export interface ShellResMatrix<R, P extends AnyResPlug, PM extends ShellPlugPortMap> extends ResMatrix<R, P> {
   clone(): ShellResMatrix<R, P, PM>;

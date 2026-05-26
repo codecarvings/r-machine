@@ -12,9 +12,9 @@
  */
 
 import { type Action, createAction } from "../action.js";
+import { deepPartialMerge } from "../deep-partial.js";
 import type { AnyNamespace } from "../res-domain.js";
 import type { CassetteRecorder } from "./cassette-recorder.js";
-import { deepPartialMerge } from "./deep-partial-merge.js";
 import type { StateCell } from "./state-cell.js";
 
 export function makeAction<S, A extends unknown[]>(

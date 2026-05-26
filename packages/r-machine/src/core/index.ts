@@ -16,6 +16,7 @@ export { type BaseGearComposer, createBaseGearComposer } from "./base-gear-compo
 export type { BaseGearNamespaceList } from "./base-gear-plug.js";
 export { BlueprintManager } from "./blueprint-manager.js";
 export type { SwitchableOption } from "./config-options.js";
+export { type DeepPartial, deepPartialMerge } from "./deep-partial.js";
 export {
   type BlueprintEvent,
   BUS_ACCESSOR,

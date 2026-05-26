@@ -11,32 +11,9 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { DeepPartial } from "./deep-partial.js";
 import { setMemberName } from "./member-name.js";
 import type { AnyState } from "./outer-gear.js";
-
-type BuiltinAtomic =
-  | Date
-  | RegExp
-  | Map<unknown, unknown>
-  | Set<unknown>
-  | ((...args: any[]) => any)
-  | Promise<unknown>
-  | Error
-  | URL
-  | URLSearchParams
-  | ArrayBuffer
-  | ArrayBufferView;
-
-type IsAtomic<T> = T extends BuiltinAtomic ? true : false;
-
-type DeepPartial<T> =
-  IsAtomic<T> extends true
-    ? T
-    : T extends (infer I)[]
-      ? DeepPartial<I>[]
-      : T extends object
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : T;
 
 const actionBrand: unique symbol = Symbol("action");
 export interface ActionBrand {

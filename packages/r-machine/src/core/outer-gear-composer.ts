@@ -16,6 +16,7 @@ import type { ActionComposer, AnyAction, DefaultAction } from "./action.js";
 import type { BaseGearPlugPortMap } from "./base-gear-plug.js";
 import { type CmdComposer, createCmd } from "./cmd.js";
 import { lazyGetters } from "./composer-utils.js";
+import { type DeepPartial, deepPartialMerge } from "./deep-partial.js";
 import { createGearListPlugHead, createGearMapPlugHead, type GearPluginCtx, type GearPlugKitMap } from "./gear-plug.js";
 import { createGetter, type DefaultGetter, type GetterComposer, type StatelessGetterComposer } from "./getter.js";
 import { promoteMemberNames } from "./member-name.js";
@@ -54,14 +55,19 @@ import type { GearMatrixMeta, ResMatrix } from "./res-matrix.js";
 import { createResMatrix } from "./res-matrix.js";
 import type { AnyResPlug } from "./res-plug.js";
 
-interface StatelessCloneOverrides<PM> {
-  ports?: Partial<PM>;
-}
+type StatelessCloneOverrides<PM> = keyof PM extends never
+  ? {}
+  : {
+      ports?: Partial<PM>;
+    };
 
-interface StatefulCloneOverrides<PM, S extends AnyState> {
-  ports?: Partial<PM>;
-  state?: S;
-}
+type StatefulCloneOverrides<PM, S extends AnyState> = {
+  state?: DeepPartial<S>;
+} & (keyof PM extends never
+  ? {}
+  : {
+      ports?: Partial<PM>;
+    });
 
 export interface StatelessOuterGearResMatrix<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap>
   extends ResMatrix<R, P> {
@@ -716,9 +722,9 @@ function buildStatefulOuterGearMapMatrix<
     postProcess: (raw, c) => statefulPostProcess(raw, c as StatefulOuterGearCursor<S>),
   });
 
-  const clone = (overrides?: StatefulCloneOverrides<PM, S>) => {
+  const clone = (overrides?: any) => {
     const nextPorts = overrides?.ports !== undefined ? ({ ...ports, ...overrides.ports } as PM) : ports;
-    const nextState = overrides?.state !== undefined ? overrides.state : defaultState;
+    const nextState = deepPartialMerge(defaultState, overrides?.state);
     return buildStatefulOuterGearMapMatrix<RA, KM, DM, PM, S>(connector, recorder, deps, nextPorts, nextState, factory);
   };
 
@@ -796,9 +802,9 @@ function buildStatefulOuterGearListMatrix<
     postProcess: (raw, c) => statefulPostProcess(raw, c as unknown as StatefulOuterGearCursor<S>),
   });
 
-  const clone = (overrides?: StatefulCloneOverrides<PM, S>) => {
+  const clone = (overrides?: any) => {
     const nextPorts = overrides?.ports !== undefined ? ({ ...ports, ...overrides.ports } as PM) : ports;
-    const nextState = overrides?.state !== undefined ? overrides.state : defaultState;
+    const nextState = deepPartialMerge(defaultState, overrides?.state);
     return buildStatefulOuterGearListMatrix<RA, KM, DL, PM, S>(
       connector,
       recorder,

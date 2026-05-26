@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deepPartialMerge } from "../../../src/core/reactivity/deep-partial-merge.js";
+import { deepPartialMerge } from "../../src/core/deep-partial.js";
 
 describe("deepPartialMerge", () => {
   it("returns prev reference unchanged when partial is undefined", () => {

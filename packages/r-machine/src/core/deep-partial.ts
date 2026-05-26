@@ -11,6 +11,30 @@
  * contact: licensing@codecarvings.com
  */
 
+type BuiltinAtomic =
+  | Date
+  | RegExp
+  | Map<unknown, unknown>
+  | Set<unknown>
+  | ((...args: any[]) => any)
+  | Promise<unknown>
+  | Error
+  | URL
+  | URLSearchParams
+  | ArrayBuffer
+  | ArrayBufferView;
+
+type IsAtomic<T> = T extends BuiltinAtomic ? true : false;
+
+export type DeepPartial<T> =
+  IsAtomic<T> extends true
+    ? T
+    : T extends (infer I)[]
+      ? DeepPartial<I>[]
+      : T extends object
+        ? { [K in keyof T]?: DeepPartial<T[K]> }
+        : T;
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (value === null || typeof value !== "object") {
     return false;

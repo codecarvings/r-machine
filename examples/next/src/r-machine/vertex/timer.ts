@@ -35,9 +35,4 @@ export const r = OuterGear.withState({
 
 export type Vertex_Timer = RShape<typeof r>;
 
-r.clone({
-  state: {
-    value: 10,
-    id: 0,
-  },
-});
+r.clone({});
