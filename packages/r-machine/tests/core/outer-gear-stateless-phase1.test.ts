@@ -10,9 +10,9 @@ import { createResMatrix } from "../../src/core/res-matrix.js";
 
 // --- helpers -----------------------------------------------------------------
 
-type InternalFactoryCall = (locale: undefined, chain: never[]) => Promise<unknown>;
-async function resolve(matrix: { factory: () => Promise<unknown> }): Promise<unknown> {
-  const raw = await (matrix.factory as unknown as InternalFactoryCall)(undefined, []);
+type InternalCreateCall = (locale: undefined, chain: never[]) => Promise<unknown>;
+async function resolve(matrix: { create: () => Promise<unknown> }): Promise<unknown> {
+  const raw = await (matrix.create as unknown as InternalCreateCall)(undefined, []);
   return buildKernelJuncture(raw as AnyRes, undefined).surface;
 }
 

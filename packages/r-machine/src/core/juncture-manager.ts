@@ -140,7 +140,7 @@ export class JunctureManager {
           juncture = buildKernelJuncture(blueprint.origin as AnyRes, vertexTag);
           this.busHost.bus?.emit({ type: "juncture:built", namespace, kind: "kernel" });
         } else {
-          const factory = blueprint.origin.factory as (
+          const create = blueprint.origin.create as (
             locale: AnyLocale | undefined,
             chain: readonly AnyNamespace[]
           ) => Promise<AnyRes>;
@@ -149,7 +149,7 @@ export class JunctureManager {
           // and break cycles via the deferred-kit getter. The "self" of the
           // running factory is implicitly chain[chain.length - 1].
           this.busHost.bus?.emit({ type: "juncture:factoryInvoked", namespace, locale });
-          const res = await factory(locale, [...chain, namespace]);
+          const res = await create(locale, [...chain, namespace]);
           juncture = blueprint.isOuterGear ? buildOuterJuncture(res, vertexTag) : buildKernelJuncture(res, vertexTag);
           this.busHost.bus?.emit({
             type: "juncture:built",

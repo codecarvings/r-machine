@@ -33,10 +33,10 @@ const gearMeta: GearMatrixMeta = { family: "gear", role: "inner" };
 
 describe("createResMatrix", () => {
   describe("shape of the returned matrix", () => {
-    it("returns an object that exposes factory, plug and clone as own properties", () => {
+    it("returns an object that exposes create, plug and clone as own properties", () => {
       const mat = createResMatrix(makeOptions(gearMeta));
 
-      expect(typeof mat.factory).toBe("function");
+      expect(typeof mat.create).toBe("function");
       expect(mat.plug).toBeDefined();
       expect(typeof mat.clone).toBe("function");
     });
@@ -60,12 +60,12 @@ describe("createResMatrix", () => {
       expect("meta" in mat).toBe(false);
     });
 
-    it("lists exactly the public string-keyed own properties: `factory`, `plug`, `clone`", () => {
+    it("lists exactly the public string-keyed own properties: `create`, `plug`, `clone`", () => {
       // No accidental extras leaking into the public surface. The meta
       // lives under a symbol key and must not appear in Object.keys().
       const mat = createResMatrix(makeOptions(gearMeta));
 
-      expect(Object.keys(mat).sort()).toEqual(["clone", "factory", "plug"]);
+      expect(Object.keys(mat).sort()).toEqual(["clone", "create", "plug"]);
     });
   });
 
@@ -178,10 +178,10 @@ describe("tryGetResMatrixMeta", () => {
   });
 
   it("returns undefined for a resource whose own string keys coincidentally look matrix-ish", () => {
-    // Defensive regression: a raw resource that happens to have a `factory`
+    // Defensive regression: a raw resource that happens to have a `create`
     // or `plug` property must NOT be misidentified as a matrix. The brand
     // symbol is the single source of truth.
-    const raw: AnyRes = { factory: "not a factory", plug: "not a plug" };
+    const raw: AnyRes = { create: "not a create", plug: "not a plug" };
 
     expect(tryGetResMatrixMeta(raw)).toBeUndefined();
   });

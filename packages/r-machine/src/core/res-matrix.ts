@@ -38,7 +38,7 @@ const resMatrixMetaSymbol: unique symbol = Symbol("resMatrixMeta");
 // Cannot use ResMatrix<R extends AnyRes, ...> because of res tags
 export interface ResMatrix<R, P extends AnyResPlug> {
   readonly [resMatrixMetaSymbol]: ResMatrixMeta;
-  readonly factory: () => Promise<R>;
+  readonly create: () => Promise<R>;
   readonly plug: P;
   clone(overrides?: ResMatrixCloneOverrides): ResMatrix<R, P>;
 }
@@ -80,7 +80,7 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
     return wire.plugin as never;
   });
 
-  const factory = async (locale: AnyLocale | undefined, chain: readonly AnyNamespace[]): Promise<AnyRes> => {
+  const create = async (locale: AnyLocale | undefined, chain: readonly AnyNamespace[]): Promise<AnyRes> => {
     const plugin = await getPlugResolve(plug)(locale, chain);
     // selfNs is the last entry of the chain (the namespace currently being
     // resolved). Passed to the cursor factory so namespace-aware cursors
@@ -103,7 +103,7 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
 
   return {
     [resMatrixMetaSymbol]: meta,
-    factory: factory as () => Promise<AnyRes>,
+    create: create as () => Promise<AnyRes>,
     plug,
     clone,
   };

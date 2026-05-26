@@ -51,10 +51,10 @@ describe("ResMatrix", () => {
     expectTypeOf<Specific>().toExtend<AnyResMatrix>();
   });
 
-  it("exposes `factory` as a zero-argument function returning Promise<R>", () => {
+  it("exposes `create` as a zero-argument function returning Promise<R>", () => {
     type Specific = ResMatrix<{ greeting: string }, AnyResPlug>;
-    expectTypeOf<Specific["factory"]>().toEqualTypeOf<() => Promise<{ greeting: string }>>();
-    expectTypeOf<Specific["factory"]>().parameters.toEqualTypeOf<[]>();
+    expectTypeOf<Specific["create"]>().toEqualTypeOf<() => Promise<{ greeting: string }>>();
+    expectTypeOf<Specific["create"]>().parameters.toEqualTypeOf<[]>();
   });
 
   it("exposes `plug` as the exact P type passed in", () => {
@@ -72,10 +72,10 @@ describe("ResMatrix", () => {
     expectTypeOf<Specific["clone"]>().toEqualTypeOf<(overrides?: ResMatrixCloneOverrides) => Specific>();
   });
 
-  it("marks `factory` and `plug` as readonly", () => {
+  it("marks `create` and `plug` as readonly", () => {
     // Structural test: the mutable twin must not be equal to the interface.
     type Writable<R extends AnyRes, P extends AnyResPlug> = {
-      factory: () => Promise<R>;
+      create: () => Promise<R>;
       plug: P;
       clone: (overrides?: ResMatrixCloneOverrides) => ResMatrix<R, P>;
     };

@@ -35,4 +35,3 @@ export const r = OuterGear.withState({
 });
 
 export type Outer_Timer = RShape<typeof r>;
-// await using x = await r.factory();

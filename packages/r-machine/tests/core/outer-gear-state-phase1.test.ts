@@ -13,14 +13,14 @@ import { createResMatrix } from "../../src/core/res-matrix.js";
 
 // --- helpers -----------------------------------------------------------------
 
-// The public ResMatrix.factory is typed as `() => Promise<R>` but the actual
+// The public ResMatrix.create is typed as `() => Promise<R>` but the actual
 // implementation expects (locale, chain). For phase-1 tests we bypass the
 // blueprint stack and invoke the resolution directly, so we need the wider
 // signature. We also wrap the raw resource in a kernel juncture so getter specs
 // are materialized as JS accessors (matching what consumers see in production).
-type InternalFactoryCall = (locale: undefined, chain: never[]) => Promise<unknown>;
-async function resolve(matrix: { factory: () => Promise<unknown> }): Promise<unknown> {
-  const raw = await (matrix.factory as unknown as InternalFactoryCall)(undefined, []);
+type InternalCreateCall = (locale: undefined, chain: never[]) => Promise<unknown>;
+async function resolve(matrix: { create: () => Promise<unknown> }): Promise<unknown> {
+  const raw = await (matrix.create as unknown as InternalCreateCall)(undefined, []);
   return buildKernelJuncture(raw as AnyRes, undefined).surface;
 }
 
@@ -226,7 +226,7 @@ describe("OuterGear state — phase 1 end-to-end", () => {
         inc: cursor.action(() => ({ count: $.state.count + 1 })),
       };
     });
-    const raw = await (matrix.factory as unknown as InternalFactoryCall)(undefined, []);
+    const raw = await (matrix.create as unknown as InternalCreateCall)(undefined, []);
     const resource = raw as { read: () => number; inc: () => unknown };
     const surface = buildKernelJuncture(raw as AnyRes, undefined).surface as {
       read: number;
@@ -266,7 +266,7 @@ describe("OuterGear state — phase 1 end-to-end", () => {
         set: cursor.action((v: number) => ({ v })),
       };
     });
-    const raw = await (matrix.factory as unknown as InternalFactoryCall)(undefined, []);
+    const raw = await (matrix.create as unknown as InternalCreateCall)(undefined, []);
     const resource = raw as { set: (v: number) => unknown };
     resource.set(7);
     expect(onChange).toHaveBeenCalledTimes(1);

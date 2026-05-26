@@ -44,9 +44,9 @@ function buildMatrix<S>(
   });
 }
 
-type InternalFactoryCall = (locale: undefined, chain: never[]) => Promise<unknown>;
-async function resolveRaw(matrix: { factory: () => Promise<unknown> }): Promise<Record<string, unknown>> {
-  return (await (matrix.factory as unknown as InternalFactoryCall)(undefined, [])) as Record<string, unknown>;
+type InternalCreateCall = (locale: undefined, chain: never[]) => Promise<unknown>;
+async function resolveRaw(matrix: { create: () => Promise<unknown> }): Promise<Record<string, unknown>> {
+  return (await (matrix.create as unknown as InternalCreateCall)(undefined, [])) as Record<string, unknown>;
 }
 
 describe("member auto-naming + promotion", () => {
