@@ -60,7 +60,7 @@ interface StatelessCloneOverrides<PM> {
 
 interface StatefulCloneOverrides<PM, S extends AnyState> {
   ports?: Partial<PM>;
-  defaultState?: S;
+  state?: S;
 }
 
 export interface StatelessOuterGearResMatrix<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap>
@@ -718,7 +718,7 @@ function buildStatefulOuterGearMapMatrix<
 
   const clone = (overrides?: StatefulCloneOverrides<PM, S>) => {
     const nextPorts = overrides?.ports !== undefined ? ({ ...ports, ...overrides.ports } as PM) : ports;
-    const nextState = overrides?.defaultState !== undefined ? overrides.defaultState : defaultState;
+    const nextState = overrides?.state !== undefined ? overrides.state : defaultState;
     return buildStatefulOuterGearMapMatrix<RA, KM, DM, PM, S>(connector, recorder, deps, nextPorts, nextState, factory);
   };
 
@@ -798,7 +798,7 @@ function buildStatefulOuterGearListMatrix<
 
   const clone = (overrides?: StatefulCloneOverrides<PM, S>) => {
     const nextPorts = overrides?.ports !== undefined ? ({ ...ports, ...overrides.ports } as PM) : ports;
-    const nextState = overrides?.defaultState !== undefined ? overrides.defaultState : defaultState;
+    const nextState = overrides?.state !== undefined ? overrides.state : defaultState;
     return buildStatefulOuterGearListMatrix<RA, KM, DL, PM, S>(
       connector,
       recorder,
