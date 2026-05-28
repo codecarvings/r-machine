@@ -1,0 +1,1949 @@
+# R-Machine — API Reference
+
+> i18n and DI are two sides of the same coin
+
+https://rmachine.dev
+
+https://github.com/codecarvings/r-machine/tree/RM-alpha-12
+Warning: R-Machine is still in active development - API may change before stable release.
+
+---
+
+## 1. Public API surface (complete)
+
+**Composers** (resource declaration)
+`InnerGear`, `BaseGear`, `OuterGear`, `Shell`, `localized`
+
+**Plug** (consumer primitive)
+`Plug`, `ClientPlug`, `ServerPlug`
+
+**Testing**
+`mockPlug`, `verifyResourceAtlas` (from `@r-machine/testing`)
+
+**Cursor primitives** (reactive members inside an `OuterGear`)
+`_.action`, `_.getter`, `_.relay`, `_.cmd`
+
+**Lifecycle**
+`[Symbol.dispose]` convention (see §9)
+
+**Setup**
+`RMachine.create`, `defineLayout`, `ResourceAtlas`, `PathAtlas`
+
+**Framework strategies**
+`ReactStandardStrategy` (web React)
+`NextAppPathStrategy`, `NextAppFlatStrategy`, `NextAppOriginStrategy` (Next.js App Router, three routing models)
+`createNextDevImport` (Next.js dev-mode loader for HMR + `verifyResourceAtlas` activation — see §11.8)
+
+**Strategy-emitted toolsets**
+React: `ReactRMachine`, `VertexFrame`, `Plug`
+Next.js client: `NextClientRMachine`, `VertexFrame`, `ClientPlug`
+Next.js server (canonical, with proxy): `NextServerRMachine`, `bindLocale`, `setLocale`, `generateLocaleStaticParams`, `rMachineProxy`, `ServerPlug`
+Next.js server (no-proxy, path strategy only): `NextServerRMachine`, `bindLocale`, `setLocale`, `generateLocaleStaticParams`, `routeHandlers`, `ServerPlug`
+
+**Path declaration**
+`declarePathAtlas` (from `@r-machine/next`) — see §3.5
+
+**Resource (`ResMatrix`)** — value produced by `.define(...)`
+`r.create()`, `r.plug`, `r.clone(...)` — see §4.4 and §5
+
+**Strategy helpers** — `strategy.getHelpers()` returns `{ localeHelper }` on every strategy, plus `hrefHelper` on all Next.js strategies. See §11.3.
+
+**Type-level utilities**
+`RMachineLocale<typeof rMachine>`, `BrandedResource<typeof r>` (re-exported as `RShape`)
+
+---
+
+## 2. Layout families
+
+Six family values are accepted in `defineLayout`. Anything else is a compile error.
+
+| Family | Composer | Stateful? | Can depend on | Consumed by | Locale-aware? | Eligible for kit? |
+|---|---|---|---|---|---|---|
+| `gear:inner` | `InnerGear` | no | `InnerGear`, `BaseGear`, `gearKit` | `InnerGear`, `BaseGear`, and `ServerPlug` (Next.js RSC only — never `Plug` or `ClientPlug`) | no | yes (`gearKit`) |
+| `gear:base` | `BaseGear` | no | `BaseGear`, `gearKit` | `InnerGear`, `BaseGear`, `OuterGear`, `Shell` (only if listed in `bridgeGears`) | no | yes (`gearKit`, `serverKit`/`clientKit`) |
+| `gear:outer` | `OuterGear` | optional | `BaseGear`, `OuterGear`, `gearKit` | other `OuterGear` and consumers via `Plug` / `ClientPlug` (not `ServerPlug`) | no | optional |
+| `gear:outer(vertex)` | `OuterGear` | optional | same as `gear:outer` | only consumers via `Plug` / `ClientPlug`; **cannot be a dep of any resource**; instance scoped per call (or shared via `<VertexFrame>`) | no | optional |
+| `shell` | `Shell` | no | `Shell`, `shell(mono)`, `BaseGear` (only if in `bridgeGears`), `shellKit` | other `Shell` and consumers | yes | yes (`shellKit`) |
+| `shell(mono)` | `Shell` | no | same as `shell` | other `Shell` and consumers | yes | yes (`shellKit`) |
+
+Dep-graph asymmetry: no dep path connects `gear:inner` to `gear:outer`, `gear:outer(vertex)`, or `Shell`. Enforced at the `withDeps(...)` call site by the compiler.
+
+---
+
+## 3. Setup
+
+A project has exactly two configuration files by convention: `resource-atlas.ts` and `setup.ts`.
+
+### 3.1. `defineLayout`
+
+Maps folder prefixes to families. Prefix matching is **longest-match wins**. Layout keys must end in `/`; missing trailing slash is a compile error.
+
+```ts
+const folders = defineLayout({
+  "inner/":     "gear:inner",
+  "base/":      "gear:base",
+  "outer/":     "gear:outer",
+  "vertex/":    "gear:outer(vertex)",
+  "shell/":     "shell",
+  "shell/lib/": "shell(mono)",
+});
+```
+
+A file at `inner/inventory.ts` resolves to family `gear:inner`, namespace `inner/inventory`. A file at `vertex/cart.ts` resolves to `gear:outer(vertex)`, namespace `vertex/cart`.
+
+### 3.2. `ResourceAtlas`
+
+A named class built from `defineLayout`'s return plus a type-level `ResourceMap`:
+
+```ts
+type ResourceMap = {
+  "inner/inventory": Inner_Inventory;
+  "outer/cart":      Outer_Cart;
+  "vertex/search":   Vertex_Search;
+  "shell/product":   Shell_Product;
+};
+
+export class ResourceAtlas extends folders<ResourceMap>() {}
+```
+
+Keys whose namespace doesn't match any layout prefix are filtered out of the type-narrowed atlas. The error surfaces as a compile-time `RMachineTypeError` at the call site of `ResourceAtlas.getTokenBuilder()`, listing the offending keys — e.g. `RMachineTypeError<"Invalid namespaces declared in atlas shape (dropped by layout filter): *** shell_wrong/common ***">`. A TypeScript limitation prevents flagging the mistake at the atlas declaration itself.
+
+`ResourceAtlas.getTokenBuilder()` returns a factory minting typed runtime-opaque handles carrying their namespace at the type level. Tokens and string literals are interchangeable everywhere a dep handle is accepted:
+
+```ts
+const token = ResourceAtlas.getTokenBuilder();
+export const tasks = token("outer/tasks");
+// OuterGear.withDeps(tasks).define(...) ≡ OuterGear.withDeps("outer/tasks").define(...)
+```
+
+#### Internal namespaces (`#` prefix)
+
+Prefix an atlas key with `#` to mark its namespace as **internal**. An internal namespace is visible only inside the resource network — usable as a `withDeps(...)` target by other gears/shells, and referenceable from `gearKit` / `shellKit` — but it is **filtered out of every consumer-facing surface** (`Plug`, `ClientPlug`, `ServerPlug`).
+
+```ts
+type ResourceMap = {
+  "base/config":  Base_Config;    // public — reachable via Plug / ClientPlug / ServerPlug
+  "#base/jwt":    Base_Jwt;       // internal — only reachable as a gear→gear dep
+  "outer/cart":   Outer_Cart;
+};
+```
+
+Typical use: utility resources that should never appear in UI code — JWT/crypto helpers, server-only adapters, internal caches. Attempting to consume an internal namespace from a component is a compile error (the key does not appear in the plug's accepted-namespace union).
+
+Rules:
+- The marker must be the **first character** of the atlas key (`"#base/jwt"`). Suffix or mid-string `#` is not recognized.
+- Layout classification is unchanged: `#base/jwt` still resolves to family `gear:base` via the `base/` prefix in `defineLayout`. The leading `#` is stripped before prefix matching.
+- `gearKit` / `shellKit` (factory-side) may reference internal namespaces. The strategy-level consumer `kit` / `clientKit` / `serverKit` may not — listing an internal namespace there is a compile error.
+- The `#` is a **type-level marker only** — it does not appear in filesystem paths or in module loading. The module for `#base/jwt` lives at `base/jwt.ts`, not `#base/jwt.ts`. The `load` callback receives the unmarked path.
+- Use the same string everywhere a handle to the resource is needed: `withDeps("#base/jwt")`, `token("#base/jwt")`, `bridgeGears: ["#base/jwt"]`. The marker is part of the namespace identity at the type level.
+
+### 3.3. `RMachine.create`
+
+```ts
+RMachine.create({
+  ResourceAtlas,                         // required
+  locales: ["en", "it"] as const,        // const tuple narrows L type
+  defaultLocale: "en",                   // must be one of `locales`
+  load: (path) => import(`./${path}.ts`),// async module loader
+  bridgeGears: ["base/config"],          // optional: base namespaces visible to shells
+  gearKit:   { log: "base/logger" },     // optional: injected as $.kit.* into every gear factory
+  shellKit:  { fmt: "shell/lib/fmt" },   // optional: injected as $.kit.* into every shell factory
+  experimental: { outerGear: "on" },     // type-level conditional gate for OuterGear in toolset
+});
+```
+
+- `bridgeGears` is type-narrowed to namespaces of family `gear:base` only. Listing an outer or inner namespace is a type error.
+- `gearKit` / `shellKit` are injected as `$.kit.{name}` into every factory of that family.
+- `experimental.outerGear`: when `"off"`, `OuterGear` does not appear on the toolset object (type-level removal, not runtime branch). The `experimental` namespace gates features whose API may still evolve in non-backward-compatible ways; the flag will be retired once the feature stabilizes.
+
+### 3.4. Toolset
+
+```ts
+export const { InnerGear, BaseGear, OuterGear, Shell, localized } = rMachine.createToolset();
+export type Locale = RMachineLocale<typeof rMachine>;
+export type { BrandedResource as RShape } from "r-machine";
+```
+
+### 3.5. `PathAtlas` (Next.js only)
+
+Declares the application's localized URL paths in one place. Each canonical path key is the route as it appears in the `app/` folder; per-locale translations are siblings of nested sub-paths. Lives in its own file (`r-machine/path-atlas.ts`) and is passed to the Next.js strategy at setup time.
+
+```ts
+// r-machine/path-atlas.ts
+import { declarePathAtlas } from "@r-machine/next";
+import type { Locale } from "./setup";
+
+export class PathAtlas extends declarePathAtlas<Locale>().as({
+  "/example-static": {
+    it: "/esempio-statico",       // translation for locale "it"
+    "/page-1": {
+      it: "/pagina-1",
+    },
+    "/page-2": {
+      en: "/page-2-in-english",   // explicit canonical override per locale
+      it: "/pagina-2",
+    },
+  },
+  "/example-dynamic": {
+    it: "/esempio-dinamico",
+    "/[slug]": {},                // dynamic segment: empty value, no translations
+  },
+}) {}
+```
+
+Rules:
+- **Locale entries** are sibling keys whose name matches a declared locale (`"it": "/..."`, `"en": "/..."`). Their values are the segment's translation in that locale, `/`-prefixed.
+- **Sub-path entries** are sibling keys that start with `/` (`"/page-1": {...}`). They nest recursively.
+- **Dynamic segments** (`"/[slug]"`, `"/[...rest]"`, `"/[[...rest]]"`) take an empty object `{}` and accept no per-locale translations and no children.
+- The default locale needs no translation entry — the canonical path key is used as-is unless overridden (see `/page-2`'s `en: "/page-2-in-english"`).
+- Validation runs at strategy-construction time. Mismatches between `PathAtlas` keys and the actual `app/` folder structure are not checked by R-Machine — that is the developer's responsibility.
+
+Pass the class (not an instance) to the strategy:
+
+```ts
+export const strategy = NextAppPathStrategy.create(rMachine, {
+  PathAtlas,
+  // ...
+});
+```
+
+`PathAtlas` is optional. When omitted, no path translations are generated; URLs are the literal `app/` folder paths in every locale.
+
+---
+
+## 4. Composers
+
+All composers expose a chain. Every step except `define` is optional, and `define` is always last.
+
+| Composer | Chain |
+|---|---|
+| `InnerGear` | `withDeps → withPorts → define` |
+| `BaseGear` | `withDeps → withPorts → define` |
+| `OuterGear` | `withDeps → withPorts → withState → define` |
+| `Shell` | `withDeps → withPorts → define` |
+
+`Shell` does not support `withState`.
+
+### 4.1. `withDeps(...)`
+
+Two forms — list and map — yielding tuple or named-key access in the factory:
+
+```ts
+// list form
+InnerGear.withDeps("inner/clock", "base/config").define(([clock, config, $]) => ({ /* ... */ }));
+
+// map form
+InnerGear.withDeps({ clock: "inner/clock", config: "base/config" })
+  .define(({ clock, config, $ }) => ({ /* ... */ }));
+```
+
+The factory's first argument follows a uniform shape across all four composers (`InnerGear`, `BaseGear`, `OuterGear`, `Shell`):
+
+- **No deps** (or `withDeps()` with no arguments) — map form (default): `({ $ })`.
+- **Map form** (`withDeps({ name: "ns" })`) — `({ name, $ })`, with `$` alongside the named deps.
+- **List form** (`withDeps("ns1", "ns2")`) — `([dep1, dep2, $])`, with `$` always as the last tuple element.
+
+### 4.2. `withPorts({...})`
+
+Declares external values (server actions, SDK clients, fetch wrappers, locale-aware data sources) used inside the factory. Accessed as `$.ports.{name}`.
+
+```ts
+import { createPost } from "../lib/actions";
+
+OuterGear
+  .withDeps("base/config")
+  .withPorts({ createPost })
+  .withState({ pending: false })
+  .define(([config, $], _) => ({
+    submit: async (title: string, body: string) => {
+      await $.ports.createPost(title, body);
+    },
+  }));
+```
+
+Ports are inputs to the gear/shell, not part of the consumer Surface. Available on all four composers (`InnerGear`, `BaseGear`, `OuterGear`, `Shell`).
+
+### 4.3. `withState(initial)`
+
+Available on `OuterGear` only. Provides `$.state` and `$.defaultState` to the factory.
+
+### 4.4. `define(factory)`
+
+Final step. The user factory receives `$` plugin context (and cursor `_` for `OuterGear`) and returns the resource shape — see §6 (cursor primitives) and §8 (factory `$` context).
+
+`define(...)` itself does **not** return the resource shape. It returns a `ResMatrix<R, P>` — the canonical value exported as `r` by every resource module:
+
+| Property | Type | Purpose |
+|---|---|---|
+| `r.create()` | `() => Promise<R>` | Resolves the resource and returns its production Surface; awaits any async work in the user factory. Used directly in resource-level tests (§14.2). |
+| `r.plug` | typed plug | The plug handle for this resource, used as the target of `mockPlug(...)` (§10.3, §14). Carries deps/ports/locale narrowing at the type level. |
+| `r.clone(fn?)` | `() => ResMatrix<R, P>` / `<T extends R>(fn: (res: R, plugin, [cursor]) => T) => ResMatrix<R, P>` | Returns a fresh, independent `ResMatrix` reusing the same factory and chain, with an optional transform `fn` that overrides fields of `R` (locked to the same shape — see §5). Pair with `withPorts(...)` / `withState(...)` for ports / state overrides. |
+
+The shape is uniform across `InnerGear`, `BaseGear`, `OuterGear`, and `Shell` (including `shell(mono)`). The convention everywhere in this document is `export const r = <composer>.<chain>.define(...)`; `r` is always a `ResMatrix`.
+
+### 4.5. `OuterGear` shorthand forms
+
+Stateless:
+```ts
+OuterGear.define(({ $ }, _) => ({
+  greet: (name: string) => `hello ${name}`,
+}));
+```
+
+Stateful — array shortcut. Two forms: read-write returns a `[getterName, actionName]` tuple; readonly returns a `[getterName]` single-element tuple. R-Machine synthesises a default identity getter and (read-write only) a default canonical action `(partial) => state`:
+```ts
+// read-write
+OuterGear.withState({ count: 0 }).define(({ $ }, _) => ["counter", "setCounter"]);
+// Surface: { counter: { count: number }; setCounter: (p: DeepPartial<{count:number}>) => {count:number} }
+
+// readonly — exposes only the synthesised getter, no action
+OuterGear.withState({ count: 0 }).define(({ $ }, _) => ["counter"]);
+// Surface: { counter: { count: number } }
+```
+
+Stateful — full custom: see §6 cursor primitives.
+
+### 4.6. Vertex (`gear:outer(vertex)`)
+
+Same `OuterGear` composer. There is no `VertexGear` export.
+
+What makes a resource a vertex is its **layout entry**, not the call shape:
+
+```ts
+// vertex/shopping-cart.ts
+import { OuterGear, type RShape } from "../setup";
+
+export const r = OuterGear.withState({ items: [] as string[] }).define(({ $ }, _) => ({
+  state: _.getter(),
+  add:   _.action((item: string) => ({ items: [...$.state.items, item] })),
+  count: _.getter(() => $.state.items.length),
+}));
+
+export type Vertex_ShoppingCart = RShape<typeof r>;
+```
+
+Each `Plug("vertex/...").useR()` call in a component creates a fresh instance with lifecycle bound to that component. **Vertex gears cannot be a dependency of any other resource.** Reachable only through `Plug` / `ClientPlug` from a component.
+
+### 4.7. `Shell` — multi-locale
+
+The canonical file exports `r`. R-Machine derives the shape from this file. It can be a plain object or a factory.
+
+**Plain object form:**
+```ts
+// shell/common/en.ts
+import type { RShape } from "../../setup";
+
+export const r = {
+  greeting: "Hello",
+  farewell: "Goodbye",
+};
+export type Shell_Common = RShape<typeof r>;
+```
+
+**Factory form** (when the canonical needs `$.locale`, `$.kit`, `$.ports`, deps, async, etc.):
+```ts
+// shell/common/en.ts
+import { Shell, type RShape } from "../../setup";
+
+export const r = Shell.define(({ $ }) => ({
+  greeting: `Hello (${$.locale})`,
+}));
+export type Shell_Common = RShape<typeof r>;
+```
+
+**Factory form with ports** (e.g. async loading from an external source):
+```ts
+// shell/landing/en.ts
+import { Shell, type RShape } from "../../setup";
+import { fetchHeroCopy } from "../../lib/cms";
+
+export const r = Shell
+  .withPorts({ fetchHeroCopy })
+  .define(async ({ $ }) => {
+    const data = await $.ports.fetchHeroCopy($.locale);
+    return { hero: data.hero, sub: data.sub };
+  });
+
+export type Shell_Landing = RShape<typeof r>;
+```
+
+**Variant files** use `localized(namespace, value)`:
+```ts
+// shell/common/it.ts
+import { localized } from "../../setup";
+
+export const r = localized("shell/common", {
+  greeting: "Ciao",
+  farewell: "Arrivederci",
+});
+```
+
+`localized` performs **exact-keyed validation** against the canonical type:
+- Extra keys are typed as `never` (rejected).
+- Missing keys produce `Property '...' is missing` (rejected).
+
+For variants needing a factory (async loading, locale-aware computation), wrap `localized` inside `Shell.define`:
+```ts
+export const r = Shell.define(async () => {
+  await loadHeavyData();
+  return localized("shell/common", { greeting: "Ciao", farewell: "Arrivederci" });
+});
+```
+
+**Shell deps:**
+```ts
+export const r = Shell.withDeps("base/config").define(([config, $]) => ({
+  hero: `Welcome — API: ${config.apiBase}`,
+  copy: $.kit.fmt.number(1000),
+}));
+```
+
+### 4.8. `shell(mono)`
+
+A **single-file locale-aware** resource: it has access to `$.locale` like any shell, but no per-locale variant files. Use for formatters and locale-aware helpers without translation. The mono nature comes from the layout entry (`"shell/lib/": "shell(mono)"`).
+
+```ts
+// shell/lib/fmt.ts
+import { type RShape, Shell } from "../../setup";
+
+export const r = Shell.define(({ $ }) => ({
+  number: (n: number) => new Intl.NumberFormat($.locale).format(n),
+  date:   (d: Date)   => new Intl.DateTimeFormat($.locale).format(d),
+}));
+
+export type Shell_Lib_Fmt = RShape<typeof r>;
+```
+
+#### Formatters are not built in — and that is the point
+
+R-Machine ships **no** formatter API. The idiomatic primitive set for locale-aware formatting is the `Intl.*` family — `NumberFormat`, `DateTimeFormat`, `PluralRules`, `RelativeTimeFormat`, `ListFormat`, `Collator`, `Segmenter`, `DisplayNames`. R-Machine does not wrap these because there is no structural value in doing so: `Intl.*` is already locale-aware natively, zero-bundle (built into every modern runtime — browser, Node, Deno, Bun, edge), and minimal in surface. R-Machine provides the *wiring* — `$.locale` automatically passed, `shellKit` for cross-shell injection, `mockPlug` for test-time substitution — and that is exactly the structural value. The primitives stay the platform's; the integration is R-Machine's.
+
+#### Pluralization in a few lines
+
+A pluralization helper, often expected as a built-in by users coming from i18n libraries, is a few lines of TypeScript on top of `Intl.PluralRules`. Two variants, depending on how many CLDR plural categories the project's locales need.
+
+For locales with binary plural rules (English, Italian, German, French, Spanish, ...):
+
+```ts
+// shell/lib/fmt.ts
+import { type RShape, Shell } from "../../setup";
+
+type PluralForms = { one?: string; other: string };
+
+export const r = Shell.define((plugin) => {
+  const pluralRules = new Intl.PluralRules(plugin.$.locale);
+
+  return {
+    number: (n: number) => new Intl.NumberFormat(plugin.$.locale).format(n),
+    date:   (d: Date)   => new Intl.DateTimeFormat(plugin.$.locale).format(d),
+    plural: (count: number, forms: PluralForms) => {
+      const cat = pluralRules.select(count);
+      const tpl = (cat === "one" ? forms.one : undefined) ?? forms.other;
+      return tpl.replace(/#/g, String(count));
+    },
+  };
+});
+
+export type Shell_Lib_Fmt = RShape<typeof r>;
+```
+
+For locales with multi-category plural rules (Russian, Polish, Arabic, ...), the same pattern with a wider input type:
+
+```ts
+// shell/lib/fmt.ts
+import { type RShape, Shell } from "../../setup";
+
+type PluralForms = Partial<Record<Intl.LDMLPluralRule, string>> & { other: string };
+
+export const r = Shell.define((plugin) => {
+  const pluralRules = new Intl.PluralRules(plugin.$.locale);
+
+  return {
+    plural: (count: number, forms: PluralForms) => {
+      const cat = pluralRules.select(count);
+      const tpl = forms[cat] ?? forms.other;
+      return tpl.replace(/#/g, String(count));
+    },
+  };
+});
+
+export type Shell_Lib_Fmt = RShape<typeof r>;
+```
+
+Consumer-side, the call sites are typed and explicit:
+
+```ts
+// en/it
+fmt.plural(count, { one: "# item", other: "# items" })
+
+// ru
+fmt.plural(count, {
+  one:   "# элемент",
+  few:   "# элемента",
+  many:  "# элементов",
+  other: "# элемента",
+})
+```
+
+The signature `plural(count: number, forms: PluralForms)` is type-checked end-to-end: `other` is required (omitting it is a compile error), unknown keys are rejected, `count` is enforced to be a number. A consumer that forgets a required form, or that passes the wrong type, surfaces the mistake at compile time.
+
+### 4.9. Resources are TypeScript factories
+
+R-Machine imposes a structural boundary at the resource edge — locale scoping for shells, kind classification for gears, dep-graph asymmetry between families — and **nothing else** on what the factory returns. A resource is a typed TypeScript factory; inside the boundary the full expressive power of the language is available. R-Machine introduces no DSL for content, no template syntax for strings, no wrapper layer over external libraries: there is nothing to learn beyond TypeScript itself.
+
+Two consequences are routinely underestimated.
+
+#### Bring your own formatter / parser / renderer
+
+If a project needs a locale-aware primitive R-Machine doesn't ship — ICU `MessageFormat`, Fluent, a Markdown renderer, an in-house format — there is no integration story. The library is imported inside a `shell` or `shell(mono)` factory; `$.locale` is the wiring. A `shell(mono)` exposing ICU `MessageFormat` via `intl-messageformat`:
+
+```ts
+// shell/lib/icu.ts
+import { IntlMessageFormat, type PrimitiveType } from "intl-messageformat";
+import { Shell, type RShape } from "../../setup";
+
+export const r = Shell
+  .withPorts({ IntlMessageFormat })
+  .define(({ $ }) => {
+    const locale = $.locale;
+    const cache = new Map<string, IntlMessageFormat>();
+    const compile = (msg: string) => {
+      let mf = cache.get(msg);
+      if (!mf) { mf = new $.ports.IntlMessageFormat(msg, locale); cache.set(msg, mf); }
+      return mf;
+    };
+
+    return {
+      format: (msg: string, values?: Record<string, PrimitiveType>) =>
+        compile(msg).format(values) as string,
+    };
+  });
+
+export type Shell_Lib_Icu = RShape<typeof r>;
+```
+
+The same shape applies to any locale-aware library — date formatters (`date-fns`, `luxon`), transliterators, Markdown/MDX renderers, locale-aware collators. R-Machine's role is the boundary (`$.locale` auto-passed, kit injection, `mockPlug` for tests), not the format. This generalizes §4.8: there is no architectural commitment to any particular i18n library because there is no integration to commit to.
+
+#### Return anything TypeScript can express
+
+A resource's shape is whatever the factory returns. For a shell, that is not restricted to strings:
+
+```tsx
+// shell/features/intl_demo/en.tsx
+export const r = Shell.define(({ fmt }) => ({
+  // plain string
+  sectionTitle: "Locale-Aware Formatting",
+
+  // function returning a string
+  caption: (d: Date) => `Today's date: ${fmt.date.long(d)}`,
+
+  // function returning a JSX fragment
+  description: (amount: number) => (
+    <>The value <strong>{fmt.currency(amount)}</strong> is written as <strong>{fmt.number(amount)}</strong> without currency.</>
+  ),
+
+  // React component
+  Items: ({ count }: { count: number }) => (
+    <span>You have <strong>{fmt.plural(count, { one: "# item", other: "# items" })}</strong> in your cart.</span>
+  ),
+}));
+```
+
+The shape flows end-to-end to the consumer: `Plug("shell/<name>").useR()` returns exactly what the factory returned, type-narrowed. The same freedom applies to gears — an `OuterGear` may surface state cursors next to JSX components next to instances of an external class, whatever the call site needs.
+
+#### Implication
+
+Questions of the form *"does R-Machine support X?"* — where X is a content type, formatting style, or rendering pattern — are almost always answered by *"yes, because a resource is a TypeScript factory."* R-Machine's API surface is intentionally narrow: it provides the wiring (locale, kit, ports, plug), the boundary classification (kinds, dep rules), and the test substitution primitive (`mockPlug`). Everything expressed *inside* a factory is plain TypeScript, and the consumer sees exactly the type the factory returned.
+
+---
+
+## 5. Cloning resources
+
+`clone(fn?)` is the mechanism for **declaring a second resource that reuses the logic of an existing one under a different atlas namespace**. It lives at module / atlas level, not inside a single module.
+
+The convention everywhere in R-Machine is **one module = one `export const r`**. `clone` does not break it — it is used in a *separate* resource module that imports the source `r`, calls `clone(...)` on it, and re-exports the result as its own `r`. That second module is then registered in `ResourceAtlas` under its own namespace key, just like any other resource.
+
+The matrix returned by every `.define(...)` exposes a small **fluent builder** mirroring the composer side:
+
+```
+composer.withPorts(...).withState(...).define(fn)    ← create from scratch
+matrix.withPorts(...).withState(...).clone(fn?)      ← derive from existing
+```
+
+`withPorts` / `withState` produce intermediate builders whose only terminal is `clone(fn?)`. The optional `fn` is a transform that the system runs **after** the original factory and **before** post-processing, so it receives the resource already resolved (locale, deps, state) and can override only the fields it wants — the rest pass through unchanged. The transform never widens the result shape: extra keys outside `R` are pinned to `never` at the type level (the matrix's `clone` is generic over the inferred return type, and `NoExcess<R, T>` blocks excess properties at the call site).
+
+```ts
+// outer/cart.ts                         ← source resource
+export const r = OuterGear
+  .withPorts({ checkout: prodCheckout })
+  .withState({ items: [] as Item[] })
+  .define(({ $ }, _) => ({ /* ... */ }));
+
+export type Outer_Cart = RShape<typeof r>;
+```
+
+```ts
+// outer/cart-secondary.ts               ← derived resource, own module
+import { r as base } from "./cart";
+
+export const r = base.clone();           // identical logic, new identity
+```
+
+```ts
+// resource-atlas.ts
+type ResourceMap = {
+  "outer/cart":           Outer_Cart;
+  "outer/cart-secondary": Outer_Cart;   // ← second atlas entry
+};
+```
+
+Both entries share the same factory and chain, but each carries its **own plug, its own resolved instance, and its own state** (for stateful `OuterGear`). They are independent at runtime.
+
+### 5.1. `clone` vs `mockPlug`
+
+| | `clone` | `mockPlug` (§14) |
+|---|---|---|
+| Scope | Resource definition (atlas-level) | Plug usage (consumer-level) |
+| Produces | A second `r` in a second module, registered in `ResourceAtlas` under a new namespace | An ad-hoc plug substitution active in a single test or runtime context |
+| Lifetime | Production: lives in the deployed atlas | Test / scoped runtime override |
+| Identity | New plug, new resolved instance | Reuses the original resource's identity, swaps what the consumer sees |
+
+If you find yourself writing `export const draft = r.clone(...)` *next to* `export const r = ...` in the same module, you almost certainly want either `mockPlug` (for tests) or a **second resource module** (for production). `clone` is never used to create side-exports inside a resource module.
+
+### 5.2. Builder methods by composer
+
+| Composer | Available on the matrix |
+|---|---|
+| `InnerGear`, `BaseGear` | `clone(fn?)`, `withPorts(p).clone(fn?)` |
+| `OuterGear` (stateless) | `clone(fn?)`, `withPorts(p).clone(fn?)` |
+| `OuterGear` (stateful, declared with `withState`) | `clone(fn?)`, `withPorts(p).clone(fn?)`, `withState(s).clone(fn?)`, `withPorts(p).withState(s).clone(fn?)` (commutative) |
+| `Shell` (incl. `shell(mono)`) | `clone(fn?)`, `withPorts(p).clone(fn?)` |
+
+`withPorts(p)` shallow-merges `p` onto the existing port map: only the keys you list are replaced. `withState(s)` accepts `DeepPartial<S>` and deep-merges onto the original `defaultState`: only the leaves you provide are replaced, everything else is preserved. The `fn` transform is locked to the resource's `R` shape — it can override any subset of `R`'s keys but cannot add new ones (the matrix exposes a future, differently-named method for cases that genuinely need to widen the resource).
+
+### 5.3. Use cases
+
+#### 5.3.1. Same logic, multiple atlas slots — `clone()` no-arg
+
+Use when N independent instances of the same gear must coexist under distinct namespaces. Examples: a product-comparison page rendering three cards side by side, multiple carts in a multi-tenant UI, or the same gear surfaced both globally and inside a `gear:outer(vertex)` (§12).
+
+```ts
+// outer/product-card.ts                 ← source
+export const r = OuterGear
+  .withState({ productId: "" as string, qty: 1 })
+  .define(({ $ }, _) => ({ /* card logic */ }));
+export type Outer_ProductCard = RShape<typeof r>;
+```
+
+```ts
+// outer/product-card-a.ts               ← slot A
+import { r as base } from "./product-card";
+export const r = base.clone();
+
+// outer/product-card-b.ts, outer/product-card-c.ts — same pattern
+```
+
+```ts
+// resource-atlas.ts
+type ResourceMap = {
+  "outer/product-card-a": Outer_ProductCard;
+  "outer/product-card-b": Outer_ProductCard;
+  "outer/product-card-c": Outer_ProductCard;
+};
+```
+
+Each slot has its own state cursor. Mutating slot A does not touch B or C.
+
+The **global + vertex** variant follows the same shape: keep the logic in one module, then declare a no-arg clone in a `vertex/...` module so the same gear can be instantiated locally per vertex frame (§12) without sharing state with the global one.
+
+#### 5.3.2. Variant with different external bindings — `withPorts(...).clone()`
+
+Use when the same logic must run against a different external boundary — a draft writer instead of the published one, a stub fetcher instead of the CMS.
+
+```ts
+// outer/post-form.ts                    ← source
+export const r = OuterGear
+  .withPorts({ createPost: prodCreatePost })
+  .withState({ pending: false })
+  .define(({ $ }, _) => ({ /* ... */ }));
+export type Outer_PostForm = RShape<typeof r>;
+```
+
+```ts
+// outer/post-form-draft.ts              ← variant
+import { r as base } from "./post-form";
+export const r = base.withPorts({ createPost: draftCreatePost }).clone();
+```
+
+```ts
+// resource-atlas.ts
+type ResourceMap = {
+  "outer/post-form":       Outer_PostForm;
+  "outer/post-form-draft": Outer_PostForm;
+};
+```
+
+The same shape applies to `Shell` variants (e.g. a `shell/landing-static` derived from `shell/landing` with a stub `fetchHeroCopy`).
+
+#### 5.3.3. Variant with different starting state — `withState(...).clone()`
+
+Available on stateful `OuterGear` only. Combine with `withPorts` when both need to change — the chain is commutative:
+
+```ts
+// outer/post-form-debug.ts
+import { r as base } from "./post-form";
+export const r = base
+  .withPorts({ createPost: loggedCreatePost })
+  .withState({ pending: true })
+  .clone();
+```
+
+#### 5.3.4. Sibling locale variant — `clone(fn)` for regional overrides
+
+The common case is a second locale that is almost identical to the first, with a handful of phrases that differ (US vs UK spelling, dialectal swaps, regulator-mandated wording). The factory runs in the **clone's** locale context, so anything that already depends on `$.locale` is correct in `res` — `fn` only has to override the values that genuinely differ between regions.
+
+```ts
+// shell/checkout/en-US.tsx              ← source variant
+export const r = Shell.define(({ $ }) => ({
+  cta:           "Add to cart",
+  colorLabel:    "Color",
+  zipPlaceholder:`ZIP for ${$.locale}`,
+  footer: <Footer />,
+}));
+export type Shell_Checkout = RShape<typeof r>;
+```
+
+```ts
+// shell/checkout/en-GB.tsx              ← sibling locale, mostly identical
+import { r as enUS } from "./en-US";
+
+export const r = enUS.clone((res, { $ }) => ({
+  ...res,
+  colorLabel:     "Colour",                  // UK spelling
+  zipPlaceholder: `Postcode for ${$.locale}`, // UK terminology
+}));
+```
+
+```ts
+// resource-atlas.ts
+type ResourceMap = {
+  "shell/checkout": Shell_Checkout;   // single atlas entry — locale picks the file
+};
+```
+
+The shared atlas key here matches the multi-locale `Shell` convention from §4.7: one namespace, one file per supported locale. The clone-with-`fn` form lets the en-GB file inherit en-US's structure without copying the entire object literal, and the type system blocks accidental shape drift: `{ ...res, prova: 21 }` would error at the `clone(fn)` call site because `prova` is not a key of `Shell_Checkout`. The same pattern fits gear variants where a few fields of `R` differ between deployments — same logic, targeted overrides, no excess properties.
+
+### 5.4. Semantics
+
+- **Independent identity**: each clone has its own plug. Resolving the clone does not resolve the source, and vice versa.
+- **Independent state** (stateful `OuterGear`): each clone owns its own state cursor; mutations are isolated per atlas namespace.
+- **Immutability of the source**: clones never mutate their source. Sibling clones are independent (`a.clone()` and `a.clone()` do not interact).
+- **Composition**: `clone` of a `clone` accumulates transforms left-to-right. Each clone captures its own merged ports / state and its own composed `fn`, so chained clones produce `fn_n(...fn_1(originalFactory(...)))`.
+- **`fn` ordering**: the system awaits the original factory first, then invokes `fn(res, plugin[, cursor])`. `res` is the fully-resolved resource (post-state-conversion for stateful `OuterGear`, so `fn` always sees the matrix's `R` shape, not the raw factory return).
+- **Sync / async**: `fn` may be sync or async — the runtime awaits it transparently. The user never needs `await` to consume `res`.
+- **Shape lock** (`NoExcess<R, T>`): the `fn` return type is locked to `R`. Returning `{ ...res, extra: 1 }` is a compile-time error. Override existing keys, never add new ones — if you need a different shape, build a fresh resource with `.define(...)`.
+- **State integrity** (stateful `OuterGear` with `withState(...)`): R-Machine internally rebuilds the state-bound machinery (cursor closures, plugin context augmentation) so that `$.state`, `$.defaultState`, and the cursor primitives remain coherent with the merged value.
+- **Factory-time only**: `clone` does not affect already-resolved instances. The cloned `r` must be wired into `ResourceAtlas` to participate at runtime.
+
+---
+
+## 6. Cursor primitives
+
+Inside an `OuterGear` factory, `_` (second argument) is the only way to declare reactive members. Each primitive produces a branded value. The matrix of which primitives are available follows the composer chain (e.g. `_.action`, `_.relay`, `_.cmd` require `withState(...)`).
+
+### 6.1. `_.action(reducer?)` — `Action<F>`
+
+Synchronous state-mutating reducer. Returns `DeepPartial<S>`; runtime merges into current state.
+
+```ts
+const inc  = _.action(() => ({ n: $.state.n + 1 }));
+const set  = _.action((n: number) => ({ n }));
+const fill = _.action();   // canonical (partial) => S
+```
+
+The canonical form (`_.action()`) doubles as the way to seed initial state from inside the factory — useful when the initial state must be derived from values only available there, rather than from the static value passed to `withState(...)`. Typical motivations:
+
+- Init computed from `$.kit`, `$.ports`, or awaited async data.
+- SSR hydration: rebuild the client state from a server snapshot fetched via a port — typically a server function exposed through `.withPorts({...})` and awaited inside the factory.
+- Persistence: rehydrate from `localStorage`, `IndexedDB`, a cookie, or any other storage read inside the factory.
+
+```ts
+export const r = OuterGear
+  .withPorts({ loadInitial })
+  .withState({ items: [] as string[] })
+  .define(async ({ $ }, _) => {
+    const seeded = await $.ports.loadInitial();
+    _.action()({ items: seeded });
+
+    return {
+      state: _.getter(),
+      add:   _.action((item: string) => ({ items: [...$.state.items, item] })),
+    };
+  });
+```
+
+### 6.2. `_.getter(...)` — `Getter<V>`
+
+Three forms:
+```ts
+const state = _.getter();                                    // identity for state
+const sum   = _.getter(() => $.state.a + $.state.b);         // ad-hoc derived
+const heavy = _.getter("memoized", () => bigComputation());  // memoised
+```
+
+### 6.3. `_.relay({ select, onChange })`
+
+Side-effecting subscription. `select` derives a value; `onChange` runs when the selected value changes and may dispatch one or more `Cmd`. Brand-tagged. **Stripped from the consumer Surface.**
+
+```ts
+const $myRelay = _.relay({
+  select:   () => $.state.count,
+  onChange: (curr, prev) => {
+    if (curr > 10) return _.cmd(reset);
+  },
+});
+```
+
+When `onChange` returns multiple commands as an array, the runtime applies them in order:
+```ts
+return [_.cmd(notify, "limit reached"), _.cmd(reset)];
+// notify runs first, then reset, deterministically
+```
+
+### 6.4. `_.cmd(action, ...args)` — `Cmd`
+
+Reified typed action call, used as the return value of a relay's `onChange`.
+
+---
+
+## 7. `$`-prefix convention
+
+Members of the returned resource whose key starts with `$` are stripped from the public Surface (and IDE tooltips), but are present on the resource for testing.
+
+```ts
+return {
+  state:  _.getter(),
+  inc:    _.action(...),
+  $watch: $myRelay,                  // hidden from Surface, visible to mockPlug
+  $internalAction: _.action(...),    // hidden from Surface, visible to mockPlug
+};
+```
+
+---
+
+## 8. Factory `$` context
+
+The `$` plugin context received by every factory has fields conditional on what the composer chain declared:
+
+| Field | Present when | What it is |
+|---|---|---|
+| `$.kit` | the kit map for this family is non-empty | the resolved kit |
+| `$.locale` | the resource is a `Shell` or `shell(mono)` | active locale, narrowed to the project's locale union |
+| `$.state` | the gear was declared with `withState(...)` | current state value, narrowed to `S` |
+| `$.defaultState` | the gear was declared with `withState(...)` | the value passed to `withState(...)` (or to the `state` override on a clone — see §5) |
+| `$.ports` | the resource was declared with `withPorts({...})` | the record of ported external values (with any clone-time overrides applied — see §5) |
+
+Fields not declared are not present on the type — destructuring `{ state }` from `$` in a stateless gear is a type error, not `undefined` at runtime.
+
+---
+
+## 9. Lifecycle: `[Symbol.dispose]` convention
+
+When a factory acquires resources whose lifetime exceeds a single call (intervals, subscriptions, listeners, connections, watchers), it returns an object that carries a `[Symbol.dispose]` teardown:
+
+```ts
+export const r = OuterGear.withState(0).define(({ $ }, _) => {
+  const update = _.action(() => $.state + 1);
+  const handle = setInterval(() => { update(); }, 1000);
+
+  return {
+    value: _.getter(),
+    [Symbol.dispose]: () => {
+      clearInterval(handle);
+    },
+  };
+});
+```
+
+- `[Symbol.dispose]` is the standard TC39 well-known symbol for synchronous resource disposal — no r-machine-specific helper is needed.
+- `[Symbol.dispose]` is invisible to `Plug(...).useR()` at the consumer (all symbol keys are filtered from the Plug surface).
+- Teardown runs exactly once per instance whose factory completed successfully. A factory that throws before returning runs no teardown.
+- The runtime guarantees idempotency: even if teardown is invoked manually (e.g. in a test) and then again by r-machine on slot disposal, the underlying closure runs at most once.
+- Triggers per family:
+  - vertex gears: when the consuming component unmounts
+  - global outer/base/inner gears: app shutdown / hot reload
+  - shells: app shutdown / hot reload
+- Available in every family (`InnerGear`, `BaseGear`, `OuterGear` including vertex, `Shell`, `shell(mono)`).
+
+**Async dispose is not supported.** If a factory returns an object with `[Symbol.asyncDispose]`, r-machine throws `RMachineUsageError(ERR_ASYNC_DISPOSE_NOT_SUPPORTED)` at resolve time. Use `[Symbol.dispose]` with a synchronous closure; if cleanup is inherently async, fire-and-forget the async work from inside the sync teardown.
+
+### 9.1. Manual disposal in tests
+
+Because the convention uses a standard symbol, the resource returned by `r.create()` is directly compatible with the TC39 explicit resource management proposal. Both forms work:
+
+```ts
+// Explicit call
+const value = await r.create();
+// ... assertions ...
+value[Symbol.dispose]();
+```
+
+```ts
+// Scope-bound disposal (TS 5.2+, target ES2022+, lib esnext / esnext.disposable)
+await using value = await r.create();
+// ... assertions ...
+// teardown fires automatically at end of scope
+```
+
+---
+
+## 10. Plug variants
+
+### 10.1. Call shapes
+
+Single-resource (returns one-element tuple):
+```ts
+const [tasks] = Plug("outer/tasks").useR();
+```
+
+List form (multi-resource, positional):
+```ts
+const [tasks, common, config] = Plug(
+  "outer/tasks",
+  "shell/common",
+  "base/config",
+).useR();
+```
+
+Map form (multi-resource, named):
+```ts
+const { tasks, common, config } = Plug({
+  tasks:  "outer/tasks",
+  common: "shell/common",
+  config: "base/config",
+}).useR();
+```
+
+Both forms available on `Plug`, `ClientPlug`, `ServerPlug`.
+
+### 10.2. Variants and runtime contexts
+
+| Variant | Runtime | Sync/Async | Can consume |
+|---|---|---|---|
+| `Plug` | React standard strategy (client-side) | sync (suspends if unresolved) | `shell`, `shell(mono)`, `gear:base`, `gear:outer`, `gear:outer(vertex)` |
+| `ClientPlug` | Next.js Client Component | sync (suspends if unresolved) | same as `Plug` |
+| `ServerPlug` | Next.js RSC | returns `Promise` (await it) | `shell`, `shell(mono)`, `gear:base`, `gear:inner` |
+
+`ServerPlug` cannot consume `gear:outer` or `gear:outer(vertex)`.
+`Plug`/`ClientPlug` cannot consume `gear:inner`.
+
+### 10.3. Surface type
+
+```ts
+const [tasks] = Plug("outer/tasks").useR();
+// type: Surface<{ count: number; add: (s: string) => ... }, "outer/tasks", "gear:outer">
+```
+
+The branded view:
+- `$`-keys stripped
+- `Getter<V>` lifted to `V`
+- `Action<F>` preserved as `F`
+- `Relay` removed entirely
+
+A surface mismatch reads as `expected Surface<…, "outer/tasks", "gear:outer">, got Surface<…, "outer/cart", "gear:outer">`.
+
+Every defined resource carries an `r.plug` property, used by `mockPlug` (§14).
+
+---
+
+## 11. Framework strategies
+
+### 11.1. `ReactStandardStrategy` (web React)
+
+```ts
+import { ReactStandardStrategy } from "@r-machine/react";
+
+export const strategy = ReactStandardStrategy.create(rMachine, {
+  kit: { fmt: "shell/lib/fmt" },
+  localeDetector: () => rMachine.localeHelper.matchLocales(navigator.languages),
+  localeStore: {
+    get: () => localStorage.getItem("locale") ?? undefined,
+    set: (next) => localStorage.setItem("locale", next),
+  },
+});
+
+export const { localeHelper } = strategy.getHelpers();
+export const { ReactRMachine, Plug, VertexFrame } = await strategy.createToolset();
+```
+
+If the layout declares any `gear:inner` and `ReactStandardStrategy.create` is called, an `RMachineTypeError` is raised listing the offending namespaces.
+
+`strategy.getHelpers()` exposes strategy-level utilities reachable outside the plug consumer context — see §11.3.
+
+App bootstrap:
+```tsx
+export default function App() {
+  return (
+    <ReactRMachine fallback={<LoadingScreen />}>
+      <Header />
+      <Main />
+    </ReactRMachine>
+  );
+}
+```
+
+### 11.2. Next.js strategies
+
+Three routing models, same shape:
+- `NextAppPathStrategy` — locale in URL path (`/en/…`, `/it/…`)
+- `NextAppFlatStrategy` — cookie/header, locale absent from the URL
+- `NextAppOriginStrategy` — subdomain or origin per locale
+
+All three accept a common base of options plus a few strategy-specific ones. The most common base options:
+
+```ts
+strategy.create(rMachine, {
+  clientKit:        { fmt: "shell/lib/fmt" },             // kit for client toolset
+  serverKit:        { fmt: "shell/lib/fmt" },             // kit for server toolset
+  PathAtlas,                                              // localized URL paths — see §3.5
+  cookie:                "on",                            // emit/read locale cookie
+  implicitDefaultLocale: "on" | "off"
+                       | { pathMatcher: RegExp },         // hide default locale prefix
+  autoLocaleBinding:     "on",                            // auto-bind locale at boundary
+  basePath:              "/subdir",                       // matches Next.js basePath
+  localeLabel:           "strict",                        // case strictness for path locale
+});
+```
+
+`NextAppFlatStrategy` requires a `cookie` declaration (locale lives nowhere else). `NextAppOriginStrategy` requires `localeOriginMap: { en: "example.com", it: "example.it" }`. `PathAtlas` is optional in all three.
+
+Toolset is split into client and server:
+
+```ts
+// r-machine/client-toolset.ts
+"use client";
+export const {
+  NextClientRMachine, ClientPlug, VertexFrame,
+} = await strategy.createClientToolset();
+
+// r-machine/server-toolset.ts
+export const {
+  rMachineProxy, NextServerRMachine, generateLocaleStaticParams, bindLocale, setLocale, ServerPlug,
+} = await strategy.createServerToolset(NextClientRMachine);
+```
+
+The split kit (`clientKit` vs `serverKit`) is enforced at the type level — a server-only namespace listed in `clientKit` does not compile.
+
+Strategy-level helpers are obtained the same way for all three Next.js strategies — see §11.3:
+
+```ts
+// r-machine/setup.ts — alongside the strategy export
+export const { localeHelper, hrefHelper } = strategy.getHelpers();
+```
+
+### 11.3. Strategy helpers (`strategy.getHelpers()`)
+
+Every strategy exposes a `getHelpers()` method that returns a stable object of strategy-level utilities — primitives that need the strategy's locale config or path atlas but live **outside** the plug consumer context.
+
+```ts
+// r-machine/setup.ts — after strategy creation
+export const { localeHelper, hrefHelper } = strategy.getHelpers();
+```
+
+Shape per strategy:
+
+| Strategy | Returned helpers |
+|---|---|
+| `ReactStandardStrategy` | `{ localeHelper }` |
+| `NextAppPathStrategy` | `{ localeHelper, hrefHelper }` — `hrefHelper.getPath(locale, path, params?)` |
+| `NextAppFlatStrategy` | `{ localeHelper, hrefHelper }` — `hrefHelper.getPath(path, params?)` (no `locale` arg — flat strategy keeps locale in the cookie) |
+| `NextAppOriginStrategy` | `{ localeHelper, hrefHelper }` — `hrefHelper.getPath(locale, path, params?)` **and** `hrefHelper.getUrl(locale, path, params?)` |
+
+#### `localeHelper` — `LocaleHelper<L>`
+
+Available on **every** strategy.
+
+```ts
+localeHelper.locales                                          // readonly LocaleList<L>
+localeHelper.defaultLocale                                    // L
+localeHelper.matchLocales(requested, algorithm?)              // L  — best match against the strategy's locales
+localeHelper.matchLocalesForAcceptLanguageHeader(header, …)   // L  — parses an Accept-Language header, then matches
+localeHelper.validateLocale(locale)                           // RMachineConfigError | null
+```
+
+The exposed instance is the same one held by `rMachine.localeHelper` — the one used to configure the strategy itself (e.g. as the source for `ReactStandardStrategy`'s `localeDetector`). Re-exporting it via `strategy.getHelpers()` keeps the public surface unified: consumers import everything they need from `setup.ts`.
+
+#### `hrefHelper` — Next.js only
+
+Same path-composition primitive as the consumer-side `$.getPath` (§11.5), but with the locale supplied explicitly (or omitted, for the flat strategy). Use it where there is no request locale bound — e.g. non-localized layouts, the root `generateMetadata`, or static link generation at module scope.
+
+```tsx
+// app/(non-localized)/layout.tsx — outside the [locale] subtree, no request locale
+import { localeHelper, hrefHelper } from "@/r-machine/setup";
+import { ServerPlug } from "@/r-machine/server-toolset";
+
+export const plug = ServerPlug("shell/common");
+
+export default async function NonLocalizedLayout({ children }: LayoutProps<"/">) {
+  const [common] = await plug.useR(localeHelper.defaultLocale);
+  const homeUrl = hrefHelper.getPath(localeHelper.defaultLocale, "/");   // path/origin: pass locale
+  // ...
+}
+```
+
+`hrefHelper` shape varies by strategy because the path scheme does:
+- **Path** / **Origin**: locale is the first argument to `getPath` — the URL must encode the locale per call.
+- **Flat**: no locale argument — the same path is emitted for every locale (the cookie carries the locale).
+- **Origin** additionally exposes `getUrl(locale, …)`, which returns a fully-qualified URL using the locale's configured origin from `localeOriginMap`.
+
+Type narrowing is identical to `$.getPath` (§11.5): wrong canonical key, missing dynamic params, or wrong param types are compile errors.
+
+### 11.4. Consumer-side kit (`kit` / `clientKit` / `serverKit`)
+
+Strategy options accept a kit declaration that is injected as `$.kit.{name}` into every plug consumer's `$` context. It is the consumer-side analogue of `gearKit` / `shellKit` (which inject into resource factories — see §3.3 and §8): same map shape (`{ name: namespace }`), same type-narrowed access, but resolved at the call site of `plug.useR()`.
+
+| Strategy | Option(s) | Plug | Sync/async |
+|---|---|---|---|
+| `ReactStandardStrategy` | `kit` | `Plug` | sync |
+| `NextAppPathStrategy` / `NextAppFlatStrategy` / `NextAppOriginStrategy` | `clientKit`, `serverKit` (independent) | `ClientPlug`, `ServerPlug` | sync / async |
+
+Next.js splits the kit into `clientKit` and `serverKit` because consumers run in two distinct runtimes; the two maps are independent — entries do not need to overlap. Listing the same namespace in both is the common case for shells / `shell(mono)` resources usable in either runtime (e.g. a formatter). A server-only namespace (e.g. `gear:inner`) listed in `clientKit` is a compile error. React has a single `kit` option since there is one runtime.
+
+```ts
+// React (web)
+ReactStandardStrategy.create(rMachine, {
+  kit: { fmt: "shell/lib/fmt" },
+  // ...
+});
+
+// Next.js — same shape, split per runtime
+NextAppPathStrategy.create(rMachine, {
+  clientKit: { fmt: "shell/lib/fmt" },
+  serverKit: { fmt: "shell/lib/fmt" },
+  PathAtlas,
+  // ...
+});
+```
+
+Access from the consumer `$` context is identical across all three strategies — destructure `$` as the trailing tuple element of `plug.useR()` and read `$.kit.{name}`. Only `ServerPlug.useR()` is async.
+
+**React (`Plug`, sync):**
+```tsx
+import { Plug } from "@/r-machine/toolset";
+
+export const plug = Plug("shell/features/box_3");
+export default function Box3() {
+  const [box3, $] = plug.useR();
+  const time = $.kit.fmt.time(new Date());
+  // ...
+}
+```
+
+**Next.js Client Component (`ClientPlug`, sync):**
+```tsx
+"use client";
+import { ClientPlug } from "@/r-machine/client-toolset";
+
+export const plug = ClientPlug("shell/navigation");
+export function MainNav() {
+  const [nav, $] = plug.useR();
+  const time = $.kit.fmt.time(new Date());
+  // ...
+}
+```
+
+**Next.js Server Component / RSC (`ServerPlug`, async):**
+```tsx
+import { ServerPlug } from "@/r-machine/server-toolset";
+
+export const plug = ServerPlug("shell/landing-page");
+export default async function Hero() {
+  const [page, $] = await plug.useR();
+  const time = $.kit.fmt.time(new Date());
+  // ...
+}
+```
+
+The kit entry is a fully-resolved Surface of the underlying resource — same shape a peer factory would receive via its own `$.kit` (locale-aware for shells, branded `Surface<…>` for gears).
+
+### 11.5. Path composition (`PathAtlas` consumption)
+
+When `PathAtlas` is declared in the strategy, the plug consumer context exposes `$.getPath` — a type-checked path composer that builds locale-aware URLs from canonical path keys. The behavior is identical on `ClientPlug` and `ServerPlug` (same signatures, same locale-aware output, same type narrowing against `PathAtlas`); the only difference is that `ServerPlug.useR()` is async.
+
+`plug.useR()` returns the resource(s) followed by a `$` consumer context. Destructure it as the trailing tuple element (list form) or as the `$` key (map form).
+
+Client (sync):
+```tsx
+"use client";
+import Link from "next/link";
+import { ClientPlug } from "@/r-machine/client-toolset";
+
+export const plug = ClientPlug("shell/navigation");
+
+export function MainNav() {
+  const [nav, $] = plug.useR();
+  return (
+    <>
+      <Link href={$.getPath("/")}>{nav.home}</Link>
+      <Link href={$.getPath("/example-static/page-1")}>{nav.exampleStatic.page1.label}</Link>
+      <Link href={$.getPath("/example-dynamic")}>{nav.exampleDynamic.label}</Link>
+    </>
+  );
+}
+```
+
+Server (async):
+```tsx
+import Link from "next/link";
+import { ServerPlug } from "@/r-machine/server-toolset";
+
+const plug = ServerPlug("shell/example-dynamic", "shell/navigation");
+
+export default async function Page({ params }: PageProps<"/[locale]/example-dynamic">) {
+  const [example, nav, $] = await plug.useR(params);
+  return (
+    <>
+      {example.items.map((item) => (
+        <Link key={item.slug} href={$.getPath("/example-dynamic/[slug]", { slug: item.slug })}>
+          {item.title}
+        </Link>
+      ))}
+      <Link href={$.getPath("/")}>← {nav.home}</Link>
+    </>
+  );
+}
+```
+
+`$.getPath` is also reachable from the map form:
+```tsx
+const { nav, $ } = plug.useR();
+$.getPath("/example-static/page-1");
+```
+
+Call shapes:
+
+```ts
+$.getPath("/example-static/page-1")                            // static path
+$.getPath("/example-dynamic/[slug]", { slug: "abc" })          // dynamic path
+```
+
+- The first argument is the **canonical** path key (as written in `PathAtlas` and in the `app/` folder), narrowed to the union of declared paths. Wrong keys, missing leading `/`, or non-existent segments are compile errors.
+- A path with dynamic segments **requires** a params object whose keys match each `[name]` / `[...name]` / `[[...name]]` segment, with the right value type. Static paths take no second argument.
+- The returned string is the localized URL for the active request locale, with the strategy's prefix scheme applied (path prefix, no prefix, or origin), `basePath` prepended, and `implicitDefaultLocale` honored.
+- `getPath` knows nothing about query strings — append them to the returned string.
+
+Localized route bootstrap:
+```tsx
+// app/[locale]/layout.tsx
+export const generateStaticParams = generateLocaleStaticParams;
+export const dynamicParams = false;
+
+export const plug = ServerPlug();
+
+export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
+  const [$] = await plug.useR(params);
+  return (
+    <html lang={$.params.locale}>
+      <body><NextServerRMachine>{children}</NextServerRMachine></body>
+    </html>
+  );
+}
+```
+
+Route handler:
+```tsx
+// app/[locale]/page.tsx
+export const plug = ServerPlug("shell/landing-page");
+
+export default async function HomePage({ params }: PageProps<"/[locale]">) {
+  const [page] = await plug.useR(params);
+  return <main>{page.hero}</main>;
+}
+```
+
+`plug.useR(params)` binds the request locale from the route `params` and resolves the resource(s). Locale binding happens on the first call per request; subsequent `useR()` calls within the same request reuse the bound locale.
+
+#### Standalone binding: `bindLocale(...)`
+
+`bindLocale` is the standalone counterpart to `plug.useR(params)`: it performs locale binding without consuming a plug. Use it when the page or layout has no plug to call. After it runs, every subsequent `plug.useR()` (zero-arg) in the same request — including in nested children — picks up the bound locale automatically.
+
+Signature (two overloads):
+```ts
+bindLocale<P extends RMachineParams<LK>>(params: Promise<P>): Promise<P>;   // from route params
+bindLocale(locale: AnyLocale): Locale;                                       // from explicit locale string
+```
+
+The `params` overload returns the same `params` promise (with the locale field normalized to its canonical form), so it can be awaited inline and destructured.
+
+```tsx
+// app/[locale]/layout.tsx — layout without its own plug
+import { bindLocale, NextServerRMachine } from "@/r-machine/server-toolset";
+
+export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
+  const { locale } = await bindLocale(params);
+  return (
+    <html lang={locale}>
+      <body><NextServerRMachine>{children}</NextServerRMachine></body>
+    </html>
+  );
+}
+```
+
+Rules:
+- Invoke `bindLocale` **once per request**, at the top of the page or layout component.
+- After the first bind, all downstream `plug.useR()` calls (no args) — in the same component and in any nested children — resolve against the bound locale.
+- If the page itself needs a plug, **prefer `plug.useR(params)`**: it is exactly equivalent to `bindLocale(params)` followed by `plug.useR()`, but in a single call.
+- Calling `bindLocale` more than once per request with conflicting values throws `ERR_LOCALE_BIND_CONFLICT`.
+
+#### Switching locale: `setLocale(...)`
+
+`setLocale` is the standalone server primitive for **changing** the request's active locale and persisting it across subsequent requests. It is exported from every Next.js server toolset.
+
+Signature:
+```ts
+setLocale(newLocale: Locale): Promise<void>
+```
+
+The locale string is validated against the strategy's declared locales; an invalid value throws `ERR_UNKNOWN_LOCALE`. The new value is persisted via the strategy's own mechanism — cookie for `NextAppPathStrategy` and `NextAppFlatStrategy`, origin redirect target for `NextAppOriginStrategy` — so the next request lands on the chosen locale.
+
+`setLocale` is **server-only**: it must be called from a Server Action or Route Handler. Calling it elsewhere throws.
+
+Route Handler:
+```ts
+// app/(non-localized)/set-italian/route.ts
+import { setLocale } from "@/r-machine/server-toolset";
+
+export async function GET() {
+  await setLocale("it");
+}
+```
+
+Server Action driving a locale switcher:
+```ts
+// app/actions/switch-locale.ts
+"use server";
+import { setLocale } from "@/r-machine/server-toolset";
+import type { Locale } from "@/r-machine/setup";
+
+export async function switchLocale(next: Locale) {
+  await setLocale(next);
+}
+```
+
+Rules:
+- Must be invoked from a Server Action or Route Handler — not from a Server Component render path. (Components render during the response, after headers are sent; cookie writes require an action/handler context.)
+- `newLocale` is type-narrowed to the project's `Locale` union — passing a string outside that union is a compile error.
+
+#### Consumer-side locale switching: `$.setLocale(...)`
+
+Every plug consumer also receives `$.setLocale` on its `$` context — the in-consumer counterpart to the standalone primitives above. Use it when the locale change is initiated from inside a component (typically a locale switcher) rather than from a route handler.
+
+```ts
+$.setLocale(newLocale: Locale): Promise<void>
+```
+
+Available on all three plug variants. The persistence mechanism is delegated to the strategy:
+
+| Plug | Runtime | Persistence |
+|---|---|---|
+| `Plug` | React standard strategy | invokes the `writeLocale` callback passed to `<ReactRMachine>` (typically the `localeStore.set` from setup) |
+| `ClientPlug` | Next.js Client Component | path: navigates to the localized URL via the router; flat: writes the locale cookie and refreshes; origin: navigates to the locale's configured origin |
+| `ServerPlug` | Next.js Server Action / Route Handler | writes the strategy's cookie / redirect target — same backend as the standalone `setLocale` |
+
+Client Component switcher (Next.js):
+```tsx
+"use client";
+import { ClientPlug } from "@/r-machine/client-toolset";
+import type { Locale } from "@/r-machine/setup";
+
+export const plug = ClientPlug();
+
+export function LocaleSwitcher() {
+  const { $ } = plug.useR();
+  return (
+    <button onClick={() => $.setLocale("it" satisfies Locale)}>
+      Italiano
+    </button>
+  );
+}
+```
+
+React (web):
+```tsx
+import { Plug } from "@/r-machine/toolset";
+
+export const plug = Plug();
+
+export function LocaleSwitcher() {
+  const { $ } = plug.useR();
+  return <button onClick={() => $.setLocale("it")}>Italiano</button>;
+}
+```
+
+Notes:
+- `newLocale` is type-narrowed to the project's `Locale` union — invalid values are compile errors.
+- Returns `Promise<void>` on all variants. On `Plug` the promise resolves once `writeLocale` settles; on Next.js variants it resolves after the cookie write / redirect setup.
+- `Plug.$.setLocale` requires `writeLocale` to have been wired (via `<ReactRMachine writeLocale={...}>` or the strategy's `localeStore`) — calling it otherwise throws `ERR_MISSING_WRITE_LOCALE`.
+- `Plug.$.setLocale` short-circuits when called with the current locale; the Next.js variants do not (the origin strategy may still need to navigate across origins for the same locale).
+
+#### Unbound consumption: `plug.useUnboundR(...)`
+
+`ServerPlug` also exposes `useUnboundR(params | locale)` — same return shape as `useR`, but **does not bind the request locale**. Use it when the call site runs outside the request-bound rendering pipeline and must not become the source of truth for the active locale: `generateMetadata`, `generateStaticParams`, or any other Next.js lifecycle hook that may execute at build time or before the page tree itself binds the locale.
+
+Two overloads, both required to provide the locale explicitly (no zero-arg form, since there is no request locale to fall back to):
+
+```ts
+plug.useUnboundR(params)   // reads locale from route params, does not bind
+plug.useUnboundR(locale)   // explicit locale string, does not bind
+```
+
+`generateMetadata`:
+```tsx
+// app/[locale]/page.tsx
+export const metaPlug = ServerPlug("shell/common");
+
+export async function generateMetadata({ params }: PageProps<"/[locale]">): Promise<Metadata> {
+  const [common] = await metaPlug.useUnboundR(params);
+  return { title: common.title };
+}
+```
+
+`generateStaticParams` (nested dynamic route):
+```tsx
+// app/[locale]/example-dynamic/[slug]/page.tsx
+export const paramsPlug = ServerPlug("shell/example-dynamic");
+
+export async function generateStaticParams({
+  params: { locale },
+}: { params: Awaited<PageProps<"/[locale]/example-dynamic/[slug]">["params"]> }) {
+  const [r] = await paramsPlug.useUnboundR(locale);
+  return r.items.map((item) => ({ slug: item.slug }));
+}
+```
+
+Rule of thumb: if the function rendering the page tree is the one that should establish the request locale, use `useR(params)` there and `useUnboundR(...)` everywhere else that needs the resource for the same route.
+
+### 11.6. `generateLocaleStaticParams` (Next.js only)
+
+Pre-renders the `[locale]` segment at build time for every locale declared in `RMachine.create({ locales })`. Wire it as the layout's `generateStaticParams`:
+
+```tsx
+// app/[locale]/layout.tsx
+import { generateLocaleStaticParams, NextServerRMachine, ServerPlug } from "@/r-machine/server-toolset";
+
+export const generateStaticParams = generateLocaleStaticParams;
+export const dynamicParams = false;
+
+export const plug = ServerPlug("shell/common");
+
+export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
+  const [common, $] = await plug.useR(params);
+  return (
+    <html lang={$.params.locale}>
+      <body>
+        <NextServerRMachine>{children}</NextServerRMachine>
+      </body>
+    </html>
+  );
+}
+```
+
+- The export is the function itself, not a call: `export const generateStaticParams = generateLocaleStaticParams`. Next.js invokes it.
+- It returns one entry per declared locale (e.g. `[{ locale: "en" }, { locale: "it" }]`), enabling SSG for the localized subtree.
+- Pair it with `export const dynamicParams = false` to make any non-declared locale 404 instead of being rendered on demand.
+- Available on **all three strategies**. `NextAppPathStrategy` carries the locale in `params` natively; `NextAppFlatStrategy` (cookie) and `NextAppOriginStrategy` (origin) carry it outside `params`, and `rMachineProxy` rewrites incoming requests so the pre-rendering pipeline sees a synthetic `[locale]` param the same way in all strategies.
+- Compose freely with other static-param generators on nested routes (e.g. `[locale]/[slug]/page.tsx` declares its own `generateStaticParams` for `slug`).
+
+### 11.7. `rMachineProxy` and the no-proxy alternative
+
+R-Machine ships a Next.js Middleware-shaped proxy that handles locale detection, redirection, and request rewriting so the pre-rendering pipeline sees a uniform `[locale]` param across all strategies (see §11.6).
+
+#### Canonical: `proxy.ts` at the project source root
+
+```ts
+// src/proxy.ts
+import { rMachineProxy } from "./r-machine/server-toolset";
+
+export default rMachineProxy;
+
+export const config = {
+  // Apply proxy to all routes except:
+  // - Common system routes: `/_next`, `/_vercel`, `/api`
+  // - Requests ending with a file extension (e.g., `.js`, `.css`, `.png`)
+  matcher: ["/", "/((?!_next|_vercel|api|.*\\..*).*)"],
+};
+```
+
+- `rMachineProxy` is emitted by `strategy.createServerToolset(NextClientRMachine)` and is a Next.js Middleware function — export it as `default` from `proxy.ts` (Next.js's middleware entry point).
+- The `matcher` config is the developer's responsibility. The example above is the canonical exclusion list (system routes + static files); adapt as needed (e.g. add `/health`, `/robots.txt`).
+- **Required** for `NextAppFlatStrategy` and `NextAppOriginStrategy` — they have no other place to inject the synthetic `[locale]` param. Removing the proxy on these strategies breaks routing.
+
+#### Path strategy only: no-proxy alternative
+
+Because `NextAppPathStrategy` carries the locale in the URL natively, it can opt out of the proxy. In that case, declare a root route handler at `app/route.ts` to handle entrance redirects (cookie / `Accept-Language` detection):
+
+```ts
+// app/route.ts
+import { routeHandlers } from "@/r-machine/server-toolset";
+
+// Automatically redirects "/" to the correct locale based on:
+// 1. cookie (if `cookie: "on"` in the strategy)
+// 2. the Accept-Language header
+export const { GET } = routeHandlers.entrance;
+```
+
+This requires the no-proxy server toolset factory:
+
+```ts
+// r-machine/server-toolset.ts
+export const {
+  routeHandlers, NextServerRMachine, generateLocaleStaticParams,
+  bindLocale, setLocale, ServerPlug, /* ... */
+} = await strategy.createNoProxyServerToolset(NextClientRMachine);
+```
+
+`createNoProxyServerToolset(...)` is available **only on `NextAppPathStrategy`**. It emits `routeHandlers` in place of `rMachineProxy`. `routeHandlers.entrance` is one ready-made handler (`GET`) for the entry route; additional handlers may be exposed under the same namespace.
+
+When using this mode, do **not** create `proxy.ts`.
+
+### 11.8. `createNextDevImport` (Next.js only)
+
+Helper for `setup.ts` that returns a development-mode module loader backed by [`jiti`](https://github.com/unjs/jiti), with `fsCache: false` and `moduleCache: false` so that file edits on resource modules (gears, shells) propagate to subsequent SSR renders **without restarting the dev server**. In production, returns `null` and the consumer falls through to a native dynamic `import(...)`.
+
+```ts
+import { createNextDevImport } from "@r-machine/next/dev";
+import { RMachine } from "r-machine";
+import { ResourceAtlas } from "./resource-atlas";
+
+const devImport = await createNextDevImport(import.meta.url);
+
+const rMachine = RMachine.create({
+  ResourceAtlas,
+  locales: ["en", "it"],
+  defaultLocale: "en",
+  // `/* @vite-ignore */` is needed when running `verifyResourceAtlas` under
+  // vitest: it silences `vite-plugin-dynamic-import-vars`'s warning on the
+  // production fallback branch (which is never taken during verification —
+  // `devImport` is non-null). Webpack/Turbopack ignore the comment.
+  load: (path) => (devImport ? devImport(`./${path}`) : import(/* @vite-ignore */ `./${path}`)),
+});
+```
+
+**Signature:**
+
+```ts
+createNextDevImport(importMetaUrl: string): Promise<((path: string) => Promise<unknown>) | null>;
+```
+
+Activation gates — returns `null` (no jiti) unless **all** hold:
+- `NODE_ENV !== "production"`
+- running on the server (no `window`)
+- not the Edge runtime
+- `jiti` is installed in the consumer's project
+
+**Why HMR matters here.** Next/Turbopack reload their own module cache on file change, but R-Machine's blueprint cache still wraps the prior factory closure — so an edit to `shell/product/en.tsx` keeps rendering the stale output across SSR requests until the dev server restarts. Routing the loader through jiti bypasses both caches; the next request re-reads and re-transpiles the file from disk.
+
+**Dual purpose: enables `verifyResourceAtlas` in jsdom envs.** The same jiti path is what makes [`verifyResourceAtlas`](#146-verifyresourceatlas) work for Next setups under vitest. The verifier sets a process-global flag (`Symbol.for("@r-machine:force-dev-loader")`) and `createNextDevImport` honors it — jiti activates even when the test environment is jsdom (`typeof window !== "undefined"`). Without this, the production loader's `import(\`./${path}\`)` would not resolve under Vite (different bundler dialect), and the verification would fail spuriously.
+
+**jiti as an opt-in dev dep.** `jiti` is declared as an *optional peer dependency* of `@r-machine/next` — install only if you want HMR on resource modules and/or `verifyResourceAtlas` support in Next projects:
+
+```bash
+pnpm add -D jiti
+```
+
+When jiti is missing, `createNextDevImport` returns `null`, the production import path is used, and a one-shot console warning is emitted on the first call. `verifyResourceAtlas` additionally appends a `dev-loader-not-active` issue to its report so the install-jiti hint is surfaced at test time.
+
+**Process-wide cache.** The result is cached per `importMetaUrl` on `process` (Turbopack isolates bundle contexts with separate `globalThis` instances, so a `globalThis`-keyed cache would deduplicate only within one context). The verification flag bypasses this cache so the gate is re-evaluated under the override.
+
+---
+
+## 12. Vertex pattern: `<VertexFrame>`
+
+Each call to `Plug("vertex/...").useR()` in a component creates a new instance. To share that instance with descendants, the parent wraps the subtree in `<VertexFrame gear={instance}>`:
+
+```tsx
+import { Plug, VertexFrame } from "@/r-machine/toolset";
+
+export const plug = Plug("vertex/shopping-cart");
+
+export function CartPanel() {
+  const [cart] = plug.useR();   // creates the instance
+  return (
+    <VertexFrame gear={cart}>
+      <CartHeader />
+      <CartList />
+      <CartTotals />
+    </VertexFrame>
+  );
+}
+
+// Descendant — same call shape; receives the parent's instance
+export function CartTotals() {
+  const [cart] = Plug("vertex/shopping-cart").useR();
+  return <p>{cart.count} items</p>;
+}
+```
+
+If the descendant is outside any `<VertexFrame>` for the namespace, the `Plug(...).useR()` call creates its own instance.
+
+### 12.1. Duplicate vertex deps in a single Plug
+
+A `Plug` may declare the same vertex namespace more than once. Each occurrence is treated as a separate creation request:
+
+```tsx
+// Two independent cart instances under one component.
+const plug = Plug("vertex/shopping-cart", "vertex/shopping-cart");
+export function TwoCarts() {
+  const [cartA, cartB] = plug.useR(); // distinct instances
+  ...
+}
+
+// Same in map mode — the map key discriminates.
+const plug2 = Plug({ left: "vertex/shopping-cart", right: "vertex/shopping-cart" });
+```
+
+If the namespace is covered by a `<VertexFrame>` ancestor, **all** occurrences resolve to the frame's single instance (the sharing semantic wins over duplication). Without a frame, each occurrence owns its own slot, state, and dispose lifecycle.
+
+---
+
+## 13. Component plug-export convention
+
+Every component or page that consumes resources hoists its plug to module scope and exports it:
+
+```tsx
+import { Plug } from "@/r-machine/toolset";
+
+export const plug = Plug("shell/common");
+
+export function Greeting() {
+  const [common] = plug.useR();
+  return <p>{common.greeting}</p>;
+}
+```
+
+The exported `plug` is the test-time mock target.
+
+---
+
+## 14. Testing: `mockPlug`
+
+Single primitive, uniform across families.
+
+```ts
+mockPlug(plug).with({ /* override */ });
+```
+
+The override object is structurally type-checked against the plug's resolved shape: misnamed deps, wrong shapes, missing required fields all caught at compile time.
+
+### 14.1. What can be overridden
+
+**Always available:**
+- Direct dependencies declared by the plug — by name (map form) or position (list form).
+- Kit entries visible to the plug — via `$.kit`.
+
+**Conditional on the resource:**
+- `$.locale` — for shells, and for plugs of components that consume shells. Gears do not have a locale.
+- `$.state` — only for outer gears declared with `withState(...)`.
+- `$.ports` — only for resources declared with `withPorts({...})` (any composer).
+
+Anything not overridden runs through the production factory. Override is applied as a deep partial on top of the resulting Surface. Production code paths not substituted are still exercised, including any `[Symbol.dispose]` teardown.
+
+### 14.2. Resource-level test
+
+```ts
+import { mockPlug } from "@r-machine/testing";
+import { r } from "./outer/post-form";
+
+const calls: Array<[string, string]> = [];
+
+mockPlug(r.plug).with({
+  $: {
+    state: { pending: true },
+    ports: {
+      createPost: async (title, body) => { calls.push([title, body]); },
+    },
+  },
+});
+
+const instance = await r.create();
+await instance.submit("hello", "world");
+expect(calls).toEqual([["hello", "world"]]);
+```
+
+### 14.3. Client Component test
+
+```tsx
+import { render, screen } from "@testing-library/react";
+import { mockPlug } from "@r-machine/testing";
+import { Greeting, plug } from "./Greeting";
+
+mockPlug(plug).with({ $: { locale: "it" } });
+
+render(<Greeting />);
+expect(screen.getByText("Ciao")).toBeInTheDocument();
+```
+
+### 14.4. Server Component test (non-page)
+
+```tsx
+import { render, screen } from "@testing-library/react";
+import { mockPlug } from "@r-machine/testing";
+import { LocalizedHeader, plug } from "./LocalizedHeader";
+
+mockPlug(plug).with({ $: { locale: "it" } });
+
+render(await LocalizedHeader());
+expect(screen.getByText("Ciao")).toBeInTheDocument();
+```
+
+### 14.5. Server Page test
+
+For Server Pages (route handlers in `app/.../page.tsx`), locale is bound from URL `params` via `plug.useR(params)`. Overriding `$.locale` via `mockPlug` is a no-op — the page's own `plug.useR(params)` call wins.
+
+Substitute instead a resource the page consumes via its exported plug:
+
+```tsx
+// app/[locale]/stats/page.tsx
+export const plug = ServerPlug("inner/visit-counter");
+
+export default async function StatsPage({ params }: PageProps<"/[locale]/stats">) {
+  const [counter] = await plug.useR(params);
+  return <p>Visits: {await counter.total()}</p>;
+}
+
+// StatsPage.test.tsx
+mockPlug(plug).with({
+  0: { total: async () => 42 },
+});
+
+render(await StatsPage({ params: Promise.resolve({ locale: "en" }) }));
+expect(screen.getByText("Visits: 42")).toBeInTheDocument();
+```
+
+Override-key convention mirrors the dep declaration form:
+- list-form `ServerPlug("inner/visit-counter")` → key `0`
+- map-form `ServerPlug({ counter: "inner/visit-counter" })` → key `counter`
+
+`mockPlug` also reaches `$`-prefixed members (relays, internal actions).
+
+### 14.6. `verifyResourceAtlas`
+
+End-to-end completeness check for a project's resource atlas. Catches the one class of bug the type system cannot see: a key declared in `ResourceAtlas` whose resource cannot be resolved at runtime — typically a missing locale variant (`shell/landing/en.tsx` exists, `it.tsx` is missing) or a misconfigured loader.
+
+The check is agnostic to how `load` resolves modules (filesystem, `import.meta.glob`, remote, synthesized in memory). It walks every declared atlas key and invokes the same `load` function production uses, then asserts that the result is non-undefined and matches the `{ r: ... }` resource-module shape.
+
+```ts
+import { verifyResourceAtlas } from "@r-machine/testing";
+
+const report = await verifyResourceAtlas("./src/r-machine/setup.ts");
+```
+
+**Signature:**
+
+```ts
+verifyResourceAtlas(
+  setupFile: string,
+  options?: {
+    /** Named export on the setup file that exposes the strategy. Default: "strategy". */
+    strategyExportName?: string;
+    /** Path to a tsconfig.json used for the static-extraction pass. Defaults to the nearest one to setupFile. */
+    tsconfig?: string;
+  }
+): Promise<VerifyReport>;
+```
+
+`setupFile` is a filesystem path — absolute, or relative to `process.cwd()`. Under `vitest` the cwd is the project root, so `"./src/r-machine/setup.ts"` works as written.
+
+**Report shape:**
+
+```ts
+type VerifyReport = {
+  ok: boolean;          // === issues.length === 0
+  setupFile: string;    // absolute path
+  totalChecks: number;  // shell keys × locales + non-shell keys
+  issues: VerifyIssue[];
+};
+```
+
+Each `VerifyIssue` is plain JSON-serializable data. Common kinds:
+
+| `kind`                    | Cause                                                                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `missing-resource`        | `load(...)` returned `undefined` / `null`                                                                                            |
+| `loader-error`            | `load(...)` threw                                                                                                                    |
+| `invalid-module-shape`    | Returned value is missing the `{ r: ... }` shape                                                                                     |
+| `atlas-extraction-failed` | Could not locate the `ResourceAtlas` class via the TS API                                                                            |
+| `config-access-failed`    | Setup file does not export the expected strategy                                                                                     |
+| `dev-loader-not-active`   | Next setup used [`createNextDevImport`](#118-createnextdevimport-nextjs-only) but jiti did not activate — install hint surfaced |
+
+Shell-keyed issues additionally carry `locale` and `isCanonical: boolean` (true when the failing locale is `defaultLocale` — distinguishes a structural break from a translation gap). All key-bound issues carry a `sourceLocation: { file, line, column }` pointing to where the key is declared in `resource-atlas.ts` — clickable from most editors and CI log viewers.
+
+**Mechanics:**
+
+1. **Static phase** — TS Compiler API walks the import graph from `setupFile`, finds the `ResourceAtlas` class, extracts its `shape` properties (the atlas keys + their declaration positions).
+2. **Runtime phase** — dynamic-imports `setupFile`, reads the named strategy export, reaches the underlying `RMachineConfig` via an internal `CONFIG_ACCESSOR` symbol (mirroring `BUS_ACCESSOR`).
+3. **Verification phase** — iterates the extracted keys, dispatched by layout kind:
+   - `shell` → one `load` invocation per locale (full matrix)
+   - `shell(mono)` → single `load` invocation against `defaultLocale`
+   - `gear:*` → single `load` invocation with `locale: undefined`
+
+The same `validateResModule` used in production checks the return shape, so any malformed module is caught with the same diagnostic the resolver would produce at runtime.
+
+**Test-as-CI-gate pattern (recommended):**
+
+Place a single test next to the setup file. In CI / pre-commit, `vitest run` is the gate — no separate CLI to run, same loader environment as production:
+
+```ts
+// tests/r-machine/setup.test.ts
+import { describe, expect, it } from "vitest";
+import { verifyResourceAtlas } from "@r-machine/testing";
+
+describe("R-Machine resource atlas", () => {
+  it("every declared resource resolves through the configured loader", async () => {
+    const report = await verifyResourceAtlas("./src/r-machine/setup.ts");
+
+    expect(report.issues).toEqual([]);
+    expect(report.totalChecks).toBeGreaterThan(0);
+  });
+});
+```
+
+On failure, `expect(report.issues).toEqual([])` prints the full issue list — kind, key, locale, source location, error message — directly in the test diff.
+
+**Peer dep:** `verifyResourceAtlas` uses the TypeScript Compiler API and declares `typescript` as an **optional** peer dependency. Projects that only use `mockPlug` get no warning; projects that call `verifyResourceAtlas` need `typescript >=5.0` installed.
+
+**Environment:** the check invokes the *real* `load` function from `setupFile`. If the loader uses bundler-specific APIs (e.g. Vite's `import.meta.glob`, Webpack require contexts), run the verification inside the same bundler-aware runner — `vitest` for Vite projects naturally satisfies this since it reuses the project's Vite config.
+
+**Next.js projects:** the production loader pattern ``import(`./${path}`)`` is Webpack/Turbopack-shaped and does not resolve under Vite. Use [`createNextDevImport`](#118-createnextdevimport-nextjs-only) in the setup — it routes loads through `jiti` in dev (and during verification), which is bundler-neutral. The verifier activates jiti automatically via a process-global flag, so `// @vitest-environment node` is not required even when the test file would otherwise run under jsdom. If jiti is not installed in the consumer's project, the report surfaces a `dev-loader-not-active` issue pointing at the missing dep.
+
+---
+
+## 15. Diagnostics
+
+Errors of the architectural class produced by R-Machine's type system are formatted as `RMachineTypeError<"...">`. Examples:
+
+```
+RMachineTypeError<"Invalid namespaces declared 
+                   in atlas shape (dropped by layout filter): *** shell_wrong/common ***">
+```
+
+```
+RMachineTypeError<"Atlas keys use a reserved character in an invalid position. 
+                  '@' and ':' are fully reserved; '#' is allowed only as the first character (to mark a namespace as internal). Offending keys: shell@/common">
+```
+
+```
+RMachineTypeError<"Invalid dependency list provided.">
+```
+
+```
+RMachineTypeError<"Layout key 'base' must end with '/' to indicate a namespace prefix (e.g. 'base/').">
+```
+
+```
+RMachineTypeError<"ReactStandardStrategy does not support InnerGear. Remove these \"gear:inner\" 
+                   entries from the layout definition: *** inner1/ ***">
+```
+
+Generic TypeScript errors still occur for non-architectural mistakes (malformed action returns, bad type signatures in ports, etc.).
+
+---
+
+## 16. File conventions
+
+### 16.1. `resource-atlas.ts`
+
+```ts
+import { defineLayout } from "r-machine";
+import type { Inner_Counter } from "./inner/counter";
+import type { Outer_Cart } from "./outer/cart";
+import type { Shell_Product } from "./shell/product/en";
+
+const folders = defineLayout({
+  "inner/":     "gear:inner",
+  "base/":      "gear:base",
+  "outer/":     "gear:outer",
+  "vertex/":    "gear:outer(vertex)",
+  "shell/":     "shell",
+  "shell/lib/": "shell(mono)",
+});
+
+type ResourceMap = {
+  "inner/counter": Inner_Counter;
+  "outer/cart":    Outer_Cart;
+  "shell/product": Shell_Product;
+};
+
+export class ResourceAtlas extends folders<ResourceMap>() {}
+```
+
+### 16.2. `setup.ts`
+
+```ts
+import { RMachine, type RMachineLocale } from "r-machine";
+import { ResourceAtlas } from "./resource-atlas";
+
+const rMachine = RMachine.create({
+  ResourceAtlas,
+  locales: ["en", "it"],
+  defaultLocale: "en",
+  load: (path) => import(`./${path}.ts`),
+  bridgeGears: ["base/session"],
+  shellKit: { fmt: "shell/lib/fmt" },
+  experimental: { outerGear: "on" },
+});
+
+export const { InnerGear, BaseGear, OuterGear, Shell, localized } = rMachine.createToolset();
+export type Locale = RMachineLocale<typeof rMachine>;
+export type { BrandedResource as RShape } from "r-machine";
+
+// Strategy (per framework) lives in the same file — see §11.1 / §11.2 — and exposes its helpers via getHelpers():
+// export const strategy = /* ReactStandardStrategy | NextApp*Strategy */.create(rMachine, { /* … */ });
+// export const { localeHelper /*, hrefHelper */ } = strategy.getHelpers();
+```
+
+### 16.3. Gear file shape
+
+```ts
+import { /* InnerGear | BaseGear | OuterGear */, type RShape } from "../setup";
+
+export const r = /* composer chain */ .define(/* factory */);
+
+export type Some_Name = RShape<typeof r>;
+```
+
+### 16.4. Shell variant file shape
+
+```ts
+import { localized } from "../../setup";
+
+export const r = localized("shell/<name>", { /* keys */ });
+```
+
+---
+
+## 17. Resource placement reference
+
+| If X is… | Place it as |
+|---|---|
+| Locale-dependent text content with translations | Multi-locale `shell` (`shell/<name>/<locale>.ts` files) |
+| Locale-aware behavior without translations (formatters, parsers) | `shell(mono)` (single file at `shell/lib/<name>.ts`) |
+| Reactive/stateful, consumed in the React tree at application scope | `gear:outer` (with `withState`) |
+| Component-local reactive state consumed by descendants | `gear:outer(vertex)` consumed inside a `<VertexFrame>` |
+| Per-component reactive state used only within the component itself | `gear:outer(vertex)` consumed without `<VertexFrame>` |
+| Stateless service used by other gears, never by shells | `gear:base` |
+| Stateless service that translations need to read | `gear:base`, listed in `bridgeGears` |
+| Cross-cutting service every gear/shell needs | `gear:base` referenced from `gearKit` and/or `shellKit` |
+| Server-only service (DB, secret) | `gear:inner` |
+| One-shot async resource (fetched once) | `Shell.define(async () => …)` or `OuterGear.define(async () => …)` |
+| Side effect that fires on state change | `_.relay` inside the owning outer gear |
+| Pure derived value over state | `_.getter(() => …)` (or `_.getter("memoized", …)`) |
+| External function / server action / SDK client / fetch wrapper used inside a gear or shell | `.withPorts({ name })`, accessed via `$.ports.name` |
+| Same logic with a different external binding or starting state | `r.withPorts(...).clone()` / `r.withState(...).clone()` (see §5) |
+| Sibling locale variant that differs only in a handful of phrases | `r.clone((res, { $ }) => ({ ...res, /* overrides */ }))` (see §5.3.4) |
+
+---
+
+rev 2026-05-28.004
+Copyright (c) 2026 Sergio Turolla - All Rights Reserved.
+https://codecarvings.com

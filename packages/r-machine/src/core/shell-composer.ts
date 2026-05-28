@@ -45,14 +45,17 @@ type ShellWithPortsCapability<R, P extends AnyResPlug, PM extends ShellPlugPortM
       withPorts(ports: Partial<PM>): ShellMatrixPortsBuilder<R, P, PM>;
     };
 
-interface ShellMatrixPortsBuilder<R, P extends AnyResPlug, PM extends ShellPlugPortMap> {
-  clone(): ShellResMatrix<R, P, PM>;
-  clone<T extends R>(fn: ShellCloneFn<R, P, T>): ShellResMatrix<R, P, PM>;
+interface ShellMatrixClone<R, P extends AnyResPlug, PM extends ShellPlugPortMap> {
+  (): ShellResMatrix<R, P, PM>;
+  <T extends R>(fn: ShellCloneFn<R, P, T>): ShellResMatrix<R, P, PM>;
 }
 
-export type ShellResMatrix<R, P extends AnyResPlug, PM extends ShellPlugPortMap> = ResMatrix<R, P> & {
-  clone(): ShellResMatrix<R, P, PM>;
-  clone<T extends R>(fn: ShellCloneFn<R, P, T>): ShellResMatrix<R, P, PM>;
+interface ShellMatrixPortsBuilder<R, P extends AnyResPlug, PM extends ShellPlugPortMap> {
+  readonly clone: ShellMatrixClone<R, P, PM>;
+}
+
+type ShellResMatrix<R, P extends AnyResPlug, PM extends ShellPlugPortMap> = ResMatrix<R, P> & {
+  readonly clone: ShellMatrixClone<R, P, PM>;
 } & ShellWithPortsCapability<R, P, PM>;
 
 export interface ShellComposer<
