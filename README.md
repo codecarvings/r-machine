@@ -1,8 +1,10 @@
-> # 🚧🚧🚧 BRANCH UNDER HEAVY RESTRUCTURING — DO NOT USE 🚧🚧🚧
+> # ⚠️ New API preview — diverges from `main`
 >
-> **This branch (`RM-alpha-12`) is currently undergoing major restructuring.**
-> The code here is unstable, incomplete, and **must not be used** for any purpose.
-> Please refer to the `main` branch instead.
+> This branch (`RM-alpha-12`) ships a **completely reshaped** R-Machine public API. It is **not** API-compatible with the version currently published from the `main` branch. The new design unifies **i18n, dependency injection and state management around a single declaration syntax**, a single consumer primitive (`Plug`), and a single testing primitive (`mockPlug`).
+>
+> 📖 **LLM-ready documentation**: [`docs/llms-full.txt`](./docs/llms-full.txt).
+>
+> 💡 **Tip**: ask your LLM of choice to describe the new R-Machine API using the full specification that is available at <https://rmachine.dev>. You'll be surprised by the result.
 
 ---
 
@@ -24,6 +26,65 @@ Monorepo containing the R-Machine packages.
 | [`@r-machine/next`](./packages/r-machine-next) | [![npm](https://img.shields.io/npm/v/@r-machine/next)](https://www.npmjs.com/package/@r-machine/next) | Next.js App Router integration |
 | [`@r-machine/testing`](./packages/r-machine-testing) | [![npm](https://img.shields.io/npm/v/@r-machine/testing)](https://www.npmjs.com/package/@r-machine/testing) | Testing utilities |
 | [`rforge`](./packages/rforge) | [![npm](https://img.shields.io/npm/v/rforge)](https://www.npmjs.com/package/rforge) | Command-line interface for R-Machine |
+
+## Core concepts at a glance
+
+### Shell — locale-aware content
+
+A `Shell` is a multi-locale resource: one canonical file per locale, exact-keyed type validation across variants.
+
+```ts
+// r-machine/shell/common/en.ts  (canonical — defines the shape)
+export const r = { greeting: "Hello", addButton: "Add" };
+
+// r-machine/shell/common/it.ts  (variant — type-checked against canonical)
+import { localized } from "@/r-machine/setup";
+export const r = localized("shell/common", {
+  greeting: "Ciao",
+  addButton: "Aggiungi",
+});
+```
+
+### Gear — logic and state
+
+A `Gear` is a stateful or stateless logic unit. Three flavors (`InnerGear`, `BaseGear`, `OuterGear`) differ only in scope and who can consume them (server side / client side). A stateful example:
+
+```ts
+// r-machine/outer/counter.ts
+import { OuterGear, type RShape } from "@/r-machine/setup";
+
+export const r = OuterGear.withState({ count: 0 }).define(({ $ }, _) => ({
+  count: _.getter(() => $.state.count),
+  inc:   _.action(() => ({ count: $.state.count + 1 })),
+}));
+export type Outer_Counter = RShape<typeof r>;
+```
+
+### Plug — the one consumer primitive
+
+Components reach any resource through `Plug` (or `ClientPlug` / `ServerPlug` for SSR). Same call shape for gears, shells, single or many:
+
+```tsx
+// components/my-component.tsx
+import { Plug } from "@/r-machine/toolset";
+import { Button } from "/ui/button";
+
+export const plug = Plug("outer/counter", "shell/common");
+
+export default function MyComponent() {
+  const [counter, shell] = plug.useR();
+  return (
+    <div>
+      <h1>{counter.count}</h1>
+      <Button onClick={counter.inc}>{shell.addButton}</Button>
+    </div>
+  );
+}
+```
+
+For tests, `mockPlug(r.plug).with({ ... })` is the **single** override primitive — uniform across gears, shells and vertex resources.
+
+→ Full reference, including `BaseGear`, vertex layout, cursor primitives, framework strategies and testing: [`docs/llms-full.txt`](./docs/llms-full.txt).
 
 ## Examples
 
