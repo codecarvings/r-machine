@@ -39,7 +39,7 @@ import {
   type StatelessOuterGearMapPlug,
   type StatelessOuterGearMapPlugin,
 } from "./outer-gear-plug.js";
-import { getPlugOutline } from "./plug.js";
+import { type ExtractPlugin, getPlugOutline } from "./plug.js";
 import { makeAction } from "./reactivity/action-runtime.js";
 import type { CassetteRecorder } from "./reactivity/cassette-recorder.js";
 import { createMemoCell } from "./reactivity/memo-cell.js";
@@ -51,35 +51,121 @@ import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { AnyNamespace, ExtractNamespace } from "./res-domain.js";
 import type { ValidatedDepListType } from "./res-list.js";
 import type { HandleMap, ValidatedDepMapType } from "./res-map.js";
-import type { GearMatrixMeta, ResMatrix } from "./res-matrix.js";
+import type { GearMatrixMeta, NoExcess, ResMatrix } from "./res-matrix.js";
 import { createResMatrix } from "./res-matrix.js";
 import type { AnyResPlug } from "./res-plug.js";
 
-type StatelessCloneOverrides<PM> = keyof PM extends never
-  ? {}
+// T is the actual return type, instantiated at each call site. Threaded as a
+// regular parameter (with default `R` for runtime/storage use) so an
+// anonymous fn passed to `clone(fn)` doesn't have to satisfy every subtype
+// of R — the matrix's clone METHOD declares the generic, TS infers T from
+// the literal at the call site, and NoExcess catches stray properties.
+type StatelessCloneFn<R, P extends AnyResPlug, T extends R = R> = (
+  res: R,
+  plugin: ExtractPlugin<P>,
+  cursor: StatelessOuterGearCursor
+) => NoExcess<R, T> | Promise<NoExcess<R, T>>;
+
+type StatefulCloneFn<R, P extends AnyResPlug, S extends AnyState, T extends R = R> = (
+  res: R,
+  plugin: ExtractPlugin<P>,
+  cursor: StatefulOuterGearCursor<S>
+) => NoExcess<R, T> | Promise<NoExcess<R, T>>;
+
+type StatelessOuterGearWithPortsCapability<
+  R,
+  P extends AnyResPlug,
+  PM extends BaseGearPlugPortMap,
+> = keyof PM extends never
+  ? unknown
   : {
-      ports?: Partial<PM>;
+      readonly withPorts: (ports: Partial<PM>) => StatelessOuterGearMatrixPortsBuilder<R, P, PM>;
     };
 
-type StatefulCloneOverrides<PM, S extends AnyState> = {
-  state?: DeepPartial<S>;
-} & (keyof PM extends never
-  ? {}
+interface StatelessOuterGearClone<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap> {
+  (): StatelessOuterGearResMatrix<R, P, PM>;
+  <T extends R>(fn: StatelessCloneFn<R, P, T>): StatelessOuterGearResMatrix<R, P, PM>;
+}
+
+interface StatelessOuterGearMatrixPortsBuilder<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap> {
+  readonly clone: StatelessOuterGearClone<R, P, PM>;
+}
+
+type StatelessOuterGearResMatrix<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap> = ResMatrix<R, P> & {
+  readonly clone: StatelessOuterGearClone<R, P, PM>;
+} & StatelessOuterGearWithPortsCapability<R, P, PM>;
+
+type StatefulOuterGearWithPortsCapability<
+  R,
+  P extends AnyResPlug,
+  PM extends BaseGearPlugPortMap,
+  S extends AnyState,
+> = keyof PM extends never
+  ? unknown
   : {
-      ports?: Partial<PM>;
-    });
+      readonly withPorts: (ports: Partial<PM>) => StatefulOuterGearMatrixPortsBuilder<R, P, PM, S>;
+    };
 
-export interface StatelessOuterGearResMatrix<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap>
-  extends ResMatrix<R, P> {
-  clone(): StatelessOuterGearResMatrix<R, P, PM>;
-  clone(overrides: StatelessCloneOverrides<PM>): StatelessOuterGearResMatrix<R, P, PM>;
+interface StatefulOuterGearMatrixClone<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap, S extends AnyState> {
+  (): StatefulOuterGearResMatrix<R, P, PM, S>;
+  <T extends R>(fn: StatefulCloneFn<R, P, S, T>): StatefulOuterGearResMatrix<R, P, PM, S>;
 }
 
-export interface StatefulOuterGearResMatrix<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap, S extends AnyState>
-  extends ResMatrix<R, P> {
-  clone(): StatefulOuterGearResMatrix<R, P, PM, S>;
-  clone(overrides: StatefulCloneOverrides<PM, S>): StatefulOuterGearResMatrix<R, P, PM, S>;
+interface StatefulOuterGearMatrixPortsBuilder<
+  R,
+  P extends AnyResPlug,
+  PM extends BaseGearPlugPortMap,
+  S extends AnyState,
+> {
+  readonly withState: (state: DeepPartial<S>) => StatefulOuterGearMatrixPortsStateBuilder<R, P, PM, S>;
+  readonly clone: StatefulOuterGearMatrixClone<R, P, PM, S>;
 }
+
+interface StatefulOuterGearMatrixStateBuilder<
+  R,
+  P extends AnyResPlug,
+  PM extends BaseGearPlugPortMap,
+  S extends AnyState,
+> {
+  readonly clone: StatefulOuterGearMatrixClone<R, P, PM, S>;
+}
+
+type StatefulOuterGearStateBuilderWithPorts<
+  R,
+  P extends AnyResPlug,
+  PM extends BaseGearPlugPortMap,
+  S extends AnyState,
+> = keyof PM extends never
+  ? unknown
+  : {
+      readonly withPorts: (ports: Partial<PM>) => StatefulOuterGearMatrixPortsStateBuilder<R, P, PM, S>;
+    };
+
+type StatefulOuterGearMatrixStateThenPortsBuilder<
+  R,
+  P extends AnyResPlug,
+  PM extends BaseGearPlugPortMap,
+  S extends AnyState,
+> = StatefulOuterGearMatrixStateBuilder<R, P, PM, S> & StatefulOuterGearStateBuilderWithPorts<R, P, PM, S>;
+
+interface StatefulOuterGearMatrixPortsStateBuilder<
+  R,
+  P extends AnyResPlug,
+  PM extends BaseGearPlugPortMap,
+  S extends AnyState,
+> {
+  readonly clone: StatefulOuterGearMatrixClone<R, P, PM, S>;
+}
+
+type StatefulOuterGearResMatrix<
+  R,
+  P extends AnyResPlug,
+  PM extends BaseGearPlugPortMap,
+  S extends AnyState,
+> = ResMatrix<R, P> & {
+  readonly clone: StatefulOuterGearMatrixClone<R, P, PM, S>;
+  readonly withState: (state: DeepPartial<S>) => StatefulOuterGearMatrixStateThenPortsBuilder<R, P, PM, S>;
+} & StatefulOuterGearWithPortsCapability<R, P, PM, S>;
 
 export interface OuterGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   readonly withDeps: OuterGearDepsComposer<RA, KM>;
@@ -498,22 +584,6 @@ export function wrapWithRelayCleanup(resource: AnyRes, cursor: unknown): AnyRes 
   return resource;
 }
 
-function statefulPostProcess<S extends AnyState>(raw: unknown, _: StatefulOuterGearCursor<S>): AnyRes {
-  let resource: AnyRes;
-  if (Array.isArray(raw)) {
-    const [getterName, actionName] = raw;
-    const obj: Record<string, unknown> = { [getterName]: _.getter() };
-    if (actionName !== undefined) {
-      obj[actionName] = _.action();
-    }
-    resource = obj as AnyRes;
-  } else {
-    resource = raw as AnyRes;
-  }
-  promoteMemberNames(resource);
-  return wrapWithRelayCleanup(resource, _);
-}
-
 function statelessPostProcess(raw: unknown, cursor: unknown): AnyRes {
   promoteMemberNames(raw);
   return wrapWithRelayCleanup(raw as AnyRes, cursor);
@@ -695,13 +765,27 @@ function buildStatefulOuterGearMapMatrix<
   deps: DM,
   ports: PM,
   defaultState: S,
-  factory: (plugin: never, cursor: never) => unknown
+  rawUserFactory: (plugin: never, cursor: never) => unknown,
+  composedFn?: StatefulCloneFn<AnyRes, StatefulOuterGearMapPlug<RA, KM, DM, PM, S>, S>
 ): StatefulOuterGearResMatrix<AnyRes, StatefulOuterGearMapPlug<RA, KM, DM, PM, S>, PM, S> {
+  type ThisPlug = StatefulOuterGearMapPlug<RA, KM, DM, PM, S>;
   const head = createStatefulOuterGearMapPlugHead<RA, KM, DM, PM, StatefulOuterGearPluginCtx<RA, KM, PM, S>, S>(
     deps,
     ports,
     defaultState
   );
+
+  // Convert array→object BEFORE the user's clone fn sees it, so fn operates
+  // on the same R the matrix advertises at the type level (StateDef factories
+  // return arrays at runtime but their R is the derived object shape).
+  const effectiveFactory = async (plugin: unknown, cursor: unknown): Promise<unknown> => {
+    const raw = await (rawUserFactory as (plugin: unknown, cursor: unknown) => unknown | Promise<unknown>)(
+      plugin,
+      cursor
+    );
+    const converted = convertStatefulRaw(raw, cursor as StatefulOuterGearCursor<S>);
+    return composedFn ? await composedFn(converted, plugin as never, cursor as StatefulOuterGearCursor<S>) : converted;
+  };
 
   const matrix = createResMatrix({
     connector,
@@ -709,7 +793,7 @@ function buildStatefulOuterGearMapMatrix<
     head,
     cursor: (plugin: unknown, selfNs?: AnyNamespace) =>
       buildStatefulOuterGearCursor<S>((plugin as { $: PluginWithStateCell<S> }).$[stateCellSlot], recorder, selfNs),
-    userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
+    userFactory: effectiveFactory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
     augmentCtx: ($) => {
       const cell = createStateCell(defaultState, recorder);
       ($ as unknown as { [stateCellSlot]: StateCell<S> })[stateCellSlot] = cell;
@@ -719,21 +803,102 @@ function buildStatefulOuterGearMapMatrix<
       });
       $.defaultState = defaultState;
     },
-    postProcess: (raw, c) => statefulPostProcess(raw, c as StatefulOuterGearCursor<S>),
+    postProcess: (raw, c) => statefulPostProcessAfterConversion(raw, c as StatefulOuterGearCursor<S>),
   });
 
-  const clone = (overrides?: any) => {
-    const nextPorts = overrides?.ports !== undefined ? ({ ...ports, ...overrides.ports } as PM) : ports;
-    const nextState = deepPartialMerge(defaultState, overrides?.state);
-    return buildStatefulOuterGearMapMatrix<RA, KM, DM, PM, S>(connector, recorder, deps, nextPorts, nextState, factory);
-  };
+  const clone = (fn?: StatefulCloneFn<AnyRes, ThisPlug, S>) =>
+    buildStatefulOuterGearMapMatrix<RA, KM, DM, PM, S>(
+      connector,
+      recorder,
+      deps,
+      ports,
+      defaultState,
+      rawUserFactory,
+      composeStatefulFn<AnyRes, ThisPlug, S>(composedFn, fn)
+    );
 
-  return { ...matrix, clone } as unknown as StatefulOuterGearResMatrix<
-    AnyRes,
-    StatefulOuterGearMapPlug<RA, KM, DM, PM, S>,
-    PM,
-    S
-  >;
+  const withPorts = (overridePorts: Partial<PM>) => ({
+    withState: (overrideState: DeepPartial<S>) => ({
+      clone: (fn?: StatefulCloneFn<AnyRes, ThisPlug, S>) =>
+        buildStatefulOuterGearMapMatrix<RA, KM, DM, PM, S>(
+          connector,
+          recorder,
+          deps,
+          { ...ports, ...overridePorts } as PM,
+          deepPartialMerge(defaultState, overrideState),
+          rawUserFactory,
+          composeStatefulFn<AnyRes, ThisPlug, S>(composedFn, fn)
+        ),
+    }),
+    clone: (fn?: StatefulCloneFn<AnyRes, ThisPlug, S>) =>
+      buildStatefulOuterGearMapMatrix<RA, KM, DM, PM, S>(
+        connector,
+        recorder,
+        deps,
+        { ...ports, ...overridePorts } as PM,
+        defaultState,
+        rawUserFactory,
+        composeStatefulFn<AnyRes, ThisPlug, S>(composedFn, fn)
+      ),
+  });
+
+  const withState = (overrideState: DeepPartial<S>) => ({
+    withPorts: (overridePorts: Partial<PM>) => ({
+      clone: (fn?: StatefulCloneFn<AnyRes, ThisPlug, S>) =>
+        buildStatefulOuterGearMapMatrix<RA, KM, DM, PM, S>(
+          connector,
+          recorder,
+          deps,
+          { ...ports, ...overridePorts } as PM,
+          deepPartialMerge(defaultState, overrideState),
+          rawUserFactory,
+          composeStatefulFn<AnyRes, ThisPlug, S>(composedFn, fn)
+        ),
+    }),
+    clone: (fn?: StatefulCloneFn<AnyRes, ThisPlug, S>) =>
+      buildStatefulOuterGearMapMatrix<RA, KM, DM, PM, S>(
+        connector,
+        recorder,
+        deps,
+        ports,
+        deepPartialMerge(defaultState, overrideState),
+        rawUserFactory,
+        composeStatefulFn<AnyRes, ThisPlug, S>(composedFn, fn)
+      ),
+  });
+
+  return { ...matrix, clone, withPorts, withState } as unknown as StatefulOuterGearResMatrix<AnyRes, ThisPlug, PM, S>;
+}
+
+function convertStatefulRaw<S extends AnyState>(raw: unknown, cursor: StatefulOuterGearCursor<S>): AnyRes {
+  if (Array.isArray(raw)) {
+    const [getterName, actionName] = raw;
+    const obj: Record<string, unknown> = { [getterName]: cursor.getter() };
+    if (actionName !== undefined) {
+      obj[actionName] = cursor.action();
+    }
+    return obj as AnyRes;
+  }
+  return raw as AnyRes;
+}
+
+function statefulPostProcessAfterConversion<S extends AnyState>(
+  raw: unknown,
+  cursor: StatefulOuterGearCursor<S>
+): AnyRes {
+  // raw is already an object — conversion happened in effectiveFactory so
+  // any user-provided clone fn sees the matrix's R shape.
+  promoteMemberNames(raw as AnyRes);
+  return wrapWithRelayCleanup(raw as AnyRes, cursor);
+}
+
+function composeStatefulFn<R, P extends AnyResPlug, S extends AnyState>(
+  prev: StatefulCloneFn<R, P, S> | undefined,
+  next: StatefulCloneFn<R, P, S> | undefined
+): StatefulCloneFn<R, P, S> | undefined {
+  if (prev === undefined) return next;
+  if (next === undefined) return prev;
+  return async (res, plugin, cursor) => next(await prev(res, plugin, cursor), plugin, cursor);
 }
 
 function createStatefulOuterGearListDefiner<
@@ -772,13 +937,24 @@ function buildStatefulOuterGearListMatrix<
   deps: DL,
   ports: PM,
   defaultState: S,
-  factory: (plugin: never, cursor: never) => unknown
+  rawUserFactory: (plugin: never, cursor: never) => unknown,
+  composedFn?: StatefulCloneFn<AnyRes, StatefulOuterGearListPlug<RA, KM, DL, PM, S>, S>
 ): StatefulOuterGearResMatrix<AnyRes, StatefulOuterGearListPlug<RA, KM, DL, PM, S>, PM, S> {
+  type ThisPlug = StatefulOuterGearListPlug<RA, KM, DL, PM, S>;
   const head = createStatefulOuterGearListPlugHead<RA, KM, DL, PM, StatefulOuterGearPluginCtx<RA, KM, PM, S>, S>(
     deps,
     ports,
     defaultState
   );
+
+  const effectiveFactory = async (plugin: unknown, cursor: unknown): Promise<unknown> => {
+    const raw = await (rawUserFactory as (plugin: unknown, cursor: unknown) => unknown | Promise<unknown>)(
+      plugin,
+      cursor
+    );
+    const converted = convertStatefulRaw(raw, cursor as StatefulOuterGearCursor<S>);
+    return composedFn ? await composedFn(converted, plugin as never, cursor as StatefulOuterGearCursor<S>) : converted;
+  };
 
   const matrix = createResMatrix({
     connector,
@@ -789,7 +965,7 @@ function buildStatefulOuterGearListMatrix<
       const ctx = arr[arr.length - 1] as PluginWithStateCell<S>;
       return buildStatefulOuterGearCursor<S>(ctx[stateCellSlot], recorder, selfNs);
     },
-    userFactory: factory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
+    userFactory: effectiveFactory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
     augmentCtx: ($) => {
       const cell = createStateCell(defaultState, recorder);
       ($ as unknown as { [stateCellSlot]: StateCell<S> })[stateCellSlot] = cell;
@@ -799,28 +975,71 @@ function buildStatefulOuterGearListMatrix<
       });
       $.defaultState = defaultState;
     },
-    postProcess: (raw, c) => statefulPostProcess(raw, c as unknown as StatefulOuterGearCursor<S>),
+    postProcess: (raw, c) => statefulPostProcessAfterConversion(raw, c as unknown as StatefulOuterGearCursor<S>),
   });
 
-  const clone = (overrides?: any) => {
-    const nextPorts = overrides?.ports !== undefined ? ({ ...ports, ...overrides.ports } as PM) : ports;
-    const nextState = deepPartialMerge(defaultState, overrides?.state);
-    return buildStatefulOuterGearListMatrix<RA, KM, DL, PM, S>(
+  const clone = (fn?: StatefulCloneFn<AnyRes, ThisPlug, S>) =>
+    buildStatefulOuterGearListMatrix<RA, KM, DL, PM, S>(
       connector,
       recorder,
       deps,
-      nextPorts,
-      nextState,
-      factory
+      ports,
+      defaultState,
+      rawUserFactory,
+      composeStatefulFn<AnyRes, ThisPlug, S>(composedFn, fn)
     );
-  };
 
-  return { ...matrix, clone } as unknown as StatefulOuterGearResMatrix<
-    AnyRes,
-    StatefulOuterGearListPlug<RA, KM, DL, PM, S>,
-    PM,
-    S
-  >;
+  const withPorts = (overridePorts: Partial<PM>) => ({
+    withState: (overrideState: DeepPartial<S>) => ({
+      clone: (fn?: StatefulCloneFn<AnyRes, ThisPlug, S>) =>
+        buildStatefulOuterGearListMatrix<RA, KM, DL, PM, S>(
+          connector,
+          recorder,
+          deps,
+          { ...ports, ...overridePorts } as PM,
+          deepPartialMerge(defaultState, overrideState),
+          rawUserFactory,
+          composeStatefulFn<AnyRes, ThisPlug, S>(composedFn, fn)
+        ),
+    }),
+    clone: (fn?: StatefulCloneFn<AnyRes, ThisPlug, S>) =>
+      buildStatefulOuterGearListMatrix<RA, KM, DL, PM, S>(
+        connector,
+        recorder,
+        deps,
+        { ...ports, ...overridePorts } as PM,
+        defaultState,
+        rawUserFactory,
+        composeStatefulFn<AnyRes, ThisPlug, S>(composedFn, fn)
+      ),
+  });
+
+  const withState = (overrideState: DeepPartial<S>) => ({
+    withPorts: (overridePorts: Partial<PM>) => ({
+      clone: (fn?: StatefulCloneFn<AnyRes, ThisPlug, S>) =>
+        buildStatefulOuterGearListMatrix<RA, KM, DL, PM, S>(
+          connector,
+          recorder,
+          deps,
+          { ...ports, ...overridePorts } as PM,
+          deepPartialMerge(defaultState, overrideState),
+          rawUserFactory,
+          composeStatefulFn<AnyRes, ThisPlug, S>(composedFn, fn)
+        ),
+    }),
+    clone: (fn?: StatefulCloneFn<AnyRes, ThisPlug, S>) =>
+      buildStatefulOuterGearListMatrix<RA, KM, DL, PM, S>(
+        connector,
+        recorder,
+        deps,
+        ports,
+        deepPartialMerge(defaultState, overrideState),
+        rawUserFactory,
+        composeStatefulFn<AnyRes, ThisPlug, S>(composedFn, fn)
+      ),
+  });
+
+  return { ...matrix, clone, withPorts, withState } as unknown as StatefulOuterGearResMatrix<AnyRes, ThisPlug, PM, S>;
 }
 
 function createStatelessOuterGearMapDefiner<
@@ -834,20 +1053,75 @@ function createStatelessOuterGearMapDefiner<
   deps: DM,
   ports: PM
 ): StatelessOuterGearMapDefiner<RA, KM, DM, PM> {
+  return ((factory: (plugin: never, cursor: never) => unknown) =>
+    buildStatelessOuterGearMapMatrix<RA, KM, DM, PM>(
+      connector,
+      recorder,
+      deps,
+      ports,
+      factory
+    )) as StatelessOuterGearMapDefiner<RA, KM, DM, PM>;
+}
+
+function buildStatelessOuterGearMapMatrix<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends OuterGearPlugDepMap<RA>,
+  PM extends BaseGearPlugPortMap,
+>(
+  connector: ResComposerConnector,
+  recorder: CassetteRecorder,
+  deps: DM,
+  ports: PM,
+  rawUserFactory: (plugin: never, cursor: never) => unknown,
+  composedFn?: StatelessCloneFn<AnyRes, StatelessOuterGearMapPlug<RA, KM, DM, PM>>
+): StatelessOuterGearResMatrix<AnyRes, StatelessOuterGearMapPlug<RA, KM, DM, PM>, PM> {
+  type ThisPlug = StatelessOuterGearMapPlug<RA, KM, DM, PM>;
   const head = createGearMapPlugHead<"outer", RA, KM, DM, PM, GearPluginCtx<RA, KM, PM>>("outer", deps, ports);
 
-  return (factory: (plugin: never, cursor: never) => unknown) =>
-    createResMatrix({
-      connector: connector,
-      meta,
-      head,
-      // Per-resolve factory so each instance has its own relay-cleanup
-      // closure; the cursor object is shared as the `cursor` arg to both
-      // the user factory and the postProcess for relay teardown wiring.
-      cursor: (_plugin: unknown, selfNs?: AnyNamespace) => buildStatelessOuterGearCursor(recorder, selfNs),
-      userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
-      postProcess: (raw, c) => statelessPostProcess(raw, c as unknown),
-    });
+  const effectiveFactory = async (plugin: unknown, cursor: unknown): Promise<unknown> => {
+    const raw = await (rawUserFactory as (plugin: unknown, cursor: unknown) => unknown | Promise<unknown>)(
+      plugin,
+      cursor
+    );
+    return composedFn ? await composedFn(raw as AnyRes, plugin as never, cursor as StatelessOuterGearCursor) : raw;
+  };
+
+  const matrix = createResMatrix({
+    connector: connector,
+    meta,
+    head,
+    // Per-resolve factory so each instance has its own relay-cleanup
+    // closure; the cursor object is shared as the `cursor` arg to both
+    // the user factory and the postProcess for relay teardown wiring.
+    cursor: (_plugin: unknown, selfNs?: AnyNamespace) => buildStatelessOuterGearCursor(recorder, selfNs),
+    userFactory: effectiveFactory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
+    postProcess: (raw, c) => statelessPostProcess(raw, c as unknown),
+  });
+
+  const clone = (fn?: StatelessCloneFn<AnyRes, ThisPlug>) =>
+    buildStatelessOuterGearMapMatrix<RA, KM, DM, PM>(
+      connector,
+      recorder,
+      deps,
+      ports,
+      rawUserFactory,
+      composeStatelessFn<AnyRes, ThisPlug>(composedFn, fn)
+    );
+
+  const withPorts = (overridePorts: Partial<PM>) => ({
+    clone: (fn?: StatelessCloneFn<AnyRes, ThisPlug>) =>
+      buildStatelessOuterGearMapMatrix<RA, KM, DM, PM>(
+        connector,
+        recorder,
+        deps,
+        { ...ports, ...overridePorts } as PM,
+        rawUserFactory,
+        composeStatelessFn<AnyRes, ThisPlug>(composedFn, fn)
+      ),
+  });
+
+  return { ...matrix, clone, withPorts } as unknown as StatelessOuterGearResMatrix<AnyRes, ThisPlug, PM>;
 }
 
 function createStatelessOuterGearListDefiner<
@@ -861,17 +1135,81 @@ function createStatelessOuterGearListDefiner<
   deps: DL,
   ports: PM
 ): StatelessOuterGearListDefiner<RA, KM, DL, PM> {
+  return ((factory: (plugin: never, cursor: never) => unknown) =>
+    buildStatelessOuterGearListMatrix<RA, KM, DL, PM>(
+      connector,
+      recorder,
+      deps,
+      ports,
+      factory
+    )) as StatelessOuterGearListDefiner<RA, KM, DL, PM>;
+}
+
+function buildStatelessOuterGearListMatrix<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends OuterGearPlugDepList<RA>,
+  PM extends BaseGearPlugPortMap,
+>(
+  connector: ResComposerConnector,
+  recorder: CassetteRecorder,
+  deps: DL,
+  ports: PM,
+  rawUserFactory: (plugin: never, cursor: never) => unknown,
+  composedFn?: StatelessCloneFn<AnyRes, StatelessOuterGearListPlug<RA, KM, DL, PM>>
+): StatelessOuterGearResMatrix<AnyRes, StatelessOuterGearListPlug<RA, KM, DL, PM>, PM> {
+  type ThisPlug = StatelessOuterGearListPlug<RA, KM, DL, PM>;
   const head = createGearListPlugHead<"outer", RA, KM, DL, PM, GearPluginCtx<RA, KM, PM>>("outer", deps, ports);
 
-  return ((factory: (plugin: never, cursor: never) => unknown) =>
-    createResMatrix({
-      connector: connector,
-      meta,
-      head,
-      cursor: (_plugin: unknown, selfNs?: AnyNamespace) => buildStatelessOuterGearCursor(recorder, selfNs),
-      userFactory: factory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
-      postProcess: (raw, c) => statelessPostProcess(raw, c as unknown),
-    })) as StatelessOuterGearListDefiner<RA, KM, DL, PM>;
+  const effectiveFactory = async (plugin: unknown, cursor: unknown): Promise<unknown> => {
+    const raw = await (rawUserFactory as (plugin: unknown, cursor: unknown) => unknown | Promise<unknown>)(
+      plugin,
+      cursor
+    );
+    return composedFn ? await composedFn(raw as AnyRes, plugin as never, cursor as StatelessOuterGearCursor) : raw;
+  };
+
+  const matrix = createResMatrix({
+    connector: connector,
+    meta,
+    head,
+    cursor: (_plugin: unknown, selfNs?: AnyNamespace) => buildStatelessOuterGearCursor(recorder, selfNs),
+    userFactory: effectiveFactory as (plugin: unknown, cursor: never) => AnyRes | Promise<AnyRes>,
+    postProcess: (raw, c) => statelessPostProcess(raw, c as unknown),
+  });
+
+  const clone = (fn?: StatelessCloneFn<AnyRes, ThisPlug>) =>
+    buildStatelessOuterGearListMatrix<RA, KM, DL, PM>(
+      connector,
+      recorder,
+      deps,
+      ports,
+      rawUserFactory,
+      composeStatelessFn<AnyRes, ThisPlug>(composedFn, fn)
+    );
+
+  const withPorts = (overridePorts: Partial<PM>) => ({
+    clone: (fn?: StatelessCloneFn<AnyRes, ThisPlug>) =>
+      buildStatelessOuterGearListMatrix<RA, KM, DL, PM>(
+        connector,
+        recorder,
+        deps,
+        { ...ports, ...overridePorts } as PM,
+        rawUserFactory,
+        composeStatelessFn<AnyRes, ThisPlug>(composedFn, fn)
+      ),
+  });
+
+  return { ...matrix, clone, withPorts } as unknown as StatelessOuterGearResMatrix<AnyRes, ThisPlug, PM>;
+}
+
+function composeStatelessFn<R, P extends AnyResPlug>(
+  prev: StatelessCloneFn<R, P> | undefined,
+  next: StatelessCloneFn<R, P> | undefined
+): StatelessCloneFn<R, P> | undefined {
+  if (prev === undefined) return next;
+  if (next === undefined) return prev;
+  return async (res, plugin, cursor) => next(await prev(res, plugin, cursor), plugin, cursor);
 }
 
 // #endregion

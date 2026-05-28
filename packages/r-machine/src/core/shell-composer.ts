@@ -14,13 +14,13 @@
 import type { AnyLocale } from "#r-machine/locale";
 import type { BaseGearNamespaceList } from "./base-gear-plug.js";
 import { lazyGetters } from "./composer-utils.js";
-import { getPlugOutline } from "./plug.js";
+import { type ExtractPlugin, getPlugOutline } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { ValidatedDepListType } from "./res-list.js";
 import type { ValidatedDepMapType } from "./res-map.js";
-import { createResMatrix, type ResMatrix, type ShellMatrixMeta } from "./res-matrix.js";
+import { createResMatrix, type NoExcess, type ResMatrix, type ShellMatrixMeta } from "./res-matrix.js";
 import { type AnyResPlug, createResListPlugHead, createResMapPlugHead } from "./res-plug.js";
 import type {
   ShellListPlug,
@@ -34,13 +34,26 @@ import type {
   ShellPlugPortMap,
 } from "./shell-plug.js";
 
-interface CloneOverrides<PM> {
-  ports?: keyof PM extends never ? never : Partial<PM>;
-}
-export interface ShellResMatrix<R, P extends AnyResPlug, PM extends ShellPlugPortMap> extends ResMatrix<R, P> {
+type ShellCloneFn<R, P extends AnyResPlug, T extends R = R> = (
+  res: R,
+  plugin: ExtractPlugin<P>
+) => NoExcess<R, T> | Promise<NoExcess<R, T>>;
+
+type ShellWithPortsCapability<R, P extends AnyResPlug, PM extends ShellPlugPortMap> = keyof PM extends never
+  ? unknown
+  : {
+      withPorts(ports: Partial<PM>): ShellMatrixPortsBuilder<R, P, PM>;
+    };
+
+interface ShellMatrixPortsBuilder<R, P extends AnyResPlug, PM extends ShellPlugPortMap> {
   clone(): ShellResMatrix<R, P, PM>;
-  clone(overrides: CloneOverrides<PM>): ShellResMatrix<R, P, PM>;
+  clone<T extends R>(fn: ShellCloneFn<R, P, T>): ShellResMatrix<R, P, PM>;
 }
+
+export type ShellResMatrix<R, P extends AnyResPlug, PM extends ShellPlugPortMap> = ResMatrix<R, P> & {
+  clone(): ShellResMatrix<R, P, PM>;
+  clone<T extends R>(fn: ShellCloneFn<R, P, T>): ShellResMatrix<R, P, PM>;
+} & ShellWithPortsCapability<R, P, PM>;
 
 export interface ShellComposer<
   RA extends AnyResAtlas,
@@ -225,16 +238,50 @@ function createShellMapDefiner<
   DM extends ShellPlugDepMap<RA>,
   PM extends ShellPlugPortMap,
 >(connector: ResComposerConnector, deps: DM, ports: PM): ShellMapDefiner<RA, L, KM, DM, PM> {
-  const head = createResMapPlugHead<"shell", RA, KM, DM, PM, ShellPluginCtx<RA, L, KM, PM>>("shell", deps, ports);
-
-  return (factory: (plugin: never) => unknown) =>
-    createResMatrix({
+  return ((factory: (plugin: never) => unknown) =>
+    buildShellMapMatrix<RA, L, KM, DM, PM>(
       connector,
-      meta,
-      head,
-      cursor,
-      userFactory: factory as (plugin: unknown) => AnyRes | Promise<AnyRes>,
-    });
+      deps,
+      ports,
+      factory as (plugin: unknown) => AnyRes | Promise<AnyRes>
+    )) as ShellMapDefiner<RA, L, KM, DM, PM>;
+}
+
+function buildShellMapMatrix<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KM extends ShellPlugKitMap<RA>,
+  DM extends ShellPlugDepMap<RA>,
+  PM extends ShellPlugPortMap,
+>(
+  connector: ResComposerConnector,
+  deps: DM,
+  ports: PM,
+  factory: (plugin: unknown) => AnyRes | Promise<AnyRes>
+): ShellResMatrix<AnyRes, ShellMapPlug<RA, L, KM, DM, PM>, PM> {
+  const head = createResMapPlugHead<"shell", RA, KM, DM, PM, ShellPluginCtx<RA, L, KM, PM>>("shell", deps, ports);
+  const matrix = createResMatrix({
+    connector,
+    meta,
+    head,
+    cursor,
+    userFactory: factory,
+  });
+
+  const clone = (fn?: ShellCloneFn<AnyRes, ShellMapPlug<RA, L, KM, DM, PM>>) =>
+    buildShellMapMatrix<RA, L, KM, DM, PM>(connector, deps, ports, composeShellFactory(factory, fn));
+
+  const withPorts = (overrides: Partial<PM>) => ({
+    clone: (fn?: ShellCloneFn<AnyRes, ShellMapPlug<RA, L, KM, DM, PM>>) =>
+      buildShellMapMatrix<RA, L, KM, DM, PM>(
+        connector,
+        deps,
+        { ...ports, ...overrides } as PM,
+        composeShellFactory(factory, fn)
+      ),
+  });
+
+  return { ...matrix, clone, withPorts } as unknown as ShellResMatrix<AnyRes, ShellMapPlug<RA, L, KM, DM, PM>, PM>;
 }
 
 function createShellListDefiner<
@@ -244,16 +291,58 @@ function createShellListDefiner<
   DL extends ShellPlugDepList<RA>,
   PM extends ShellPlugPortMap,
 >(connector: ResComposerConnector, deps: DL, ports: PM): ShellListDefiner<RA, L, KM, DL, PM> {
-  const head = createResListPlugHead<"shell", RA, KM, DL, PM, ShellPluginCtx<RA, L, KM, PM>>("shell", deps, ports);
-
-  return (factory: (plugin: never) => unknown) =>
-    createResMatrix({
+  return ((factory: (plugin: never) => unknown) =>
+    buildShellListMatrix<RA, L, KM, DL, PM>(
       connector,
-      meta,
-      head,
-      cursor,
-      userFactory: factory as (plugin: unknown) => AnyRes | Promise<AnyRes>,
-    });
+      deps,
+      ports,
+      factory as (plugin: unknown) => AnyRes | Promise<AnyRes>
+    )) as ShellListDefiner<RA, L, KM, DL, PM>;
+}
+
+function buildShellListMatrix<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  KM extends ShellPlugKitMap<RA>,
+  DL extends ShellPlugDepList<RA>,
+  PM extends ShellPlugPortMap,
+>(
+  connector: ResComposerConnector,
+  deps: DL,
+  ports: PM,
+  factory: (plugin: unknown) => AnyRes | Promise<AnyRes>
+): ShellResMatrix<AnyRes, ShellListPlug<RA, L, KM, DL, PM>, PM> {
+  const head = createResListPlugHead<"shell", RA, KM, DL, PM, ShellPluginCtx<RA, L, KM, PM>>("shell", deps, ports);
+  const matrix = createResMatrix({
+    connector,
+    meta,
+    head,
+    cursor,
+    userFactory: factory,
+  });
+
+  const clone = (fn?: ShellCloneFn<AnyRes, ShellListPlug<RA, L, KM, DL, PM>>) =>
+    buildShellListMatrix<RA, L, KM, DL, PM>(connector, deps, ports, composeShellFactory(factory, fn));
+
+  const withPorts = (overrides: Partial<PM>) => ({
+    clone: (fn?: ShellCloneFn<AnyRes, ShellListPlug<RA, L, KM, DL, PM>>) =>
+      buildShellListMatrix<RA, L, KM, DL, PM>(
+        connector,
+        deps,
+        { ...ports, ...overrides } as PM,
+        composeShellFactory(factory, fn)
+      ),
+  });
+
+  return { ...matrix, clone, withPorts } as unknown as ShellResMatrix<AnyRes, ShellListPlug<RA, L, KM, DL, PM>, PM>;
+}
+
+function composeShellFactory(
+  factory: (plugin: unknown) => AnyRes | Promise<AnyRes>,
+  fn: ShellCloneFn<AnyRes, AnyResPlug> | undefined
+): (plugin: unknown) => AnyRes | Promise<AnyRes> {
+  if (fn === undefined) return factory;
+  return async (plugin: unknown) => fn(await factory(plugin), plugin as never);
 }
 
 // #endregion

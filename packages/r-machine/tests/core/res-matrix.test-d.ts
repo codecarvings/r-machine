@@ -4,8 +4,8 @@ import {
   type AnyResMatrix,
   createResMatrix,
   type GearMatrixMeta,
+  type NoExcess,
   type ResMatrix,
-  type ResMatrixCloneOverrides,
   type ShellMatrixMeta,
   tryGetResMatrixMeta,
 } from "../../src/core/res-matrix.js";
@@ -67,9 +67,12 @@ describe("ResMatrix", () => {
     expectTypeOf<Specific["plug"]>().toEqualTypeOf<MyPlug>();
   });
 
-  it("exposes `clone` as a method returning a new ResMatrix of the same shape", () => {
-    type Specific = ResMatrix<AnyRes, AnyResPlug>;
-    expectTypeOf<Specific["clone"]>().toEqualTypeOf<(overrides?: ResMatrixCloneOverrides) => Specific>();
+  it("does NOT declare `clone` on the base interface — derivation lives on specialized matrix types", () => {
+    // Each family (shell, base/inner/outer gear) declares its own
+    // properly-typed clone(fn?) — the base stays minimal so AnyResMatrix
+    // doesn't leak a loose, untyped `clone` to consumers that only hold a
+    // base reference.
+    expectTypeOf<"clone">().not.toExtend<keyof ResMatrix<AnyRes, AnyResPlug>>();
   });
 
   it("marks `create` and `plug` as readonly", () => {
@@ -77,7 +80,6 @@ describe("ResMatrix", () => {
     type Writable<R extends AnyRes, P extends AnyResPlug> = {
       create: () => Promise<R>;
       plug: P;
-      clone: (overrides?: ResMatrixCloneOverrides) => ResMatrix<R, P>;
     };
     expectTypeOf<ResMatrix<AnyRes, AnyResPlug>>().not.toEqualTypeOf<Writable<AnyRes, AnyResPlug>>();
   });
@@ -87,6 +89,62 @@ describe("ResMatrix", () => {
     // collapsed brand + data into a single symbol-keyed slot. If this
     // ever comes back, the type should start showing the field here.
     expectTypeOf<"data">().not.toExtend<keyof ResMatrix<AnyRes, AnyResPlug>>();
+  });
+});
+
+describe("NoExcess<R, T> — clone fn return-type guard", () => {
+  // NoExcess rewrites any key of T that's not in R to `never`. Used by
+  // specialized clone-method signatures so the user's transform can't widen
+  // the matrix's R by sneaking in extras through `{ ...res, extra: x }`.
+  type R = { a: string; b: number };
+
+  it("returns T unchanged when T has no keys beyond R", () => {
+    type T = { a: string; b: number };
+    expectTypeOf<NoExcess<R, T>>().branded.toEqualTypeOf<T>();
+  });
+
+  it("forces extra keys in T to `never` so excess literals fail to assign", () => {
+    type WithExtra = { a: string; b: number; extra: 42 };
+    type Guarded = NoExcess<R, WithExtra>;
+    // The extra key survives the intersection only as `never`, so any non-
+    // never value the user tries to put there is rejected at the call site.
+    expectTypeOf<Guarded["extra"]>().toEqualTypeOf<never>();
+  });
+
+  it("a clone-method signature rejects a return literal with an unknown key", () => {
+    // Mirror of the call-site shape used by the specialized matrix types:
+    // the generic T lives on the METHOD, not on the fn-type alias, so the
+    // user's anonymous fn doesn't have to satisfy all subtypes of R — T is
+    // inferred from the return value at each call site.
+    type Cloner = {
+      clone<T extends R>(fn: (res: R) => NoExcess<R, T> | Promise<NoExcess<R, T>>): void;
+    };
+    const c = {} as Cloner;
+
+    // OK: returning a shape that matches R exactly.
+    c.clone((res) => ({ a: res.a, b: res.b }));
+
+    // OK: spreading res and re-overriding a known key.
+    c.clone((res) => ({ ...res, b: 99 }));
+
+    // @ts-expect-error — `extra` is not a key of R, so NoExcess pins it to `never`.
+    c.clone((res) => ({ ...res, extra: 42 }));
+  });
+
+  it("works the same when the clone method also takes extra positional args (plugin/cursor)", () => {
+    // Matches the StatefulOuterGearResMatrix shape: extra positional args
+    // (plugin, cursor) must not interfere with NoExcess inference.
+    type Cloner = {
+      clone<T extends R>(
+        fn: (res: R, plugin: { tag: "plugin" }, cursor: { tag: "cursor" }) => NoExcess<R, T> | Promise<NoExcess<R, T>>
+      ): void;
+    };
+    const c = {} as Cloner;
+
+    c.clone((res) => ({ ...res, b: 100 }));
+
+    // @ts-expect-error — extra key still flagged when extra positional args are present.
+    c.clone((res) => ({ ...res, prova: 21 }));
   });
 });
 

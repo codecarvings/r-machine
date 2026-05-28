@@ -33,12 +33,11 @@ const gearMeta: GearMatrixMeta = { family: "gear", role: "inner" };
 
 describe("createResMatrix", () => {
   describe("shape of the returned matrix", () => {
-    it("returns an object that exposes create, plug and clone as own properties", () => {
+    it("returns an object that exposes create and plug as own properties", () => {
       const mat = createResMatrix(makeOptions(gearMeta));
 
       expect(typeof mat.create).toBe("function");
       expect(mat.plug).toBeDefined();
-      expect(typeof mat.clone).toBe("function");
     });
 
     it("stores the meta under an internal key retrievable via tryGetResMatrixMeta", () => {
@@ -60,12 +59,14 @@ describe("createResMatrix", () => {
       expect("meta" in mat).toBe(false);
     });
 
-    it("lists exactly the public string-keyed own properties: `create`, `plug`, `clone`", () => {
+    it("lists exactly the public string-keyed own properties: `create`, `plug`", () => {
       // No accidental extras leaking into the public surface. The meta
       // lives under a symbol key and must not appear in Object.keys().
+      // Derivation methods (clone/withPorts/withState) are added by
+      // specialized matrix builders, not by createResMatrix itself.
       const mat = createResMatrix(makeOptions(gearMeta));
 
-      expect(Object.keys(mat).sort()).toEqual(["clone", "create", "plug"]);
+      expect(Object.keys(mat).sort()).toEqual(["create", "plug"]);
     });
   });
 

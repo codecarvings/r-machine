@@ -1,6 +1,6 @@
 import { type RShape, Shell } from "@/r-machine/setup";
 
-export const r = Shell.define(({ $ }) => ({
+export const r = Shell.withPorts({ prova: 123 }).define(({ $ }) => ({
   title: `[${$.locale}] - R-Machine ⧹ Examples ⧹ Next App`,
   footer: {
     message: (

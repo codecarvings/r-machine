@@ -87,11 +87,14 @@ export type AnyPlugHead = AnyMapPlugHead | AnyListPlugHead;
 export type ExtractResAtlas<PH extends AnyPlugHead> = PH[typeof resAtlas];
 export type ExtractKit<PH extends AnyPlugHead> = PH[typeof kit];
 export type ExtractCtx<PH extends AnyPlugHead> = PH[typeof ctx];
-export type ExtractPlugin<PH extends AnyPlugHead> = PH extends AnyMapPlugHead
-  ? MapPlugin<PH[typeof resAtlas], PH["deps"], PH[typeof ctx]>
-  : PH extends AnyListPlugHead
-    ? ListPlugin<PH[typeof resAtlas], PH["deps"], PH[typeof ctx]>
-    : never;
+export type ExtractPlugin<T extends AnyPlugHead | PlugBody<AnyPlugHead>> =
+  T extends PlugBody<infer PH extends AnyPlugHead>
+    ? ExtractPlugin<PH>
+    : T extends AnyMapPlugHead
+      ? MapPlugin<T[typeof resAtlas], T["deps"], T[typeof ctx]>
+      : T extends AnyListPlugHead
+        ? ListPlugin<T[typeof resAtlas], T["deps"], T[typeof ctx]>
+        : never;
 
 export type PlugResolve<PH extends AnyPlugHead> = (
   locale: AnyLocale | undefined,

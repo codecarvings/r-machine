@@ -22,24 +22,38 @@ import type {
   InnerGearPlugDepList,
   InnerGearPlugDepMap,
 } from "./inner-gear-plug.js";
-import { getPlugOutline } from "./plug.js";
+import { type ExtractPlugin, getPlugOutline } from "./plug.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { ValidatedDepListType } from "./res-list.js";
 import type { ValidatedDepMapType } from "./res-map.js";
-import { createResMatrix, type GearMatrixMeta, type ResMatrix } from "./res-matrix.js";
+import { createResMatrix, type GearMatrixMeta, type NoExcess, type ResMatrix } from "./res-matrix.js";
 import type { AnyResPlug } from "./res-plug.js";
 
-type CloneOverrides<PM> = keyof PM extends never
-  ? {}
+type InnerGearCloneFn<R, P extends AnyResPlug, T extends R = R> = (
+  res: R,
+  plugin: ExtractPlugin<P>
+) => NoExcess<R, T> | Promise<NoExcess<R, T>>;
+
+type InnerGearWithPortsCapability<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap> = keyof PM extends never
+  ? unknown
   : {
-      ports?: Partial<PM>;
+      readonly withPorts: (ports: Partial<PM>) => InnerGearMatrixPortsBuilder<R, P, PM>;
     };
-export interface InnerGearResMatrix<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap> extends ResMatrix<R, P> {
-  clone(): InnerGearResMatrix<R, P, PM>;
-  clone(overrides: CloneOverrides<PM>): InnerGearResMatrix<R, P, PM>;
+
+interface InnerGearMatrixClone<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap> {
+  (): InnerGearResMatrix<R, P, PM>;
+  <T extends R>(fn: InnerGearCloneFn<R, P, T>): InnerGearResMatrix<R, P, PM>;
 }
+
+interface InnerGearMatrixPortsBuilder<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap> {
+  readonly clone: InnerGearMatrixClone<R, P, PM>;
+}
+
+type InnerGearResMatrix<R, P extends AnyResPlug, PM extends BaseGearPlugPortMap> = ResMatrix<R, P> & {
+  readonly clone: InnerGearMatrixClone<R, P, PM>;
+} & InnerGearWithPortsCapability<R, P, PM>;
 
 export interface InnerGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>> {
   readonly withDeps: InnerGearDepsComposer<RA, KM>;
@@ -198,16 +212,49 @@ function createInnerGearMapDefiner<
   DM extends InnerGearPlugDepMap<RA>,
   PM extends BaseGearPlugPortMap,
 >(connector: ResComposerConnector, deps: DM, ports: PM): InnerGearMapDefiner<RA, KM, DM, PM> {
-  const head = createGearMapPlugHead<"inner", RA, KM, DM, PM, GearPluginCtx<RA, KM, PM>>("inner", deps, ports);
-
-  return (factory: (plugin: never, cursor: never) => unknown) =>
-    createResMatrix({
+  return ((factory: (plugin: never, cursor: never) => unknown) =>
+    buildInnerGearMapMatrix<RA, KM, DM, PM>(
       connector,
-      meta,
-      head,
-      cursor,
-      userFactory: factory as (plugin: unknown) => AnyRes | Promise<AnyRes>,
-    });
+      deps,
+      ports,
+      factory as (plugin: unknown) => AnyRes | Promise<AnyRes>
+    )) as InnerGearMapDefiner<RA, KM, DM, PM>;
+}
+
+function buildInnerGearMapMatrix<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DM extends InnerGearPlugDepMap<RA>,
+  PM extends BaseGearPlugPortMap,
+>(
+  connector: ResComposerConnector,
+  deps: DM,
+  ports: PM,
+  factory: (plugin: unknown) => AnyRes | Promise<AnyRes>
+): InnerGearResMatrix<AnyRes, InnerGearMapPlug<RA, KM, DM, PM>, PM> {
+  const head = createGearMapPlugHead<"inner", RA, KM, DM, PM, GearPluginCtx<RA, KM, PM>>("inner", deps, ports);
+  const matrix = createResMatrix({
+    connector,
+    meta,
+    head,
+    cursor,
+    userFactory: factory,
+  });
+
+  const clone = (fn?: InnerGearCloneFn<AnyRes, InnerGearMapPlug<RA, KM, DM, PM>>) =>
+    buildInnerGearMapMatrix<RA, KM, DM, PM>(connector, deps, ports, composeGearFactory(factory, fn));
+
+  const withPorts = (overrides: Partial<PM>) => ({
+    clone: (fn?: InnerGearCloneFn<AnyRes, InnerGearMapPlug<RA, KM, DM, PM>>) =>
+      buildInnerGearMapMatrix<RA, KM, DM, PM>(
+        connector,
+        deps,
+        { ...ports, ...overrides } as PM,
+        composeGearFactory(factory, fn)
+      ),
+  });
+
+  return { ...matrix, clone, withPorts } as unknown as InnerGearResMatrix<AnyRes, InnerGearMapPlug<RA, KM, DM, PM>, PM>;
 }
 
 function createInnerGearListDefiner<
@@ -216,16 +263,61 @@ function createInnerGearListDefiner<
   DL extends InnerGearPlugDepList<RA>,
   PM extends BaseGearPlugPortMap,
 >(connector: ResComposerConnector, deps: DL, ports: PM): InnerGearListDefiner<RA, KM, DL, PM> {
-  const head = createGearListPlugHead<"inner", RA, KM, DL, PM, GearPluginCtx<RA, KM, PM>>("inner", deps, ports);
-
-  return (factory: (plugin: never) => unknown) =>
-    createResMatrix({
+  return ((factory: (plugin: never) => unknown) =>
+    buildInnerGearListMatrix<RA, KM, DL, PM>(
       connector,
-      meta,
-      head,
-      cursor,
-      userFactory: factory as (plugin: unknown) => AnyRes | Promise<AnyRes>,
-    });
+      deps,
+      ports,
+      factory as (plugin: unknown) => AnyRes | Promise<AnyRes>
+    )) as InnerGearListDefiner<RA, KM, DL, PM>;
+}
+
+function buildInnerGearListMatrix<
+  RA extends AnyResAtlas,
+  KM extends GearPlugKitMap<RA>,
+  DL extends InnerGearPlugDepList<RA>,
+  PM extends BaseGearPlugPortMap,
+>(
+  connector: ResComposerConnector,
+  deps: DL,
+  ports: PM,
+  factory: (plugin: unknown) => AnyRes | Promise<AnyRes>
+): InnerGearResMatrix<AnyRes, InnerGearListPlug<RA, KM, DL, PM>, PM> {
+  const head = createGearListPlugHead<"inner", RA, KM, DL, PM, GearPluginCtx<RA, KM, PM>>("inner", deps, ports);
+  const matrix = createResMatrix({
+    connector,
+    meta,
+    head,
+    cursor,
+    userFactory: factory,
+  });
+
+  const clone = (fn?: InnerGearCloneFn<AnyRes, InnerGearListPlug<RA, KM, DL, PM>>) =>
+    buildInnerGearListMatrix<RA, KM, DL, PM>(connector, deps, ports, composeGearFactory(factory, fn));
+
+  const withPorts = (overrides: Partial<PM>) => ({
+    clone: (fn?: InnerGearCloneFn<AnyRes, InnerGearListPlug<RA, KM, DL, PM>>) =>
+      buildInnerGearListMatrix<RA, KM, DL, PM>(
+        connector,
+        deps,
+        { ...ports, ...overrides } as PM,
+        composeGearFactory(factory, fn)
+      ),
+  });
+
+  return { ...matrix, clone, withPorts } as unknown as InnerGearResMatrix<
+    AnyRes,
+    InnerGearListPlug<RA, KM, DL, PM>,
+    PM
+  >;
+}
+
+function composeGearFactory(
+  factory: (plugin: unknown) => AnyRes | Promise<AnyRes>,
+  fn: InnerGearCloneFn<AnyRes, AnyResPlug> | undefined
+): (plugin: unknown) => AnyRes | Promise<AnyRes> {
+  if (fn === undefined) return factory;
+  return async (plugin: unknown) => fn(await factory(plugin), plugin as never);
 }
 
 // #endregion

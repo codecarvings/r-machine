@@ -17,11 +17,7 @@ import { createPlug, getPlugResolve, type PluginCtxAugmenter, setPlugResolve } f
 import type { AnyRes, AnyResOrigin } from "./res.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { AnyNamespace } from "./res-domain.js";
-import type { AnyPortMap, AnyResPlug, AnyResPlugHead } from "./res-plug.js";
-
-export interface ResMatrixCloneOverrides {
-  readonly ports?: AnyPortMap;
-}
+import type { AnyResPlug, AnyResPlugHead } from "./res-plug.js";
 
 export interface GearMatrixMeta {
   readonly family: "gear";
@@ -32,15 +28,27 @@ export interface ShellMatrixMeta {
   readonly family: "shell";
 }
 
+// Forces T (the inferred return type of a clone fn) to expose only keys that
+// exist on R. Any extra key K in T is rewritten to `never`, so a literal that
+// carries an unknown property fails to satisfy the constraint at the call
+// site. Phase 1 of the clone API keeps the result shape locked to R; users
+// who genuinely want to widen the resource should reach for a future,
+// differently-named method instead of leaking extras through .clone().
+export type NoExcess<R, T> = T & { [K in Exclude<keyof T, keyof R>]: never };
+
 type ResMatrixMeta = GearMatrixMeta | ShellMatrixMeta;
 
 const resMatrixMetaSymbol: unique symbol = Symbol("resMatrixMeta");
-// Cannot use ResMatrix<R extends AnyRes, ...> because of res tags
+
+// Cannot use ResMatrix<R extends AnyRes, ...> because of res tags.
+// The base type carries only what's universally observable: identity (meta),
+// resolution (`create`) and the plug. Derivation methods (`clone`, `withPorts`,
+// `withState`) live on the specialized matrix types — each family knows
+// what's meaningful to override, and the typing stays strict there.
 export interface ResMatrix<R, P extends AnyResPlug> {
   readonly [resMatrixMetaSymbol]: ResMatrixMeta;
   readonly create: () => Promise<R>;
   readonly plug: P;
-  clone(overrides?: ResMatrixCloneOverrides): ResMatrix<R, P>;
 }
 
 export type AnyResMatrix = ResMatrix<any, any>;
@@ -93,18 +101,9 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
     return (postProcess ? postProcess(raw, resolvedCursor as never) : raw) as AnyRes;
   };
 
-  const clone = (overrides?: ResMatrixCloneOverrides): AnyResMatrix => {
-    const nextHead =
-      overrides?.ports !== undefined
-        ? ({ ...head, ports: { ...head.ports, ...overrides.ports } } as AnyResPlugHead)
-        : head;
-    return createResMatrix({ ...options, head: nextHead });
-  };
-
   return {
     [resMatrixMetaSymbol]: meta,
     create: create as () => Promise<AnyRes>,
     plug,
-    clone,
   };
 }
