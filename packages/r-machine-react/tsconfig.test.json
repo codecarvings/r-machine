@@ -4,5 +4,12 @@
     "noUncheckedIndexedAccess": false,
     "noUnusedLocals": false
   },
-  "exclude": ["tests/core/**", "tests/lib/**"]
+  "exclude": [
+    "tests/lib/**",
+    "tests/core/index.test-d.*",
+    "tests/core/react-bare-*",
+    "tests/core/react-standard*",
+    "tests/core/react-strategy-core.*",
+    "tests/core/react-toolset.*"
+  ]
 }

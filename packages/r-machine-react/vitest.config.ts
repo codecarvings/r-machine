@@ -6,9 +6,20 @@ import baseConfig from "../../configs/vitest.base.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// todo: WP
-// Exclusion also added to tsconfig.test.json
-const excludePatterns = ["**/tests/core/**", "**/tests/lib/**"];
+// WP: the strategy/toolset suites under tests/core + all of tests/lib are
+// stale against the post-DI-refactor API and stay parked (excluded) until
+// rewritten. Excluded per-file (by stale-prefix) rather than whole-dir so
+// freshly-written tests/core unit suites (vertex-frame, scope-context,
+// react-plug, …) run under the active config.
+// Exclusion also mirrored in tsconfig.test.json.
+const excludePatterns = [
+  "**/tests/lib/**",
+  "**/tests/core/index.test-d.*",
+  "**/tests/core/react-bare-*",
+  "**/tests/core/react-standard*",
+  "**/tests/core/react-strategy-core.*",
+  "**/tests/core/react-toolset.*",
+];
 
 export default mergeConfig(
   baseConfig,
