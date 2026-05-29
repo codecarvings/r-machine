@@ -1058,3 +1058,63 @@ describe("JunctureManager — runtime cycle through kit", () => {
     collector.dispose();
   });
 });
+
+// End-user kit access: a real `shell/lib/fmt`-style formatter installed via
+// `shellKit` and read from a factory plugin. Backs the documented `$.kit.fmt`
+// guidance — the list form reaches the kit only through `$`, the map form also
+// hoists it to the top level. See plug.test-d.ts for the type-level mirror.
+describe("JunctureManager — $.kit.fmt end-user access", () => {
+  // A formatter surface, as `shell/lib/fmt` (a shell kit entry) would expose.
+  const fmtModule = () =>
+    makeRawModule({
+      number: (n: number) => `n:${n}`,
+      currency: (n: number) => `$${n}`,
+    });
+
+  type FmtSurface = { number: (n: number) => string; currency: (n: number) => string };
+
+  it("list form: the kit resolves under `$.kit.fmt` and is callable", async () => {
+    const env = createJmTestEnv({
+      shellKit: { fmt: "s/fmt" },
+      modules: { "s/fmt": fmtModule },
+    });
+
+    // List-form deps (`[]`) → plugin is `[...deps, $]`, i.e. just `[$]`.
+    const plugin = (await env.jm.getPlugin({ fmt: "s/fmt" }, [], "en", () => {}, [], 0, undefined)) as readonly unknown[];
+    const $ = plugin[plugin.length - 1] as { kit: { fmt: FmtSurface } };
+
+    expect($.kit.fmt.number(42)).toBe("n:42");
+    expect($.kit.fmt.currency(10)).toBe("$10");
+  });
+
+  it("list form: the kit is NOT hoisted onto `$` (must go through `$.kit`)", async () => {
+    const env = createJmTestEnv({
+      shellKit: { fmt: "s/fmt" },
+      modules: { "s/fmt": fmtModule },
+    });
+
+    const plugin = (await env.jm.getPlugin({ fmt: "s/fmt" }, [], "en", () => {}, [], 0, undefined)) as readonly unknown[];
+    const $ = plugin[plugin.length - 1] as Record<string, unknown>;
+
+    expect($.fmt).toBeUndefined();
+    expect($).toHaveProperty("kit");
+  });
+
+  it("map form: the kit is hoisted to the top level AND reachable via `$.kit`", async () => {
+    const env = createJmTestEnv({
+      shellKit: { fmt: "s/fmt" },
+      modules: { "s/fmt": fmtModule },
+    });
+
+    // Map-form deps (`{}`) → plugin is `{ ...kit, ...deps, $ }`.
+    const plugin = (await env.jm.getPlugin({ fmt: "s/fmt" }, {}, "en", () => {}, [], 0, undefined)) as {
+      fmt: FmtSurface;
+      $: { kit: { fmt: FmtSurface } };
+    };
+
+    expect(plugin.fmt.number(7)).toBe("n:7");
+    expect(plugin.$.kit.fmt.number(7)).toBe("n:7");
+    // Same underlying surface, exposed two ways.
+    expect(plugin.fmt).toBe(plugin.$.kit.fmt);
+  });
+});

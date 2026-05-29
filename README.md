@@ -34,7 +34,7 @@ Monorepo containing the R-Machine packages.
 A `Shell` is a multi-locale resource: one canonical file per locale, exact-keyed type validation across variants.
 
 ```ts
-// r-machine/shell/common/en.ts  (canonical — defines the shape)
+// r-machine/shell/common/en.tsx  (canonical — defines the shape)
 import { type RShape } from "@/r-machine/setup";
 
 export const r = { greeting: "Hello", addButton: "Add" };
@@ -42,7 +42,7 @@ export const r = { greeting: "Hello", addButton: "Add" };
 export type Shell_Common = RShape<typeof r>;
 ```
 ```ts
-// r-machine/shell/common/it.ts  (variant — type-checked against canonical)
+// r-machine/shell/common/it.tsx  (variant — type-checked against canonical)
 import { localized } from "@/r-machine/setup";
 
 export const r = localized("shell/common", {
