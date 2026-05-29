@@ -24,7 +24,7 @@ export const main = defineCommand({
     description: "Command-line interface for R-Machine.",
   },
   subCommands: {
-    // skill: skillCommand,
+    skill: skillCommand,
   },
 });
 

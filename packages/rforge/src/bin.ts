@@ -13,8 +13,8 @@
  */
 
 import { runMain } from "citty";
-import { printBanner } from "./lib/banner.js";
-import { main } from "./lib/index.js";
+import { printBanner } from "./cli/banner.js";
+import { main } from "./cli/index.js";
 
 if (process.argv.slice(2).length === 0) {
   printBanner();

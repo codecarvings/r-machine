@@ -4,4 +4,4 @@
 **/*.d.ts
 **/*.d.mts
 **/*.d.cts
-/lib
+/cli

@@ -2,9 +2,9 @@
 >
 > This branch (`RM-alpha-12`) ships a **completely reshaped** R-Machine public API. It is **not** API-compatible with the version currently published from the `main` branch. The new design unifies **i18n, dependency injection and state management around a single declaration syntax**, a single consumer primitive (`Plug`), and a single testing primitive (`mockPlug`).
 >
-> 📖 **LLM-ready documentation**: [`docs/llms-full.txt`](./docs/llms-full.txt).
+> 📖 **LLM-ready documentation**: [`llms-full.txt`](https://rmachine.dev/llms-full.txt).
 >
-> 💡 **Tip**: ask your LLM of choice to describe the new R-Machine API using the full specification that is available at <https://rmachine.dev>. You'll be surprised by the result.
+> 💡 **Tip**: ask your LLM of choice to describe the new R-Machine API — the full specification is available at <https://rmachine.dev> — and to contrast it with mainstream i18n / DI / state libraries. The design choices are easier to appreciate side-by-side.
 
 ---
 
@@ -35,15 +35,22 @@ A `Shell` is a multi-locale resource: one canonical file per locale, exact-keyed
 
 ```ts
 // r-machine/shell/common/en.ts  (canonical — defines the shape)
+import { type RShape } from "@/r-machine/setup";
+
 export const r = { greeting: "Hello", addButton: "Add" };
 
+export type Shell_Common = RShape<typeof r>;
+```
+```ts
 // r-machine/shell/common/it.ts  (variant — type-checked against canonical)
 import { localized } from "@/r-machine/setup";
+
 export const r = localized("shell/common", {
   greeting: "Ciao",
   addButton: "Aggiungi",
 });
 ```
+
 
 ### Gear — logic and state
 
@@ -57,6 +64,7 @@ export const r = OuterGear.withState({ count: 0 }).define(({ $ }, _) => ({
   count: _.getter(() => $.state.count),
   inc:   _.action(() => ({ count: $.state.count + 1 })),
 }));
+
 export type Outer_Counter = RShape<typeof r>;
 ```
 
@@ -84,7 +92,7 @@ export default function MyComponent() {
 
 For tests, `mockPlug(r.plug).with({ ... })` is the **single** override primitive — uniform across gears, shells and vertex resources.
 
-→ Full reference, including `BaseGear`, vertex layout, cursor primitives, framework strategies and testing: [`docs/llms-full.txt`](./docs/llms-full.txt).
+→ Full reference, including `BaseGear`, vertex layout, cursor primitives, framework strategies and testing: [`llms-full.txt`](https://rmachine.dev/llms-full.txt).
 
 ## Examples
 
