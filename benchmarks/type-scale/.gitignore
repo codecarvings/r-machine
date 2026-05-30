@@ -1,0 +1,11 @@
+# Generated benchmark projects (re-creatable deterministically via `pnpm generate`)
+generated/
+
+# tsc trace output
+**/.trace/
+
+# raw per-run scratch (REPORT.md + results.json under results/ ARE committed)
+results/*.raw.json
+
+# orchestrator console log
+results/run.log

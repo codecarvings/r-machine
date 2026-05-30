@@ -1,0 +1,324 @@
+{
+  "generatedAt": "2026-05-30T09:33:25.263Z",
+  "seedNote": "Deterministic: same seed+N => identical project. Re-run `pnpm run-all` to reproduce.",
+  "scalePoints": [
+    10,
+    25,
+    50,
+    100,
+    250,
+    500
+  ],
+  "points": [
+    {
+      "n": 10,
+      "compile": {
+        "n": 10,
+        "files": 155,
+        "types": 37259,
+        "instantiations": 123224,
+        "memoryKB": 166289,
+        "checkTimeS": 0.44,
+        "totalTimeS": 0.62,
+        "instantiationsPerResource": 12322,
+        "errors": 0
+      },
+      "intellisense": {
+        "n": 10,
+        "projectLoadMs": 403,
+        "probes": {
+          "deps_list": {
+            "entryCount": 7,
+            "p50": 8,
+            "p95": 12.7
+          },
+          "deps_map": {
+            "entryCount": 7,
+            "p50": 8.7,
+            "p95": 13.5
+          },
+          "token": {
+            "entryCount": 11,
+            "p50": 2.9,
+            "p95": 6.7
+          },
+          "surface": {
+            "entryCount": 6,
+            "p50": 15.8,
+            "p95": 26.7
+          },
+          "plug": {
+            "entryCount": 11,
+            "p50": 71.1,
+            "p95": 100.9
+          },
+          "hover": {
+            "entryCount": -1,
+            "p50": 0.9,
+            "p95": 5.1
+          }
+        }
+      }
+    },
+    {
+      "n": 25,
+      "compile": {
+        "n": 25,
+        "files": 175,
+        "types": 38995,
+        "instantiations": 135744,
+        "memoryKB": 161805,
+        "checkTimeS": 0.39,
+        "totalTimeS": 0.57,
+        "instantiationsPerResource": 5430,
+        "errors": 0
+      },
+      "intellisense": {
+        "n": 25,
+        "projectLoadMs": 403,
+        "probes": {
+          "deps_list": {
+            "entryCount": 17,
+            "p50": 10.6,
+            "p95": 16.5
+          },
+          "deps_map": {
+            "entryCount": 17,
+            "p50": 10.9,
+            "p95": 13.3
+          },
+          "token": {
+            "entryCount": 26,
+            "p50": 2.5,
+            "p95": 5.2
+          },
+          "surface": {
+            "entryCount": 4,
+            "p50": 17.9,
+            "p95": 25.4
+          },
+          "plug": {
+            "entryCount": 26,
+            "p50": 68.7,
+            "p95": 109.4
+          },
+          "hover": {
+            "entryCount": -1,
+            "p50": 1,
+            "p95": 4.4
+          }
+        }
+      }
+    },
+    {
+      "n": 50,
+      "compile": {
+        "n": 50,
+        "files": 207,
+        "types": 41289,
+        "instantiations": 154672,
+        "memoryKB": 179492,
+        "checkTimeS": 0.42,
+        "totalTimeS": 0.59,
+        "instantiationsPerResource": 3093,
+        "errors": 0
+      },
+      "intellisense": {
+        "n": 50,
+        "projectLoadMs": 417,
+        "probes": {
+          "deps_list": {
+            "entryCount": 35,
+            "p50": 14.7,
+            "p95": 18.3
+          },
+          "deps_map": {
+            "entryCount": 35,
+            "p50": 15.5,
+            "p95": 16.9
+          },
+          "token": {
+            "entryCount": 51,
+            "p50": 2.9,
+            "p95": 5.1
+          },
+          "surface": {
+            "entryCount": 4,
+            "p50": 22,
+            "p95": 23.9
+          },
+          "plug": {
+            "entryCount": 50,
+            "p50": 71.7,
+            "p95": 73.8
+          },
+          "hover": {
+            "entryCount": -1,
+            "p50": 1.6,
+            "p95": 15.5
+          }
+        }
+      }
+    },
+    {
+      "n": 100,
+      "compile": {
+        "n": 100,
+        "files": 272,
+        "types": 46230,
+        "instantiations": 196916,
+        "memoryKB": 170918,
+        "checkTimeS": 0.51,
+        "totalTimeS": 0.73,
+        "instantiationsPerResource": 1969,
+        "errors": 0
+      },
+      "intellisense": {
+        "n": 100,
+        "projectLoadMs": 445,
+        "probes": {
+          "deps_list": {
+            "entryCount": 70,
+            "p50": 20.8,
+            "p95": 25
+          },
+          "deps_map": {
+            "entryCount": 70,
+            "p50": 24,
+            "p95": 24.9
+          },
+          "token": {
+            "entryCount": 101,
+            "p50": 4,
+            "p95": 5.8
+          },
+          "surface": {
+            "entryCount": 4,
+            "p50": 29.2,
+            "p95": 31.1
+          },
+          "plug": {
+            "entryCount": 100,
+            "p50": 89.2,
+            "p95": 140
+          },
+          "hover": {
+            "entryCount": -1,
+            "p50": 1.4,
+            "p95": 5.9
+          }
+        }
+      }
+    },
+    {
+      "n": 250,
+      "compile": {
+        "n": 250,
+        "files": 467,
+        "types": 60198,
+        "instantiations": 347057,
+        "memoryKB": 233184,
+        "checkTimeS": 0.77,
+        "totalTimeS": 1.01,
+        "instantiationsPerResource": 1388,
+        "errors": 0
+      },
+      "intellisense": {
+        "n": 250,
+        "projectLoadMs": 528,
+        "probes": {
+          "deps_list": {
+            "entryCount": 175,
+            "p50": 42,
+            "p95": 46.4
+          },
+          "deps_map": {
+            "entryCount": 175,
+            "p50": 46,
+            "p95": 49.4
+          },
+          "token": {
+            "entryCount": 251,
+            "p50": 6.8,
+            "p95": 8.3
+          },
+          "surface": {
+            "entryCount": 4,
+            "p50": 49.9,
+            "p95": 54.1
+          },
+          "plug": {
+            "entryCount": 248,
+            "p50": 100.8,
+            "p95": 115.9
+          },
+          "hover": {
+            "entryCount": -1,
+            "p50": 1.8,
+            "p95": 1.9
+          }
+        }
+      }
+    },
+    {
+      "n": 500,
+      "compile": {
+        "n": 500,
+        "files": 792,
+        "types": 83829,
+        "instantiations": 685859,
+        "memoryKB": 290952,
+        "checkTimeS": 1.38,
+        "totalTimeS": 1.64,
+        "instantiationsPerResource": 1372,
+        "errors": 0
+      },
+      "intellisense": {
+        "n": 500,
+        "projectLoadMs": 646,
+        "probes": {
+          "deps_list": {
+            "entryCount": 350,
+            "p50": 79.1,
+            "p95": 111.1
+          },
+          "deps_map": {
+            "entryCount": 350,
+            "p50": 85,
+            "p95": 88.3
+          },
+          "token": {
+            "entryCount": 501,
+            "p50": 11.1,
+            "p95": 11.7
+          },
+          "surface": {
+            "entryCount": 6,
+            "p50": 85.6,
+            "p95": 89.6
+          },
+          "plug": {
+            "entryCount": 493,
+            "p50": 140.6,
+            "p95": 169.6
+          },
+          "hover": {
+            "entryCount": -1,
+            "p50": 2.6,
+            "p95": 5.3
+          }
+        }
+      }
+    }
+  ],
+  "traces": [
+    {
+      "n": 250,
+      "report": "Hot Spots\n├─ Check file /users/sergio/repos/own/r-machine.project/r-machine.worktrees/rm-alpha-12/packages/r-machine/src/core/outer-gear-composer.ts (48ms)\n└─ Check file /users/sergio/repos/own/r-machine.project/r-machine.worktrees/rm-alpha-12/benchmarks/type-scale/generated/250/src/setup.ts (45ms)\n   └─ Check variable declaration from (line 8, char 7) to (line 17, char 3) (42ms)\n      └─ Check expression from (line 8, char 18) to (line 17, char 3) (42ms)\n         └─ Compare types 34390 and 3546 (37ms)\n            └─ Compare types 34390 and 3544 (33ms)\n               └─ Compare types 34391 and 719 (33ms)\n                  └─ Compare types 34978 and 775 (21ms)\n                     ├─ {\"id\":34978,\"kind\":\"GenericTypeAlias\",\"name\":\"ShapeMap\",\"aliasTypeArguments\":[34433,34442,1013],\"location\":{\"path\":\"/users/sergio/repos/own/r-machine.project/r-machine.worktrees/rm-alpha-12/packages/r-machine/src/core/res-atlas.ts\",\"line\":6,\"char\":1}}\n                     │  ├─ {\"id\":34433,\"kind\":\"AnonymousObject\",\"location\":{\"path\":\"/users/sergio/repos/own/r-machine.project/r-machine.worktrees/rm-alpha-12/benchmarks/type-scale/generated/250/src/resource-atlas.ts\",\"line\":256,\"char\":30}}\n                     │  ├─ {\"id\":34442,\"kind\":\"Object\",\"name\":\"ResourceMap\",\"location\":{\"path\":\"/users/sergio/repos/own/r-machine.project/r-machine.worktrees/rm-alpha-12/benchmarks/type-scale/generated/250/src/resource-atlas.ts\",\"line\":263,\"char\":1}}\n                     │  └─ {\"id\":1013,\"kind\":\"StringLiteral\",\"value\":\"\\\"gear:base\\\"\"}\n                     └─ {\"id\":775,\"kind\":\"Object\",\"name\":\"AnyResDomain\",\"location\":{\"path\":\"/users/sergio/repos/own/r-machine.project/r-machine.worktrees/rm-alpha-12/packages/r-machine/src/core/res-domain.ts\",\"line\":22,\"char\":1}}\n\nNo duplicate packages found"
+    },
+    {
+      "n": 500,
+      "report": "Hot Spots\n├─ Check file /users/sergio/repos/own/r-machine.project/r-machine.worktrees/rm-alpha-12/benchmarks/type-scale/generated/500/src/setup.ts (85ms)\n│  └─ Check variable declaration from (line 8, char 7) to (line 17, char 3) (80ms)\n│     └─ Check expression from (line 8, char 18) to (line 17, char 3) (80ms)\n│        └─ Compare types 34390 and 3546 (71ms)\n│           └─ Compare types 34390 and 3544 (62ms)\n│              └─ Compare types 34391 and 719 (61ms)\n│                 └─ Compare types 35478 and 775 (37ms)\n│                    ├─ {\"id\":35478,\"kind\":\"GenericTypeAlias\",\"name\":\"ShapeMap\",\"aliasTypeArguments\":[34433,34442,1013],\"location\":{\"path\":\"/users/sergio/repos/own/r-machine.project/r-machine.worktrees/rm-alpha-12/packages/r-machine/src/core/res-atlas.ts\",\"line\":6,\"char\":1}}\n│                    │  ├─ {\"id\":34433,\"kind\":\"AnonymousObject\",\"location\":{\"path\":\"/users/sergio/repos/own/r-machine.project/r-machine.worktrees/rm-alpha-12/benchmarks/type-scale/generated/500/src/resource-atlas.ts\",\"line\":506,\"char\":30}}\n│                    │  ├─ {\"id\":34442,\"kind\":\"Object\",\"name\":\"ResourceMap\",\"location\":{\"path\":\"/users/sergio/repos/own/r-machine.project/r-machine.worktrees/rm-alpha-12/benchmarks/type-scale/generated/500/src/resource-atlas.ts\",\"line\":513,\"char\":1}}\n│                    │  └─ {\"id\":1013,\"kind\":\"StringLiteral\",\"value\":\"\\\"gear:base\\\"\"}\n│                    └─ {\"id\":775,\"kind\":\"Object\",\"name\":\"AnyResDomain\",\"location\":{\"path\":\"/users/sergio/repos/own/r-machine.project/r-machine.worktrees/rm-alpha-12/packages/r-machine/src/core/res-domain.ts\",\"line\":22,\"char\":1}}\n├─ Check file /users/sergio/repos/own/r-machine.project/r-machine.worktrees/rm-alpha-12/packages/r-machine/src/core/outer-gear-composer.ts (47ms)\n└─ Check file /users/sergio/repos/own/r-machine.project/r-machine.worktrees/rm-alpha-12/packages/r-machine/src/core/base-gear-composer.ts (30ms)\n\nNo duplicate packages found"
+    }
+  ]
+}

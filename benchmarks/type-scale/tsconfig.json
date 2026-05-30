@@ -1,0 +1,17 @@
+{
+  "//": "tsconfig for the HARNESS SCRIPTS themselves (run via tsx). The GENERATED projects under generated/<N>/ each get their own tsconfig emitted by src/generate.ts; that one is what the benchmark measures.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "types": ["node"]
+  },
+  "include": ["src"],
+  "exclude": ["generated", "node_modules"]
+}

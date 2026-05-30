@@ -1,6 +1,7 @@
 packages:
   - packages/*
   - examples/*
+  - benchmarks/*
 
 overrides:
   react: 19.2.6
