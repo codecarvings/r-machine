@@ -1,93 +1,60 @@
-import type { NamespaceMap, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import { describe, expectTypeOf, it } from "vitest";
-import type { ReactBareRMachine, ReactBareToolset } from "../../src/core/react-bare-toolset.js";
-import { createReactBareToolset } from "../../src/core/react-bare-toolset.js";
+import {
+  createReactBareToolset,
+  type ReactBareRMachine,
+  type ReactBareToolset,
+} from "../../src/core/react-bare-toolset.js";
+import type { ReactPlugDefiner } from "../../src/core/react-plug.js";
+import type { TestAtlas } from "../_fixtures/mock-machine.js";
 
-type TestAtlas = {
-  readonly common: { readonly greeting: string };
-  readonly nav: { readonly home: string };
-};
+type E = ResEquipment<TestAtlas>;
+type NoFlags = ExperimentalFlags; // outerGear not "on"
+type OuterOn = { readonly outerGear: "on" };
+type KM = {};
 
 // ---------------------------------------------------------------------------
 // createReactBareToolset
 // ---------------------------------------------------------------------------
 
 describe("createReactBareToolset", () => {
-  it("accepts an RMachine and returns a Promise of ReactBareToolset", () => {
-    expectTypeOf(createReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>)
-      .parameter(0)
-      .toEqualTypeOf<RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>();
-    expectTypeOf(createReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>).returns.toEqualTypeOf<
-      Promise<ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>
-    >();
+  it("accepts (RMachine, kit) and returns a Promise of ReactBareToolset", () => {
+    const fn = createReactBareToolset<TestAtlas, AnyLocale, E, NoFlags, KM>;
+    expectTypeOf(fn).parameter(0).toEqualTypeOf<RMachine<TestAtlas, AnyLocale, E, NoFlags>>();
+    expectTypeOf(fn).parameter(1).toEqualTypeOf<KM>();
+    expectTypeOf(fn).returns.toEqualTypeOf<Promise<ReactBareToolset<TestAtlas, AnyLocale, NoFlags, KM>>>();
   });
 });
 
 // ---------------------------------------------------------------------------
-// ReactBareToolset
+// ReactBareToolset — current shape: { ReactRMachine, Plug } (+ VertexFrame)
 // ---------------------------------------------------------------------------
 
 describe("ReactBareToolset", () => {
-  it("has readonly ReactRMachine property", () => {
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["ReactRMachine"]>().toEqualTypeOf<
-      ReactBareRMachine<AnyLocale>
-    >();
+  type Toolset = ReactBareToolset<TestAtlas, AnyLocale, NoFlags, KM>;
+
+  it("exposes ReactRMachine and Plug", () => {
+    expectTypeOf<Toolset["ReactRMachine"]>().toEqualTypeOf<ReactBareRMachine<AnyLocale>>();
+    expectTypeOf<Toolset["Plug"]>().toEqualTypeOf<ReactPlugDefiner<TestAtlas, AnyLocale, KM>>();
   });
 
-  it("useLocale returns AnyLocale", () => {
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["useLocale"]>().toEqualTypeOf<
-      () => AnyLocale
-    >();
+  it("has exactly { ReactRMachine, Plug } when outerGear is off", () => {
+    expectTypeOf<keyof Toolset>().toEqualTypeOf<"ReactRMachine" | "Plug">();
   });
 
-  it("useSetLocale returns a function that takes AnyLocale and returns Promise<void>", () => {
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["useSetLocale"]>().toEqualTypeOf<
-      () => (newLocale: AnyLocale) => Promise<void>
-    >();
+  it("adds VertexFrame when experimental.outerGear is 'on'", () => {
+    type OuterToolset = ReactBareToolset<TestAtlas, AnyLocale, OuterOn, KM>;
+    expectTypeOf<keyof OuterToolset>().toEqualTypeOf<"ReactRMachine" | "Plug" | "VertexFrame">();
   });
 
-  it("useR is parameterized by namespace", () => {
-    type UseR = ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["useR"];
-    expectTypeOf<UseR>().parameter(0).toExtend<"common" | "nav">();
-  });
-
-  it("useR rejects namespace arguments not in atlas keys", () => {
-    type UseR = ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["useR"];
-    expectTypeOf<"invalid">().not.toExtend<Parameters<UseR>[0]>();
-  });
-
-  it("useR return type is RA[N] for a given namespace", () => {
-    type Toolset = ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>;
-
-    expectTypeOf<Toolset["useR"]>().toExtend<(namespace: "common") => TestAtlas["common"]>();
-    expectTypeOf<Toolset["useR"]>().toExtend<(namespace: "nav") => TestAtlas["nav"]>();
-  });
-
-  it("useRKit accepts namespace arguments constrained to atlas keys", () => {
-    type UseRKit = ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["useRKit"];
-    expectTypeOf<UseRKit>().toBeCallableWith("common");
-    expectTypeOf<UseRKit>().toBeCallableWith("common", "nav");
-    expectTypeOf<UseRKit>().toExtend<(...args: ["common"]) => unknown>();
-    expectTypeOf<UseRKit>().toExtend<(...args: ["common", "nav"]) => unknown>();
-  });
-
-  it("useRKit rejects namespace arguments not in atlas keys", () => {
-    type UseRKit = ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["useRKit"];
-    expectTypeOf<UseRKit>().not.toExtend<(...args: ["invalid"]) => unknown>();
-    expectTypeOf<UseRKit>().not.toExtend<(...args: ["common", "invalid"]) => unknown>();
-  });
-
-  it("has exactly the expected properties", () => {
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>().toHaveProperty("ReactRMachine");
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>().toHaveProperty("useLocale");
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>().toHaveProperty("useSetLocale");
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>().toHaveProperty("useR");
-    expectTypeOf<ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>().toHaveProperty("useRKit");
-
-    type Keys = keyof ReactBareToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>;
-    expectTypeOf<Keys>().toEqualTypeOf<"ReactRMachine" | "useLocale" | "useSetLocale" | "useR" | "useRKit">();
+  it("no longer carries the legacy hook surface", () => {
+    expectTypeOf<Toolset>().not.toHaveProperty("useLocale");
+    expectTypeOf<Toolset>().not.toHaveProperty("useSetLocale");
+    expectTypeOf<Toolset>().not.toHaveProperty("useR");
+    expectTypeOf<Toolset>().not.toHaveProperty("useRKit");
   });
 });
 
@@ -96,48 +63,23 @@ describe("ReactBareToolset", () => {
 // ---------------------------------------------------------------------------
 
 describe("ReactBareRMachine", () => {
-  it("is callable with locale, children, and optional writeLocale", () => {
-    expectTypeOf<ReactBareRMachine<AnyLocale>>().toBeCallableWith({
-      locale: "en",
-      children: null as unknown as ReactNode,
-    });
-
-    expectTypeOf<ReactBareRMachine<AnyLocale>>().toBeCallableWith({
-      locale: "en",
-      writeLocale: async () => {},
-      children: null as unknown as ReactNode,
-    });
-  });
-
-  it("accepts writeLocale returning void (sync)", () => {
-    expectTypeOf<ReactBareRMachine<AnyLocale>>().toBeCallableWith({
-      locale: "en",
-      writeLocale: () => {},
-      children: null as unknown as ReactNode,
-    });
-  });
-
-  it("accepts writeLocale returning Promise<void> (async)", () => {
+  it("is callable with locale, children, and optional writeLocale (sync/async/undefined)", () => {
+    const children = null as unknown as ReactNode;
+    expectTypeOf<ReactBareRMachine<AnyLocale>>().toBeCallableWith({ locale: "en", children });
+    expectTypeOf<ReactBareRMachine<AnyLocale>>().toBeCallableWith({ locale: "en", writeLocale: () => {}, children });
     expectTypeOf<ReactBareRMachine<AnyLocale>>().toBeCallableWith({
       locale: "en",
       writeLocale: async () => {},
-      children: null as unknown as ReactNode,
+      children,
     });
-  });
-
-  it("accepts explicitly undefined writeLocale", () => {
-    expectTypeOf<ReactBareRMachine<AnyLocale>>().toBeCallableWith({
-      locale: "en",
-      writeLocale: undefined,
-      children: null as unknown as ReactNode,
-    });
+    expectTypeOf<ReactBareRMachine<AnyLocale>>().toBeCallableWith({ locale: "en", writeLocale: undefined, children });
   });
 
   it("returns ReactNode", () => {
     expectTypeOf<ReactBareRMachine<AnyLocale>>().returns.toExtend<ReactNode>();
   });
 
-  it("probe accepts string or undefined and returns L | undefined", () => {
+  it("probe accepts string | undefined and returns L | undefined", () => {
     expectTypeOf<ReactBareRMachine<AnyLocale>["probe"]>().toBeCallableWith("en");
     expectTypeOf<ReactBareRMachine<AnyLocale>["probe"]>().toBeCallableWith(undefined);
     expectTypeOf<ReactBareRMachine<AnyLocale>["probe"]>().returns.toEqualTypeOf<string | undefined>();
@@ -151,45 +93,21 @@ describe("ReactBareRMachine", () => {
 describe("narrowed Locale type", () => {
   type AppLocale = "en" | "it";
 
-  it("useLocale returns the narrowed locale type", () => {
-    expectTypeOf<ReactBareToolset<TestAtlas, AppLocale, NamespaceMap<TestAtlas>>["useLocale"]>().toEqualTypeOf<
-      () => AppLocale
-    >();
-  });
-
-  it("useSetLocale accepts only the narrowed locale type", () => {
-    expectTypeOf<ReactBareToolset<TestAtlas, AppLocale, NamespaceMap<TestAtlas>>["useSetLocale"]>().toEqualTypeOf<
-      () => (newLocale: AppLocale) => Promise<void>
-    >();
-  });
-
-  it("ReactBareRMachine locale prop is typed as the narrowed locale", () => {
+  it("ReactRMachine locale prop is typed as the narrowed locale", () => {
     expectTypeOf<ReactBareRMachine<AppLocale>>().toBeCallableWith({
       locale: "en" as AppLocale,
       children: null as unknown as ReactNode,
     });
   });
 
-  it("ReactBareRMachine writeLocale accepts the narrowed locale type", () => {
-    expectTypeOf<ReactBareRMachine<AppLocale>>().toBeCallableWith({
-      locale: "en" as AppLocale,
-      writeLocale: (_newLocale: AppLocale) => {},
-      children: null as unknown as ReactNode,
-    });
-  });
-
-  it("probe accepts narrowed locale or undefined", () => {
-    expectTypeOf<ReactBareRMachine<AppLocale>["probe"]>().parameter(0).toEqualTypeOf<string | undefined>();
-  });
-
-  it("probe returns narrowed locale or undefined", () => {
+  it("probe returns the narrowed locale or undefined", () => {
     expectTypeOf<ReactBareRMachine<AppLocale>["probe"]>().returns.toEqualTypeOf<AppLocale | undefined>();
   });
 
-  it("narrowed toolset is not assignable to differently-narrowed toolset", () => {
+  it("a differently-narrowed toolset is not assignable", () => {
     type OtherLocale = "fr" | "de";
-    expectTypeOf<ReactBareToolset<TestAtlas, AppLocale, NamespaceMap<TestAtlas>>>().not.toEqualTypeOf<
-      ReactBareToolset<TestAtlas, OtherLocale, NamespaceMap<TestAtlas>>
+    expectTypeOf<ReactBareToolset<TestAtlas, AppLocale, NoFlags, KM>>().not.toEqualTypeOf<
+      ReactBareToolset<TestAtlas, OtherLocale, NoFlags, KM>
     >();
   });
 });

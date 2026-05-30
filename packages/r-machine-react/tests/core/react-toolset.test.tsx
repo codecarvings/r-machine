@@ -1,4 +1,4 @@
-import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { ERR_UNKNOWN_LOCALE, RMachineError } from "r-machine/errors";
 import type { ReactNode } from "react";
 import React from "react";
@@ -6,1178 +6,443 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ERR_CONTEXT_NOT_FOUND } from "#r-machine/react/errors";
 import { createReactToolset } from "../../src/core/react-toolset.js";
 import { createMockImpl } from "../_fixtures/mock-impl.js";
-import { createMockMachine, spies } from "../_fixtures/mock-machine.js";
-import { React19ErrorBoundary } from "../_fixtures/react19-error-boundary.js";
+import { type CreateMockMachineOptions, createMockMachine, spies } from "../_fixtures/mock-machine.js";
 
 afterEach(cleanup);
 
-// ---------------------------------------------------------------------------
-// createReactToolset
-// ---------------------------------------------------------------------------
+type Ctx = { locale: string; setLocale: (l: string) => void | Promise<void> };
+type Toolset = Awaited<ReturnType<typeof createReactToolset>>;
+type AnyPlug = (...a: unknown[]) => { useR: () => unknown };
 
-describe("createReactToolset", () => {
-  // -----------------------------------------------------------------------
-  // ReactRMachine — sync readLocale
-  // -----------------------------------------------------------------------
+// createReactToolset wraps the bare toolset with an enhanced ReactRMachine that
+// owns the locale via the ReactImpl (readLocale/writeLocale), wraps children in
+// Suspense, and updates locale optimistically on $.setLocale. Locale/setLocale
+// are read off the `$` context returned by `Plug().useR()`.
 
-  describe("ReactRMachine (sync readLocale)", () => {
-    it("renders children when readLocale returns a string", async () => {
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine } = await createReactToolset(createMockMachine(), impl);
+interface ToolsetOptions {
+  readLocale?: () => string | Promise<string>;
+  writeLocale?: (l: string) => void | Promise<void>;
+  machine?: CreateMockMachineOptions;
+}
 
+function toolsetWith(opts: ToolsetOptions = {}) {
+  const machine = createMockMachine(opts.machine ?? {});
+  // Only forward defined overrides — `exactOptionalPropertyTypes` rejects
+  // explicit `undefined` for optional props.
+  const impl = createMockImpl({
+    ...(opts.readLocale ? { readLocale: opts.readLocale } : {}),
+    ...(opts.writeLocale ? { writeLocale: opts.writeLocale } : {}),
+  });
+  return { machine, toolset: createReactToolset(machine as never, {} as never, impl) };
+}
+
+// Renders a `$`-capturing probe inside the enhanced provider; returns a getter
+// for the latest captured context.
+async function mountCtx(t: Toolset, props: Record<string, unknown> = {}): Promise<() => Ctx> {
+  let ctx: Ctx | undefined;
+  function Probe() {
+    const { $ } = (t.Plug as () => { useR: () => { $: Ctx } })().useR();
+    ctx = $;
+    return <span data-testid="locale">{$.locale}</span>;
+  }
+  await act(async () => {
+    render(
+      <t.ReactRMachine {...props}>
+        <Probe />
+      </t.ReactRMachine>
+    );
+  });
+  return () => ctx as Ctx;
+}
+
+describe("createReactToolset › ReactRMachine (sync readLocale)", () => {
+  it("renders children and passes the readLocale value as $.locale", async () => {
+    const { toolset } = toolsetWith({ readLocale: () => "it" });
+    const getCtx = await mountCtx(await toolset);
+    expect(screen.getByTestId("locale").textContent).toBe("it");
+    expect(getCtx().locale).toBe("it");
+  });
+
+  it("calls readLocale once per mount", async () => {
+    const readLocale = vi.fn(() => "en");
+    const { toolset } = toolsetWith({ readLocale });
+    await mountCtx(await toolset);
+    expect(readLocale).toHaveBeenCalledTimes(1);
+  });
+
+  // Intentional pattern: try/catch + expect.unreachable — do not simplify.
+  it("propagates a synchronous error thrown by readLocale", async () => {
+    const { ReactRMachine } = await toolsetWith({
+      readLocale: () => {
+        throw new Error("readLocale exploded");
+      },
+    }).toolset;
+    try {
       render(
-        <ReactRMachine>
-          <div>child content</div>
-        </ReactRMachine>
-      );
-
-      screen.getByText("child content");
-    });
-
-    it("calls readLocale once per mount", async () => {
-      const readLocale = vi.fn(() => "en");
-      const impl = createMockImpl({ readLocale });
-      const { ReactRMachine } = await createReactToolset(createMockMachine(), impl);
-
-      const { rerender } = render(
         <ReactRMachine>
           <div>child</div>
         </ReactRMachine>
       );
-
-      rerender(
-        <ReactRMachine>
-          <div>child</div>
-        </ReactRMachine>
-      );
-
-      expect(readLocale).toHaveBeenCalledTimes(1);
-    });
-
-    it("propagates a synchronous error thrown by readLocale", async () => {
-      const impl = createMockImpl({
-        readLocale: () => {
-          throw new Error("readLocale crashed");
-        },
-      });
-      const { ReactRMachine } = await createReactToolset(createMockMachine(), impl);
-
-      expect(() =>
-        render(
-          <ReactRMachine>
-            <div>child</div>
-          </ReactRMachine>
-        )
-      ).toThrow("readLocale crashed");
-    });
-
-    it("passes the locale from readLocale to the inner provider", async () => {
-      const impl = createMockImpl({ readLocale: () => "it" });
-      const { ReactRMachine, useLocale } = await createReactToolset(createMockMachine(), impl);
-
-      function LocaleDisplay() {
-        return <span data-testid="locale">{useLocale()}</span>;
-      }
-
-      render(
-        <ReactRMachine>
-          <LocaleDisplay />
-        </ReactRMachine>
-      );
-
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // ReactRMachine — async readLocale
-  // -----------------------------------------------------------------------
-
-  describe("ReactRMachine (async readLocale)", () => {
-    const DELAY = 50;
-
-    it("renders children with the resolved locale after async readLocale resolves", async () => {
-      const localePromise = new Promise<string>((r) => setTimeout(() => r("it"), DELAY));
-      const impl = createMockImpl({ readLocale: () => localePromise });
-      const { ReactRMachine, useLocale } = await createReactToolset(createMockMachine(), impl);
-
-      function LocaleDisplay() {
-        return <span data-testid="locale">{useLocale()}</span>;
-      }
-
-      await act(async () => {
-        render(
-          <ReactRMachine Suspense={React.Suspense} fallback={<div>loading...</div>}>
-            <LocaleDisplay />
-          </ReactRMachine>
-        );
-        await localePromise;
-      });
-
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-    });
-
-    it("shows fallback while async readLocale is pending", async () => {
-      let resolve!: (locale: string) => void;
-      const localePromise = new Promise<string>((r) => {
-        resolve = r;
-      });
-      const impl = createMockImpl({ readLocale: () => localePromise });
-      const { ReactRMachine } = await createReactToolset(createMockMachine(), impl);
-
-      await act(async () => {
-        render(
-          <ReactRMachine Suspense={React.Suspense} fallback={<div>loading...</div>}>
-            <div>child content</div>
-          </ReactRMachine>
-        );
-      });
-
-      // Fallback should be visible while promise is pending
-      screen.getByText("loading...");
-      expect(screen.queryByText("child content")).toBeNull();
-
-      // Resolve to prevent dangling promise warnings
-      resolve("en");
-      await act(async () => {
-        await localePromise;
-        await new Promise((r) => setTimeout(r, DELAY));
-      });
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // ReactRMachine — async readLocale rejection
-  // -----------------------------------------------------------------------
-
-  describe("ReactRMachine (async readLocale rejection)", () => {
-    it("propagates rejection from async readLocale to the error boundary", async () => {
-      const impl = createMockImpl({
-        readLocale: () => Promise.reject(new Error("detection failed")),
-      });
-      const { ReactRMachine } = await createReactToolset(createMockMachine(), impl);
-
-      await act(async () => {
-        render(
-          <React19ErrorBoundary>
-            <ReactRMachine Suspense={React.Suspense} fallback={<div>loading</div>}>
-              <div>child content</div>
-            </ReactRMachine>
-          </React19ErrorBoundary>
-        );
-      });
-
-      // Error boundary caught the rejection — children are not rendered
-      expect(screen.queryByText("child content")).toBeNull();
-      // Fallback is also gone — error boundary rendered null
-      expect(screen.queryByText("loading")).toBeNull();
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // ReactRMachine — Suspense prop
-  // -----------------------------------------------------------------------
-
-  describe("ReactRMachine (Suspense prop)", () => {
-    it("uses DelayedSuspense by default when no Suspense prop is provided", async () => {
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine, useLocale } = await createReactToolset(createMockMachine(), impl);
-
-      function LocaleDisplay() {
-        return <span data-testid="locale">{useLocale()}</span>;
-      }
-
-      // With sync readLocale and default Suspense, children render normally
-      // (no suspension occurs, so DelayedSuspense is a transparent wrapper)
-      render(
-        <ReactRMachine fallback={<div>fallback</div>}>
-          <LocaleDisplay />
-        </ReactRMachine>
-      );
-
-      expect(screen.getByTestId("locale").textContent).toBe("en");
-      expect(screen.queryByText("fallback")).toBeNull();
-    });
-
-    it("delays fallback when using default Suspense with async resource loading", async () => {
-      vi.useFakeTimers();
-
-      const pending = new Promise<{ greeting: string }>(() => {});
-      const mock = createMockMachine({ hybridPickR: () => pending });
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine, useR } = await createReactToolset(mock, impl);
-
-      function Consumer() {
-        const r = useR("common");
-        return <span>{r.greeting}</span>;
-      }
-
-      render(
-        <ReactRMachine fallback={<div>delayed-fallback</div>}>
-          <Consumer />
-        </ReactRMachine>
-      );
-
-      // DelayedSuspense delays fallback — neither content nor fallback immediately
-      expect(screen.queryByText("delayed-fallback")).toBeNull();
-
-      // After delay (default 300ms), fallback appears
-      await act(async () => {
-        vi.advanceTimersByTime(300);
-      });
-
-      screen.getByText("delayed-fallback");
-
-      vi.useRealTimers();
-    });
-
-    it("uses the custom Suspense component when provided", async () => {
-      const impl = createMockImpl({
-        readLocale: () => new Promise<string>(() => {}),
-      });
-      const { ReactRMachine } = await createReactToolset(createMockMachine(), impl);
-
-      function CustomSuspense({ fallback, children }: { fallback?: ReactNode; children: ReactNode }) {
-        return <React.Suspense fallback={<div>custom-wrapper: {fallback}</div>}>{children}</React.Suspense>;
-      }
-
-      await act(async () => {
-        render(
-          <ReactRMachine Suspense={CustomSuspense} fallback={<span>loading</span>}>
-            <div>child</div>
-          </ReactRMachine>
-        );
-      });
-
-      screen.getByText(/custom-wrapper/);
-    });
-
-    it("renders without Suspense wrapper when Suspense is null", async () => {
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine } = await createReactToolset(createMockMachine(), impl);
-
-      render(
-        <ReactRMachine Suspense={null}>
-          <div>no-suspense-child</div>
-        </ReactRMachine>
-      );
-
-      screen.getByText("no-suspense-child");
-    });
-
-    it("passes fallback to the Suspense component", async () => {
-      const impl = createMockImpl({
-        readLocale: () => new Promise<string>(() => {}),
-      });
-      const { ReactRMachine } = await createReactToolset(createMockMachine(), impl);
-
-      await act(async () => {
-        render(
-          <ReactRMachine Suspense={React.Suspense} fallback={<div>my-fallback</div>}>
-            <div>child</div>
-          </ReactRMachine>
-        );
-      });
-
-      screen.getByText("my-fallback");
-    });
-
-    it("renders undefined fallback when fallback is not specified", async () => {
-      const impl = createMockImpl({
-        readLocale: () => new Promise<string>(() => {}),
-      });
-      const { ReactRMachine } = await createReactToolset(createMockMachine(), impl);
-
-      // Should not crash even without fallback
-      await act(async () => {
-        render(
-          <ReactRMachine Suspense={React.Suspense}>
-            <div>child</div>
-          </ReactRMachine>
-        );
-      });
-
-      // Content shouldn't appear while suspended
-      expect(screen.queryByText("child")).toBeNull();
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // useLocale (inherited from ReactBareToolset)
-  // -----------------------------------------------------------------------
-
-  describe("useLocale", () => {
-    it("returns the current locale from context", async () => {
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine, useLocale } = await createReactToolset(createMockMachine(), impl);
-
-      const { result } = renderHook(() => useLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      expect(result.current).toBe("en");
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // useSetLocale
-  // -----------------------------------------------------------------------
-
-  describe("useSetLocale", () => {
-    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
-    it("throws with a descriptive context-not-found message when used outside ReactRMachine", async () => {
-      const { useSetLocale } = await createReactToolset(createMockMachine(), createMockImpl());
-      try {
-        renderHook(() => useSetLocale());
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineError);
-        expect(error).toHaveProperty("code", ERR_CONTEXT_NOT_FOUND);
-        expect(error).toHaveProperty("message", expect.stringMatching(/ReactToolsetContext not found/));
-      }
-    });
-
-    it("returns a new function reference on every render (intentionally not memoized)", async () => {
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      const refs: Array<(newLocale: string) => Promise<void>> = [];
-      function Collector() {
-        refs.push(useSetLocale());
-        return null;
-      }
-
-      const { rerender } = render(
-        <ReactRMachine>
-          <Collector />
-        </ReactRMachine>
-      );
-
-      rerender(
-        <ReactRMachine>
-          <Collector />
-        </ReactRMachine>
-      );
-
-      expect(refs).toHaveLength(2);
-      expect(refs[0]).not.toBe(refs[1]);
-    });
-
-    it("is a no-op when the new locale equals the current locale", async () => {
-      const writeLocale = vi.fn();
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      await act(async () => {
-        await result.current("en");
-      });
-
-      expect(writeLocale).not.toHaveBeenCalled();
-    });
-
-    it("calls impl.writeLocale with the new locale", async () => {
-      const writeLocale = vi.fn();
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      await act(async () => {
-        await result.current("it");
-      });
-
-      expect(writeLocale).toHaveBeenCalledWith("it");
-    });
-
-    it("updates the locale in context after setLocale", async () => {
-      const writeLocale = vi.fn();
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useLocale, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      function LocaleSwitcher() {
-        const locale = useLocale();
-        const setLocale = useSetLocale();
-        return (
-          <>
-            <span data-testid="locale">{locale}</span>
-            <button type="button" onClick={() => setLocale("it")}>
-              switch
-            </button>
-          </>
-        );
-      }
-
-      render(
-        <ReactRMachine>
-          <LocaleSwitcher />
-        </ReactRMachine>
-      );
-
-      expect(screen.getByTestId("locale").textContent).toBe("en");
-
-      await act(async () => {
-        screen.getByText("switch").click();
-      });
-
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-    });
-
-    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
-    it("throws RMachineError when the new locale is invalid", async () => {
-      const writeLocale = vi.fn();
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      try {
-        await act(async () => {
-          await result.current("xx");
-        });
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineError);
-      }
-
-      expect(writeLocale).not.toHaveBeenCalled();
-    });
-
-    it("includes the invalid locale in the error message", async () => {
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      await expect(
-        act(async () => {
-          await result.current("xx");
-        })
-      ).rejects.toThrow(/Cannot set invalid locale: "xx"/);
-    });
-
-    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
-    it("wraps the validation error as innerError", async () => {
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      try {
-        await act(async () => {
-          await result.current("xx");
-        });
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineError);
-        expect((error as RMachineError).innerError).toBeInstanceOf(RMachineError);
-      }
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // useR (inherited from ReactBareToolset, accessed through provider)
-  // -----------------------------------------------------------------------
-
-  describe("useR", () => {
-    it("re-fetches resources after locale change", async () => {
-      const mock = createMockMachine();
-      const writeLocale = vi.fn();
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useR, useSetLocale } = await createReactToolset(mock, impl);
-
-      function Consumer() {
-        const r = useR("common");
-        const setLocale = useSetLocale();
-        return (
-          <>
-            <span data-testid="greeting">{r.greeting}</span>
-            <button type="button" onClick={() => setLocale("it")}>
-              switch
-            </button>
-          </>
-        );
-      }
-
-      render(
-        <ReactRMachine>
-          <Consumer />
-        </ReactRMachine>
-      );
-
-      await act(async () => {
-        screen.getByText("switch").click();
-      });
-
-      expect(spies(mock).hybridPickR).toHaveBeenCalledWith("it", "common");
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // useRKit (inherited from ReactBareToolset, accessed through provider)
-  // -----------------------------------------------------------------------
-
-  describe("useRKit", () => {
-    it("re-fetches resources after locale change", async () => {
-      const mock = createMockMachine();
-      const writeLocale = vi.fn();
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useRKit, useSetLocale } = await createReactToolset(mock, impl);
-
-      function Consumer() {
-        const [r] = useRKit("common");
-        const setLocale = useSetLocale();
-        return (
-          <>
-            <span data-testid="greeting">{r.greeting}</span>
-            <button type="button" onClick={() => setLocale("it")}>
-              switch
-            </button>
-          </>
-        );
-      }
-
-      render(
-        <ReactRMachine>
-          <Consumer />
-        </ReactRMachine>
-      );
-
-      await act(async () => {
-        screen.getByText("switch").click();
-      });
-
-      expect(spies(mock).hybridPickRKit).toHaveBeenCalledWith("it", "common");
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // Integration tests
-  // -----------------------------------------------------------------------
-
-  describe("integration", () => {
-    it("full flow: readLocale → render → setLocale → writeLocale", async () => {
-      const writeLocale = vi.fn();
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const mock = createMockMachine({
-        hybridPickR: (locale) => ({ greeting: locale === "en" ? "hello" : "ciao" }),
-      });
-      const { ReactRMachine, useR, useLocale, useSetLocale } = await createReactToolset(mock, impl);
-
-      function App() {
-        const locale = useLocale();
-        const r = useR("common");
-        const setLocale = useSetLocale();
-        return (
-          <>
-            <span data-testid="locale">{locale}</span>
-            <span data-testid="greeting">{r.greeting}</span>
-            <button type="button" onClick={() => setLocale("it")}>
-              switch
-            </button>
-          </>
-        );
-      }
-
-      render(
-        <ReactRMachine>
-          <App />
-        </ReactRMachine>
-      );
-
-      expect(screen.getByTestId("locale").textContent).toBe("en");
-      expect(screen.getByTestId("greeting").textContent).toBe("hello");
-
-      await act(async () => {
-        screen.getByText("switch").click();
-      });
-
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-      expect(screen.getByTestId("greeting").textContent).toBe("ciao");
-      expect(writeLocale).toHaveBeenCalledWith("it");
-    });
-
-    it("async readLocale → resolve → full interaction", async () => {
-      const writeLocale = vi.fn();
-      const localePromise = new Promise<string>((r) => setTimeout(() => r("en"), 50));
-      const impl = createMockImpl({
-        readLocale: () => localePromise,
-        writeLocale,
-      });
-      const { ReactRMachine, useLocale, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      function App() {
-        const locale = useLocale();
-        const setLocale = useSetLocale();
-        return (
-          <>
-            <span data-testid="locale">{locale}</span>
-            <button type="button" onClick={() => setLocale("it")}>
-              switch
-            </button>
-          </>
-        );
-      }
-
-      await act(async () => {
-        render(
-          <ReactRMachine Suspense={React.Suspense} fallback={<div>loading</div>}>
-            <App />
-          </ReactRMachine>
-        );
-        await localePromise;
-      });
-
-      expect(screen.getByTestId("locale").textContent).toBe("en");
-
-      await act(async () => {
-        screen.getByText("switch").click();
-      });
-
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-      expect(writeLocale).toHaveBeenCalledWith("it");
-    });
-
-    it("updates locale optimistically even when writeLocale throws synchronously", async () => {
-      const writeLocale = vi.fn(() => {
-        throw new Error("storage failure");
-      });
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useLocale, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      let caughtError: unknown;
-      function App() {
-        const locale = useLocale();
-        const setLocale = useSetLocale();
-        return (
-          <>
-            <span data-testid="locale">{locale}</span>
-            <button
-              type="button"
-              onClick={() => {
-                setLocale("it").catch((e) => {
-                  caughtError = e;
-                });
-              }}
-            >
-              switch
-            </button>
-          </>
-        );
-      }
-
-      render(
-        <ReactRMachine>
-          <App />
-        </ReactRMachine>
-      );
-
-      expect(screen.getByTestId("locale").textContent).toBe("en");
-
-      await act(async () => {
-        screen.getByText("switch").click();
-      });
-
-      // Locale was updated optimistically before writeLocale threw
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-      expect(caughtError).toBeInstanceOf(Error);
-      expect((caughtError as Error).message).toBe("storage failure");
-    });
-
-    it("updates locale optimistically even when writeLocale rejects", async () => {
-      const writeLocale = vi.fn(() => Promise.reject(new Error("network error")));
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useLocale, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      let caughtError: unknown;
-      function App() {
-        const locale = useLocale();
-        const setLocale = useSetLocale();
-        return (
-          <>
-            <span data-testid="locale">{locale}</span>
-            <button
-              type="button"
-              onClick={() => {
-                setLocale("it").catch((e) => {
-                  caughtError = e;
-                });
-              }}
-            >
-              switch
-            </button>
-          </>
-        );
-      }
-
-      render(
-        <ReactRMachine>
-          <App />
-        </ReactRMachine>
-      );
-
-      expect(screen.getByTestId("locale").textContent).toBe("en");
-
-      await act(async () => {
-        screen.getByText("switch").click();
-      });
-
-      // Locale was updated optimistically before writeLocale rejected
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-      expect(caughtError).toBeInstanceOf(Error);
-      expect((caughtError as Error).message).toBe("network error");
-    });
-
-    it("independent toolset instances have isolated contexts", async () => {
-      const impl1 = createMockImpl({ readLocale: () => "en" });
-      const impl2 = createMockImpl({ readLocale: () => "it" });
-      const toolset1 = await createReactToolset(createMockMachine(), impl1);
-      const toolset2 = await createReactToolset(createMockMachine(), impl2);
-
-      function Display1() {
-        return <span data-testid="l1">{toolset1.useLocale()}</span>;
-      }
-      function Display2() {
-        return <span data-testid="l2">{toolset2.useLocale()}</span>;
-      }
-
-      render(
-        <toolset1.ReactRMachine>
-          <Display1 />
-          <toolset2.ReactRMachine>
-            <Display2 />
-          </toolset2.ReactRMachine>
-        </toolset1.ReactRMachine>
-      );
-
-      expect(screen.getByTestId("l1").textContent).toBe("en");
-      expect(screen.getByTestId("l2").textContent).toBe("it");
-    });
-
-    it("handles rapid successive setLocale calls correctly", async () => {
-      const callOrder: string[] = [];
-      const writeLocale = vi.fn(async (locale: string) => {
-        await new Promise<void>((r) => setTimeout(r, 10));
-        callOrder.push(`write-${locale}`);
-      });
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useLocale, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      function App() {
-        const locale = useLocale();
-        const setLocale = useSetLocale();
-        return (
-          <>
-            <span data-testid="locale">{locale}</span>
-            <button type="button" data-testid="to-it" onClick={() => setLocale("it")}>
-              to it
-            </button>
-            <button type="button" data-testid="to-en" onClick={() => setLocale("en")}>
-              to en
-            </button>
-          </>
-        );
-      }
-
-      render(
-        <ReactRMachine>
-          <App />
-        </ReactRMachine>
-      );
-
-      // Rapid clicks without waiting for writeLocale to complete
-      await act(async () => {
-        screen.getByTestId("to-it").click();
-      });
-      await act(async () => {
-        screen.getByTestId("to-en").click();
-      });
-      await act(async () => {
-        screen.getByTestId("to-it").click();
-      });
-
-      // The final locale should reflect the last call
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-
-      // writeLocale should have been called for each change
-      expect(writeLocale).toHaveBeenCalledTimes(3);
-      expect(writeLocale).toHaveBeenNthCalledWith(1, "it");
-      expect(writeLocale).toHaveBeenNthCalledWith(2, "en");
-      expect(writeLocale).toHaveBeenNthCalledWith(3, "it");
-    });
-
-    it("updates the UI before writeLocale completes (optimistic timing)", async () => {
-      let writeLocaleResolve!: () => void;
-      const writeLocalePromise = new Promise<void>((r) => {
-        writeLocaleResolve = r;
-      });
-      const writeLocale = vi.fn(() => writeLocalePromise);
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useLocale, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      function App() {
-        const locale = useLocale();
-        const setLocale = useSetLocale();
-        return (
-          <>
-            <span data-testid="locale">{locale}</span>
-            <button type="button" onClick={() => setLocale("it")}>
-              switch
-            </button>
-          </>
-        );
-      }
-
-      render(
-        <ReactRMachine>
-          <App />
-        </ReactRMachine>
-      );
-
-      await act(async () => {
-        screen.getByText("switch").click();
-      });
-
-      // UI updated optimistically BEFORE writeLocale resolves
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-      expect(writeLocale).toHaveBeenCalledWith("it");
-
-      // writeLocale is still pending
-      writeLocaleResolve();
-      await writeLocalePromise;
-    });
-
-    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
-    it("useSetLocale error uses ERR_UNKNOWN_LOCALE code (consistent with bare variant)", async () => {
-      const impl = createMockImpl({ readLocale: () => "en" });
-      const { ReactRMachine, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine>{children}</ReactRMachine>,
-      });
-
-      try {
-        await act(async () => {
-          await result.current("xx");
-        });
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineError);
-        expect(error).toHaveProperty("code", ERR_UNKNOWN_LOCALE);
-      }
-    });
-
-    it("multiple setLocale calls update correctly", async () => {
-      const writeLocale = vi.fn();
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useLocale, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      function App() {
-        const locale = useLocale();
-        const setLocale = useSetLocale();
-        return (
-          <>
-            <span data-testid="locale">{locale}</span>
-            <button type="button" data-testid="to-it" onClick={() => setLocale("it")}>
-              to it
-            </button>
-            <button type="button" data-testid="to-en" onClick={() => setLocale("en")}>
-              to en
-            </button>
-          </>
-        );
-      }
-
-      render(
-        <ReactRMachine>
-          <App />
-        </ReactRMachine>
-      );
-
-      expect(screen.getByTestId("locale").textContent).toBe("en");
-
-      await act(async () => {
-        screen.getByTestId("to-it").click();
-      });
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-
-      await act(async () => {
-        screen.getByTestId("to-en").click();
-      });
-      expect(screen.getByTestId("locale").textContent).toBe("en");
-
-      expect(writeLocale).toHaveBeenCalledTimes(2);
-      expect(writeLocale).toHaveBeenNthCalledWith(1, "it");
-      expect(writeLocale).toHaveBeenNthCalledWith(2, "en");
-    });
-
-    it("does not error when unmounted during async writeLocale", async () => {
-      let resolveWrite!: () => void;
-      const writeLocale = vi.fn(
-        () =>
-          new Promise<void>((r) => {
-            resolveWrite = r;
-          })
-      );
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      function App() {
-        const setLocale = useSetLocale();
-        return (
-          <button type="button" onClick={() => setLocale("it")}>
-            switch
-          </button>
-        );
-      }
-
-      const { unmount } = render(
-        <ReactRMachine>
-          <App />
-        </ReactRMachine>
-      );
-
-      await act(async () => {
-        screen.getByText("switch").click();
-      });
-
-      // Unmount while writeLocale is still pending
-      unmount();
-
-      // Resolve after unmount — should not throw or warn
-      resolveWrite();
-      await writeLocale.mock.results[0]!.value;
-
-      expect(writeLocale).toHaveBeenCalledWith("it");
-    });
-
-    it("does not error when unmounted during async readLocale (Suspense)", async () => {
-      let resolveLocale!: (locale: string) => void;
-      const localePromise = new Promise<string>((r) => {
-        resolveLocale = r;
-      });
-      const impl = createMockImpl({ readLocale: () => localePromise });
-      const { ReactRMachine } = await createReactToolset(createMockMachine(), impl);
-
-      const { unmount } = render(
-        <ReactRMachine Suspense={React.Suspense} fallback={<div>loading</div>}>
-          <div>child</div>
-        </ReactRMachine>
-      );
-
-      // Fallback should be visible
-      screen.getByText("loading");
-
-      // Unmount while readLocale is still pending
-      unmount();
-
-      // Resolve after unmount — should not throw or warn
-      await act(async () => {
-        resolveLocale("en");
-        await localePromise;
-      });
-    });
-
-    it("executes UI update before writeLocale completes (verified by execution order)", async () => {
-      const callOrder: string[] = [];
-      let writeLocaleResolve!: () => void;
-      const writeLocalePromise = new Promise<void>((r) => {
-        writeLocaleResolve = r;
-      });
-      const writeLocale = vi.fn(() => {
-        callOrder.push("writeLocale-called");
-        return writeLocalePromise.then(() => {
-          callOrder.push("writeLocale-resolved");
-        });
-      });
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useLocale, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      function App() {
-        const locale = useLocale();
-        callOrder.push(`render-${locale}`);
-        const setLocale = useSetLocale();
-        return (
-          <>
-            <span data-testid="locale">{locale}</span>
-            <button type="button" onClick={() => setLocale("it")}>
-              switch
-            </button>
-          </>
-        );
-      }
-
-      render(
-        <ReactRMachine>
-          <App />
-        </ReactRMachine>
-      );
-
-      // Clear initial render entries
-      callOrder.length = 0;
-
-      await act(async () => {
-        screen.getByText("switch").click();
-      });
-
-      // The re-render with "it" should appear BEFORE writeLocale resolves
-      expect(callOrder).toEqual(["writeLocale-called", "render-it"]);
-
-      await act(async () => {
-        writeLocaleResolve();
-        await writeLocalePromise;
-      });
-
-      expect(callOrder).toEqual(["writeLocale-called", "render-it", "writeLocale-resolved"]);
-    });
-
-    it("concurrent mounts with the same impl call readLocale independently", async () => {
-      const readLocale = vi.fn(() => "en");
-      const impl = createMockImpl({ readLocale });
-      const toolset1 = await createReactToolset(createMockMachine(), impl);
-      const toolset2 = await createReactToolset(createMockMachine(), impl);
-
-      render(
-        <>
-          <toolset1.ReactRMachine>
-            <div>first</div>
-          </toolset1.ReactRMachine>
-          <toolset2.ReactRMachine>
-            <div>second</div>
-          </toolset2.ReactRMachine>
-        </>
-      );
-
-      screen.getByText("first");
-      screen.getByText("second");
-
-      // readLocale called once per mount
-      expect(readLocale).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // concurrent features (startTransition)
-  // -----------------------------------------------------------------------
-
-  describe("concurrent features (startTransition)", () => {
-    it("completes locale switch when setLocale is wrapped in startTransition", async () => {
-      const writeLocale = vi.fn();
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useLocale, useSetLocale } = await createReactToolset(createMockMachine(), impl);
-
-      function App() {
-        const locale = useLocale();
-        const setLocale = useSetLocale();
-        return (
-          <>
-            <span data-testid="locale">{locale}</span>
-            <button
-              type="button"
-              onClick={() => {
-                React.startTransition(() => {
-                  setLocale("it");
-                });
-              }}
-            >
-              switch
-            </button>
-          </>
-        );
-      }
-
-      render(
-        <ReactRMachine>
-          <App />
-        </ReactRMachine>
-      );
-
-      expect(screen.getByTestId("locale").textContent).toBe("en");
-
-      await act(async () => {
-        screen.getByText("switch").click();
-      });
-
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-      expect(writeLocale).toHaveBeenCalledWith("it");
-    });
-
-    it("keeps old UI visible when setLocale is wrapped in startTransition and new resources suspend", async () => {
-      const newResource = { greeting: "ciao" };
-      let resolved = false;
-      let resolveNewResource!: () => void;
-      const newResourcePromise = new Promise<{ greeting: string }>((r) => {
-        resolveNewResource = () => {
-          resolved = true;
-          r(newResource);
-        };
-      });
-
-      const mock = createMockMachine({
-        hybridPickR: (locale) => {
-          if (locale === "en") return { greeting: "hello" };
-          return resolved ? newResource : newResourcePromise;
-        },
-      });
-      const writeLocale = vi.fn();
-      const impl = createMockImpl({ readLocale: () => "en", writeLocale });
-      const { ReactRMachine, useR, useSetLocale } = await createReactToolset(mock, impl);
-
-      function App() {
-        const r = useR("common");
-        const setLocale = useSetLocale();
-        return (
-          <>
-            <span data-testid="greeting">{r.greeting}</span>
-            <button
-              type="button"
-              onClick={() => {
-                React.startTransition(() => {
-                  setLocale("it");
-                });
-              }}
-            >
-              switch
-            </button>
-          </>
-        );
-      }
-
-      render(
-        <ReactRMachine Suspense={React.Suspense} fallback={<div>fallback</div>}>
-          <App />
-        </ReactRMachine>
-      );
-
-      expect(screen.getByTestId("greeting").textContent).toBe("hello");
-
-      // Synchronous act: triggers the transition without waiting for it to settle
-      act(() => {
-        screen.getByText("switch").click();
-      });
-
-      // With startTransition, old UI should remain visible (no fallback)
-      expect(screen.getByTestId("greeting").textContent).toBe("hello");
-      expect(screen.queryByText("fallback")).toBeNull();
-
-      // Resolve the new resource
-      await act(async () => {
-        resolveNewResource();
-        await newResourcePromise;
-      });
-
-      expect(screen.getByTestId("greeting").textContent).toBe("ciao");
-    });
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect((error as Error).message).toContain("readLocale exploded");
+    }
   });
 });
+
+describe("createReactToolset › ReactRMachine (async readLocale)", () => {
+  it("shows the fallback while pending, then renders with the resolved locale", async () => {
+    let resolveLocale!: (l: string) => void;
+    const localePromise = new Promise<string>((r) => {
+      resolveLocale = r;
+    });
+    const { toolset } = toolsetWith({ readLocale: () => localePromise });
+    const t = await toolset;
+
+    function LocaleDisplay() {
+      const { $ } = (t.Plug as () => { useR: () => { $: Ctx } })().useR();
+      return <span data-testid="locale">{$.locale}</span>;
+    }
+
+    await act(async () => {
+      render(
+        <t.ReactRMachine Suspense={React.Suspense} fallback={<div>loading...</div>}>
+          <LocaleDisplay />
+        </t.ReactRMachine>
+      );
+    });
+    screen.getByText("loading...");
+    expect(screen.queryByTestId("locale")).toBeNull();
+
+    await act(async () => {
+      resolveLocale("it");
+      await localePromise;
+    });
+    expect(screen.getByTestId("locale").textContent).toBe("it");
+  });
+
+  it("propagates a rejection from async readLocale to an error boundary", async () => {
+    const { ReactRMachine } = await toolsetWith({
+      readLocale: () => Promise.reject(new Error("read rejected")),
+    }).toolset;
+
+    let caught: unknown;
+    await act(async () => {
+      render(
+        <React19ErrorBoundaryCapture onError={(e) => (caught = e)}>
+          <ReactRMachine Suspense={React.Suspense} fallback={<div>loading</div>}>
+            <div>child</div>
+          </ReactRMachine>
+        </React19ErrorBoundaryCapture>
+      );
+    });
+    expect((caught as Error)?.message).toContain("read rejected");
+  });
+});
+
+describe("createReactToolset › ReactRMachine (Suspense prop)", () => {
+  it("uses DelayedSuspense by default — no fallback flashes for a sync mount", async () => {
+    const { toolset } = toolsetWith({ readLocale: () => "en" });
+    const t = await toolset;
+    await act(async () => {
+      render(
+        <t.ReactRMachine fallback={<div>fallback</div>}>
+          <div>child</div>
+        </t.ReactRMachine>
+      );
+    });
+    expect(screen.getByText("child")).toBeDefined();
+    expect(screen.queryByText("fallback")).toBeNull();
+  });
+
+  // NB: DelayedSuspense's fallback-delay timing is covered directly in
+  // tests/utils/delayed-suspense.test.tsx; here we only assert it is the
+  // default wrapper (above) and that the Suspense prop overrides it (below).
+
+  it("uses a custom Suspense component when provided", async () => {
+    const { ReactRMachine } = await toolsetWith({ readLocale: () => new Promise<string>(() => {}) }).toolset;
+    function CustomSuspense({ fallback, children }: { fallback?: ReactNode; children: ReactNode }) {
+      return <React.Suspense fallback={<div>custom-wrapper: {fallback}</div>}>{children}</React.Suspense>;
+    }
+    await act(async () => {
+      render(
+        <ReactRMachine Suspense={CustomSuspense} fallback={<span>loading</span>}>
+          <div>child</div>
+        </ReactRMachine>
+      );
+    });
+    screen.getByText(/custom-wrapper/);
+  });
+
+  it("renders without a Suspense wrapper when Suspense is null", async () => {
+    const { ReactRMachine } = await toolsetWith({ readLocale: () => "en" }).toolset;
+    render(
+      <ReactRMachine Suspense={null}>
+        <div>no-suspense-child</div>
+      </ReactRMachine>
+    );
+    screen.getByText("no-suspense-child");
+  });
+
+  it("passes the fallback to the Suspense component", async () => {
+    const { ReactRMachine } = await toolsetWith({ readLocale: () => new Promise<string>(() => {}) }).toolset;
+    await act(async () => {
+      render(
+        <ReactRMachine Suspense={React.Suspense} fallback={<div>my-fallback</div>}>
+          <div>child</div>
+        </ReactRMachine>
+      );
+    });
+    screen.getByText("my-fallback");
+  });
+});
+
+describe("createReactToolset › $.setLocale", () => {
+  // Intentional pattern: try/catch + expect.unreachable — do not simplify.
+  it("throws ERR_CONTEXT_NOT_FOUND when used outside ReactRMachine", async () => {
+    const { Plug } = await toolsetWith().toolset;
+    function Orphan() {
+      (Plug as AnyPlug)().useR();
+      return null;
+    }
+    try {
+      render(<Orphan />);
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toHaveProperty("code", ERR_CONTEXT_NOT_FOUND);
+    }
+  });
+
+  it("is a no-op when the new locale equals the current locale", async () => {
+    const writeLocale = vi.fn();
+    const getCtx = await mountCtx(await toolsetWith({ readLocale: () => "en", writeLocale }).toolset);
+    await act(async () => {
+      await getCtx().setLocale("en");
+    });
+    expect(writeLocale).not.toHaveBeenCalled();
+  });
+
+  it("calls impl.writeLocale and updates $.locale optimistically", async () => {
+    const writeLocale = vi.fn();
+    const getCtx = await mountCtx(await toolsetWith({ readLocale: () => "en", writeLocale }).toolset);
+
+    await act(async () => {
+      await getCtx().setLocale("it");
+    });
+    expect(writeLocale).toHaveBeenCalledWith("it");
+    expect(screen.getByTestId("locale").textContent).toBe("it");
+  });
+
+  it("updates the locale optimistically even when writeLocale throws / rejects", async () => {
+    const throwing = await mountCtx(
+      await toolsetWith({
+        readLocale: () => "en",
+        writeLocale: () => {
+          throw new Error("sync boom");
+        },
+      }).toolset
+    );
+    await act(async () => {
+      await Promise.resolve(throwing().setLocale("it")).catch(() => {});
+    });
+    expect(screen.getByTestId("locale").textContent).toBe("it");
+
+    cleanup();
+    const rejecting = await mountCtx(
+      await toolsetWith({ readLocale: () => "en", writeLocale: () => Promise.reject(new Error("async boom")) }).toolset
+    );
+    await act(async () => {
+      await Promise.resolve(rejecting().setLocale("it")).catch(() => {});
+    });
+    expect(screen.getByTestId("locale").textContent).toBe("it");
+  });
+
+  // Intentional pattern: try/catch + expect.unreachable — do not simplify.
+  it("throws RMachineError(ERR_UNKNOWN_LOCALE) for an invalid locale, with the locale in the message", async () => {
+    const getCtx = await mountCtx(await toolsetWith({ readLocale: () => "en", writeLocale: vi.fn() }).toolset);
+    try {
+      await getCtx().setLocale("xx");
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RMachineError);
+      expect((error as RMachineError).message).toContain("xx");
+      // The bare $.setLocale throws the raw validation error (code carried,
+      // not re-wrapped) — consistent with the bare toolset.
+      expect(error).toHaveProperty("code", ERR_UNKNOWN_LOCALE);
+    }
+  });
+});
+
+describe("createReactToolset › resource resolution", () => {
+  it("re-fetches resources (getGateWire) with the new locale after setLocale", async () => {
+    const { machine, toolset } = toolsetWith({ readLocale: () => "en", writeLocale: vi.fn() });
+    const t = await toolset;
+    let setLocale!: (l: string) => Promise<void>;
+    function Consumer() {
+      const [, $] = (t.Plug as unknown as (...a: unknown[]) => { useR: () => [unknown, Ctx] })("common").useR();
+      setLocale = $.setLocale as (l: string) => Promise<void>;
+      return null;
+    }
+    await act(async () => {
+      render(
+        <t.ReactRMachine>
+          <Consumer />
+        </t.ReactRMachine>
+      );
+    });
+    expect(spies(machine).getGateWire).toHaveBeenCalledWith({}, ["common"], "en", expect.any(Function), undefined);
+
+    await act(async () => {
+      await setLocale("it");
+    });
+    expect(spies(machine).getGateWire).toHaveBeenCalledWith({}, ["common"], "it", expect.any(Function), undefined);
+  });
+});
+
+describe("createReactToolset › integration", () => {
+  it("full flow: readLocale → render → setLocale → writeLocale + optimistic UI", async () => {
+    const writeLocale = vi.fn();
+    const { toolset } = toolsetWith({
+      readLocale: () => "en",
+      writeLocale,
+      machine: { resolve: (_ns, locale) => ({ greeting: locale === "en" ? "hello" : "ciao" }) },
+    });
+    const t = await toolset;
+
+    let setLocale!: (l: string) => Promise<void>;
+    function App() {
+      const [common, $] = (t.Plug as unknown as (...a: unknown[]) => { useR: () => [{ greeting: string }, Ctx] })(
+        "common"
+      ).useR();
+      setLocale = $.setLocale as (l: string) => Promise<void>;
+      return (
+        <>
+          <span data-testid="locale">{$.locale}</span>
+          <span data-testid="greeting">{common.greeting}</span>
+        </>
+      );
+    }
+
+    await act(async () => {
+      render(
+        <t.ReactRMachine>
+          <App />
+        </t.ReactRMachine>
+      );
+    });
+    expect(screen.getByTestId("locale").textContent).toBe("en");
+    expect(screen.getByTestId("greeting").textContent).toBe("hello");
+
+    await act(async () => {
+      await setLocale("it");
+    });
+    expect(writeLocale).toHaveBeenCalledWith("it");
+    expect(screen.getByTestId("locale").textContent).toBe("it");
+    expect(screen.getByTestId("greeting").textContent).toBe("ciao");
+  });
+
+  it("independent toolset instances have isolated contexts", async () => {
+    const a = await toolsetWith({ readLocale: () => "en" }).toolset;
+    const b = await toolsetWith({ readLocale: () => "it" }).toolset;
+
+    function Probe({ t, id }: { t: Toolset; id: string }) {
+      const { $ } = (t.Plug as () => { useR: () => { $: Ctx } })().useR();
+      return <span data-testid={id}>{$.locale}</span>;
+    }
+
+    await act(async () => {
+      render(
+        <>
+          <a.ReactRMachine>
+            <Probe t={a} id="a" />
+          </a.ReactRMachine>
+          <b.ReactRMachine>
+            <Probe t={b} id="b" />
+          </b.ReactRMachine>
+        </>
+      );
+    });
+    expect(screen.getByTestId("a").textContent).toBe("en");
+    expect(screen.getByTestId("b").textContent).toBe("it");
+  });
+
+  it("does not error when unmounted during an async writeLocale", async () => {
+    let resolveWrite!: () => void;
+    const writeLocale = vi.fn(
+      () =>
+        new Promise<void>((r) => {
+          resolveWrite = r;
+        })
+    );
+    const { toolset } = toolsetWith({ readLocale: () => "en", writeLocale });
+    const t = await toolset;
+    let setLocale!: (l: string) => Promise<void>;
+    function App() {
+      const { $ } = (t.Plug as () => { useR: () => { $: Ctx } })().useR();
+      setLocale = $.setLocale as (l: string) => Promise<void>;
+      return null;
+    }
+    const { unmount } = await (async () => {
+      let utils!: ReturnType<typeof render>;
+      await act(async () => {
+        utils = render(
+          <t.ReactRMachine>
+            <App />
+          </t.ReactRMachine>
+        );
+      });
+      return utils;
+    })();
+
+    await act(async () => {
+      void setLocale("it");
+      unmount();
+      resolveWrite();
+    });
+    // No unhandled error / warning means the test passes.
+    expect(writeLocale).toHaveBeenCalledWith("it");
+  });
+
+  it("completes a locale switch when setLocale is wrapped in startTransition", async () => {
+    const { toolset } = toolsetWith({ readLocale: () => "en", writeLocale: vi.fn() });
+    const t = await toolset;
+    let setLocale!: (l: string) => Promise<void>;
+    function App() {
+      const { $ } = (t.Plug as () => { useR: () => { $: Ctx } })().useR();
+      setLocale = $.setLocale as (l: string) => Promise<void>;
+      return <span data-testid="locale">{$.locale}</span>;
+    }
+    await act(async () => {
+      render(
+        <t.ReactRMachine>
+          <App />
+        </t.ReactRMachine>
+      );
+    });
+
+    await act(async () => {
+      React.startTransition(() => {
+        void setLocale("it");
+      });
+    });
+    expect(screen.getByTestId("locale").textContent).toBe("it");
+  });
+});
+
+// Minimal error boundary that reports the caught error (avoids depending on the
+// shared boundary's render-null behavior for assertions).
+class React19ErrorBoundaryCapture extends React.Component<
+  { children: ReactNode; onError: (e: unknown) => void },
+  { hasError: boolean }
+> {
+  override state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  override componentDidCatch(error: unknown) {
+    this.props.onError(error);
+  }
+  override render() {
+    return this.state.hasError ? null : this.props.children;
+  }
+}

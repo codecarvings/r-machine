@@ -1080,7 +1080,15 @@ describe("JunctureManager — $.kit.fmt end-user access", () => {
     });
 
     // List-form deps (`[]`) → plugin is `[...deps, $]`, i.e. just `[$]`.
-    const plugin = (await env.jm.getPlugin({ fmt: "s/fmt" }, [], "en", () => {}, [], 0, undefined)) as readonly unknown[];
+    const plugin = (await env.jm.getPlugin(
+      { fmt: "s/fmt" },
+      [],
+      "en",
+      () => {},
+      [],
+      0,
+      undefined
+    )) as readonly unknown[];
     const $ = plugin[plugin.length - 1] as { kit: { fmt: FmtSurface } };
 
     expect($.kit.fmt.number(42)).toBe("n:42");
@@ -1093,7 +1101,15 @@ describe("JunctureManager — $.kit.fmt end-user access", () => {
       modules: { "s/fmt": fmtModule },
     });
 
-    const plugin = (await env.jm.getPlugin({ fmt: "s/fmt" }, [], "en", () => {}, [], 0, undefined)) as readonly unknown[];
+    const plugin = (await env.jm.getPlugin(
+      { fmt: "s/fmt" },
+      [],
+      "en",
+      () => {},
+      [],
+      0,
+      undefined
+    )) as readonly unknown[];
     const $ = plugin[plugin.length - 1] as Record<string, unknown>;
 
     expect($.fmt).toBeUndefined();

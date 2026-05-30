@@ -1,234 +1,92 @@
-import type { NamespaceMap, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
-import type {
-  ReactStandardStrategyConfig,
-  ReactStandardStrategyConfigParams,
+import {
+  type AnyReactStandardStrategyConfig,
+  type ReactStandardStrategyConfig,
+  type ReactStandardStrategyConfigParams,
+  ReactStandardStrategyCore,
 } from "../../src/core/react-standard-strategy-core.js";
-import { ReactStandardStrategyCore } from "../../src/core/react-standard-strategy-core.js";
 import type { ReactStrategyCore } from "../../src/core/react-strategy-core.js";
 import type { ReactImpl, ReactToolset } from "../../src/core/react-toolset.js";
+import type { TestAtlas } from "../_fixtures/mock-machine.js";
+
+type E = ResEquipment<TestAtlas>;
+type EF = ExperimentalFlags;
+type Cfg = ReactStandardStrategyConfig<TestAtlas, {}>;
+type Params = ReactStandardStrategyConfigParams<TestAtlas, {}>;
+type Core = ReactStandardStrategyCore<TestAtlas, AnyLocale, E, EF, Cfg>;
 
 // ---------------------------------------------------------------------------
-// Test resource atlas types
-// ---------------------------------------------------------------------------
-
-type TestAtlas = {
-  readonly common: { readonly greeting: string };
-  readonly nav: { readonly home: string };
-};
-
-// Concrete subclass for testing the abstract class
-class ConcreteStandardStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>> {
-  // createImpl is already implemented by ReactStandardStrategyCore
-}
-
-// ---------------------------------------------------------------------------
-// ReactStandardStrategyConfig
+// ReactStandardStrategyConfig (extends ReactStrategyConfig → also carries `kit`)
 // ---------------------------------------------------------------------------
 
 describe("ReactStandardStrategyConfig", () => {
-  it("has a readonly localeDetector field typed as CustomLocaleDetector | undefined", () => {
-    expectTypeOf<ReactStandardStrategyConfig["localeDetector"]>().toEqualTypeOf<CustomLocaleDetector | undefined>();
+  it("carries localeDetector / localeStore (plus the inherited kit)", () => {
+    expectTypeOf<Cfg["localeDetector"]>().toEqualTypeOf<CustomLocaleDetector | undefined>();
+    expectTypeOf<Cfg["localeStore"]>().toEqualTypeOf<CustomLocaleStore | undefined>();
+    expectTypeOf<keyof Cfg>().toEqualTypeOf<"kit" | "localeDetector" | "localeStore">();
   });
 
-  it("has a readonly localeStore field typed as CustomLocaleStore | undefined", () => {
-    expectTypeOf<ReactStandardStrategyConfig["localeStore"]>().toEqualTypeOf<CustomLocaleStore | undefined>();
+  it("requires its fields (an empty object / missing field is not assignable)", () => {
+    expectTypeOf<{}>().not.toExtend<Cfg>();
+    expectTypeOf<{ readonly kit: {}; readonly localeStore: undefined }>().not.toExtend<Cfg>();
   });
 
-  it("has exactly two keys", () => {
-    type Keys = keyof ReactStandardStrategyConfig;
-    expectTypeOf<Keys>().toEqualTypeOf<"localeDetector" | "localeStore">();
-  });
-
-  it("requires both fields to be present (not optional)", () => {
+  it("accepts sync/async localeDetector and sync/async localeStore", () => {
+    expectTypeOf<{ kit: {}; localeDetector: () => string; localeStore: undefined }>().toExtend<Cfg>();
+    expectTypeOf<{ kit: {}; localeDetector: () => Promise<string>; localeStore: undefined }>().toExtend<Cfg>();
     expectTypeOf<{
-      readonly localeDetector: undefined;
-      readonly localeStore: undefined;
-    }>().toExtend<ReactStandardStrategyConfig>();
+      kit: {};
+      localeDetector: undefined;
+      localeStore: { get: () => string | undefined; set: (l: string) => void };
+    }>().toExtend<Cfg>();
     expectTypeOf<{
-      readonly localeDetector: CustomLocaleDetector | undefined;
-      readonly localeStore: CustomLocaleStore | undefined;
-    }>().toEqualTypeOf<ReactStandardStrategyConfig>();
+      kit: {};
+      localeDetector: undefined;
+      localeStore: { get: () => Promise<string | undefined>; set: (l: string) => Promise<void> };
+    }>().toExtend<Cfg>();
   });
+});
 
-  it("is not assignable from an empty object", () => {
-    expectTypeOf<{}>().not.toExtend<ReactStandardStrategyConfig>();
-  });
-
-  it("is not assignable from a partial object missing localeDetector", () => {
-    expectTypeOf<{ readonly localeStore: undefined }>().not.toExtend<ReactStandardStrategyConfig>();
-  });
-
-  it("is not assignable from a partial object missing localeStore", () => {
-    expectTypeOf<{ readonly localeDetector: undefined }>().not.toExtend<ReactStandardStrategyConfig>();
-  });
-
-  it("accepts sync localeDetector", () => {
-    expectTypeOf<{
-      readonly localeDetector: () => string;
-      readonly localeStore: undefined;
-    }>().toExtend<ReactStandardStrategyConfig>();
-  });
-
-  it("accepts async localeDetector", () => {
-    expectTypeOf<{
-      readonly localeDetector: () => Promise<string>;
-      readonly localeStore: undefined;
-    }>().toExtend<ReactStandardStrategyConfig>();
-  });
-
-  it("accepts CustomLocaleStore with sync methods", () => {
-    expectTypeOf<{
-      readonly localeDetector: undefined;
-      readonly localeStore: {
-        readonly get: () => string | undefined;
-        readonly set: (locale: string) => void;
-      };
-    }>().toExtend<ReactStandardStrategyConfig>();
-  });
-
-  it("accepts CustomLocaleStore with async methods", () => {
-    expectTypeOf<{
-      readonly localeDetector: undefined;
-      readonly localeStore: {
-        readonly get: () => Promise<string | undefined>;
-        readonly set: (locale: string) => Promise<void>;
-      };
-    }>().toExtend<ReactStandardStrategyConfig>();
+describe("ReactStandardStrategyConfigParams", () => {
+  it("makes every field optional (empty object allowed) and is a supertype of the full config", () => {
+    expectTypeOf<{}>().toExtend<Params>();
+    expectTypeOf<Cfg>().toExtend<Params>();
+    expectTypeOf<Params>().not.toEqualTypeOf<Cfg>();
   });
 });
 
 // ---------------------------------------------------------------------------
-// PartialReactStandardStrategyConfig
-// ---------------------------------------------------------------------------
-
-describe("PartialReactStandardStrategyConfig", () => {
-  it("has the same keys as ReactStandardStrategyConfig", () => {
-    type Keys = keyof ReactStandardStrategyConfigParams;
-    expectTypeOf<Keys>().toEqualTypeOf<"localeDetector" | "localeStore">();
-  });
-
-  it("allows omitting localeDetector", () => {
-    expectTypeOf<{ readonly localeStore: undefined }>().toExtend<ReactStandardStrategyConfigParams>();
-  });
-
-  it("allows omitting localeStore", () => {
-    expectTypeOf<{ readonly localeDetector: undefined }>().toExtend<ReactStandardStrategyConfigParams>();
-  });
-
-  it("allows an empty object", () => {
-    expectTypeOf<{}>().toExtend<ReactStandardStrategyConfigParams>();
-  });
-
-  it("is a supertype of ReactStandardStrategyConfig", () => {
-    expectTypeOf<ReactStandardStrategyConfig>().toExtend<ReactStandardStrategyConfigParams>();
-  });
-
-  it("is not a subtype of ReactStandardStrategyConfig", () => {
-    expectTypeOf<ReactStandardStrategyConfigParams>().not.toEqualTypeOf<ReactStandardStrategyConfig>();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// ReactStandardStrategyCore — class shape & inheritance
+// ReactStandardStrategyCore — class shape
 // ---------------------------------------------------------------------------
 
 describe("ReactStandardStrategyCore", () => {
-  describe("class shape", () => {
-    it("extends ReactStrategyCore<RA, L, ReactStandardStrategyConfig>", () => {
-      expectTypeOf<ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>().toExtend<
-        ReactStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>, ReactStandardStrategyConfig>
-      >();
-    });
-
-    it("is abstract — concrete subclass is constructible", () => {
-      expectTypeOf(ConcreteStandardStrategy).toBeConstructibleWith(
-        {} as RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>,
-        {} as ReactStandardStrategyConfig
-      );
-    });
-
-    it("rMachine property is typed as RMachine<RA, L>", () => {
-      expectTypeOf<
-        ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["rMachine"]
-      >().toEqualTypeOf<RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>();
-    });
-
-    it("config property is typed as ReactStandardStrategyConfig", () => {
-      expectTypeOf<
-        ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["config"]
-      >().toEqualTypeOf<ReactStandardStrategyConfig>();
-    });
+  it("extends ReactStrategyCore and exposes rMachine / config", () => {
+    expectTypeOf<Core>().toExtend<ReactStrategyCore<TestAtlas, AnyLocale, E, EF, Cfg>>();
+    expectTypeOf<Core["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, AnyLocale, E, EF>>();
+    expectTypeOf<Core["config"]>().toEqualTypeOf<Cfg>();
   });
 
-  // -----------------------------------------------------------------------
-  // static defaultConfig
-  // -----------------------------------------------------------------------
-
-  describe("static defaultConfig", () => {
-    it("is typed as ReactStandardStrategyConfig", () => {
-      expectTypeOf(ReactStandardStrategyCore.defaultConfig).toEqualTypeOf<ReactStandardStrategyConfig>();
-    });
-
-    it("is accessible from a concrete subclass", () => {
-      expectTypeOf(ConcreteStandardStrategy.defaultConfig).toEqualTypeOf<ReactStandardStrategyConfig>();
-    });
+  it("static defaultConfig is an AnyReactStandardStrategyConfig", () => {
+    expectTypeOf(ReactStandardStrategyCore.defaultConfig).toEqualTypeOf<AnyReactStandardStrategyConfig>();
   });
 
-  // -----------------------------------------------------------------------
-  // createToolset return type
-  // -----------------------------------------------------------------------
-
-  describe("createToolset", () => {
-    it("returns Promise<ReactToolset<RA, L>>", () => {
-      expectTypeOf<
-        ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]
-      >().returns.toEqualTypeOf<Promise<ReactToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>>();
-    });
-
-    it("takes no parameters", () => {
-      expectTypeOf<
-        ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]
-      >().parameters.toEqualTypeOf<[]>();
-    });
-
-    it("preserves the atlas type parameter in the returned toolset", () => {
-      type Result = Awaited<
-        ReturnType<ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]>
-      >;
-      expectTypeOf<Result>().toEqualTypeOf<ReactToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>();
-    });
+  it("createToolset() takes no params and returns Promise<ReactToolset<RA, L, EF, KM>>", () => {
+    expectTypeOf<Core["createToolset"]>().parameters.toEqualTypeOf<[]>();
+    expectTypeOf<Core["createToolset"]>().returns.toEqualTypeOf<Promise<ReactToolset<TestAtlas, AnyLocale, EF, {}>>>();
   });
 
-  // -----------------------------------------------------------------------
-  // createImpl (protected, implemented)
-  // -----------------------------------------------------------------------
-
-  describe("createImpl", () => {
-    it("can be overridden to return Promise<ReactImpl<L>>", () => {
-      class OverriddenStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>> {
-        protected override createImpl(): Promise<ReactImpl<AnyLocale>> {
-          return Promise.resolve({ readLocale: () => "en", writeLocale: () => {} });
-        }
+  it("a subclass overriding createImpl still extends the base and can read rMachine/config", () => {
+    class OverriddenStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale, E, EF, Cfg> {
+      protected override createImpl(): Promise<ReactImpl<AnyLocale>> {
+        const _machine: RMachine<TestAtlas, AnyLocale, E, EF> = this.rMachine;
+        const _config: Cfg = this.config;
+        return Promise.resolve({ readLocale: () => "en", writeLocale: () => {} });
       }
-      expectTypeOf<OverriddenStrategy>().toExtend<
-        ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>
-      >();
-    });
-
-    it("has access to rMachine and config from the base class", () => {
-      class AccessingStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>> {
-        protected override createImpl(): Promise<ReactImpl<AnyLocale>> {
-          const _machine: RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>> = this.rMachine;
-          const _config: ReactStandardStrategyConfig = this.config;
-          return Promise.resolve({ readLocale: () => "en", writeLocale: () => {} });
-        }
-      }
-      expectTypeOf<AccessingStrategy>().toExtend<
-        ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>
-      >();
-    });
+    }
+    expectTypeOf<OverriddenStrategy>().toExtend<Core>();
   });
 });

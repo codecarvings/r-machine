@@ -1,134 +1,59 @@
-import type { NamespaceMap, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
-import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
-  PartialReactStandardStrategyConfig,
+  AnyReactStandardStrategyConfig,
   ReactStandardStrategyConfig,
+  ReactStandardStrategyConfigParams,
   ReactStandardStrategyCore,
   ReactToolset,
 } from "#r-machine/react/core";
 import { ReactStandardStrategy } from "../../src/lib/react-standard-strategy.js";
 
-// ---------------------------------------------------------------------------
-// Test resource atlas types
-// ---------------------------------------------------------------------------
-
-type TestAtlas = {
+// `create` rejects atlases carrying gear:inner entries; an atlas with an empty
+// `let@gear:inner` makes the inner-gear guard collapse to no extra arg.
+interface NoInnerAtlas extends AnyResAtlas {
   readonly common: { readonly greeting: string };
-  readonly nav: { readonly home: string };
-};
+  readonly "let@gear:inner": {};
+}
 
-// ---------------------------------------------------------------------------
-// ReactStandardStrategy — class shape & inheritance
-// ---------------------------------------------------------------------------
+type E = ResEquipment<NoInnerAtlas>;
+type EF = ExperimentalFlags;
+type Cfg = ReactStandardStrategyConfig<NoInnerAtlas, {}>;
+type Strat = ReactStandardStrategy<NoInnerAtlas, AnyLocale, E, EF, {}>;
 
-describe("ReactStandardStrategy", () => {
-  describe("class shape", () => {
-    it("extends ReactStandardStrategyCore<RA, L>", () => {
-      expectTypeOf<ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>().toExtend<
-        ReactStandardStrategyCore<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>
-      >();
-    });
-
-    it("rMachine property is typed as RMachine<RA, L>", () => {
-      expectTypeOf<ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["rMachine"]>().toEqualTypeOf<
-        RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>
-      >();
-    });
-
-    it("config property is typed as full ReactStandardStrategyConfig (not partial)", () => {
-      expectTypeOf<
-        ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["config"]
-      >().toEqualTypeOf<ReactStandardStrategyConfig>();
-      expectTypeOf<
-        ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["config"]
-      >().not.toEqualTypeOf<PartialReactStandardStrategyConfig>();
-    });
+describe("ReactStandardStrategy — class shape & inheritance", () => {
+  it("extends ReactStandardStrategyCore with the FULL config (not the Params variant)", () => {
+    expectTypeOf<Strat>().toExtend<ReactStandardStrategyCore<NoInnerAtlas, AnyLocale, E, EF, Cfg>>();
+    expectTypeOf<Strat["config"]>().toEqualTypeOf<Cfg>();
+    expectTypeOf<Strat["config"]>().not.toEqualTypeOf<ReactStandardStrategyConfigParams<NoInnerAtlas, {}>>();
   });
 
-  // -----------------------------------------------------------------------
-  // constructor overloads
-  // -----------------------------------------------------------------------
+  it("exposes rMachine: RMachine<RA, L, E, EF>", () => {
+    expectTypeOf<Strat["rMachine"]>().toEqualTypeOf<RMachine<NoInnerAtlas, AnyLocale, E, EF>>();
+  });
+});
 
-  describe("constructor overloads", () => {
-    it("is constructible with only RMachine<RA, L>", () => {
-      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>).toBeConstructibleWith(
-        {} as RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>
-      );
-    });
+describe("ReactStandardStrategy.create — public factory", () => {
+  type CreateFn = typeof ReactStandardStrategy.create<NoInnerAtlas, AnyLocale, E, EF, {}>;
 
-    it("is constructible with RMachine<RA, L> and PartialReactStandardStrategyConfig", () => {
-      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>).toBeConstructibleWith(
-        {} as RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>,
-        {} as PartialReactStandardStrategyConfig
-      );
-    });
+  it("takes (RMachine, Params) and returns a ReactStandardStrategy", () => {
+    expectTypeOf<CreateFn>().parameter(0).toEqualTypeOf<RMachine<NoInnerAtlas, AnyLocale, E, EF>>();
+    expectTypeOf<CreateFn>().parameter(1).toEqualTypeOf<ReactStandardStrategyConfigParams<NoInnerAtlas, {}>>();
+    expectTypeOf<ReturnType<CreateFn>>().toEqualTypeOf<Strat>();
+  });
+});
 
-    it("accepts an empty object as partial config", () => {
-      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>).toBeConstructibleWith(
-        {} as RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>,
-        {}
-      );
-    });
-
-    it("accepts a config with only localeDetector", () => {
-      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>).toBeConstructibleWith(
-        {} as RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>,
-        {
-          localeDetector: (() => "en") as CustomLocaleDetector,
-        }
-      );
-    });
-
-    it("accepts a config with only localeStore", () => {
-      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>).toBeConstructibleWith(
-        {} as RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>,
-        {
-          localeStore: {} as CustomLocaleStore,
-        }
-      );
-    });
-
-    it("first parameter must be RMachine<RA, L>", () => {
-      expectTypeOf(ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>).constructorParameters.toExtend<
-        [rMachine: RMachine<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>, ...args: unknown[]]
-      >();
-    });
+describe("ReactStandardStrategy — createToolset & defaultConfig", () => {
+  it("createToolset() takes no params and returns Promise<ReactToolset<RA, L, EF, KM>>", () => {
+    expectTypeOf<Strat["createToolset"]>().parameters.toEqualTypeOf<[]>();
+    expectTypeOf<Strat["createToolset"]>().returns.toEqualTypeOf<
+      Promise<ReactToolset<NoInnerAtlas, AnyLocale, EF, {}>>
+    >();
   });
 
-  // -----------------------------------------------------------------------
-  // createToolset return type
-  // -----------------------------------------------------------------------
-
-  describe("createToolset", () => {
-    it("returns Promise<ReactToolset<RA, L>>", () => {
-      expectTypeOf<
-        ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]
-      >().returns.toEqualTypeOf<Promise<ReactToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>>();
-    });
-
-    it("takes no parameters", () => {
-      expectTypeOf<
-        ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]
-      >().parameters.toEqualTypeOf<[]>();
-    });
-
-    it("preserves the atlas type parameter in the returned toolset", () => {
-      type Result = Awaited<
-        ReturnType<ReactStandardStrategy<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>["createToolset"]>
-      >;
-      expectTypeOf<Result>().toEqualTypeOf<ReactToolset<TestAtlas, AnyLocale, NamespaceMap<TestAtlas>>>();
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // static defaultConfig (inherited)
-  // -----------------------------------------------------------------------
-
-  describe("static defaultConfig", () => {
-    it("is typed as ReactStandardStrategyConfig", () => {
-      expectTypeOf(ReactStandardStrategy.defaultConfig).toEqualTypeOf<ReactStandardStrategyConfig>();
-    });
+  it("inherits a static defaultConfig typed as AnyReactStandardStrategyConfig", () => {
+    expectTypeOf(ReactStandardStrategy.defaultConfig).toEqualTypeOf<AnyReactStandardStrategyConfig>();
   });
 });
