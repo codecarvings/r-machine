@@ -15,12 +15,12 @@
  * Pure string renderers for one generated R-Machine project.
  *
  * Every template mirrors a REAL pattern verified against examples/react:
- *  - OuterGear.withState({...}).define(({ $ }, _) => ({...}))      (timer.ts)
- *  - OuterGear.withDeps(...).define(([d], _) => ({...}))           (operator.ts)
- *  - BaseGear.withDeps(...).define((plugin) => ({...}))            (no `_` cursor: base is stateless)
- *  - plain-object Shell with en/it variants                       (shell/common/en.tsx)
- *  - Shell.define(({ fmt }) => ({...})) using a shell(mono) kit    (shell/features/intl_demo/en.tsx)
- *  - shell(mono) Intl formatter via plugin.$.locale               (shell/lib/fmt.ts)
+ *  - OuterGear.withState({...}).define((plugin, _) => { const { $ } = plugin; … })  (timer.ts)
+ *  - OuterGear.withDeps(...).define((plugin, _) => { const [d] = plugin; … })       (operator.ts)
+ *  - BaseGear.withDeps(...).define((plugin) => { const [d] = plugin; … })           (no `_` cursor: base is stateless)
+ *  - plain-object Shell with en/it variants                                         (shell/common/en.tsx)
+ *  - Shell.define((plugin) => { const { fmt } = plugin; … }) shell(mono) kit        (shell/features/intl_demo/en.tsx)
+ *  - shell(mono) Intl formatter via `$` destructured from plugin                    (shell/lib/fmt.ts)
  *  - resource-atlas via defineLayout + class extends folders<Map> (resource-atlas.ts)
  *  - tokens via ResourceAtlas.getTokenBuilder()                   (resource-atlas.ts token usage)
  *
@@ -50,7 +50,7 @@ export interface ResSpec {
   depMode: DepMode;
   refMode: RefMode;
   width: number;
-  /** Shells only: true ⇒ `Shell.define(({ fmt }) => …)` (kit-using); false ⇒ plain object. */
+  /** Shells only: true ⇒ `Shell.define((plugin) => { const { fmt } = plugin; … })` (kit-using); false ⇒ plain object. */
   useDefine: boolean;
 }
 
@@ -77,11 +77,11 @@ function renderDepArgs(deps: ResSpec[], depMode: DepMode, refMode: RefMode): str
   return `{ ${deps.map((d) => `${d.varName}: ${ref(d.ns)}`).join(", ")} }`;
 }
 
-/** Render the `.define(...)` callback parameter that destructures the deps. */
-function renderDefineParam(deps: ResSpec[], depMode: DepMode, withCursor: boolean): string {
+/** Render the `const … = plugin;` line that destructures the deps in the body (form A). */
+function renderDepsDestructure(deps: ResSpec[], depMode: DepMode): string {
   const names = deps.map((d) => d.varName).join(", ");
   const bound = depMode === "list" ? `[${names}]` : `{ ${names} }`;
-  return withCursor ? `(${bound}, _)` : `(${bound})`;
+  return `  const ${bound} = plugin;\n`;
 }
 
 function setupImport(spec: ResSpec, names: string): string {
@@ -106,14 +106,16 @@ export function renderOuterStateful(spec: ResSpec): string {
     `${setupImport(spec, "OuterGear, type RShape")}\n\n` +
     `export const r = OuterGear.withState({\n` +
     `  v0: 0,\n  v1: 0,\n  flag: false,\n` +
-    `}).define(({ $ }, _) => ({\n` +
+    `}).define((plugin, _) => {\n` +
+    `  const { $ } = plugin;\n` +
+    `  return {\n` +
     `  peek: _.getter(() => $.state.v0),\n` +
     `  sum: _.getter(() => $.state.v0 + $.state.v1),\n` +
     `  bump: _.action(() => ({ v0: $.state.v0 + 1 })),\n` +
     `  toggle: _.action(() => ({ flag: !$.state.flag })),\n` +
     extra.join("\n") +
     (extra.length ? "\n" : "") +
-    `}));\n\n` +
+    `  };\n});\n\n` +
     `export type ${spec.typeName} = RShape<typeof r>;\n`
   );
 }
@@ -123,7 +125,7 @@ export function renderOuterStateful(spec: ResSpec): string {
 export function renderOuterDeps(spec: ResSpec): string {
   const sum = spec.deps.map(depAccessor).join(" + ") || "0";
   const args = renderDepArgs(spec.deps, spec.depMode, spec.refMode);
-  const param = renderDefineParam(spec.deps, spec.depMode, true);
+  const destructure = renderDepsDestructure(spec.deps, spec.depMode);
   const extra: string[] = [];
   for (let i = 1; i < spec.width; i++) {
     extra.push(`  m${i}: () => ${spec.index} + ${i},`);
@@ -132,11 +134,13 @@ export function renderOuterDeps(spec: ResSpec): string {
   return (
     headerComment +
     `${setupImport(spec, "OuterGear, type RShape")}\n${tokenLine}\n` +
-    `export const r = OuterGear.withDeps(${args}).define(${param} => ({\n` +
+    `export const r = OuterGear.withDeps(${args}).define((plugin, _) => {\n` +
+    destructure +
+    `  return {\n` +
     `  peek: _.getter(() => ${sum}),\n` +
     extra.join("\n") +
     (extra.length ? "\n" : "") +
-    `}));\n\n` +
+    `  };\n});\n\n` +
     `export type ${spec.typeName} = RShape<typeof r>;\n`
   );
 }
@@ -160,12 +164,12 @@ export function renderBase(spec: ResSpec): string {
   }
 
   const args = renderDepArgs(spec.deps, spec.depMode, spec.refMode);
-  const param = renderDefineParam(spec.deps, spec.depMode, false);
+  const destructure = renderDepsDestructure(spec.deps, spec.depMode);
   const tokenLine = spec.refMode === "token" ? `${tokensImport(spec)}\n` : "";
   return (
     headerComment +
     `${setupImport(spec, "BaseGear, type RShape")}\n${tokenLine}\n` +
-    `export const r = BaseGear.withDeps(${args}).define(${param} => ({\n${body}}));\n\n` +
+    `export const r = BaseGear.withDeps(${args}).define((plugin) => {\n${destructure}  return {\n${body}  };\n});\n\n` +
     `export type ${spec.typeName} = RShape<typeof r>;\n`
   );
 }
@@ -227,14 +231,14 @@ export function renderShellDefineVariant(spec: ResSpec, locale: "en" | "it"): st
     return (
       headerComment +
       `import { type RShape, Shell } from "${rel}setup";\n\n` +
-      `export const r = Shell.define(({ fmt }) => ({\n${body}}));\n\n` +
+      `export const r = Shell.define((plugin) => {\n  const { fmt } = plugin;\n  return {\n${body}  };\n});\n\n` +
       `export type ${spec.typeName} = RShape<typeof r>;\n`
     );
   }
   return (
     headerComment +
     `import { localized, Shell } from "${rel}setup";\n\n` +
-    `export const r = Shell.define(({ fmt }) =>\n  localized(${JSON.stringify(spec.ns)}, {\n${body}  }),\n);\n`
+    `export const r = Shell.define((plugin) => {\n  const { fmt } = plugin;\n  return localized(${JSON.stringify(spec.ns)}, {\n${body}  });\n});\n`
   );
 }
 
@@ -246,7 +250,8 @@ export function renderFmtShell(spec: ResSpec): string {
     `import { type Locale, type RShape, Shell } from "${rel}setup";\n\n` +
     `const currencyByLocale: Record<Locale, string> = { en: "USD", it: "EUR" };\n\n` +
     `export const r = Shell.define((plugin) => {\n` +
-    `  const locale = plugin.$.locale;\n` +
+    `  const { $ } = plugin;\n` +
+    `  const locale = $.locale;\n` +
     `  const dateLong = new Intl.DateTimeFormat(locale, { dateStyle: "long" });\n` +
     `  const numberFmt = new Intl.NumberFormat(locale);\n` +
     `  const currencyFmt = new Intl.NumberFormat(locale, {\n` +
@@ -371,7 +376,7 @@ export function renderFixture(a: FixtureAnchors): string {
     `// Consumer public-surface completion inside Plug().\n` +
     `export const probePlug = Plug(""); /*MARK_PLUG*/\n\n` +
     `// Dependency-surface member completion (valid deps; cursor after \`d.\`).\n` +
-    `export const probeSurface = OuterGear.withDeps(${outer}).define(([d], _) => ({ x: _.getter(() => d.peek) })); /*MARK_SURFACE*/\n\n` +
+    `export const probeSurface = OuterGear.withDeps(${outer}).define((plugin, _) => { const [d] = plugin; return { x: _.getter(() => d.peek) }; }); /*MARK_SURFACE*/\n\n` +
     `// Hover / quickinfo on a valid consumer plug value.\n` +
     `export const probeValid = Plug(${shell});\n` +
     `export const probeHover = probeValid; /*MARK_HOVER*/\n\n` +

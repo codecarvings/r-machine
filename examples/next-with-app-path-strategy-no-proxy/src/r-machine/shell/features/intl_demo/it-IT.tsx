@@ -1,6 +1,7 @@
 import { localized, Shell } from "@/r-machine/setup";
 
-export const r = Shell.define(({ fmt }) => {
+export const r = Shell.define((plugin) => {
+  const { fmt } = plugin;
   const { date, number, currency, plural } = fmt;
 
   return localized("shell/features/intl_demo", {

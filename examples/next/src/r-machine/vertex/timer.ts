@@ -3,7 +3,8 @@ import { OuterGear, type RShape } from "../setup";
 export const r = OuterGear.withState({
   value: 0,
   id: 0,
-}).define(({ $ }, _) => {
+}).define((plugin, _) => {
+  const { $ } = plugin;
   const setRandomId = _.action(() => ({
     id: Math.floor(Math.random() * 1000),
   }));

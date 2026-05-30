@@ -230,18 +230,24 @@ Two forms — list and map — yielding tuple or named-key access in the factory
 
 ```ts
 // list form
-InnerGear.withDeps("inner/clock", "base/config").define(([clock, config, $]) => ({ /* ... */ }));
+InnerGear.withDeps("inner/clock", "base/config").define((plugin) => {
+  const [clock, config, $] = plugin;
+  return { /* ... */ };
+});
 
 // map form
 InnerGear.withDeps({ clock: "inner/clock", config: "base/config" })
-  .define(({ clock, config, $ }) => ({ /* ... */ }));
+  .define((plugin) => {
+    const { clock, config, $ } = plugin;
+    return { /* ... */ };
+  });
 ```
 
-The factory's first argument follows a uniform shape across all four composers (`InnerGear`, `BaseGear`, `OuterGear`, `Shell`):
+The factory takes a single first argument — `plugin` — with a uniform shape across all four composers (`InnerGear`, `BaseGear`, `OuterGear`, `Shell`). Destructure it on the first line of the body:
 
-- **No deps** (or `withDeps()` with no arguments) — map form (default): `({ $ })`.
-- **Map form** (`withDeps({ name: "ns" })`) — `({ name, $ })`, with `$` alongside the named deps.
-- **List form** (`withDeps("ns1", "ns2")`) — `([dep1, dep2, $])`, with `$` always as the last tuple element.
+- **No deps** (or `withDeps()` with no arguments) — map form (default): `const { $ } = plugin;`.
+- **Map form** (`withDeps({ name: "ns" })`) — `const { name, $ } = plugin;`, with `$` alongside the named deps.
+- **List form** (`withDeps("ns1", "ns2")`) — `const [dep1, dep2, $] = plugin;`, with `$` always as the last tuple element.
 
 ### 4.2. `withPorts({...})`
 
@@ -254,11 +260,14 @@ OuterGear
   .withDeps("base/config")
   .withPorts({ createPost })
   .withState({ pending: false })
-  .define(([config, $], _) => ({
-    submit: async (title: string, body: string) => {
-      await $.ports.createPost(title, body);
-    },
-  }));
+  .define((plugin, _) => {
+    const [config, $] = plugin;
+    return {
+      submit: async (title: string, body: string) => {
+        await $.ports.createPost(title, body);
+      },
+    };
+  });
 ```
 
 Ports are inputs to the gear/shell, not part of the consumer Surface. Available on all four composers (`InnerGear`, `BaseGear`, `OuterGear`, `Shell`).
@@ -269,7 +278,7 @@ Available on `OuterGear` only. Provides `$.state` and `$.defaultState` to the fa
 
 ### 4.4. `define(factory)`
 
-Final step. The user factory receives `$` plugin context (and cursor `_` for `OuterGear`) and returns the resource shape — see §6 (cursor primitives) and §8 (factory `$` context).
+Final step. The user factory receives the `plugin` context as its first argument (carrying `$`, deps, and kit) and the cursor `_` as its second for `OuterGear`, and returns the resource shape — see §6 (cursor primitives) and §8 (factory `$` context).
 
 `define(...)` itself does **not** return the resource shape. It returns a `ResMatrix<R, P>` — the canonical value exported as `r` by every resource module:
 
@@ -285,7 +294,7 @@ The shape is uniform across `InnerGear`, `BaseGear`, `OuterGear`, and `Shell` (i
 
 Stateless:
 ```ts
-OuterGear.define(({ $ }, _) => ({
+OuterGear.define(() => ({
   greet: (name: string) => `hello ${name}`,
 }));
 ```
@@ -293,11 +302,11 @@ OuterGear.define(({ $ }, _) => ({
 Stateful — array shortcut. Two forms: read-write returns a `[getterName, actionName]` tuple; readonly returns a `[getterName]` single-element tuple. R-Machine synthesises a default identity getter and (read-write only) a default canonical action `(partial) => state`:
 ```ts
 // read-write
-OuterGear.withState({ count: 0 }).define(({ $ }, _) => ["counter", "setCounter"]);
+OuterGear.withState({ count: 0 }).define(() => ["counter", "setCounter"]);
 // Surface: { counter: { count: number }; setCounter: (p: DeepPartial<{count:number}>) => {count:number} }
 
 // readonly — exposes only the synthesised getter, no action
-OuterGear.withState({ count: 0 }).define(({ $ }, _) => ["counter"]);
+OuterGear.withState({ count: 0 }).define(() => ["counter"]);
 // Surface: { counter: { count: number } }
 ```
 
@@ -313,11 +322,14 @@ What makes a resource a vertex is its **layout entry**, not the call shape:
 // vertex/shopping-cart.ts
 import { OuterGear, type RShape } from "../setup";
 
-export const r = OuterGear.withState({ items: [] as string[] }).define(({ $ }, _) => ({
-  state: _.getter(),
-  add:   _.action((item: string) => ({ items: [...$.state.items, item] })),
-  count: _.getter(() => $.state.items.length),
-}));
+export const r = OuterGear.withState({ items: [] as string[] }).define((plugin, _) => {
+  const { $ } = plugin;
+  return {
+    state: _.getter(),
+    add:   _.action((item: string) => ({ items: [...$.state.items, item] })),
+    count: _.getter(() => $.state.items.length),
+  };
+});
 
 export type Vertex_ShoppingCart = RShape<typeof r>;
 ```
@@ -345,9 +357,12 @@ export type Shell_Common = RShape<typeof r>;
 // shell/common/en.ts
 import { Shell, type RShape } from "../../setup";
 
-export const r = Shell.define(({ $ }) => ({
-  greeting: `Hello (${$.locale})`,
-}));
+export const r = Shell.define((plugin) => {
+  const { $ } = plugin;
+  return {
+    greeting: `Hello (${$.locale})`,
+  };
+});
 export type Shell_Common = RShape<typeof r>;
 ```
 
@@ -359,7 +374,8 @@ import { fetchHeroCopy } from "../../lib/cms";
 
 export const r = Shell
   .withPorts({ fetchHeroCopy })
-  .define(async ({ $ }) => {
+  .define(async (plugin) => {
+    const { $ } = plugin;
     const data = await $.ports.fetchHeroCopy($.locale);
     return { hero: data.hero, sub: data.sub };
   });
@@ -392,10 +408,13 @@ export const r = Shell.define(async () => {
 
 **Shell deps:**
 ```ts
-export const r = Shell.withDeps("base/config").define(([config, $]) => ({
-  hero: `Welcome — API: ${config.apiBase}`,
-  copy: $.kit.fmt.number(1000),
-}));
+export const r = Shell.withDeps("base/config").define((plugin) => {
+  const [config, $] = plugin;
+  return {
+    hero: `Welcome — API: ${config.apiBase}`,
+    copy: $.kit.fmt.number(1000),
+  };
+});
 ```
 
 ### 4.8. `shell(mono)`
@@ -406,10 +425,13 @@ A **single-file locale-aware** resource: it has access to `$.locale` like any sh
 // shell/lib/fmt.ts
 import { type RShape, Shell } from "../../setup";
 
-export const r = Shell.define(({ $ }) => ({
-  number: (n: number) => new Intl.NumberFormat($.locale).format(n),
-  date:   (d: Date)   => new Intl.DateTimeFormat($.locale).format(d),
-}));
+export const r = Shell.define((plugin) => {
+  const { $ } = plugin;
+  return {
+    number: (n: number) => new Intl.NumberFormat($.locale).format(n),
+    date:   (d: Date)   => new Intl.DateTimeFormat($.locale).format(d),
+  };
+});
 
 export type Shell_Lib_Fmt = RShape<typeof r>;
 ```
@@ -431,11 +453,12 @@ import { type RShape, Shell } from "../../setup";
 type PluralForms = { one?: string; other: string };
 
 export const r = Shell.define((plugin) => {
-  const pluralRules = new Intl.PluralRules(plugin.$.locale);
+  const { $ } = plugin;
+  const pluralRules = new Intl.PluralRules($.locale);
 
   return {
-    number: (n: number) => new Intl.NumberFormat(plugin.$.locale).format(n),
-    date:   (d: Date)   => new Intl.DateTimeFormat(plugin.$.locale).format(d),
+    number: (n: number) => new Intl.NumberFormat($.locale).format(n),
+    date:   (d: Date)   => new Intl.DateTimeFormat($.locale).format(d),
     plural: (count: number, forms: PluralForms) => {
       const cat = pluralRules.select(count);
       const tpl = (cat === "one" ? forms.one : undefined) ?? forms.other;
@@ -456,7 +479,8 @@ import { type RShape, Shell } from "../../setup";
 type PluralForms = Partial<Record<Intl.LDMLPluralRule, string>> & { other: string };
 
 export const r = Shell.define((plugin) => {
-  const pluralRules = new Intl.PluralRules(plugin.$.locale);
+  const { $ } = plugin;
+  const pluralRules = new Intl.PluralRules($.locale);
 
   return {
     plural: (count: number, forms: PluralForms) => {
@@ -504,7 +528,8 @@ import { Shell, type RShape } from "../../setup";
 
 export const r = Shell
   .withPorts({ IntlMessageFormat })
-  .define(({ $ }) => {
+  .define((plugin) => {
+    const { $ } = plugin;
     const locale = $.locale;
     const cache = new Map<string, IntlMessageFormat>();
     const compile = (msg: string) => {
@@ -530,23 +555,26 @@ A resource's shape is whatever the factory returns. For a shell, that is not res
 
 ```tsx
 // shell/features/intl_demo/en.tsx
-export const r = Shell.define(({ fmt }) => ({
-  // plain string
-  sectionTitle: "Locale-Aware Formatting",
+export const r = Shell.define((plugin) => {
+  const { fmt } = plugin;
+  return {
+    // plain string
+    sectionTitle: "Locale-Aware Formatting",
 
-  // function returning a string
-  caption: (d: Date) => `Today's date: ${fmt.date.long(d)}`,
+    // function returning a string
+    caption: (d: Date) => `Today's date: ${fmt.date.long(d)}`,
 
-  // function returning a JSX fragment
-  description: (amount: number) => (
-    <>The value <strong>{fmt.currency(amount)}</strong> is written as <strong>{fmt.number(amount)}</strong> without currency.</>
-  ),
+    // function returning a JSX fragment
+    description: (amount: number) => (
+      <>The value <strong>{fmt.currency(amount)}</strong> is written as <strong>{fmt.number(amount)}</strong> without currency.</>
+    ),
 
-  // React component
-  Items: ({ count }: { count: number }) => (
-    <span>You have <strong>{fmt.plural(count, { one: "# item", other: "# items" })}</strong> in your cart.</span>
-  ),
-}));
+    // React component
+    Items: ({ count }: { count: number }) => (
+      <span>You have <strong>{fmt.plural(count, { one: "# item", other: "# items" })}</strong> in your cart.</span>
+    ),
+  };
+});
 ```
 
 The shape flows end-to-end to the consumer: `Plug("shell/<name>").useR()` returns exactly what the factory returned, type-narrowed. The same freedom applies to gears — an `OuterGear` may surface state cursors next to JSX components next to instances of an external class, whatever the call site needs.
@@ -577,7 +605,10 @@ matrix.withPorts(...).withState(...).clone(fn?)      ← derive from existing
 export const r = OuterGear
   .withPorts({ checkout: prodCheckout })
   .withState({ items: [] as Item[] })
-  .define(({ $ }, _) => ({ /* ... */ }));
+  .define((plugin, _) => {
+    const { $ } = plugin;
+    return { /* ... */ };
+  });
 
 export type Outer_Cart = RShape<typeof r>;
 ```
@@ -631,7 +662,10 @@ Use when N independent instances of the same gear must coexist under distinct na
 // outer/product-card.ts                 ← source
 export const r = OuterGear
   .withState({ productId: "" as string, qty: 1 })
-  .define(({ $ }, _) => ({ /* card logic */ }));
+  .define((plugin, _) => {
+    const { $ } = plugin;
+    return { /* card logic */ };
+  });
 export type Outer_ProductCard = RShape<typeof r>;
 ```
 
@@ -665,7 +699,10 @@ Use when the same logic must run against a different external boundary — a dra
 export const r = OuterGear
   .withPorts({ createPost: prodCreatePost })
   .withState({ pending: false })
-  .define(({ $ }, _) => ({ /* ... */ }));
+  .define((plugin, _) => {
+    const { $ } = plugin;
+    return { /* ... */ };
+  });
 export type Outer_PostForm = RShape<typeof r>;
 ```
 
@@ -704,12 +741,15 @@ The common case is a second locale that is almost identical to the first, with a
 
 ```ts
 // shell/checkout/en-US.tsx              ← source variant
-export const r = Shell.define(({ $ }) => ({
-  cta:           "Add to cart",
-  colorLabel:    "Color",
-  zipPlaceholder:`ZIP for ${$.locale}`,
-  footer: <Footer />,
-}));
+export const r = Shell.define((plugin) => {
+  const { $ } = plugin;
+  return {
+    cta:           "Add to cart",
+    colorLabel:    "Color",
+    zipPlaceholder:`ZIP for ${$.locale}`,
+    footer: <Footer />,
+  };
+});
 export type Shell_Checkout = RShape<typeof r>;
 ```
 
@@ -717,11 +757,14 @@ export type Shell_Checkout = RShape<typeof r>;
 // shell/checkout/en-GB.tsx              ← sibling locale, mostly identical
 import { r as enUS } from "./en-US";
 
-export const r = enUS.clone((res, { $ }) => ({
-  ...res,
-  colorLabel:     "Colour",                  // UK spelling
-  zipPlaceholder: `Postcode for ${$.locale}`, // UK terminology
-}));
+export const r = enUS.clone((res, plugin) => {
+  const { $ } = plugin;
+  return {
+    ...res,
+    colorLabel:     "Colour",                  // UK spelling
+    zipPlaceholder: `Postcode for ${$.locale}`, // UK terminology
+  };
+});
 ```
 
 ```ts
@@ -771,7 +814,8 @@ The canonical form (`_.action()`) doubles as the way to seed initial state from 
 export const r = OuterGear
   .withPorts({ loadInitial })
   .withState({ items: [] as string[] })
-  .define(async ({ $ }, _) => {
+  .define(async (plugin, _) => {
+    const { $ } = plugin;
     const seeded = await $.ports.loadInitial();
     _.action()({ items: seeded });
 
@@ -852,7 +896,8 @@ Fields not declared are not present on the type — destructuring `{ state }` fr
 When a factory acquires resources whose lifetime exceeds a single call (intervals, subscriptions, listeners, connections, watchers), it returns an object that carries a `[Symbol.dispose]` teardown:
 
 ```ts
-export const r = OuterGear.withState(0).define(({ $ }, _) => {
+export const r = OuterGear.withState(0).define((plugin, _) => {
+  const { $ } = plugin;
   const update = _.action(() => $.state + 1);
   const handle = setInterval(() => { update(); }, 1000);
 
@@ -1241,7 +1286,7 @@ export const dynamicParams = false;
 export const plug = ServerPlug();
 
 export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
-  const [$] = await plug.useR(params);
+  const { $ } = await plug.useR(params);
   return (
     <html lang={$.params.locale}>
       <body><NextServerRMachine>{children}</NextServerRMachine></body>
@@ -1940,7 +1985,7 @@ export const r = localized("shell/<name>", { /* keys */ });
 | Pure derived value over state | `_.getter(() => …)` (or `_.getter("memoized", …)`) |
 | External function / server action / SDK client / fetch wrapper used inside a gear or shell | `.withPorts({ name })`, accessed via `$.ports.name` |
 | Same logic with a different external binding or starting state | `r.withPorts(...).clone()` / `r.withState(...).clone()` (see §5) |
-| Sibling locale variant that differs only in a handful of phrases | `r.clone((res, { $ }) => ({ ...res, /* overrides */ }))` (see §5.3.4) |
+| Sibling locale variant that differs only in a handful of phrases | `r.clone((res, plugin) => ({ ...res, /* overrides */ }))` (see §5.3.4) |
 
 ---
 
@@ -1956,6 +2001,6 @@ https://github.com/codecarvings/r-machine/blob/RM-alpha-12/benchmarks/type-scale
 
 ---
 
-rev 2026-05-30.005
+rev 2026-05-30.006
 Copyright (c) 2026 Sergio Turolla - All Rights Reserved.
 https://codecarvings.com

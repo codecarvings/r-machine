@@ -16,7 +16,7 @@
  * into generated/<N>/. Realistic distribution (~50% OuterGear / 20% BaseGear /
  * 30% Shell), acyclic deps to earlier compatible resources, a mix of list/map
  * dep modes and string/token references, and a small share of `#`-internal base
- * gears. Shells are ~half plain-object and ~half `Shell.define(({ fmt }) => …)`,
+ * gears. Shells are ~half plain-object and ~half `Shell.define((plugin) => …)`,
  * both carrying string + function + JSX members; one shell(mono) `fmt` formatter
  * is always emitted (atlas size = N + 1). Run: `tsx src/generate.ts --n 100`.
  */
@@ -81,7 +81,7 @@ function plan(n: number, prng: Prng): ResSpec[] {
         depMode: "list",
         refMode: "string",
         width: prng.int(4, 8),
-        useDefine: prng.chance(0.5), // ~half use Shell.define(({ fmt }) => …)
+        useDefine: prng.chance(0.5), // ~half use Shell.define((plugin) => …)
       });
       continue;
     }

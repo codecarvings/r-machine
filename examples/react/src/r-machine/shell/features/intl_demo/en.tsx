@@ -1,6 +1,7 @@
 import { type RShape, Shell } from "@/r-machine/setup";
 
-export const r = Shell.define(({ fmt }) => {
+export const r = Shell.define((plugin) => {
+  const { fmt } = plugin;
   return {
     sectionTitle: "Locale-Aware Formatting",
     sectionSubtitle:

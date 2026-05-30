@@ -11,7 +11,7 @@ name (e.g. `Outer_Cart`).
 ```ts
 import { OuterGear, type RShape } from "../setup"; // adjust path depth
 
-export const r = OuterGear.define(({ $ }, _) => ({
+export const r = OuterGear.define(() => ({
   greet: (name: string) => `Hello ${name}`,
 }));
 
@@ -24,9 +24,12 @@ export type Outer_Foo = RShape<typeof r>;
 import { OuterGear, type RShape } from "../setup";
 
 export const r = OuterGear.withDeps("outer/other", "base/config").define(
-  ([other, config, $], _) => ({
-    combined: () => other.value + config.apiBase,
-  }),
+  (plugin) => {
+    const [other, config] = plugin;
+    return {
+      combined: () => other.value + config.apiBase,
+    };
+  },
 );
 
 export type Outer_Foo = RShape<typeof r>;
@@ -38,9 +41,12 @@ Use the **map form** for three or more deps (survives renames better):
 export const r = OuterGear.withDeps({
   other: "outer/other",
   cfg: "base/config",
-}).define(({ other, cfg, $ }, _) => ({
-  combined: () => other.value + cfg.apiBase,
-}));
+}).define((plugin) => {
+  const { other, cfg } = plugin;
+  return {
+    combined: () => other.value + cfg.apiBase,
+  };
+});
 ```
 
 ## OuterGear — stateful (full cursor form)
@@ -48,12 +54,15 @@ export const r = OuterGear.withDeps({
 ```ts
 import { OuterGear, type RShape } from "../setup";
 
-export const r = OuterGear.withState({ count: 0 }).define(({ $ }, _) => ({
-  increment: _.action(() => ({ count: $.state.count + 1 })),
-  decrement: _.action(() => ({ count: $.state.count - 1 })),
-  reset: _.action(() => ({ count: $.defaultState.count })),
-  count: _.getter(() => $.state.count),
-}));
+export const r = OuterGear.withState({ count: 0 }).define((plugin, _) => {
+  const { $ } = plugin;
+  return {
+    increment: _.action(() => ({ count: $.state.count + 1 })),
+    decrement: _.action(() => ({ count: $.state.count - 1 })),
+    reset: _.action(() => ({ count: $.defaultState.count })),
+    count: _.getter(() => $.state.count),
+  };
+});
 
 export type Outer_Counter = RShape<typeof r>;
 ```
@@ -67,10 +76,13 @@ value** (there is no partial to merge):
 ```ts
 import { OuterGear, type RShape } from "../setup";
 
-export const r = OuterGear.withState(0).define(({ $ }, _) => ({
-  increment: _.action(() => $.state + 1), // return the new scalar, not a partial
-  value: _.getter(), // no-arg getter returns the whole state
-}));
+export const r = OuterGear.withState(0).define((plugin, _) => {
+  const { $ } = plugin;
+  return {
+    increment: _.action(() => $.state + 1), // return the new scalar, not a partial
+    value: _.getter(), // no-arg getter returns the whole state
+  };
+});
 
 export type Outer_Counter = RShape<typeof r>;
 ```
@@ -82,7 +94,7 @@ the leanest option. R-Machine synthesises the getter and a `(partial) => state`
 action automatically:
 
 ```ts
-export const r = OuterGear.withState({ count: 0 }).define(({ $ }, _) => [
+export const r = OuterGear.withState({ count: 0 }).define(() => [
   "counter",
   "setCounter",
 ]);
@@ -94,9 +106,7 @@ export type Outer_Counter = RShape<typeof r>;
 ## OuterGear — stateful (array shorthand, readonly)
 
 ```ts
-export const r = OuterGear.withState({ count: 0 }).define(({ $ }, _) => [
-  "counter",
-]);
+export const r = OuterGear.withState({ count: 0 }).define(() => ["counter"]);
 // Surface: { counter: { count: number } }
 
 export type Outer_Counter = RShape<typeof r>;
@@ -108,7 +118,8 @@ export type Outer_Counter = RShape<typeof r>;
 import { OuterGear, type RShape } from "../setup";
 
 export const r = OuterGear.withState({ count: 0, isOdd: false }).define(
-  ({ $ }, _) => {
+  (plugin, _) => {
+    const { $ } = plugin;
     const setIsOdd = _.action((isOdd: boolean) => ({ isOdd }));
 
     _.relay({
@@ -162,7 +173,8 @@ R-Machine calls it when the gear instance is torn down — no separate helper:
 ```ts
 import { OuterGear, type RShape } from "../setup";
 
-export const r = OuterGear.withState({ tick: 0 }).define(({ $ }, _) => {
+export const r = OuterGear.withState({ tick: 0 }).define((plugin, _) => {
+  const { $ } = plugin;
   const inc = _.action(() => ({ tick: $.state.tick + 1 }));
   const handle = setInterval(inc, 1000);
 
@@ -193,14 +205,17 @@ import { submitForm } from "../lib/actions";
 
 export const r = OuterGear.withPorts({ submitForm })
   .withState({ pending: false, error: null as string | null })
-  .define(({ $ }, _) => ({
-    submit: _.action(async (data: FormData) => {
-      const result = await $.ports.submitForm(data);
-      return { error: result.error ?? null };
-    }),
-    pending: _.getter(() => $.state.pending),
-    error: _.getter(() => $.state.error),
-  }));
+  .define((plugin, _) => {
+    const { $ } = plugin;
+    return {
+      submit: _.action(async (data: FormData) => {
+        const result = await $.ports.submitForm(data);
+        return { error: result.error ?? null };
+      }),
+      pending: _.getter(() => $.state.pending),
+      error: _.getter(() => $.state.error),
+    };
+  });
 
 export type Outer_Form = RShape<typeof r>;
 ```
@@ -217,11 +232,14 @@ layout entry (`"vertex/": "gear:outer(vertex)"`), not the composer.
 import { OuterGear, type RShape } from "../setup";
 
 export const r = OuterGear.withState({ items: [] as string[] }).define(
-  ({ $ }, _) => ({
-    add: _.action((item: string) => ({ items: [...$.state.items, item] })),
-    count: _.getter(() => $.state.items.length),
-    state: _.getter(),
-  }),
+  (plugin, _) => {
+    const { $ } = plugin;
+    return {
+      add: _.action((item: string) => ({ items: [...$.state.items, item] })),
+      count: _.getter(() => $.state.items.length),
+      state: _.getter(),
+    };
+  },
 );
 
 export type Vertex_ShoppingCart = RShape<typeof r>;
@@ -240,7 +258,7 @@ Reminders:
 ```ts
 import { BaseGear, type RShape } from "../setup";
 
-export const r = BaseGear.define(({ $ }) => ({
+export const r = BaseGear.define(() => ({
   apiBase: "https://api.example.com",
   timeout: 5000,
 }));
@@ -253,12 +271,15 @@ export type Base_Config = RShape<typeof r>;
 ```ts
 import { BaseGear, type RShape } from "../setup";
 
-export const r = BaseGear.withDeps("base/config").define(([config, $]) => ({
-  fetch: async (path: string) => {
-    const res = await globalThis.fetch(`${config.apiBase}${path}`);
-    return res.json();
-  },
-}));
+export const r = BaseGear.withDeps("base/config").define((plugin) => {
+  const [config] = plugin;
+  return {
+    fetch: async (path: string) => {
+      const res = await globalThis.fetch(`${config.apiBase}${path}`);
+      return res.json();
+    },
+  };
+});
 
 export type Base_Http = RShape<typeof r>;
 ```
@@ -269,9 +290,12 @@ export type Base_Http = RShape<typeof r>;
 import { BaseGear, type RShape } from "../setup";
 import { createClient } from "../lib/db";
 
-export const r = BaseGear.withPorts({ createClient }).define(({ $ }) => ({
-  query: async (sql: string) => $.ports.createClient().query(sql),
-}));
+export const r = BaseGear.withPorts({ createClient }).define((plugin) => {
+  const { $ } = plugin;
+  return {
+    query: async (sql: string) => $.ports.createClient().query(sql),
+  };
+});
 
 export type Base_Db = RShape<typeof r>;
 ```
@@ -286,7 +310,7 @@ Cannot be consumed by `Plug` or `ClientPlug`.
 ```ts
 import { InnerGear, type RShape } from "../setup";
 
-export const r = InnerGear.define(({ $ }) => ({
+export const r = InnerGear.define(() => ({
   getSecret: () => process.env.SECRET_KEY!,
 }));
 
@@ -334,19 +358,24 @@ are hoisted as top-level keys alongside any named deps and `$`.
 
 ```ts
 // Both of these are equivalent and correct:
-Shell.define(({ $ }) => ({
-  n: $.kit.fmt.number(123), // via $ context
-}));
+Shell.define((plugin) => {
+  const { $ } = plugin;
+  return { n: $.kit.fmt.number(123) }; // via $ context
+});
 
-Shell.define(({ fmt }) => ({
-  n: fmt.number(123), // kit key hoisted to top level — equally valid
-}));
+Shell.define((plugin) => {
+  const { fmt } = plugin;
+  return { n: fmt.number(123) }; // kit key hoisted to top level — equally valid
+});
 
 // With named deps (map form):
-Shell.withDeps({ common: "shell/common" }).define(({ common, fmt }) => ({
-  text: common.greeting,
-  n: fmt.number(123),
-}));
+Shell.withDeps({ common: "shell/common" }).define((plugin) => {
+  const { common, fmt } = plugin;
+  return {
+    text: common.greeting,
+    n: fmt.number(123),
+  };
+});
 ```
 
 **List form** — when using `Shell.withDeps("ns1", "ns2")` (positional strings).
@@ -355,15 +384,21 @@ are NOT hoisted as tuple elements — use `$.kit.fmt`.
 
 ```ts
 // Correct list form:
-Shell.withDeps("shell/common").define(([common, $]) => ({
-  text: common.greeting,
-  n: $.kit.fmt.number(123), // must go through $
-}));
+Shell.withDeps("shell/common").define((plugin) => {
+  const [common, $] = plugin;
+  return {
+    text: common.greeting,
+    n: $.kit.fmt.number(123), // must go through $
+  };
+});
 
 // WRONG — fmt is not a tuple element:
-Shell.withDeps("shell/common").define(([fmt]) => ({
-  n: fmt.number(123), // ❌ runtime error
-}));
+Shell.withDeps("shell/common").define((plugin) => {
+  const [fmt] = plugin;
+  return {
+    n: fmt.number(123), // ❌ runtime error
+  };
+});
 ```
 
 Rule of thumb: if you destructure with `{ }`, kit keys are available directly.
@@ -383,13 +418,19 @@ access, kit helpers, or deps:
 import { Shell, type RShape } from "../../setup";
 
 // Map form — kit entry "fmt" hoisted to top level
-export const r = Shell.define(({ fmt }) => ({
-  welcome: `Welcome!`,
-  number: (n: number) => fmt.number(n),
-}));
+export const r = Shell.define((plugin) => {
+  const { fmt } = plugin;
+  return {
+    welcome: `Welcome!`,
+    number: (n: number) => fmt.number(n),
+  };
+});
 
 // Alternatively, via $:
-// Shell.define(({ $ }) => ({ number: (n) => $.kit.fmt.number(n) }))
+// Shell.define((plugin) => {
+//   const { $ } = plugin;
+//   return { number: (n) => $.kit.fmt.number(n) };
+// })
 
 export type Shell_Greeting = RShape<typeof r>;
 ```
@@ -415,25 +456,27 @@ variant file also needs a factory. Wrap `localized` in `Shell.define`:
 // shell/greeting/it.tsx
 import { localized, Shell } from "../../setup";
 
-export const r = Shell.define(({ fmt }) =>
-  localized("shell/greeting", {
+export const r = Shell.define((plugin) => {
+  const { fmt } = plugin;
+  return localized("shell/greeting", {
     welcome: "Benvenuto!",
     number: (n: number) => fmt.number(n), // uses kit formatter
-  }),
-);
+  });
+});
 ```
 
 **When to use each variant form:**
 
 - Plain `localized(...)` → when all members are static strings or pure TS
   expressions that don't need kit/locale at definition time.
-- `Shell.define(() => localized(...))` → when at least one member needs
+- `Shell.define` wrapping `localized(...)` → when at least one member needs
   `fmt`, `$.locale`, or `$.ports`.
 
 For variant files with async loading:
 
 ```ts
-export const r = Shell.define(async ({ fmt }) => {
+export const r = Shell.define(async (plugin) => {
+  const { fmt } = plugin;
   const data = await loadTranslations("it");
   return localized("shell/greeting", {
     welcome: data.welcome,
@@ -450,16 +493,22 @@ import { Shell, type RShape } from "../../setup";
 
 // List form — dep first, $ last
 export const r = Shell.withDeps("base/config") // base/config must be in bridgeGears in setup.ts
-  .define(([config, $]) => ({
-    apiInfo: `API: ${config.apiBase}`,
-    currency: $.kit.fmt.number(99.99), // list form: kit via $
-  }));
+  .define((plugin) => {
+    const [config, $] = plugin;
+    return {
+      apiInfo: `API: ${config.apiBase}`,
+      currency: $.kit.fmt.number(99.99), // list form: kit via $
+    };
+  });
 
 // Equivalent map form:
-// Shell.withDeps({ config: "base/config" }).define(({ config, fmt }) => ({
-//   apiInfo: `API: ${config.apiBase}`,
-//   currency: fmt.number(99.99),         // map form: kit key hoisted
-// }))
+// Shell.withDeps({ config: "base/config" }).define((plugin) => {
+//   const { config, fmt } = plugin;
+//   return {
+//     apiInfo: `API: ${config.apiBase}`,
+//     currency: fmt.number(99.99),       // map form: kit key hoisted
+//   };
+// })
 
 export type Shell_Product = RShape<typeof r>;
 ```
@@ -475,10 +524,13 @@ Use for formatters, locale-aware helpers — no per-locale files:
 // shell/lib/fmt.ts
 import { Shell, type RShape } from "../../setup";
 
-export const r = Shell.define(({ $ }) => ({
-  number: (n: number) => new Intl.NumberFormat($.locale).format(n),
-  date: (d: Date) => new Intl.DateTimeFormat($.locale).format(d),
-}));
+export const r = Shell.define((plugin) => {
+  const { $ } = plugin;
+  return {
+    number: (n: number) => new Intl.NumberFormat($.locale).format(n),
+    date: (d: Date) => new Intl.DateTimeFormat($.locale).format(d),
+  };
+});
 
 export type Shell_Lib_Fmt = RShape<typeof r>;
 ```
@@ -557,7 +609,10 @@ export default async function ProductPage({ params }) {
 **As a dep in another resource:**
 
 ```ts
-OuterGear.withDeps("outer/cart").define(([cart, $], _) => ({
-  total: _.getter(() => cart.count * 10),
-}));
+OuterGear.withDeps("outer/cart").define((plugin, _) => {
+  const [cart] = plugin;
+  return {
+    total: _.getter(() => cart.count * 10),
+  };
+});
 ```

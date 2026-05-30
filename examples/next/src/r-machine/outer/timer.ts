@@ -2,7 +2,8 @@ import { OuterGear, type RShape } from "../setup";
 
 export const r = OuterGear.withDeps({ config: "base/config" })
   .withState(0)
-  .define(({ config, $ }, _) => {
+  .define((plugin, _) => {
+    const { $ } = plugin;
     const $inc = _.action(() => $.state + 1);
     const intervalId = setInterval(() => {
       $inc();

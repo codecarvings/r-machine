@@ -1,6 +1,7 @@
 import { localized, Shell } from "@/r-machine/setup";
 
-export const r = Shell.define(({ fmt }) => {
+export const r = Shell.define((plugin) => {
+  const { fmt } = plugin;
   return localized("shell/features/intl_demo", {
     sectionTitle: "Formattazione Locale-Aware",
     sectionSubtitle:

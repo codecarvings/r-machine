@@ -3,7 +3,8 @@ import { OuterGear, type RShape } from "../setup";
 export const r = OuterGear.withState({
   value: 0,
   isOdd: false,
-}).define(({ $ }, _) => {
+}).define((plugin, _) => {
+  const { $ } = plugin;
   const $inc = _.action(() => ({
     value: $.state.value + 1,
   }));

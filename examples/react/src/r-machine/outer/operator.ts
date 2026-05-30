@@ -1,6 +1,7 @@
 import { OuterGear, type RShape } from "../setup";
 
-export const r = OuterGear.withDeps("outer/timer").define(([timer], _) => {
+export const r = OuterGear.withDeps("outer/timer").define((plugin, _) => {
+  const [timer] = plugin;
   return {
     negative: _.getter(() => -timer.value.value),
     plus10: () => timer.plus(10),

@@ -60,10 +60,16 @@ A `Gear` is a stateful or stateless logic unit. Three flavors (`InnerGear`, `Bas
 // r-machine/outer/counter.ts
 import { OuterGear, type RShape } from "@/r-machine/setup";
 
-export const r = OuterGear.withState({ count: 0 }).define(({ $ }, _) => ({
-  count: _.getter(() => $.state.count),
-  inc:   _.action(() => ({ count: $.state.count + 1 })),
-}));
+export const r = OuterGear
+  .withDeps("base/config")        // A BaseGear dependency
+  .withState({ count: 0 })        // The initial state
+  .define((plugin, _) => {
+    const [ config, $ ] = plugin; // We destructure the plugin for convenience
+    return {
+      count: _.getter(() => $.state.count),
+      inc:   _.action(() => ({ count: $.state.count + config.incValue })),
+    };
+  });
 
 export type Outer_Counter = RShape<typeof r>;
 ```
