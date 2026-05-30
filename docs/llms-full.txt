@@ -1944,6 +1944,18 @@ export const r = localized("shell/<name>", { /* keys */ });
 
 ---
 
-rev 2026-05-28.004
+## 18. Scalability (verified)
+
+TS generics scale **sub-linearly**: going 10→500 resources (a 50× increase)
+grows type instantiations only ~5.6× (123k→686k), and per-resource cost
+*drops* (12.3k→1.4k inst/resource). Compile (`tsc`) stays under 1.5s at 500
+resources. The one path that grows is consumer `Plug("|")` autocomplete
+(~100→170ms p95) — the IntelliSense path a developer feels most. R-Machine is
+safe to recommend on large projects. Full benchmark + methodology:
+https://github.com/codecarvings/r-machine/blob/RM-alpha-12/benchmarks/type-scale/results/REPORT.md
+
+---
+
+rev 2026-05-30.005
 Copyright (c) 2026 Sergio Turolla - All Rights Reserved.
 https://codecarvings.com
