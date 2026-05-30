@@ -1,4 +1,5 @@
-import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
@@ -16,7 +17,7 @@ describe("createNextAppFlatServerImpl", () => {
   it("requires RMachine<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>> as first parameter", () => {
     expectTypeOf(createNextAppFlatServerImpl)
       .parameter(0)
-      .toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>>();
+      .toEqualTypeOf<RMachine<AnyResAtlas, AnyLocale, ResEquipment<AnyResAtlas>, ExperimentalFlags>>();
   });
 
   it("requires AnyNextAppFlatStrategyConfig as second parameter", () => {
@@ -93,15 +94,13 @@ describe("NextAppServerImpl property types", () => {
     >();
   });
 
-  it("createBoundPathComposerSupplier locale getter parameter narrows with L", () => {
-    type FnWide = NextAppServerImpl<AnyLocale, string>["createBoundPathComposerSupplier"];
-    expectTypeOf<FnWide>().parameter(0).toEqualTypeOf<() => Promise<string>>();
+  it("createPathComposer accepts a locale and returns a BoundPathComposer", () => {
+    type FnWide = NextAppServerImpl<AnyLocale, string>["createPathComposer"];
+    expectTypeOf<FnWide>().parameter(0).toEqualTypeOf<string>();
+    expectTypeOf<ReturnType<FnWide>>().toEqualTypeOf<BoundPathComposer<AnyPathAtlas>>();
 
-    type FnNarrow = NextAppServerImpl<"en" | "it", string>["createBoundPathComposerSupplier"];
-    expectTypeOf<FnNarrow>().parameter(0).toEqualTypeOf<() => Promise<"en" | "it">>();
-
-    type Supplier = () => Promise<BoundPathComposer<AnyPathAtlas>>;
-    expectTypeOf<ReturnType<FnWide>>().toEqualTypeOf<Supplier | Promise<Supplier>>();
+    type FnNarrow = NextAppServerImpl<"en" | "it", string>["createPathComposer"];
+    expectTypeOf<FnNarrow>().parameter(0).toEqualTypeOf<"en" | "it">();
   });
 
   it("createLocaleStaticParamsGenerator returns a generator function", () => {

@@ -1,4 +1,5 @@
-import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
@@ -17,7 +18,7 @@ describe("createNextAppPathServerImpl", () => {
   it("requires RMachine<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>> as first parameter", () => {
     expectTypeOf(createNextAppPathServerImpl)
       .parameter(0)
-      .toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>>();
+      .toEqualTypeOf<RMachine<AnyResAtlas, AnyLocale, ResEquipment<AnyResAtlas>, ExperimentalFlags>>();
   });
 
   it("requires AnyNextAppPathStrategyConfig as second parameter", () => {
@@ -113,25 +114,19 @@ describe("NextAppNoProxyServerImpl property types", () => {
     expectTypeOf<ReturnType<Fn>>().toEqualTypeOf<RMachineProxy | Promise<RMachineProxy>>();
   });
 
-  it("createBoundPathComposerSupplier locale getter parameter narrows with L", () => {
-    type FnWide = NextAppNoProxyServerImpl<AnyLocale, string>["createBoundPathComposerSupplier"];
-    expectTypeOf<FnWide>().parameter(0).toEqualTypeOf<() => Promise<string>>();
+  it("createPathComposer accepts a locale and returns a BoundPathComposer", () => {
+    type FnWide = NextAppNoProxyServerImpl<AnyLocale, string>["createPathComposer"];
+    expectTypeOf<FnWide>().parameter(0).toEqualTypeOf<string>();
+    expectTypeOf<ReturnType<FnWide>>().toEqualTypeOf<BoundPathComposer<AnyPathAtlas>>();
 
-    type FnNarrow = NextAppNoProxyServerImpl<"en" | "it", string>["createBoundPathComposerSupplier"];
-    expectTypeOf<FnNarrow>().parameter(0).toEqualTypeOf<() => Promise<"en" | "it">>();
-
-    type Supplier = () => Promise<BoundPathComposer<AnyPathAtlas>>;
-    expectTypeOf<ReturnType<FnWide>>().toEqualTypeOf<Supplier | Promise<Supplier>>();
+    type FnNarrow = NextAppNoProxyServerImpl<"en" | "it", string>["createPathComposer"];
+    expectTypeOf<FnNarrow>().parameter(0).toEqualTypeOf<"en" | "it">();
   });
 
-  it("createRouteHandlers setLocale parameter narrows with L", () => {
+  it("createRouteHandlers accepts cookies and headers parameters", () => {
     type FnWide = NextAppNoProxyServerImpl<AnyLocale, string>["createRouteHandlers"];
     expectTypeOf<FnWide>().parameter(0).toEqualTypeOf<CookiesFn>();
     expectTypeOf<FnWide>().parameter(1).toEqualTypeOf<HeadersFn>();
-    expectTypeOf<FnWide>().parameter(2).toEqualTypeOf<(newLocale: string) => Promise<void>>();
-
-    type FnNarrow = NextAppNoProxyServerImpl<"en" | "it", string>["createRouteHandlers"];
-    expectTypeOf<FnNarrow>().parameter(2).toEqualTypeOf<(newLocale: "en" | "it") => Promise<void>>();
   });
 
   it("createRouteHandlers return type includes entrance.GET handler", () => {

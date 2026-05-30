@@ -1,4 +1,5 @@
-import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyPathAtlas, BoundPathComposer, HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
@@ -10,7 +11,7 @@ describe("createNextAppFlatClientImpl", () => {
   it("requires RMachine<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>> as first parameter", () => {
     expectTypeOf(createNextAppFlatClientImpl)
       .parameter(0)
-      .toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>>();
+      .toEqualTypeOf<RMachine<AnyResAtlas, AnyLocale, ResEquipment<AnyResAtlas>, ExperimentalFlags>>();
   });
 
   it("requires AnyNextAppFlatStrategyConfig as second parameter", () => {
@@ -70,10 +71,10 @@ describe("NextAppClientImpl property types", () => {
     expectTypeOf<ReturnType<NextAppClientImpl<AnyLocale>["writeLocale"]>>().toEqualTypeOf<void | Promise<void>>();
   });
 
-  it("createUsePathComposer accepts a useLocale hook and returns a hook producing BoundPathComposer", () => {
-    type Fn = NextAppClientImpl<AnyLocale>["createUsePathComposer"];
+  it("createPathComposer accepts a locale and returns a BoundPathComposer", () => {
+    type Fn = NextAppClientImpl<AnyLocale>["createPathComposer"];
     expectTypeOf<Fn>().toBeFunction();
-    expectTypeOf<Fn>().parameter(0).toEqualTypeOf<() => string>();
-    expectTypeOf<ReturnType<Fn>>().toEqualTypeOf<() => BoundPathComposer<AnyPathAtlas>>();
+    expectTypeOf<Fn>().parameter(0).toEqualTypeOf<string>();
+    expectTypeOf<ReturnType<Fn>>().toEqualTypeOf<BoundPathComposer<AnyPathAtlas>>();
   });
 });

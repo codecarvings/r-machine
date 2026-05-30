@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
-import { validateServerOnlyUsage } from "#r-machine/next/internal";
 import { createNextAppPathServerImpl } from "../../../../src/core/app/path/next-app-path.server-impl.js";
 import type { AnyNextAppPathStrategyConfig } from "../../../../src/core/app/path/next-app-path-strategy-core.js";
 import {
@@ -18,7 +17,7 @@ import {
 } from "../../../_fixtures/constants.js";
 import { createMockMachineForProxy } from "../../../_fixtures/mock-machine.js";
 import { createMockCookiesFn, createMockHeadersFn, createMockRequest } from "../../../_fixtures/mock-server-helpers.js";
-import type { AnyProxyFn, AnySupplierFn, MockRewriteArgs } from "../../../_fixtures/test-types.js";
+import type { AnyPathComposer, AnyProxyFn, MockRewriteArgs } from "../../../_fixtures/test-types.js";
 
 type AnyRouteHandlers = { entrance: { GET: () => Promise<void> } };
 
@@ -44,14 +43,6 @@ vi.mock("next/server", () => ({
     redirect: (...args: any[]) => mockRedirectResponse(...args),
   },
 }));
-
-vi.mock("#r-machine/next/internal", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("#r-machine/next/internal")>();
-  return {
-    ...actual,
-    validateServerOnlyUsage: vi.fn(),
-  };
-});
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1152,9 +1143,7 @@ describe("createNextAppPathServerImpl", () => {
         autoLocaleBinding: "off",
       });
 
-      expect(() => impl.createRouteHandlers(vi.fn() as any, vi.fn() as any, vi.fn() as any)).toThrow(
-        "implicitDefaultLocale is on"
-      );
+      expect(() => impl.createRouteHandlers(vi.fn() as any, vi.fn() as any)).toThrow("implicitDefaultLocale is on");
     });
 
     it("throws when autoLocaleBinding is on", async () => {
@@ -1163,9 +1152,7 @@ describe("createNextAppPathServerImpl", () => {
         autoLocaleBinding: "on",
       });
 
-      expect(() => impl.createRouteHandlers(vi.fn() as any, vi.fn() as any, vi.fn() as any)).toThrow(
-        "autoLocaleBinding is on"
-      );
+      expect(() => impl.createRouteHandlers(vi.fn() as any, vi.fn() as any)).toThrow("autoLocaleBinding is on");
     });
 
     it("throws with implicitDefaultLocale checked first", async () => {
@@ -1174,9 +1161,7 @@ describe("createNextAppPathServerImpl", () => {
         autoLocaleBinding: "on",
       });
 
-      expect(() => impl.createRouteHandlers(vi.fn() as any, vi.fn() as any, vi.fn() as any)).toThrow(
-        "implicitDefaultLocale is on"
-      );
+      expect(() => impl.createRouteHandlers(vi.fn() as any, vi.fn() as any)).toThrow("implicitDefaultLocale is on");
     });
 
     it("returns entrance route handlers when config is valid", async () => {
@@ -1185,51 +1170,29 @@ describe("createNextAppPathServerImpl", () => {
         autoLocaleBinding: "off",
       });
 
-      const handlers = impl.createRouteHandlers(vi.fn() as any, vi.fn() as any, vi.fn() as any) as AnyRouteHandlers;
+      const handlers = impl.createRouteHandlers(vi.fn() as any, vi.fn() as any) as AnyRouteHandlers;
 
       expect(handlers).toHaveProperty("entrance");
       expect(handlers).toHaveProperty("entrance.GET");
       expect(typeof handlers.entrance.GET).toBe("function");
     });
 
-    it("entrance.GET calls setLocale with cookie locale first, then with detected locale", async () => {
+    it("entrance.GET redirects to cookie locale when a valid cookie is present", async () => {
       const { impl } = await createImpl({
+        atlas: aboutAtlas,
         implicitDefaultLocale: "off",
         autoLocaleBinding: "off",
       });
       const cookiesFn = createMockCookiesGetFn({ cookie: "it" });
-      const headersFn = createMockHeadersFn({ "accept-language": "en" });
-      const setLocale = vi.fn(async () => {});
+      const headersFn = createMockHeadersFn({ "x-rm-sccpath": "/about" });
 
-      const handlers = impl.createRouteHandlers(cookiesFn, headersFn, setLocale) as AnyRouteHandlers;
+      const handlers = impl.createRouteHandlers(cookiesFn, headersFn) as AnyRouteHandlers;
       await handlers.entrance.GET();
 
-      expect(setLocale).toHaveBeenCalledTimes(2);
-      expect(setLocale).toHaveBeenNthCalledWith(1, "it");
-      expect(setLocale).toHaveBeenNthCalledWith(2, "en");
+      expect(mockRedirect).toHaveBeenCalledWith("/chi-siamo");
     });
 
-    it("entrance.GET does not reach Accept-Language detection when setLocale redirects on cookie locale", async () => {
-      const { impl, rMachine } = await createImpl({
-        implicitDefaultLocale: "off",
-        autoLocaleBinding: "off",
-      });
-      const cookiesFn = createMockCookiesGetFn({ cookie: "it" });
-      const headersFn = createMockHeadersFn({ "accept-language": "en" });
-      const redirectError = new Error("NEXT_REDIRECT");
-      const setLocale = vi.fn(async () => {
-        throw redirectError;
-      });
-
-      const handlers = impl.createRouteHandlers(cookiesFn, headersFn, setLocale) as AnyRouteHandlers;
-      await expect(handlers.entrance.GET()).rejects.toThrow(redirectError);
-
-      expect(setLocale).toHaveBeenCalledOnce();
-      expect(setLocale).toHaveBeenCalledWith("it");
-      expect(rMachine.localeHelper.matchLocalesForAcceptLanguageHeader).not.toHaveBeenCalled();
-    });
-
-    it("entrance.GET calls setLocale with Accept-Language detected locale", async () => {
+    it("entrance.GET redirects to Accept-Language detected locale when no valid cookie", async () => {
       const { impl, rMachine } = await createImpl({
         implicitDefaultLocale: "off",
         autoLocaleBinding: "off",
@@ -1237,48 +1200,15 @@ describe("createNextAppPathServerImpl", () => {
       });
       const cookiesFn = createMockCookiesGetFn();
       const headersFn = createMockHeadersFn({ "accept-language": "it-IT" });
-      const setLocale = vi.fn(async () => {});
 
-      const handlers = impl.createRouteHandlers(cookiesFn, headersFn, setLocale) as AnyRouteHandlers;
+      const handlers = impl.createRouteHandlers(cookiesFn, headersFn) as AnyRouteHandlers;
       await handlers.entrance.GET();
 
       expect(rMachine.localeHelper.matchLocalesForAcceptLanguageHeader).toHaveBeenCalledWith("it-IT");
-      expect(setLocale).toHaveBeenCalledWith("it");
+      expect(mockRedirect).toHaveBeenCalledOnce();
     });
 
-    it("entrance.GET skips cookie setLocale when no cookie is present", async () => {
-      const { impl } = await createImpl({
-        implicitDefaultLocale: "off",
-        autoLocaleBinding: "off",
-      });
-      const cookiesFn = createMockCookiesGetFn();
-      const headersFn = createMockHeadersFn();
-      const setLocale = vi.fn(async () => {});
-
-      const handlers = impl.createRouteHandlers(cookiesFn, headersFn, setLocale) as AnyRouteHandlers;
-      await handlers.entrance.GET();
-
-      expect(setLocale).toHaveBeenCalledOnce();
-      expect(setLocale).toHaveBeenCalledWith("en");
-    });
-
-    it("entrance.GET ignores unknown cookie locale", async () => {
-      const { impl } = await createImpl({
-        implicitDefaultLocale: "off",
-        autoLocaleBinding: "off",
-      });
-      const cookiesFn = createMockCookiesGetFn({ cookie: "fr" });
-      const headersFn = createMockHeadersFn();
-      const setLocale = vi.fn(async () => {});
-
-      const handlers = impl.createRouteHandlers(cookiesFn, headersFn, setLocale) as AnyRouteHandlers;
-      await handlers.entrance.GET();
-
-      expect(setLocale).toHaveBeenCalledOnce();
-      expect(setLocale).toHaveBeenCalledWith("en");
-    });
-
-    it("entrance.GET skips cookie entirely when cookie is disabled", async () => {
+    it("entrance.GET skips cookie lookup when cookie is disabled", async () => {
       const { impl } = await createImpl({
         implicitDefaultLocale: "off",
         autoLocaleBinding: "off",
@@ -1286,36 +1216,39 @@ describe("createNextAppPathServerImpl", () => {
       });
       const cookiesFn = vi.fn();
       const headersFn = createMockHeadersFn();
-      const setLocale = vi.fn(async () => {});
 
-      const handlers = impl.createRouteHandlers(cookiesFn, headersFn, setLocale) as AnyRouteHandlers;
+      const handlers = impl.createRouteHandlers(cookiesFn, headersFn) as AnyRouteHandlers;
       await handlers.entrance.GET();
 
       expect(cookiesFn).not.toHaveBeenCalled();
-      expect(setLocale).toHaveBeenCalledOnce();
-      expect(setLocale).toHaveBeenCalledWith("en");
+    });
+
+    it("entrance.GET redirects to default locale when default locale is detected and no cookie", async () => {
+      const { impl } = await createImpl({
+        implicitDefaultLocale: "off",
+        autoLocaleBinding: "off",
+        matchLocaleReturn: "en",
+      });
+      const cookiesFn = createMockCookiesGetFn();
+      const headersFn = createMockHeadersFn();
+
+      const handlers = impl.createRouteHandlers(cookiesFn, headersFn) as AnyRouteHandlers;
+      await handlers.entrance.GET();
+
+      // writeLocale(undefined!, "en") — undefined !== "en", so redirect is called
+      expect(mockRedirect).toHaveBeenCalledOnce();
+      expect(mockRedirect).toHaveBeenCalledWith("/");
     });
   });
 
   // -----------------------------------------------------------------------
-  // createBoundPathComposerSupplier
+  // createPathComposer
   // -----------------------------------------------------------------------
 
-  describe("createBoundPathComposerSupplier", () => {
-    it("ensures getPathComposer is restricted to server-only usage", async () => {
+  describe("createPathComposer", () => {
+    it("returns a callable path composer", async () => {
       const { impl } = await createImpl();
-      const supplier = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-
-      await supplier();
-
-      expect(validateServerOnlyUsage).toHaveBeenCalledWith("getPathComposer");
-    });
-
-    it("supplies a callable path composer", async () => {
-      const { impl } = await createImpl();
-      const supplier = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-
-      const composer = await supplier();
+      const composer = impl.createPathComposer("en");
 
       expect(typeof composer).toBe("function");
     });
@@ -1323,10 +1256,8 @@ describe("createNextAppPathServerImpl", () => {
     it("composer translates static paths for the current locale", async () => {
       const { impl } = await createImpl({ atlas: aboutAtlas });
 
-      const supplierEn = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-      const supplierIt = impl.createBoundPathComposerSupplier(async () => "it") as AnySupplierFn;
-      const composerEn = await supplierEn();
-      const composerIt = await supplierIt();
+      const composerEn = impl.createPathComposer("en") as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerEn("/about")).toBe("/about");
       expect(composerIt("/about")).toBe("/chi-siamo");
@@ -1335,10 +1266,8 @@ describe("createNextAppPathServerImpl", () => {
     it("composer substitutes params in dynamic paths", async () => {
       const { impl } = await createImpl({ atlas: productsAtlas });
 
-      const supplierEn = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-      const supplierIt = impl.createBoundPathComposerSupplier(async () => "it") as AnySupplierFn;
-      const composerEn = await supplierEn();
-      const composerIt = await supplierIt();
+      const composerEn = impl.createPathComposer("en") as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerEn("/products/[id]", { id: "99" })).toBe("/products/99");
       expect(composerIt("/products/[id]", { id: "99" })).toBe("/prodotti/99");
@@ -1347,8 +1276,7 @@ describe("createNextAppPathServerImpl", () => {
     it("composer handles nested paths", async () => {
       const { impl } = await createImpl({ atlas: aboutWithTeamAtlas });
 
-      const supplier = impl.createBoundPathComposerSupplier(async () => "it") as AnySupplierFn;
-      const composer = await supplier();
+      const composer = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composer("/about/team")).toBe("/chi-siamo/staff");
     });
@@ -1356,8 +1284,7 @@ describe("createNextAppPathServerImpl", () => {
     it("composer handles root path", async () => {
       const { impl } = await createImpl();
 
-      const supplier = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-      const composer = await supplier();
+      const composer = impl.createPathComposer("en");
 
       expect(composer("/")).toBe("/");
     });
@@ -1365,10 +1292,8 @@ describe("createNextAppPathServerImpl", () => {
     it("composer handles catch-all paths with array params", async () => {
       const { impl } = await createImpl({ atlas: docsWithCatchAllAtlas });
 
-      const supplierEn = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-      const supplierIt = impl.createBoundPathComposerSupplier(async () => "it") as AnySupplierFn;
-      const composerEn = await supplierEn();
-      const composerIt = await supplierIt();
+      const composerEn = impl.createPathComposer("en") as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerEn("/docs/[...slug]", { slug: ["getting-started", "install"] })).toBe(
         "/docs/getting-started/install"

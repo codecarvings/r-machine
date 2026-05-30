@@ -9,7 +9,7 @@ import type { NextAppServerImpl } from "../../../src/core/app/next-app-server-to
 import { createNextAppServerToolset } from "../../../src/core/app/next-app-server-toolset.js";
 import type { TestLocale } from "../../_fixtures/constants.js";
 import { expectAsyncError, expectError } from "../../_fixtures/expect-error.js";
-import { createMockMachine, type MockMachineOverrides } from "../../_fixtures/mock-machine.js";
+import { type CreateMockMachineOptions, createMockMachine, spies } from "../../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -73,9 +73,35 @@ vi.mock("#r-machine/next/internal", async (importOriginal) => {
   };
 });
 
+// Mock the scope-registry module (dynamic import inside NextServerRMachine)
+const mockRegisterScope = vi.fn();
+const mockUnregisterScope = vi.fn();
+const mockLookupScope = vi.fn();
+
+vi.mock("../../../src/core/app/scope-registry.js", () => ({
+  registerScope: (...args: unknown[]) => mockRegisterScope(...args),
+  unregisterScope: (...args: unknown[]) => mockUnregisterScope(...args),
+  lookupScope: (...args: unknown[]) => mockLookupScope(...args),
+}));
+
+// Mock the request-scope module (dynamic import inside createNextAppServerToolset)
+vi.mock("../../../src/core/app/request-scope.js", () => ({
+  nextRequestScopeProvider: {},
+}));
+
+// Mock next/server `after` — invoke the callback synchronously so
+// NextServerRMachine's cleanup runs within the test.
+const mockAfter = vi.fn((cb: () => void) => cb());
+
+vi.mock("next/server", () => ({
+  after: (...args: unknown[]) => mockAfter(args[0] as () => void),
+}));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+const TEST_SERVER_KIT = {} as const;
 
 function createMockImpl(
   overrides: Partial<NextAppServerImpl<TestLocale, string>> = {}
@@ -88,21 +114,21 @@ function createMockImpl(
       overrides.createLocaleStaticParamsGenerator ??
       vi.fn(async () => async () => [{ locale: "en" }, { locale: "it" }]),
     createProxy: overrides.createProxy ?? vi.fn(async (): Promise<RMachineProxy> => vi.fn() as RMachineProxy),
-    createBoundPathComposerSupplier:
-      overrides.createBoundPathComposerSupplier ?? vi.fn(async () => async () => vi.fn(() => "/")),
+    createPathComposer: overrides.createPathComposer ?? vi.fn(() => vi.fn(() => "/")),
   };
 }
 
 const MockNextClientRMachine = vi.fn(
-  ({ children }: { locale: string; children: ReactNode }): ReactNode => children
+  ({ children }: { locale: string; scopeId: string; children: ReactNode }): ReactNode => children
 ) as unknown as NextAppClientRMachine<TestLocale>;
 
 async function createToolset(
-  machineOverrides?: MockMachineOverrides,
+  machineOverrides?: CreateMockMachineOptions,
   implOverrides?: Partial<NextAppServerImpl<TestLocale, string>>
 ) {
   return createNextAppServerToolset(
     createMockMachine(machineOverrides),
+    TEST_SERVER_KIT,
     createMockImpl(implOverrides),
     MockNextClientRMachine
   );
@@ -145,14 +171,11 @@ describe("createNextAppServerToolset", () => {
     expect(generator).toHaveBeenCalled();
   });
 
-  it("delegates getPathComposer to impl.createBoundPathComposerSupplier", async () => {
-    const composer = vi.fn(() => "/composed");
-    const supplier = vi.fn(async () => composer);
-    const toolset = await createToolset(undefined, {
-      createBoundPathComposerSupplier: vi.fn(async () => supplier),
-    });
+  it("installs nextRequestScopeProvider on rMachine.requestScope", async () => {
+    const machine = createMockMachine();
+    await createNextAppServerToolset(machine, TEST_SERVER_KIT, createMockImpl(), MockNextClientRMachine);
 
-    expect(toolset.getPathComposer).toBe(supplier);
+    expect(spies(machine).requestScope.installProvider).toHaveBeenCalledTimes(1);
   });
 
   // -----------------------------------------------------------------------
@@ -203,7 +226,12 @@ describe("createNextAppServerToolset", () => {
 
     it("skips validation on second call with a previously validated locale", async () => {
       const machine = createMockMachine();
-      const toolset = await createNextAppServerToolset(machine, createMockImpl(), MockNextClientRMachine);
+      const toolset = await createNextAppServerToolset(
+        machine,
+        TEST_SERVER_KIT,
+        createMockImpl(),
+        MockNextClientRMachine
+      );
 
       toolset.bindLocale("en");
       toolset.bindLocale("en");
@@ -213,7 +241,12 @@ describe("createNextAppServerToolset", () => {
 
     it("reuses the locale cache across sync and async bindLocale calls", async () => {
       const machine = createMockMachine();
-      const toolset = await createNextAppServerToolset(machine, createMockImpl(), MockNextClientRMachine);
+      const toolset = await createNextAppServerToolset(
+        machine,
+        TEST_SERVER_KIT,
+        createMockImpl(),
+        MockNextClientRMachine
+      );
 
       toolset.bindLocale("en");
       await toolset.bindLocale(Promise.resolve({ locale: "en" }));
@@ -248,66 +281,11 @@ describe("createNextAppServerToolset", () => {
   });
 
   // -----------------------------------------------------------------------
-  // getLocale
-  // -----------------------------------------------------------------------
-
-  describe("getLocale", () => {
-    it("returns bound locale when bindLocale was called first", async () => {
-      const toolset = await createToolset();
-
-      toolset.bindLocale("en");
-      const locale = await toolset.getLocale();
-
-      expect(locale).toBe("en");
-    });
-
-    describe("with autoLocaleBinding", () => {
-      it("reads locale from the x-rm-locale header", async () => {
-        mockHeadersMap.set("x-rm-locale", "it");
-        const toolset = await createToolset(undefined, { autoLocaleBinding: true });
-
-        const locale = await toolset.getLocale();
-
-        expect(locale).toBe("it");
-      });
-
-      it("throws ERR_LOCALE_UNDETERMINED when header is missing", async () => {
-        const toolset = await createToolset(undefined, { autoLocaleBinding: true });
-
-        const error = await expectAsyncError(() => toolset.getLocale(), RMachineUsageError);
-        expect(error.code).toBe(ERR_LOCALE_UNDETERMINED);
-      });
-
-      it("caches the header lookup promise within a request", async () => {
-        mockHeadersMap.set("x-rm-locale", "en");
-        const toolset = await createToolset(undefined, { autoLocaleBinding: true });
-
-        const [a, b] = await Promise.all([toolset.getLocale(), toolset.getLocale()]);
-
-        expect(a).toBe("en");
-        expect(b).toBe("en");
-
-        const headersMock = await import("next/headers");
-        expect(vi.mocked(headersMock.headers)).toHaveBeenCalledTimes(1);
-      });
-    });
-
-    describe("without autoLocaleBinding", () => {
-      it("throws ERR_LOCALE_UNDETERMINED when bindLocale was not called", async () => {
-        const toolset = await createToolset(undefined, { autoLocaleBinding: false });
-
-        const error = await expectAsyncError(() => toolset.getLocale(), RMachineUsageError);
-        expect(error.code).toBe(ERR_LOCALE_UNDETERMINED);
-      });
-    });
-  });
-
-  // -----------------------------------------------------------------------
   // setLocale
   // -----------------------------------------------------------------------
 
   describe("setLocale", () => {
-    it("calls impl.writeLocale with the current and new locale", async () => {
+    it("calls impl.writeLocale with undefined as current locale (setLocale does not read from context)", async () => {
       const writeLocale = vi.fn();
       const toolset = await createToolset(undefined, {
         writeLocale,
@@ -317,20 +295,9 @@ describe("createNextAppServerToolset", () => {
       toolset.bindLocale("en");
       await toolset.setLocale("it");
 
+      // setLocale always passes undefined as the current locale (it does not read from context)
       expect(writeLocale).toHaveBeenCalledTimes(1);
-      expect(writeLocale).toHaveBeenCalledWith("en", "it", expect.any(Function), expect.any(Function));
-    });
-
-    it("passes undefined as current locale when locale is not bound", async () => {
-      const writeLocale = vi.fn();
-      const toolset = await createToolset(undefined, {
-        writeLocale,
-        autoLocaleBinding: false,
-      });
-
-      await toolset.setLocale("en");
-
-      expect(writeLocale).toHaveBeenCalledWith(undefined, "en", expect.any(Function), expect.any(Function));
+      expect(writeLocale).toHaveBeenCalledWith(undefined, "it", expect.any(Function), expect.any(Function));
     });
 
     it("throws RMachineUsageError for an invalid locale", async () => {
@@ -365,129 +332,272 @@ describe("createNextAppServerToolset", () => {
 
       expect(writeLocale).not.toHaveBeenCalled();
     });
-
-    it("reads current locale from header when autoLocaleBinding is enabled and no binding exists", async () => {
-      mockHeadersMap.set("x-rm-locale", "en");
-      const writeLocale = vi.fn();
-      const toolset = await createToolset(undefined, {
-        writeLocale,
-        autoLocaleBinding: true,
-      });
-
-      await toolset.setLocale("it");
-
-      expect(writeLocale).toHaveBeenCalledWith("en", "it", expect.any(Function), expect.any(Function));
-    });
-
-    it("passes undefined as current locale when autoLocaleBinding is enabled but header is missing", async () => {
-      const writeLocale = vi.fn();
-      const toolset = await createToolset(undefined, {
-        writeLocale,
-        autoLocaleBinding: true,
-      });
-
-      await toolset.setLocale("en");
-
-      expect(writeLocale).toHaveBeenCalledWith(undefined, "en", expect.any(Function), expect.any(Function));
-    });
-
-    it("reuses the pending unsafe locale promise for concurrent calls", async () => {
-      mockHeadersMap.set("x-rm-locale", "en");
-      const writeLocale = vi.fn();
-      const toolset = await createToolset(undefined, {
-        writeLocale,
-        autoLocaleBinding: true,
-      });
-
-      await Promise.all([toolset.setLocale("it"), toolset.setLocale("it")]);
-
-      expect(writeLocale).toHaveBeenCalledTimes(2);
-      expect(writeLocale).toHaveBeenCalledWith("en", "it", expect.any(Function), expect.any(Function));
-
-      const headersMock = await import("next/headers");
-      expect(vi.mocked(headersMock.headers)).toHaveBeenCalledTimes(1);
-    });
   });
 
   // -----------------------------------------------------------------------
-  // pickR
+  // ServerPlug
   // -----------------------------------------------------------------------
 
-  describe("pickR", () => {
-    it("delegates to rMachine.pickR with bound locale", async () => {
-      const resources = { greeting: "ciao" };
-      const machine = createMockMachine({
-        pickR: () => Promise.resolve(resources),
+  describe("ServerPlug", () => {
+    describe("useR()", () => {
+      it("resolves with the locale from bindLocale when called with no args", async () => {
+        const machine = createMockMachine();
+        const toolset = await createNextAppServerToolset(
+          machine,
+          TEST_SERVER_KIT,
+          createMockImpl(),
+          MockNextClientRMachine
+        );
+
+        toolset.bindLocale("en");
+        const plug = toolset.ServerPlug("common");
+        await plug.useR();
+
+        expect(spies(machine).getGatePlugin).toHaveBeenCalledWith(
+          TEST_SERVER_KIT,
+          expect.anything(),
+          "en",
+          expect.any(Function)
+        );
       });
-      const toolset = await createNextAppServerToolset(machine, createMockImpl(), MockNextClientRMachine);
 
-      toolset.bindLocale("it");
-      const result = await toolset.pickR("common");
+      it("resolves with locale from x-rm-locale header when autoLocaleBinding is true and no arg given", async () => {
+        mockHeadersMap.set("x-rm-locale", "it");
+        const machine = createMockMachine();
+        const toolset = await createNextAppServerToolset(
+          machine,
+          TEST_SERVER_KIT,
+          createMockImpl({ autoLocaleBinding: true }),
+          MockNextClientRMachine
+        );
 
-      expect(result).toBe(resources);
-      expect(machine.pickR).toHaveBeenCalledWith("it", "common");
-    });
+        const plug = toolset.ServerPlug("common");
+        await plug.useR();
 
-    it("delegates to rMachine.pickR when locale is resolved from header", async () => {
-      mockHeadersMap.set("x-rm-locale", "it");
-      const machine = createMockMachine();
-      const toolset = await createNextAppServerToolset(
-        machine,
-        createMockImpl({ autoLocaleBinding: true }),
-        MockNextClientRMachine
-      );
-
-      await toolset.pickR("common");
-
-      expect(machine.pickR).toHaveBeenCalledWith("it", "common");
-    });
-
-    it("throws ERR_LOCALE_UNDETERMINED when locale is not bound and autoLocaleBinding is false", async () => {
-      const toolset = await createToolset(undefined, { autoLocaleBinding: false });
-
-      const error = await expectAsyncError(() => toolset.pickR("common"), RMachineUsageError);
-      expect(error.code).toBe(ERR_LOCALE_UNDETERMINED);
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // pickRKit
-  // -----------------------------------------------------------------------
-
-  describe("pickRKit", () => {
-    it("delegates to rMachine.pickRKit with bound locale", async () => {
-      const kit = [{ greeting: "hello" }, { home: "Home" }];
-      const machine = createMockMachine({
-        pickRKit: () => Promise.resolve(kit),
+        expect(spies(machine).getGatePlugin).toHaveBeenCalledWith(
+          TEST_SERVER_KIT,
+          expect.anything(),
+          "it",
+          expect.any(Function)
+        );
       });
-      const toolset = await createNextAppServerToolset(machine, createMockImpl(), MockNextClientRMachine);
 
-      toolset.bindLocale("en");
-      const result = await toolset.pickRKit("common", "nav");
+      it("throws ERR_LOCALE_UNDETERMINED when no locale is bound and autoLocaleBinding is false", async () => {
+        const toolset = await createToolset(undefined, { autoLocaleBinding: false });
 
-      expect(result).toBe(kit);
-      expect(machine.pickRKit).toHaveBeenCalledWith("en", "common", "nav");
+        const plug = toolset.ServerPlug("common");
+        const error = await expectAsyncError(() => plug.useR(), RMachineUsageError);
+        expect(error.code).toBe(ERR_LOCALE_UNDETERMINED);
+      });
+
+      it("binds and resolves an explicit locale string when passed to useR", async () => {
+        const machine = createMockMachine();
+        const toolset = await createNextAppServerToolset(
+          machine,
+          TEST_SERVER_KIT,
+          createMockImpl(),
+          MockNextClientRMachine
+        );
+
+        const plug = toolset.ServerPlug("common");
+        await plug.useR("it");
+
+        expect(spies(machine).getGatePlugin).toHaveBeenCalledWith(
+          TEST_SERVER_KIT,
+          expect.anything(),
+          "it",
+          expect.any(Function)
+        );
+      });
+
+      it("awaits a params promise, extracts locale key, and resolves", async () => {
+        const machine = createMockMachine();
+        const toolset = await createNextAppServerToolset(
+          machine,
+          TEST_SERVER_KIT,
+          createMockImpl(),
+          MockNextClientRMachine
+        );
+
+        const plug = toolset.ServerPlug("common");
+        await plug.useR(Promise.resolve({ locale: "it" }));
+
+        expect(spies(machine).getGatePlugin).toHaveBeenCalledWith(
+          TEST_SERVER_KIT,
+          expect.anything(),
+          "it",
+          expect.any(Function)
+        );
+      });
+
+      it("augmentCtx sets $.locale on the plugin context", async () => {
+        let capturedLocale: string | undefined;
+        const machine = createMockMachine({
+          getGatePlugin: (_kit, _nsDeps, _locale, augmentCtx) => {
+            const $ = {} as Record<string, unknown>;
+            (augmentCtx as ($: Record<string, unknown>) => void)($);
+            capturedLocale = $.locale as string;
+            return Promise.resolve({});
+          },
+        });
+        const toolset = await createNextAppServerToolset(
+          machine,
+          TEST_SERVER_KIT,
+          createMockImpl(),
+          MockNextClientRMachine
+        );
+
+        toolset.bindLocale("en");
+        await toolset.ServerPlug("common").useR();
+
+        expect(capturedLocale).toBe("en");
+      });
+
+      it("augmentCtx sets $.getPath to impl.createPathComposer result", async () => {
+        const composer = vi.fn(() => "/");
+        const createPathComposer = vi.fn(() => composer);
+        let capturedGetPath: unknown;
+        const machine = createMockMachine({
+          getGatePlugin: (_kit, _nsDeps, _locale, augmentCtx) => {
+            const $ = {} as Record<string, unknown>;
+            (augmentCtx as ($: Record<string, unknown>) => void)($);
+            capturedGetPath = $.getPath;
+            return Promise.resolve({});
+          },
+        });
+        const toolset = await createNextAppServerToolset(
+          machine,
+          TEST_SERVER_KIT,
+          createMockImpl({ createPathComposer }),
+          MockNextClientRMachine
+        );
+
+        toolset.bindLocale("en");
+        await toolset.ServerPlug("common").useR();
+
+        expect(capturedGetPath).toBe(composer);
+        expect(createPathComposer).toHaveBeenCalledWith("en");
+      });
+
+      it("augmentCtx sets $.params when useR is called with a params promise", async () => {
+        let capturedParams: unknown;
+        const machine = createMockMachine({
+          getGatePlugin: (_kit, _nsDeps, _locale, augmentCtx) => {
+            const $ = {} as Record<string, unknown>;
+            (augmentCtx as ($: Record<string, unknown>) => void)($);
+            capturedParams = $.params;
+            return Promise.resolve({});
+          },
+        });
+        const toolset = await createNextAppServerToolset(
+          machine,
+          TEST_SERVER_KIT,
+          createMockImpl(),
+          MockNextClientRMachine
+        );
+
+        await toolset.ServerPlug("common").useR(Promise.resolve({ locale: "en", id: "42" }));
+
+        expect(capturedParams).toEqual({ locale: "en", id: "42" });
+      });
+
+      it("does not set $.params when useR is called with a locale string", async () => {
+        let capturedParams: unknown = "UNSET";
+        const machine = createMockMachine({
+          getGatePlugin: (_kit, _nsDeps, _locale, augmentCtx) => {
+            const $ = {} as Record<string, unknown>;
+            (augmentCtx as ($: Record<string, unknown>) => void)($);
+            capturedParams = $.params;
+            return Promise.resolve({});
+          },
+        });
+        const toolset = await createNextAppServerToolset(
+          machine,
+          TEST_SERVER_KIT,
+          createMockImpl(),
+          MockNextClientRMachine
+        );
+
+        await toolset.ServerPlug("common").useR("en");
+
+        expect(capturedParams).toBeUndefined();
+      });
     });
 
-    it("delegates to rMachine.pickRKit when locale is resolved from header", async () => {
-      mockHeadersMap.set("x-rm-locale", "en");
-      const machine = createMockMachine();
-      const toolset = await createNextAppServerToolset(
-        machine,
-        createMockImpl({ autoLocaleBinding: true }),
-        MockNextClientRMachine
-      );
+    describe("useUnboundR()", () => {
+      it("resolves with an explicit locale string without binding the context", async () => {
+        const machine = createMockMachine();
+        const toolset = await createNextAppServerToolset(
+          machine,
+          TEST_SERVER_KIT,
+          createMockImpl(),
+          MockNextClientRMachine
+        );
 
-      await toolset.pickRKit("common", "nav");
+        const plug = toolset.ServerPlug("common");
+        await plug.useUnboundR("it");
 
-      expect(machine.pickRKit).toHaveBeenCalledWith("en", "common", "nav");
-    });
+        expect(spies(machine).getGatePlugin).toHaveBeenCalledWith(
+          TEST_SERVER_KIT,
+          expect.anything(),
+          "it",
+          expect.any(Function)
+        );
+        // Context locale should not be bound — a second call with a different
+        // locale should not throw ERR_LOCALE_BIND_CONFLICT.
+        await expect(plug.useUnboundR("en")).resolves.toBeDefined();
+      });
 
-    it("throws ERR_LOCALE_UNDETERMINED when locale is not bound and autoLocaleBinding is false", async () => {
-      const toolset = await createToolset(undefined, { autoLocaleBinding: false });
+      it("throws an error for an invalid locale", async () => {
+        const toolset = await createToolset();
 
-      const error = await expectAsyncError(() => toolset.pickRKit("common", "nav"), RMachineUsageError);
-      expect(error.code).toBe(ERR_LOCALE_UNDETERMINED);
+        const plug = toolset.ServerPlug("common");
+        // getValidLocale rethrows the raw RMachineConfigError from validateLocale
+        const error = await expectAsyncError(() => plug.useUnboundR("xx"), RMachineConfigError);
+        expect(error.code).toBe(ERR_UNKNOWN_LOCALE);
+      });
+
+      it("awaits a params promise and uses the locale without binding", async () => {
+        const machine = createMockMachine();
+        const toolset = await createNextAppServerToolset(
+          machine,
+          TEST_SERVER_KIT,
+          createMockImpl(),
+          MockNextClientRMachine
+        );
+
+        const plug = toolset.ServerPlug("common");
+        await plug.useUnboundR(Promise.resolve({ locale: "it" }));
+
+        expect(spies(machine).getGatePlugin).toHaveBeenCalledWith(
+          TEST_SERVER_KIT,
+          expect.anything(),
+          "it",
+          expect.any(Function)
+        );
+      });
+
+      it("augmentCtx sets $.params when called with a params promise", async () => {
+        let capturedParams: unknown;
+        const machine = createMockMachine({
+          getGatePlugin: (_kit, _nsDeps, _locale, augmentCtx) => {
+            const $ = {} as Record<string, unknown>;
+            (augmentCtx as ($: Record<string, unknown>) => void)($);
+            capturedParams = $.params;
+            return Promise.resolve({});
+          },
+        });
+        const toolset = await createNextAppServerToolset(
+          machine,
+          TEST_SERVER_KIT,
+          createMockImpl(),
+          MockNextClientRMachine
+        );
+
+        await toolset.ServerPlug("common").useUnboundR(Promise.resolve({ locale: "en", slug: "about" }));
+
+        expect(capturedParams).toEqual({ locale: "en", slug: "about" });
+      });
     });
   });
 
@@ -502,12 +612,52 @@ describe("createNextAppServerToolset", () => {
       toolset.bindLocale("en");
       const element = (await toolset.NextServerRMachine({ children: "hello" })) as {
         type: unknown;
-        props: { locale: string; children: ReactNode };
+        props: { locale: string; scopeId: string; children: ReactNode };
       };
 
       expect(element.type).toBe(MockNextClientRMachine);
       expect(element.props.locale).toBe("en");
       expect(element.props.children).toBe("hello");
+    });
+
+    it("passes a scopeId string to NextClientRMachine", async () => {
+      const toolset = await createToolset();
+      toolset.bindLocale("en");
+
+      const uuid = "test-uuid-1234";
+      vi.spyOn(crypto, "randomUUID").mockReturnValueOnce(uuid as ReturnType<typeof crypto.randomUUID>);
+
+      const element = (await toolset.NextServerRMachine({ children: "hello" })) as {
+        props: { scopeId: string };
+      };
+
+      expect(element.props.scopeId).toBe(uuid);
+    });
+
+    it("registers and unregisters the scope around the response", async () => {
+      const toolset = await createToolset();
+      toolset.bindLocale("en");
+
+      // after() mock invokes cb synchronously, so unregister fires within this call
+      await toolset.NextServerRMachine({ children: "test" });
+
+      expect(mockRegisterScope).toHaveBeenCalledTimes(1);
+      expect(mockUnregisterScope).toHaveBeenCalledTimes(1);
+    });
+
+    it("calls rMachine.requestScope.dispose with the scope", async () => {
+      const machine = createMockMachine();
+      const toolset = await createNextAppServerToolset(
+        machine,
+        TEST_SERVER_KIT,
+        createMockImpl(),
+        MockNextClientRMachine
+      );
+      toolset.bindLocale("en");
+
+      await toolset.NextServerRMachine({ children: "test" });
+
+      expect(spies(machine).requestScope.dispose).toHaveBeenCalledTimes(1);
     });
 
     it("resolves locale from header when autoLocaleBinding is enabled", async () => {
@@ -549,31 +699,9 @@ describe("createNextAppServerToolset", () => {
         },
       ],
       [
-        "getLocale",
-        async (t) => {
-          t.bindLocale("en");
-          await t.getLocale();
-        },
-      ],
-      [
         "setLocale",
         async (t) => {
-          t.bindLocale("en");
           await t.setLocale("it");
-        },
-      ],
-      [
-        "pickR",
-        async (t) => {
-          t.bindLocale("en");
-          await t.pickR("common");
-        },
-      ],
-      [
-        "pickRKit",
-        async (t) => {
-          t.bindLocale("en");
-          await t.pickRKit("common");
         },
       ],
       [
@@ -581,6 +709,19 @@ describe("createNextAppServerToolset", () => {
         async (t) => {
           t.bindLocale("en");
           await t.NextServerRMachine({ children: "test" });
+        },
+      ],
+      [
+        "ServerPlug.useR",
+        async (t) => {
+          t.bindLocale("en");
+          await t.ServerPlug("common").useR();
+        },
+      ],
+      [
+        "ServerPlug.useUnboundR",
+        async (t) => {
+          await t.ServerPlug("common").useUnboundR("en");
         },
       ],
     ])("%s calls validateServerOnlyUsage", async (methodName, invoke) => {

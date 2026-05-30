@@ -3,7 +3,5 @@
   "compilerOptions": {
     "noUncheckedIndexedAccess": false,
     "noUnusedLocals": false
-  },
-  // todo: WP
-  "exclude": ["tests/app", "tests/core/app"]
+  }
 }

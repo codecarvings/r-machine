@@ -1,7 +1,14 @@
-import type { AnyResourceAtlas, NamespaceMap, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
-import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
+import type {
+  AnyPathAtlas,
+  BoundPathComposer,
+  HrefCanonicalizer,
+  HrefTranslator,
+  RMachineProxy,
+} from "#r-machine/next/core";
 import type { NextAppServerImpl } from "#r-machine/next/core/app";
 import { createNextAppOriginServerImpl } from "../../../../src/core/app/origin/next-app-origin.server-impl.js";
 import type { AnyNextAppOriginStrategyConfig } from "../../../../src/core/app/origin/next-app-origin-strategy-core.js";
@@ -10,7 +17,7 @@ describe("createNextAppOriginServerImpl", () => {
   it("first parameter is RMachine<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>", () => {
     expectTypeOf(createNextAppOriginServerImpl)
       .parameter(0)
-      .toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>>();
+      .toEqualTypeOf<RMachine<AnyResAtlas, AnyLocale, ResEquipment<AnyResAtlas>, ExperimentalFlags>>();
   });
 
   it("second parameter is AnyNextAppOriginStrategyConfig", () => {
@@ -79,6 +86,21 @@ describe("NextAppServerImpl property types (origin)", () => {
     type Narrow = NextAppServerImpl<"en" | "it", string>;
     expectTypeOf<Narrow["writeLocale"]>().parameter(0).toEqualTypeOf<"en" | "it" | undefined>();
     expectTypeOf<Narrow["writeLocale"]>().parameter(1).toEqualTypeOf<"en" | "it">();
+  });
+
+  it("createProxy returns RMachineProxy or Promise<RMachineProxy>", () => {
+    expectTypeOf<ReturnType<NextAppServerImpl<AnyLocale, string>["createProxy"]>>().toEqualTypeOf<
+      RMachineProxy | Promise<RMachineProxy>
+    >();
+  });
+
+  it("createPathComposer accepts a locale and returns a BoundPathComposer", () => {
+    type FnWide = NextAppServerImpl<AnyLocale, string>["createPathComposer"];
+    expectTypeOf<FnWide>().parameter(0).toEqualTypeOf<string>();
+    expectTypeOf<ReturnType<FnWide>>().toEqualTypeOf<BoundPathComposer<AnyPathAtlas>>();
+
+    type FnNarrow = NextAppServerImpl<"en" | "it", string>["createPathComposer"];
+    expectTypeOf<FnNarrow>().parameter(0).toEqualTypeOf<"en" | "it">();
   });
 
   it("localeKey preserves the LK literal type", () => {

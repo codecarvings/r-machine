@@ -64,7 +64,7 @@ export const r = OuterGear
   .withDeps("base/config")        // A BaseGear dependency
   .withState({ count: 0 })        // The initial state
   .define((plugin, _) => {
-    const [ config, $ ] = plugin; // We destructure the plugin for convenience
+    const [ config, $ ] = plugin;
     return {
       count: _.getter(() => $.state.count),
       inc:   _.action(() => ({ count: $.state.count + config.incValue })),

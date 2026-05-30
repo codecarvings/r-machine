@@ -9,8 +9,8 @@ import type {
   NextAppServerImpl,
   NextAppServerRMachine,
   NextAppServerToolset,
+  NextAppStrategyConfigParams,
   NextAppStrategyCore,
-  PartialNextAppStrategyConfig,
 } from "../../../src/core/app/index.js";
 import {
   createNextAppClientToolset,
@@ -24,7 +24,7 @@ describe("core/app barrel exports", () => {
   it("exports all expected symbols", () => {
     expectTypeOf(localeHeaderName).toBeString();
 
-    expectTypeOf<NextAppStrategyCore<any, any, any, any>>().toBeObject();
+    expectTypeOf<NextAppStrategyCore<any, any, any, any, any>>().toBeObject();
 
     expectTypeOf(createNextAppClientToolset).toBeFunction();
 
@@ -34,13 +34,13 @@ describe("core/app barrel exports", () => {
 
     expectTypeOf<AnyNextAppStrategyConfig>().toBeObject();
 
-    expectTypeOf<PartialNextAppStrategyConfig<any, any>>().toBeObject();
+    expectTypeOf<NextAppStrategyConfigParams<any, any, any, any, any>>().toBeObject();
 
     expectTypeOf<NextAppClientImpl<any>>().toBeObject();
 
     expectTypeOf<NextAppClientRMachine<any>>().toBeFunction();
 
-    expectTypeOf<NextAppClientToolset<any, any, any, any>>().toBeObject();
+    expectTypeOf<NextAppClientToolset<any, any, any, any, any>>().toBeObject();
 
     expectTypeOf<NextAppServerImpl<any, any>>().toBeObject();
 

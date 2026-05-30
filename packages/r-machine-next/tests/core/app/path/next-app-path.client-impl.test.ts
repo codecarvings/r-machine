@@ -9,7 +9,6 @@ import {
   docsWithCatchAllAtlas,
   productsAtlas,
 } from "../../../_fixtures/_helpers.js";
-import type { TestLocale } from "../../../_fixtures/constants.js";
 import { TEST_DEFAULT_LOCALE as defaultLocale, TEST_LOCALES as locales } from "../../../_fixtures/constants.js";
 import { createMockMachine } from "../../../_fixtures/mock-machine.js";
 import { createMockRouter } from "../../../_fixtures/mock-router.js";
@@ -344,22 +343,14 @@ describe("createNextAppPathClientImpl", () => {
   });
 
   // -----------------------------------------------------------------------
-  // createUsePathComposer
+  // createPathComposer
   // -----------------------------------------------------------------------
 
-  describe("createUsePathComposer", () => {
-    it("returns a hook factory function", async () => {
+  describe("createPathComposer", () => {
+    it("returns a path composer function", async () => {
       const { impl } = await createImpl();
 
-      const usePathComposer = impl.createUsePathComposer(() => "en");
-
-      expect(typeof usePathComposer).toBe("function");
-    });
-
-    it("the hook returns a path composer function", async () => {
-      const { impl } = await createImpl();
-
-      const composer = impl.createUsePathComposer(() => "en")();
+      const composer = impl.createPathComposer("en");
 
       expect(typeof composer).toBe("function");
     });
@@ -367,8 +358,8 @@ describe("createNextAppPathClientImpl", () => {
     it("composer translates static paths for the current locale", async () => {
       const { impl } = await createImpl({ atlas: aboutAtlas });
 
-      const composerEn = impl.createUsePathComposer(() => "en")() as AnyPathComposer;
-      const composerIt = impl.createUsePathComposer(() => "it")() as AnyPathComposer;
+      const composerEn = impl.createPathComposer("en") as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerEn("/about")).toBe("/about");
       expect(composerIt("/about")).toBe("/chi-siamo");
@@ -377,32 +368,17 @@ describe("createNextAppPathClientImpl", () => {
     it("composer substitutes params in dynamic paths", async () => {
       const { impl } = await createImpl({ atlas: productsAtlas });
 
-      const composerEn = impl.createUsePathComposer(() => "en")() as AnyPathComposer;
-      const composerIt = impl.createUsePathComposer(() => "it")() as AnyPathComposer;
+      const composerEn = impl.createPathComposer("en") as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerEn("/products/[id]", { id: "99" })).toBe("/products/99");
       expect(composerIt("/products/[id]", { id: "99" })).toBe("/prodotti/99");
     });
 
-    it("composer reads locale from useLocale on each invocation", async () => {
-      const { impl } = await createImpl({ atlas: aboutAtlas });
-
-      let currentLocale = "en";
-      const useLocale = () => currentLocale as TestLocale;
-      const usePathComposer = impl.createUsePathComposer(useLocale);
-
-      const composer1 = usePathComposer() as AnyPathComposer;
-      expect(composer1("/about")).toBe("/about");
-
-      currentLocale = "it";
-      const composer2 = usePathComposer() as AnyPathComposer;
-      expect(composer2("/about")).toBe("/chi-siamo");
-    });
-
     it("composer handles root path", async () => {
       const { impl } = await createImpl();
 
-      const composer = impl.createUsePathComposer(() => "en")();
+      const composer = impl.createPathComposer("en");
 
       expect(composer("/")).toBe("/");
     });
@@ -410,7 +386,7 @@ describe("createNextAppPathClientImpl", () => {
     it("composer handles nested paths", async () => {
       const { impl } = await createImpl({ atlas: aboutWithTeamAtlas });
 
-      const composerIt = impl.createUsePathComposer(() => "it")() as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerIt("/about/team")).toBe("/chi-siamo/staff");
     });
@@ -418,8 +394,8 @@ describe("createNextAppPathClientImpl", () => {
     it("composer handles catch-all paths with array params", async () => {
       const { impl } = await createImpl({ atlas: docsWithCatchAllAtlas });
 
-      const composerEn = impl.createUsePathComposer(() => "en")() as AnyPathComposer;
-      const composerIt = impl.createUsePathComposer(() => "it")() as AnyPathComposer;
+      const composerEn = impl.createPathComposer("en") as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerEn("/docs/[...slug]", { slug: ["getting-started", "install"] })).toBe(
         "/docs/getting-started/install"
@@ -432,8 +408,8 @@ describe("createNextAppPathClientImpl", () => {
     it("composer returns undeclared paths as-is", async () => {
       const { impl } = await createImpl({ atlas: aboutAtlas });
 
-      const composerEn = impl.createUsePathComposer(() => "en")() as AnyPathComposer;
-      const composerIt = impl.createUsePathComposer(() => "it")() as AnyPathComposer;
+      const composerEn = impl.createPathComposer("en") as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerEn("/unknown-page")).toBe("/unknown-page");
       expect(composerIt("/unknown-page")).toBe("/unknown-page");
@@ -474,7 +450,7 @@ describe("createNextAppPathClientImpl", () => {
 
       const impl = await createNextAppPathClientImpl(rMachine, strategyConfig, pathTranslator, pathCanonicalizer);
 
-      const composer = impl.createUsePathComposer(() => "it")() as AnyPathComposer;
+      const composer = impl.createPathComposer("it") as AnyPathComposer;
       const result = composer("/about");
 
       expect(pathTranslatorGet).toHaveBeenCalledWith("it", "/about", undefined);

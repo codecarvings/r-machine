@@ -1,4 +1,4 @@
-import type { NamespaceMap } from "r-machine";
+import type { ExperimentalFlags, ResEquipment } from "r-machine/core";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
@@ -24,8 +24,11 @@ vi.mock("next/server", () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-type SimpleConfig = NextAppFlatStrategyConfig<SimplePathAtlas, "locale">;
-type DynamicConfig = NextAppFlatStrategyConfig<DynamicPathAtlas, "locale">;
+type CKM = typeof NextAppFlatStrategyCore.defaultConfig.clientKit;
+type SKM = typeof NextAppFlatStrategyCore.defaultConfig.serverKit;
+type EF = ExperimentalFlags;
+type SimpleConfig = NextAppFlatStrategyConfig<TestAtlas, CKM, SKM, SimplePathAtlas, "locale">;
+type DynamicConfig = NextAppFlatStrategyConfig<TestAtlas, CKM, SKM, DynamicPathAtlas, "locale">;
 
 function createTestConfig(overrides?: Partial<SimpleConfig>): SimpleConfig {
   return {
@@ -41,9 +44,15 @@ function createTestStrategy(configOverrides?: Partial<SimpleConfig>) {
   class TestFlatStrategy extends NextAppFlatStrategyCore<
     TestAtlas,
     TestLocale,
-    NamespaceMap<TestAtlas>,
+    ResEquipment<TestAtlas>,
+    EF,
     SimpleConfig
-  > {}
+  > {
+    // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
+    constructor(machine: any, cfg: any) {
+      super(machine, cfg);
+    }
+  }
 
   const rMachine = createMockMachine();
   const strategy = new TestFlatStrategy(rMachine, config);
@@ -57,6 +66,8 @@ function createDynamicStrategy() {
     localeKey: "locale",
     autoLocaleBinding: "off",
     basePath: "",
+    clientKit: {} as CKM,
+    serverKit: {} as SKM,
     cookie: defaultCookieDeclaration,
     pathMatcher: defaultPathMatcher,
   } as DynamicConfig;
@@ -64,9 +75,15 @@ function createDynamicStrategy() {
   class TestFlatStrategy extends NextAppFlatStrategyCore<
     TestAtlas,
     TestLocale,
-    NamespaceMap<TestAtlas>,
+    ResEquipment<TestAtlas>,
+    EF,
     DynamicConfig
-  > {}
+  > {
+    // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
+    constructor(machine: any, cfg: any) {
+      super(machine, cfg);
+    }
+  }
 
   const rMachine = createMockMachine();
   return new TestFlatStrategy(rMachine, config);
@@ -78,6 +95,8 @@ function createDynamicStrategyWithLocale(overrideDefaultLocale: TestLocale) {
     localeKey: "locale",
     autoLocaleBinding: "off",
     basePath: "",
+    clientKit: {} as CKM,
+    serverKit: {} as SKM,
     cookie: defaultCookieDeclaration,
     pathMatcher: defaultPathMatcher,
   } as DynamicConfig;
@@ -85,9 +104,15 @@ function createDynamicStrategyWithLocale(overrideDefaultLocale: TestLocale) {
   class TestFlatStrategy extends NextAppFlatStrategyCore<
     TestAtlas,
     TestLocale,
-    NamespaceMap<TestAtlas>,
+    ResEquipment<TestAtlas>,
+    EF,
     DynamicConfig
-  > {}
+  > {
+    // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
+    constructor(machine: any, cfg: any) {
+      super(machine, cfg);
+    }
+  }
 
   const rMachine = createMockMachine({ defaultLocale: overrideDefaultLocale });
   return new TestFlatStrategy(rMachine, config);
@@ -147,7 +172,7 @@ describe("NextAppFlatStrategyCore", () => {
     it("creates a client impl that translates declared paths", async () => {
       const strategy = createDynamicStrategy();
       const impl = await (strategy as any).createClientImpl();
-      const composePath = impl.createUsePathComposer(() => "en")();
+      const composePath = impl.createPathComposer("en");
 
       expect(composePath("/about")).toBe("/about");
       expect(composePath("/products/[id]", { id: "42" })).toBe("/products/42");
@@ -176,33 +201,33 @@ describe("NextAppFlatStrategyCore", () => {
       it("resolves declared paths using the default locale", () => {
         const strategy = createDynamicStrategy();
 
-        expect(strategy.hrefHelper.getPath("/about")).toBe("/about");
+        expect((strategy as any).hrefHelper.getPath("/about")).toBe("/about");
       });
 
       it("translates paths for default locale", () => {
         const strategy = createDynamicStrategy();
 
-        expect(strategy.hrefHelper.getPath("/")).toBe("/");
-        expect(strategy.hrefHelper.getPath("/about")).toBe("/about");
-        expect(strategy.hrefHelper.getPath("/products")).toBe("/products");
+        expect((strategy as any).hrefHelper.getPath("/")).toBe("/");
+        expect((strategy as any).hrefHelper.getPath("/about")).toBe("/about");
+        expect((strategy as any).hrefHelper.getPath("/products")).toBe("/products");
       });
 
       it("substitutes dynamic segment params in paths", () => {
         const strategy = createDynamicStrategy();
 
-        expect(strategy.hrefHelper.getPath("/products/[id]", { id: "42" })).toBe("/products/42");
+        expect((strategy as any).hrefHelper.getPath("/products/[id]", { id: "42" })).toBe("/products/42");
       });
 
       it("returns canonical paths regardless of which locale is set as default", () => {
         const strategy = createDynamicStrategyWithLocale("it");
 
-        expect(strategy.hrefHelper.getPath("/about")).toBe("/about");
-        expect(strategy.hrefHelper.getPath("/products/[id]", { id: "7" })).toBe("/products/7");
+        expect((strategy as any).hrefHelper.getPath("/about")).toBe("/about");
+        expect((strategy as any).hrefHelper.getPath("/products/[id]", { id: "7" })).toBe("/products/7");
       });
 
       it("returns undeclared paths as-is", () => {
         const strategy = createDynamicStrategy();
-        const getPath = strategy.hrefHelper.getPath as (path: string) => string;
+        const getPath = (strategy as any).hrefHelper.getPath as (path: string) => string;
 
         expect(getPath("/unknown-page")).toBe("/unknown-page");
         expect(getPath("/deeply/nested/unknown")).toBe("/deeply/nested/unknown");
