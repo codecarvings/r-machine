@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+export { getResolveContext, type ResolveContext } from "../core/resolve-context.js";
 export type { BrandedResource } from "./branded-resource.js";
 export { enableRMachineDevMode } from "./dev-mode.js";
 export { defineLayout } from "./layout.js";

@@ -24,6 +24,7 @@ import type { AnyResEquipment } from "./res-equipment.js";
 import { isOuterGearLayoutType, type ResLayoutEntryType, type ResLayoutResolver } from "./res-layout.js";
 import { type AnyNamespaceList, type AnyResolvedNamespaceList, isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap, AnyResolvedNamespaceMap } from "./res-map.js";
+import { attachResolveContext } from "./resolve-context.js";
 import { PROCESS_SCOPE_PROVIDER, type RequestScope, type RequestScopeProvider, type Slot } from "./scope.js";
 import type { AnySurface } from "./surface.js";
 import { buildVertexKey, type VertexGearMap, type VertexGearTagData } from "./vertex-gear.js";
@@ -186,7 +187,12 @@ export class JunctureManager {
         if (slotsMap.get(key) === slot) {
           slotsMap.delete(key);
         }
-        this.busHost.bus?.emit({ type: "juncture:resolveError", namespace, error });
+        // Attach attribution (deepest namespace wins) without changing the
+        // error's identity, then re-throw verbatim so framework control-flow
+        // (notFound/redirect) and domain `instanceof` checks still work.
+        const resolveChain: readonly AnyNamespace[] = [...chain, namespace];
+        attachResolveContext(error, { namespace, locale, chain: resolveChain });
+        this.busHost.bus?.emit({ type: "juncture:resolveError", namespace, error, chain: resolveChain });
         throw error;
       }
     })();

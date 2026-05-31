@@ -121,6 +121,7 @@ export {
   type ResModuleLoaderFnOptions,
   validateResModule,
 } from "./res-module.js";
+export { attachResolveContext, getResolveContext, type ResolveContext } from "./resolve-context.js";
 export {
   createRequestScope,
   PROCESS_SCOPE_PROVIDER,

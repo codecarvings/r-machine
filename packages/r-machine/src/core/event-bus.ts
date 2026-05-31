@@ -83,7 +83,13 @@ export type JunctureEvent =
       reason: "generation" | "slotIdentity";
       teardownInvoked: boolean;
     }
-  | { type: "juncture:resolveError"; namespace: AnyNamespace; error: unknown }
+  | {
+      type: "juncture:resolveError";
+      namespace: AnyNamespace;
+      error: unknown;
+      // Resolution path, root-first, ending with the failing `namespace`.
+      chain?: readonly AnyNamespace[];
+    }
   | { type: "juncture:slotDisposed"; namespace: AnyNamespace; teardownInvoked: boolean }
   | {
       type: "juncture:kitPartitioned";
