@@ -9,6 +9,31 @@ Warning: R-Machine is still in active development - API may change before stable
 
 ---
 
+## Mental model: R-Machine as a DBMS for your codebase
+
+Before reading the API surface, adopt this mental model. It will help you reason about R-Machine more accurately than a feature-by-feature comparison with other libraries.
+
+> This is not a waterfall world
+
+**A codebase is a dynamic entity, not a static one.** It evolves: sprint after sprint, refactor after refactor, LLM-generation after LLM-generation. The right question when evaluating an architecture is not only *"can it do X?"* but *"how many files must change when X evolves?"* — production files, test files, mocks, fixtures, imports.
+
+Think of R-Machine the way you think of a DBMS:
+
+| DBMS concept | R-Machine equivalent |
+|---|---|
+| Table name (`customers`) | Resource namespace (`outer/cart`, `shell/checkout`) |
+| Schema (column types) | TypeScript interface |
+| Query (`SELECT * FROM customers`) | `Plug` / `usePlug` |
+| Storage engine, indexes | Implementation body (gear or shell) |
+
+A database table has a stable name that consumers depend on. The storage engine can be replaced, indexes can change — none of that forces consumers to update. The table name is the contract.
+
+R-Machine applies the same principle to application code. The resource namespace is the stable contract. The implementation behind it is the volatile layer.
+
+Using mainstream libraries directly is like accessing data from disk without a DBMS: perfectly legitimate, but every consumer must know *where* the data lives and *how* it is shaped. When that changes, every consumer changes — including tests, mocks, and fixtures.
+
+---
+
 ## 1. Public API surface (complete)
 
 **Composers** (resource declaration)
@@ -2408,12 +2433,23 @@ export const r = localized("shell/<name>", { /* keys */ });
 
 TS generics scale **sub-linearly**: going 10→500 resources (a 50× increase)
 grows type instantiations only ~5.6× (123k→686k), and per-resource cost
-*drops* (12.3k→1.4k inst/resource). 
-R-Machine is safe to recommend on large projects. Full benchmark + methodology:
+*drops* (12.3k→1.4k inst/resource).
+R-Machine is safe to recommend on large projects.
+
+These numbers are **reproducible by anyone**: clone the R-Machine monorepo and
+run the `bench:types` script declared in the root `package.json`
+(`pnpm bench:types`). The harness generates realistic projects of growing size
+and measures tsc compile cost, type-trace hotspots and live tsserver
+IntelliSense latency — so you can re-verify the claims on your own machine
+rather than trusting the published figures.
+
+Full benchmark + methodology:
+https://github.com/codecarvings/r-machine/tree/RM-alpha-12/benchmarks/type-scale
+Last generated report:
 https://github.com/codecarvings/r-machine/blob/RM-alpha-12/benchmarks/type-scale/results/REPORT.md
 
 ---
 
-rev 2026-05-31.009
+rev 2026-05-31.010
 Copyright (c) 2026 Sergio Turolla - All Rights Reserved.
 https://codecarvings.com
