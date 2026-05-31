@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "lib": ["es2020", "esnext.disposable", "dom"],
+    "lib": ["es2020", "es2022.object", "esnext.disposable", "dom"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "ignoreDeprecations": "6.0", // Temporary workaround due to ZShy

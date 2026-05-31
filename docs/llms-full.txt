@@ -837,7 +837,7 @@ const heavy = _.getter("memoized", () => bigComputation());  // memoised
 
 The memoized form is also the unit of **fine-grained reactivity** on the consumer side: a memoized getter is its own dependency, so a component reading only it re-renders solely when the memo's output changes by `Object.is` — see §10.4.
 
-### 6.3. `_.relay({ select, onChange })`
+### 6.3. `_.relay({ select, onChange, equals? })`
 
 Side-effecting subscription. `select` derives a value; `onChange` runs when the selected value changes and may dispatch one or more `Cmd`. Brand-tagged. **Stripped from the consumer Surface.**
 
@@ -854,6 +854,20 @@ When `onChange` returns multiple commands as an array, the runtime applies them 
 ```ts
 return [_.cmd(notify, "limit reached"), _.cmd(reset)];
 // notify runs first, then reset, deterministically
+```
+
+**`equals?`** — controls how `select`'s current and previous values are compared to decide whether `onChange` fires. When it returns `true` the values are treated as equivalent and `onChange` is skipped. It accepts either a built-in strategy name or a custom comparator, and defaults to `"identity"`:
+
+- `"identity"` — `Object.is` (reference equality). The default; a `select` that rebuilds an equivalent object/array each pass fires `onChange` every time.
+- `"shallow"` — first-level key/element equality via `Object.is`; nested values are compared by reference. Use when `select` returns a freshly-built object or array whose contents, not identity, are what matter.
+- `(curr, prev) => boolean` — any custom predicate.
+
+```ts
+const $myRelay = _.relay({
+  select:   () => ({ count: $.state.count, label: $.state.label }),
+  equals:   "shallow",                 // skip onChange unless a field actually changed
+  onChange: (curr, prev) => { /* ... */ },
+});
 ```
 
 ### 6.4. `_.cmd(action, ...args)` — `Cmd`
@@ -2063,6 +2077,6 @@ https://github.com/codecarvings/r-machine/blob/RM-alpha-12/benchmarks/type-scale
 
 ---
 
-rev 2026-05-30.007
+rev 2026-05-31.008
 Copyright (c) 2026 Sergio Turolla - All Rights Reserved.
 https://codecarvings.com

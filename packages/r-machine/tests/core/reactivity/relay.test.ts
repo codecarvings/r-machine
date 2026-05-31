@@ -8,7 +8,14 @@ import { type AnyRelay, createRelay, createRelayRuntime } from "../../../src/cor
 
 // Local helper: createRelay is generic in T but createRelayRuntime accepts
 // AnyRelay (Relay<any>) — variance-unsafe cast needed in tests.
-function mk(config: { select: () => any; onChange: (c: any, p: any) => any }, name: string): AnyRelay {
+function mk(
+  config: {
+    select: () => any;
+    onChange: (c: any, p: any) => any;
+    equals?: "identity" | "shallow" | ((c: any, p: any) => boolean);
+  },
+  name: string
+): AnyRelay {
   return createRelay(config, name) as AnyRelay;
 }
 
@@ -150,6 +157,83 @@ describe("createRelayRuntime", () => {
     set(2);
     expect(onChange).toHaveBeenCalledTimes(2);
     expect(onChange).toHaveBeenLastCalledWith(2, 1);
+  });
+
+  // A numeric "tick" cell drives re-runs; select returns fresh objects so the
+  // relay's own comparator (not makeAction's deepPartialMerge) is exercised.
+  it("equals 'shallow': select returning a new but field-equal object does NOT fire onChange", () => {
+    const recorder = createCassetteRecorder();
+    const tick = createStateCell(0, recorder);
+    const onChange = vi.fn();
+    createRelayRuntime(
+      mk(
+        {
+          select: () => {
+            tick.read();
+            return { n: 1 };
+          },
+          onChange,
+          equals: "shallow",
+        },
+        "r"
+      ),
+      recorder
+    );
+
+    const bump = makeAction(tick, (n: number) => n, recorder, "bump");
+    bump(1);
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("equals 'shallow': a changed field DOES fire onChange once with (next, prev)", () => {
+    const recorder = createCassetteRecorder();
+    const tick = createStateCell(0, recorder);
+    const onChange = vi.fn();
+    createRelayRuntime(mk({ select: () => ({ n: tick.read() }), onChange, equals: "shallow" }, "r"), recorder);
+
+    const bump = makeAction(tick, (n: number) => n, recorder, "bump");
+    bump(1);
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith({ n: 1 }, { n: 0 });
+  });
+
+  it("equals custom function returning true suppresses onChange even on different values", () => {
+    const recorder = createCassetteRecorder();
+    const cell = createStateCell(0, recorder);
+    const onChange = vi.fn();
+    createRelayRuntime(mk({ select: () => cell.read(), onChange, equals: () => true }, "r"), recorder);
+
+    const set = makeAction(cell, (n: number) => n, recorder, "set");
+    set(5);
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("equals 'identity' behaves like the default: a new field-equal object DOES fire onChange", () => {
+    const recorder = createCassetteRecorder();
+    const tick = createStateCell(0, recorder);
+    const onChange = vi.fn();
+    createRelayRuntime(
+      mk(
+        {
+          select: () => {
+            tick.read();
+            return { n: 1 };
+          },
+          onChange,
+          equals: "identity",
+        },
+        "r"
+      ),
+      recorder
+    );
+
+    const bump = makeAction(tick, (n: number) => n, recorder, "bump");
+    bump(1);
+
+    expect(onChange).toHaveBeenCalledTimes(1);
   });
 
   it("dispose: relay no longer fires onChange after disposal", () => {

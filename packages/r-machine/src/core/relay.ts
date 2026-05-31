@@ -12,6 +12,7 @@
  */
 
 import { type Cmd, isCmd } from "./cmd.js";
+import { type EqualsStrategy, resolveEquals } from "./comparer.js";
 import { getMemberName, setMemberName } from "./member-name.js";
 import type { CassetteRecorder, RelayRuntime } from "./reactivity/cassette-recorder.js";
 import type { AnyNamespace } from "./res-domain.js";
@@ -19,9 +20,18 @@ import type { AnyNamespace } from "./res-domain.js";
 // biome-ignore lint/suspicious/noConfusingVoidType: This is intentional
 type RelayOnChangeResult = void | Cmd | Cmd[];
 
+type RelayEquals<T> = EqualsStrategy | ((current: T, prev: T) => boolean);
+
 interface RelayConfig<T> {
   readonly select: () => T;
   readonly onChange: (current: T, prev: T) => RelayOnChangeResult | Promise<RelayOnChangeResult>;
+  /**
+   * Optional equality check between the current and previous selected values.
+   * When it returns `true` the values are considered equivalent and `onChange`
+   * does NOT fire. Either a built-in strategy name (`"identity"` | `"shallow"`)
+   * or a custom comparator. Defaults to `"identity"` (`Object.is`).
+   */
+  readonly equals?: RelayEquals<T>;
 }
 
 const relayBrand: unique symbol = Symbol("relay");
@@ -49,7 +59,8 @@ const UNSET: unique symbol = Symbol("relay-prev-unset");
 
 /**
  * Per-relay runtime: owns a private cassette, tracks the value returned by
- * `select`, and fires `onChange(next, prev)` only when `!Object.is(prev, next)`.
+ * `select`, and fires `onChange(next, prev)` only when `!equals(next, prev)`,
+ * where `equals` is the relay's optional comparator (default `Object.is`).
  *
  * The relay registers internal subscribers on every dep captured by `select`.
  * When a dep mutates, the recorder marks the relay dirty; the outermost
@@ -60,8 +71,6 @@ const UNSET: unique symbol = Symbol("relay-prev-unset");
  *
  * Step 1: returned cmds are ignored; returned Promises are ignored.
  * Step 3 will dispatch returned cmds and handle async onChange.
- *
- * @internal
  */
 export function createRelayRuntime(
   relay: AnyRelay,
@@ -69,6 +78,7 @@ export function createRelayRuntime(
   namespace?: AnyNamespace
 ): { dispose(): void } {
   const cassette = recorder.createCassette();
+  const equals = resolveEquals(relay.equals);
   let prev: unknown | typeof UNSET = UNSET;
   let depUnsubs: Array<() => void> = [];
   let disposed = false;
@@ -77,9 +87,13 @@ export function createRelayRuntime(
   const runtime: RelayRuntime = {
     runIfDirty() {
       const relayName = getMemberName(relay);
-      if (disposed) return { cmds: [], relayName };
+      if (disposed) {
+        return { cmds: [], relayName };
+      }
       // Re-capture deps; if select throws, swallow + emit, preserve prev.
-      for (const unsub of depUnsubs) unsub();
+      for (const unsub of depUnsubs) {
+        unsub();
+      }
       depUnsubs = [];
       let next: unknown;
       try {
@@ -102,11 +116,13 @@ export function createRelayRuntime(
       for (const dep of cassette.getDeps()) {
         depUnsubs.push(
           dep.subscribeInternal(() => {
-            if (!disposed) recorder.markRelayDirty(runtime);
+            if (!disposed) {
+              recorder.markRelayDirty(runtime);
+            }
           })
         );
       }
-      if (prev !== UNSET && Object.is(prev, next)) {
+      if (prev !== UNSET && equals(next, prev)) {
         return { cmds: [], relayName };
       }
       const prevForCallback = prev === UNSET ? next : prev;
@@ -121,9 +137,13 @@ export function createRelayRuntime(
       return extractSyncResult(result, relayName, recorder);
     },
     dispose() {
-      if (disposed) return;
+      if (disposed) {
+        return;
+      }
       disposed = true;
-      for (const unsub of depUnsubs) unsub();
+      for (const unsub of depUnsubs) {
+        unsub();
+      }
       depUnsubs = [];
       unregister?.();
     },
@@ -145,7 +165,9 @@ export function createRelayRuntime(
   for (const dep of cassette.getDeps()) {
     depUnsubs.push(
       dep.subscribeInternal(() => {
-        if (!disposed) recorder.markRelayDirty(runtime);
+        if (!disposed) {
+          recorder.markRelayDirty(runtime);
+        }
       })
     );
   }
@@ -180,7 +202,9 @@ function extractSyncResult(
     void result.then(
       (resolved) => {
         const cmds = normalizeCmds(resolved);
-        if (cmds.length === 0) return;
+        if (cmds.length === 0) {
+          return;
+        }
         recorder.runInTransaction(() => {
           for (const cmd of cmds) {
             try {
@@ -205,7 +229,9 @@ function isThenable(v: unknown): v is PromiseLike<unknown> {
 }
 
 function normalizeCmds(v: unknown): Cmd[] {
-  if (v == null) return [];
+  if (v == null) {
+    return [];
+  }
   if (Array.isArray(v)) {
     return v.filter(isCmd);
   }
