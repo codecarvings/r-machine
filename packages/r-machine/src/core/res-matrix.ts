@@ -88,7 +88,14 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
     return wire.plugin as never;
   });
 
-  const create = async (locale: AnyLocale | undefined, chain: readonly AnyNamespace[]): Promise<AnyRes> => {
+  // `chain` defaults to empty so the public `create(): () => Promise<R>`
+  // contract holds when called with no args (e.g. `r.create()` in resource-level
+  // tests, §14.2). Internal callers that thread a resolution chain pass it
+  // explicitly.
+  const create = async (
+    locale: AnyLocale | undefined = undefined,
+    chain: readonly AnyNamespace[] = []
+  ): Promise<AnyRes> => {
     const plugin = await getPlugResolve(plug)(locale, chain);
     // selfNs is the last entry of the chain (the namespace currently being
     // resolved). Passed to the cursor factory so namespace-aware cursors

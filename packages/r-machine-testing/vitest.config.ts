@@ -20,6 +20,25 @@ export default mergeConfig(
       alias: [
         { find: /^#r-machine\/testing$/, replacement: path.resolve(__dirname, "./src/lib/index.ts") },
 
+        // Force `r-machine`'s OWN internal subpath imports (`#r-machine/*`) to
+        // source too. The `r-machine` alias below routes the entry to `src/lib`,
+        // but `src/lib` reaches core/errors/etc. via these private subpaths,
+        // whose `default` condition points at the built `.js` outputs. Left
+        // unaliased, a plug created by RMachine resolves through the BUILT core
+        // while `@r-machine/testing` (mockPlug, getPlugResolve) resolves through
+        // the SOURCE core — two `plug.ts` module instances, mismatched private
+        // Symbols, and `getPlugResolve` reads `undefined`. Pinning them to
+        // source collapses both onto a single core instance.
+        { find: /^#r-machine\/core$/, replacement: path.resolve(__dirname, "../r-machine/src/core/index.ts") },
+        { find: /^#r-machine\/errors$/, replacement: path.resolve(__dirname, "../r-machine/src/errors/index.ts") },
+        { find: /^#r-machine\/locale$/, replacement: path.resolve(__dirname, "../r-machine/src/locale/index.ts") },
+        {
+          find: /^#r-machine\/strategy\/web$/,
+          replacement: path.resolve(__dirname, "../r-machine/src/strategy/web/index.ts"),
+        },
+        { find: /^#r-machine\/strategy$/, replacement: path.resolve(__dirname, "../r-machine/src/strategy/index.ts") },
+        { find: /^#r-machine$/, replacement: path.resolve(__dirname, "../r-machine/src/lib/index.ts") },
+
         // Force sibling-package imports to resolve to source. Without these,
         // top-level `r-machine/*` imports go through node's exports field and
         // pick the built `.js` outputs, which drift from source between edits

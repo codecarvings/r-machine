@@ -16,6 +16,7 @@ import {
   type AnyMapPlugHead,
   type AnyNamespace,
   type AnyPlugHead,
+  type DeepPartial,
   type ExtractCtx,
   type ExtractKit,
   type ExtractResAtlas,
@@ -27,6 +28,7 @@ import {
 import { RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import { ERR_PLUG_ALREADY_MOCKED } from "#r-machine/testing/errors";
+import { cloneListPlugin, cloneMapPlugin, hasOverrides } from "./mock-merge.js";
 import type { MockSurfaceMap } from "./mock-surface.js";
 
 const plugMockSymbol = Symbol("plugMock");
@@ -48,20 +50,29 @@ interface MockPlug {
 
 export const mockPlug: MockPlug = (plug: PlugBody<AnyPlugHead>) => {
   return {
-    with: (_data: MockPlugMapData<AnyMapPlugHead> | MockPlugListData<AnyListPlugHead>) => {
+    with: (data: MockPlugMapData<AnyMapPlugHead> | MockPlugListData<AnyListPlugHead>) => {
       const prevResolve = getPlugResolve(plug);
       if ((prevResolve as any)[plugMockSymbol]) {
         throw new RMachineUsageError(ERR_PLUG_ALREADY_MOCKED, "Plug is already mocked.");
       }
 
-      const resolve: PlugResolve<AnyPlugHead> = (locale: AnyLocale | undefined, chain: readonly AnyNamespace[]) => {
-        // TODO: WIP - For now, just return the original resolve result.
-        // Plan: read data.$.locale (if set) to override locale; call prevResolve; deep-merge _data.
-        // Caveat: prevResolve may install a lazy getter on $.kit[selfKey] for kit self-reference.
-        // Deep-merging enumerates kit keys and would invoke that getter; if the self-juncture isn't
-        // cached yet (factory still running), the getter throws. Handle this in the merge step —
-        // e.g. skip own-property getters or short-circuit on self-ref keys.
-        return prevResolve(locale, chain);
+      const overrides = data as Record<string, unknown>;
+
+      const resolve: PlugResolve<AnyPlugHead> = async (
+        locale: AnyLocale | undefined,
+        chain: readonly AnyNamespace[]
+      ) => {
+        // A `$.locale` override is applied by re-resolving in the effective
+        // locale: shells (and locale-aware deps) resolve their content BY the
+        // locale threaded into `prevResolve`, so patching `$.locale` on the
+        // result alone would not change resolved content.
+        const ctx = overrides.$ as { locale?: AnyLocale } | undefined;
+        const effLocale = ctx?.locale ?? locale;
+        const plugin = await prevResolve(effLocale, chain);
+        if (!hasOverrides(overrides)) return plugin;
+        return (
+          Array.isArray(plugin) ? cloneListPlugin(plugin, overrides) : cloneMapPlugin(plugin as object, overrides)
+        ) as never;
       };
       (resolve as any)[plugMockSymbol] = true;
 
@@ -89,7 +100,10 @@ type MockCtxContent<PH extends AnyPlugHead, C> = {
     ? MockSurfaceMap<ExtractResAtlas<PH>, ExtractKit<PH>>
     : K extends "ports"
       ? Partial<C[K]>
-      : C[K];
+      : // `$.state` is applied as a deep-partial over the current state at
+        // runtime (untouched keys survive); the type mirrors that. For `$.locale`
+        // (a string) DeepPartial is the identity.
+        DeepPartial<C[K]>;
 };
 
 type MockCtx<PH extends AnyPlugHead> = keyof ExtractCtx<PH> extends never
