@@ -7,13 +7,23 @@ const rMachine = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
   ResourceAtlas,
-  // Dependency modules are synthesised inline. `InnerGear` is referenced from
-  // the toolset destructured below; the closure only runs during a test's
+  // Machine-wide kit: `helper` is injected into every gear's `$.kit` (and
+  // hoisted onto the top-level), exercised by the kit-override suite.
+  gearKit: { helper: "inner/helper" },
+  // Dependency / kit modules are synthesised inline. `InnerGear` is referenced
+  // from the toolset destructured below; the closure only runs during a test's
   // `r.create()`, by which point the binding is initialised.
   load: async (path): Promise<AnyResModule> => {
     switch (path) {
       case "inner/double":
         return { r: InnerGear.define(() => ({ double: (n: number) => n * 2 })) } as unknown as AnyResModule;
+      case "inner/helper":
+        return {
+          r: InnerGear.define(() => ({
+            greet: (name: string) => `hi ${name}`,
+            shout: () => "AAA",
+          })),
+        } as unknown as AnyResModule;
       case "outer/shared":
         return {
           r: OuterGear.withState({ n: 0 }).define((plugin, _) => ({
@@ -28,4 +38,4 @@ const rMachine = RMachine.create({
   experimental: { outerGear: "on" },
 });
 
-export const { InnerGear, OuterGear } = rMachine.createToolset();
+export const { InnerGear, OuterGear, Shell } = rMachine.createToolset();

@@ -24,10 +24,13 @@ import { deepPartialMerge } from "r-machine/core";
 // them — sidestepping the deferred-kit self-reference getters that throw while
 // a factory is still running).
 //
-// Override semantics (Phase 1): deps (map by name / list by index) + `$.state`
-// + `$.ports`. Each Surface member override is a whole-value replacement;
-// `$.ports` is a deep-partial merge over the ports object; `$.state` seeds the
-// resource's state cell (see `cloneCtx`). Kit + locale are Phase 2.
+// Override semantics: deps (map by name / list by index), `$.kit` entries,
+// `$.state` and `$.ports`. Each Surface member override is a whole-value
+// replacement; `$.ports` is a deep-partial merge over the ports object;
+// `$.state` seeds the resource's state cell (see `cloneCtx`); `$.kit` entries
+// are cloned with the deferred-getter contract preserved (see `cloneKit`).
+// `$.locale` is handled upstream in mock-plug.ts by re-resolving in the
+// effective locale (shells resolve their content BY locale).
 // ---------------------------------------------------------------------------
 
 type AnyRecord = Record<string, unknown>;
@@ -103,18 +106,58 @@ export function cloneSurfaceWithOverride(surface: object, partial: AnyRecord | u
 }
 
 /**
+ * Clone the kit object applying per-entry overrides. Non-overridden entries are
+ * copied by descriptor — crucially keeping any chain-deferred self-reference
+ * getter LAZY (reading it mid-factory throws `ERR_CIRCULAR_DEPENDENCY`).
+ * Overridden entries become a lazy, memoised getter that reads the original
+ * entry only at access time (by then the factory has committed) and layers the
+ * partial via `cloneSurfaceWithOverride` — so deferred kit entries can be
+ * overridden without forcing an early read.
+ */
+export function cloneKit(kit: object, kitOverride: AnyRecord): object {
+  const out: AnyRecord = {};
+  for (const key of Reflect.ownKeys(kit)) {
+    if (typeof key === "string" && hasOwn(kitOverride, key)) continue; // replaced below
+    Object.defineProperty(out, key, Object.getOwnPropertyDescriptor(kit, key)!);
+  }
+  for (const key of Object.keys(kitOverride)) {
+    const origDesc = Object.getOwnPropertyDescriptor(kit, key);
+    const partial = kitOverride[key] as AnyRecord;
+    let cached: object | undefined;
+    let resolved = false;
+    Object.defineProperty(out, key, {
+      enumerable: true,
+      configurable: true,
+      get: () => {
+        if (!resolved) {
+          // Read the original lazily: a getter (deferred kit) only resolves once
+          // its slot is committed; a plain value (eager kit) reads immediately.
+          const original = origDesc?.get ? origDesc.get.call(kit) : (origDesc?.value as object | undefined);
+          cached = cloneSurfaceWithOverride(original ?? Object.create(null), partial);
+          resolved = true;
+        }
+        return cached;
+      },
+    });
+  }
+  return out;
+}
+
+/**
  * Clone the `$` context applying ctx-level overrides. `$.ports` is deep-merged
  * onto a fresh ports object (never mutating the shared `head.ports`). `$.state`
  * seeds the resource's state cell, which keeps every state reader consistent —
  * the `$.state` accessor, cursor identity getters (`cell.read()`) and action
  * reducers all observe the same seeded value. The cell is freshly created on
  * each resolve of the resource under test, so seeding it is local and safe.
+ * `$.kit` is cloned with per-entry overrides (see `cloneKit`).
  */
 export function cloneCtx($: object, ctxOverride: AnyRecord | undefined): object {
   if (ctxOverride === undefined) return $;
   const overridePorts = ctxOverride.ports !== undefined;
   const overrideState = ctxOverride.state !== undefined;
-  if (!overridePorts && !overrideState) return $;
+  const overrideKit = ctxOverride.kit !== undefined;
+  if (!overridePorts && !overrideState && !overrideKit) return $;
 
   const out: AnyRecord = {};
   for (const key of Reflect.ownKeys($)) {
@@ -127,6 +170,15 @@ export function cloneCtx($: object, ctxOverride: AnyRecord | undefined): object 
       configurable: true,
       writable: true,
       value: deepPartialMerge(($ as AnyRecord).ports, ctxOverride.ports),
+    });
+  }
+
+  if (overrideKit) {
+    Object.defineProperty(out, "kit", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: cloneKit(($ as AnyRecord).kit as object, ctxOverride.kit as AnyRecord),
     });
   }
 
@@ -164,7 +216,27 @@ export function cloneMapPlugin(plugin: object, data: AnyRecord): object {
       Object.defineProperty(out, key, Object.getOwnPropertyDescriptor(plugin, key)!);
     }
   }
-  out.$ = cloneCtx((plugin as AnyRecord).$ as object, ctxOverride);
+  const ctx = cloneCtx((plugin as AnyRecord).$ as object, ctxOverride);
+  out.$ = ctx;
+
+  // Mirror kit overrides onto the hoisted top-level keys so `plugin.foo` and
+  // `plugin.$.kit.foo` stay the same (overridden) surface. Delegate lazily to
+  // the single cloned kit (keeps the deferred-getter contract). A kit name
+  // shadowed by a same-named dep is left to the dep view — the kit override is
+  // still reachable via `$.kit`.
+  const kitOverride = ctxOverride?.kit as AnyRecord | undefined;
+  if (kitOverride !== undefined) {
+    const clonedKit = (ctx as AnyRecord).kit as AnyRecord;
+    for (const key of Object.keys(kitOverride)) {
+      if (hasOwn(out, key) && !hasOwn(data, key)) {
+        Object.defineProperty(out, key, {
+          enumerable: true,
+          configurable: true,
+          get: () => clonedKit[key],
+        });
+      }
+    }
+  }
   return out;
 }
 
