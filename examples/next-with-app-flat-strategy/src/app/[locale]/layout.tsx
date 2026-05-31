@@ -26,7 +26,7 @@ export default async function LocaleLayout({ params, children }: LayoutProps<"/[
   const [common, $] = await pagePlug.useR(params);
 
   return (
-    <html lang={$.params.locale}>
+    <html lang={$.locale}>
       <body>
         <NextServerRMachine>
           <DelayedSuspense fallback={<ContentLoading />}>

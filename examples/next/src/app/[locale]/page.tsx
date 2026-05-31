@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CartSsr } from "@/components/client/CartSsr";
 import { ExpOuter1 } from "@/components/client/ExpOuter1";
 import { ExpVertex1 } from "@/components/client/ExpVertex1";
 import { ExpVertex3 } from "@/components/client/ExpVertex3";
@@ -17,6 +18,7 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <div className="max-w-6xl mx-auto">
           <ExpOuter1 />
+          <CartSsr />
           <ExpVertex1 title="Vertex Timer Page 1" />
           <ExpVertexFrame1 />
           <br />

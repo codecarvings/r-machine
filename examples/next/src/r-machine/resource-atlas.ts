@@ -1,5 +1,6 @@
 import { defineLayout } from "r-machine";
 import type { Base_Config } from "./base/config";
+import type { Outer_CartSsr } from "./outer/cart-ssr";
 import type { Outer_Timer } from "./outer/timer";
 import type { Shell_Common } from "./shell/common/en";
 import type { Shell_LandingPage } from "./shell/landing-page/en";
@@ -18,6 +19,7 @@ const folders = defineLayout({
 type ResourceMap = {
   "base/config": Base_Config;
   "outer/timer": Outer_Timer;
+  "outer/cart-ssr": Outer_CartSsr;
   "vertex/timer": Vertex_Timer;
 
   "shell/common": Shell_Common;

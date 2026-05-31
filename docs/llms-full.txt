@@ -18,7 +18,11 @@ Warning: R-Machine is still in active development - API may change before stable
 `Plug`, `ClientPlug`, `ServerPlug`
 
 **Testing**
-`mockPlug`, `verifyResourceAtlas` (from `@r-machine/testing`)
+`mockPlug`, `verifyResourceAtlas`, `createEventCollector` (from `@r-machine/testing`)
+
+**Diagnostics**
+`enableRMachineDevMode` (from `r-machine`) — console-traces the runtime event bus (see §15.2)
+`getResolveContext` (from `r-machine`) — reads the resolution attribution attached to a resolution-failure error (see §10.6)
 
 **Cursor primitives** (reactive members inside an `OuterGear`)
 `_.action`, `_.getter`, `_.relay`, `_.cmd`
@@ -154,7 +158,7 @@ RMachine.create({
 
 - `bridgeGears` is type-narrowed to namespaces of family `gear:base` only. Listing an outer or inner namespace is a type error.
 - `gearKit` / `shellKit` are injected as `$.kit.{name}` into every factory of that family.
-- `experimental.outerGear`: when `"off"`, `OuterGear` does not appear on the toolset object (type-level removal, not runtime branch). The `experimental` namespace gates features whose API may still evolve in non-backward-compatible ways; the flag will be retired once the feature stabilizes.
+- `experimental.outerGear`: opt-in flag, `"on"`-or-absent (there is no `"off"` value — `experimental: { outerGear: "off" }` is a type error). **Omitted is the default**: `OuterGear` does not appear on the toolset object (type-level removal, not a runtime branch). Set it to `"on"` to opt in. The `experimental` namespace gates features whose API may still evolve in non-backward-compatible ways; you enable `"on"` deliberately, accepting that, and the flag is retired once the feature stabilizes.
 
 ### 3.4. Toolset
 
@@ -807,7 +811,7 @@ const fill = _.action();   // canonical (partial) => S
 The canonical form (`_.action()`) doubles as the way to seed initial state from inside the factory — useful when the initial state must be derived from values only available there, rather than from the static value passed to `withState(...)`. Typical motivations:
 
 - Init computed from `$.kit`, `$.ports`, or awaited async data.
-- SSR hydration: rebuild the client state from a server snapshot fetched via a port — typically a server function exposed through `.withPorts({...})` and awaited inside the factory.
+- SSR hydration: rebuild the client state from a server snapshot fetched via a port — e.g. a server function exposed through `.withPorts({...})` and awaited inside the factory. See §11.9 for one full Next.js end-to-end pattern.
 - Persistence: rehydrate from `localStorage`, `IndexedDB`, a cookie, or any other storage read inside the factory.
 
 ```ts
@@ -839,8 +843,18 @@ The memoized form is also the unit of **fine-grained reactivity** on the consume
 
 ### 6.3. `_.relay({ select, onChange, equals? })`
 
-Side-effecting subscription. `select` derives a value; `onChange` runs when the selected value changes and may dispatch one or more `Cmd`. Brand-tagged. **Stripped from the consumer Surface.**
+Side-effecting subscription declared inside an `OuterGear`. `select` derives a value from state; `onChange` runs when that value changes and may dispatch one or more `Cmd`. Brand-tagged and **stripped from the consumer Surface** (it is wiring, not a value) — keep it on the resource under a `$`-prefixed key (§7) so you can still reach it during tests.
 
+Signature:
+```ts
+_.relay({
+  select:   () => T,
+  onChange: (current: T, prev: T) => void | Cmd | Cmd[] | Promise<void | Cmd | Cmd[]>,
+  equals?:  "identity" | "shallow" | ((current: T, prev: T) => boolean),
+})
+```
+
+Basic example:
 ```ts
 const $myRelay = _.relay({
   select:   () => $.state.count,
@@ -850,11 +864,19 @@ const $myRelay = _.relay({
 });
 ```
 
-When `onChange` returns multiple commands as an array, the runtime applies them in order:
+**`select` and dependency tracking.** `select` takes no arguments; it reads state, getters, and memos, and every read performed during a run is recorded as a **dependency** of the relay. When any tracked dependency changes, the relay is marked dirty and re-evaluated. Dependencies are re-captured on every run — a `select` that reads different cells across runs updates its subscription set accordingly.
+
+**When it fires.** On registration (when the factory runs) `select` executes once to capture its dependencies and seed `prev` — **`onChange` does not fire**. A relay reacts to *changes*, not to existence. On every subsequent change to a tracked dependency, `select` re-runs; if `!equals(next, prev)`, `onChange(next, prev)` fires and `prev` advances to the new value. On the first fire, `prev` is the value captured at registration.
+
+**What `onChange` may return:**
+- `void` / `undefined` / any non-`Cmd` value → nothing is dispatched.
+- a single `Cmd` → dispatched.
+- a `Cmd[]` → dispatched in array order; non-`Cmd` entries are ignored.
 ```ts
 return [_.cmd(notify, "limit reached"), _.cmd(reset)];
 // notify runs first, then reset, deterministically
 ```
+- a `Promise<void | Cmd | Cmd[]>` → handled **out-of-band**: the promise does not block the current update; it is awaited on a microtask, and any resolved commands are dispatched in a *fresh* transaction (a separate update cycle), so they observe the post-update state. A rejected promise is swallowed and reported as a `relay:onChangeError` event.
 
 **`equals?`** — controls how `select`'s current and previous values are compared to decide whether `onChange` fires. When it returns `true` the values are treated as equivalent and `onChange` is skipped. It accepts either a built-in strategy name or a custom comparator, and defaults to `"identity"`:
 
@@ -870,9 +892,38 @@ const $myRelay = _.relay({
 });
 ```
 
+**Errors are isolated.** A failure inside a relay never throws into the action that triggered the update; it surfaces as a `relay:onChangeError` event on R-Machine's internal event bus (§15.2):
+- `select` throws → the event is emitted, `onChange` is not called, and the relay stalls until a later `select` succeeds.
+- `onChange` throws → the event is emitted, but `prev` still advances, so the next change fires normally; no commands are dispatched from the throwing call.
+- a dispatched `Cmd`'s action throws → the event is emitted and the remaining commands still run.
+
+**Disposal.** When the owning `OuterGear` instance is disposed (`[Symbol.dispose]`, §9), each relay is torn down: its dependency subscriptions are removed and it is deregistered. There is **no final `onChange`** — disposal is silent.
+
 ### 6.4. `_.cmd(action, ...args)` — `Cmd`
 
-Reified typed action call, used as the return value of a relay's `onChange`.
+A reified, type-checked action call: `_.cmd(action, ...args)`, where `action` is a reference returned by `_.action(...)` and `...args` are that action's parameters, checked against `Parameters<F>`. It is the value a relay's `onChange` returns to request a state change.
+
+```ts
+const reset  = _.action(() => ({ count: 0 }));
+const notify = _.action((msg: string) => ({ lastMessage: msg }));
+// inside onChange:
+return [_.cmd(notify, "limit reached"), _.cmd(reset)];
+```
+
+A `Cmd` is an **inert descriptor** — it pairs an action with its bound arguments and does nothing on its own. Creating one has no side effect, and the arguments are captured at creation time (a snapshot — they are not re-read at dispatch, so there is no staleness). The relay runtime collects the commands an `onChange` returns and dispatches them during the update's command phase (see §6.5), calling `action(...args)` in order. Returning a command instead of calling the action directly inside `onChange` is what keeps mutations *out* of the select/notify phase: every relay in the batch observes a consistent state before any command-driven mutation begins.
+
+### 6.5. Execution model: the flush
+
+`_.action`, `_.relay`, and `_.cmd` interact through a single **flush** that runs at the end of the outermost action's transaction and loops over three phases until no relay or state cell remains dirty:
+
+1. **Relays** — every dirty relay's `onChange` fires, in deterministic order; the commands they return are **collected, not yet dispatched**, so all relays in the batch observe the same state.
+2. **Commands** — the collected `Cmd`s are dispatched in order (`action(...args)`), each as a nested transaction; their mutations feed back into the same dirty queues.
+3. **Notifications** — subscribed consumers (React components, §10.4) are notified, deduplicated per cell.
+
+Command-driven mutations from phase 2 can re-dirty relays, restarting the loop. Two consequences worth designing around:
+
+- **Ordering.** By default relays fire in registration order. A fully configured `RMachine` installs a dependency-graph ordering: relays fire by distance from the mutation's source namespace, then by atlas-declared priority, then registration order — deterministic across runs.
+- **Loop protection.** A relay may fire at most **3 times per flush**. A relay whose `onChange` dispatches a command that mutates the very dependency its `select` reads will re-fire each loop; on the 4th it emits a `relay:loopDetected` event (§15.2) and throws `RelayLoopError` (carrying the relay name and fire count), aborting the flush. A further hard cap stops any flush after 100 iterations. Guard such relays with `equals` or a condition in `onChange` so the selected value eventually stabilizes.
 
 ---
 
@@ -905,6 +956,8 @@ The `$` plugin context received by every factory has fields conditional on what 
 
 Fields not declared are not present on the type — destructuring `{ state }` from `$` in a stateless gear is a type error, not `undefined` at runtime.
 
+This is the **factory** `$` — the context a resource factory receives. It is distinct from the **consumer** `$` returned by `plug.useR()` (different members, different presence rules); for that one see §10.5.
+
 ---
 
 ## 9. Lifecycle: `[Symbol.dispose]` convention
@@ -928,7 +981,7 @@ export const r = OuterGear.withState(0).define((plugin, _) => {
 
 - `[Symbol.dispose]` is the standard TC39 well-known symbol for synchronous resource disposal — no r-machine-specific helper is needed.
 - `[Symbol.dispose]` is invisible to `Plug(...).useR()` at the consumer (all symbol keys are filtered from the Plug surface).
-- Teardown runs exactly once per instance whose factory completed successfully. A factory that throws before returning runs no teardown.
+- Teardown runs exactly once per instance whose factory completed successfully. A factory that throws before returning runs no teardown — see §10.6 for what the consumer sees and how to avoid leaking a partially-acquired resource.
 - The runtime guarantees idempotency: even if teardown is invoked manually (e.g. in a test) and then again by r-machine on slot disposal, the underlying closure runs at most once.
 - Triggers per family:
   - vertex gears: when the consuming component unmounts
@@ -1075,6 +1128,78 @@ State reads performed inside an `_.action(...)` reducer body (e.g. `$.state.item
 - `ServerPlug` (RSC) has **no** reactive tracking: a Server Component renders once per request and `await`s its resources — there is nothing to re-render. `ServerPlug` cannot consume `gear:outer` at all (§10.2).
 - Vertex gears (`gear:outer(vertex)`, §12) carry the identical contract **per instance**: each `<VertexFrame>` instance (or each frame-less `useR()` call) tracks and re-renders its own consumers independently.
 
+### 10.5. Consumer `$` context
+
+`plug.useR()` returns the resolved resource(s) followed by a `$` consumer context — the trailing tuple element (list form) or the `$` key (map form). This `$` is **distinct** from the factory `$` of §8: it is the call-site context, with different members and different presence rules. Its fields are conditional on the plug variant and on what the strategy declared:
+
+| Field | Present when | What it is |
+|---|---|---|
+| `$.locale` | **always**, on every consumer plug (`Plug`, `ClientPlug`, `ServerPlug`) | the active locale as a **canonical** `Locale` — always one of the codes declared in `setup.ts`, narrowed to the project's locale union |
+| `$.setLocale` | **always**, on every consumer plug | `(newLocale: Locale) => Promise<void>` — switches the active locale and persists it (see §11.4) |
+| `$.kit` | the consumer kit map for this runtime is non-empty (`kit` / `clientKit` / `serverKit`) | the resolved consumer kit (see §11.4) |
+| `$.getPath` | **Next.js** plugs (`ClientPlug` / `ServerPlug`) with a `PathAtlas` declared | `BoundPathComposer<PA>` — type-checked path composer (see §11.5) |
+| `$.params` | **`ServerPlug` only**, resolved via the params overload `useR(params)` / `useUnboundR(params)` | the awaited route `params` record (locale key + dynamic segments); see §11.5 |
+
+Fields not present for a given plug are absent from the type — destructuring them is a compile error, not `undefined` at runtime (same contract as the factory `$`).
+
+Notes on variants:
+- React `Plug` (web React standard strategy) has `$.locale`, `$.setLocale`, and `$.kit` (when declared) — **no** `$.getPath`, **no** `$.params`.
+- `ClientPlug` adds `$.getPath`, but **never** `$.params` (client components do not receive route params).
+- `ServerPlug` adds `$.getPath`, plus `$.params` when (and only when) resolved through the params overload.
+
+#### `$.locale` vs `$.params.locale`
+
+Both can carry the active locale, but they are not the same value:
+
+- **`$.locale`** is always present and is the **canonical** locale (`Locale`): the exact code declared in `setup.ts` (e.g. `"it-IT"`), validated and type-narrowed to the project's locale union.
+- **`$.params.locale`** (only on `ServerPlug` via the params overload) is the **raw URL segment**, in whatever label form the strategy emits. With `localeLabel: "lowercase"` (the path strategy's default) it is the lowercased form (e.g. `"it-it"`), and its type is the looser `string`. The params overload does **not** canonicalize the params object — `$.params` is the route `params` exactly as Next.js produced it.
+
+Rule of thumb: for the **active locale**, prefer `$.locale` — it is canonical, always present, and type-safe (e.g. `<html lang={$.locale}>`). Reach for `$.params.*` only when you specifically need the raw route segments or the dynamic params of the matched route.
+
+### 10.6. Error handling: when a factory throws
+
+Resolution fails when a resource factory throws synchronously, when an `async` factory's promise rejects, or when one of its dependencies fails to resolve. The error a consumer observes is **the original error the factory threw** — R-Machine does not wrap it: the error keeps its identity and prototype, so `instanceof` checks and framework control-flow signals (e.g. Next.js `notFound()` / `redirect()`) still work. (R-Machine's own *structural* failures — an invalid resource-module shape, a missing or circular dependency — surface instead as `RMachineResolveError` with code `ERR_RESOLVE_FAILED`.) The failure also emits a `blueprint:resolveError` or `juncture:resolveError` event on the bus (§15.2), carrying the namespace, the resolution chain, and the error.
+
+What the consumer sees depends on the plug variant:
+
+**`Plug` / `ClientPlug` (React, suspending).** Two distinct states, handled by two distinct React mechanisms:
+- *Pending* — `useR()` **suspends**; the nearest Suspense boundary shows its fallback. `<ReactRMachine fallback={…}>` installs a default Suspense boundary at the app root (override it with the `Suspense` prop, or pass `Suspense={null}` to supply your own); nest additional `<Suspense>` boundaries for finer-grained loading UI.
+- *Failed* — the error is **re-thrown during render** and propagates to the nearest **React Error Boundary**. R-Machine ships none: `<ReactRMachine>` is a Suspense + context provider, **not** an error boundary. Wrap consuming subtrees in your own Error Boundary (e.g. `react-error-boundary`) to catch resolution failures and render a recovery UI.
+
+```tsx
+import { ErrorBoundary } from "react-error-boundary";
+
+<ReactRMachine fallback={<LoadingScreen />}>
+  <ErrorBoundary fallback={<p>Couldn't load this section.</p>}>
+    <CartPanel />   {/* a useR() failure here is caught by the boundary */}
+  </ErrorBoundary>
+</ReactRMachine>
+```
+
+**`ServerPlug` (RSC, async).** `await plug.useR(params)` **rejects** with the same error. Handle it with a `try/catch`, or — idiomatically in the App Router — let it bubble to the route's `error.tsx` boundary (with `loading.tsx` covering the pending state). A factory may also short-circuit with Next.js's own controls (e.g. calling `notFound()`), which propagate through `useR()` and are handled by `not-found.tsx` as usual.
+
+**Attribution (`getResolveContext`).** Because the error is not wrapped, it would otherwise carry no hint of *where* in the resource graph it came from. R-Machine attaches a **non-enumerable** resolution context to it (invisible to logging / `JSON.stringify`, and it never changes the error's identity), readable with `getResolveContext(error)` (from `r-machine`):
+
+```tsx
+import { getResolveContext } from "r-machine";
+
+function fallbackRender({ error }: { error: unknown }) {
+  const ctx = getResolveContext(error);
+  // ctx?.namespace — the namespace that actually failed (the deepest one,
+  // even when a dependency several levels down threw)
+  // ctx?.locale, ctx?.chain — the active locale and the full resolution path
+  return <p>Failed to load {ctx?.namespace ?? "a resource"}.</p>;
+}
+```
+
+`getResolveContext` returns `undefined` for anything that did not come from a resolution failure (including non-object throws). When a dependency deep in the graph throws, the context pins the **deepest** failing namespace, with `chain` listing the path that led there.
+
+**Retry.** A failed resolution is **not cached**: the slot is evicted on error, so the next read re-runs the factory from scratch. An Error Boundary reset, a Suspense retry, or simply the next request (for `ServerPlug`) each get a fresh attempt — resolution errors are transient and retryable by default.
+
+**Partial side effects.** Teardown (`[Symbol.dispose]`, §9) runs only for a factory that returned successfully. A factory that acquires a side effect (interval, listener, connection) and *then* throws **leaks** it — there is no returned object to dispose. If a factory can fail after acquiring such a resource, wrap the risky part in `try/catch` and release it before re-throwing.
+
+**Testing the error branch.** Point an overridden port at a rejecting stub with `mockPlug` (§14) — when the factory `await`s that port during resolution, resolution rejects and the consumer's error path runs, letting a test assert the Error Boundary / `try/catch` behavior.
+
 ---
 
 ## 11. Framework strategies
@@ -1137,6 +1262,80 @@ strategy.create(rMachine, {
 ```
 
 `NextAppFlatStrategy` requires a `cookie` declaration (locale lives nowhere else). `NextAppOriginStrategy` requires `localeOriginMap: { en: "example.com", it: "example.it" }`. `PathAtlas` is optional in all three.
+
+#### Configuration options (reference)
+
+Every option is optional unless marked **required**; omitting one uses the listed default.
+
+**Common to all three Next.js strategies:**
+
+| Option | Type / values | Default | Effect |
+|---|---|---|---|
+| `clientKit` / `serverKit` | `{ name: namespace }` | `{}` | Consumer kit injected as `$.kit.{name}`, split per runtime — see §11.4. |
+| `PathAtlas` | `PathAtlas` class | empty (no translations) | Localized URL paths — see §3.5 / §11.5. |
+| `localeKey` | `string` | `"locale"` | Name of the locale route segment / the `[locale]` folder, and the key under which it appears in `$.params` (§10.5). Change it only if your `[…]` folder is named differently. |
+| `autoLocaleBinding` | `"on" \| "off"` | `"off"` | When `"on"`, any server plug resolves the locale automatically from a request header, so you call `useR()` with no args (no `useR(params)`, no `bindLocale`) — at the cost of dynamic rendering. Requires the proxy (§11.7). See the note below. |
+| `basePath` | `string` | `""` | Prefix prepended to every composed URL; set it to match your Next.js `basePath`. |
+
+**`NextAppPathStrategy`** (locale in the URL path) adds:
+
+| Option | Type / values | Default | Effect |
+|---|---|---|---|
+| `cookie` | `"on" \| "off" \| CookieDeclaration` | `"off"` | Persist the active locale in a cookie (default name `rm-locale`, 30-day `maxAge`); pass a `CookieDeclaration` to customize name/flags. Required when `implicitDefaultLocale` is enabled. |
+| `localeLabel` | `"strict" \| "lowercase"` | `"lowercase"` | Case of the locale segment in the URL. For a declared locale `"it-IT"`: `"lowercase"` → `/it-it/…`, `"strict"` → `/it-IT/…`. Incoming URLs are matched case-insensitively and canonicalized either way; `$.locale` is always the canonical declared code regardless (§10.5), while `$.params.locale` is this raw label form. |
+| `autoDetectLocale` | `"on" \| "off" \| { pathMatcher: RegExp \| null }` | `"on"` | The proxy reads the locale from the URL path segment and binds it; `{ pathMatcher }` restricts which paths are inspected. Requires the proxy (§11.7). |
+| `implicitDefaultLocale` | `"on" \| "off" \| { pathMatcher: RegExp \| null }` | `"off"` | When `"on"`, the **default** locale's URLs omit the locale prefix (`/page` instead of `/en/page`); the `{ pathMatcher }` form applies it only on matching paths. Requires `cookie` enabled **and** the proxy. |
+
+**`NextAppFlatStrategy`** (locale in a cookie, never in the URL) adds:
+
+| Option | Type / values | Default | Effect |
+|---|---|---|---|
+| `cookie` | `CookieDeclaration` (**required**) | `{ name: "rm-locale", maxAge: 30d, path: "/" }` | The only place the locale lives — there is no `"off"`. |
+| `pathMatcher` | `RegExp \| null` | excludes `/_next`, `/_vercel`, `/api`, and files | Which request paths the locale middleware handles; `null` = all paths. |
+
+**`NextAppOriginStrategy`** (locale per subdomain/origin) adds:
+
+| Option | Type / values | Default | Effect |
+|---|---|---|---|
+| `localeOriginMap` | `{ [locale]: string \| string[] }` (**required**) | — | Maps each locale to its origin(s); used to build absolute URLs via `hrefHelper.getUrl` (§11.3). With an array, the first origin is used. |
+| `pathMatcher` | `RegExp \| null` | same as Flat | Same as Flat. |
+
+**`ReactStandardStrategy`** (web React) accepts:
+
+| Option | Type / values | Default | Effect |
+|---|---|---|---|
+| `kit` | `{ name: namespace }` | `{}` | Consumer kit (§11.4) — single map, one runtime. |
+| `localeDetector` | `() => Locale \| Promise<Locale>` | none | Picks the initial locale (e.g. `() => rMachine.localeHelper.matchLocales(navigator.languages)`). Falls back to `defaultLocale`. |
+| `localeStore` | `{ get(): Locale \| undefined; set(l: Locale): void }` (sync or async) | none | Reads the persisted locale on boot and persists it on change; `set` is what `$.setLocale` invokes (§11.5). |
+
+Constraints (Next.js):
+- `implicitDefaultLocale` requires `cookie` enabled and the proxy (§11.7).
+- `autoDetectLocale` requires the proxy.
+- `localeOriginMap` is required by `NextAppOriginStrategy`; `cookie` is required by `NextAppFlatStrategy`.
+
+##### `autoLocaleBinding` — what it changes in your components
+
+This is the one option that visibly changes consumer code, so it is worth spelling out. It controls **how a Server Component obtains the request locale** — not what `useR()` returns.
+
+With the default `"off"`, every page or layout must establish the locale itself before (or while) resolving — via the params overload, or once with `bindLocale`:
+
+```tsx
+// autoLocaleBinding: "off" (default)
+export default async function Page({ params }: PageProps<"/[locale]">) {
+  const [page] = await plug.useR(params);   // params binds the locale (§11.5)
+}
+```
+
+With `"on"`, the locale is read from a request header that the proxy sets, so **any** `ServerPlug` — in a page, a layout, or a nested server component — resolves with **no argument**, and you never call `bindLocale`:
+
+```tsx
+// autoLocaleBinding: "on"
+export default async function Page() {
+  const [page] = await plug.useR();         // locale auto-resolved from the header
+}
+```
+
+The trade-off: reading the header opts the route into **dynamic rendering** — Next.js can no longer statically pre-render (SSG) those routes, and the response is computed per request. That cost is exactly why it is opt-in: the default keeps routes statically optimizable at the price of explicit per-route locale binding. (`useR(params)` / `bindLocale` still work with `"on"`; they just become optional.)
 
 Toolset is split into client and server:
 
@@ -1364,7 +1563,7 @@ export const plug = ServerPlug();
 export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
   const { $ } = await plug.useR(params);
   return (
-    <html lang={$.params.locale}>
+    <html lang={$.locale}>
       <body><NextServerRMachine>{children}</NextServerRMachine></body>
     </html>
   );
@@ -1382,7 +1581,34 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
 }
 ```
 
-`plug.useR(params)` binds the request locale from the route `params` and resolves the resource(s). Locale binding happens on the first call per request; subsequent `useR()` calls within the same request reuse the bound locale.
+`plug.useR(params)` binds the request locale from the route `params` and resolves the resource(s). Locale binding happens on the first call per request; subsequent `useR()` calls within the same request reuse the bound locale. (With `autoLocaleBinding: "on"` — §11.2 — you skip params binding entirely and call `useR()` zero-arg everywhere, trading static rendering for convenience.)
+
+#### Reading route params: `$.params`
+
+The params-binding overloads — `plug.useR(params)` and `plug.useUnboundR(params)` — also surface the resolved route params on the consumer `$` context as `$.params`. It is a **convenience**: the awaited route `params` object (exactly as Next.js produced it for the matched route), so you can read every route segment without `await`-ing `params` a second time. It is part of the consumer `$` — see §10.5 for the full context.
+
+- **Shape.** `$.params` is the route-params record: the locale segment key (whatever the `[locale]` folder is named — `locale` by default) plus every dynamic segment of the matched route (`[slug]`, `[...rest]`, `[[...opt]]`, …). It is statically the same `P` that Next.js infers from `PageProps` / `LayoutProps`, narrowed to `{ [localeKey]: string; …dynamicSegments: string }`.
+- **Presence.** Available **only** on a `ServerPlug` resolved through the params overload (`useR(params)` / `useUnboundR(params)`). It is **not** present on the zero-arg `plug.useR()`, on the explicit-locale overload `plug.useR(locale)`, or on any React `Plug` / `ClientPlug` context (client components never receive route params). Destructuring `$.params` where it is absent is a compile error, not `undefined` at runtime.
+- **`$.params.locale` vs `$.locale`.** For the active locale, prefer `$.locale` (always present, canonical, type-safe — §10.5). `$.params.locale` is the **raw URL segment** in the strategy's label form (e.g. `"it-it"` under `localeLabel: "lowercase"`), typed as `string`; the params overload does not canonicalize it. Use `$.params.*` for the raw route segments and dynamic params.
+
+```tsx
+// dep-less localized layout — useR(params) binds the request locale; read the canonical code from $.locale
+export const plug = ServerPlug();
+
+export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
+  const { $ } = await plug.useR(params);
+  return <html lang={$.locale}>{/* … */}</html>;
+}
+
+// dynamic route — every matched segment is typed on $.params
+export const plug = ServerPlug("shell/example-dynamic");
+
+export default async function Page({ params }: PageProps<"/[locale]/example-dynamic/[slug]">) {
+  const [example, $] = await plug.useR(params);
+  $.locale;      // canonical active locale (e.g. "it-IT") — prefer this for the locale
+  $.params.slug; // raw dynamic segment — string
+}
+```
 
 #### Standalone binding: `bindLocale(...)`
 
@@ -1560,7 +1786,7 @@ export const plug = ServerPlug("shell/common");
 export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
   const [common, $] = await plug.useR(params);
   return (
-    <html lang={$.params.locale}>
+    <html lang={$.locale}>
       <body>
         <NextServerRMachine>{children}</NextServerRMachine>
       </body>
@@ -1675,6 +1901,74 @@ pnpm add -D jiti
 When jiti is missing, `createNextDevImport` returns `null`, the production import path is used, and a one-shot console warning is emitted on the first call. `verifyResourceAtlas` additionally appends a `dev-loader-not-active` issue to its report so the install-jiti hint is surfaced at test time.
 
 **Process-wide cache.** The result is cached per `importMetaUrl` on `process` (Turbopack isolates bundle contexts with separate `globalThis` instances, so a `globalThis`-keyed cache would deduplicate only within one context). The verification flag bypasses this cache so the gate is re-evaluated under the override.
+
+### 11.9. SSR hydration of `OuterGear` state (Next.js)
+
+An `OuterGear` is a plain async factory (§4.9), so giving it a server-derived initial state is just ordinary code inside `define(...)` — what goes in the factory is entirely up to you. This section shows **one convenient pattern**, not a requirement: seed the state from a **server snapshot read through a port**, awaited via the canonical `_.action()` (§6.1). (`withSerializer` — true server→client state transfer — is planned for V2 and will streamline this; until then, this pattern covers the case.)
+
+The end-to-end shape, four files:
+
+```ts
+// lib/actions.ts — the snapshot source
+"use server";
+
+// MUST be deterministic for the request: the server render and the client
+// hydration call both invoke it, and their results must be equal (see below).
+export async function loadCartSnapshot(): Promise<{ items: string[] }> {
+  return { items: ["Keyboard", "Mouse", "Monitor"] }; // prod: read DB / session
+}
+```
+
+```ts
+// r-machine/outer/cart.ts — seed initial state from the snapshot
+import { loadCartSnapshot } from "../../lib/actions";
+import { OuterGear, type RShape } from "../setup";
+
+export const r = OuterGear
+  .withPorts({ loadCartSnapshot })
+  .withState({ items: [] as string[] })
+  .define(async (plugin, _) => {
+    const { $ } = plugin;
+    _.action()(await $.ports.loadCartSnapshot());   // §6.1 canonical-action seeding
+
+    return {
+      items: _.getter(() => $.state.items),
+      add:   _.action((item: string) => ({ items: [...$.state.items, item] })),
+    };
+  });
+
+export type Outer_Cart = RShape<typeof r>;
+```
+
+```tsx
+// components/Cart.tsx — consumed via ClientPlug; useR() suspends until seeded
+"use client";
+import { ClientPlug } from "@/r-machine/client-toolset";
+
+export const plug = ClientPlug("outer/cart");
+export function Cart() {
+  const [cart] = plug.useR();
+  return <ul>{cart.items.map((i) => <li key={i}>{i}</li>)}</ul>;
+}
+```
+
+```tsx
+// app/[locale]/page.tsx — just mount it
+import { Cart } from "@/components/Cart";
+
+export default function Page() {
+  return <Cart />;
+}
+```
+
+**How it avoids a hydration mismatch.** The `OuterGear` factory runs on **both** sides: on the server (inside the request scope, the snapshot read in-process) and again on the client during hydration (the same read re-run). Because the factory is `async`, the client plug suspends while the snapshot resolves; the server streams the already-resolved HTML and React's hydration reuses it — so there is no mismatch, **provided the snapshot is deterministic for the request** (both reads return equal data). You don't need to add a Suspense boundary for this: `@r-machine/next` builds on `@r-machine/react`, which already provides one (the same boundary that covers a shell's first client load).
+
+**The port is your choice.** A server action is convenient here because it is **isomorphic** — one reference that runs in-process on the server and as a hidden RPC on the client — so the same factory body works on both sides. But nothing requires it: any function the factory can call works (a fetch wrapper, an SDK client, a value injected via kit). The factory is plain TypeScript (§4.9) — implement the seed however you like.
+
+Caveats:
+- **Determinism is required.** If the snapshot source varies between the two reads (wall-clock, randomness, a session mutated in between), the renders differ and React warns. Key the data to the request so both reads agree.
+- **The snapshot is read twice** — once on the server, once on the client (the factory re-runs during hydration). For idempotent reads this is acceptable; dedupe / cache if it matters. `withSerializer` (V2) will transfer the server state to the client and remove the second read.
+- **`ServerPlug` cannot consume an `OuterGear`** (§10.2) — the consumer is always a `Plug` / `ClientPlug`.
 
 ---
 
@@ -1941,6 +2235,8 @@ On failure, `expect(report.issues).toEqual([])` prints the full issue list — k
 
 ## 15. Diagnostics
 
+### 15.1. Type errors
+
 Errors of the architectural class produced by R-Machine's type system are formatted as `RMachineTypeError<"...">`. Examples:
 
 ```
@@ -1967,6 +2263,48 @@ RMachineTypeError<"ReactStandardStrategy does not support InnerGear. Remove thes
 ```
 
 Generic TypeScript errors still occur for non-architectural mistakes (malformed action returns, bad type signatures in ports, etc.).
+
+### 15.2. Runtime events
+
+R-Machine carries an internal **event bus** that emits fine-grained diagnostic events as it resolves resources, runs reactive updates, and tears down. It is a **tracing / observability** surface — meant for debugging and tests, not a typed public API for application logic. Event names and payloads are not part of the semver-stable surface and may change.
+
+The bus is **lazy and zero-cost**: until something subscribes, no bus is allocated and every internal emit site short-circuits. Unsubscribed (the production default), it adds no measurable overhead — there is nothing to disable.
+
+Events fall into four categories (each event carries a `type` string plus a small payload):
+
+- `blueprint:*` — resource resolution and blueprint caching (`resolveStart`, `moduleLoaded`, `resolved`, `cacheHit`, `resolveError`, `circularDepDetected`, …).
+- `juncture:*` — factory build, slot commit, and disposal (`factoryInvoked`, `built`, `slotDisposed`, `resolveStale`, …). `juncture:resolveError` additionally carries `chain` — the resolution path to the failing namespace (the same attribution exposed via `getResolveContext`, §10.6).
+- `gateWire:*` — consumer wiring and reactive notification (`created`, `markedDirty`, `subscribed`, `unsubscribed`, …).
+- `relay:*` — the two relay diagnostics referenced in §6.3 / §6.5:
+  - `relay:onChangeError` — `{ relayName: string; error: unknown }`
+  - `relay:loopDetected` — `{ relayName: string; runCount: number }`
+
+**`enableRMachineDevMode(target)`** (from `r-machine`) — subscribes a `console.log` handler that traces every event. `target` is the `rMachine` instance (or any strategy built from it; both expose the bus). Returns an unsubscribe function. Use it in development only:
+
+```ts
+import { enableRMachineDevMode } from "r-machine";
+import { rMachine } from "./r-machine/setup";
+
+if (process.env.NODE_ENV !== "production") {
+  enableRMachineDevMode(rMachine); // logs: [R-Machine] relay:loopDetected { … }
+}
+```
+
+**`createEventCollector(target)`** (from `@r-machine/testing`) — subscribes and buffers every emitted event for assertions. Returns `{ events, clear(), dispose() }`: `events` is a read-only array in emit order, `clear()` empties the buffer while keeping the subscription, `dispose()` unsubscribes (both idempotent). Create the collector **before** the action that emits, then assert against `events`:
+
+```ts
+import { createEventCollector } from "@r-machine/testing";
+import { rMachine } from "./r-machine/setup";
+
+const collector = createEventCollector(rMachine);
+
+// …trigger work that runs a relay (e.g. an action that drives a self-feeding loop)…
+
+expect(collector.events.some((e) => e.type === "relay:loopDetected")).toBe(true);
+collector.dispose();
+```
+
+Both helpers take the same `target` and observe the same bus; `enableRMachineDevMode` is the live-tracing front-end, `createEventCollector` the test-assertion one.
 
 ---
 
@@ -2050,6 +2388,7 @@ export const r = localized("shell/<name>", { /* keys */ });
 | Locale-dependent text content with translations | Multi-locale `shell` (`shell/<name>/<locale>.ts` files) |
 | Locale-aware behavior without translations (formatters, parsers) | `shell(mono)` (single file at `shell/lib/<name>.ts`) |
 | Reactive/stateful, consumed in the React tree at application scope | `gear:outer` (with `withState`) |
+| Stateful UI whose initial state comes from a server snapshot (SSR hydration) | `gear:outer` seeded inside the factory from a port (e.g. a server action) via `_.action()(await $.ports.…)` (see §11.9) |
 | Component-local reactive state consumed by descendants | `gear:outer(vertex)` consumed inside a `<VertexFrame>` |
 | Per-component reactive state used only within the component itself | `gear:outer(vertex)` consumed without `<VertexFrame>` |
 | Stateless service used by other gears, never by shells | `gear:base` |
@@ -2069,14 +2408,12 @@ export const r = localized("shell/<name>", { /* keys */ });
 
 TS generics scale **sub-linearly**: going 10→500 resources (a 50× increase)
 grows type instantiations only ~5.6× (123k→686k), and per-resource cost
-*drops* (12.3k→1.4k inst/resource). Compile (`tsc`) stays under 1.5s at 500
-resources. The one path that grows is consumer `Plug("|")` autocomplete
-(~100→170ms p95) — the IntelliSense path a developer feels most. R-Machine is
-safe to recommend on large projects. Full benchmark + methodology:
+*drops* (12.3k→1.4k inst/resource). 
+R-Machine is safe to recommend on large projects. Full benchmark + methodology:
 https://github.com/codecarvings/r-machine/blob/RM-alpha-12/benchmarks/type-scale/results/REPORT.md
 
 ---
 
-rev 2026-05-31.008
+rev 2026-05-31.009
 Copyright (c) 2026 Sergio Turolla - All Rights Reserved.
 https://codecarvings.com
