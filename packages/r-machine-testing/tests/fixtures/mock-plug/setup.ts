@@ -14,6 +14,13 @@ const rMachine = RMachine.create({
     switch (path) {
       case "inner/double":
         return { r: InnerGear.define(() => ({ double: (n: number) => n * 2 })) } as unknown as AnyResModule;
+      case "outer/shared":
+        return {
+          r: OuterGear.withState({ n: 0 }).define((plugin, _) => ({
+            value: _.getter(() => plugin.$.state.n),
+            inc: _.action(() => ({ n: plugin.$.state.n + 1 })),
+          })),
+        } as unknown as AnyResModule;
       default:
         throw new Error(`mock-plug fixture: unknown resource "${path}"`);
     }

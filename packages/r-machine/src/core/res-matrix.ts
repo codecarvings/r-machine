@@ -13,7 +13,7 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import type { GearRole } from "./gear-plug.js";
-import { createPlug, getPlugResolve, type PluginCtxAugmenter, setPlugResolve } from "./plug.js";
+import { createPlug, getPlugResolve, type PluginCtxAugmenter, setPlugMachine, setPlugResolve } from "./plug.js";
 import type { AnyRes, AnyResOrigin } from "./res.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { AnyNamespace } from "./res-domain.js";
@@ -75,6 +75,11 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
   const { connector, meta, head, cursor, userFactory, augmentCtx, postProcess } = options;
 
   const plug = createPlug(head);
+  // Stamp the owning RMachine's reset capability so test helpers can reach it
+  // from `r.plug` alone (see `getPlugMachine` / `@r-machine/testing`).
+  if (connector.machine !== undefined) {
+    setPlugMachine(plug, connector.machine);
+  }
 
   setPlugResolve(plug, async (locale: AnyLocale | undefined, chain: readonly AnyNamespace[]) => {
     const buildCtx2: PluginCtxAugmenter = ($) => {

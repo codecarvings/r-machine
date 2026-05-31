@@ -170,6 +170,9 @@ export class RMachine<
           plugin,
         };
       },
+      // Stamped onto every Plug built through this connector so test helpers can
+      // reach `disposeResources()` from `r.plug` alone (`@r-machine/testing`).
+      machine: this,
     };
   }
 
@@ -252,6 +255,17 @@ export class RMachine<
   // are a no-op.
   reloadModule(path: string): void {
     this.blueprintManager.reloadModule(path);
+  }
+
+  // Dispose all resolved resources for this instance: tear down every
+  // process-tier slot (running `Symbol.dispose`) and clear the resolution
+  // caches, while KEEPING loaded blueprints (modules are not re-imported).
+  // Primarily a test-isolation primitive — call it in `afterEach` so a stateful
+  // OuterGear resolved (as a dependency or kit) in one test cannot leak into the
+  // next. Request scopes are unaffected (use `requestScope.dispose`). Reachable
+  // from a resource's `r.plug` via `getPlugMachine` (see `@r-machine/testing`).
+  disposeResources(): void {
+    this.junctureManager.disposeResources();
   }
 
   // `RMachine.create` is intended to produce a single canonical instance per

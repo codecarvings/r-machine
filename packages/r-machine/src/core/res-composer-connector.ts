@@ -12,7 +12,7 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
-import type { PluginCtxAugmenter } from "./plug.js";
+import type { PluginCtxAugmenter, PlugMachine } from "./plug.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 
 export interface ResComposerConnector {
@@ -22,6 +22,10 @@ export interface ResComposerConnector {
     augmentCtx: PluginCtxAugmenter,
     chain: readonly AnyNamespace[]
   ) => Promise<ResWire>;
+  // The owning RMachine's reset capability, stamped onto every Plug built
+  // through this connector (see `createResMatrix`). Absent when a connector is
+  // assembled outside an RMachine (bare composer unit tests).
+  readonly machine?: PlugMachine;
 }
 
 export interface ResWire {

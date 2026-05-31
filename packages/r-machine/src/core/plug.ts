@@ -101,9 +101,19 @@ export type PlugResolve<PH extends AnyPlugHead> = (
   chain: readonly AnyNamespace[]
 ) => Promise<ExtractPlugin<PH>>;
 
+// Minimal capability the owning RMachine exposes back through a Plug. Kept
+// deliberately narrow (no import of the lib-side RMachine into core, and no
+// wide surface leaking onto the consumer Plug): the only thing reachable from
+// a Plug is the ability to drop all resolved resource state for its machine —
+// the seam `@r-machine/testing` uses to isolate tests (`disposeResources`).
+export interface PlugMachine {
+  disposeResources(): void;
+}
+
 const plugHeadSymbol = Symbol("plugHead");
 const plugResolveSymbol = Symbol("plugResolve");
 const plugIdSymbol = Symbol("plugId");
+const plugMachineSymbol = Symbol("plugMachine");
 export interface PlugBody<PH extends AnyPlugHead> {
   readonly [plugHeadSymbol]: PH;
   [plugResolveSymbol]: PlugResolve<PH>;
@@ -114,6 +124,10 @@ export interface PlugBody<PH extends AnyPlugHead> {
   // module HMR creates a new Plug with a new id; the prior id becomes
   // unreachable and any scope-bound caches keyed by it are GC'd.
   readonly [plugIdSymbol]: symbol;
+  // Back-reference to the owning RMachine's reset capability, stamped by
+  // `createResMatrix` when the connector carries one. Absent on plugs built
+  // outside an RMachine (e.g. bare composer unit tests).
+  [plugMachineSymbol]?: PlugMachine;
 }
 
 const defaultPlugResolve: PlugResolve<any> = () => {
@@ -142,6 +156,13 @@ export function setPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>, resolve
 
 export function getPlugId(plug: PlugBody<AnyPlugHead>): symbol {
   return plug[plugIdSymbol];
+}
+
+export function setPlugMachine(plug: PlugBody<AnyPlugHead>, machine: PlugMachine): void {
+  plug[plugMachineSymbol] = machine;
+}
+export function getPlugMachine(plug: PlugBody<AnyPlugHead>): PlugMachine | undefined {
+  return plug[plugMachineSymbol];
 }
 
 interface MapPlugOutline<RA extends AnyResAtlas> {

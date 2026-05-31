@@ -52,14 +52,17 @@ export {
   type ExtractResAtlas,
   getPlugHead,
   getPlugId,
+  getPlugMachine,
   getPlugOutline,
   getPlugResolve,
   type ListPlugin,
   type MapPlugin,
   type PlugBody,
   type PluginCtxAugmenter,
+  type PlugMachine,
   type PlugMode,
   type PlugResolve,
+  setPlugMachine,
   setPlugResolve,
 } from "./plug.js";
 export type { Cassette, CassetteRecorder, ReadableCell } from "./reactivity/cassette-recorder.js";

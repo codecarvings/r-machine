@@ -477,6 +477,50 @@ export class JunctureManager {
     this.disposeSlotIn(this.slots, key);
   }
 
+  // Drop ALL resolved state held in the process-tier `slots` map: dispose every
+  // slot (running `Symbol.dispose` teardowns) in dispose-safe order — dependents
+  // before dependencies — then clear the generation / subscriber / vertex
+  // indices. Blueprints (loaded modules) are intentionally KEPT, so the next
+  // resolve re-runs the cached factories against fresh state rather than
+  // re-importing. Request scopes are NOT touched (use `disposeRequestScope`).
+  //
+  // This is a hard wipe with no subscriber notification — a test-isolation
+  // primitive (`RMachine.disposeResources`), not an HMR-style `invalidate`. Any
+  // live wire still subscribed is orphaned by design; the next test builds fresh.
+  disposeResources(): void {
+    // Order namespaces dependents-first via the union of reverse closures, so a
+    // teardown can still reference resources its dependencies hold.
+    const roots = new Set<AnyNamespace>();
+    for (const slot of this.slots.values()) roots.add(slot.namespace);
+    const ordered = new Set<AnyNamespace>();
+    for (const root of roots) {
+      for (const n of this.blueprintManager.getReverseClosure(root)) ordered.add(n);
+    }
+    const keysByNs = new Map<AnyNamespace, string[]>();
+    for (const slot of this.slots.values()) {
+      let keys = keysByNs.get(slot.namespace);
+      if (!keys) {
+        keys = [];
+        keysByNs.set(slot.namespace, keys);
+      }
+      keys.push(slot.key);
+    }
+    for (const n of ordered) {
+      const keys = keysByNs.get(n);
+      if (keys) {
+        for (const key of keys) this.disposeSlotIn(this.slots, key);
+      }
+    }
+    // Defensive sweep: dispose any slot whose namespace fell outside the closure
+    // walk (should be none, but never leak a slot).
+    for (const key of [...this.slots.keys()]) this.disposeSlotIn(this.slots, key);
+
+    this.generationByNs.clear();
+    this.subscribersByNs.clear();
+    this.vertexSlotsByGenId.clear();
+    this.busHost.bus?.emit({ type: "juncture:resourcesDisposed" });
+  }
+
   invalidate(ns: AnyNamespace, locale?: AnyLocale | undefined): void {
     // The closure is iterated in dispose-safe order: dependents first, ns last.
     // (See BlueprintManager.getReverseClosure.)
