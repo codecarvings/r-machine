@@ -16,6 +16,14 @@ export const r = OuterGear.withDeps({ config: "base/config" })
       [Symbol.dispose]: () => {
         clearInterval(intervalId);
       },
+      $relay: _.relay({
+        select: () => $.state,
+        onChange: (newValue: number) => {
+          if (newValue % 5 === 0) {
+            console.log(`Value ${newValue} is a multiple of 5!`);
+          }
+        },
+      }),
     };
   });
 

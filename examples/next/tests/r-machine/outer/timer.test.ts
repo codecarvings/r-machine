@@ -40,6 +40,62 @@ describe("Outer_Timer", () => {
     dispose(res);
   });
 
+  it("should log multiples of 5", async () => {
+    const consoleLogSpy = vitest.spyOn(console, "log").mockImplementation(() => {});
+
+    const res = await r.create();
+    res.$relay.onChange = (newValue: number) => {
+      if (newValue % 5 === 0) {
+        console.log(`Mocked - Value ${newValue} is a multiple of 5!`);
+      }
+    };
+
+    vitest.advanceTimersByTime(5000);
+    expect(consoleLogSpy).toHaveBeenCalledWith("Mocked - Value 5 is a multiple of 5!");
+
+    vitest.advanceTimersByTime(5000);
+    expect(consoleLogSpy).toHaveBeenCalledWith("Mocked - Value 10 is a multiple of 5!");
+
+    consoleLogSpy.mockRestore();
+    dispose(res);
+  });
+
+  it("should log multiples of 5 + 100", async () => {
+    const consoleLogSpy = vitest.spyOn(console, "log").mockImplementation(() => {});
+
+    const res = await r.create();
+    res.$relay.select = () => res.value() + 100; // Select value + 100, so multiples of 5 become multiples of 5 + 100.
+    res.$relay.onChange = (newValue: number) => {
+      if (newValue % 5 === 0) {
+        console.log(`Mocked - Value ${newValue} is 100 + a multiple of 5!`);
+      }
+    };
+
+    vitest.advanceTimersByTime(5000);
+    expect(consoleLogSpy).toHaveBeenCalledWith("Mocked - Value 105 is 100 + a multiple of 5!");
+
+    vitest.advanceTimersByTime(5000);
+    expect(consoleLogSpy).toHaveBeenCalledWith("Mocked - Value 110 is 100 + a multiple of 5!");
+
+    consoleLogSpy.mockRestore();
+    dispose(res);
+  });
+
+  it("should honor a reassigned equals comparator (live)", async () => {
+    const consoleLogSpy = vitest.spyOn(console, "log").mockImplementation(() => {});
+
+    const res = await r.create();
+    // Treat every selected value as equal → onChange must never fire.
+    // Proves `equals` is read live off the relay object, not captured at setup.
+    res.$relay.equals = () => true;
+
+    vitest.advanceTimersByTime(10000);
+    expect(consoleLogSpy).not.toHaveBeenCalled();
+
+    consoleLogSpy.mockRestore();
+    dispose(res);
+  });
+
   afterAll(() => {
     vitest.useRealTimers();
   });

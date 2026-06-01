@@ -34,11 +34,32 @@ interface RelayConfig<T> {
   readonly equals?: RelayEquals<T>;
 }
 
+/**
+ * The relay as exposed on the created resource (`res.$relay`).
+ *
+ * Unlike getters/actions/cells — whose behavior is captured in the factory
+ * body's closures and therefore NOT interceptable through `res` — a relay's
+ * three members are read *live* off this object on every tick:
+ * `select` and `onChange` directly (see `createRelayRuntime`), and `equals`
+ * (resolved to a concrete comparator at creation). That live-read property is
+ * exactly what lets a test reassign `res.$relay.onChange` / `.select` /
+ * `.equals` and have the runtime observe it. Hence these members are mutable
+ * (not `readonly`).
+ *
+ * IMPORTANT: do not "optimize" the runtime by capturing any of these in a
+ * closure — that would silently break the test-override pattern.
+ */
+interface LiveRelay<T> {
+  select: () => T;
+  onChange: (current: T, prev: T) => RelayOnChangeResult | Promise<RelayOnChangeResult>;
+  equals: (current: T, prev: T) => boolean;
+}
+
 const relayBrand: unique symbol = Symbol("relay");
 export interface RelayBrand {
   readonly [relayBrand]: true;
 }
-export interface Relay<T> extends RelayConfig<T>, RelayBrand {}
+export interface Relay<T> extends LiveRelay<T>, RelayBrand {}
 
 export type AnyRelay = Relay<any>;
 
@@ -47,7 +68,11 @@ export function isRelay(v: unknown): v is AnyRelay {
 }
 
 export function createRelay<T>(config: RelayConfig<T>, name: string = "relay"): Relay<T> {
-  const relay = { ...config };
+  const relay = {
+    select: config.select,
+    onChange: config.onChange,
+    equals: resolveEquals(config.equals),
+  };
   Object.defineProperty(relay, relayBrand, { value: true });
   setMemberName(relay, name);
   return relay as Relay<T>;
@@ -78,7 +103,6 @@ export function createRelayRuntime(
   namespace?: AnyNamespace
 ): { dispose(): void } {
   const cassette = recorder.createCassette();
-  const equals = resolveEquals(relay.equals);
   let prev: unknown | typeof UNSET = UNSET;
   let depUnsubs: Array<() => void> = [];
   let disposed = false;
@@ -122,7 +146,7 @@ export function createRelayRuntime(
           })
         );
       }
-      if (prev !== UNSET && equals(next, prev)) {
+      if (prev !== UNSET && relay.equals(next, prev)) {
         return { cmds: [], relayName };
       }
       const prevForCallback = prev === UNSET ? next : prev;
