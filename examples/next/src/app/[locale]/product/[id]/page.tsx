@@ -12,9 +12,8 @@ const plug = ServerPlug("inner/catalog", "shell/product", "shell/catalog");
 
 export default async function ProductPage({ params }: PageProps<"/[locale]/product/[id]">) {
   const [catalog, sp, sc, $] = await plug.useR(params);
-  const { id } = await params;
 
-  const product = catalog.byId(id);
+  const product = catalog.byId($.params.id);
   if (!product) {
     notFound();
   }

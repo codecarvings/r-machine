@@ -14,16 +14,16 @@ export const dynamicParams = false;
 export const metaPlug = ServerPlug("shell/common");
 export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Promise<Metadata> {
   // biome-ignore lint/correctness/useHookAtTopLevel: This is not a Hook
-  const [common] = await metaPlug.useUnboundR(params);
+  const [s] = await metaPlug.useUnboundR(params);
 
   return {
-    title: common.title,
+    title: s.title,
   };
 }
 
-export const pagePlug = ServerPlug("shell/common");
+export const pagePlug = ServerPlug();
 export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
-  const [common, $] = await pagePlug.useR(params);
+  const { $ } = await pagePlug.useR(params);
 
   return (
     <html lang={$.locale}>
@@ -33,7 +33,7 @@ export default async function LocaleLayout({ params, children }: LayoutProps<"/[
             <div className="min-h-screen bg-background">
               <Header />
               {children}
-              <Footer r={common.footer} />
+              <Footer />
             </div>
           </DelayedSuspense>
         </NextServerRMachine>
