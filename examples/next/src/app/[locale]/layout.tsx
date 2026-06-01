@@ -1,7 +1,6 @@
 import "../globals.css";
 import { DelayedSuspense } from "@r-machine/react/utils";
 import type { Metadata } from "next";
-import { ExpVertex1 } from "@/components/client/ExpVertex1";
 import ContentLoading from "@/components/server/content-loading";
 import Footer from "@/components/server/footer";
 import Header from "@/components/server/header";
@@ -34,7 +33,6 @@ export default async function LocaleLayout({ params, children }: LayoutProps<"/[
             <div className="min-h-screen bg-background">
               <Header />
               {children}
-              <ExpVertex1 title="Vertex Timer Layout 1" />
               <Footer r={common.footer} />
             </div>
           </DelayedSuspense>

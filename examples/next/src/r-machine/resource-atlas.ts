@@ -1,11 +1,13 @@
 import { defineLayout } from "r-machine";
-import type { Base_Config } from "./base/config";
-import type { Outer_CartSsr } from "./outer/cart-ssr";
-import type { Outer_Timer } from "./outer/timer";
+import type { Base_StoreConfig } from "./base/store-config";
+import type { Inner_Catalog } from "./inner/catalog";
+import type { Outer_Cart } from "./outer/cart";
+import type { Shell_Cart } from "./shell/cart/en";
+import type { Shell_Catalog } from "./shell/catalog/en";
 import type { Shell_Common } from "./shell/common/en";
-import type { Shell_LandingPage } from "./shell/landing-page/en";
 import type { Shell_Lib_Fmt } from "./shell/lib/fmt";
-import type { Vertex_Timer } from "./vertex/timer";
+import type { Shell_Product } from "./shell/product/en";
+import type { Vertex_CatalogFilter } from "./vertex/catalog-filter";
 
 const folders = defineLayout({
   "inner/": "gear:inner",
@@ -17,13 +19,15 @@ const folders = defineLayout({
 });
 
 type ResourceMap = {
-  "base/config": Base_Config;
-  "outer/timer": Outer_Timer;
-  "outer/cart-ssr": Outer_CartSsr;
-  "vertex/timer": Vertex_Timer;
+  "inner/catalog": Inner_Catalog;
+  "base/store-config": Base_StoreConfig;
+  "outer/cart": Outer_Cart;
+  "vertex/catalog-filter": Vertex_CatalogFilter;
 
   "shell/common": Shell_Common;
-  "shell/landing-page": Shell_LandingPage;
+  "shell/catalog": Shell_Catalog;
+  "shell/product": Shell_Product;
+  "shell/cart": Shell_Cart;
   "shell/lib/fmt": Shell_Lib_Fmt;
 };
 

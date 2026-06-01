@@ -1,38 +1,35 @@
-import Link from "next/link";
-import { CartSsr } from "@/components/client/CartSsr";
-import { ExpOuter1 } from "@/components/client/ExpOuter1";
-import { ExpVertex1 } from "@/components/client/ExpVertex1";
-import { ExpVertex3 } from "@/components/client/ExpVertex3";
-import { ExpVertexFrame1 } from "@/components/client/ExpVertexFrame1";
-import Hero from "@/components/server/hero";
+import { Suspense } from "react";
+import { CatalogClient } from "@/components/client/CatalogClient";
+import CatalogSkeleton from "@/components/server/catalog-skeleton";
 import { ServerPlug } from "@/r-machine/server-toolset";
 
-const plug = ServerPlug();
-export default async function HomePage({ params }: PageProps<"/[locale]">) {
-  const { $ } = await plug.useR(params);
+// Reads the async `inner/catalog` (server-only) + `shell/catalog`. Awaiting the
+// plug is what suspends — kept in a child component so the page-level <Suspense>
+// can render the skeleton while the catalog port resolves.
+const plug = ServerPlug("inner/catalog", "shell/catalog");
+
+async function CatalogContent({ params }: PageProps<"/[locale]">) {
+  const [catalog, s] = await plug.useR(params);
 
   return (
     <>
-      <Hero />
-
-      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-        <div className="max-w-6xl mx-auto">
-          <ExpOuter1 />
-          <CartSsr />
-          <ExpVertex1 title="Vertex Timer Page 1" />
-          <ExpVertexFrame1 />
-          <br />
-          <br />
-          <ExpVertex3 title="Vertex Timer Page 3" />
-        </div>
-      </section>
-      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-        <div className="max-w-6xl mx-auto">
-          <Link href={$.getPath("/sub1")} className="text-primary underline">
-            Subpage 1
-          </Link>
-        </div>
-      </section>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">{s.heading}</h1>
+        <p className="text-muted-foreground mt-1">{s.subtitle}</p>
+      </div>
+      <CatalogClient products={catalog.products} categories={catalog.categories} />
     </>
+  );
+}
+
+export default function CatalogPage(props: PageProps<"/[locale]">) {
+  return (
+    <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-6xl mx-auto">
+        <Suspense fallback={<CatalogSkeleton />}>
+          <CatalogContent {...props} />
+        </Suspense>
+      </div>
+    </section>
   );
 }
