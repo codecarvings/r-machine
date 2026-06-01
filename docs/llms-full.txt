@@ -1004,7 +1004,7 @@ export const r = OuterGear.withState(0).define((plugin, _) => {
 });
 ```
 
-- `[Symbol.dispose]` is the standard TC39 well-known symbol for synchronous resource disposal — no r-machine-specific helper is needed.
+- `[Symbol.dispose]` is the standard TC39 well-known symbol for synchronous resource disposal — no r-machine-specific helper is needed (an optional `dispose(value)` convenience wrapper is available, see §9.1).
 - `[Symbol.dispose]` is invisible to `Plug(...).useR()` at the consumer (all symbol keys are filtered from the Plug surface).
 - Teardown runs exactly once per instance whose factory completed successfully. A factory that throws before returning runs no teardown — see §10.6 for what the consumer sees and how to avoid leaking a partially-acquired resource.
 - The runtime guarantees idempotency: even if teardown is invoked manually (e.g. in a test) and then again by r-machine on slot disposal, the underlying closure runs at most once.
@@ -1032,6 +1032,16 @@ value[Symbol.dispose]();
 await using value = await r.create();
 // ... assertions ...
 // teardown fires automatically at end of scope
+```
+
+For callers who cannot (or prefer not to) use `using` / `await using` and would rather avoid reaching for the symbol directly, the `dispose(value)` utility (exported from `r-machine`) wraps the `value[Symbol.dispose]()` call:
+
+```ts
+import { dispose } from "r-machine";
+
+const value = await r.create();
+// ... assertions ...
+dispose(value);
 ```
 
 ---

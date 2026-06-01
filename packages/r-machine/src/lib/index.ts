@@ -14,6 +14,7 @@
 export { getResolveContext, type ResolveContext } from "../core/resolve-context.js";
 export type { BrandedResource } from "./branded-resource.js";
 export { enableRMachineDevMode } from "./dev-mode.js";
+export { dispose } from "./dispose.js";
 export { defineLayout } from "./layout.js";
 export {
   RMachine,
