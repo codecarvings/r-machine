@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createEventBus, type InternalEvent } from "../../../src/core/event-bus.js";
 import { makeAction } from "../../../src/core/reactivity/action-runtime.js";
 import { createCassetteRecorder } from "../../../src/core/reactivity/cassette-recorder.js";
-import { createMemoCell } from "../../../src/core/reactivity/memo-cell.js";
+import { createGetterCell } from "../../../src/core/reactivity/getter-cell.js";
 import { createStateCell } from "../../../src/core/reactivity/state-cell.js";
 import { type AnyRelay, createRelay, createRelayRuntime } from "../../../src/core/relay.js";
 
@@ -91,7 +91,7 @@ describe("createRelayRuntime", () => {
   it("relay reading a memo cascades correctly when memo's deps mutate", () => {
     const recorder = createCassetteRecorder();
     const cell = createStateCell(2, recorder);
-    const memo = createMemoCell(() => cell.read() * 10, recorder);
+    const memo = createGetterCell(() => cell.read() * 10, recorder);
     const onChange = vi.fn();
     createRelayRuntime(mk({ select: () => memo.read(), onChange }, "r"), recorder);
 

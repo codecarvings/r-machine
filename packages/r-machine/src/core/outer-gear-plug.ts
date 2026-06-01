@@ -22,7 +22,7 @@ import {
   type GearPluginCtx,
   type GearPlugKitMap,
 } from "./gear-plug.js";
-import type { GetterComposer, StatelessGetterComposer } from "./getter.js";
+import type { GetterCellComposer, GetterComposer, StatelessGetterComposer } from "./getter.js";
 import type { AnyState } from "./outer-gear.js";
 import type { ListPlugin, MapPlugin, PlugBody } from "./plug.js";
 import type { RelayComposer } from "./relay.js";
@@ -37,6 +37,7 @@ export type OuterGearPlugDepList<RA extends AnyResAtlas> = HandleList<RA, "valid
 
 export interface StatefulOuterGearCursor<S extends AnyState> {
   readonly getter: GetterComposer<S>;
+  readonly cell: GetterCellComposer;
   readonly action: ActionComposer<S>;
   readonly relay: RelayComposer;
   readonly cmd: CmdComposer;
@@ -142,10 +143,12 @@ export interface StatefulOuterGearListPlug<
 // to provide relay and cmd composers.
 export interface InertOuterGearCursor {
   readonly getter: StatelessGetterComposer;
+  readonly cell: GetterCellComposer;
 }
 
 export interface StatelessOuterGearCursor {
   readonly getter: StatelessGetterComposer;
+  readonly cell: GetterCellComposer;
   readonly relay: RelayComposer;
   readonly cmd: CmdComposer;
 }

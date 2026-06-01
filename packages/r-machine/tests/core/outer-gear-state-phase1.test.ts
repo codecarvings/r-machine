@@ -95,13 +95,13 @@ describe("OuterGear state — phase 1 end-to-end", () => {
     expect(handle.getDeps().size).toBe(1);
   });
 
-  it("memoized getter via cursor.getter('memoized', ...) registers itself (not transitive deps) on cache hit", async () => {
+  it("cell via cursor.cell(...) registers itself (not transitive deps) on cache hit", async () => {
     const recorder = createCassetteRecorder();
     const matrix = buildStatefulMatrix<ShoppingCartState>(
       recorder,
       { items: [{ price: 10 }, { price: 20 }] },
       ($, cursor) => ({
-        subtotal: cursor.getter("memoized", () => $.state.items.reduce((s, i) => s + i.price, 0)),
+        subtotal: cursor.cell(() => $.state.items.reduce((s, i) => s + i.price, 0)),
       })
     );
 
@@ -133,7 +133,7 @@ describe("OuterGear state — phase 1 end-to-end", () => {
       recorder,
       { items: [{ price: 10 }, { price: 20 }], other: 0 },
       ($, cursor) => ({
-        subtotal: cursor.getter("memoized", () => $.state.items.reduce((s, i) => s + i.price, 0)),
+        subtotal: cursor.cell(() => $.state.items.reduce((s, i) => s + i.price, 0)),
         setItems: cursor.action((items: { price: number }[]) => ({ items })),
         setOther: cursor.action((n: number) => ({ other: n })),
       })

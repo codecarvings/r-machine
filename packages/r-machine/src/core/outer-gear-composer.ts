@@ -18,7 +18,13 @@ import { type CmdComposer, createCmd } from "./cmd.js";
 import { lazyGetters } from "./composer-utils.js";
 import { type DeepPartial, deepPartialMerge } from "./deep-partial.js";
 import { createGearListPlugHead, createGearMapPlugHead, type GearPluginCtx, type GearPlugKitMap } from "./gear-plug.js";
-import { createGetter, type DefaultGetter, type GetterComposer, type StatelessGetterComposer } from "./getter.js";
+import {
+  createGetter,
+  type DefaultGetter,
+  type GetterCellComposer,
+  type GetterComposer,
+  type StatelessGetterComposer,
+} from "./getter.js";
 import { promoteMemberNames } from "./member-name.js";
 import type { AnyOuterGear, AnyState, RejectAsyncValueProps } from "./outer-gear.js";
 import {
@@ -42,7 +48,7 @@ import {
 import { type ExtractPlugin, getPlugOutline } from "./plug.js";
 import { makeAction } from "./reactivity/action-runtime.js";
 import type { CassetteRecorder } from "./reactivity/cassette-recorder.js";
-import { createMemoCell } from "./reactivity/memo-cell.js";
+import { createGetterCell } from "./reactivity/getter-cell.js";
 import { createStateCell, type StateCell } from "./reactivity/state-cell.js";
 import { type AnyRelay, createRelay, createRelayRuntime, type RelayComposer } from "./relay.js";
 import { type AnyRes, tryGetDispose } from "./res.js";
@@ -462,21 +468,31 @@ interface PluginWithStateCell<S> {
 }
 
 /** @internal — exposed for testing */
-export function buildStatelessGetterComposer(recorder: CassetteRecorder): StatelessGetterComposer {
+export function buildStatelessGetterComposer(): StatelessGetterComposer {
   let counter = 0;
   return ((...args: unknown[]): unknown => {
     counter += 1;
     const name = `getter:${counter}`;
-    if (args[0] === "memoized" && typeof args[1] === "function") {
-      const memo = createMemoCell(args[1] as () => unknown, recorder);
-      return createGetter(() => memo.read(), name);
-    }
     if (typeof args[0] === "function") {
       const fn = args[0] as () => unknown;
       return createGetter(() => fn(), name);
     }
     throw new RMachineUsageError(ERR_INVALID_ARGUMENTS, "cursor.getter: invalid arguments.");
   }) as unknown as StatelessGetterComposer;
+}
+
+/**
+ * Builds the `cell` composer (short for "getterCell"): a getter backed by its
+ * own cell in the reactive graph. The cell memoizes its body and is its own
+ * dependency, so it returns a `Getter<V>` — hence read-only.
+ */
+export function buildGetterCellComposer(recorder: CassetteRecorder): GetterCellComposer {
+  let counter = 0;
+  return ((body: () => unknown): unknown => {
+    counter += 1;
+    const cell = createGetterCell(body, recorder);
+    return createGetter(() => cell.read(), `cell:${counter}`);
+  }) as GetterCellComposer;
 }
 
 /** @internal — exposed for testing the resolution wiring */
@@ -492,16 +508,14 @@ export function buildStatefulOuterGearCursor<S extends AnyState>(
     if (args.length === 0) {
       return createGetter(() => cell.read(), name);
     }
-    if (args[0] === "memoized" && typeof args[1] === "function") {
-      const memo = createMemoCell(args[1] as () => unknown, recorder);
-      return createGetter(() => memo.read(), name);
-    }
     if (typeof args[0] === "function") {
       const fn = args[0] as () => unknown;
       return createGetter(() => fn(), name);
     }
     throw new RMachineUsageError(ERR_INVALID_ARGUMENTS, "cursor.getter: invalid arguments.");
   }) as unknown as GetterComposer<S>;
+
+  const getterCellComposer = buildGetterCellComposer(recorder);
 
   let actionCounter = 0;
   const action = ((reducer?: (...a: unknown[]) => unknown) => {
@@ -523,6 +537,7 @@ export function buildStatefulOuterGearCursor<S extends AnyState>(
   return attachRelayCleanup(
     {
       getter,
+      cell: getterCellComposer,
       action,
       relay,
       cmd: ((action: AnyAction, ...payload: unknown[]) => createCmd(action, payload)) as CmdComposer,
@@ -544,7 +559,8 @@ function buildStatelessOuterGearCursor(recorder: CassetteRecorder, namespace?: A
 
   return attachRelayCleanup(
     {
-      getter: buildStatelessGetterComposer(recorder),
+      getter: buildStatelessGetterComposer(),
+      cell: buildGetterCellComposer(recorder),
       relay,
       cmd: ((action: AnyAction, ...payload: unknown[]) => createCmd(action, payload)) as CmdComposer,
     },

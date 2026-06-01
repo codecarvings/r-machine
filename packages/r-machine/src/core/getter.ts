@@ -32,13 +32,19 @@ export function createGetter<V>(read: () => V, name: string): Getter<V> {
   return read as Getter<V>;
 }
 
-export interface StatelessGetterComposer {
-  <V>(getter: () => V): Getter<V>;
-  <V>(memoized: "memoized", getter: () => V): Getter<V>;
-}
+export type StatelessGetterComposer = <V>(getter: () => V) => Getter<V>;
 
 export interface GetterComposer<S extends AnyState> extends StatelessGetterComposer {
   (): Getter<S>;
 }
+
+/**
+ * Composes a getter backed by its own cell in the reactive graph — short for
+ * "getterCell". A cell memoizes its body (cache for expensive computations) and
+ * is its own dependency (fine-grained reactivity: consumers reading only it
+ * re-render solely when its output changes by `Object.is`). It returns a
+ * `Getter<V>` — which is exactly why it is read-only.
+ */
+export type GetterCellComposer = <V>(body: () => V) => Getter<V>;
 
 export type DefaultGetter<S extends AnyState> = Getter<S>;

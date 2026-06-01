@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { makeAction } from "../../../src/core/reactivity/action-runtime.js";
 import { createCassetteRecorder } from "../../../src/core/reactivity/cassette-recorder.js";
-import { createMemoCell } from "../../../src/core/reactivity/memo-cell.js";
+import { createGetterCell } from "../../../src/core/reactivity/getter-cell.js";
 import { createStateCell } from "../../../src/core/reactivity/state-cell.js";
 
-describe("createMemoCell", () => {
+describe("createGetterCell", () => {
   it("cache miss: the memo's private cassette captures transitive deps; outer captures only the memo", () => {
     const recorder = createCassetteRecorder();
     const cell = createStateCell({ items: [1, 2, 3] }, recorder);
-    const count = createMemoCell(() => cell.read().items.length, recorder);
+    const count = createGetterCell(() => cell.read().items.length, recorder);
 
     const outer = recorder.createCassette();
     outer.insert();
@@ -28,7 +28,7 @@ describe("createMemoCell", () => {
   it("cache hit registers ONLY the memo cell (not transitive deps) in the outer cassette", () => {
     const recorder = createCassetteRecorder();
     const cell = createStateCell({ items: [1, 2, 3] }, recorder);
-    const count = createMemoCell(() => cell.read().items.length, recorder);
+    const count = createGetterCell(() => cell.read().items.length, recorder);
 
     // Prime the memo so the next read is a cache hit.
     count.read();
@@ -46,7 +46,7 @@ describe("createMemoCell", () => {
     const recorder = createCassetteRecorder();
     const body = vi.fn(() => cell.read().items.length);
     const cell = createStateCell({ items: [1, 2, 3] }, recorder);
-    const count = createMemoCell(body, recorder);
+    const count = createGetterCell(body, recorder);
 
     expect(count.read()).toBe(3);
     expect(body).toHaveBeenCalledTimes(1);
@@ -64,7 +64,7 @@ describe("createMemoCell", () => {
   it("equality short-circuit: when output is unchanged, subscribers are NOT notified", () => {
     const recorder = createCassetteRecorder();
     const cell = createStateCell({ items: [1, 2, 3], other: 0 }, recorder);
-    const count = createMemoCell(() => cell.read().items.length, recorder);
+    const count = createGetterCell(() => cell.read().items.length, recorder);
     const sub = vi.fn();
 
     count.read(); // prime
@@ -80,7 +80,7 @@ describe("createMemoCell", () => {
   it("notifies subscribers when output changes", () => {
     const recorder = createCassetteRecorder();
     const cell = createStateCell({ items: [1, 2, 3] }, recorder);
-    const count = createMemoCell(() => cell.read().items.length, recorder);
+    const count = createGetterCell(() => cell.read().items.length, recorder);
     const sub = vi.fn();
 
     count.read();
@@ -96,8 +96,8 @@ describe("createMemoCell", () => {
   it("transitive memo: change to base state propagates through and respects equality short-circuit", () => {
     const recorder = createCassetteRecorder();
     const cart = createStateCell({ items: [{ price: 10 }, { price: 20 }] as { price: number }[] }, recorder);
-    const subtotal = createMemoCell(() => cart.read().items.reduce((s, i) => s + i.price, 0), recorder);
-    const formatted = createMemoCell(() => `$${subtotal.read()}`, recorder);
+    const subtotal = createGetterCell(() => cart.read().items.reduce((s, i) => s + i.price, 0), recorder);
+    const formatted = createGetterCell(() => `$${subtotal.read()}`, recorder);
 
     const sub = vi.fn();
     formatted.read();

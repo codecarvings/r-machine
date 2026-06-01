@@ -13,22 +13,22 @@
 
 import type { CassetteRecorder, ReadableCell } from "./cassette-recorder.js";
 
-export interface MemoCell<V> extends ReadableCell {
+export interface GetterCell<V> extends ReadableCell {
   read(): V;
 }
 
-const UNSET: unique symbol = Symbol("memo-cell-unset");
+const UNSET: unique symbol = Symbol("getter-cell-unset");
 
-export function createMemoCell<V>(
+export function createGetterCell<V>(
   body: () => V,
   recorder: CassetteRecorder,
   equals: (a: V, b: V) => boolean = Object.is
-): MemoCell<V> {
+): GetterCell<V> {
   let value: V | typeof UNSET = UNSET;
   let dirty = true;
   let depUnsubs: Array<() => void> = [];
   // Two tiers, mirroring StateCell: internal subscribers (relay markDirty,
-  // other memos invalidating) fire inline; external subscribers (GateWire,
+  // other getter cells invalidating) fire inline; external subscribers (GateWire,
   // consumer) are deferred through the recorder's dirty-cell queue when a
   // transaction is active, otherwise inline (legacy path).
   const internalSubs = new Set<() => void>();
@@ -103,7 +103,7 @@ export function createMemoCell<V>(
     }
   }
 
-  const memo: MemoCell<V> = {
+  const cell: GetterCell<V> = {
     read() {
       if (dirty) {
         try {
@@ -113,7 +113,7 @@ export function createMemoCell<V>(
           recomputing = false;
         }
       }
-      recorder.recordRead(memo);
+      recorder.recordRead(cell);
       return value as V;
     },
     subscribe(cb) {
@@ -130,5 +130,5 @@ export function createMemoCell<V>(
     },
   };
 
-  return memo;
+  return cell;
 }

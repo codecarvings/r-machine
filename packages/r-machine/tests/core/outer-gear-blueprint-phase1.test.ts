@@ -134,11 +134,11 @@ describe("OuterGear stateful — full blueprint stack", () => {
     expect(resource.read).toBe(8);
   });
 
-  it("memoized getter resolved via the blueprint stack short-circuits on equal output", async () => {
+  it("cell resolved via the blueprint stack short-circuits on equal output", async () => {
     const bodyCalls = vi.fn();
     const { jmInternal } = buildEnv({
       "g/cart": makeStatefulOuterGearModule({ items: [{ price: 10 }, { price: 20 }], other: 0 }, (plugin, cursor) => ({
-        subtotal: cursor.getter("memoized", () => {
+        subtotal: cursor.cell(() => {
           bodyCalls();
           return plugin.$.state.items.reduce((s: number, i: { price: number }) => s + i.price, 0);
         }),
@@ -211,12 +211,10 @@ describe("OuterGear stateful — full blueprint stack", () => {
     expect(resource.read).toBe(8);
   });
 
-  it("memoized getter equality short-circuit propagates through the real GateWire: no notify when output unchanged", async () => {
+  it("cell equality short-circuit propagates through the real GateWire: no notify when output unchanged", async () => {
     const { jmInternal, gwm } = buildEnv({
       "g/cart": makeStatefulOuterGearModule({ items: [{ price: 10 }, { price: 20 }], other: 0 }, (plugin, cursor) => ({
-        subtotal: cursor.getter("memoized", () =>
-          plugin.$.state.items.reduce((s: number, i: { price: number }) => s + i.price, 0)
-        ),
+        subtotal: cursor.cell(() => plugin.$.state.items.reduce((s: number, i: { price: number }) => s + i.price, 0)),
         setOther: cursor.action((n: number) => ({ other: n })),
         setItems: cursor.action((items: { price: number }[]) => ({ items })),
       })),
@@ -281,7 +279,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
     expect(resource.label).toBe("abc:1");
   });
 
-  it("action with a no-op partial does not change state and a memoized getter still returns the same value", async () => {
+  it("action with a no-op partial does not change state and a getter still returns the same value", async () => {
     const { jmInternal } = buildEnv({
       "g/state": makeStatefulOuterGearModule({ a: 1, b: 2 }, (plugin, cursor) => ({
         readA: cursor.getter(() => plugin.$.state.a),

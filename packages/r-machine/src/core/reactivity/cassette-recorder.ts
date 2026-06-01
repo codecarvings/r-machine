@@ -88,7 +88,7 @@ export interface CassetteRecorder {
   withSilentZone<T>(fn: () => T): T;
   /**
    * Temporarily resets silent depth to 0 so reads inside `fn` are tracked.
-   * Used by MemoCell.recompute() so that a memo invalidating during an
+   * Used by GetterCell.recompute() so that a getter cell invalidating during an
    * action (which wraps its reducer in withSilentZone) can still capture
    * its own deps via its private cassette. Top-of-stack scoping protects
    * outer cassettes from leakage.
@@ -163,7 +163,7 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
   }
 
   // Cassettes are designed to be created once per long-lived owner (GateWire,
-  // MemoCell, …) and re-used across many recording passes. `insert()` clears
+  // GetterCell, …) and re-used across many recording passes. `insert()` clears
   // the previously-collected deps before re-activating — calling insert on an
   // already-inserted cassette is idempotent and resets the recording state.
   // `eject()` is also idempotent. The deps remain readable via `getDeps()`

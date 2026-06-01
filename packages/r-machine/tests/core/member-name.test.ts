@@ -97,12 +97,12 @@ describe("member auto-naming + promotion", () => {
     const captured: { a?: unknown; b?: unknown } = {};
     const matrix = buildMatrix(recorder, { x: 1 }, ($, cursor) => {
       captured.a = cursor.getter(() => $.state.x);
-      captured.b = cursor.getter("memoized", () => $.state.x * 2);
+      captured.b = cursor.cell(() => $.state.x * 2);
       return {}; // nothing exported → no promotion
     });
     await resolveRaw(matrix);
     expect(getMemberName(captured.a as never)).toBe("getter:1");
-    expect(getMemberName(captured.b as never)).toBe("getter:2");
+    expect(getMemberName(captured.b as never)).toBe("cell:1");
   });
 
   it("same action ref exported under two property names → LAST key wins", async () => {

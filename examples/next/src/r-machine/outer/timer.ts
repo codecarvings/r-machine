@@ -12,7 +12,7 @@ export const r = OuterGear.withDeps({ config: "base/config" })
     return {
       $inc,
       value: _.getter(),
-      valueWithConfigName: _.getter(() => `${config.appName}: ${$.state}`),
+      valueWithConfigName: _.cell(() => `${config.appName}: ${$.state}`),
       [Symbol.dispose]: () => {
         clearInterval(intervalId);
       },

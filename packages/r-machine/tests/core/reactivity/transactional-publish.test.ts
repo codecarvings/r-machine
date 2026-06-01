@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { makeAction } from "../../../src/core/reactivity/action-runtime.js";
 import { createCassetteRecorder } from "../../../src/core/reactivity/cassette-recorder.js";
-import { createMemoCell } from "../../../src/core/reactivity/memo-cell.js";
+import { createGetterCell } from "../../../src/core/reactivity/getter-cell.js";
 import { createStateCell } from "../../../src/core/reactivity/state-cell.js";
 
 describe("transactional publish", () => {
@@ -37,7 +37,7 @@ describe("transactional publish", () => {
     const recorder = createCassetteRecorder();
     const a = createStateCell(1, recorder);
     const b = createStateCell(2, recorder);
-    const memo = createMemoCell(() => a.read() + b.read(), recorder);
+    const memo = createGetterCell(() => a.read() + b.read(), recorder);
     const sub = vi.fn();
     memo.subscribe(sub);
 
@@ -100,7 +100,7 @@ describe("transactional publish", () => {
   it("internal subs (memo invalidate) fire DURING the tick, before external flush", () => {
     const recorder = createCassetteRecorder();
     const cell = createStateCell(0, recorder);
-    const memo = createMemoCell(() => cell.read() * 2, recorder);
+    const memo = createGetterCell(() => cell.read() * 2, recorder);
     const order: string[] = [];
     memo.subscribe(() => order.push("memo-external"));
     // Prime the memo.

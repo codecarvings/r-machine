@@ -855,16 +855,23 @@ export const r = OuterGear
   });
 ```
 
-### 6.2. `_.getter(...)` — `Getter<V>`
+### 6.2. `_.getter(...)` / `_.cell(...)` — `Getter<V>`
 
-Three forms:
+`_.getter` has two forms; `_.cell` is a third, dedicated form:
 ```ts
-const state = _.getter();                                    // identity for state
-const sum   = _.getter(() => $.state.a + $.state.b);         // ad-hoc derived
-const heavy = _.getter("memoized", () => bigComputation());  // memoised
+const state = _.getter();                          // identity for state
+const sum   = _.getter(() => $.state.a + $.state.b); // ad-hoc derived (recomputes each read)
+const heavy = _.cell(() => bigComputation());      // its own cell: memoized + tracked
 ```
 
-The memoized form is also the unit of **fine-grained reactivity** on the consumer side: a memoized getter is its own dependency, so a component reading only it re-renders solely when the memo's output changes by `Object.is` — see §10.4.
+`_.cell` is short for **getterCell**: it backs the value with its own cell in the reactive
+graph. Two things follow from that single fact — (1) it **memoizes** its body (cache for
+expensive computations), and (2) it is its **own dependency**. Because it *returns a `Getter<V>`*
+it is read-only — there is nothing to set; that is what the name encodes.
+
+The cell form is also the unit of **fine-grained reactivity** on the consumer side: since a cell
+is its own dependency, a component reading only it re-renders solely when the cell's output
+changes by `Object.is` — see §10.4.
 
 ### 6.3. `_.relay({ select, onChange, equals? })`
 
@@ -1129,18 +1136,18 @@ Two levels, selected by how the value is declared in the gear (§6):
 | Read | Dependency unit | Re-render trigger |
 |---|---|---|
 | Raw `$.state` — via `_.getter()` identity or a plain `_.getter(() => $.state.…)` | the **whole gear-instance state** | any action that changes *any* leaf of that instance's state |
-| A memoized getter — `_.getter("memoized", () => …)` (§6.2) | the **memo cell itself** | only when the memo recomputes to a value that is **not** `Object.is`-equal to its previous output |
+| A cell — `_.cell(() => …)` (§6.2) | the **cell itself** | only when the cell recomputes to a value that is **not** `Object.is`-equal to its previous output |
 
-Raw-state reads are deliberately coarse: reading *any* part of `$.state` subscribes the consumer to that instance's entire state object — there is no per-property proxy. To get **fine-grained** "re-render only when *this* derived value changes" behavior, expose the value as a **memoized getter**. A memo is its own dependency: when an action changes unrelated state, the memo is marked dirty, recomputes lazily on the next read, and — if its output is unchanged by `Object.is` — notifies no one. Consumers reading only that memo do not re-render.
+Raw-state reads are deliberately coarse: reading *any* part of `$.state` subscribes the consumer to that instance's entire state object — there is no per-property proxy. To get **fine-grained** "re-render only when *this* derived value changes" behavior, expose the value as a **cell** (`_.cell`). A cell is its own dependency: when an action changes unrelated state, the cell is marked dirty, recomputes lazily on the next read, and — if its output is unchanged by `Object.is` — notifies no one. Consumers reading only that cell do not re-render.
 
 ```tsx
 // outer/cart.ts
 export const r = OuterGear.withState({ items: [] as Item[], coupon: "" }).define((plugin, _) => {
   const { $ } = plugin;
   return {
-    state:     _.getter(),                                          // whole-state dep
-    count:     _.getter("memoized", () => $.state.items.length),    // fine-grained
-    subtotal:  _.getter("memoized", () => sum($.state.items)),      // fine-grained
+    state:     _.getter(),                              // whole-state dep
+    count:     _.cell(() => $.state.items.length),      // fine-grained
+    subtotal:  _.cell(() => sum($.state.items)),        // fine-grained
     addItem:   _.action((i: Item) => ({ items: [...$.state.items, i] })),
     setCoupon: _.action((coupon: string) => ({ coupon })),
   };
@@ -2432,7 +2439,7 @@ export const r = localized("shell/<name>", { /* keys */ });
 | Server-only service (DB, secret) | `gear:inner` |
 | One-shot async resource (fetched once) | `Shell.define(async () => …)` or `OuterGear.define(async () => …)` |
 | Side effect that fires on state change | `_.relay` inside the owning outer gear |
-| Pure derived value over state | `_.getter(() => …)` (or `_.getter("memoized", …)`) |
+| Pure derived value over state | `_.getter(() => …)` (or `_.cell(() => …)` for memoized + fine-grained) |
 | External function / server action / SDK client / fetch wrapper used inside a gear or shell | `.withPorts({ name })`, accessed via `$.ports.name` |
 | Same logic with a different external binding or starting state | `r.withPorts(...).clone()` / `r.withState(...).clone()` (see §5) |
 | Sibling locale variant that differs only in a handful of phrases | `r.clone((res, plugin) => ({ ...res, /* overrides */ }))` (see §5.3.4) |
@@ -2460,6 +2467,6 @@ https://github.com/codecarvings/r-machine/blob/RM-alpha-12/benchmarks/type-scale
 
 ---
 
-rev 2026-05-31.010
+rev 2026-06-01.011
 Copyright (c) 2026 Sergio Turolla - All Rights Reserved.
 https://codecarvings.com

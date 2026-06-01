@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { type Getter, isGetter } from "../../src/core/getter.js";
 import { buildKernelJuncture } from "../../src/core/juncture.js";
-import { buildStatelessGetterComposer } from "../../src/core/outer-gear-composer.js";
+import { buildGetterCellComposer, buildStatelessGetterComposer } from "../../src/core/outer-gear-composer.js";
 import { createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
 import { createStateCell } from "../../src/core/reactivity/state-cell.js";
 import type { AnyRes } from "../../src/core/res.js";
@@ -30,8 +30,7 @@ function makeConnector(): ResComposerConnector {
 
 describe("buildStatelessGetterComposer", () => {
   it("getter(body) returns a branded callable Getter that reads through the body", () => {
-    const recorder = createCassetteRecorder();
-    const composer = buildStatelessGetterComposer(recorder);
+    const composer = buildStatelessGetterComposer();
     const body = vi.fn(() => 42);
     const g = composer(body);
 
@@ -42,11 +41,22 @@ describe("buildStatelessGetterComposer", () => {
     expect(body).toHaveBeenCalledTimes(2);
   });
 
-  it("getter('memoized', body) returns a Getter backed by a MemoCell", () => {
+  it("throws on invalid arguments shape", () => {
+    const composer = buildStatelessGetterComposer() as unknown as (...a: unknown[]) => unknown;
+    expect(() => composer()).toThrow(/invalid arguments/);
+    expect(() => composer("not-a-function", () => 1)).toThrow(/invalid arguments/);
+    expect(() => composer(42)).toThrow(/invalid arguments/);
+  });
+});
+
+// --- unit tests on the cell composer (getterCell) ----------------------------
+
+describe("buildCellComposer", () => {
+  it("cell(body) returns a Getter backed by a GetterCell (memoized)", () => {
     const recorder = createCassetteRecorder();
-    const composer = buildStatelessGetterComposer(recorder);
+    const cell = buildGetterCellComposer(recorder);
     const body = vi.fn(() => 7);
-    const g = composer("memoized", body) as Getter<number>;
+    const g = cell(body) as Getter<number>;
 
     expect(isGetter(g)).toBe(true);
     expect(g()).toBe(7);
@@ -55,11 +65,11 @@ describe("buildStatelessGetterComposer", () => {
     expect(body).toHaveBeenCalledTimes(1);
   });
 
-  it("memoized getter participates in cassette tracking like the stateful counterpart", () => {
+  it("cell participates in cassette tracking like the stateful counterpart", () => {
     const recorder = createCassetteRecorder();
-    const composer = buildStatelessGetterComposer(recorder);
+    const cell = buildGetterCellComposer(recorder);
     const upstream = createStateCell({ v: 1 }, recorder);
-    const g = composer("memoized", () => upstream.read().v * 10) as Getter<number>;
+    const g = cell(() => upstream.read().v * 10) as Getter<number>;
 
     // Prime so the next read is a cache hit.
     g();
@@ -69,24 +79,16 @@ describe("buildStatelessGetterComposer", () => {
     g();
     outer.eject();
 
-    // Cache hit registers the memo cell only (not the upstream cell).
+    // Cache hit registers the getter cell only (not the upstream cell).
     expect(outer.getDeps().size).toBe(1);
     expect(outer.getDeps()).not.toContain(upstream);
-  });
-
-  it("throws on invalid arguments shape", () => {
-    const recorder = createCassetteRecorder();
-    const composer = buildStatelessGetterComposer(recorder) as unknown as (...a: unknown[]) => unknown;
-    expect(() => composer()).toThrow(/invalid arguments/);
-    expect(() => composer("not-memoized", () => 1)).toThrow(/invalid arguments/);
-    expect(() => composer(42)).toThrow(/invalid arguments/);
   });
 });
 
 // --- integration via createResMatrix ----------------------------------------
 
 describe("Stateless OuterGear — end-to-end via createResMatrix", () => {
-  it("user-factory can declare a memoized getter on a stateless gear and it tracks deps via cassettes", async () => {
+  it("user-factory can declare a cell on a stateless gear and it tracks deps via cassettes", async () => {
     const recorder = createCassetteRecorder();
     // Build an external state cell to act as the gear's dependency surface — the
     // stateless gear's factory closes over it directly. In production this is
@@ -98,7 +100,8 @@ describe("Stateless OuterGear — end-to-end via createResMatrix", () => {
       meta: { family: "gear", role: "outer" },
       head: { realm: "res", family: "gear", mode: "map", deps: [], nsDeps: [], nsDepList: [], ports: {} } as never,
       cursor: {
-        getter: buildStatelessGetterComposer(recorder),
+        getter: buildStatelessGetterComposer(),
+        cell: buildGetterCellComposer(recorder),
         relay: () => {
           throw new Error("relay: stub");
         },
@@ -107,10 +110,7 @@ describe("Stateless OuterGear — end-to-end via createResMatrix", () => {
         },
       },
       userFactory: async (_plugin, cursor) => ({
-        doubled: (cursor as { getter: (...a: unknown[]) => unknown }).getter(
-          "memoized",
-          () => upstream.read().count * 2
-        ),
+        doubled: (cursor as { cell: (...a: unknown[]) => unknown }).cell(() => upstream.read().count * 2),
       }),
     });
 

@@ -109,7 +109,7 @@ export function cloneSurfaceWithOverride(surface: object, partial: AnyRecord | u
  * Clone the kit object applying per-entry overrides. Non-overridden entries are
  * copied by descriptor — crucially keeping any chain-deferred self-reference
  * getter LAZY (reading it mid-factory throws `ERR_CIRCULAR_DEPENDENCY`).
- * Overridden entries become a lazy, memoised getter that reads the original
+ * Overridden entries become a lazy, memoized getter that reads the original
  * entry only at access time (by then the factory has committed) and layers the
  * partial via `cloneSurfaceWithOverride` — so deferred kit entries can be
  * overridden without forcing an early read.
