@@ -135,8 +135,6 @@ export class RMachine<
    * needs per-consumer wire instances (each consumer is its own creator
    * unless a `VertexFrame` ancestor claims the namespace) or can share a
    * wire across consumers (the default for stateless / process-tier deps).
-   *
-   * @internal
    */
   isVertexNamespace(ns: AnyNamespace): boolean {
     return isVertexGearLayoutType(this.resLayoutResolver.resolveLayoutEntryType(ns));
@@ -149,7 +147,6 @@ export class RMachine<
     bus: undefined,
   };
 
-  /** @internal */
   [BUS_ACCESSOR](): InternalEventBus {
     if (!this.busHost.bus) {
       (this.busHost as { bus: InternalEventBus }).bus = createEventBus();
@@ -157,7 +154,6 @@ export class RMachine<
     return this.busHost.bus!;
   }
 
-  /** @internal */
   [CONFIG_ACCESSOR](): RMachineConfig<RA, L, E, EF> {
     return this.config;
   }

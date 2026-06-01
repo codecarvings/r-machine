@@ -141,11 +141,12 @@ export function getTranslatedHref(
             );
           }
         }
-      } else
+      } else {
         throw new RMachineUsageError(
           ERR_PATH_TRANSLATION_FAILED,
           `Cannot translate path "${path}" for locale "${locale}" because parameter "${mappedSegment.segment}" is missing.`
         );
+      }
     }
   });
 

@@ -43,10 +43,14 @@ export function getCurrentSurface(juncture: Juncture): AnySurface {
 function buildSurface(res: AnyRes, vertexTag: VertexGearTagData | undefined): AnySurface {
   const surface = Object.create(null) as AnyResolvedNamespaceMap;
   for (const key of Object.keys(res)) {
-    if (key.startsWith("$")) continue;
+    if (key.startsWith("$")) {
+      continue;
+    }
     const entry = (res as AnyResolvedNamespaceMap)[key];
     // Relay items are wiring, not consumer-facing values — excluded from the surface.
-    if (isRelay(entry)) continue;
+    if (isRelay(entry)) {
+      continue;
+    }
     if (isGetter(entry)) {
       Object.defineProperty(surface, key, {
         enumerable: true,

@@ -49,7 +49,9 @@ export function createBlueprintRelayOrderingProvider(bpm: BlueprintManager): Rel
           a.namespace !== undefined ? (depths.get(a.namespace) ?? Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY;
         const dB =
           b.namespace !== undefined ? (depths.get(b.namespace) ?? Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY;
-        if (dA !== dB) return dA - dB;
+        if (dA !== dB) {
+          return dA - dB;
+        }
         const pA =
           a.namespace !== undefined
             ? (bpm.getPriority(a.namespace) ?? Number.POSITIVE_INFINITY)
@@ -58,7 +60,9 @@ export function createBlueprintRelayOrderingProvider(bpm: BlueprintManager): Rel
           b.namespace !== undefined
             ? (bpm.getPriority(b.namespace) ?? Number.POSITIVE_INFINITY)
             : Number.POSITIVE_INFINITY;
-        if (pA !== pB) return pA - pB;
+        if (pA !== pB) {
+          return pA - pB;
+        }
         return (regIndex.get(a.runtime) ?? 0) - (regIndex.get(b.runtime) ?? 0);
       });
       return candidates.map((entry) => entry.runtime);

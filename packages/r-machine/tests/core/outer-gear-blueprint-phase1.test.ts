@@ -25,9 +25,13 @@ function buildEnv(modules: Record<string, (jm: JunctureManager, recorder: Casset
   const recorder = createCassetteRecorder();
 
   const loader = async (_p: string, opts?: ResModuleLoaderFnOptions): Promise<AnyResModule> => {
-    if (!opts) throw new Error("expected ResModuleLoaderFnOptions");
+    if (!opts) {
+      throw new Error("expected ResModuleLoaderFnOptions");
+    }
     const factory = modules[opts.namespace];
-    if (!factory) throw new Error(`No module registered for "${opts.namespace}"`);
+    if (!factory) {
+      throw new Error(`No module registered for "${opts.namespace}"`);
+    }
     return factory(jm, recorder);
   };
 

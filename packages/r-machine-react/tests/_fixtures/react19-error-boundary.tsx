@@ -10,7 +10,9 @@ export class React19ErrorBoundary extends React.Component<{ children: ReactNode 
     return { hasError: true };
   }
   override render() {
-    if (this.state.hasError) return null;
+    if (this.state.hasError) {
+      return null;
+    }
     return this.props.children;
   }
 }

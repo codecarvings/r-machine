@@ -13,6 +13,7 @@
     "rules": {
       "recommended": true,
       "style": {
+        "useBlockStatements": "warn",
         "noNonNullAssertion": "off"
       },
       "suspicious": {
@@ -63,7 +64,8 @@
       "!**/*.d.cts",
       "!**/node_modules",
       "!**/.next",
-      "!e2e"
+      "!e2e",
+      "!benchmarks/type-scale/generated"
     ]
   }
 }

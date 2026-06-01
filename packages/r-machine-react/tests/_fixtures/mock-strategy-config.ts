@@ -32,11 +32,15 @@ export function asyncStore(initial?: string, delay = 0): CustomLocaleStore & { v
   const store = {
     value: initial,
     get: vi.fn(async () => {
-      if (delay) await new Promise<void>((r) => setTimeout(r, delay));
+      if (delay) {
+        await new Promise<void>((r) => setTimeout(r, delay));
+      }
       return store.value;
     }),
     set: vi.fn(async (locale: string) => {
-      if (delay) await new Promise<void>((r) => setTimeout(r, delay));
+      if (delay) {
+        await new Promise<void>((r) => setTimeout(r, delay));
+      }
       store.value = locale;
     }),
   };

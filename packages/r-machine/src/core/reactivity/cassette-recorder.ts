@@ -197,10 +197,14 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
         }
       },
       eject() {
-        if (!inserted) return;
+        if (!inserted) {
+          return;
+        }
         inserted = false;
         const idx = stack.indexOf(cassette);
-        if (idx >= 0) stack.splice(idx, 1);
+        if (idx >= 0) {
+          stack.splice(idx, 1);
+        }
       },
     };
     return cassette;
@@ -264,7 +268,9 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
     relays.push({ runtime: r, namespace });
     return () => {
       const idx = relays.findIndex((entry) => entry.runtime === r);
-      if (idx >= 0) relays.splice(idx, 1);
+      if (idx >= 0) {
+        relays.splice(idx, 1);
+      }
       dirtyRelays.delete(r);
     };
   }
@@ -359,7 +365,9 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
         if (dirtyCells.size > 0) {
           const snapshot = [...dirtyCells];
           dirtyCells.clear();
-          for (const c of snapshot) c.notifyExternal();
+          for (const c of snapshot) {
+            c.notifyExternal();
+          }
         }
       }
     } finally {

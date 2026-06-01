@@ -99,9 +99,13 @@ export class JunctureManager {
   // process-shared `slots` map. Base/Inner/Shell always use `slots` directly —
   // they're stateless or locale-keyed and safe to cache across requests.
   protected slotsForLayout(layoutType: ResLayoutEntryType): Map<string, Slot> {
-    if (!isOuterGearLayoutType(layoutType)) return this.slots;
+    if (!isOuterGearLayoutType(layoutType)) {
+      return this.slots;
+    }
     const scope = this.scopeProvider.getActiveScope();
-    if (!scope) return this.slots;
+    if (!scope) {
+      return this.slots;
+    }
     return layoutType === "gear:outer(vertex)" ? scope.vertexSlots : scope.outerSlots;
   }
 
@@ -497,10 +501,14 @@ export class JunctureManager {
     // Order namespaces dependents-first via the union of reverse closures, so a
     // teardown can still reference resources its dependencies hold.
     const roots = new Set<AnyNamespace>();
-    for (const slot of this.slots.values()) roots.add(slot.namespace);
+    for (const slot of this.slots.values()) {
+      roots.add(slot.namespace);
+    }
     const ordered = new Set<AnyNamespace>();
     for (const root of roots) {
-      for (const n of this.blueprintManager.getReverseClosure(root)) ordered.add(n);
+      for (const n of this.blueprintManager.getReverseClosure(root)) {
+        ordered.add(n);
+      }
     }
     const keysByNs = new Map<AnyNamespace, string[]>();
     for (const slot of this.slots.values()) {
@@ -514,12 +522,16 @@ export class JunctureManager {
     for (const n of ordered) {
       const keys = keysByNs.get(n);
       if (keys) {
-        for (const key of keys) this.disposeSlotIn(this.slots, key);
+        for (const key of keys) {
+          this.disposeSlotIn(this.slots, key);
+        }
       }
     }
     // Defensive sweep: dispose any slot whose namespace fell outside the closure
     // walk (should be none, but never leak a slot).
-    for (const key of [...this.slots.keys()]) this.disposeSlotIn(this.slots, key);
+    for (const key of [...this.slots.keys()]) {
+      this.disposeSlotIn(this.slots, key);
+    }
 
     this.generationByNs.clear();
     this.subscribersByNs.clear();
@@ -695,9 +707,15 @@ export class JunctureManager {
   disposeRequestScope(scope: RequestScope): void {
     // Collect all root namespaces present in the scope's Outer + Vertex maps.
     const roots = new Set<AnyNamespace>();
-    for (const slot of scope.outerSlots.values()) roots.add(slot.namespace);
-    for (const slot of scope.vertexSlots.values()) roots.add(slot.namespace);
-    if (roots.size === 0) return;
+    for (const slot of scope.outerSlots.values()) {
+      roots.add(slot.namespace);
+    }
+    for (const slot of scope.vertexSlots.values()) {
+      roots.add(slot.namespace);
+    }
+    if (roots.size === 0) {
+      return;
+    }
 
     // Union of reverse closures preserving dispose-safe order. Set insertion
     // order is preserved; for a dependent that appears in multiple closures
@@ -706,7 +724,9 @@ export class JunctureManager {
     const ordered = new Set<AnyNamespace>();
     for (const root of roots) {
       const closure = this.blueprintManager.getReverseClosure(root);
-      for (const n of closure) ordered.add(n);
+      for (const n of closure) {
+        ordered.add(n);
+      }
     }
 
     // Bucket scope slot keys by namespace once.
@@ -719,12 +739,18 @@ export class JunctureManager {
       }
       arr.push({ key: slot.key, map });
     };
-    for (const slot of scope.outerSlots.values()) bucket(slot, scope.outerSlots);
-    for (const slot of scope.vertexSlots.values()) bucket(slot, scope.vertexSlots);
+    for (const slot of scope.outerSlots.values()) {
+      bucket(slot, scope.outerSlots);
+    }
+    for (const slot of scope.vertexSlots.values()) {
+      bucket(slot, scope.vertexSlots);
+    }
 
     for (const n of ordered) {
       const arr = keysByNs.get(n);
-      if (!arr) continue;
+      if (!arr) {
+        continue;
+      }
       for (const { key, map } of arr) {
         try {
           this.disposeSlotIn(map, key);

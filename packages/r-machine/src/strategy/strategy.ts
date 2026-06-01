@@ -53,12 +53,10 @@ export abstract class Strategy<
     // Default implementation does nothing
   }
 
-  /** @internal */
   [BUS_ACCESSOR](): InternalEventBus {
     return this.rMachine[BUS_ACCESSOR]();
   }
 
-  /** @internal */
   [CONFIG_ACCESSOR](): RMachineConfig<RA, L, E, EF> {
     return this.rMachine[CONFIG_ACCESSOR]();
   }

@@ -5,7 +5,9 @@ import { r as greet } from "../fixtures/mock-plug/shell-greet.js";
 
 const resets: Array<() => void> = [];
 afterEach(() => {
-  for (const reset of resets.splice(0)) reset();
+  for (const reset of resets.splice(0)) {
+    reset();
+  }
 });
 
 describe("mockPlug — kit override (map hoist mirror)", () => {

@@ -356,7 +356,9 @@ export class BlueprintManager {
       const n = queue[head++]!;
       const d = depths.get(n)!;
       const dependents = this.reverseDeps.get(n);
-      if (!dependents) continue;
+      if (!dependents) {
+        continue;
+      }
       for (const dep of dependents) {
         if (!depths.has(dep)) {
           depths.set(dep, d + 1);

@@ -200,7 +200,9 @@ export function generateProject(n: number): GeneratedProject {
   };
 
   for (const spec of specs) {
-    for (const file of renderResource(spec)) write(file.path, file.content);
+    for (const file of renderResource(spec)) {
+      write(file.path, file.content);
+    }
   }
 
   write("resource-atlas.ts", renderResourceAtlas(specs));

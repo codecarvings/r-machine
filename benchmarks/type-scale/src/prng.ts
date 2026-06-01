@@ -50,7 +50,9 @@ export class Prng {
 
   /** Up to `count` distinct elements from `arr` (fewer if arr is smaller). */
   sample<T>(arr: readonly T[], count: number): T[] {
-    if (count >= arr.length) return [...arr];
+    if (count >= arr.length) {
+      return [...arr];
+    }
     const pool = [...arr];
     const out: T[] = [];
     for (let i = 0; i < count && pool.length > 0; i++) {

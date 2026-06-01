@@ -45,7 +45,9 @@ export interface TraceResult {
 export function benchTrace(n: number, ensureGenerated = true): TraceResult {
   const dir = projectDir(n);
   const compileTsconfig = resolve(dir, "tsconfig.compile.json");
-  if (ensureGenerated && !existsSync(compileTsconfig)) generateProject(n);
+  if (ensureGenerated && !existsSync(compileTsconfig)) {
+    generateProject(n);
+  }
 
   const traceDir = resolve(dir, ".trace");
   rmSync(traceDir, { recursive: true, force: true });

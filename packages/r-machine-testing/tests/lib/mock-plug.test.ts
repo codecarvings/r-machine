@@ -9,7 +9,9 @@ import { r as counter } from "../fixtures/mock-plug/outer-counter.js";
 // mock can't trip `ERR_PLUG_ALREADY_MOCKED` in the next one.
 const resets: Array<() => void> = [];
 afterEach(() => {
-  for (const reset of resets.splice(0)) reset();
+  for (const reset of resets.splice(0)) {
+    reset();
+  }
 });
 
 function track(reset: () => void): () => void {

@@ -41,7 +41,9 @@ export function createGetterCell<V>(
 
   function notifyExternal(): void {
     hasExternalDirtyTrigger = false;
-    for (const cb of [...externalSubs]) cb();
+    for (const cb of [...externalSubs]) {
+      cb();
+    }
   }
 
   function recompute(): void {
@@ -57,7 +59,9 @@ export function createGetterCell<V>(
     } finally {
       cassette.eject();
     }
-    for (const unsub of depUnsubs) unsub();
+    for (const unsub of depUnsubs) {
+      unsub();
+    }
     depUnsubs = [];
     // Deps subscribe via the INTERNAL tier so invalidate fires inside the
     // tick — never deferred. This keeps the reactivity cascade consistent.
@@ -91,8 +95,12 @@ export function createGetterCell<V>(
     }
     // Output changed: notify internal subs inline (relays in the same tick);
     // schedule external subs for deferred flush if a tx is active, else inline.
-    for (const cb of [...internalSubs]) cb();
-    if (externalSubs.size === 0) return;
+    for (const cb of [...internalSubs]) {
+      cb();
+    }
+    if (externalSubs.size === 0) {
+      return;
+    }
     if (recorder.isInTransaction()) {
       if (!hasExternalDirtyTrigger) {
         hasExternalDirtyTrigger = true;

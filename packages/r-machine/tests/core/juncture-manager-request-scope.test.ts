@@ -85,9 +85,13 @@ function createEnv(options: EnvOptions) {
   let jm!: JunctureManager;
 
   const loader = async (_path: string, opts?: ResModuleLoaderFnOptions): Promise<AnyResModule> => {
-    if (!opts) throw new Error("expected options");
+    if (!opts) {
+      throw new Error("expected options");
+    }
     const factory = options.modules[opts.namespace];
-    if (!factory) throw new Error(`No module for ${opts.namespace}`);
+    if (!factory) {
+      throw new Error(`No module for ${opts.namespace}`);
+    }
     return factory(() => jm);
   };
 

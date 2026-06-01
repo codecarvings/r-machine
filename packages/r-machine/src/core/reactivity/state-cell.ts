@@ -31,7 +31,9 @@ export function createStateCell<S>(initial: S, recorder: CassetteRecorder): Stat
   const externalSubs = new Set<() => void>();
 
   function notifyExternal(): void {
-    for (const cb of [...externalSubs]) cb();
+    for (const cb of [...externalSubs]) {
+      cb();
+    }
   }
 
   const cell: StateCell<S> = {
@@ -43,9 +45,13 @@ export function createStateCell<S>(initial: S, recorder: CassetteRecorder): Stat
       return current;
     },
     publish(next) {
-      if (Object.is(next, current)) return;
+      if (Object.is(next, current)) {
+        return;
+      }
       current = next;
-      for (const cb of [...internalSubs]) cb();
+      for (const cb of [...internalSubs]) {
+        cb();
+      }
       if (recorder.isInTransaction()) {
         recorder.enqueueDirtyCell({ notifyExternal });
       } else {

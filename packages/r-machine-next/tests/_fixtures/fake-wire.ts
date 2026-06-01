@@ -80,7 +80,9 @@ export function createFakeWire(plugin: unknown, options: FakeWireOptions = {}): 
   };
 
   const fireSubscribers = () => {
-    for (const cb of subscribers) cb();
+    for (const cb of subscribers) {
+      cb();
+    }
   };
 
   return {

@@ -178,7 +178,9 @@ export async function createReactBareToolset<
     //     so wires can never outlive the plugin they reference.
     //   - Client (no scope): the module-level `fallbackWireCache`.
     const getWireCache = (requestScope: RequestScope | null): Map<string, WireEntry> => {
-      if (!requestScope) return fallbackWireCache;
+      if (!requestScope) {
+        return fallbackWireCache;
+      }
       let cache = requestScope.wireCachesByPlugId.get(plugId) as Map<string, WireEntry> | undefined;
       if (!cache) {
         cache = new Map<string, WireEntry>();
@@ -404,8 +406,12 @@ export async function createReactBareToolset<
         return () => {
           mountedRef.current = false;
           queueMicrotask(() => {
-            if (mountedRef.current) return;
-            if (key !== null) wire.disposeConsumer(key);
+            if (mountedRef.current) {
+              return;
+            }
+            if (key !== null) {
+              wire.disposeConsumer(key);
+            }
           });
         };
       }, [wire]);

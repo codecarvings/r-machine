@@ -45,7 +45,9 @@ interface Probe {
 function afterQuote(anchor: string) {
   return (line: string) => {
     const i = line.indexOf(anchor);
-    if (i < 0) throw new Error(`anchor not found: ${anchor}`);
+    if (i < 0) {
+      throw new Error(`anchor not found: ${anchor}`);
+    }
     return i + anchor.length + 1;
   };
 }
@@ -103,7 +105,9 @@ class TsServer {
       const line = this.buf.slice(0, nl).trim();
       this.buf = this.buf.slice(nl + 1);
       nl = this.buf.indexOf("\n");
-      if (!line.startsWith("{")) continue; // skip Content-Length headers / blank lines
+      if (!line.startsWith("{")) {
+        continue; // skip Content-Length headers / blank lines
+      }
       let msg: any;
       try {
         msg = JSON.parse(line);
@@ -172,14 +176,18 @@ class TsServer {
 }
 
 function pct(sorted: number[], p: number): number {
-  if (sorted.length === 0) return Number.NaN;
+  if (sorted.length === 0) {
+    return Number.NaN;
+  }
   const idx = Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length));
   return Math.round(sorted[idx]! * 10) / 10;
 }
 
 export async function benchIntelliSense(n: number, ensureGenerated = true): Promise<IntelliSenseMetrics> {
   const dir = projectDir(n);
-  if (ensureGenerated && !existsSync(resolve(dir, "tsconfig.json"))) generateProject(n);
+  if (ensureGenerated && !existsSync(resolve(dir, "tsconfig.json"))) {
+    generateProject(n);
+  }
 
   const fixture = resolve(dir, "src", "_fixture.tsx");
   const content = readFileSync(fixture, "utf8");
@@ -187,12 +195,16 @@ export async function benchIntelliSense(n: number, ensureGenerated = true): Prom
 
   const locate = (marker: string, offsetFn: (line: string) => number) => {
     const idx = lines.findIndex((l) => l.includes(marker));
-    if (idx < 0) throw new Error(`marker ${marker} not found in fixture`);
+    if (idx < 0) {
+      throw new Error(`marker ${marker} not found in fixture`);
+    }
     return { line: idx + 1, offset: offsetFn(lines[idx]!) };
   };
 
   const scratchLine = lines.findIndex((l) => l.includes("//SCRATCH")) + 1;
-  if (scratchLine === 0) throw new Error("scratch line not found in fixture");
+  if (scratchLine === 0) {
+    throw new Error("scratch line not found in fixture");
+  }
 
   const server = new TsServer();
   try {
@@ -216,8 +228,12 @@ export async function benchIntelliSense(n: number, ensureGenerated = true): Prom
           offset,
           ...(probe.kind === "completionInfo" ? { triggerKind: 1 } : {}),
         });
-        if (Number.isNaN(projectLoadMs)) projectLoadMs = Math.round(res.elapsedMs); // first request = cold (incl. project load)
-        if (probe.kind === "completionInfo" && res.body?.entries) entryCount = res.body.entries.length;
+        if (Number.isNaN(projectLoadMs)) {
+          projectLoadMs = Math.round(res.elapsedMs); // first request = cold (incl. project load)
+        }
+        if (probe.kind === "completionInfo" && res.body?.entries) {
+          entryCount = res.body.entries.length;
+        }
         samples.push(res.elapsedMs);
       }
 

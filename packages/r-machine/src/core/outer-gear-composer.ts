@@ -448,10 +448,9 @@ type StatelessOuterGearListDefiner<
 
 // #region Runtime
 
-/** @internal — exposed for testing the resolution wiring */
 export const stateCellSlot = Symbol("stateCell");
 
-/** @internal — opaque slot used by the cursor to hand its relay-cleanup list to the postProcess. */
+/** opaque slot used by the cursor to hand its relay-cleanup list to the postProcess. */
 const relayCleanupSlot: unique symbol = Symbol("relayCleanup");
 
 function attachRelayCleanup<C extends object>(cursor: C, disposes: Array<() => void>): C {
@@ -467,7 +466,6 @@ interface PluginWithStateCell<S> {
   readonly [stateCellSlot]: StateCell<S>;
 }
 
-/** @internal — exposed for testing */
 export function buildStatelessGetterComposer(): StatelessGetterComposer {
   let counter = 0;
   return ((...args: unknown[]): unknown => {
@@ -495,7 +493,6 @@ export function buildGetterCellComposer(recorder: CassetteRecorder): GetterCellC
   }) as GetterCellComposer;
 }
 
-/** @internal — exposed for testing the resolution wiring */
 export function buildStatefulOuterGearCursor<S extends AnyState>(
   cell: StateCell<S>,
   recorder: CassetteRecorder,
@@ -572,14 +569,17 @@ const meta: GearMatrixMeta = { family: "gear", role: "outer" };
 
 const emptyPorts: BaseGearPlugPortMap = {};
 
-/** @internal — exposed for tests that bypass the production composer and build res-matrix directly. */
 export function wrapWithRelayCleanup(resource: AnyRes, cursor: unknown): AnyRes {
   const relayDisposes = takeRelayCleanup(cursor) ?? [];
   const userDispose = tryGetDispose(resource);
-  if (relayDisposes.length === 0 && !userDispose) return resource;
+  if (relayDisposes.length === 0 && !userDispose) {
+    return resource;
+  }
   let disposed = false;
   const combined = () => {
-    if (disposed) return;
+    if (disposed) {
+      return;
+    }
     disposed = true;
     if (userDispose) {
       try {
@@ -912,8 +912,12 @@ function composeStatefulFn<R, P extends AnyResPlug, S extends AnyState>(
   prev: StatefulCloneFn<R, P, S> | undefined,
   next: StatefulCloneFn<R, P, S> | undefined
 ): StatefulCloneFn<R, P, S> | undefined {
-  if (prev === undefined) return next;
-  if (next === undefined) return prev;
+  if (prev === undefined) {
+    return next;
+  }
+  if (next === undefined) {
+    return prev;
+  }
   return async (res, plugin, cursor) => next(await prev(res, plugin, cursor), plugin, cursor);
 }
 
@@ -1223,8 +1227,12 @@ function composeStatelessFn<R, P extends AnyResPlug>(
   prev: StatelessCloneFn<R, P> | undefined,
   next: StatelessCloneFn<R, P> | undefined
 ): StatelessCloneFn<R, P> | undefined {
-  if (prev === undefined) return next;
-  if (next === undefined) return prev;
+  if (prev === undefined) {
+    return next;
+  }
+  if (next === undefined) {
+    return prev;
+  }
   return async (res, plugin, cursor) => next(await prev(res, plugin, cursor), plugin, cursor);
 }
 

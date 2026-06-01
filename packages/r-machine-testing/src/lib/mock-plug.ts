@@ -69,7 +69,9 @@ export const mockPlug: MockPlug = (plug: PlugBody<AnyPlugHead>) => {
         const ctx = overrides.$ as { locale?: AnyLocale } | undefined;
         const effLocale = ctx?.locale ?? locale;
         const plugin = await prevResolve(effLocale, chain);
-        if (!hasOverrides(overrides)) return plugin;
+        if (!hasOverrides(overrides)) {
+          return plugin;
+        }
         return (
           Array.isArray(plugin) ? cloneListPlugin(plugin, overrides) : cloneMapPlugin(plugin as object, overrides)
         ) as never;

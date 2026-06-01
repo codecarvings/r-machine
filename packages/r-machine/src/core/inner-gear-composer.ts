@@ -316,7 +316,9 @@ function composeGearFactory(
   factory: (plugin: unknown) => AnyRes | Promise<AnyRes>,
   fn: InnerGearCloneFn<AnyRes, AnyResPlug> | undefined
 ): (plugin: unknown) => AnyRes | Promise<AnyRes> {
-  if (fn === undefined) return factory;
+  if (fn === undefined) {
+    return factory;
+  }
   return async (plugin: unknown) => fn(await factory(plugin), plugin as never);
 }
 

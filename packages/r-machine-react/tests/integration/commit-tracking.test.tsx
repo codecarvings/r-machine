@@ -60,7 +60,9 @@ function createFakeWire(): {
     notify: () => {
       // Mirror real wire behavior: bust the promise identity then fire subs.
       currentPromise = currentPromise.then((p) => p);
-      for (const cb of subscribers) cb();
+      for (const cb of subscribers) {
+        cb();
+      }
     },
     unsubscribeSpy,
     pluginValue,

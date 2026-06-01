@@ -40,7 +40,9 @@ vi.mock("next/headers", () => ({
 const cacheRegistry: Array<{ reset: () => void }> = [];
 
 function resetCacheScope() {
-  for (const entry of cacheRegistry) entry.reset();
+  for (const entry of cacheRegistry) {
+    entry.reset();
+  }
 }
 
 vi.mock("react", async (importOriginal) => {

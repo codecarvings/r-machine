@@ -67,7 +67,9 @@ function buildPlugin(
   augmentCtx: ($: Record<string, unknown>) => void
 ): unknown {
   const kitSurfaces: Record<string, unknown> = {};
-  for (const k in kit) kitSurfaces[k] = resolve(kit[k] as string, locale);
+  for (const k in kit) {
+    kitSurfaces[k] = resolve(kit[k] as string, locale);
+  }
 
   const $: Record<string, unknown> = { kit: kitSurfaces };
   augmentCtx($);
@@ -76,7 +78,9 @@ function buildPlugin(
     return [...nsDeps.map((ns) => resolve(ns, locale)), $];
   }
   const depSurfaces: Record<string, unknown> = {};
-  for (const key in nsDeps) depSurfaces[key] = resolve(nsDeps[key] as string, locale);
+  for (const key in nsDeps) {
+    depSurfaces[key] = resolve(nsDeps[key] as string, locale);
+  }
   return { ...kitSurfaces, ...depSurfaces, $ };
 }
 

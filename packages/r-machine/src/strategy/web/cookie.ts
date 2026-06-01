@@ -33,12 +33,19 @@ export function getCookie(name: string): string | undefined {
 }
 
 export function setCookie(name: string, value: string, config: Omit<CookieDeclaration, "name">): void {
-  let cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
-  cookie += `; path=${config.path ?? "/"}`;
-  if (config.domain !== undefined) cookie += `; domain=${config.domain}`;
-  if (config.maxAge !== undefined) cookie += `; max-age=${config.maxAge}`;
-  if (config.secure) cookie += "; secure";
-  if (config.sameSite !== undefined) cookie += `; samesite=${config.sameSite}`;
+  let cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=${config.path ?? "/"}`;
+  if (config.domain !== undefined) {
+    cookie += `; domain=${config.domain}`;
+  }
+  if (config.maxAge !== undefined) {
+    cookie += `; max-age=${config.maxAge}`;
+  }
+  if (config.secure) {
+    cookie += "; secure";
+  }
+  if (config.sameSite !== undefined) {
+    cookie += `; samesite=${config.sameSite}`;
+  }
   // biome-ignore lint: intentional native cookie management
   document.cookie = cookie;
 }

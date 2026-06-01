@@ -52,10 +52,14 @@ function hasOwn(obj: object, key: PropertyKey): boolean {
  */
 export function hasOverrides(data: AnyRecord): boolean {
   for (const key of Object.keys(data)) {
-    if (key !== "$") return true; // a dep (map) or positional (list) override
+    if (key !== "$") {
+      return true; // a dep (map) or positional (list) override
+    }
   }
   const ctx = data.$ as AnyRecord | undefined;
-  if (ctx === undefined) return false;
+  if (ctx === undefined) {
+    return false;
+  }
   return ctx.ports !== undefined || ctx.state !== undefined || ctx.kit !== undefined;
 }
 
@@ -88,10 +92,14 @@ function findStateCell($: object): StateCellLike | undefined {
  * `configurable: false` descriptors never get in the way.
  */
 export function cloneSurfaceWithOverride(surface: object, partial: AnyRecord | undefined): object {
-  if (partial === undefined || Object.keys(partial).length === 0) return surface;
+  if (partial === undefined || Object.keys(partial).length === 0) {
+    return surface;
+  }
   const out = Object.create(Object.getPrototypeOf(surface));
   for (const key of Reflect.ownKeys(surface)) {
-    if (typeof key === "string" && hasOwn(partial, key)) continue; // replaced below
+    if (typeof key === "string" && hasOwn(partial, key)) {
+      continue; // replaced below
+    }
     Object.defineProperty(out, key, Object.getOwnPropertyDescriptor(surface, key)!);
   }
   for (const key of Object.keys(partial)) {
@@ -117,7 +125,9 @@ export function cloneSurfaceWithOverride(surface: object, partial: AnyRecord | u
 export function cloneKit(kit: object, kitOverride: AnyRecord): object {
   const out: AnyRecord = {};
   for (const key of Reflect.ownKeys(kit)) {
-    if (typeof key === "string" && hasOwn(kitOverride, key)) continue; // replaced below
+    if (typeof key === "string" && hasOwn(kitOverride, key)) {
+      continue; // replaced below
+    }
     Object.defineProperty(out, key, Object.getOwnPropertyDescriptor(kit, key)!);
   }
   for (const key of Object.keys(kitOverride)) {
@@ -153,11 +163,15 @@ export function cloneKit(kit: object, kitOverride: AnyRecord): object {
  * `$.kit` is cloned with per-entry overrides (see `cloneKit`).
  */
 export function cloneCtx($: object, ctxOverride: AnyRecord | undefined): object {
-  if (ctxOverride === undefined) return $;
+  if (ctxOverride === undefined) {
+    return $;
+  }
   const overridePorts = ctxOverride.ports !== undefined;
   const overrideState = ctxOverride.state !== undefined;
   const overrideKit = ctxOverride.kit !== undefined;
-  if (!overridePorts && !overrideState && !overrideKit) return $;
+  if (!overridePorts && !overrideState && !overrideKit) {
+    return $;
+  }
 
   const out: AnyRecord = {};
   for (const key of Reflect.ownKeys($)) {
@@ -207,7 +221,9 @@ export function cloneMapPlugin(plugin: object, data: AnyRecord): object {
   const ctxOverride = data.$ as AnyRecord | undefined;
   const out: AnyRecord = {};
   for (const key of Reflect.ownKeys(plugin)) {
-    if (key === "$") continue; // rebuilt last
+    if (key === "$") {
+      continue; // rebuilt last
+    }
     if (typeof key === "string" && hasOwn(data, key)) {
       // Dep override. Deps are eager resolved Surfaces (data props), safe to read.
       out[key] = cloneSurfaceWithOverride((plugin as AnyRecord)[key] as object, data[key] as AnyRecord);

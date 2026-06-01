@@ -379,7 +379,9 @@ function findResourceAtlasClass(
   checker: ts.TypeChecker,
   visited: Set<string>
 ): ts.ClassDeclaration | undefined {
-  if (visited.has(sourceFile.fileName)) return undefined;
+  if (visited.has(sourceFile.fileName)) {
+    return undefined;
+  }
   visited.add(sourceFile.fileName);
 
   let local: ts.ClassDeclaration | undefined;
@@ -388,17 +390,27 @@ function findResourceAtlasClass(
       local = node;
     }
   });
-  if (local) return local;
+  if (local) {
+    return local;
+  }
 
   for (const stmt of sourceFile.statements) {
-    if (!tsModule.isImportDeclaration(stmt)) continue;
+    if (!tsModule.isImportDeclaration(stmt)) {
+      continue;
+    }
     const moduleSpec = stmt.moduleSpecifier;
-    if (!tsModule.isStringLiteral(moduleSpec)) continue;
+    if (!tsModule.isStringLiteral(moduleSpec)) {
+      continue;
+    }
     const moduleSymbol = checker.getSymbolAtLocation(moduleSpec);
     const imported = moduleSymbol?.declarations?.[0]?.getSourceFile();
-    if (!imported) continue;
+    if (!imported) {
+      continue;
+    }
     const found = findResourceAtlasClass(tsModule, imported, checker, visited);
-    if (found) return found;
+    if (found) {
+      return found;
+    }
   }
   return undefined;
 }
@@ -410,9 +422,13 @@ function readCompilerOptions(
 ): ts.CompilerOptions {
   const configPath =
     tsconfigPath ?? tsModule.findConfigFile(nodePath.dirname(setupFile), tsModule.sys.fileExists, "tsconfig.json");
-  if (!configPath) return {};
+  if (!configPath) {
+    return {};
+  }
   const configFile = tsModule.readConfigFile(configPath, tsModule.sys.readFile);
-  if (!configFile.config) return {};
+  if (!configFile.config) {
+    return {};
+  }
   const parsed = tsModule.parseJsonConfigFileContent(configFile.config, tsModule.sys, nodePath.dirname(configPath));
   return parsed.options;
 }
@@ -446,7 +462,9 @@ function stripInternalMarker(name: string): string {
 // ─── Error utilities ────────────────────────────────────────────────────
 
 function errorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
+  if (err instanceof Error) {
+    return err.message;
+  }
   return String(err);
 }
 

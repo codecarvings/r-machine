@@ -56,7 +56,9 @@ export function createMockMachine(
     augmentCtx: ($: Record<string, unknown>) => void
   ): GateWire => {
     const kitSurfaces: Record<string, unknown> = {};
-    for (const k in kit) kitSurfaces[k] = resolve(kit[k] as string, locale);
+    for (const k in kit) {
+      kitSurfaces[k] = resolve(kit[k] as string, locale);
+    }
 
     const $: Record<string, unknown> = { kit: kitSurfaces };
     augmentCtx($);
@@ -66,7 +68,9 @@ export function createMockMachine(
       plugin = [...nsDeps.map((ns) => resolve(ns, locale)), $];
     } else {
       const depSurfaces: Record<string, unknown> = {};
-      for (const key in nsDeps) depSurfaces[key] = resolve(nsDeps[key] as string, locale);
+      for (const key in nsDeps) {
+        depSurfaces[key] = resolve(nsDeps[key] as string, locale);
+      }
       plugin = { ...kitSurfaces, ...depSurfaces, $ };
     }
 

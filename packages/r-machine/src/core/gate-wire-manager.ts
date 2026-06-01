@@ -111,12 +111,16 @@ function createGateWire(
 
   function disposeConsumerState(state: ConsumerState): void {
     state.cassette.eject();
-    for (const unsub of state.unsubs) unsub();
+    for (const unsub of state.unsubs) {
+      unsub();
+    }
     state.unsubs = [];
   }
 
   function disposeAllConsumers(): void {
-    for (const state of consumers.values()) disposeConsumerState(state);
+    for (const state of consumers.values()) {
+      disposeConsumerState(state);
+    }
     consumers.clear();
   }
 
@@ -237,7 +241,9 @@ function createGateWire(
         }
         committed = true;
         state.cassette.eject();
-        for (const unsub of state.unsubs) unsub();
+        for (const unsub of state.unsubs) {
+          unsub();
+        }
         state.unsubs = [];
         const deps = state.cassette.getDeps();
         for (const dep of deps) {
@@ -252,7 +258,9 @@ function createGateWire(
     // switch routes the consumer to a different cached wire).
     disposeConsumer: (consumerKey: object) => {
       const state = consumers.get(consumerKey);
-      if (state === undefined) return;
+      if (state === undefined) {
+        return;
+      }
       disposeConsumerState(state);
       consumers.delete(consumerKey);
     },

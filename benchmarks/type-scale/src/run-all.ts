@@ -58,7 +58,9 @@ function fmt(n: number): string {
 
 function compileTable(points: PointResult[]): string {
   const rows = points.map((p) => {
-    if ("error" in p.compile) return [p.n, "ERROR", "—", "—", "—", "—", "—", "—"];
+    if ("error" in p.compile) {
+      return [p.n, "ERROR", "—", "—", "—", "—", "—", "—"];
+    }
     const c = p.compile;
     return [
       c.n,
@@ -76,7 +78,9 @@ function compileTable(points: PointResult[]): string {
 
 function isTable(points: PointResult[], stat: "p50" | "p95"): string {
   const rows = points.map((p) => {
-    if ("error" in p.intellisense) return [p.n, "ERROR", ...PROBE_ORDER.map(() => "—")];
+    if ("error" in p.intellisense) {
+      return [p.n, "ERROR", ...PROBE_ORDER.map(() => "—")];
+    }
     const m = p.intellisense;
     return [p.n, m.projectLoadMs, ...PROBE_ORDER.map((k) => m.probes[k]?.[stat] ?? "—")];
   });
@@ -85,7 +89,9 @@ function isTable(points: PointResult[], stat: "p50" | "p95"): string {
 
 function growthNote(points: PointResult[]): string {
   const ok = points.filter((p) => !("error" in p.compile) && !("error" in p.intellisense));
-  if (ok.length < 2) return "_Not enough successful points to compute growth._";
+  if (ok.length < 2) {
+    return "_Not enough successful points to compute growth._";
+  }
   const first = ok[0]!;
   const last = ok[ok.length - 1]!;
   const c0 = first.compile as CompileMetrics;
@@ -171,8 +177,9 @@ async function main() {
       compile = benchCompile(n, false);
       const c = compile as CompileMetrics;
       console.log(`    types=${fmt(c.types)} inst=${fmt(c.instantiations)} check=${c.checkTimeS}s errors=${c.errors}`);
-      if (c.errors > 0)
+      if (c.errors > 0) {
         console.log(`    ⚠️  ${c.errors} TYPE ERROR(S) — the generated project is invalid; fix the generator.`);
+      }
     } catch (e) {
       compile = { error: String((e as Error).message).slice(0, 500) };
       console.log(`    compile FAILED: ${(compile as { error: string }).error.split("\n")[0]}`);

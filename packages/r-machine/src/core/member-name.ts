@@ -17,7 +17,7 @@ import { type AnyRelay, isRelay } from "./relay.js";
 
 const memberNameSymbol: unique symbol = Symbol("memberName");
 
-/** @internal — attaches the (mutable) name slot on a getter/action/relay. */
+/** attaches the (mutable) name slot on a getter/action/relay. */
 export function setMemberName(target: object, name: string): void {
   Object.defineProperty(target, memberNameSymbol, { value: name, writable: true, configurable: true });
 }
@@ -35,8 +35,6 @@ export function getMemberName(member: NamedMember): string {
  * name with the property name under which it is exported. Last occurrence
  * wins (insertion order) — an action ref exported under multiple keys takes
  * the last key's name.
- *
- * @internal — exposed for testing the naming wiring.
  */
 export function promoteMemberNames(resource: unknown): void {
   if (resource == null || typeof resource !== "object") {

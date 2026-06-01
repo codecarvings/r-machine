@@ -51,7 +51,9 @@ describe("verifyResourceAtlas", () => {
 
       const issue = report.issues[0];
       expect(issue.kind).toBe("loader-error");
-      if (issue.kind !== "loader-error") return;
+      if (issue.kind !== "loader-error") {
+        return;
+      }
       expect(issue.key).toBe("gear/inner");
       // Non-shell kinds: no locale, no isCanonical.
       expect(issue.locale).toBeUndefined();
@@ -71,7 +73,9 @@ describe("verifyResourceAtlas", () => {
 
       const issue = report.issues[0];
       expect(issue.kind).toBe("invalid-module-shape");
-      if (issue.kind !== "invalid-module-shape") return;
+      if (issue.kind !== "invalid-module-shape") {
+        return;
+      }
       expect(issue.key).toBe("shell/lib/mono");
       // shell(mono) is checked against defaultLocale only.
       expect(issue.locale).toBe("en");
@@ -147,7 +151,9 @@ describe("verifyResourceAtlas", () => {
       // plus the hint at the end.
       const hint = report.issues.find((i) => i.kind === "dev-loader-not-active");
       expect(hint).toBeDefined();
-      if (hint?.kind !== "dev-loader-not-active") return;
+      if (hint?.kind !== "dev-loader-not-active") {
+        return;
+      }
       expect(hint.reason).toMatch(/jiti/i);
       expect(hint.reason).toMatch(/pnpm add -D jiti/i);
     });
