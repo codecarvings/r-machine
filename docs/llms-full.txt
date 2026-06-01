@@ -50,7 +50,7 @@ Using mainstream libraries directly is like accessing data from disk without a D
 `getResolveContext` (from `r-machine`) — reads the resolution attribution attached to a resolution-failure error (see §10.6)
 
 **Cursor primitives** (reactive members inside an `OuterGear`)
-`_.action`, `_.getter`, `_.relay`, `_.cmd`
+`_.action`, `_.getter`, `_.cell`, `_.relay`, `_.cmd`
 
 **Lifecycle**
 `[Symbol.dispose]` convention (see §9)
