@@ -4,11 +4,11 @@ import {
   type BusHost,
   createCassetteRecorder,
   createOuterGearComposer,
-  type GateWire,
-  GateWireManager,
   JunctureManager,
   type ResComposerConnector,
   ResLayoutResolver,
+  type Wire,
+  WireManager,
 } from "r-machine/core";
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -18,13 +18,13 @@ import { createMockMachine } from "../_fixtures/mock-machine.js";
 afterEach(cleanup);
 
 // ---------------------------------------------------------------------------
-// A fake GateWire used to verify that `useBareReactPlug` calls the wire's
+// A fake Wire used to verify that `useBareReactPlug` calls the wire's
 // commit-tracking API correctly. We don't need a real recorder/cell here —
 // just spies on the API surface.
 // ---------------------------------------------------------------------------
 
 function createFakeWire(): {
-  wire: GateWire;
+  wire: Wire;
   startTrackingSpy: ReturnType<typeof vi.fn>;
   commitSpy: ReturnType<typeof vi.fn>;
   notify: () => void;
@@ -39,7 +39,7 @@ function createFakeWire(): {
   const startTrackingSpy = vi.fn(() => commitSpy);
   const unsubscribeSpy = vi.fn();
 
-  const wire: GateWire = {
+  const wire: Wire = {
     getPluginPromise: () => currentPromise,
     subscribe: (cb: () => void) => {
       subscribers.add(cb);
@@ -69,12 +69,12 @@ function createFakeWire(): {
   };
 }
 
-// Builds a mock machine whose `getGateWire` returns a controllable fake wire.
-// The mock-machine fixture only covers the hybridPickR path; the gate-wire
+// Builds a mock machine whose `getWire` returns a controllable fake wire.
+// The mock-machine fixture only covers the hybridPickR path; the wire
 // path is exercised here.
-function createMockMachineWithWire(wire: GateWire) {
+function createMockMachineWithWire(wire: Wire) {
   const mock = createMockMachine() as unknown as Record<string, unknown>;
-  mock.getGateWire = vi.fn(() => wire);
+  mock.getWire = vi.fn(() => wire);
   return mock as unknown as Parameters<typeof createReactBareToolset>[0];
 }
 
@@ -241,10 +241,10 @@ function buildRealEnv(layoutType: "gear:outer" | "gear:outer(vertex)" = "gear:ou
   const equipment = { gearKit: { counter: "v/counter" }, shellKit: {}, bridgeGears: [] };
   const bm = new BlueprintManager(resolver, loader as never, { gear: ["v/counter" as never], shell: [] }, [], busHost);
   jm = new JunctureManager(resolver, equipment as never, bm, busHost);
-  const gwm = new GateWireManager(jm, busHost, recorder);
+  const gwm = new WireManager(jm, busHost, recorder);
 
   // Fake machine surface: just what createReactBareToolset and useBareReactPlug
-  // actually touch — validateLocale + defaultLocale + getGateWire +
+  // actually touch — validateLocale + defaultLocale + getWire +
   // isVertexNamespace (used by the Plug factory to decide per-consumer vs
   // shared wire caching).
   const fakeMachine = {
@@ -252,7 +252,7 @@ function buildRealEnv(layoutType: "gear:outer" | "gear:outer(vertex)" = "gear:ou
       validateLocale: () => null,
       defaultLocale: "en",
     },
-    getGateWire: gwm.getWire.bind(gwm),
+    getWire: gwm.getWire.bind(gwm),
     isVertexNamespace: (ns: string) => resolver.resolveLayoutEntryType(ns as never) === "gear:outer(vertex)",
   };
 

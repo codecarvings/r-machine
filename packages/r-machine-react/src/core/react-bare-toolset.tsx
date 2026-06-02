@@ -22,7 +22,6 @@ import type {
   AnyPlugHead,
   AnyResAtlas,
   ExperimentalFlags,
-  GateWire,
   HandleList,
   HandleMap,
   NamespaceCollection,
@@ -30,6 +29,7 @@ import type {
   PluginCtxAugmenter,
   RequestScope,
   ResEquipment,
+  Wire,
 } from "r-machine/core";
 import { createPlug, getNamespaceList, getNamespaceMap, getPlugId, getPlugOutline } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
@@ -158,7 +158,7 @@ export async function createReactBareToolset<
     // own its own wire; the old wire is disposed naturally when React
     // unmounts the old subtree (last `subscribe` returns → JM unsubscribe →
     // outer vertex slots disposed by genId).
-    type WireEntry = { wire: GateWire; localeHolder: { current: L } };
+    type WireEntry = { wire: Wire; localeHolder: { current: L } };
     // Module-level fallback cache for client-side (no request scope active).
     const fallbackWireCache = new Map<string, WireEntry>();
     // Per-consumer caches for plugs whose vertex deps are NOT covered by a
@@ -193,7 +193,7 @@ export async function createReactBareToolset<
       vertexGearMap: ReturnType<typeof useVertexFrame>,
       requestScope: RequestScope | null,
       consumerKey: object
-    ): GateWire => {
+    ): Wire => {
       const vgmSig = vertexGearMap
         ? Object.entries(vertexGearMap)
             .map(([k, v]) => `${k}=${v}`)
@@ -261,7 +261,7 @@ export async function createReactBareToolset<
             }
           };
         };
-        const wire = rMachine.getGateWire(kit, nsDeps as NamespaceCollection<RA>, locale, augmentCtx, vertexGearMap);
+        const wire = rMachine.getWire(kit, nsDeps as NamespaceCollection<RA>, locale, augmentCtx, vertexGearMap);
         entry = { wire, localeHolder };
         wireCache.set(key, entry);
       }

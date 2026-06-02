@@ -1,6 +1,6 @@
 /**
  * Shared test harness: build a real BlueprintManager + JunctureManager +
- * GateWireManager wired exactly like RMachine does (one shared CassetteRecorder
+ * WireManager wired exactly like RMachine does (one shared CassetteRecorder
  * per environment), driven by an in-memory module map.
  *
  * Generalizes the per-file `buildEnv` first written in
@@ -13,7 +13,6 @@
 import { createBaseGearComposer } from "../../src/core/base-gear-composer.js";
 import { BlueprintManager } from "../../src/core/blueprint-manager.js";
 import type { BusHost } from "../../src/core/event-bus.js";
-import { GateWireManager } from "../../src/core/gate-wire-manager.js";
 import { createInnerGearComposer } from "../../src/core/inner-gear-composer.js";
 import { getCurrentSurface, type Juncture } from "../../src/core/juncture.js";
 import { JunctureManager } from "../../src/core/juncture-manager.js";
@@ -26,12 +25,13 @@ import type { AnyResEquipment } from "../../src/core/res-equipment.js";
 import { type AnyResLayout, ResLayoutResolver } from "../../src/core/res-layout.js";
 import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-module.js";
 import { createShellComposer } from "../../src/core/shell-composer.js";
+import { WireManager } from "../../src/core/wire-manager.js";
 
 export type ModuleFactory = (jm: JunctureManager, recorder: CassetteRecorder) => AnyResModule;
 
 export interface ResolveEnv {
   readonly jm: JunctureManager;
-  readonly gwm: GateWireManager;
+  readonly gwm: WireManager;
   readonly recorder: CassetteRecorder;
   /** Resolve a namespace through the real JunctureManager and return its Surface. */
   resolve(ns: AnyNamespace, locale?: string): Promise<AnyRes>;
@@ -83,7 +83,7 @@ export function buildResolveEnv(
   const busHost: BusHost = { bus: undefined };
   const bm = new BlueprintManager(resolver, loader, { gear: gearNs, shell: shellNs }, [], busHost);
   jm = new JunctureManager(resolver, equipment, bm, busHost);
-  const gwm = new GateWireManager(jm, busHost, recorder);
+  const gwm = new WireManager(jm, busHost, recorder);
 
   const jmInternal = jm as unknown as {
     getJuncture(

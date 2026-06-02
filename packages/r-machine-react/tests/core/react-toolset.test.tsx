@@ -274,7 +274,7 @@ describe("createReactToolset › $.setLocale", () => {
 });
 
 describe("createReactToolset › resource resolution", () => {
-  it("re-fetches resources (getGateWire) with the new locale after setLocale", async () => {
+  it("re-fetches resources (getWire) with the new locale after setLocale", async () => {
     const { machine, toolset } = toolsetWith({ readLocale: () => "en", writeLocale: vi.fn() });
     const t = await toolset;
     let setLocale!: (l: string) => Promise<void>;
@@ -290,12 +290,12 @@ describe("createReactToolset › resource resolution", () => {
         </t.ReactRMachine>
       );
     });
-    expect(spies(machine).getGateWire).toHaveBeenCalledWith({}, ["common"], "en", expect.any(Function), undefined);
+    expect(spies(machine).getWire).toHaveBeenCalledWith({}, ["common"], "en", expect.any(Function), undefined);
 
     await act(async () => {
       await setLocale("it");
     });
-    expect(spies(machine).getGateWire).toHaveBeenCalledWith({}, ["common"], "it", expect.any(Function), undefined);
+    expect(spies(machine).getWire).toHaveBeenCalledWith({}, ["common"], "it", expect.any(Function), undefined);
   });
 });
 

@@ -113,20 +113,20 @@ export type JunctureEvent =
   | { type: "juncture:requestScopeDisposed" }
   | { type: "juncture:resourcesDisposed" };
 
-// ─── GateWire events ────────────────────────────────────────────────────
+// ─── Wire events ────────────────────────────────────────────────────
 
-export type GateWireEvent =
-  | { type: "gateWire:created"; genId: number; locale: AnyLocale; topLevelNs: readonly AnyNamespace[] }
-  | { type: "gateWire:resolveTriggered"; genId: number }
-  | { type: "gateWire:jmSubscribed"; genId: number }
-  | { type: "gateWire:jmUnsubscribed"; genId: number; vertexSlotsDisposed: number }
-  | { type: "gateWire:markedDirty"; genId: number; subscriberCount: number }
-  | { type: "gateWire:updateRequested"; genId: number; localeChanged: boolean; vertexGearMapChanged: boolean }
-  | { type: "gateWire:subscribed"; genId: number }
-  | { type: "gateWire:unsubscribed"; genId: number }
-  | { type: "gateWire:trackingStarted"; genId: number }
-  | { type: "gateWire:trackingCommitted"; genId: number; depCount: number }
-  | { type: "gateWire:cassetteNotified"; genId: number; subscriberCount: number };
+export type WireEvent =
+  | { type: "wire:created"; genId: number; locale: AnyLocale; topLevelNs: readonly AnyNamespace[] }
+  | { type: "wire:resolveTriggered"; genId: number }
+  | { type: "wire:jmSubscribed"; genId: number }
+  | { type: "wire:jmUnsubscribed"; genId: number; vertexSlotsDisposed: number }
+  | { type: "wire:markedDirty"; genId: number; subscriberCount: number }
+  | { type: "wire:updateRequested"; genId: number; localeChanged: boolean; vertexGearMapChanged: boolean }
+  | { type: "wire:subscribed"; genId: number }
+  | { type: "wire:unsubscribed"; genId: number }
+  | { type: "wire:trackingStarted"; genId: number }
+  | { type: "wire:trackingCommitted"; genId: number; depCount: number }
+  | { type: "wire:cassetteNotified"; genId: number; subscriberCount: number };
 
 // ─── Relay events ───────────────────────────────────────────────────────
 
@@ -136,7 +136,7 @@ export type RelayEvent =
 
 // ─── Aggregato ──────────────────────────────────────────────────────────
 
-export type InternalEvent = BlueprintEvent | JunctureEvent | GateWireEvent | RelayEvent;
+export type InternalEvent = BlueprintEvent | JunctureEvent | WireEvent | RelayEvent;
 
 // ─── Bus interface + factory ────────────────────────────────────────────
 

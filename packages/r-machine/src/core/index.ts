@@ -23,10 +23,10 @@ export {
   type BusBridge,
   type BusHost,
   createEventBus,
-  type GateWireEvent,
   type InternalEvent,
   type InternalEventBus,
   type JunctureEvent,
+  type WireEvent,
 } from "./event-bus.js";
 export type { ExperimentalFlags } from "./experimental-flags.js";
 export type {
@@ -34,8 +34,6 @@ export type {
   GateMapPlugHead,
   GatePluginCtx,
 } from "./gate-plug.js";
-export type { GateWire } from "./gate-wire.js";
-export { GateWireManager } from "./gate-wire-manager.js";
 export type { GearPlugKitMap } from "./gear-plug.js";
 export type { Getter } from "./getter.js";
 export { createInnerGearComposer, type InnerGearComposer } from "./inner-gear-composer.js";
@@ -138,3 +136,5 @@ export {
   type VertexGearMap,
   type VertexGearTagData,
 } from "./vertex-gear.js";
+export type { Wire } from "./wire.js";
+export { WireManager } from "./wire-manager.js";

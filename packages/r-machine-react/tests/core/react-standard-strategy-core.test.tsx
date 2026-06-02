@@ -163,12 +163,12 @@ describe("ReactStandardStrategyCore — createToolset config wiring", () => {
 });
 
 describe("ReactStandardStrategyCore — rMachine forwarding", () => {
-  it("forwards the rMachine to the toolset for resource resolution (getGateWire invoked)", async () => {
+  it("forwards the rMachine to the toolset for resource resolution (getWire invoked)", async () => {
     const machine = createMockMachine({ resolve: () => ({ greeting: "hello" }) });
     const { strategy } = createStrategy({ machine: machine as never });
     await renderApp(await strategy.createToolset());
     expect(screen.getByTestId("greeting").textContent).toBe("hello");
-    expect(spies(machine as never).getGateWire).toHaveBeenCalled();
+    expect(spies(machine as never).getWire).toHaveBeenCalled();
   });
 
   it("validates the detected locale through rMachine.localeHelper", async () => {

@@ -28,7 +28,7 @@ export function createGetterCell<V>(
   let dirty = true;
   let depUnsubs: Array<() => void> = [];
   // Two tiers, mirroring StateCell: internal subscribers (relay markDirty,
-  // other getter cells invalidating) fire inline; external subscribers (GateWire,
+  // other getter cells invalidating) fire inline; external subscribers (Wire,
   // consumer) are deferred through the recorder's dirty-cell queue when a
   // transaction is active, otherwise inline (legacy path).
   const internalSubs = new Set<() => void>();

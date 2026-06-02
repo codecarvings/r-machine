@@ -28,8 +28,6 @@ import {
   createOuterGearComposer,
   createShellComposer,
   type ExperimentalFlags,
-  type GateWire,
-  GateWireManager,
   type GearPlugKitMap,
   type InternalEventBus,
   isVertexGearLayoutType,
@@ -43,6 +41,8 @@ import {
   ResLayoutResolver,
   type ShellPlugKitMap,
   type VertexGearMap,
+  type Wire,
+  WireManager,
 } from "#r-machine/core";
 import { type AnyLocale, type AnyLocaleList, LocaleHelper } from "#r-machine/locale";
 import { createBlueprintRelayOrderingProvider } from "../core/relay-ordering.js";
@@ -108,7 +108,7 @@ export class RMachine<
     // recorder defaults to FIFO registration order when no provider is
     // set — used by tests and by the bare reactivity layer.
     this.cassetteRecorder.setRelayOrderingProvider(createBlueprintRelayOrderingProvider(this.blueprintManager));
-    this.gateWireManager = new GateWireManager(this.junctureManager, this.busHost, this.cassetteRecorder);
+    this.wireManager = new WireManager(this.junctureManager, this.busHost, this.cassetteRecorder);
 
     // this.warnExperimental();
   }
@@ -126,7 +126,7 @@ export class RMachine<
   protected readonly resLayoutResolver: ResLayoutResolver;
   protected readonly blueprintManager: BlueprintManager;
   protected readonly junctureManager: JunctureManager;
-  protected readonly gateWireManager: GateWireManager;
+  protected readonly wireManager: WireManager;
   protected readonly cassetteRecorder!: CassetteRecorder;
 
   /**
@@ -192,20 +192,20 @@ export class RMachine<
     return { InnerGear, BaseGear, OuterGear, Shell, localized };
   }
 
-  getGateWire(
+  getWire(
     kit: NamespaceMap<RA>,
     nsDeps: NamespaceCollection<RA>,
     locale: L,
     augmentCtx: PluginCtxAugmenter,
     vertexGearMap?: VertexGearMap | undefined
-  ): GateWire {
-    return this.gateWireManager.getWire(kit, nsDeps, locale, augmentCtx, vertexGearMap);
+  ): Wire {
+    return this.wireManager.getWire(kit, nsDeps, locale, augmentCtx, vertexGearMap);
   }
 
-  // Single-shot plugin resolve. Unlike `getGateWire`, this does NOT subscribe
+  // Single-shot plugin resolve. Unlike `getWire`, this does NOT subscribe
   // to the JunctureManager and creates no persistent wire — intended for
   // server-side / one-off resolution where reactivity is not needed.
-  // Outer gear cannot be resolved through this method, as it relies on the gate wire's update mechanism to trigger re-resolution when outer gear changes.
+  // Outer gear cannot be resolved through this method, as it relies on the wire's update mechanism to trigger re-resolution when outer gear changes.
   getGatePlugin(
     kit: NamespaceMap<RA>,
     nsDeps: NamespaceCollection<RA>,

@@ -13,7 +13,6 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import type { BusHost } from "./event-bus.js";
-import type { GateWire } from "./gate-wire.js";
 import type { JunctureManager } from "./juncture-manager.js";
 import type { PluginCtxAugmenter } from "./plug.js";
 import type { CassetteRecorder } from "./reactivity/cassette-recorder.js";
@@ -21,11 +20,12 @@ import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap } from "./res-map.js";
 import type { VertexGearMap } from "./vertex-gear.js";
+import type { Wire } from "./wire.js";
 
-// Unique id across all GateWireManager instances
+// Unique id across all WireManager instances
 let nextGenId = 0;
 
-export class GateWireManager {
+export class WireManager {
   constructor(
     protected readonly junctureManager: JunctureManager,
     protected readonly busHost: BusHost,
@@ -38,8 +38,8 @@ export class GateWireManager {
     locale: AnyLocale,
     augmentCtx: PluginCtxAugmenter,
     vertexGearMap?: VertexGearMap | undefined
-  ): GateWire {
-    return createGateWire(
+  ): Wire {
+    return createWire(
       this.junctureManager,
       kit,
       nsDeps,
@@ -53,7 +53,7 @@ export class GateWireManager {
   }
 }
 
-function createGateWire(
+function createWire(
   junctureManager: JunctureManager,
   kit: AnyNamespaceMap,
   nsDeps: AnyNamespaceCollection,
@@ -63,11 +63,11 @@ function createGateWire(
   genId: number,
   busHost: BusHost,
   recorder: CassetteRecorder
-): GateWire {
+): Wire {
   let currentLocale = locale;
   let currentVertexGearMap = vertexGearMap;
   // Start dirty so the initial getPluginPromise() triggers a resolve.
-  // No work is done at creation time — keeps createGateWire pure-ish so
+  // No work is done at creation time — keeps createWire pure-ish so
   // Strict Mode's double lazy-init is harmless.
   let dirty = true;
   let currentPluginPromise: Promise<unknown> | null = null;
@@ -125,7 +125,7 @@ function createGateWire(
   }
 
   function resolve() {
-    busHost.bus?.emit({ type: "gateWire:resolveTriggered", genId });
+    busHost.bus?.emit({ type: "wire:resolveTriggered", genId });
     currentPluginPromise = junctureManager.getPlugin(
       kit,
       nsDeps,
@@ -138,7 +138,7 @@ function createGateWire(
     dirty = false;
   }
 
-  busHost.bus?.emit({ type: "gateWire:created", genId, locale, topLevelNs: [...topLevelNs] });
+  busHost.bus?.emit({ type: "wire:created", genId, locale, topLevelNs: [...topLevelNs] });
 
   return {
     getPluginPromise: () => {
@@ -155,7 +155,7 @@ function createGateWire(
       if (subscribers.size === 0 && unsubFromJm === null) {
         unsubFromJm = junctureManager.subscribe(topLevelNs, () => {
           dirty = true;
-          busHost.bus?.emit({ type: "gateWire:markedDirty", genId, subscriberCount: subscribers.size });
+          busHost.bus?.emit({ type: "wire:markedDirty", genId, subscriberCount: subscribers.size });
           for (const cb of subscribers) {
             try {
               cb();
@@ -164,13 +164,13 @@ function createGateWire(
             }
           }
         });
-        busHost.bus?.emit({ type: "gateWire:jmSubscribed", genId });
+        busHost.bus?.emit({ type: "wire:jmSubscribed", genId });
       }
       subscribers.add(callback);
-      busHost.bus?.emit({ type: "gateWire:subscribed", genId });
+      busHost.bus?.emit({ type: "wire:subscribed", genId });
       return () => {
         subscribers.delete(callback);
-        busHost.bus?.emit({ type: "gateWire:unsubscribed", genId });
+        busHost.bus?.emit({ type: "wire:unsubscribed", genId });
         if (subscribers.size === 0 && unsubFromJm !== null) {
           // All teardown (JM subscription, cassette cell subs, vertex slots)
           // is deferred to a microtask. React's
@@ -207,7 +207,7 @@ function createGateWire(
               // forced to re-resolve and re-create the vertex slots.
               dirty = true;
             }
-            busHost.bus?.emit({ type: "gateWire:jmUnsubscribed", genId, vertexSlotsDisposed });
+            busHost.bus?.emit({ type: "wire:jmUnsubscribed", genId, vertexSlotsDisposed });
           });
         }
       };
@@ -226,7 +226,7 @@ function createGateWire(
       state.cassette.insert();
       state.epoch++;
       const myEpoch = state.epoch;
-      busHost.bus?.emit({ type: "gateWire:trackingStarted", genId });
+      busHost.bus?.emit({ type: "wire:trackingStarted", genId });
       let committed = false;
       return () => {
         if (committed) {
@@ -249,7 +249,7 @@ function createGateWire(
         for (const dep of deps) {
           state.unsubs.push(dep.subscribe(notify));
         }
-        busHost.bus?.emit({ type: "gateWire:trackingCommitted", genId, depCount: deps.size });
+        busHost.bus?.emit({ type: "wire:trackingCommitted", genId, depCount: deps.size });
       };
     },
 
@@ -272,7 +272,7 @@ function createGateWire(
       if (!localeChanged && !vertexGearMapChanged) {
         return;
       }
-      busHost.bus?.emit({ type: "gateWire:updateRequested", genId, localeChanged, vertexGearMapChanged });
+      busHost.bus?.emit({ type: "wire:updateRequested", genId, localeChanged, vertexGearMapChanged });
       if (vertexGearMapChanged) {
         // Dispose only the vertex slots whose ownership has shifted to a
         // parent (newVertexGearMap[ns] now defined): the wire stops being
@@ -286,7 +286,7 @@ function createGateWire(
 
       // Mark dirty; the actual resolve runs lazily on next getPluginPromise().
       dirty = true;
-      busHost.bus?.emit({ type: "gateWire:markedDirty", genId, subscriberCount: subscribers.size });
+      busHost.bus?.emit({ type: "wire:markedDirty", genId, subscriberCount: subscribers.size });
 
       // Defer subscriber notification. updateRequest is typically invoked
       // mid-render (a React consumer switching locale calls it from inside

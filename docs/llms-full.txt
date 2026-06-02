@@ -2316,7 +2316,7 @@ Events fall into four categories (each event carries a `type` string plus a smal
 
 - `blueprint:*` — resource resolution and blueprint caching (`resolveStart`, `moduleLoaded`, `resolved`, `cacheHit`, `resolveError`, `circularDepDetected`, …).
 - `juncture:*` — factory build, slot commit, and disposal (`factoryInvoked`, `built`, `slotDisposed`, `resolveStale`, …). `juncture:resolveError` additionally carries `chain` — the resolution path to the failing namespace (the same attribution exposed via `getResolveContext`, §10.6).
-- `gateWire:*` — consumer wiring and reactive notification (`created`, `markedDirty`, `subscribed`, `unsubscribed`, …).
+- `wire:*` — consumer wiring and reactive notification (`created`, `markedDirty`, `subscribed`, `unsubscribed`, …).
 - `relay:*` — the two relay diagnostics referenced in §6.3 / §6.5:
   - `relay:onChangeError` — `{ relayName: string; error: unknown }`
   - `relay:loopDetected` — `{ relayName: string; runCount: number }`

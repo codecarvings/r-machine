@@ -2,9 +2,9 @@ import type { RMachine } from "r-machine";
 import {
   type AnyResAtlas,
   type ExperimentalFlags,
-  type GateWire,
   PROCESS_SCOPE_PROVIDER,
   type ResEquipment,
+  type Wire,
 } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
@@ -21,7 +21,7 @@ export interface TestAtlas extends AnyResAtlas {
 }
 
 export interface MockMachineSpies {
-  readonly getGateWire: MockInstance;
+  readonly getWire: MockInstance;
   readonly localeHelper: { readonly validateLocale: MockInstance };
 }
 
@@ -36,8 +36,8 @@ export interface CreateMockMachineOptions {
   readonly resolve?: (ns: string, locale: string) => unknown;
   /** Which namespaces are treated as vertex (drives per-consumer wire caching). */
   readonly isVertexNamespace?: (ns: string) => boolean;
-  /** Replace getGateWire wholesale (e.g. to inject a pending/controllable wire). */
-  readonly getGateWire?: (...args: unknown[]) => GateWire;
+  /** Replace getWire wholesale (e.g. to inject a pending/controllable wire). */
+  readonly getWire?: (...args: unknown[]) => Wire;
 }
 
 export function createMockMachine(
@@ -45,16 +45,16 @@ export function createMockMachine(
 ): RMachine<TestAtlas, AnyLocale, ResEquipment<TestAtlas>, ExperimentalFlags> {
   const resolve = overrides.resolve ?? defaultResolve;
 
-  // Default getGateWire mirrors JM.getPlugin: build `$ = { kit }`, let the
+  // Default getWire mirrors JM.getPlugin: build `$ = { kit }`, let the
   // adapter's augmentCtx layer on `$.locale`/`$.setLocale`, then assemble the
   // plugin (`[...deps, $]` for list, `{ ...kit, ...deps, $ }` for map). The
   // resolved wire is settled, so consumers don't suspend.
-  const defaultGetGateWire = (
+  const defaultGetWire = (
     kit: Record<string, string>,
     nsDeps: string[] | Record<string, string>,
     locale: string,
     augmentCtx: ($: Record<string, unknown>) => void
-  ): GateWire => {
+  ): Wire => {
     const kitSurfaces: Record<string, unknown> = {};
     for (const k in kit) {
       kitSurfaces[k] = resolve(kit[k] as string, locale);
@@ -90,7 +90,7 @@ export function createMockMachine(
             )
       ),
     },
-    getGateWire: vi.fn(overrides.getGateWire ?? (defaultGetGateWire as never)),
+    getWire: vi.fn(overrides.getWire ?? (defaultGetWire as never)),
     // Default to non-vertex so plugs in tests use the shared wireCache path.
     isVertexNamespace: vi.fn(overrides.isVertexNamespace ?? (() => false)),
     // No request scope on the client — return the process-default provider so

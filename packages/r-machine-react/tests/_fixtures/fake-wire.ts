@@ -1,5 +1,5 @@
 /**
- * Controllable fake GateWire for React adapter tests. Mirrors the wire contract
+ * Controllable fake Wire for React adapter tests. Mirrors the wire contract
  * `useBareReactPlug` depends on (getPluginPromise / subscribe / startTracking /
  * disposeConsumer / updateRequest) with spies + manual control over the
  * resolved plugin and the subscribe channel.
@@ -12,7 +12,7 @@
  *
  * Generalized from the local helper in tests/integration/commit-tracking.test.tsx.
  */
-import type { GateWire } from "r-machine/core";
+import type { Wire } from "r-machine/core";
 import { vi } from "vitest";
 
 // A Promise pre-tagged the way React 19's `use()` recognizes a settled value,
@@ -25,7 +25,7 @@ function fulfilledThenable(value: unknown): Promise<unknown> {
 }
 
 export interface FakeWireController {
-  readonly wire: GateWire;
+  readonly wire: Wire;
   readonly startTrackingSpy: ReturnType<typeof vi.fn>;
   readonly commitSpy: ReturnType<typeof vi.fn>;
   readonly unsubscribeSpy: ReturnType<typeof vi.fn>;
@@ -64,7 +64,7 @@ export function createFakeWire(plugin: unknown, options: FakeWireOptions = {}): 
   const disposeConsumerSpy = vi.fn();
   const updateRequestSpy = vi.fn();
 
-  const wire: GateWire = {
+  const wire: Wire = {
     getPluginPromise: () => currentPromise,
     subscribe: (cb: () => void) => {
       subscribers.add(cb);

@@ -134,7 +134,7 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
   // ─── Transaction state ───────────────────────────────────────────────
   // Two-tier subscriber model: internal subscribers (memo invalidate,
   // relay markDirty) fire inline inside publish(). External subscribers
-  // (GateWire, consumer code) are deferred while a transaction is active:
+  // (Wire, consumer code) are deferred while a transaction is active:
   // the cell enqueues itself here and the outermost runInTransaction
   // flushes the set ONCE per cell. Outside any transaction, publish()
   // notifies externals inline (legacy backwards-compatible path).
@@ -162,7 +162,7 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
     }
   }
 
-  // Cassettes are designed to be created once per long-lived owner (GateWire,
+  // Cassettes are designed to be created once per long-lived owner (Wire,
   // GetterCell, …) and re-used across many recording passes. `insert()` clears
   // the previously-collected deps before re-activating — calling insert on an
   // already-inserted cassette is idempotent and resets the recording state.

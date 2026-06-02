@@ -2,9 +2,9 @@ import type { RMachine } from "r-machine";
 import {
   type AnyResAtlas,
   type ExperimentalFlags,
-  type GateWire,
   PROCESS_SCOPE_PROVIDER,
   type ResEquipment,
+  type Wire,
 } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "r-machine/errors";
 import type { MockInstance } from "vitest";
@@ -27,7 +27,7 @@ const defaultResolve = (ns: string): unknown => ({ ns });
 
 export interface MockMachineSpies {
   readonly getGatePlugin: MockInstance;
-  readonly getGateWire: MockInstance;
+  readonly getWire: MockInstance;
   readonly isVertexNamespace: MockInstance;
   readonly localeHelper: {
     readonly validateLocale: MockInstance;
@@ -47,8 +47,8 @@ export interface CreateMockMachineOptions<L extends string = TestLocale> {
   readonly resolve?: (ns: string, locale: string) => unknown;
   /** Which namespaces are treated as vertex (drives per-consumer wire caching). */
   readonly isVertexNamespace?: (ns: string) => boolean;
-  /** Replace getGateWire wholesale (e.g. to inject a pending/controllable wire). */
-  readonly getGateWire?: (...args: unknown[]) => GateWire;
+  /** Replace getWire wholesale (e.g. to inject a pending/controllable wire). */
+  readonly getWire?: (...args: unknown[]) => Wire;
   /** Replace getGatePlugin wholesale (the single-shot, server-side resolve). */
   readonly getGatePlugin?: (...args: unknown[]) => Promise<unknown>;
   readonly matchLocalesForAcceptLanguageHeader?: (header: string | null) => NoInfer<L>;
@@ -92,12 +92,12 @@ export function createMockMachine<L extends string = TestLocale>(
   const defaultLocale = overrides.defaultLocale ?? ("en" as L);
 
   // Default wire: settled, so client consumers don't suspend.
-  const defaultGetGateWire = (
+  const defaultGetWire = (
     kit: Record<string, string>,
     nsDeps: string[] | Record<string, string>,
     locale: string,
     augmentCtx: ($: Record<string, unknown>) => void
-  ): GateWire => createFakeWire(buildPlugin(resolve, kit, nsDeps, locale, augmentCtx)).wire;
+  ): Wire => createFakeWire(buildPlugin(resolve, kit, nsDeps, locale, augmentCtx)).wire;
 
   // Default single-shot resolve mirrors getGatePlugin's contract on the server.
   const defaultGetGatePlugin = (
@@ -124,7 +124,7 @@ export function createMockMachine<L extends string = TestLocale>(
         overrides.matchLocalesForAcceptLanguageHeader ?? (() => defaultLocale)
       ),
     },
-    getGateWire: vi.fn(overrides.getGateWire ?? (defaultGetGateWire as never)),
+    getWire: vi.fn(overrides.getWire ?? (defaultGetWire as never)),
     getGatePlugin: vi.fn(overrides.getGatePlugin ?? (defaultGetGatePlugin as never)),
     // Default to non-vertex so plugs in tests use the shared wireCache path.
     isVertexNamespace: vi.fn(overrides.isVertexNamespace ?? (() => false)),

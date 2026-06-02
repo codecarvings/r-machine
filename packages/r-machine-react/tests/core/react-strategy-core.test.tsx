@@ -107,7 +107,7 @@ describe("ReactStrategyCore — createToolset orchestration", () => {
 });
 
 describe("ReactStrategyCore — rMachine forwarding", () => {
-  it("forwards the strategy rMachine to the toolset's Plug (getGateWire invoked)", async () => {
+  it("forwards the strategy rMachine to the toolset's Plug (getWire invoked)", async () => {
     const machine = createMockMachine({ resolve: () => ({ greeting: "hello" }) });
     const { strategy } = createStrategy({ machine: machine as never });
     const toolset = await strategy.createToolset();
@@ -128,7 +128,7 @@ describe("ReactStrategyCore — rMachine forwarding", () => {
     });
 
     expect(screen.getByTestId("greeting").textContent).toBe("hello");
-    expect(spies(machine as never).getGateWire).toHaveBeenCalled();
+    expect(spies(machine as never).getWire).toHaveBeenCalled();
   });
 });
 

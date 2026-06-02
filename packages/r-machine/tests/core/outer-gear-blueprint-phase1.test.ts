@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { BlueprintManager } from "../../src/core/blueprint-manager.js";
 import type { BusHost } from "../../src/core/event-bus.js";
-import { GateWireManager } from "../../src/core/gate-wire-manager.js";
 import { getCurrentSurface, type Juncture } from "../../src/core/juncture.js";
 import { JunctureManager } from "../../src/core/juncture-manager.js";
 import { createOuterGearComposer } from "../../src/core/outer-gear-composer.js";
@@ -12,6 +11,7 @@ import type { AnyNamespace } from "../../src/core/res-domain.js";
 import type { AnyResEquipment } from "../../src/core/res-equipment.js";
 import { type AnyResLayout, ResLayoutResolver } from "../../src/core/res-layout.js";
 import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-module.js";
+import { WireManager } from "../../src/core/wire-manager.js";
 
 // --- helpers -----------------------------------------------------------------
 
@@ -42,7 +42,7 @@ function buildEnv(modules: Record<string, (jm: JunctureManager, recorder: Casset
   const busHost: BusHost = { bus: undefined };
   const bm = new BlueprintManager(resolver, loader, { gear: gearNs, shell: [] }, [], busHost);
   jm = new JunctureManager(resolver, equipment, bm, busHost);
-  const gwm = new GateWireManager(jm, busHost, recorder);
+  const gwm = new WireManager(jm, busHost, recorder);
 
   const jmInternal = jm as unknown as {
     getJuncture(
@@ -176,7 +176,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
     expect(bodyCalls).toHaveBeenCalledTimes(3);
   });
 
-  it("commit-tracking via real GateWire: action on a tracked OG fires the consumer-supplied notify", async () => {
+  it("commit-tracking via real Wire: action on a tracked OG fires the consumer-supplied notify", async () => {
     const { jmInternal, gwm } = buildEnv({
       "g/counter": makeStatefulOuterGearModule({ count: 0 }, (plugin, cursor) => ({
         read: cursor.getter(() => plugin.$.state.count),
@@ -215,7 +215,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
     expect(resource.read).toBe(8);
   });
 
-  it("cell equality short-circuit propagates through the real GateWire: no notify when output unchanged", async () => {
+  it("cell equality short-circuit propagates through the real Wire: no notify when output unchanged", async () => {
     const { jmInternal, gwm } = buildEnv({
       "g/cart": makeStatefulOuterGearModule({ items: [{ price: 10 }, { price: 20 }], other: 0 }, (plugin, cursor) => ({
         subtotal: cursor.cell(() => plugin.$.state.items.reduce((s: number, i: { price: number }) => s + i.price, 0)),

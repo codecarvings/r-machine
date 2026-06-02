@@ -22,7 +22,7 @@ export interface StateCell<S> extends ReadableCell {
 export function createStateCell<S>(initial: S, recorder: CassetteRecorder): StateCell<S> {
   let current = initial;
   // Two tiers: internal subscribers (memo invalidate, relay markDirty)
-  // always fire inline; external subscribers (GateWire, consumer code)
+  // always fire inline; external subscribers (Wire, consumer code)
   // are deferred via the recorder's dirty-cell queue when a transaction
   // is active, then flushed once at the end of the outermost transaction
   // (deduplicated per cell). Outside any transaction, externals fire
