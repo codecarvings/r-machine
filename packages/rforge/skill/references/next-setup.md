@@ -267,6 +267,8 @@ export const strategy = NextAppPathStrategy.create(rMachine, {
 export const { localeHelper, hrefHelper } = strategy.getHelpers();
 ```
 
+> **React Compiler:** do not enable it (`reactCompiler` in `next.config`) for R-Machine apps — R-Machine reactivity is already read-driven, so it adds little benefit. If you must run it in a mixed codebase, set `reactCompiler: "on"` in the strategy config above to avoid stale reads (it adds per-re-render wrapping overhead). See the main docs §10.4.
+
 ### 3.2 `NextAppFlatStrategy`
 
 ```ts

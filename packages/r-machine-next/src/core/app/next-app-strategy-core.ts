@@ -39,6 +39,14 @@ export interface NextAppStrategyConfig<
   readonly localeKey: LK;
   readonly autoLocaleBinding: SwitchableOption;
   readonly basePath: string;
+  /**
+   * Enable coexistence with React Compiler in client components. When `on`,
+   * reactive surfaces from `ClientPlug(...).useR()` are handed a fresh identity
+   * per reactive re-render so the compiler re-evaluates the reading scopes. Off
+   * by default and DISCOURAGED — R-Machine reactivity is already read-driven, so
+   * the compiler adds little while this wrapping adds overhead.
+   */
+  readonly reactCompiler: SwitchableOption;
 }
 export type AnyNextAppStrategyConfig = NextAppStrategyConfig<any, any, any, any, any>;
 export interface NextAppStrategyConfigParams<
@@ -54,6 +62,7 @@ export interface NextAppStrategyConfigParams<
   readonly localeKey?: LK;
   readonly autoLocaleBinding?: SwitchableOption;
   readonly basePath?: string;
+  readonly reactCompiler?: SwitchableOption;
 }
 
 const defaultKit = {} as const;
@@ -75,6 +84,7 @@ const defaultConfig: NextAppStrategyConfig<
   localeKey: defaultLocaleKey,
   autoLocaleBinding: "off",
   basePath: "",
+  reactCompiler: "off",
 };
 
 export abstract class NextAppStrategyCore<
@@ -94,7 +104,9 @@ export abstract class NextAppStrategyCore<
   async createClientToolset(): Promise<NextAppClientToolset<RA, L, EF, C["clientKit"], InstanceType<C["PathAtlas"]>>> {
     const impl = await this.createClientImpl();
     const module = await import("./next-app-client-toolset.js");
-    return module.createNextAppClientToolset(this.rMachine, this.config.clientKit, impl);
+    return module.createNextAppClientToolset(this.rMachine, this.config.clientKit, impl, {
+      reactCompiler: this.config.reactCompiler === "on",
+    });
   }
 
   async createServerToolset(

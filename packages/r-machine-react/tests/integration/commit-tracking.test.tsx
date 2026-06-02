@@ -245,7 +245,7 @@ function buildRealEnv(layoutType: "gear:outer" | "gear:outer(vertex)" = "gear:ou
 
   // Fake machine surface: just what createReactBareToolset and useBareReactPlug
   // actually touch — validateLocale + defaultLocale + getWire +
-  // isVertexNamespace (used by the Plug factory to decide per-consumer vs
+  // resolveLayoutEntryType (used by the Plug factory to decide per-consumer vs
   // shared wire caching).
   const fakeMachine = {
     localeHelper: {
@@ -253,7 +253,7 @@ function buildRealEnv(layoutType: "gear:outer" | "gear:outer(vertex)" = "gear:ou
       defaultLocale: "en",
     },
     getWire: gwm.getWire.bind(gwm),
-    isVertexNamespace: (ns: string) => resolver.resolveLayoutEntryType(ns as never) === "gear:outer(vertex)",
+    resolveLayoutEntryType: (ns: string) => resolver.resolveLayoutEntryType(ns as never),
   };
 
   return { fakeMachine };

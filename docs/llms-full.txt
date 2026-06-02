@@ -1170,6 +1170,12 @@ State reads performed inside an `_.action(...)` reducer body (e.g. `$.state.item
 - `ServerPlug` (RSC) has **no** reactive tracking: a Server Component renders once per request and `await`s its resources — there is nothing to re-render. `ServerPlug` cannot consume `gear:outer` at all (§10.2).
 - Vertex gears (`gear:outer(vertex)`, §12) carry the identical contract **per instance**: each `<VertexFrame>` instance (or each frame-less `useR()` call) tracks and re-renders its own consumers independently.
 
+#### React Compiler
+
+**Recommendation: do not enable React Compiler for R-Machine code.** The reactivity above is already automatic and read-driven (fine-grained re-render gating) and the expensive memoization lives in the gear layer (`_.cell`, relays) — independent of, and invisible to, the compiler. On a well-architected R-Machine app (thin consumers, logic in gears) the compiler adds little, and the coexistence support below adds per-re-render wrapping overhead. There is no upside to turning it on for the R-Machine parts of your app.
+
+**Coexistence support (opt-in).** If you must run a mixed codebase with the compiler enabled globally, set `reactCompiler: "on"` on the strategy config (React standard strategy and all Next App strategies). The flag defaults to `"off"`.
+
 ### 10.5. Consumer `$` context
 
 `plug.useR()` returns the resolved resource(s) followed by a `$` consumer context — the trailing tuple element (list form) or the `$` key (map form). This `$` is **distinct** from the factory `$` of §8: it is the call-site context, with different members and different presence rules. Its fields are conditional on the plug variant and on what the strategy declared:
@@ -1318,6 +1324,7 @@ Every option is optional unless marked **required**; omitting one uses the liste
 | `localeKey` | `string` | `"locale"` | Name of the locale route segment / the `[locale]` folder, and the key under which it appears in `$.params` (§10.5). Change it only if your `[…]` folder is named differently. |
 | `autoLocaleBinding` | `"on" \| "off"` | `"off"` | When `"on"`, any server plug resolves the locale automatically from a request header, so you call `useR()` with no args (no `useR(params)`, no `bindLocale`) — at the cost of dynamic rendering. Requires the proxy (§11.7). See the note below. |
 | `basePath` | `string` | `""` | Prefix prepended to every composed URL; set it to match your Next.js `basePath`. |
+| `reactCompiler` | `"on" \| "off"` | `"off"` | Opt into coexistence with React Compiler in Client Components — see §10.4 ("React Compiler"). **Discouraged**: R-Machine reactivity is already read-driven, so the compiler adds little while this adds per-re-render wrapping overhead. Leave `"off"` unless the compiler is enabled globally in a mixed codebase. |
 
 **`NextAppPathStrategy`** (locale in the URL path) adds:
 
@@ -2467,6 +2474,6 @@ https://github.com/codecarvings/r-machine/blob/RM-alpha-12/benchmarks/type-scale
 
 ---
 
-rev 2026-06-01.011
+rev 2026-06-02.012
 Copyright (c) 2026 Sergio Turolla - All Rights Reserved.
 https://codecarvings.com

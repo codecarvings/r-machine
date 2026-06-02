@@ -32,6 +32,7 @@ describe("NextAppFlatStrategyConfig", () => {
       | "localeKey"
       | "autoLocaleBinding"
       | "basePath"
+      | "reactCompiler"
       | "cookie"
       | "pathMatcher"
     >();
@@ -103,6 +104,7 @@ describe("NextAppFlatStrategyConfigParams", () => {
       | "localeKey"
       | "autoLocaleBinding"
       | "basePath"
+      | "reactCompiler"
       | "cookie"
       | "pathMatcher"
     >();

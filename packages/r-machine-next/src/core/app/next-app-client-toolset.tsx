@@ -14,7 +14,7 @@
 "use client";
 
 import type { VertexFrameType } from "@r-machine/react/core";
-import { createReactBareToolset, RequestScopeContext } from "@r-machine/react/core";
+import { type CreateReactBareToolsetOptions, createReactBareToolset, RequestScopeContext } from "@r-machine/react/core";
 import { usePathname, useRouter } from "next/navigation";
 import type { RMachine } from "r-machine";
 import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
@@ -77,13 +77,14 @@ export async function createNextAppClientToolset<
 >(
   rMachine: RMachine<RA, L, E, EF>,
   clientKit: CKM,
-  impl: NextAppClientImpl<L>
+  impl: NextAppClientImpl<L>,
+  options: CreateReactBareToolsetOptions = {}
 ): Promise<NextAppClientToolset<RA, L, EF, CKM, PA>> {
   const {
     ReactRMachine,
     VertexFrame,
     Plug: BasePlug,
-  } = await createReactBareToolset(rMachine as RMachine<RA, L, E, { outerGear: "on" }>, clientKit);
+  } = await createReactBareToolset(rMachine as RMachine<RA, L, E, { outerGear: "on" }>, clientKit, options);
 
   function NextClientRMachine({ locale, scopeId, children }: NextAppClientRMachineProps<L>) {
     useEffect(() => {

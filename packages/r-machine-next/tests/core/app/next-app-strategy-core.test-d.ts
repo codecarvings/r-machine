@@ -59,7 +59,7 @@ describe("NextAppStrategyConfig", () => {
   it("has exactly the expected properties", () => {
     type Keys = keyof Config;
     expectTypeOf<Keys>().toEqualTypeOf<
-      "clientKit" | "serverKit" | "PathAtlas" | "localeKey" | "autoLocaleBinding" | "basePath"
+      "clientKit" | "serverKit" | "PathAtlas" | "localeKey" | "autoLocaleBinding" | "basePath" | "reactCompiler"
     >();
   });
 
@@ -79,6 +79,10 @@ describe("NextAppStrategyConfig", () => {
     expectTypeOf<Config["basePath"]>().toBeString();
   });
 
+  it("reactCompiler is SwitchableOption", () => {
+    expectTypeOf<Config["reactCompiler"]>().toEqualTypeOf<SwitchableOption>();
+  });
+
   it("all properties are readonly", () => {
     expectTypeOf<Readonly<Config>>().toEqualTypeOf<Config>();
   });
@@ -92,7 +96,7 @@ describe("AnyNextAppStrategyConfig", () => {
   it("has exactly the expected properties", () => {
     type Keys = keyof AnyNextAppStrategyConfig;
     expectTypeOf<Keys>().toEqualTypeOf<
-      "clientKit" | "serverKit" | "PathAtlas" | "localeKey" | "autoLocaleBinding" | "basePath"
+      "clientKit" | "serverKit" | "PathAtlas" | "localeKey" | "autoLocaleBinding" | "basePath" | "reactCompiler"
     >();
   });
 
@@ -117,7 +121,7 @@ describe("NextAppStrategyConfigParams", () => {
   it("has exactly the expected properties", () => {
     type Keys = keyof Config;
     expectTypeOf<Keys>().toEqualTypeOf<
-      "clientKit" | "serverKit" | "PathAtlas" | "localeKey" | "autoLocaleBinding" | "basePath"
+      "clientKit" | "serverKit" | "PathAtlas" | "localeKey" | "autoLocaleBinding" | "basePath" | "reactCompiler"
     >();
   });
 

@@ -1,5 +1,5 @@
 import type { RMachine } from "r-machine";
-import type { ExperimentalFlags, ResEquipment } from "r-machine/core";
+import type { ExperimentalFlags, ResEquipment, SwitchableOption } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
 import { describe, expectTypeOf, it } from "vitest";
@@ -27,7 +27,8 @@ describe("ReactStandardStrategyConfig", () => {
   it("carries localeDetector / localeStore (plus the inherited kit)", () => {
     expectTypeOf<Cfg["localeDetector"]>().toEqualTypeOf<CustomLocaleDetector | undefined>();
     expectTypeOf<Cfg["localeStore"]>().toEqualTypeOf<CustomLocaleStore | undefined>();
-    expectTypeOf<keyof Cfg>().toEqualTypeOf<"kit" | "localeDetector" | "localeStore">();
+    expectTypeOf<Cfg["reactCompiler"]>().toEqualTypeOf<SwitchableOption>();
+    expectTypeOf<keyof Cfg>().toEqualTypeOf<"kit" | "reactCompiler" | "localeDetector" | "localeStore">();
   });
 
   it("requires its fields (an empty object / missing field is not assignable)", () => {
@@ -36,15 +37,27 @@ describe("ReactStandardStrategyConfig", () => {
   });
 
   it("accepts sync/async localeDetector and sync/async localeStore", () => {
-    expectTypeOf<{ kit: {}; localeDetector: () => string; localeStore: undefined }>().toExtend<Cfg>();
-    expectTypeOf<{ kit: {}; localeDetector: () => Promise<string>; localeStore: undefined }>().toExtend<Cfg>();
     expectTypeOf<{
       kit: {};
+      reactCompiler: "off";
+      localeDetector: () => string;
+      localeStore: undefined;
+    }>().toExtend<Cfg>();
+    expectTypeOf<{
+      kit: {};
+      reactCompiler: "off";
+      localeDetector: () => Promise<string>;
+      localeStore: undefined;
+    }>().toExtend<Cfg>();
+    expectTypeOf<{
+      kit: {};
+      reactCompiler: "off";
       localeDetector: undefined;
       localeStore: { get: () => string | undefined; set: (l: string) => void };
     }>().toExtend<Cfg>();
     expectTypeOf<{
       kit: {};
+      reactCompiler: "off";
       localeDetector: undefined;
       localeStore: { get: () => Promise<string | undefined>; set: (l: string) => Promise<void> };
     }>().toExtend<Cfg>();

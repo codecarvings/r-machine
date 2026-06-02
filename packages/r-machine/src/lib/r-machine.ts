@@ -30,7 +30,6 @@ import {
   type ExperimentalFlags,
   type GearPlugKitMap,
   type InternalEventBus,
-  isVertexGearLayoutType,
   JunctureManager,
   type NamespaceMap,
   type PluginCtxAugmenter,
@@ -38,6 +37,7 @@ import {
   type RequestScopeProvider,
   type ResComposerConnector,
   type ResEquipment,
+  type ResLayoutEntryType,
   ResLayoutResolver,
   type ShellPlugKitMap,
   type VertexGearMap,
@@ -130,14 +130,15 @@ export class RMachine<
   protected readonly cassetteRecorder!: CassetteRecorder;
 
   /**
-   * Returns true when the namespace resolves to a vertex layout entry
-   * (`gear:outer(vertex)`). Used by client toolsets to decide whether a Plug
-   * needs per-consumer wire instances (each consumer is its own creator
-   * unless a `VertexFrame` ancestor claims the namespace) or can share a
-   * wire across consumers (the default for stateless / process-tier deps).
+   * Resolves a namespace to its layout entry type (`gear:outer`,
+   * `gear:outer(vertex)`, `shell`, …). Sync — a layout-config lookup, no
+   * blueprint load. Exposed for client toolsets that classify a resource by
+   * kind: combine it with the exported `isVertexGearLayoutType` (per-consumer
+   * wire instances) or `isOuterGearLayoutType` (React Compiler fresh-identity
+   * wrapping) rather than adding a dedicated predicate here per question.
    */
-  isVertexNamespace(ns: AnyNamespace): boolean {
-    return isVertexGearLayoutType(this.resLayoutResolver.resolveLayoutEntryType(ns));
+  resolveLayoutEntryType(ns: AnyNamespace): ResLayoutEntryType {
+    return this.resLayoutResolver.resolveLayoutEntryType(ns);
   }
 
   // Lazy: undefined until the first DevTools/test consumer attaches via

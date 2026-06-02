@@ -19,6 +19,7 @@
 
 import type { RMachine } from "r-machine";
 import type {
+  AnyNamespace,
   AnyPlugHead,
   AnyResAtlas,
   ExperimentalFlags,
@@ -31,17 +32,30 @@ import type {
   ResEquipment,
   Wire,
 } from "r-machine/core";
-import { createPlug, getNamespaceList, getNamespaceMap, getPlugId, getPlugOutline } from "r-machine/core";
+import {
+  createPlug,
+  getNamespaceList,
+  getNamespaceMap,
+  getPlugId,
+  getPlugOutline,
+  isOuterGearLayoutType,
+  isVertexGearLayoutType,
+} from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
 import { createContext, use, useContext, useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from "react";
 import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "../errors/error-codes.js";
+import { wrapReactiveResult } from "./react-compiler-support.js";
 import type { ReactPlugDefiner, ReactPlugKitMap } from "./react-plug.js";
 import { RequestScopeContext } from "./scope-context.js";
 import { useVertexFrame, VertexFrame } from "./vertex-frame.js";
 
 type WriteLocale<L extends AnyLocale> = (newLocale: L) => void | Promise<void>;
+
+// Shared empty set reused when React Compiler support is off, so the common
+// (default) path allocates nothing per plug.
+const EMPTY_NAMESPACE_SET: ReadonlySet<string> = new Set<string>();
 
 export type ReactBareToolset<
   RA extends AnyResAtlas,
@@ -72,14 +86,44 @@ interface ReactBareToolsetContext<L extends AnyLocale> {
   readonly writeLocale: WriteLocale<L> | undefined;
 }
 
+export interface CreateReactBareToolsetOptions {
+  /**
+   * When true, every reactive surface (outer / vertex gear) returned by
+   * `plug.useR()` is wrapped in a fresh-identity Proxy on each reactive
+   * re-render, so React Compiler's reference-identity memoization re-evaluates
+   * the scopes that read it. Off by default — see the dev-mode warning below
+   * and the docs: enabling React Compiler with R-Machine brings little benefit
+   * (reactivity is already read-driven) and adds this wrapping overhead.
+   */
+  readonly reactCompiler?: boolean;
+}
+
 export async function createReactBareToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
   E extends ResEquipment<RA>,
   EF extends ExperimentalFlags,
   KM extends ReactPlugKitMap<RA>,
->(rMachine: RMachine<RA, L, E, EF>, kit: KM): Promise<ReactBareToolset<RA, L, EF, KM>> {
+>(
+  rMachine: RMachine<RA, L, E, EF>,
+  kit: KM,
+  options: CreateReactBareToolsetOptions = {}
+): Promise<ReactBareToolset<RA, L, EF, KM>> {
   const validateLocale = rMachine.localeHelper.validateLocale;
+  const reactCompilerSupport = options.reactCompiler === true;
+
+  // Reactive (gear:outer) entries placed in the consumer kit reach every plug
+  // via `$.kit.{name}` (and, in map mode, the top-level kit spread), so they
+  // need the same fresh-identity wrapping as direct deps. Computed once per
+  // toolset (the kit is strategy-level), only when React Compiler support is on.
+  const reactiveKitKeys: ReadonlySet<string> = reactCompilerSupport
+    ? new Set<string>(
+        Object.keys(kit).filter((k) =>
+          isOuterGearLayoutType(rMachine.resolveLayoutEntryType((kit as Record<string, AnyNamespace>)[k]))
+        )
+      )
+    : EMPTY_NAMESPACE_SET;
+  const hasAnyReactiveKit = reactiveKitKeys.size > 0;
 
   const Context = createContext<ReactBareToolsetContext<L> | null>(null);
   Context.displayName = "ReactBareToolsetContext";
@@ -132,8 +176,34 @@ export async function createReactBareToolset<
     // consumer can share a wire with siblings or needs its own wire. The
     // resolution is sync (layout-config lookup, no blueprint load), so
     // doing it once at plug-construction time is cheap.
-    const vertexDepsSet = new Set<string>(head.nsDepList.filter((ns) => rMachine.isVertexNamespace(ns)));
+    const vertexDepsSet = new Set<string>(
+      head.nsDepList.filter((ns) => isVertexGearLayoutType(rMachine.resolveLayoutEntryType(ns)))
+    );
     const hasAnyVertexDep = vertexDepsSet.size > 0;
+
+    // Pre-compute the subset of top-level deps that resolve to a reactive
+    // (outer / vertex) layout — but ONLY when React Compiler support is enabled.
+    // When it is off (the default), these are never consulted, so we skip the
+    // work entirely (and avoid even resolving the layout type). With
+    // support on, only these surfaces are wrapped in a fresh-identity Proxy per
+    // reactive re-render (see the return path of useBareReactPlug); shells / kit
+    // / `$` are never wrapped — static within a locale, so a stable identity is
+    // correct.
+    const reactiveDepsSet: ReadonlySet<string> = reactCompilerSupport
+      ? new Set<string>(head.nsDepList.filter((ns) => isOuterGearLayoutType(rMachine.resolveLayoutEntryType(ns))))
+      : EMPTY_NAMESPACE_SET;
+    const hasAnyReactiveDep = reactiveDepsSet.size > 0;
+    // Map-mode top-level keys to wrap: reactive dep keys PLUS reactive kit keys
+    // (`buildMapPlugin` spreads `...kit` at top level, so a reactive kit entry is
+    // also reachable as `result.{name}`). List mode wraps positions, not keys, so
+    // this stays empty there.
+    const reactiveMapKeys: ReadonlySet<string> =
+      reactCompilerSupport && !isList
+        ? new Set<string>([
+            ...Object.keys(nsDeps).filter((k) => reactiveDepsSet.has((nsDeps as Record<string, string>)[k] as string)),
+            ...reactiveKitKeys,
+          ])
+        : EMPTY_NAMESPACE_SET;
 
     // Mutable ref shared across all consumers of this plug, holding the
     // *current* writeLocale callback. Each consumer's render updates it.
@@ -324,9 +394,16 @@ export async function createReactBareToolset<
       // dispatches with `!c` toggling return to the start and React skips
       // the commit. With a counter, N dispatches always change the state
       // by N, so a commit is guaranteed regardless of fan-out.
-      const [, forceRerender] = useReducer((c: number) => c + 1, 0);
+      const [version, forceRerender] = useReducer((c: number) => c + 1, 0);
       const forceRerenderRef = useRef<() => void>(forceRerender);
       forceRerenderRef.current = forceRerender;
+
+      // Cache for the `reactCompiler` fresh-identity wrapper (see return path).
+      // Keyed on (resolved plugin, version): a new wrapper identity is produced
+      // only when the plugin re-resolves OR a tracked state commit bumps the
+      // per-consumer `version` counter — so unrelated parent re-renders keep a
+      // stable identity (the compiler's memoization is preserved between them).
+      const wrapperCacheRef = useRef<{ src: unknown; version: number; wrapped: unknown } | null>(null);
 
       // Open the wire's tracking cassette synchronously on every render. The
       // cassette's `insert()` is idempotent under the recorder model: a
@@ -421,6 +498,31 @@ export async function createReactBareToolset<
       // React 19 + Turbopack happy.
       if (ctx === null) {
         throw new RMachineUsageError(ERR_CONTEXT_NOT_FOUND, "ReactBareToolsetContext not found.");
+      }
+
+      // React Compiler support (opt-in). R-Machine surfaces have a stable
+      // identity backed by live getters; React Compiler memoizes by reference
+      // identity and so caches scopes that read a "stable" surface → stale.
+      // When enabled, hand each reactive surface (direct dep, `$.kit` entry, or
+      // map-mode top-level kit spread) a fresh-identity passthrough Proxy whenever
+      // the resolved plugin or the per-consumer `version` changes (a tracked state
+      // commit), so the compiler re-evaluates the reading scopes. Proxies forward
+      // every trap to the live surface, so reads stay live and lazy (deferred-kit
+      // getters in map mode are not eagerly run).
+      if (reactCompilerSupport && (hasAnyReactiveDep || hasAnyReactiveKit)) {
+        const cache = wrapperCacheRef.current;
+        if (cache !== null && cache.src === result && cache.version === version) {
+          return cache.wrapped as never;
+        }
+        const wrapped = wrapReactiveResult(result, {
+          isList,
+          nsDepList: head.nsDepList,
+          reactiveDepsSet,
+          reactiveMapKeys,
+          reactiveKitKeys,
+        });
+        wrapperCacheRef.current = { src: result, version, wrapped };
+        return wrapped as never;
       }
 
       return result as never;

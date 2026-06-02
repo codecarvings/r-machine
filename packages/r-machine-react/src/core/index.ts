@@ -14,6 +14,7 @@
 import type { VertexFrame } from "./vertex-frame.js";
 
 export {
+  type CreateReactBareToolsetOptions,
   createReactBareToolset,
   type ReactBareRMachine,
   type ReactBareToolset,

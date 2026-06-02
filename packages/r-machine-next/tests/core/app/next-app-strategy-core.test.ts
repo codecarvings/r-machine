@@ -156,7 +156,8 @@ describe("NextAppStrategyCore", () => {
       expect(mockCreateClientToolset).toHaveBeenCalledWith(
         rMachine,
         NextAppStrategyCore.defaultConfig.clientKit,
-        mockClientImpl
+        mockClientImpl,
+        { reactCompiler: false }
       );
     });
 

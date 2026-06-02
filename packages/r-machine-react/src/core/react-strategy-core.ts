@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment, SwitchableOption } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { Strategy } from "r-machine/strategy";
 import type { ReactPlugKitMap } from "./react-plug.js";
@@ -19,15 +19,25 @@ import { createReactToolset, type ReactImpl, type ReactToolset } from "./react-t
 
 export interface ReactStrategyConfig<RA extends AnyResAtlas, KM extends ReactPlugKitMap<RA>> {
   readonly kit: KM;
+  /**
+   * Enable coexistence with React Compiler. When `true`, reactive surfaces
+   * returned by `plug.useR()` are handed a fresh identity per reactive
+   * re-render so the compiler re-evaluates the scopes that read them. Off by
+   * default and DISCOURAGED: R-Machine reactivity is already read-driven, so
+   * the compiler adds little benefit while this wrapping adds overhead.
+   */
+  readonly reactCompiler: SwitchableOption;
 }
 type AnyReactStrategyConfig<RA extends AnyResAtlas = AnyResAtlas> = ReactStrategyConfig<RA, ReactPlugKitMap<RA>>;
 export interface ReactStrategyConfigParams<RA extends AnyResAtlas, KM extends ReactPlugKitMap<RA>> {
   readonly kit?: KM;
+  readonly reactCompiler?: SwitchableOption;
 }
 
 const defaultKit = {} as const;
 const defaultConfig: ReactStrategyConfig<AnyResAtlas, typeof defaultKit> = {
   kit: defaultKit,
+  reactCompiler: "off",
 };
 
 export abstract class ReactStrategyCore<
@@ -43,6 +53,8 @@ export abstract class ReactStrategyCore<
 
   async createToolset(): Promise<ReactToolset<RA, L, EF, C["kit"]>> {
     const impl = await this.createImpl();
-    return await createReactToolset<RA, L, E, EF, C["kit"]>(this.rMachine, this.config.kit, impl);
+    return await createReactToolset<RA, L, E, EF, C["kit"]>(this.rMachine, this.config.kit, impl, {
+      reactCompiler: this.config.reactCompiler === "on",
+    });
   }
 }

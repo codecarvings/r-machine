@@ -2,13 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  // TEMPORARY: the React Compiler memoizes subtrees on object identity, but an
-  // OuterGear's consumer surface keeps a STABLE identity across state changes
-  // (reactivity is delivered by re-render + live getter reads, not by a new
-  // snapshot). The compiler therefore serves stale reads (e.g. a controlled
-  // cart-quantity input). Disabled until R-Machine yields a fresh surface
-  // identity per state change. See the surfaceA/surfaceB double-buffer in
-  // packages/r-machine/src/core/juncture.ts.
+
+  // React Compiler is discouraged in R-Machine projects: R-Machine reactivity is
+  // already read-driven (fine-grained re-render gating + cell-layer memoization),
+  // so the compiler brings little benefit and adds per-re-render wrapping overhead.
+  // If you must enable it (e.g. a mixed codebase), set it `true` here AND set
+  // `reactCompiler: "on"` in the R-Machine strategy config so reactive surfaces
+  // get fresh-identity wrapping (otherwise reads from `useR()` render stale).
   reactCompiler: false,
 };
 

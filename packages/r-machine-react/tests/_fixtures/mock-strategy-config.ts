@@ -11,6 +11,7 @@ export function configWith(
 ): ReactStandardStrategyConfig<AnyResAtlas, AnyKitMap> {
   return {
     kit: {} as AnyKitMap,
+    reactCompiler: "off",
     localeDetector: undefined,
     localeStore: undefined,
     ...overrides,

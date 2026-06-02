@@ -4,6 +4,7 @@ import {
   type ExperimentalFlags,
   PROCESS_SCOPE_PROVIDER,
   type ResEquipment,
+  type ResLayoutEntryType,
   type Wire,
 } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "r-machine/errors";
@@ -35,7 +36,7 @@ export interface CreateMockMachineOptions {
   /** Maps a (namespace, locale) to the surface a Plug resolves for it. */
   readonly resolve?: (ns: string, locale: string) => unknown;
   /** Which namespaces are treated as vertex (drives per-consumer wire caching). */
-  readonly isVertexNamespace?: (ns: string) => boolean;
+  readonly resolveLayoutEntryType?: (ns: string) => ResLayoutEntryType;
   /** Replace getWire wholesale (e.g. to inject a pending/controllable wire). */
   readonly getWire?: (...args: unknown[]) => Wire;
 }
@@ -92,7 +93,7 @@ export function createMockMachine(
     },
     getWire: vi.fn(overrides.getWire ?? (defaultGetWire as never)),
     // Default to non-vertex so plugs in tests use the shared wireCache path.
-    isVertexNamespace: vi.fn(overrides.isVertexNamespace ?? (() => false)),
+    resolveLayoutEntryType: vi.fn(overrides.resolveLayoutEntryType ?? (() => "shell")),
     // No request scope on the client — return the process-default provider so
     // the React adapter falls back to its module-level wireCache.
     requestScope: {

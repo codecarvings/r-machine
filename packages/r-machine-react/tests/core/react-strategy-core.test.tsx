@@ -33,7 +33,7 @@ class ConcreteReactStrategy extends ReactStrategyCore<TestAtlas, AnyLocale, E, E
   }
 }
 
-const defaultConfig: Cfg = { kit: {} };
+const defaultConfig: Cfg = { kit: {}, reactCompiler: "off" };
 
 function createStrategy(
   options: {
@@ -51,7 +51,7 @@ function createStrategy(
 describe("ReactStrategyCore — construction", () => {
   it("exposes rMachine and config from constructor arguments", () => {
     const machine = createMockMachine() as never;
-    const config: Cfg = { kit: {} };
+    const config: Cfg = { kit: {}, reactCompiler: "off" };
     const { strategy } = createStrategy({ machine, config });
     const exposed = strategy as unknown as { rMachine: unknown; config: unknown };
     expect(exposed.rMachine).toBe(machine);

@@ -60,6 +60,7 @@ describe("NextAppOriginStrategyConfig", () => {
       | "localeKey"
       | "autoLocaleBinding"
       | "basePath"
+      | "reactCompiler"
       | "localeOriginMap"
       | "pathMatcher"
     >();
@@ -131,6 +132,7 @@ describe("NextAppOriginStrategyConfigParams", () => {
       | "localeKey"
       | "autoLocaleBinding"
       | "basePath"
+      | "reactCompiler"
       | "localeOriginMap"
       | "pathMatcher"
     >();
