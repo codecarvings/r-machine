@@ -1356,6 +1356,7 @@ Every option is optional unless marked **required**; omitting one uses the liste
 | `kit` | `{ name: namespace }` | `{}` | Consumer kit (§11.4) — single map, one runtime. |
 | `localeDetector` | `() => Locale \| Promise<Locale>` | none | Picks the initial locale (e.g. `() => rMachine.localeHelper.matchLocales(navigator.languages)`). Falls back to `defaultLocale`. |
 | `localeStore` | `{ get(): Locale \| undefined; set(l: Locale): void }` (sync or async) | none | Reads the persisted locale on boot and persists it on change; `set` is what `$.setLocale` invokes (§11.5). |
+| `reactCompiler` | `"on" \| "off"` | `"off"` | Opt into coexistence with React Compiler — see §10.4 ("React Compiler"). **Discouraged**: R-Machine reactivity is already read-driven, so the compiler adds little while this adds per-re-render wrapping overhead. Leave `"off"` unless the compiler is enabled globally in a mixed codebase. |
 
 Constraints (Next.js):
 - `implicitDefaultLocale` requires `cookie` enabled and the proxy (§11.7).
