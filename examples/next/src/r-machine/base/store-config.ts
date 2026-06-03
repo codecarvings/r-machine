@@ -1,6 +1,6 @@
 import { BaseGear, type RShape } from "../setup";
 
-// A BaseGear is a stateless, juncture-scoped resource: created once and shared
+// A BaseGear is a stateless resource: created once and shared
 // across every consumer in a render. Perfect for store-wide configuration that
 // inner gears (catalog) and outer gears (cart, filter) depend on.
 export const r = BaseGear.define(() => ({

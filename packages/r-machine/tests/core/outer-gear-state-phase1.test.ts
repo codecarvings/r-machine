@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildKernelJuncture } from "../../src/core/juncture.js";
 import {
   buildStatefulOuterGearCursor,
   stateCellSlot,
@@ -10,22 +9,23 @@ import { createStateCell, type StateCell } from "../../src/core/reactivity/state
 import { type AnyRes, tryGetDispose } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
+import { buildResPod } from "../../src/core/res-pod.js";
 
 // --- helpers -----------------------------------------------------------------
 
 // The public ResMatrix.create is typed as `() => Promise<R>` but the actual
 // implementation expects (locale, chain). For phase-1 tests we bypass the
 // blueprint stack and invoke the resolution directly, so we need the wider
-// signature. We also wrap the raw resource in a kernel juncture so getter specs
+// signature. We also wrap the raw resource in a pod so getter specs
 // are materialized as JS accessors (matching what consumers see in production).
 type InternalCreateCall = (locale: undefined, chain: never[]) => Promise<unknown>;
 async function resolve(matrix: { create: () => Promise<unknown> }): Promise<unknown> {
   const raw = await (matrix.create as unknown as InternalCreateCall)(undefined, []);
-  return buildKernelJuncture(raw as AnyRes, undefined).surface;
+  return buildResPod(raw as AnyRes, undefined).surface;
 }
 
 // Mock connector that wires a fresh ctx ($) through the augmentCtx pipeline
-// — the same path createResMatrix uses in production via JunctureManager.
+// — the same path createResMatrix uses in production via ResManager.
 function makeConnector(): ResComposerConnector {
   return {
     getWire: async (_nsDeps: unknown, _locale: unknown, buildCtx: (ctx: unknown) => void, _chain: unknown) => {
@@ -228,7 +228,7 @@ describe("OuterGear state — phase 1 end-to-end", () => {
     });
     const raw = await (matrix.create as unknown as InternalCreateCall)(undefined, []);
     const resource = raw as { read: () => number; inc: () => unknown };
-    const surface = buildKernelJuncture(raw as AnyRes, undefined).surface as {
+    const surface = buildResPod(raw as AnyRes, undefined).surface as {
       read: number;
       inc: () => unknown;
       // Relays are filtered from the surface, so this property MUST be absent.

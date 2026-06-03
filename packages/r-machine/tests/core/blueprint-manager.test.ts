@@ -11,7 +11,7 @@ import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-
 // Build a minimal "matrix" module whose only test-relevant property is
 // plugHead.nsDepList (the dep list the BM extracts to populate forwardDeps).
 // connector / userFactory / cursor are never invoked by BM (they are exercised
-// by JM's resolveJuncture, which is not under test here).
+// by RM's resolvePod, which is not under test here).
 function makeMatrixModule(family: "gear" | "shell", role: GearRole | undefined, deps: string[]): AnyResModule {
   const head = {
     realm: "res",

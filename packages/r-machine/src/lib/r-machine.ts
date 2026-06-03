@@ -30,7 +30,6 @@ import {
   type ExperimentalFlags,
   type GearPlugKitMap,
   type InternalEventBus,
-  JunctureManager,
   type NamespaceMap,
   type PluginCtxAugmenter,
   type RequestScope,
@@ -39,6 +38,7 @@ import {
   type ResEquipment,
   type ResLayoutEntryType,
   ResLayoutResolver,
+  ResManager,
   type ShellPlugKitMap,
   type VertexGearMap,
   type Wire,
@@ -97,18 +97,13 @@ export class RMachine<
       // hydration. Cache stays on in production.
       isDevEnv()
     );
-    this.junctureManager = new JunctureManager(
-      resLayoutResolver,
-      this.config.equipment,
-      this.blueprintManager,
-      this.busHost
-    );
+    this.resManager = new ResManager(resLayoutResolver, this.config.equipment, this.blueprintManager, this.busHost);
     this.cassetteRecorder = createCassetteRecorder(this.busHost);
     // Install the deterministic relay ordering provider (Step 2). The
     // recorder defaults to FIFO registration order when no provider is
     // set — used by tests and by the bare reactivity layer.
     this.cassetteRecorder.setRelayOrderingProvider(createBlueprintRelayOrderingProvider(this.blueprintManager));
-    this.wireManager = new WireManager(this.junctureManager, this.busHost, this.cassetteRecorder);
+    this.wireManager = new WireManager(this.resManager, this.busHost, this.cassetteRecorder);
 
     // this.warnExperimental();
   }
@@ -125,7 +120,7 @@ export class RMachine<
   readonly localeHelper: LocaleHelper<L>;
   protected readonly resLayoutResolver: ResLayoutResolver;
   protected readonly blueprintManager: BlueprintManager;
-  protected readonly junctureManager: JunctureManager;
+  protected readonly resManager: ResManager;
   protected readonly wireManager: WireManager;
   protected readonly cassetteRecorder!: CassetteRecorder;
 
@@ -162,7 +157,7 @@ export class RMachine<
   protected createResComposerConnector(kit: AnyNamespaceMap): ResComposerConnector {
     return {
       getWire: async (deps, locale, augmentCtx, chain) => {
-        const plugin = await this.junctureManager.getPlugin(kit, deps, locale, augmentCtx, chain, 0, undefined);
+        const plugin = await this.resManager.getPlugin(kit, deps, locale, augmentCtx, chain, 0, undefined);
         return {
           plugin,
         };
@@ -204,7 +199,7 @@ export class RMachine<
   }
 
   // Single-shot plugin resolve. Unlike `getWire`, this does NOT subscribe
-  // to the JunctureManager and creates no persistent wire — intended for
+  // to the ResManager and creates no persistent wire — intended for
   // server-side / one-off resolution where reactivity is not needed.
   // Outer gear cannot be resolved through this method, as it relies on the wire's update mechanism to trigger re-resolution when outer gear changes.
   getGatePlugin(
@@ -213,25 +208,25 @@ export class RMachine<
     locale: L,
     augmentCtx: PluginCtxAugmenter
   ): Promise<unknown> {
-    return this.junctureManager.getPlugin(kit, nsDeps, locale, augmentCtx, [], 0, undefined);
+    return this.resManager.getPlugin(kit, nsDeps, locale, augmentCtx, [], 0, undefined);
   }
 
   readonly requestScope = {
-    // Install a provider that JM consults to discover the active request scope
+    // Install a provider that RM consults to discover the active request scope
     // (e.g. an AsyncLocalStorage-backed lookup in @r-machine/next). Outer/Vertex
     // slot accesses route to the scope's maps when one is active; otherwise
     // they fall back to the process-tier slots. Adapter packages call this once
     // at toolset construction. Subsequent installs replace the previous provider
     // (single-adapter assumption).
     installProvider: (p: RequestScopeProvider): void => {
-      this.junctureManager.setScopeProvider(p);
+      this.resManager.setScopeProvider(p);
     },
 
     // Returns the currently installed provider (the no-op `PROCESS_SCOPE_PROVIDER`
     // by default). The React adapter uses this to discover the request-scoped
     // wireCache map on the server during SSR of client components.
     getProvider: (): RequestScopeProvider => {
-      return this.junctureManager.getScopeProvider();
+      return this.resManager.getScopeProvider();
     },
 
     // Tears down all Outer-tier slots created within a request scope, in
@@ -240,7 +235,7 @@ export class RMachine<
     // `NextServerRMachine`). Errors are caught per-slot — one broken teardown
     // doesn't abort the rest.
     dispose: (scope: RequestScope): void => {
-      this.junctureManager.disposeRequestScope(scope);
+      this.resManager.disposeRequestScope(scope);
     },
   };
 
@@ -262,7 +257,7 @@ export class RMachine<
   // next. Request scopes are unaffected (use `requestScope.dispose`). Reachable
   // from a resource's `r.plug` via `getPlugMachine` (see `@r-machine/testing`).
   disposeResources(): void {
-    this.junctureManager.disposeResources();
+    this.resManager.disposeResources();
   }
 
   // `RMachine.create` is intended to produce a single canonical instance per
@@ -271,8 +266,8 @@ export class RMachine<
   // `setup.ts` separately for middleware, server components, client component
   // SSR, etc. (Turbopack evaluates the same file once per bundle context) —
   // naive instantiation would yield distinct RMachine objects that don't
-  // share JM state. This breaks request scoping (the install side and the
-  // resolve side would reference different JMs) and any other singleton-by-
+  // share RM state. This breaks request scoping (the install side and the
+  // resolve side would reference different RMs) and any other singleton-by-
   // intent state.
   //
   // The fix: cache the instance on `globalThis` under a `Symbol.for` key

@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { createAction } from "../../src/core/action.js";
 import { createGetter } from "../../src/core/getter.js";
-import { buildKernelJuncture, buildOuterJuncture, getCurrentSurface } from "../../src/core/juncture.js";
 import { createRelay } from "../../src/core/relay.js";
 import type { AnyRes } from "../../src/core/res.js";
+import { buildResPod } from "../../src/core/res-pod.js";
 import { tryGetVertexGearTag } from "../../src/core/vertex-gear.js";
 
-// The runtime Surface is produced by `buildSurface` (via buildKernelJuncture /
-// buildOuterJuncture) — these are the consumer-facing projections of a resource.
+// The runtime Surface is produced by `buildSurface` (via buildResPod) — these
+// are the consumer-facing projections of a resource.
 
 function surfaceOf(res: AnyRes) {
-  return getCurrentSurface(buildKernelJuncture(res, undefined));
+  return buildResPod(res, undefined).surface;
 }
 
 describe("Surface projection — member filtering", () => {
@@ -74,20 +74,18 @@ describe("Surface projection — member lifting", () => {
   });
 });
 
-describe("Surface projection — vertex tag & outer junctures", () => {
+describe("Surface projection — vertex tag", () => {
   it("applies a vertex tag onto the surface when provided", () => {
     const tag = { namespace: "vertex/cart" as never, genId: 3, occurrenceTag: "0" };
-    const surface = getCurrentSurface(buildKernelJuncture({ count: 1 } as AnyRes, tag));
+    const surface = buildResPod({ count: 1 } as AnyRes, tag).surface;
 
     expect(tryGetVertexGearTag(surface as AnyRes)).toEqual(tag);
   });
 
-  it("buildOuterJuncture exposes the current surface (A by default) and two distinct buffers", () => {
-    const juncture = buildOuterJuncture({ value: 1 } as AnyRes, undefined);
+  it("buildResPod pairs the resource with its projected surface", () => {
+    const pod = buildResPod({ value: 1 } as AnyRes, undefined);
 
-    expect(juncture.kind).toBe("outer");
-    expect(juncture.current).toBe(juncture.surfaceA);
-    expect(juncture.surfaceA).not.toBe(juncture.surfaceB);
-    expect(getCurrentSurface(juncture)).toBe(juncture.surfaceA);
+    expect(pod.res).toEqual({ value: 1 });
+    expect((pod.surface as { value: number }).value).toBe(1);
   });
 });

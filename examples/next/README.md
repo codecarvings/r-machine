@@ -16,7 +16,7 @@ resource the container resolves for the active locale.
 | R-Machine primitive | Where | What it shows |
 | --- | --- | --- |
 | **InnerGear** | [`inner/catalog`](src/r-machine/inner/catalog.ts) | Stateless, app-global resource. Loads products through an async **port** (`fetchProducts`) → the server component suspends while it resolves. |
-| **BaseGear** | [`base/store-config`](src/r-machine/base/store-config.ts) | Stateless, juncture-scoped store configuration that other gears depend on. |
+| **BaseGear** | [`base/store-config`](src/r-machine/base/store-config.ts) | Stateless store configuration that other gears depend on. |
 | **OuterGear** | [`outer/cart`](src/r-machine/outer/cart.ts) | The reactive cart: actions, a memoized `subtotal` cell, an item-count getter, a persistence relay, and SSR-hydration seeding. Browser-session state that survives navigation. |
 | **Vertex** (request-scoped outer) | [`vertex/catalog-filter`](src/r-machine/vertex/catalog-filter.ts) | Per-page sort/category state, **shared** between the filter bar and the grid via `<VertexFrame>`. |
 | **Shells** (multilingual) | [`shell/{common,catalog,product,cart}`](src/r-machine/shell) | Localized UI content (en + it), authored as plain typed objects with `localized(...)` for non-default locales. |

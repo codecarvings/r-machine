@@ -15,16 +15,7 @@ describe("Blueprint", () => {
     // this test, making drift impossible to smuggle in silently.
     type Keys = keyof Blueprint;
     expectTypeOf<Keys>().toEqualTypeOf<
-      | "namespace"
-      | "locale"
-      | "layoutEntryType"
-      | "family"
-      | "gearRole"
-      | "isOuterGear"
-      | "isVertexGear"
-      | "plugHead"
-      | "originType"
-      | "origin"
+      "namespace" | "locale" | "layoutEntryType" | "family" | "gearRole" | "plugHead" | "originType" | "origin"
     >();
   });
 
@@ -37,8 +28,6 @@ describe("Blueprint", () => {
       layoutEntryType: ResLayoutEntryType;
       family: ResFamily;
       gearRole: GearRole | undefined;
-      isOuterGear: boolean;
-      isVertexGear: boolean;
       plugHead: AnyPlugHead | undefined;
       originType: ResOriginType;
       origin: AnyResOrigin;
@@ -81,11 +70,6 @@ describe("Blueprint", () => {
     expectTypeOf<Blueprint["gearRole"]>().toEqualTypeOf<GearRole | undefined>();
     expectTypeOf<undefined>().toExtend<Blueprint["gearRole"]>();
     expectTypeOf<GearRole>().toExtend<Blueprint["gearRole"]>();
-  });
-
-  it("types `isOuterGear` and `isVertexGear` as plain booleans (not literal true/false)", () => {
-    expectTypeOf<Blueprint["isOuterGear"]>().toEqualTypeOf<boolean>();
-    expectTypeOf<Blueprint["isVertexGear"]>().toEqualTypeOf<boolean>();
   });
 
   it("types `plugHead` as AnyPlugHead | undefined (raw resources have no plug)", () => {

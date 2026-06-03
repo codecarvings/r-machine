@@ -109,7 +109,7 @@ export function convertRMachineConfigParamsToConfig<
   // getNamespaceMap — these route every entry through getNamespace(), which
   // strips a leading `#` (internal-namespace marker). After this single
   // materialization the rest of the runtime (BlueprintManager kit deps,
-  // JunctureManager kit injection, composer dep tracking) sees only bare names.
+  // ResManager kit injection, composer dep tracking) sees only bare names.
   const priority = Object.freeze(getNamespaceList(params.ResourceAtlas.priority as never)) as NamespaceList<
     InstanceType<RAC>
   >;

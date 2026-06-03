@@ -17,7 +17,7 @@ import type { ResLayoutEntryType } from "./res-layout.js";
 
 // ─── Macro-categories ───────────────────────────────────────────────────
 // All event types follow the convention "<area>:<verb-or-state>".
-// `InternalEvent` is the union emitted by the runtime managers (BPM/JM/GWM).
+// `InternalEvent` is the union emitted by the runtime managers (BPM/RM/WM).
 // Reserved for internal tests, the dev-mode logger, and a future devtools
 // extension — treat as implementation detail. A separate `RuntimeEvent`
 // union (user-observable: action dispatch, gear instantiation) will be
@@ -63,63 +63,63 @@ export type BlueprintEvent =
       locale: AnyLocale | undefined;
     };
 
-// ─── Juncture events ────────────────────────────────────────────────────
+// ─── Res events ────────────────────────────────────────────────────
 
-export type JunctureEvent =
-  | { type: "juncture:cacheHit"; namespace: AnyNamespace; locale: AnyLocale | undefined; generation: number }
+export type ResEvent =
+  | { type: "res:cacheHit"; namespace: AnyNamespace; locale: AnyLocale | undefined; generation: number }
   | {
-      type: "juncture:resolveStart";
+      type: "res:resolveStart";
       namespace: AnyNamespace;
       locale: AnyLocale | undefined;
       generation: number;
       vertexGenId: number | undefined;
     }
-  | { type: "juncture:factoryInvoked"; namespace: AnyNamespace; locale: AnyLocale | undefined }
-  | { type: "juncture:built"; namespace: AnyNamespace; kind: "kernel" | "outer" }
-  | { type: "juncture:slotCommitted"; namespace: AnyNamespace; generation: number }
+  | { type: "res:factoryInvoked"; namespace: AnyNamespace; locale: AnyLocale | undefined }
+  | { type: "res:built"; namespace: AnyNamespace }
+  | { type: "res:slotCommitted"; namespace: AnyNamespace; generation: number }
   | {
-      type: "juncture:resolveStale";
+      type: "res:resolveStale";
       namespace: AnyNamespace;
       reason: "generation" | "slotIdentity";
       teardownInvoked: boolean;
     }
   | {
-      type: "juncture:resolveError";
+      type: "res:resolveError";
       namespace: AnyNamespace;
       error: unknown;
       // Resolution path, root-first, ending with the failing `namespace`.
       chain?: readonly AnyNamespace[];
     }
-  | { type: "juncture:slotDisposed"; namespace: AnyNamespace; teardownInvoked: boolean }
+  | { type: "res:slotDisposed"; namespace: AnyNamespace; teardownInvoked: boolean }
   | {
-      type: "juncture:kitPartitioned";
+      type: "res:kitPartitioned";
       selfNamespace: AnyNamespace | undefined;
       eager: readonly AnyNamespace[];
       deferred: readonly AnyNamespace[];
     }
-  | { type: "juncture:deferredKitAccessed"; namespace: AnyNamespace; ready: boolean }
-  | { type: "juncture:vertexConsumerResolved"; namespace: AnyNamespace; consumerVertexKey: string }
-  | { type: "juncture:vertexConsumerMissing"; namespace: AnyNamespace; vertexKey: string }
-  | { type: "juncture:vertexSlotRegistered"; namespace: AnyNamespace; genId: number; occurrenceTag: string }
+  | { type: "res:deferredKitAccessed"; namespace: AnyNamespace; ready: boolean }
+  | { type: "res:vertexConsumerResolved"; namespace: AnyNamespace; consumerVertexKey: string }
+  | { type: "res:vertexConsumerMissing"; namespace: AnyNamespace; vertexKey: string }
+  | { type: "res:vertexSlotRegistered"; namespace: AnyNamespace; genId: number; occurrenceTag: string }
   | {
-      type: "juncture:invalidationStart";
+      type: "res:invalidationStart";
       rootNamespace: AnyNamespace;
       locale: AnyLocale | undefined;
       closure: readonly AnyNamespace[];
     }
-  | { type: "juncture:subscribersNotified"; namespace: AnyNamespace; subscriberCount: number }
-  | { type: "juncture:subscribed"; namespaces: readonly AnyNamespace[] }
-  | { type: "juncture:unsubscribed"; namespaces: readonly AnyNamespace[] }
-  | { type: "juncture:requestScopeDisposed" }
-  | { type: "juncture:resourcesDisposed" };
+  | { type: "res:subscribersNotified"; namespace: AnyNamespace; subscriberCount: number }
+  | { type: "res:subscribed"; namespaces: readonly AnyNamespace[] }
+  | { type: "res:unsubscribed"; namespaces: readonly AnyNamespace[] }
+  | { type: "res:requestScopeDisposed" }
+  | { type: "res:resourcesDisposed" };
 
 // ─── Wire events ────────────────────────────────────────────────────
 
 export type WireEvent =
   | { type: "wire:created"; genId: number; locale: AnyLocale; topLevelNs: readonly AnyNamespace[] }
   | { type: "wire:resolveTriggered"; genId: number }
-  | { type: "wire:jmSubscribed"; genId: number }
-  | { type: "wire:jmUnsubscribed"; genId: number; vertexSlotsDisposed: number }
+  | { type: "wire:rmSubscribed"; genId: number }
+  | { type: "wire:rmUnsubscribed"; genId: number; vertexSlotsDisposed: number }
   | { type: "wire:markedDirty"; genId: number; subscriberCount: number }
   | { type: "wire:updateRequested"; genId: number; localeChanged: boolean; vertexGearMapChanged: boolean }
   | { type: "wire:subscribed"; genId: number }
@@ -136,7 +136,7 @@ export type RelayEvent =
 
 // ─── Aggregato ──────────────────────────────────────────────────────────
 
-export type InternalEvent = BlueprintEvent | JunctureEvent | WireEvent | RelayEvent;
+export type InternalEvent = BlueprintEvent | ResEvent | WireEvent | RelayEvent;
 
 // ─── Bus interface + factory ────────────────────────────────────────────
 

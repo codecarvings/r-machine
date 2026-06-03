@@ -3,7 +3,7 @@ import { createEventBus, type InternalEvent } from "../../src/core/event-bus.js"
 
 // A representative internal event used as a payload carrier for these tests.
 const evt = (namespace: string): InternalEvent =>
-  ({ type: "juncture:deferredKitAccessed", namespace, ready: true }) as InternalEvent;
+  ({ type: "res:deferredKitAccessed", namespace, ready: true }) as InternalEvent;
 
 describe("createEventBus", () => {
   afterEach(() => vi.restoreAllMocks());

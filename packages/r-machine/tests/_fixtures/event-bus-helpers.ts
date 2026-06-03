@@ -80,8 +80,8 @@ export function collectEvents(bridge: TestBusBridge): EventCollector {
 }
 
 // A sequence matcher item is either:
-//   - a type string (`"juncture:resolveStart"`) — matches any event of that type
-//   - a partial event shape (`{ type: "juncture:resolveStale", reason: "generation" }`)
+//   - a type string (`"res:resolveStart"`) — matches any event of that type
+//   - a partial event shape (`{ type: "res:resolveStale", reason: "generation" }`)
 //     — matches an event of the given type with the given fields' values
 export type EventMatcher = InternalEvent["type"] | Partial<InternalEvent>;
 

@@ -11,17 +11,17 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { Juncture } from "./juncture.js";
 import type { AnyNamespace } from "./res-domain.js";
+import type { ResPod } from "./res-pod.js";
 
-// A JM cache slot. Lifetime depends on which tier owns it: process-shared
-// (JunctureManager.slots) for Base/Inner/Shell, or request-scoped
+// A RM cache slot. Lifetime depends on which tier owns it: process-shared
+// (ResManager.slots) for Base/Inner/Shell, or request-scoped
 // (RequestScope.outerSlots / vertexSlots) for OuterGear instances.
 export interface Slot {
   readonly key: string;
   readonly namespace: AnyNamespace;
   readonly generation: number;
-  content: Juncture | Promise<Juncture>;
+  content: ResPod | Promise<ResPod>;
 }
 
 // State that lives for the duration of a single render context (e.g. an HTTP
@@ -46,7 +46,7 @@ export interface RequestScope {
 // live in adapter packages (e.g. `@r-machine/next` uses a sync override pushed
 // from the React adapter); core stays free of runtime-specific primitives.
 // When no scope is active (client browser, raw Node script, tests), the
-// provider returns null and the JM falls back to its process-shared maps.
+// provider returns null and the RM falls back to its process-shared maps.
 //
 // `setOverride` is the propagation channel for environments where async-
 // context-based propagation (AsyncLocalStorage, React.cache) doesn't survive
@@ -55,7 +55,7 @@ export interface RequestScope {
 // active scope from a React Context (set by the server boundary component),
 // then calls `setOverride(scope)` synchronously immediately before invoking
 // the wire's plugin resolution, and `setOverride(null)` immediately after.
-// JM's `slotsForLayout` runs synchronously inside that window and captures
+// RM's `slotsForLayout` runs synchronously inside that window and captures
 // the request's `outerSlots` map into the resolution promise's closure —
 // after which the override is irrelevant for the rest of the (async)
 // resolution. Concurrent requests on the same Node process never interleave

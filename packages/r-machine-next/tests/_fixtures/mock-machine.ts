@@ -56,7 +56,7 @@ export interface CreateMockMachineOptions<L extends string = TestLocale> {
 }
 
 /**
- * Build the plugin the way JM does: assemble `$ = { kit }`, let the adapter's
+ * Build the plugin the way RM does: assemble `$ = { kit }`, let the adapter's
  * augmentCtx layer on `$.locale`/`$.setLocale`/`$.getPath`/`$.params`, then
  * assemble the plugin (`[...deps, $]` for list, `{ ...kit, ...deps, $ }` for map).
  */

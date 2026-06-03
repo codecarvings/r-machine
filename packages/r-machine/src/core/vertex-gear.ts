@@ -42,7 +42,7 @@ export function setVertexGearTag(res: AnyRes, tag: VertexGearTagData): void {
 // Format: `${genId}\x1f${occurrenceTag}`. Used as:
 //   - the value side of `VertexGearMap` (so VertexFrame can propagate identity
 //     to descendants without exposing internal fields);
-//   - the discriminator inside the JM vertex slot cache key
+//   - the discriminator inside the RM vertex slot cache key
 //     (`V:${ns}\x1f${vertexKey}`).
 // Internal indexing (e.g. `vertexSlotsByGenId`) keeps using the numeric
 // `genId` separately — the composite is purely for cache/transport.

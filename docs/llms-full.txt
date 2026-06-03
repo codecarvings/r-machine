@@ -1206,7 +1206,7 @@ Rule of thumb: for the **active locale**, prefer `$.locale` — it is canonical,
 
 ### 10.6. Error handling: when a factory throws
 
-Resolution fails when a resource factory throws synchronously, when an `async` factory's promise rejects, or when one of its dependencies fails to resolve. The error a consumer observes is **the original error the factory threw** — R-Machine does not wrap it: the error keeps its identity and prototype, so `instanceof` checks and framework control-flow signals (e.g. Next.js `notFound()` / `redirect()`) still work. (R-Machine's own *structural* failures — an invalid resource-module shape, a missing or circular dependency — surface instead as `RMachineResolveError` with code `ERR_RESOLVE_FAILED`.) The failure also emits a `blueprint:resolveError` or `juncture:resolveError` event on the bus (§15.2), carrying the namespace, the resolution chain, and the error.
+Resolution fails when a resource factory throws synchronously, when an `async` factory's promise rejects, or when one of its dependencies fails to resolve. The error a consumer observes is **the original error the factory threw** — R-Machine does not wrap it: the error keeps its identity and prototype, so `instanceof` checks and framework control-flow signals (e.g. Next.js `notFound()` / `redirect()`) still work. (R-Machine's own *structural* failures — an invalid resource-module shape, a missing or circular dependency — surface instead as `RMachineResolveError` with code `ERR_RESOLVE_FAILED`.) The failure also emits a `blueprint:resolveError` or `res:resolveError` event on the bus (§15.2), carrying the namespace, the resolution chain, and the error.
 
 What the consumer sees depends on the plug variant:
 
@@ -2323,7 +2323,7 @@ The bus is **lazy and zero-cost**: until something subscribes, no bus is allocat
 Events fall into four categories (each event carries a `type` string plus a small payload):
 
 - `blueprint:*` — resource resolution and blueprint caching (`resolveStart`, `moduleLoaded`, `resolved`, `cacheHit`, `resolveError`, `circularDepDetected`, …).
-- `juncture:*` — factory build, slot commit, and disposal (`factoryInvoked`, `built`, `slotDisposed`, `resolveStale`, …). `juncture:resolveError` additionally carries `chain` — the resolution path to the failing namespace (the same attribution exposed via `getResolveContext`, §10.6).
+- `res:*` — factory build, slot commit, and disposal (`factoryInvoked`, `built`, `slotDisposed`, `resolveStale`, …). `res:resolveError` additionally carries `chain` — the resolution path to the failing namespace (the same attribution exposed via `getResolveContext`, §10.6).
 - `wire:*` — consumer wiring and reactive notification (`created`, `markedDirty`, `subscribed`, `unsubscribed`, …).
 - `relay:*` — the two relay diagnostics referenced in §6.3 / §6.5:
   - `relay:onChangeError` — `{ relayName: string; error: unknown }`
@@ -2475,6 +2475,6 @@ https://github.com/codecarvings/r-machine/blob/RM-alpha-12/benchmarks/type-scale
 
 ---
 
-rev 2026-06-02.012
+rev 2026-06-03.013
 Copyright (c) 2026 Sergio Turolla - All Rights Reserved.
 https://codecarvings.com

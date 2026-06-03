@@ -126,7 +126,7 @@ export async function createNextAppServerToolset<
   const rMachineProxy = await impl.createProxy();
   const generateLocaleStaticParams = await impl.createLocaleStaticParamsGenerator();
 
-  // Install the ALS-backed scope provider on the shared RMachine. The JM
+  // Install the ALS-backed scope provider on the shared RMachine. The RM
   // will now route Outer/Vertex slot resolutions to a per-request map when
   // one is active (see `NextServerRMachine` below). Base/Inner/Shell stay
   // process-cached and unaffected. A single toolset construction per Next
@@ -188,7 +188,7 @@ export async function createNextAppServerToolset<
     // register it under a UUID and pass the UUID as a prop; the client
     // component (server-SSR'd in the same Node process) looks it back up via
     // `lookupScope` and exposes it through `RequestScopeContext` so
-    // `useBareReactPlug` can install it as the JM scope-provider's override.
+    // `useBareReactPlug` can install it as the RM scope-provider's override.
     const scope = createRequestScope();
     const scopeId = crypto.randomUUID();
     registerScope(scopeId, scope);

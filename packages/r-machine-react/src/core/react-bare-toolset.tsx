@@ -226,7 +226,7 @@ export async function createReactBareToolset<
     // wire and forcing the other render to re-resolve, producing an
     // infinite ping-pong loop. Per-locale wires let each concurrent render
     // own its own wire; the old wire is disposed naturally when React
-    // unmounts the old subtree (last `subscribe` returns → JM unsubscribe →
+    // unmounts the old subtree (last `subscribe` returns → RM unsubscribe →
     // outer vertex slots disposed by genId).
     type WireEntry = { wire: Wire; localeHolder: { current: L } };
     // Module-level fallback cache for client-side (no request scope active).
@@ -243,7 +243,7 @@ export async function createReactBareToolset<
     // Resolves which cache backs `wireCache` for this consumer's render:
     //   - Server inside an active request scope: a fresh-per-request Map kept
     //     under scope.wireCachesByPlugId[plugId]. A wire stored there points
-    //     at a plugin promise whose JM slot lives in scope.outerSlots; when
+    //     at a plugin promise whose RM slot lives in scope.outerSlots; when
     //     the request ends, both the slot and this cache go away together,
     //     so wires can never outlive the plugin they reference.
     //   - Client (no scope): the module-level `fallbackWireCache`.
@@ -355,9 +355,9 @@ export async function createReactBareToolset<
       // RequestScope (per-request OuterGear tier) is propagated from an
       // adapter boundary component (e.g. NextClientRMachine) via this
       // context. When present, the wire's plugin resolution must run with
-      // this scope installed as the scope-provider's override so JM's
+      // this scope installed as the scope-provider's override so RM's
       // `slotsForLayout` captures the request-scoped outerSlots map.
-      // When null (client browser, plain React, tests), JM falls back to
+      // When null (client browser, plain React, tests), RM falls back to
       // its process-tier slots map — the correct behavior outside a
       // request lifecycle.
       const requestScope = useContext(RequestScopeContext);
@@ -381,7 +381,7 @@ export async function createReactBareToolset<
       const wire = getOrCreateWire(safeCtx.locale, vertexGearMap, requestScope, consumerKeyRef.current);
 
       // Local re-render channel for cassette-tracked dep changes. Kept
-      // SEPARATE from useSyncExternalStore (which is the JM-driven re-resolve
+      // SEPARATE from useSyncExternalStore (which is the RM-driven re-resolve
       // channel and busts the plugin Promise identity) so cassette mutations
       // do not force a Suspense throw + retry of the consumer's subtree on
       // every state change.
@@ -427,13 +427,13 @@ export async function createReactBareToolset<
       commitRef.current = commit;
 
       // Wrap getSnapshot/getServerSnapshot so the active request scope is
-      // installed as the JM provider's sync override around the wire's
+      // installed as the RM provider's sync override around the wire's
       // plugin resolution call. Critical for server-side: when this hook
       // runs inside a client-component SSR pass, async-context primitives
       // (AsyncLocalStorage, React.cache) don't propagate from the parent
       // server component, so the React Context is our only reliable
       // channel. The sync window from setOverride to wire.getPluginPromise
-      // (which itself runs the JM resolution sync until first await,
+      // (which itself runs the RM resolution sync until first await,
       // capturing slotsMap into the promise closure) is uninterruptable —
       // JS is single-threaded, so concurrent requests on the same Node
       // process can't interleave here. Reset to null afterwards so we

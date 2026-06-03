@@ -13,11 +13,11 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import type { BusHost } from "./event-bus.js";
-import type { JunctureManager } from "./juncture-manager.js";
 import type { PluginCtxAugmenter } from "./plug.js";
 import type { CassetteRecorder } from "./reactivity/cassette-recorder.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { isNamespaceList } from "./res-list.js";
+import type { ResManager } from "./res-manager.js";
 import type { AnyNamespaceMap } from "./res-map.js";
 import type { VertexGearMap } from "./vertex-gear.js";
 import type { Wire } from "./wire.js";
@@ -27,7 +27,7 @@ let nextGenId = 0;
 
 export class WireManager {
   constructor(
-    protected readonly junctureManager: JunctureManager,
+    protected readonly resManager: ResManager,
     protected readonly busHost: BusHost,
     protected readonly recorder: CassetteRecorder
   ) {}
@@ -40,7 +40,7 @@ export class WireManager {
     vertexGearMap?: VertexGearMap | undefined
   ): Wire {
     return createWire(
-      this.junctureManager,
+      this.resManager,
       kit,
       nsDeps,
       locale,
@@ -54,7 +54,7 @@ export class WireManager {
 }
 
 function createWire(
-  junctureManager: JunctureManager,
+  resManager: ResManager,
   kit: AnyNamespaceMap,
   nsDeps: AnyNamespaceCollection,
   locale: AnyLocale,
@@ -75,10 +75,10 @@ function createWire(
   const topLevelNs: AnyNamespace[] = isNamespaceList(nsDeps) ? [...nsDeps] : Object.values(nsDeps);
 
   const subscribers = new Set<() => void>();
-  // Lazy: subscribe to JM only when the first external subscriber arrives.
+  // Lazy: subscribe to RM only when the first external subscriber arrives.
   // Disposed when the last one leaves. This keeps short-lived "ghost" wires
-  // (Strict Mode duplicates, abandoned mounts) from leaking JM subscriptions.
-  let unsubFromJm: (() => void) | null = null;
+  // (Strict Mode duplicates, abandoned mounts) from leaking RM subscriptions.
+  let unsubFromRm: (() => void) | null = null;
 
   // Per-consumer cassette tracking state. A wire is shared across all
   // consumers that resolve to the same (locale, vgmSig) cache key (see
@@ -126,7 +126,7 @@ function createWire(
 
   function resolve() {
     busHost.bus?.emit({ type: "wire:resolveTriggered", genId });
-    currentPluginPromise = junctureManager.getPlugin(
+    currentPluginPromise = resManager.getPlugin(
       kit,
       nsDeps,
       currentLocale,
@@ -149,11 +149,11 @@ function createWire(
     },
 
     subscribe: (callback: () => void) => {
-      // Re-use an existing JM subscription if the prior teardown is still
+      // Re-use an existing RM subscription if the prior teardown is still
       // pending in a microtask (Strict Mode / Suspense toggle case) — the
       // sub is still wired up, no need to register a second one and leak.
-      if (subscribers.size === 0 && unsubFromJm === null) {
-        unsubFromJm = junctureManager.subscribe(topLevelNs, () => {
+      if (subscribers.size === 0 && unsubFromRm === null) {
+        unsubFromRm = resManager.subscribe(topLevelNs, () => {
           dirty = true;
           busHost.bus?.emit({ type: "wire:markedDirty", genId, subscriberCount: subscribers.size });
           for (const cb of subscribers) {
@@ -164,15 +164,15 @@ function createWire(
             }
           }
         });
-        busHost.bus?.emit({ type: "wire:jmSubscribed", genId });
+        busHost.bus?.emit({ type: "wire:rmSubscribed", genId });
       }
       subscribers.add(callback);
       busHost.bus?.emit({ type: "wire:subscribed", genId });
       return () => {
         subscribers.delete(callback);
         busHost.bus?.emit({ type: "wire:unsubscribed", genId });
-        if (subscribers.size === 0 && unsubFromJm !== null) {
-          // All teardown (JM subscription, cassette cell subs, vertex slots)
+        if (subscribers.size === 0 && unsubFromRm !== null) {
+          // All teardown (RM subscription, cassette cell subs, vertex slots)
           // is deferred to a microtask. React's
           // subscribe → unsubscribe → subscribe dance happens in two flavors:
           //   - Strict Mode mount: deliberate test of cleanup correctness.
@@ -189,17 +189,17 @@ function createWire(
           //
           // Deferring to a microtask lets a same-tick resubscribe short-
           // circuit: if `subscribers.size > 0` at microtask time, skip
-          // everything (JM stays subscribed, cassette subs intact, vertex
+          // everything (RM stays subscribed, cassette subs intact, vertex
           // slots alive). If no resubscribe arrives (real unmount / HMR),
           // the microtask runs and tears down.
           queueMicrotask(() => {
             if (subscribers.size > 0) {
               return;
             }
-            unsubFromJm?.();
-            unsubFromJm = null;
+            unsubFromRm?.();
+            unsubFromRm = null;
             disposeAllConsumers();
-            const vertexSlotsDisposed = junctureManager.disposeAllVertexSlotsByGenId(genId);
+            const vertexSlotsDisposed = resManager.disposeAllVertexSlotsByGenId(genId);
             if (vertexSlotsDisposed > 0) {
               // Vertex slots created by this wire's prior resolves are gone,
               // so the cached `currentPluginPromise` references slots that no
@@ -207,7 +207,7 @@ function createWire(
               // forced to re-resolve and re-create the vertex slots.
               dirty = true;
             }
-            busHost.bus?.emit({ type: "wire:jmUnsubscribed", genId, vertexSlotsDisposed });
+            busHost.bus?.emit({ type: "wire:rmUnsubscribed", genId, vertexSlotsDisposed });
           });
         }
       };
@@ -216,7 +216,7 @@ function createWire(
     // state (deps, subs, epoch) is per-consumer (see `consumers` Map above)
     // so multiple consumers sharing this wire don't tear down each other's
     // subscriptions on commit. This channel is SEPARATE from the wire's
-    // `subscribers` (which carries JM-driven plugin re-resolves) — a
+    // `subscribers` (which carries RM-driven plugin re-resolves) — a
     // cassette-tracked dep mutation does NOT bust the plugin Promise
     // identity, so React consumers reading via `use(pluginPromise)` are not
     // forced to re-suspend through the Suspense boundary on every state
@@ -277,7 +277,7 @@ function createWire(
         // Dispose only the vertex slots whose ownership has shifted to a
         // parent (newVertexGearMap[ns] now defined): the wire stops being
         // their creator. Vertex still owned survive.
-        junctureManager.disposeVertexSlotsByOwnershipChange(genId, newVertexGearMap);
+        resManager.disposeVertexSlotsByOwnershipChange(genId, newVertexGearMap);
         currentVertexGearMap = newVertexGearMap;
       }
       if (localeChanged) {

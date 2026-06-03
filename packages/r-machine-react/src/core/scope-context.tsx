@@ -25,11 +25,11 @@ import { createContext } from "react";
 // The Provider is set by the adapter; the consumer (`useBareReactPlug`)
 // reads via `useContext` and, when a scope is present, calls the rMachine's
 // scope-provider `setOverride(scope)` synchronously around its wire
-// resolution call so JM's `slotsForLayout` captures the request-scoped
+// resolution call so RM's `slotsForLayout` captures the request-scoped
 // `outerSlots` map.
 //
 // When no Provider is set (client browser, plain React app, tests), the
-// context returns null and the wire layer skips the override step — JM
+// context returns null and the wire layer skips the override step — RM
 // falls back to its process-tier slots map, which is the correct behavior
 // outside a request lifecycle.
 export const RequestScopeContext = createContext<RequestScope | null>(null);

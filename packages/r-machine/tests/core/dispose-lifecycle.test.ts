@@ -8,7 +8,7 @@ const LAYOUT: AnyResLayout = { "b/": "gear:base", "i/": "gear:inner" };
 
 // Integration-level `[Symbol.dispose]` contract from a consumer's perspective.
 // (The per-slot disposal mechanics — order, vertex slots — live in
-// juncture-manager.test.ts; the `tryGetDispose` unit lives in res.test.ts.)
+// pod-manager.test.ts; the `tryGetDispose` unit lives in res.test.ts.)
 
 describe("dispose lifecycle — through resolve + invalidate", () => {
   it("teardown runs exactly once on invalidate, and not again on a second invalidate", async () => {
@@ -18,11 +18,11 @@ describe("dispose lifecycle — through resolve + invalidate", () => {
     });
 
     await env.resolve("b/x" as AnyNamespace);
-    env.jm.invalidate("b/x" as AnyNamespace);
+    env.rm.invalidate("b/x" as AnyNamespace);
     expect(teardown).toHaveBeenCalledTimes(1);
 
     // Slot already evicted → second invalidate finds nothing to dispose.
-    env.jm.invalidate("b/x" as AnyNamespace);
+    env.rm.invalidate("b/x" as AnyNamespace);
     expect(teardown).toHaveBeenCalledTimes(1);
   });
 
@@ -37,7 +37,7 @@ describe("dispose lifecycle — through resolve + invalidate", () => {
 
     await expect(env.resolve("i/boom" as AnyNamespace)).rejects.toThrow("boom");
     // Nothing committed → invalidate is a safe no-op.
-    expect(() => env.jm.invalidate("i/boom" as AnyNamespace)).not.toThrow();
+    expect(() => env.rm.invalidate("i/boom" as AnyNamespace)).not.toThrow();
   });
 
   it("a resource exposing [Symbol.asyncDispose] is rejected at disposal time", async () => {
@@ -47,7 +47,7 @@ describe("dispose lifecycle — through resolve + invalidate", () => {
 
     await env.resolve("b/async" as AnyNamespace);
     try {
-      env.jm.invalidate("b/async" as AnyNamespace);
+      env.rm.invalidate("b/async" as AnyNamespace);
       expect.unreachable("invalidate should throw on async-only dispose");
     } catch (err) {
       expect(err).toBeInstanceOf(RMachineUsageError);

@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { BlueprintManager } from "../../src/core/blueprint-manager.js";
 import type { BusHost } from "../../src/core/event-bus.js";
-import { getCurrentSurface, type Juncture } from "../../src/core/juncture.js";
-import { JunctureManager } from "../../src/core/juncture-manager.js";
 import { createOuterGearComposer } from "../../src/core/outer-gear-composer.js";
 import { type CassetteRecorder, createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
 import type { AnyRes } from "../../src/core/res.js";
@@ -10,18 +8,20 @@ import type { ResComposerConnector } from "../../src/core/res-composer-connector
 import type { AnyNamespace } from "../../src/core/res-domain.js";
 import type { AnyResEquipment } from "../../src/core/res-equipment.js";
 import { type AnyResLayout, ResLayoutResolver } from "../../src/core/res-layout.js";
+import { ResManager } from "../../src/core/res-manager.js";
 import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-module.js";
+import type { ResPod } from "../../src/core/res-pod.js";
 import { WireManager } from "../../src/core/wire-manager.js";
 
 // --- helpers -----------------------------------------------------------------
 
 const LAYOUT: AnyResLayout = { "g/": "gear:outer" };
 
-// Build BM + JM + GWM with a shared CassetteRecorder (per-instance, matching the
+// Build BM + RM + WM with a shared CassetteRecorder (per-instance, matching the
 // real RMachine wiring). The module factories receive the same recorder so
 // their composer-built matrices stay coherent with the wire's tracking.
-function buildEnv(modules: Record<string, (jm: JunctureManager, recorder: CassetteRecorder) => AnyResModule>) {
-  let jm!: JunctureManager;
+function buildEnv(modules: Record<string, (rm: ResManager, recorder: CassetteRecorder) => AnyResModule>) {
+  let rm!: ResManager;
   const recorder = createCassetteRecorder();
 
   const loader = async (_p: string, opts?: ResModuleLoaderFnOptions): Promise<AnyResModule> => {
@@ -32,7 +32,7 @@ function buildEnv(modules: Record<string, (jm: JunctureManager, recorder: Casset
     if (!factory) {
       throw new Error(`No module registered for "${opts.namespace}"`);
     }
-    return factory(jm, recorder);
+    return factory(rm, recorder);
   };
 
   const resolver = new ResLayoutResolver(LAYOUT);
@@ -41,47 +41,47 @@ function buildEnv(modules: Record<string, (jm: JunctureManager, recorder: Casset
   const equipment: AnyResEquipment = { gearKit, shellKit: {}, bridgeGears: [] };
   const busHost: BusHost = { bus: undefined };
   const bm = new BlueprintManager(resolver, loader, { gear: gearNs, shell: [] }, [], busHost);
-  jm = new JunctureManager(resolver, equipment, bm, busHost);
-  const gwm = new WireManager(jm, busHost, recorder);
+  rm = new ResManager(resolver, equipment, bm, busHost);
+  const wm = new WireManager(rm, busHost, recorder);
 
-  const jmInternal = jm as unknown as {
-    getJuncture(
+  const rmInternal = rm as unknown as {
+    getPod(
       ns: AnyNamespace,
       locale: string | undefined,
       genId: number,
       vgm: undefined,
       chain: readonly AnyNamespace[]
-    ): Promise<Juncture>;
+    ): Promise<ResPod>;
   };
 
-  return { jm, jmInternal, gwm, recorder };
+  return { rm, rmInternal, wm, recorder };
 }
 
-async function resolveResource(jmInternal: { getJuncture: (...a: never[]) => Promise<Juncture> }, ns: AnyNamespace) {
-  const juncture = await (
-    jmInternal.getJuncture as (
+async function resolveResource(rmInternal: { getPod: (...a: never[]) => Promise<ResPod> }, ns: AnyNamespace) {
+  const pod = await (
+    rmInternal.getPod as (
       ns: AnyNamespace,
       locale: string | undefined,
       genId: number,
       vgm: undefined,
       chain: readonly AnyNamespace[]
-    ) => Promise<Juncture>
+    ) => Promise<ResPod>
   )(ns, undefined, 0, undefined, []);
-  return getCurrentSurface(juncture);
+  return pod.surface;
 }
 
 // Builds a stateful OG matrix via the PUBLIC composer (no internal _-prefixed
-// helpers). The connector closure dispatches back into jm at factory time.
-// Plugin shape under the real JunctureManager: `{ ...kit, ...deps, $ }`. The
+// helpers). The connector closure dispatches back into rm at factory time.
+// Plugin shape under the real ResManager: `{ ...kit, ...deps, $ }`. The
 // augmented ctx (state/defaultState/ports/...) lives at `plugin.$`.
 function makeStatefulOuterGearModule<S>(
   defaultState: S,
   factory: (plugin: { $: { state: S; defaultState: S } }, cursor: any) => unknown
 ) {
-  return (jm: JunctureManager, recorder: CassetteRecorder): AnyResModule => {
+  return (rm: ResManager, recorder: CassetteRecorder): AnyResModule => {
     const connector: ResComposerConnector = {
       getWire: async (nsDeps, locale, augmentCtx, chain) => {
-        const plugin = await jm.getPlugin({}, nsDeps, locale, augmentCtx, chain, 0, undefined);
+        const plugin = await rm.getPlugin({}, nsDeps, locale, augmentCtx, chain, 0, undefined);
         return { plugin };
       },
     };
@@ -91,7 +91,7 @@ function makeStatefulOuterGearModule<S>(
   };
 }
 
-// List-deps variant. Plugin shape under JM is `[...deps, $]` — the cursor
+// List-deps variant. Plugin shape under RM is `[...deps, $]` — the cursor
 // factory must read `$` from the array's tail, not from `plugin.$` (which is
 // undefined on arrays). This module shape exists specifically to exercise that
 // path; a regression on the list cursor would surface here.
@@ -100,10 +100,10 @@ function makeStatefulOuterGearListModule<S>(
   defaultState: S,
   factory: (plugin: ReadonlyArray<unknown>, cursor: any) => unknown
 ) {
-  return (jm: JunctureManager, recorder: CassetteRecorder): AnyResModule => {
+  return (rm: ResManager, recorder: CassetteRecorder): AnyResModule => {
     const connector: ResComposerConnector = {
       getWire: async (nsDeps, locale, augmentCtx, chain) => {
-        const plugin = await jm.getPlugin({}, nsDeps, locale, augmentCtx, chain, 0, undefined);
+        const plugin = await rm.getPlugin({}, nsDeps, locale, augmentCtx, chain, 0, undefined);
         return { plugin };
       },
     };
@@ -118,15 +118,15 @@ function makeStatefulOuterGearListModule<S>(
 // --- tests -------------------------------------------------------------------
 
 describe("OuterGear stateful — full blueprint stack", () => {
-  it("public composer → JM resolve → resource exposes a working getter and action", async () => {
-    const { jmInternal } = buildEnv({
+  it("public composer → RM resolve → resource exposes a working getter and action", async () => {
+    const { rmInternal } = buildEnv({
       "g/counter": makeStatefulOuterGearModule({ count: 0 }, (plugin, cursor) => ({
         read: cursor.getter(() => plugin.$.state.count),
         add: cursor.action((n: number) => ({ count: plugin.$.state.count + n })),
       })),
     });
 
-    const resource = (await resolveResource(jmInternal, "g/counter")) as {
+    const resource = (await resolveResource(rmInternal, "g/counter")) as {
       read: number;
       add: (n: number) => unknown;
     };
@@ -140,7 +140,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
 
   it("cell resolved via the blueprint stack short-circuits on equal output", async () => {
     const bodyCalls = vi.fn();
-    const { jmInternal } = buildEnv({
+    const { rmInternal } = buildEnv({
       "g/cart": makeStatefulOuterGearModule({ items: [{ price: 10 }, { price: 20 }], other: 0 }, (plugin, cursor) => ({
         subtotal: cursor.cell(() => {
           bodyCalls();
@@ -151,7 +151,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
       })),
     });
 
-    const resource = (await resolveResource(jmInternal, "g/cart")) as {
+    const resource = (await resolveResource(rmInternal, "g/cart")) as {
       subtotal: number;
       setItems: (items: { price: number }[]) => unknown;
       setOther: (n: number) => unknown;
@@ -177,14 +177,14 @@ describe("OuterGear stateful — full blueprint stack", () => {
   });
 
   it("commit-tracking via real Wire: action on a tracked OG fires the consumer-supplied notify", async () => {
-    const { jmInternal, gwm } = buildEnv({
+    const { rmInternal, wm } = buildEnv({
       "g/counter": makeStatefulOuterGearModule({ count: 0 }, (plugin, cursor) => ({
         read: cursor.getter(() => plugin.$.state.count),
         add: cursor.action((n: number) => ({ count: plugin.$.state.count + n })),
       })),
     });
 
-    const resource = (await resolveResource(jmInternal, "g/counter")) as {
+    const resource = (await resolveResource(rmInternal, "g/counter")) as {
       read: number;
       add: (n: number) => unknown;
     };
@@ -192,7 +192,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
     // Pure consumer-side wire: no nsDeps, just used as a notification channel
     // for cassette-tracked reads. The notify callback is consumer-supplied —
     // in a React hook this is typically a `useReducer`-style forceRerender.
-    const wire = gwm.getWire({}, [], "en", ($) => $);
+    const wire = wm.getWire({}, [], "en", ($) => $);
     const notify = vi.fn();
 
     const commit = wire.startTracking(notify, {});
@@ -216,7 +216,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
   });
 
   it("cell equality short-circuit propagates through the real Wire: no notify when output unchanged", async () => {
-    const { jmInternal, gwm } = buildEnv({
+    const { rmInternal, wm } = buildEnv({
       "g/cart": makeStatefulOuterGearModule({ items: [{ price: 10 }, { price: 20 }], other: 0 }, (plugin, cursor) => ({
         subtotal: cursor.cell(() => plugin.$.state.items.reduce((s: number, i: { price: number }) => s + i.price, 0)),
         setOther: cursor.action((n: number) => ({ other: n })),
@@ -224,13 +224,13 @@ describe("OuterGear stateful — full blueprint stack", () => {
       })),
     });
 
-    const resource = (await resolveResource(jmInternal, "g/cart")) as {
+    const resource = (await resolveResource(rmInternal, "g/cart")) as {
       subtotal: number;
       setOther: (n: number) => unknown;
       setItems: (items: { price: number }[]) => unknown;
     };
 
-    const wire = gwm.getWire({}, [], "en", ($) => $);
+    const wire = wm.getWire({}, [], "en", ($) => $);
     const notify = vi.fn();
 
     // Prime the memo OUTSIDE the consumer's tracking cassette. The next read
@@ -255,7 +255,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
   });
 
   it("withDeps(list) + withState — plugin shape `[...deps, $]` resolves the state cell from the array tail", async () => {
-    const { jmInternal } = buildEnv({
+    const { rmInternal } = buildEnv({
       "g/session": makeStatefulOuterGearModule({ id: "abc" }, (plugin, cursor) => ({
         getId: cursor.getter(() => plugin.$.state.id),
       })),
@@ -270,7 +270,7 @@ describe("OuterGear stateful — full blueprint stack", () => {
       ),
     });
 
-    const resource = (await resolveResource(jmInternal, "g/timer" as AnyNamespace)) as {
+    const resource = (await resolveResource(rmInternal, "g/timer" as AnyNamespace)) as {
       tick: number;
       label: string;
       inc: () => unknown;
@@ -284,14 +284,14 @@ describe("OuterGear stateful — full blueprint stack", () => {
   });
 
   it("action with a no-op partial does not change state and a getter still returns the same value", async () => {
-    const { jmInternal } = buildEnv({
+    const { rmInternal } = buildEnv({
       "g/state": makeStatefulOuterGearModule({ a: 1, b: 2 }, (plugin, cursor) => ({
         readA: cursor.getter(() => plugin.$.state.a),
         noop: cursor.action(() => ({ a: 1 })),
       })),
     });
 
-    const resource = (await resolveResource(jmInternal, "g/state")) as { readA: number; noop: () => unknown };
+    const resource = (await resolveResource(rmInternal, "g/state")) as { readA: number; noop: () => unknown };
 
     expect(resource.readA).toBe(1);
     resource.noop();

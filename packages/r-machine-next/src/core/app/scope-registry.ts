@@ -18,7 +18,7 @@ import type { RequestScope } from "r-machine/core";
 // SSR pass, middleware/proxy) share a single Map regardless of how many times
 // this module file is evaluated by Turbopack. The browser runtime has a
 // distinct `globalThis`, so the client-side Map is naturally empty — which is
-// the correct behavior (no request lifecycle in the browser; JM falls back to
+// the correct behavior (no request lifecycle in the browser; RM falls back to
 // process-tier slots).
 //
 // Why this exists at all: server components can only pass *serializable* props

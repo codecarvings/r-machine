@@ -57,8 +57,7 @@ function captureResolveError(fn: () => unknown): RMachineResolveError {
 describe("createBlueprint", () => {
   describe("ResMatrix origin — happy paths", () => {
     it("produces a gear blueprint that derives family/role/flags from the layout entry type", () => {
-      // Matrix family must match layout family; gearRole, isOuterGear and
-      // isVertexGear are all derived from the layoutEntryType literal.
+      // Matrix family must match layout family; gearRole is derived from the layoutEntryType literal.
       const module = makeMatrixModule({ family: "gear", role: "inner" });
 
       const bp = createBlueprint(module, "app/home", undefined, "gear:inner");
@@ -69,8 +68,6 @@ describe("createBlueprint", () => {
         layoutEntryType: "gear:inner",
         family: "gear",
         gearRole: "inner",
-        isOuterGear: false,
-        isVertexGear: false,
         plugHead: expect.anything(),
         originType: "res-matrix",
         origin: module.r,
@@ -84,8 +81,6 @@ describe("createBlueprint", () => {
 
       expect(bp.family).toBe("shell");
       expect(bp.gearRole).toBeUndefined();
-      expect(bp.isOuterGear).toBe(false);
-      expect(bp.isVertexGear).toBe(false);
       expect(bp.locale).toBe("it-IT");
       expect(bp.originType).toBe("res-matrix");
       expect(bp.origin).toBe(module.r);
@@ -109,16 +104,11 @@ describe("createBlueprint", () => {
     });
 
     it.each([
-      { role: "inner" as const, layout: "gear:inner" as const, expectedOuter: false, expectedVertex: false },
-      { role: "base" as const, layout: "gear:base" as const, expectedOuter: false, expectedVertex: false },
-      { role: "outer" as const, layout: "gear:outer" as const, expectedOuter: true, expectedVertex: false },
-      { role: "outer" as const, layout: "gear:outer(vertex)" as const, expectedOuter: true, expectedVertex: true },
-    ])("derives gearRole/isOuterGear/isVertexGear from layout %j", ({
-      role,
-      layout,
-      expectedOuter,
-      expectedVertex,
-    }) => {
+      { role: "inner" as const, layout: "gear:inner" as const },
+      { role: "base" as const, layout: "gear:base" as const },
+      { role: "outer" as const, layout: "gear:outer" as const },
+      { role: "outer" as const, layout: "gear:outer(vertex)" as const },
+    ])("derives gearRole from layout %j", ({ role, layout }) => {
       // A table test is justified here: the function has straight-line
       // mappings from layout literal to flags. This guarantees no future
       // refactor inverts, zeroes, or cross-wires a flag.
@@ -127,8 +117,6 @@ describe("createBlueprint", () => {
       const bp = createBlueprint(module, "app", undefined, layout);
 
       expect(bp.gearRole).toBe(role);
-      expect(bp.isOuterGear).toBe(expectedOuter);
-      expect(bp.isVertexGear).toBe(expectedVertex);
     });
   });
 
@@ -209,8 +197,6 @@ describe("createBlueprint", () => {
       expect(bp.locale).toBe("it-IT");
       expect(bp.originType).toBe("res");
       expect(bp.gearRole).toBeUndefined();
-      expect(bp.isOuterGear).toBe(false);
-      expect(bp.isVertexGear).toBe(false);
       expect(bp.plugHead).toBeUndefined();
       expect(bp.origin).toBe(module.r);
     });
@@ -227,8 +213,6 @@ describe("createBlueprint", () => {
       expect(bp.layoutEntryType).toBe("gear:inner");
       expect(bp.originType).toBe("res");
       expect(bp.gearRole).toBeUndefined();
-      expect(bp.isOuterGear).toBe(false);
-      expect(bp.isVertexGear).toBe(false);
       expect(bp.origin).toBe(module.r);
     });
 

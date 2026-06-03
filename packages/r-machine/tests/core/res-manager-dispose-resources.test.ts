@@ -5,7 +5,7 @@ import { buildResolveEnv, outerGearModule } from "../_fixtures/build-resolve-env
 
 const LAYOUT: AnyResLayout = { "g/": "gear:outer" };
 
-describe("JunctureManager.disposeResources", () => {
+describe("ResManager.disposeResources", () => {
   it("disposes resolved slots and clears state so a re-resolve starts fresh", async () => {
     const teardown = vi.fn();
     const env = buildResolveEnv(LAYOUT, {
@@ -27,7 +27,7 @@ describe("JunctureManager.disposeResources", () => {
     first.inc();
     expect(first.value).toBe(2);
 
-    env.jm.disposeResources();
+    env.rm.disposeResources();
     expect(teardown).toHaveBeenCalledTimes(1);
 
     // Fresh cell after disposeResources — the mutated state from the first resolve is gone.
@@ -39,9 +39,9 @@ describe("JunctureManager.disposeResources", () => {
     const env = buildResolveEnv(LAYOUT, {
       "g/x": outerGearModule((composer) => (composer as any).define(() => ({ v: 1 }))),
     });
-    expect(() => env.jm.disposeResources()).not.toThrow();
+    expect(() => env.rm.disposeResources()).not.toThrow();
     await env.resolve("g/x" as AnyNamespace);
-    env.jm.disposeResources();
-    expect(() => env.jm.disposeResources()).not.toThrow();
+    env.rm.disposeResources();
+    expect(() => env.rm.disposeResources()).not.toThrow();
   });
 });

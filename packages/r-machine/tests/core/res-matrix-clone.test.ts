@@ -34,10 +34,10 @@ describe("ResMatrix.clone — identity", () => {
 describe("ResMatrix.clone — fn transform & composition", () => {
   it("clone(fn) applies fn(res, plugin) over the original factory result; source is untouched", async () => {
     let orig: any;
-    const build = (jm: any) => (orig ??= createInnerGearComposer<any, any>(makeConnector(jm)).define(() => ({ n: 1 })));
+    const build = (rm: any) => (orig ??= createInnerGearComposer<any, any>(makeConnector(rm)).define(() => ({ n: 1 })));
     const env = buildResolveEnv(INNER_LAYOUT, {
-      "i/orig": (jm) => ({ r: build(jm) }),
-      "i/clone": (jm) => ({ r: build(jm).clone((res: any) => ({ n: res.n + 10 })) }),
+      "i/orig": (rm) => ({ r: build(rm) }),
+      "i/clone": (rm) => ({ r: build(rm).clone((res: any) => ({ n: res.n + 10 })) }),
     });
 
     expect(((await env.resolve("i/clone" as AnyNamespace)) as { n: number }).n).toBe(11);
@@ -47,10 +47,10 @@ describe("ResMatrix.clone — fn transform & composition", () => {
 
   it("chained clones compose left-to-right: fn2(fn1(original))", async () => {
     let orig: any;
-    const build = (jm: any) => (orig ??= createInnerGearComposer<any, any>(makeConnector(jm)).define(() => ({ n: 1 })));
+    const build = (rm: any) => (orig ??= createInnerGearComposer<any, any>(makeConnector(rm)).define(() => ({ n: 1 })));
     const env = buildResolveEnv(INNER_LAYOUT, {
-      "i/chained": (jm) => ({
-        r: build(jm)
+      "i/chained": (rm) => ({
+        r: build(rm)
           .clone((res: any) => ({ n: res.n + 1 })) // 1 -> 2
           .clone((res: any) => ({ n: res.n * 10 })), // 2 -> 20
       }),
@@ -61,9 +61,9 @@ describe("ResMatrix.clone — fn transform & composition", () => {
 
   it("clone(fn) accepts an async fn (runtime awaits transparently)", async () => {
     let orig: any;
-    const build = (jm: any) => (orig ??= createInnerGearComposer<any, any>(makeConnector(jm)).define(() => ({ n: 2 })));
+    const build = (rm: any) => (orig ??= createInnerGearComposer<any, any>(makeConnector(rm)).define(() => ({ n: 2 })));
     const env = buildResolveEnv(INNER_LAYOUT, {
-      "i/async": (jm) => ({ r: build(jm).clone(async (res: any) => ({ n: res.n + 5 })) }),
+      "i/async": (rm) => ({ r: build(rm).clone(async (res: any) => ({ n: res.n + 5 })) }),
     });
 
     expect(((await env.resolve("i/async" as AnyNamespace)) as { n: number }).n).toBe(7);
@@ -71,13 +71,13 @@ describe("ResMatrix.clone — fn transform & composition", () => {
 
   it("clone(fn) receives the plugin context as its 2nd arg", async () => {
     let orig: any;
-    const build = (jm: any) =>
-      (orig ??= createInnerGearComposer<any, any>(makeConnector(jm))
+    const build = (rm: any) =>
+      (orig ??= createInnerGearComposer<any, any>(makeConnector(rm))
         .withPorts({ tag: "T" })
         .define(({ $ }: any) => ({ base: $.ports.tag })));
     const env = buildResolveEnv(INNER_LAYOUT, {
-      "i/withplugin": (jm) => ({
-        r: build(jm).clone((res: any, plugin: any) => ({ base: `${res.base}:${plugin.$.ports.tag}` })),
+      "i/withplugin": (rm) => ({
+        r: build(rm).clone((res: any, plugin: any) => ({ base: `${res.base}:${plugin.$.ports.tag}` })),
       }),
     });
 
@@ -88,13 +88,13 @@ describe("ResMatrix.clone — fn transform & composition", () => {
 describe("ResMatrix.clone — withPorts (shallow merge)", () => {
   it("withPorts(overrides).clone() replaces only listed port keys", async () => {
     let orig: any;
-    const build = (jm: any) =>
-      (orig ??= createInnerGearComposer<any, any>(makeConnector(jm))
+    const build = (rm: any) =>
+      (orig ??= createInnerGearComposer<any, any>(makeConnector(rm))
         .withPorts({ a: "A", b: "B" })
         .define(({ $ }: any) => ({ a: $.ports.a, b: $.ports.b })));
     const env = buildResolveEnv(INNER_LAYOUT, {
-      "i/orig": (jm) => ({ r: build(jm) }),
-      "i/variant": (jm) => ({ r: build(jm).withPorts({ a: "A2" }).clone() }),
+      "i/orig": (rm) => ({ r: build(rm) }),
+      "i/variant": (rm) => ({ r: build(rm).withPorts({ a: "A2" }).clone() }),
     });
 
     const orig2 = (await env.resolve("i/orig" as AnyNamespace)) as { a: string; b: string };
@@ -108,8 +108,8 @@ describe("ResMatrix.clone — withPorts (shallow merge)", () => {
 describe("ResMatrix.clone — OuterGear state", () => {
   it("withState(partial).clone() deep-merges over the original default state", async () => {
     let orig: any;
-    const build = (jm: any, recorder: any) =>
-      (orig ??= createOuterGearComposer<any, any>(makeConnector(jm), recorder)
+    const build = (rm: any, recorder: any) =>
+      (orig ??= createOuterGearComposer<any, any>(makeConnector(rm), recorder)
         .withState({ count: 0, nested: { x: 1, y: 2 } })
         .define((plugin: any, cursor: any) => ({
           count: cursor.getter(() => plugin.$.state.count),
@@ -117,8 +117,8 @@ describe("ResMatrix.clone — OuterGear state", () => {
           y: cursor.getter(() => plugin.$.state.nested.y),
         })));
     const env = buildResolveEnv(OUTER_LAYOUT, {
-      "g/clone": (jm, recorder) => ({
-        r: build(jm, recorder)
+      "g/clone": (rm, recorder) => ({
+        r: build(rm, recorder)
           .withState({ nested: { x: 9 } })
           .clone(),
       }),
@@ -132,16 +132,16 @@ describe("ResMatrix.clone — OuterGear state", () => {
 
   it("clones own independent state cells — mutating one does not affect the other", async () => {
     let orig: any;
-    const build = (jm: any, recorder: any) =>
-      (orig ??= createOuterGearComposer<any, any>(makeConnector(jm), recorder)
+    const build = (rm: any, recorder: any) =>
+      (orig ??= createOuterGearComposer<any, any>(makeConnector(rm), recorder)
         .withState({ count: 0 })
         .define((plugin: any, cursor: any) => ({
           read: cursor.getter(() => plugin.$.state.count),
           inc: cursor.action(() => ({ count: plugin.$.state.count + 1 })),
         })));
     const env = buildResolveEnv(OUTER_LAYOUT, {
-      "g/a": (jm, recorder) => ({ r: build(jm, recorder) }),
-      "g/b": (jm, recorder) => ({ r: build(jm, recorder).clone() }),
+      "g/a": (rm, recorder) => ({ r: build(rm, recorder) }),
+      "g/b": (rm, recorder) => ({ r: build(rm, recorder).clone() }),
     });
 
     const a = (await env.resolve("g/a" as AnyNamespace)) as { read: number; inc: () => void };

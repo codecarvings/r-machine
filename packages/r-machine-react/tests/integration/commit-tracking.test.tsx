@@ -4,9 +4,9 @@ import {
   type BusHost,
   createCassetteRecorder,
   createOuterGearComposer,
-  JunctureManager,
   type ResComposerConnector,
   ResLayoutResolver,
+  ResManager,
   type Wire,
   WireManager,
 } from "r-machine/core";
@@ -209,7 +209,7 @@ describe("useBareReactPlug — commit-tracking integration", () => {
 
 // ---------------------------------------------------------------------------
 // End-to-end working example: a Counter component reading from a real
-// OuterGear, with the full blueprint stack (BM + JM + GWM + real composer).
+// OuterGear, with the full blueprint stack (BM + RM + WM + real composer).
 // ---------------------------------------------------------------------------
 
 function buildRealEnv(layoutType: "gear:outer" | "gear:outer(vertex)" = "gear:outer") {
@@ -217,11 +217,11 @@ function buildRealEnv(layoutType: "gear:outer" | "gear:outer(vertex)" = "gear:ou
   const resolver = new ResLayoutResolver({ "v/": layoutType });
   const busHost: BusHost = { bus: undefined };
 
-  let jm!: JunctureManager;
+  let rm!: ResManager;
 
   const connector: ResComposerConnector = {
     getWire: async (nsDeps, locale, augmentCtx, chain) => {
-      const plugin = await jm.getPlugin({}, nsDeps, locale, augmentCtx, chain, 0, undefined);
+      const plugin = await rm.getPlugin({}, nsDeps, locale, augmentCtx, chain, 0, undefined);
       return { plugin };
     },
   };
@@ -240,8 +240,8 @@ function buildRealEnv(layoutType: "gear:outer" | "gear:outer(vertex)" = "gear:ou
   const loader = async (_p: string, opts: any) => modules[opts.namespace as string];
   const equipment = { gearKit: { counter: "v/counter" }, shellKit: {}, bridgeGears: [] };
   const bm = new BlueprintManager(resolver, loader as never, { gear: ["v/counter" as never], shell: [] }, [], busHost);
-  jm = new JunctureManager(resolver, equipment as never, bm, busHost);
-  const gwm = new WireManager(jm, busHost, recorder);
+  rm = new ResManager(resolver, equipment as never, bm, busHost);
+  const wm = new WireManager(rm, busHost, recorder);
 
   // Fake machine surface: just what createReactBareToolset and useBareReactPlug
   // actually touch — validateLocale + defaultLocale + getWire +
@@ -252,7 +252,7 @@ function buildRealEnv(layoutType: "gear:outer" | "gear:outer(vertex)" = "gear:ou
       validateLocale: () => null,
       defaultLocale: "en",
     },
-    getWire: gwm.getWire.bind(gwm),
+    getWire: wm.getWire.bind(wm),
     resolveLayoutEntryType: (ns: string) => resolver.resolveLayoutEntryType(ns as never),
   };
 

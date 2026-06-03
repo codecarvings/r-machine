@@ -156,7 +156,7 @@ export class BlueprintManager {
     const allNsDeps = [...new Set([...nsDepList, ...kitDeps])];
     // Eager preload only the explicit plug deps. Kit deps are tracked in
     // the dep graph (via the returned allNsDeps) for HMR cascade purposes,
-    // but loaded lazily by the JunctureManager at factory-runtime. Eagerly
+    // but loaded lazily by the ResManager at factory-runtime. Eagerly
     // preloading them would deadlock when the kit holds two or more gears
     // of the same family: each kit-mate conservatively waits for every
     // other kit-mate, triggering the concurrent-resolution cycle detector.

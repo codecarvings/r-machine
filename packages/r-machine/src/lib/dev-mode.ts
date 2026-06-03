@@ -17,7 +17,7 @@ import { BUS_ACCESSOR, type BusBridge } from "#r-machine/core";
  * Subscribe a console-logging handler to the runtime event bus of the given
  * R-Machine instance (typically reached via a strategy). Intended for use
  * during development to trace internal coordination across BlueprintManager,
- * JunctureManager, and WireManager.
+ * ResManager, and WireManager.
  *
  * Returns a function that removes the subscription. The bus itself is
  * created lazily on first call: in production code paths where this

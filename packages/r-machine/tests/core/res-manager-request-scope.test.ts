@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { BlueprintManager } from "../../src/core/blueprint-manager.js";
 import type { BusHost } from "../../src/core/event-bus.js";
-import { getJunctureResCacheKey, JunctureManager } from "../../src/core/juncture-manager.js";
 import type { AnyRes } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import type { AnyNamespace } from "../../src/core/res-domain.js";
 import type { AnyResEquipment } from "../../src/core/res-equipment.js";
 import { type AnyResLayout, ResLayoutResolver } from "../../src/core/res-layout.js";
+import { getResCacheKey, ResManager } from "../../src/core/res-manager.js";
 import type { AnyNamespaceMap } from "../../src/core/res-map.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
 import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-module.js";
@@ -29,7 +29,7 @@ const TEST_LAYOUT: AnyResLayout = {
 // Build an outer-gear matrix module whose factory returns a Disposable resource
 // — the teardown callback is recorded so tests can assert call order.
 function makeOuterModule(
-  jm: () => JunctureManager,
+  rm: () => ResManager,
   kit: AnyNamespaceMap,
   deps: readonly AnyNamespace[],
   resource: AnyRes,
@@ -46,7 +46,7 @@ function makeOuterModule(
   };
   const connector: ResComposerConnector = {
     getWire: async (nsDeps, locale, augmentCtx, chain) => {
-      const plugin = await jm().getPlugin(kit, nsDeps, locale, augmentCtx, chain, 0, undefined);
+      const plugin = await rm().getPlugin(kit, nsDeps, locale, augmentCtx, chain, 0, undefined);
       return { plugin };
     },
   };
@@ -76,13 +76,13 @@ function makeMutableProvider(): ProviderHandle {
 }
 
 interface EnvOptions {
-  readonly modules: Record<string, (jm: () => JunctureManager) => AnyResModule>;
+  readonly modules: Record<string, (rm: () => ResManager) => AnyResModule>;
   readonly priority?: AnyNamespace[];
   readonly addEdges?: ReadonlyArray<readonly [AnyNamespace, AnyNamespace]>;
 }
 
 function createEnv(options: EnvOptions) {
-  let jm!: JunctureManager;
+  let rm!: ResManager;
 
   const loader = async (_path: string, opts?: ResModuleLoaderFnOptions): Promise<AnyResModule> => {
     if (!opts) {
@@ -92,7 +92,7 @@ function createEnv(options: EnvOptions) {
     if (!factory) {
       throw new Error(`No module for ${opts.namespace}`);
     }
-    return factory(() => jm);
+    return factory(() => rm);
   };
 
   const resolver = new ResLayoutResolver(TEST_LAYOUT);
@@ -103,7 +103,7 @@ function createEnv(options: EnvOptions) {
   };
   const busHost: BusHost = { bus: undefined };
   const bm = new BlueprintManager(resolver, loader, { gear: [], shell: [] }, options.priority ?? [], busHost);
-  jm = new JunctureManager(resolver, equipment, bm, busHost);
+  rm = new ResManager(resolver, equipment, bm, busHost);
 
   const bmInternal = bm as unknown as {
     forwardDeps: Map<AnyNamespace, Set<AnyNamespace>>;
@@ -124,9 +124,9 @@ function createEnv(options: EnvOptions) {
     rev.add(from);
   }
 
-  const jmInternal = jm as unknown as {
+  const rmInternal = rm as unknown as {
     slots: Map<string, unknown>;
-    getJuncture(
+    getPod(
       namespace: AnyNamespace,
       locale: string | undefined,
       genId: number,
@@ -137,41 +137,41 @@ function createEnv(options: EnvOptions) {
   };
 
   return {
-    jm,
-    jmInternal,
-    keyOf: (ns: string, locale?: string) => getJunctureResCacheKey(ns, locale, resolver.resolveLayoutEntryType(ns)),
+    rm,
+    rmInternal,
+    keyOf: (ns: string, locale?: string) => getResCacheKey(ns, locale, resolver.resolveLayoutEntryType(ns)),
   };
 }
 
-describe("JunctureManager — request scope routing", () => {
+describe("ResManager — request scope routing", () => {
   it("routes Outer slot resolution to the active scope's outerSlots map (not the process slots)", async () => {
     const env = createEnv({
       modules: {
-        "o/A": (jm) => makeOuterModule(jm, {}, [], { a: 1 }, () => {}),
+        "o/A": (rm) => makeOuterModule(rm, {}, [], { a: 1 }, () => {}),
       },
     });
     const handle = makeMutableProvider();
-    env.jm.setScopeProvider(handle.provider);
+    env.rm.setScopeProvider(handle.provider);
     const scope = createRequestScope();
     handle.setScope(scope);
 
-    await env.jmInternal.getJuncture("o/A", undefined, 0, undefined, []);
+    await env.rmInternal.getPod("o/A", undefined, 0, undefined, []);
 
     expect(scope.outerSlots.has(env.keyOf("o/A"))).toBe(true);
-    expect(env.jmInternal.slots.has(env.keyOf("o/A"))).toBe(false);
+    expect(env.rmInternal.slots.has(env.keyOf("o/A"))).toBe(false);
   });
 
   it("falls back to the process slots when no scope is active (default provider)", async () => {
     const env = createEnv({
       modules: {
-        "o/A": (jm) => makeOuterModule(jm, {}, [], { a: 1 }, () => {}),
+        "o/A": (rm) => makeOuterModule(rm, {}, [], { a: 1 }, () => {}),
       },
     });
-    env.jm.setScopeProvider(PROCESS_SCOPE_PROVIDER);
+    env.rm.setScopeProvider(PROCESS_SCOPE_PROVIDER);
 
-    await env.jmInternal.getJuncture("o/A", undefined, 0, undefined, []);
+    await env.rmInternal.getPod("o/A", undefined, 0, undefined, []);
 
-    expect(env.jmInternal.slots.has(env.keyOf("o/A"))).toBe(true);
+    expect(env.rmInternal.slots.has(env.keyOf("o/A"))).toBe(true);
   });
 
   it("keeps Inner/Base/Shell slots in the process tier regardless of scope state", async () => {
@@ -183,40 +183,40 @@ describe("JunctureManager — request scope routing", () => {
       },
     });
     const handle = makeMutableProvider();
-    env.jm.setScopeProvider(handle.provider);
+    env.rm.setScopeProvider(handle.provider);
     const scope = createRequestScope();
     handle.setScope(scope);
 
-    await env.jmInternal.getJuncture("g/X", undefined, 0, undefined, []);
-    await env.jmInternal.getJuncture("b/Y", undefined, 0, undefined, []);
-    await env.jmInternal.getJuncture("s/Z", "en", 0, undefined, []);
+    await env.rmInternal.getPod("g/X", undefined, 0, undefined, []);
+    await env.rmInternal.getPod("b/Y", undefined, 0, undefined, []);
+    await env.rmInternal.getPod("s/Z", "en", 0, undefined, []);
 
-    expect(env.jmInternal.slots.has(env.keyOf("g/X"))).toBe(true);
-    expect(env.jmInternal.slots.has(env.keyOf("b/Y"))).toBe(true);
-    expect(env.jmInternal.slots.has(env.keyOf("s/Z", "en"))).toBe(true);
+    expect(env.rmInternal.slots.has(env.keyOf("g/X"))).toBe(true);
+    expect(env.rmInternal.slots.has(env.keyOf("b/Y"))).toBe(true);
+    expect(env.rmInternal.slots.has(env.keyOf("s/Z", "en"))).toBe(true);
     expect(scope.outerSlots.size).toBe(0);
   });
 });
 
-describe("JunctureManager — disposeRequestScope", () => {
+describe("ResManager — disposeRequestScope", () => {
   it("invokes Symbol.dispose for all Outer slots created in the scope", async () => {
     const teardownOrder: string[] = [];
     const env = createEnv({
       modules: {
-        "o/A": (jm) => makeOuterModule(jm, {}, [], { v: "a" }, () => teardownOrder.push("o/A")),
-        "o/B": (jm) => makeOuterModule(jm, {}, [], { v: "b" }, () => teardownOrder.push("o/B")),
+        "o/A": (rm) => makeOuterModule(rm, {}, [], { v: "a" }, () => teardownOrder.push("o/A")),
+        "o/B": (rm) => makeOuterModule(rm, {}, [], { v: "b" }, () => teardownOrder.push("o/B")),
       },
     });
     const handle = makeMutableProvider();
-    env.jm.setScopeProvider(handle.provider);
+    env.rm.setScopeProvider(handle.provider);
     const scope = createRequestScope();
     handle.setScope(scope);
 
-    await env.jmInternal.getJuncture("o/A", undefined, 0, undefined, []);
-    await env.jmInternal.getJuncture("o/B", undefined, 0, undefined, []);
+    await env.rmInternal.getPod("o/A", undefined, 0, undefined, []);
+    await env.rmInternal.getPod("o/B", undefined, 0, undefined, []);
     expect(scope.outerSlots.size).toBe(2);
 
-    env.jm.disposeRequestScope(scope);
+    env.rm.disposeRequestScope(scope);
 
     expect(teardownOrder.sort()).toEqual(["o/A", "o/B"]);
     expect(scope.outerSlots.size).toBe(0);
@@ -227,9 +227,9 @@ describe("JunctureManager — disposeRequestScope", () => {
     const teardownOrder: string[] = [];
     const env = createEnv({
       modules: {
-        "o/A": (jm) => makeOuterModule(jm, {}, ["o/B"], { v: "a" }, () => teardownOrder.push("o/A")),
-        "o/B": (jm) => makeOuterModule(jm, {}, ["o/C"], { v: "b" }, () => teardownOrder.push("o/B")),
-        "o/C": (jm) => makeOuterModule(jm, {}, [], { v: "c" }, () => teardownOrder.push("o/C")),
+        "o/A": (rm) => makeOuterModule(rm, {}, ["o/B"], { v: "a" }, () => teardownOrder.push("o/A")),
+        "o/B": (rm) => makeOuterModule(rm, {}, ["o/C"], { v: "b" }, () => teardownOrder.push("o/B")),
+        "o/C": (rm) => makeOuterModule(rm, {}, [], { v: "c" }, () => teardownOrder.push("o/C")),
       },
       addEdges: [
         ["o/A", "o/B"],
@@ -237,15 +237,15 @@ describe("JunctureManager — disposeRequestScope", () => {
       ],
     });
     const handle = makeMutableProvider();
-    env.jm.setScopeProvider(handle.provider);
+    env.rm.setScopeProvider(handle.provider);
     const scope = createRequestScope();
     handle.setScope(scope);
 
     // Resolve from the top: A pulls B pulls C through the matrix connector.
-    await env.jmInternal.getJuncture("o/A", undefined, 0, undefined, []);
+    await env.rmInternal.getPod("o/A", undefined, 0, undefined, []);
     expect(scope.outerSlots.size).toBe(3);
 
-    env.jm.disposeRequestScope(scope);
+    env.rm.disposeRequestScope(scope);
 
     expect(teardownOrder).toEqual(["o/A", "o/B", "o/C"]);
     expect(scope.outerSlots.size).toBe(0);
@@ -255,24 +255,24 @@ describe("JunctureManager — disposeRequestScope", () => {
     const teardownOrder: string[] = [];
     const env = createEnv({
       modules: {
-        "o/A": (jm) =>
-          makeOuterModule(jm, {}, [], { v: "a" }, () => {
+        "o/A": (rm) =>
+          makeOuterModule(rm, {}, [], { v: "a" }, () => {
             teardownOrder.push("o/A");
             throw new Error("boom");
           }),
-        "o/B": (jm) => makeOuterModule(jm, {}, [], { v: "b" }, () => teardownOrder.push("o/B")),
+        "o/B": (rm) => makeOuterModule(rm, {}, [], { v: "b" }, () => teardownOrder.push("o/B")),
       },
     });
     const handle = makeMutableProvider();
-    env.jm.setScopeProvider(handle.provider);
+    env.rm.setScopeProvider(handle.provider);
     const scope = createRequestScope();
     handle.setScope(scope);
 
-    await env.jmInternal.getJuncture("o/A", undefined, 0, undefined, []);
-    await env.jmInternal.getJuncture("o/B", undefined, 0, undefined, []);
+    await env.rmInternal.getPod("o/A", undefined, 0, undefined, []);
+    await env.rmInternal.getPod("o/B", undefined, 0, undefined, []);
 
     // disposeRequestScope must not throw even if one teardown does.
-    expect(() => env.jm.disposeRequestScope(scope)).not.toThrow();
+    expect(() => env.rm.disposeRequestScope(scope)).not.toThrow();
     expect(teardownOrder.sort()).toEqual(["o/A", "o/B"]);
     expect(scope.outerSlots.size).toBe(0);
   });
@@ -280,42 +280,42 @@ describe("JunctureManager — disposeRequestScope", () => {
   it("is a no-op when the scope is empty", () => {
     const env = createEnv({ modules: {} });
     const scope = createRequestScope();
-    expect(() => env.jm.disposeRequestScope(scope)).not.toThrow();
+    expect(() => env.rm.disposeRequestScope(scope)).not.toThrow();
     expect(scope.outerSlots.size).toBe(0);
   });
 });
 
-describe("JunctureManager — scope isolation across requests", () => {
+describe("ResManager — scope isolation across requests", () => {
   it("two scopes resolving the same Outer namespace get independent slot instances, each disposed cleanly", async () => {
     let teardownCalls = 0;
     const env = createEnv({
       modules: {
-        "o/A": (jm) => makeOuterModule(jm, {}, [], { v: 1 }, () => teardownCalls++),
+        "o/A": (rm) => makeOuterModule(rm, {}, [], { v: 1 }, () => teardownCalls++),
       },
     });
     const handle = makeMutableProvider();
-    env.jm.setScopeProvider(handle.provider);
+    env.rm.setScopeProvider(handle.provider);
 
     const scopeA = createRequestScope();
     handle.setScope(scopeA);
-    await env.jmInternal.getJuncture("o/A", undefined, 0, undefined, []);
+    await env.rmInternal.getPod("o/A", undefined, 0, undefined, []);
     const slotInA = scopeA.outerSlots.get(env.keyOf("o/A"));
     expect(slotInA).toBeDefined();
-    env.jm.disposeRequestScope(scopeA);
+    env.rm.disposeRequestScope(scopeA);
     expect(teardownCalls).toBe(1);
     expect(scopeA.outerSlots.size).toBe(0);
 
     const scopeB = createRequestScope();
     handle.setScope(scopeB);
-    await env.jmInternal.getJuncture("o/A", undefined, 0, undefined, []);
+    await env.rmInternal.getPod("o/A", undefined, 0, undefined, []);
     const slotInB = scopeB.outerSlots.get(env.keyOf("o/A"));
     expect(slotInB).toBeDefined();
     // Slot instance is freshly created in scope B — not the disposed one from A.
     expect(slotInB).not.toBe(slotInA);
-    env.jm.disposeRequestScope(scopeB);
+    env.rm.disposeRequestScope(scopeB);
     expect(teardownCalls).toBe(2);
 
     // Process tier is empty throughout: outer slots never landed in it.
-    expect(env.jmInternal.slots.has(env.keyOf("o/A"))).toBe(false);
+    expect(env.rmInternal.slots.has(env.keyOf("o/A"))).toBe(false);
   });
 });

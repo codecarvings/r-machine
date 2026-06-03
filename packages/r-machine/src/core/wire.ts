@@ -27,7 +27,7 @@ export interface Wire {
   // Open a tracking cassette for `consumerKey` + return a commit fn. The
   // consumer-supplied `notify` callback is fired whenever a tracked dep
   // mutates AFTER commit — this is a separate channel from `subscribe`
-  // (which carries JM-driven plugin re-resolves and busts the Promise
+  // (which carries RM-driven plugin re-resolves and busts the Promise
   // identity). Cassette changes do NOT touch the Promise, so
   // `useSyncExternalStore`-bound consumers stay stable; the consumer drives
   // its own re-render via this notify (typically a `useReducer`-style

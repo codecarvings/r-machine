@@ -1,19 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 import { type Getter, isGetter } from "../../src/core/getter.js";
-import { buildKernelJuncture } from "../../src/core/juncture.js";
 import { buildGetterCellComposer, buildStatelessGetterComposer } from "../../src/core/outer-gear-composer.js";
 import { createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
 import { createStateCell } from "../../src/core/reactivity/state-cell.js";
 import type { AnyRes } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
+import { buildResPod } from "../../src/core/res-pod.js";
 
 // --- helpers -----------------------------------------------------------------
 
 type InternalCreateCall = (locale: undefined, chain: never[]) => Promise<unknown>;
 async function resolve(matrix: { create: () => Promise<unknown> }): Promise<unknown> {
   const raw = await (matrix.create as unknown as InternalCreateCall)(undefined, []);
-  return buildKernelJuncture(raw as AnyRes, undefined).surface;
+  return buildResPod(raw as AnyRes, undefined).surface;
 }
 
 function makeConnector(): ResComposerConnector {

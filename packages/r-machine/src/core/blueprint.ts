@@ -17,13 +17,7 @@ import type { GearRole } from "./gear-plug.js";
 import { type AnyPlugHead, getPlugHead } from "./plug.js";
 import type { AnyResOrigin, ResOriginType } from "./res.js";
 import type { AnyNamespace } from "./res-domain.js";
-import {
-  getGearRoleFromLayoutType,
-  getResFamilyFromLayoutType,
-  isOuterGearLayoutType,
-  isVertexGearLayoutType,
-  type ResLayoutEntryType,
-} from "./res-layout.js";
+import { getGearRoleFromLayoutType, getResFamilyFromLayoutType, type ResLayoutEntryType } from "./res-layout.js";
 import { type GearMatrixMeta, tryGetResMatrixMeta } from "./res-matrix.js";
 import type { AnyResModule } from "./res-module.js";
 import type { ResFamily } from "./res-plug.js";
@@ -34,8 +28,6 @@ export interface Blueprint {
   readonly layoutEntryType: ResLayoutEntryType;
   readonly family: ResFamily;
   readonly gearRole: GearRole | undefined;
-  readonly isOuterGear: boolean;
-  readonly isVertexGear: boolean;
   readonly plugHead: AnyPlugHead | undefined;
   readonly originType: ResOriginType;
   readonly origin: AnyResOrigin;
@@ -73,8 +65,6 @@ export function createBlueprint(
         );
       }
     }
-    const isOuterGear = isOuterGearLayoutType(layoutEntryType);
-    const isVertexGear = isVertexGearLayoutType(layoutEntryType);
 
     const plugHead = getPlugHead(origin.plug);
     return {
@@ -83,8 +73,6 @@ export function createBlueprint(
       layoutEntryType,
       family,
       gearRole,
-      isOuterGear,
-      isVertexGear,
       plugHead,
       originType: "res-matrix",
       origin,
@@ -108,8 +96,6 @@ export function createBlueprint(
     layoutEntryType,
     family: "shell",
     gearRole: undefined,
-    isOuterGear: false,
-    isVertexGear: false,
     plugHead: undefined,
     originType: "res",
     origin,

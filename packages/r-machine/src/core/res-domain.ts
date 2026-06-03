@@ -50,7 +50,7 @@ export type AnyNamespaceCollection = AnyNamespaceMap | AnyNamespaceList;
 
 // A leading `#` marks a namespace as internal (consumer-hidden) at the type
 // level. At runtime the marker is invisible: this single normalization at the
-// canonical extraction point ensures registry keys, loader paths, juncture
+// canonical extraction point ensures registry keys, loader paths, res
 // chains and caches all use bare namespaces, regardless of whether the user
 // wrote "#base/jwt" or "base/jwt".
 function stripInternalMarker(namespace: string): string {

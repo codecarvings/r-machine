@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import type { JunctureManager } from "../../src/core/juncture-manager.js";
 import type { PluginCtxAugmenter } from "../../src/core/plug.js";
 import { createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
 import { createStateCell } from "../../src/core/reactivity/state-cell.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "../../src/core/res-domain.js";
+import type { ResManager } from "../../src/core/res-manager.js";
 import type { AnyNamespaceMap } from "../../src/core/res-map.js";
 import type { VertexGearMap } from "../../src/core/vertex-gear.js";
 import { WireManager } from "../../src/core/wire-manager.js";
@@ -20,8 +20,8 @@ interface GetPluginCall {
   readonly vertexGearMap: VertexGearMap | undefined;
 }
 
-interface MockJm {
-  readonly jm: JunctureManager;
+interface MockRm {
+  readonly rm: ResManager;
   readonly getPluginCalls: GetPluginCall[];
   readonly disposeAllCalls: number[];
   readonly disposeOwnershipCalls: { genId: number; vgm: VertexGearMap | undefined }[];
@@ -29,16 +29,16 @@ interface MockJm {
   triggerNotify(ns: AnyNamespace): void;
 }
 
-// Lightweight JM stand-in: records every call and exposes subscriber sets
-// so tests can fire JM-side notifications and verify orchestration.
-function createMockJm(): MockJm {
+// Lightweight RM stand-in: records every call and exposes subscriber sets
+// so tests can fire RM-side notifications and verify orchestration.
+function createMockRm(): MockRm {
   const getPluginCalls: GetPluginCall[] = [];
   const disposeAllCalls: number[] = [];
   const disposeOwnershipCalls: { genId: number; vgm: VertexGearMap | undefined }[] = [];
   const subscribersByNs = new Map<AnyNamespace, Set<() => void>>();
   let pluginIdx = 0;
 
-  const jm = {
+  const rm = {
     getPlugin(
       kit: AnyNamespaceMap,
       nsDeps: AnyNamespaceCollection,
@@ -77,7 +77,7 @@ function createMockJm(): MockJm {
   };
 
   return {
-    jm: jm as unknown as JunctureManager,
+    rm: rm as unknown as ResManager,
     getPluginCalls,
     disposeAllCalls,
     disposeOwnershipCalls,
@@ -100,14 +100,14 @@ const noopAugmentCtx: PluginCtxAugmenter = ($) => $;
 
 describe("WireManager — setup", () => {
   it("getPlugin is not called at creation (lazy resolve), but on first getPluginPromise read with the wire's setup state", async () => {
-    const mock = createMockJm();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
     const kit = { foo: "g/foo" } as AnyNamespaceMap;
     const nsDeps = ["g/A", "g/B"];
     // vgm value side is now an opaque composite vertexKey (string).
     const vgm: VertexGearMap = { "v/V": "7\x1f0" };
 
-    const wire = gwm.getWire(kit, nsDeps, "en-US", noopAugmentCtx, vgm);
+    const wire = wm.getWire(kit, nsDeps, "en-US", noopAugmentCtx, vgm);
 
     // No resolve until someone reads the promise.
     expect(mock.getPluginCalls).toHaveLength(0);
@@ -127,9 +127,9 @@ describe("WireManager — setup", () => {
   });
 
   it("getPluginPromise returns the same Promise reference across calls until a notify fires", async () => {
-    const mock = createMockJm();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
 
     const p1 = wire.getPluginPromise();
     const p2 = wire.getPluginPromise();
@@ -141,12 +141,12 @@ describe("WireManager — setup", () => {
 });
 
 describe("WireManager — top-level subscription", () => {
-  it("does not subscribe to JM at creation (lazy), only on first external subscriber", () => {
-    const mock = createMockJm();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
-    const wire = gwm.getWire({}, ["g/A", "g/B"], "en-US", noopAugmentCtx);
+  it("does not subscribe to RM at creation (lazy), only on first external subscriber", () => {
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A", "g/B"], "en-US", noopAugmentCtx);
 
-    // No JM subscription before someone subscribes to the wire.
+    // No RM subscription before someone subscribes to the wire.
     expect(mock.subscribersByNs.has("g/A")).toBe(false);
     expect(mock.subscribersByNs.has("g/B")).toBe(false);
 
@@ -157,9 +157,9 @@ describe("WireManager — top-level subscription", () => {
   });
 
   it("subscribes to top-level namespaces of a map nsDeps (the values)", () => {
-    const mock = createMockJm();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
-    const wire = gwm.getWire({}, { x: "g/X", y: "g/Y" }, "en-US", noopAugmentCtx);
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, { x: "g/X", y: "g/Y" }, "en-US", noopAugmentCtx);
     wire.subscribe(() => {});
 
     expect(mock.subscribersByNs.has("g/X")).toBe(true);
@@ -169,15 +169,15 @@ describe("WireManager — top-level subscription", () => {
 
 describe("ireManager — α (lazy reresolve on notify)", () => {
   it("becomes dirty on notify and reresolves at the next getPluginPromise call", async () => {
-    const mock = createMockJm();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
-    // Subscribe to ensure the wire subscribes to the JM (lazy).
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    // Subscribe to ensure the wire subscribes to the RM (lazy).
     wire.subscribe(() => {});
     const p1 = wire.getPluginPromise();
     expect(mock.getPluginCalls).toHaveLength(1); // first read triggers resolve
 
-    // JM-side cascade reaches subscribers of "g/A".
+    // RM-side cascade reaches subscribers of "g/A".
     mock.triggerNotify("g/A");
 
     // Notify alone does NOT trigger reresolve (lazy).
@@ -194,10 +194,10 @@ describe("ireManager — α (lazy reresolve on notify)", () => {
     expect(mock.getPluginCalls).toHaveLength(2);
   });
 
-  it("notifies React subscribers synchronously when JM-side notify fires", () => {
-    const mock = createMockJm();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+  it("notifies React subscribers synchronously when RM-side notify fires", () => {
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
     const cb = vi.fn();
     wire.subscribe(cb);
 
@@ -207,9 +207,9 @@ describe("ireManager — α (lazy reresolve on notify)", () => {
   });
 
   it("notifies all React subscribers, surviving exceptions in any one callback", () => {
-    const mock = createMockJm();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
 
     const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const cb1 = vi.fn(() => {
@@ -229,9 +229,9 @@ describe("ireManager — α (lazy reresolve on notify)", () => {
 
 describe("WireManager — subscribe / dispose", () => {
   it("returns a disposer that removes the callback (no further notifications)", () => {
-    const mock = createMockJm();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
     const cb = vi.fn();
     const dispose = wire.subscribe(cb);
 
@@ -241,10 +241,10 @@ describe("WireManager — subscribe / dispose", () => {
     expect(cb).not.toHaveBeenCalled();
   });
 
-  it("on the last unsubscribe, defers JM unsub + vertex slot dispose to a microtask (skipped if a resubscribe lands first)", async () => {
-    const mock = createMockJm();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+  it("on the last unsubscribe, defers RM unsub + vertex slot dispose to a microtask (skipped if a resubscribe lands first)", async () => {
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
     // Force a resolve so we can capture the wire's genId.
     wire.getPluginPromise();
     const genId = mock.getPluginCalls[0].genId;
@@ -265,16 +265,16 @@ describe("WireManager — subscribe / dispose", () => {
     expect(mock.disposeAllCalls).toEqual([]);
     expect(mock.subscribersByNs.get("g/A")?.size).toBe(1);
 
-    // After microtask flush — JM unsub + vertex slot dispose.
+    // After microtask flush — RM unsub + vertex slot dispose.
     await Promise.resolve();
     expect(mock.disposeAllCalls).toEqual([genId]);
     expect(mock.subscribersByNs.get("g/A")?.size).toBe(0);
   });
 
   it("if a resubscribe lands in the same tick as the last unsubscribe, no teardown fires (React Strict Mode / Suspense fallback toggle)", async () => {
-    const mock = createMockJm();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
     wire.getPluginPromise();
 
     const cb1 = vi.fn();
@@ -295,10 +295,10 @@ describe("WireManager — subscribe / dispose", () => {
 
 describe("WireManager — updateRequest", () => {
   it("is a no-op when neither locale nor vertexGearMap changed (identity-equal)", () => {
-    const mock = createMockJm();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
     const vgm: VertexGearMap = {};
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx, vgm);
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx, vgm);
     // Force initial resolve so we can detect any further reresolve.
     wire.getPluginPromise();
     const callsBefore = mock.getPluginCalls.length;
@@ -312,9 +312,9 @@ describe("WireManager — updateRequest", () => {
   });
 
   it("on locale change, marks dirty and reresolves with the new locale on next read; subscribers notified (no vertex dispose)", async () => {
-    const mock = createMockJm();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
     const cb = vi.fn();
     wire.subscribe(cb);
     // Initial resolve.
@@ -344,9 +344,9 @@ describe("WireManager — updateRequest", () => {
   });
 
   it("on vertexGearMap change, disposes ownership-changed vertex; reresolve carries new vgm on next read", () => {
-    const mock = createMockJm();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx, undefined);
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx, undefined);
     // Initial resolve to capture the wire's genId.
     wire.getPluginPromise();
     const genId = mock.getPluginCalls[0].genId;
@@ -364,9 +364,9 @@ describe("WireManager — updateRequest", () => {
   });
 
   it("on combined locale + vertexGearMap change, both side effects fire and next read reresolves", () => {
-    const mock = createMockJm();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx, undefined);
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx, undefined);
     wire.getPluginPromise();
     const newVgm: VertexGearMap = { "v/V": "1\x1f0" };
 
@@ -385,12 +385,12 @@ describe("WireManager — updateRequest", () => {
 
 describe("WireManager — genId allocation", () => {
   it("each new wire gets a fresh, monotonically increasing genId", () => {
-    const mock = createMockJm();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, createCassetteRecorder());
-    const w1 = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
-    const w2 = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
-    const w3 = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
-    // Force resolves to capture genIds via the JM mock.
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const w1 = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const w2 = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const w3 = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    // Force resolves to capture genIds via the RM mock.
     w1.getPluginPromise();
     w2.getPluginPromise();
     w3.getPluginPromise();
@@ -405,10 +405,10 @@ describe("WireManager — genId allocation", () => {
 
 describe("WireManager — commit-tracking (cassette → consumer-notify channel)", () => {
   it("after commit, a tracked dep mutation fires the consumer-supplied notify", () => {
-    const mock = createMockJm();
+    const mock = createMockRm();
     const recorder = createCassetteRecorder();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, recorder);
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const wm = new WireManager(mock.rm, { bus: undefined }, recorder);
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
     const notify = vi.fn();
 
     const cell = createStateCell({ v: 0 }, recorder);
@@ -422,10 +422,10 @@ describe("WireManager — commit-tracking (cassette → consumer-notify channel)
   });
 
   it("cassette-driven notify does NOT bust getPluginPromise identity (no Suspense churn)", async () => {
-    const mock = createMockJm();
+    const mock = createMockRm();
     const recorder = createCassetteRecorder();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, recorder);
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const wm = new WireManager(mock.rm, { bus: undefined }, recorder);
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
     wire.subscribe(() => {});
 
     const p1 = wire.getPluginPromise();
@@ -438,7 +438,7 @@ describe("WireManager — commit-tracking (cassette → consumer-notify channel)
 
     cell.publish({ v: 1 });
 
-    // No re-resolve and no Promise identity churn: the Promise is the JM
+    // No re-resolve and no Promise identity churn: the Promise is the TM
     // resolution channel only. Cassette deps notify the consumer directly.
     expect(mock.getPluginCalls).toHaveLength(1);
     const p2 = wire.getPluginPromise();
@@ -446,10 +446,10 @@ describe("WireManager — commit-tracking (cassette → consumer-notify channel)
   });
 
   it("the wire's `subscribe` channel does NOT fire on cassette-tracked mutations", () => {
-    const mock = createMockJm();
+    const mock = createMockRm();
     const recorder = createCassetteRecorder();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, recorder);
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const wm = new WireManager(mock.rm, { bus: undefined }, recorder);
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
     const wireSub = vi.fn();
     wire.subscribe(wireSub);
 
@@ -460,17 +460,17 @@ describe("WireManager — commit-tracking (cassette → consumer-notify channel)
 
     cell.publish({ v: 1 });
 
-    // wire.subscribers is the JM-driven channel only. Cassette mutations do
-    // NOT flow through it. (A JM-side notify or updateRequest is what fires
+    // wire.subscribers is the RM-driven channel only. Cassette mutations do
+    // NOT flow through it. (A RM-side notify or updateRequest is what fires
     // wire subscribers — see the α tests above.)
     expect(wireSub).not.toHaveBeenCalled();
   });
 
   it("re-commit replaces prior cassette subscriptions: stale deps no longer notify", () => {
-    const mock = createMockJm();
+    const mock = createMockRm();
     const recorder = createCassetteRecorder();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, recorder);
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const wm = new WireManager(mock.rm, { bus: undefined }, recorder);
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
     const notify = vi.fn();
 
     const oldCell = createStateCell({ v: 0 }, recorder);
@@ -498,10 +498,10 @@ describe("WireManager — commit-tracking (cassette → consumer-notify channel)
   });
 
   it("abandoned tracking (startTracking without commit) is superseded by a new startTracking", () => {
-    const mock = createMockJm();
+    const mock = createMockRm();
     const recorder = createCassetteRecorder();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, recorder);
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const wm = new WireManager(mock.rm, { bus: undefined }, recorder);
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
     const notify = vi.fn();
 
     const ghost = createStateCell({ v: 0 }, recorder);
@@ -533,10 +533,10 @@ describe("WireManager — commit-tracking (cassette → consumer-notify channel)
   });
 
   it("calling the commit fn twice is idempotent (second call is a no-op)", () => {
-    const mock = createMockJm();
+    const mock = createMockRm();
     const recorder = createCassetteRecorder();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, recorder);
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const wm = new WireManager(mock.rm, { bus: undefined }, recorder);
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
     const notify = vi.fn();
 
     const cell = createStateCell({ v: 0 }, recorder);
@@ -551,10 +551,10 @@ describe("WireManager — commit-tracking (cassette → consumer-notify channel)
   });
 
   it("cassette-deps subscriptions persist across wire-subscribe drops to zero (Strict Mode dev safety)", () => {
-    const mock = createMockJm();
+    const mock = createMockRm();
     const recorder = createCassetteRecorder();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, recorder);
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const wm = new WireManager(mock.rm, { bus: undefined }, recorder);
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
 
     const notify = vi.fn();
     const cell = createStateCell({ v: 0 }, recorder);
@@ -575,10 +575,10 @@ describe("WireManager — commit-tracking (cassette → consumer-notify channel)
   });
 
   it("disposeConsumer clears a single consumer's subs without touching siblings (multi-consumer wire)", () => {
-    const mock = createMockJm();
+    const mock = createMockRm();
     const recorder = createCassetteRecorder();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, recorder);
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const wm = new WireManager(mock.rm, { bus: undefined }, recorder);
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
 
     const cellA = createStateCell({ v: 0 }, recorder);
     const cellB = createStateCell({ v: 0 }, recorder);
@@ -616,10 +616,10 @@ describe("WireManager — commit-tracking (cassette → consumer-notify channel)
   });
 
   it("two consumers on the same wire each receive notifications when they share a tracked cell (regression: clearCassetteSubs / shared-epoch bug)", () => {
-    const mock = createMockJm();
+    const mock = createMockRm();
     const recorder = createCassetteRecorder();
-    const gwm = new WireManager(mock.jm, { bus: undefined }, recorder);
-    const wire = gwm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const wm = new WireManager(mock.rm, { bus: undefined }, recorder);
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
 
     const sharedCell = createStateCell({ v: 0 }, recorder);
     const notifyA = vi.fn();

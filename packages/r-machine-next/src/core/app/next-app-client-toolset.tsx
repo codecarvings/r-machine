@@ -97,7 +97,7 @@ export async function createNextAppClientToolset<
     // (SSR pass for this client component), the registry was populated by
     // NextServerRMachine; on the browser, `globalThis` is a different
     // instance with an empty registry, so this falls through to null and
-    // the JM uses its process-tier slots map.
+    // the RM uses its process-tier slots map.
     const scope = typeof scopeId === "string" ? lookupScope(scopeId) : null;
 
     return (

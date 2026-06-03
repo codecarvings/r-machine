@@ -72,7 +72,7 @@ export function VertexFrame({ gear, children }: VertexFrameProps) {
     };
 
     // vgm value side is the opaque composite `vertexKey` (genId+occurrenceTag)
-    // built from the tag — descendants' JM lookup reuses it verbatim to land
+    // built from the tag — descendants' RM lookup reuses it verbatim to land
     // on the parent's exact slot, even when the parent created the instance
     // at a specific position/key within a duplicated-deps Plug.
     if (gearArray === undefined) {

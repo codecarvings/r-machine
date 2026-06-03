@@ -25,7 +25,7 @@ export {
   createEventBus,
   type InternalEvent,
   type InternalEventBus,
-  type JunctureEvent,
+  type ResEvent,
   type WireEvent,
 } from "./event-bus.js";
 export type { ExperimentalFlags } from "./experimental-flags.js";
@@ -37,7 +37,6 @@ export type {
 export type { GearPlugKitMap } from "./gear-plug.js";
 export type { Getter } from "./getter.js";
 export { createInnerGearComposer, type InnerGearComposer } from "./inner-gear-composer.js";
-export { JunctureManager } from "./juncture-manager.js";
 export { getMemberName } from "./member-name.js";
 export { createOuterGearComposer, type OuterGearComposer } from "./outer-gear-composer.js";
 export {
@@ -105,6 +104,7 @@ export {
   type SurfaceList,
   type ValidatedDepListType,
 } from "./res-list.js";
+export { ResManager } from "./res-manager.js";
 export {
   type AnyNamespaceMap,
   getNamespaceMap,

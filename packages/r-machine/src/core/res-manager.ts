@@ -16,7 +16,6 @@ import type { AnyLocale } from "#r-machine/locale";
 import type { Blueprint } from "./blueprint.js";
 import type { BlueprintManager } from "./blueprint-manager.js";
 import type { BusHost } from "./event-bus.js";
-import { buildKernelJuncture, buildOuterJuncture, getCurrentSurface, type Juncture } from "./juncture.js";
 import type { PluginCtxAugmenter } from "./plug.js";
 import { type AnyRes, tryGetDispose } from "./res.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
@@ -24,14 +23,15 @@ import type { AnyResEquipment } from "./res-equipment.js";
 import { isOuterGearLayoutType, type ResLayoutEntryType, type ResLayoutResolver } from "./res-layout.js";
 import { type AnyNamespaceList, type AnyResolvedNamespaceList, isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap, AnyResolvedNamespaceMap } from "./res-map.js";
+import { buildResPod, type ResPod } from "./res-pod.js";
 import { attachResolveContext } from "./resolve-context.js";
 import { PROCESS_SCOPE_PROVIDER, type RequestScope, type RequestScopeProvider, type Slot } from "./scope.js";
 import type { AnySurface } from "./surface.js";
 import { buildVertexKey, type VertexGearMap, type VertexGearTagData } from "./vertex-gear.js";
 
 // SEP = U+001F (Unit Separator). An empty locale prefix means `undefined`.
-// For juncture-manager: both `shell` and `shell(mono)` need a
-// locale-scoped key — at the juncture level the same shell namespace must
+// For res-manager: both `shell` and `shell(mono)` need a
+// locale-scoped key — at the res level the same shell namespace must
 // resolve to different plugin instances per locale.
 //
 // For `gear:outer(vertex)` the third argument is the composite `vertexKey`
@@ -43,7 +43,7 @@ import { buildVertexKey, type VertexGearMap, type VertexGearTagData } from "./ve
 // while a VertexFrame-covered descendant lookup lands on the parent's slot
 // by reusing the parent's `vertexKey` verbatim. See [[project-vertex-per-
 // consumer-instance]].
-export function getJunctureResCacheKey(
+export function getResCacheKey(
   namespace: AnyNamespace,
   locale: AnyLocale | undefined,
   layoutEntryType: ResLayoutEntryType,
@@ -60,7 +60,7 @@ export function getJunctureResCacheKey(
   }
 }
 
-export class JunctureManager {
+export class ResManager {
   constructor(
     protected resLayoutResolver: ResLayoutResolver,
     protected equipment: AnyResEquipment,
@@ -114,17 +114,17 @@ export class JunctureManager {
     return scope ? scope.vertexSlotsByGenId : this.vertexSlotsByGenId;
   }
 
-  protected resolveJuncture(
+  protected resolvePod(
     namespace: AnyNamespace,
     locale: AnyLocale | undefined,
     key: string,
     layoutType: ResLayoutEntryType,
     vertexTag: VertexGearTagData | undefined,
     chain: readonly AnyNamespace[]
-  ): Promise<Juncture> {
+  ): Promise<ResPod> {
     const generation = this.generationByNs.get(namespace) ?? 0;
     this.busHost.bus?.emit({
-      type: "juncture:resolveStart",
+      type: "res:resolveStart",
       namespace,
       locale,
       generation,
@@ -137,30 +137,26 @@ export class JunctureManager {
     // mismatch. Capture-once guarantees consistency.
     const slotsMap = this.slotsForLayout(layoutType);
     let slot!: Slot;
-    const juncturePromise = (async () => {
+    const podPromise = (async () => {
       try {
         const blueprint: Blueprint = await this.blueprintManager.getBlueprint(namespace, locale, layoutType, key);
-        let juncture: Juncture;
+        let pod: ResPod;
         if (blueprint.originType === "res") {
-          juncture = buildKernelJuncture(blueprint.origin as AnyRes, vertexTag);
-          this.busHost.bus?.emit({ type: "juncture:built", namespace, kind: "kernel" });
+          pod = buildResPod(blueprint.origin as AnyRes, vertexTag);
+          this.busHost.bus?.emit({ type: "res:built", namespace });
         } else {
           const create = blueprint.origin.create as (
             locale: AnyLocale | undefined,
             chain: readonly AnyNamespace[]
           ) => Promise<AnyRes>;
           // Extend the chain with our own namespace before invoking the factory:
-          // any nested loadKit / getJuncture under us will see us as in-flight
+          // any nested loadKit / getPod under us will see us as in-flight
           // and break cycles via the deferred-kit getter. The "self" of the
           // running factory is implicitly chain[chain.length - 1].
-          this.busHost.bus?.emit({ type: "juncture:factoryInvoked", namespace, locale });
+          this.busHost.bus?.emit({ type: "res:factoryInvoked", namespace, locale });
           const res = await create(locale, [...chain, namespace]);
-          juncture = blueprint.isOuterGear ? buildOuterJuncture(res, vertexTag) : buildKernelJuncture(res, vertexTag);
-          this.busHost.bus?.emit({
-            type: "juncture:built",
-            namespace,
-            kind: blueprint.isOuterGear ? "outer" : "kernel",
-          });
+          pod = buildResPod(res, vertexTag);
+          this.busHost.bus?.emit({ type: "res:built", namespace });
         }
         // Stale check: generation mismatch (HMR happened) OR slot identity mismatch
         // (slot was disposed and possibly re-created during this resolve).
@@ -168,7 +164,7 @@ export class JunctureManager {
         const generationStale = currentGen !== generation;
         const slotIdentityStale = slotsMap.get(key) !== slot;
         if (generationStale || slotIdentityStale) {
-          const teardown = tryGetDispose(juncture.res);
+          const teardown = tryGetDispose(pod.res);
           if (teardown) {
             try {
               teardown();
@@ -177,16 +173,16 @@ export class JunctureManager {
             }
           }
           this.busHost.bus?.emit({
-            type: "juncture:resolveStale",
+            type: "res:resolveStale",
             namespace,
             reason: generationStale ? "generation" : "slotIdentity",
             teardownInvoked: teardown !== undefined,
           });
-          return juncture;
+          return pod;
         }
-        slot.content = juncture;
-        this.busHost.bus?.emit({ type: "juncture:slotCommitted", namespace, generation });
-        return juncture;
+        slot.content = pod;
+        this.busHost.bus?.emit({ type: "res:slotCommitted", namespace, generation });
+        return pod;
       } catch (error) {
         if (slotsMap.get(key) === slot) {
           slotsMap.delete(key);
@@ -196,20 +192,20 @@ export class JunctureManager {
         // (notFound/redirect) and domain `instanceof` checks still work.
         const resolveChain: readonly AnyNamespace[] = [...chain, namespace];
         attachResolveContext(error, { namespace, locale, chain: resolveChain });
-        this.busHost.bus?.emit({ type: "juncture:resolveError", namespace, error, chain: resolveChain });
+        this.busHost.bus?.emit({ type: "res:resolveError", namespace, error, chain: resolveChain });
         throw error;
       }
     })();
-    slot = { key, namespace, generation, content: juncturePromise };
+    slot = { key, namespace, generation, content: podPromise };
     slotsMap.set(key, slot);
-    return juncturePromise;
+    return podPromise;
   }
 
   protected isSlotFresh(slot: Slot): boolean {
     return slot.generation === (this.generationByNs.get(slot.namespace) ?? 0);
   }
 
-  protected async getJuncture(
+  protected async getPod(
     namespace: AnyNamespace,
     locale: AnyLocale | undefined,
     genId: number,
@@ -222,34 +218,34 @@ export class JunctureManager {
     // the vertex covered path (which uses the parent's tag transported via
     // `vertexGearMap`). Defaults to `""` only as a defensive fallback.
     occurrenceTag: string = ""
-  ): Promise<Juncture> {
+  ): Promise<ResPod> {
     const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
     const slotsMap = this.slotsForLayout(layoutType);
     if (layoutType === "gear:outer(vertex)") {
       const parentVertexKey = vertexGearMap?.[namespace];
       if (parentVertexKey !== undefined) {
-        const consumerKey = getJunctureResCacheKey(namespace, locale, layoutType, parentVertexKey);
+        const consumerKey = getResCacheKey(namespace, locale, layoutType, parentVertexKey);
         const consumerSlot = slotsMap.get(consumerKey);
         if (consumerSlot === undefined || !this.isSlotFresh(consumerSlot)) {
-          this.busHost.bus?.emit({ type: "juncture:vertexConsumerMissing", namespace, vertexKey: parentVertexKey });
+          this.busHost.bus?.emit({ type: "res:vertexConsumerMissing", namespace, vertexKey: parentVertexKey });
           throw new RMachineResolveError(
             ERR_VERTEX_INSTANCE_NOT_FOUND,
-            `Vertex gear instance "${namespace}" with vertexKey "${parentVertexKey}" not found in JunctureManager cache.`
+            `Vertex gear instance "${namespace}" with vertexKey "${parentVertexKey}" not found in ResManager cache.`
           );
         }
         this.busHost.bus?.emit({
-          type: "juncture:vertexConsumerResolved",
+          type: "res:vertexConsumerResolved",
           namespace,
           consumerVertexKey: parentVertexKey,
         });
         return consumerSlot.content;
       }
       const myVertexKey = buildVertexKey(genId, occurrenceTag);
-      const creatorKey = getJunctureResCacheKey(namespace, locale, layoutType, myVertexKey);
+      const creatorKey = getResCacheKey(namespace, locale, layoutType, myVertexKey);
       const creatorSlot = slotsMap.get(creatorKey);
       if (creatorSlot !== undefined && this.isSlotFresh(creatorSlot)) {
         this.busHost.bus?.emit({
-          type: "juncture:cacheHit",
+          type: "res:cacheHit",
           namespace,
           locale,
           generation: creatorSlot.generation,
@@ -257,7 +253,7 @@ export class JunctureManager {
         return creatorSlot.content;
       }
       // Register vertex creation in genId index before spawning the resolve,
-      // so the index and slots map are populated together (resolveJuncture
+      // so the index and slots map are populated together (resolvePod
       // creates the slot synchronously before returning the promise). The
       // inner Map<ns, Set<occurrenceTag>> lets multiple slots for the same
       // (genId, ns) coexist when a Plug has duplicate vertex deps.
@@ -273,24 +269,17 @@ export class JunctureManager {
         byNs.set(namespace, tags);
       }
       tags.add(occurrenceTag);
-      this.busHost.bus?.emit({ type: "juncture:vertexSlotRegistered", namespace, genId, occurrenceTag });
-      return this.resolveJuncture(
-        namespace,
-        locale,
-        creatorKey,
-        layoutType,
-        { namespace, genId, occurrenceTag },
-        chain
-      );
+      this.busHost.bus?.emit({ type: "res:vertexSlotRegistered", namespace, genId, occurrenceTag });
+      return this.resolvePod(namespace, locale, creatorKey, layoutType, { namespace, genId, occurrenceTag }, chain);
     }
 
-    const key = getJunctureResCacheKey(namespace, locale, layoutType);
+    const key = getResCacheKey(namespace, locale, layoutType);
     const cached = slotsMap.get(key);
     if (cached !== undefined && this.isSlotFresh(cached)) {
-      this.busHost.bus?.emit({ type: "juncture:cacheHit", namespace, locale, generation: cached.generation });
+      this.busHost.bus?.emit({ type: "res:cacheHit", namespace, locale, generation: cached.generation });
       return cached.content;
     }
-    return this.resolveJuncture(namespace, locale, key, layoutType, undefined, chain);
+    return this.resolvePod(namespace, locale, key, layoutType, undefined, chain);
   }
 
   async getPlugin(
@@ -318,7 +307,7 @@ export class JunctureManager {
       }
     }
     this.busHost.bus?.emit({
-      type: "juncture:kitPartitioned",
+      type: "res:kitPartitioned",
       selfNamespace: chain.length > 0 ? chain[chain.length - 1] : undefined,
       eager: eagerKitEntries.map(([, ns]) => ns),
       deferred: deferredKitEntries.map(([, ns]) => ns),
@@ -339,12 +328,12 @@ export class JunctureManager {
   // Returns a getter that resolves a chain-deferred kit entry from its slot
   // at access time. While the slot is still mid-resolution (Promise content),
   // accessing it would mean a real cyclic kit dependency — throw with a clear
-  // message. Once the ancestor's factory has committed its juncture, the
+  // message. Once the ancestor's factory has committed its pod, the
   // captured reference works (supports late-bound recursive patterns,
   // including self-reference: self is just chain[last]).
   protected createDeferredKitGetter(namespace: AnyNamespace, locale: AnyLocale | undefined): () => AnySurface {
     const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
-    const slotKey = getJunctureResCacheKey(namespace, locale, layoutType);
+    const slotKey = getResCacheKey(namespace, locale, layoutType);
     return () => {
       // Re-resolve the slot map each call: a deferred-kit getter created
       // during one resolution may be called later (inside a child plugin's
@@ -353,14 +342,14 @@ export class JunctureManager {
       // resolve when invocation stays within the same async chain.
       const slot = this.slotsForLayout(layoutType).get(slotKey);
       if (slot === undefined || slot.content instanceof Promise) {
-        this.busHost.bus?.emit({ type: "juncture:deferredKitAccessed", namespace, ready: false });
+        this.busHost.bus?.emit({ type: "res:deferredKitAccessed", namespace, ready: false });
         throw new RMachineResolveError(
           ERR_CIRCULAR_DEPENDENCY,
           `Kit access on "${namespace}" is not available: that namespace is currently being resolved as a transitive ancestor.`
         );
       }
-      this.busHost.bus?.emit({ type: "juncture:deferredKitAccessed", namespace, ready: true });
-      return getCurrentSurface(slot.content);
+      this.busHost.bus?.emit({ type: "res:deferredKitAccessed", namespace, ready: true });
+      return slot.content.surface;
     };
   }
 
@@ -370,9 +359,7 @@ export class JunctureManager {
     chain: readonly AnyNamespace[]
   ): Promise<AnyResolvedNamespaceMap> {
     const resolved = await Promise.all(
-      entries.map(
-        async ([k, ns]) => [k, getCurrentSurface(await this.getJuncture(ns, locale, 0, undefined, chain))] as const
-      )
+      entries.map(async ([k, ns]) => [k, (await this.getPod(ns, locale, 0, undefined, chain)).surface] as const)
     );
     return Object.fromEntries(resolved);
   }
@@ -390,7 +377,7 @@ export class JunctureManager {
     const entries = await Promise.all(
       Object.entries(nsDeps).map(async ([key, namespace]) => [
         key,
-        getCurrentSurface(await this.getJuncture(namespace, locale, genId, vertexGearMap, chain, key)),
+        (await this.getPod(namespace, locale, genId, vertexGearMap, chain, key)).surface,
       ])
     );
     return Object.fromEntries(entries);
@@ -407,10 +394,9 @@ export class JunctureManager {
     // (`["vertex/timer", "vertex/timer"]`) resolve to distinct slots — the
     // positions `"0"` / `"1"` discriminate them.
     return Promise.all(
-      nsDeps.map(async (namespace, index) =>
-        getCurrentSurface(
-          await this.getJuncture(namespace as AnyNamespace, locale, genId, vertexGearMap, chain, String(index))
-        )
+      nsDeps.map(
+        async (namespace, index) =>
+          (await this.getPod(namespace as AnyNamespace, locale, genId, vertexGearMap, chain, String(index))).surface
       )
     );
   }
@@ -477,9 +463,9 @@ export class JunctureManager {
       }
     }
     // In-flight: stale check at completion intercepts (slots.delete causes
-    // identity mismatch and the resolved juncture is discarded with teardown).
+    // identity mismatch and the resolved pod is discarded with teardown).
     slotsMap.delete(key);
-    this.busHost.bus?.emit({ type: "juncture:slotDisposed", namespace: slot.namespace, teardownInvoked });
+    this.busHost.bus?.emit({ type: "res:slotDisposed", namespace: slot.namespace, teardownInvoked });
   }
 
   // Back-compat shim: dispose from the process-tier slots map.
@@ -536,7 +522,7 @@ export class JunctureManager {
     this.generationByNs.clear();
     this.subscribersByNs.clear();
     this.vertexSlotsByGenId.clear();
-    this.busHost.bus?.emit({ type: "juncture:resourcesDisposed" });
+    this.busHost.bus?.emit({ type: "res:resourcesDisposed" });
   }
 
   invalidate(ns: AnyNamespace, locale?: AnyLocale | undefined): void {
@@ -544,14 +530,14 @@ export class JunctureManager {
     // (See BlueprintManager.getReverseClosure.)
     const closure = this.blueprintManager.getReverseClosure(ns);
     this.busHost.bus?.emit({
-      type: "juncture:invalidationStart",
+      type: "res:invalidationStart",
       rootNamespace: ns,
       locale,
       closure: [...closure],
     });
     // 1. Bump generation for every namespace in the closure. An in-flight
     //    resolve started before this point will see the new generation at its
-    //    completion check and discard its juncture. Generation is
+    //    completion check and discard its pod. Generation is
     //    namespace-only — locale-scoped invalidation still bumps the whole
     //    namespace, so wires rendering in any locale observe staleness and
     //    re-resolve (re-resolves of unaffected locales hit the still-cached
@@ -603,7 +589,7 @@ export class JunctureManager {
       const subs = this.subscribersByNs.get(n);
       if (subs) {
         this.busHost.bus?.emit({
-          type: "juncture:subscribersNotified",
+          type: "res:subscribersNotified",
           namespace: n,
           subscriberCount: subs.size,
         });
@@ -629,7 +615,7 @@ export class JunctureManager {
       set.add(callback);
       subscribed.push(ns);
     }
-    this.busHost.bus?.emit({ type: "juncture:subscribed", namespaces: subscribed });
+    this.busHost.bus?.emit({ type: "res:subscribed", namespaces: subscribed });
     return () => {
       for (const ns of subscribed) {
         const set = this.subscribersByNs.get(ns);
@@ -638,7 +624,7 @@ export class JunctureManager {
           this.subscribersByNs.delete(ns);
         }
       }
-      this.busHost.bus?.emit({ type: "juncture:unsubscribed", namespaces: subscribed });
+      this.busHost.bus?.emit({ type: "res:unsubscribed", namespaces: subscribed });
     };
   }
 
@@ -656,7 +642,7 @@ export class JunctureManager {
     }
     const slotsMap = this.slotsForLayout("gear:outer(vertex)");
     for (const tag of tags) {
-      const key = getJunctureResCacheKey(ns, undefined, "gear:outer(vertex)", buildVertexKey(genId, tag));
+      const key = getResCacheKey(ns, undefined, "gear:outer(vertex)", buildVertexKey(genId, tag));
       this.disposeSlotIn(slotsMap, key);
     }
     byNs.delete(ns);
@@ -675,7 +661,7 @@ export class JunctureManager {
     const slotsMap = this.slotsForLayout("gear:outer(vertex)");
     for (const [ns, tags] of byNs) {
       for (const tag of tags) {
-        const key = getJunctureResCacheKey(ns, undefined, "gear:outer(vertex)", buildVertexKey(genId, tag));
+        const key = getResCacheKey(ns, undefined, "gear:outer(vertex)", buildVertexKey(genId, tag));
         this.disposeSlotIn(slotsMap, key);
         count++;
       }
@@ -761,6 +747,6 @@ export class JunctureManager {
     }
     scope.vertexSlotsByGenId.clear();
     scope.wireCachesByPlugId.clear();
-    this.busHost.bus?.emit({ type: "juncture:requestScopeDisposed" });
+    this.busHost.bus?.emit({ type: "res:requestScopeDisposed" });
   }
 }

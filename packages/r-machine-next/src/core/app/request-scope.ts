@@ -16,7 +16,7 @@ import type { RequestScope, RequestScopeProvider } from "r-machine/core";
 // Override-based scope provider. The active scope is set explicitly by the
 // React adapter (`useBareReactPlug`) immediately before invoking the wire's
 // plugin resolution, and reset right after — all within a synchronous block.
-// JM's `slotsForLayout` runs synchronously inside that block and captures
+// RM's `slotsForLayout` runs synchronously inside that block and captures
 // the request's `outerSlots` map into the resolution promise's closure.
 //
 // Why this works across server-component and client-component SSR (where

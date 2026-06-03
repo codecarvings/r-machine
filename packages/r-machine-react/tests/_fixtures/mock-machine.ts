@@ -46,7 +46,7 @@ export function createMockMachine(
 ): RMachine<TestAtlas, AnyLocale, ResEquipment<TestAtlas>, ExperimentalFlags> {
   const resolve = overrides.resolve ?? defaultResolve;
 
-  // Default getWire mirrors JM.getPlugin: build `$ = { kit }`, let the
+  // Default getWire mirrors RM.getPlugin: build `$ = { kit }`, let the
   // adapter's augmentCtx layer on `$.locale`/`$.setLocale`, then assemble the
   // plugin (`[...deps, $]` for list, `{ ...kit, ...deps, $ }` for map). The
   // resolved wire is settled, so consumers don't suspend.

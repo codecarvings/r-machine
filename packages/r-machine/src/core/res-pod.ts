@@ -18,26 +18,9 @@ import type { AnyResolvedNamespaceMap } from "./res-map.js";
 import type { AnySurface } from "./surface.js";
 import { setVertexGearTag, type VertexGearTagData } from "./vertex-gear.js";
 
-export type Juncture = KernelJuncture | OuterJuncture;
-
-export interface KernelJuncture {
-  readonly kind: "kernel";
+export interface ResPod {
   readonly res: AnyRes;
   readonly surface: AnySurface;
-}
-
-export interface OuterJuncture {
-  readonly kind: "outer";
-  readonly res: AnyRes;
-  readonly surfaceA: AnySurface;
-  readonly surfaceB: AnySurface;
-  current: AnySurface;
-  version: number;
-  readonly subscribers: Set<() => void>;
-}
-
-export function getCurrentSurface(juncture: Juncture): AnySurface {
-  return juncture.kind === "outer" ? juncture.current : juncture.surface;
 }
 
 function buildSurface(res: AnyRes, vertexTag: VertexGearTagData | undefined): AnySurface {
@@ -72,20 +55,6 @@ function buildSurface(res: AnyRes, vertexTag: VertexGearTagData | undefined): An
   return surface;
 }
 
-export function buildKernelJuncture(res: AnyRes, vertexTag: VertexGearTagData | undefined): KernelJuncture {
-  return { kind: "kernel", res, surface: buildSurface(res, vertexTag) };
-}
-
-export function buildOuterJuncture(res: AnyRes, vertexTag: VertexGearTagData | undefined): OuterJuncture {
-  const surfaceA = buildSurface(res, vertexTag);
-  const surfaceB = buildSurface(res, vertexTag);
-  return {
-    kind: "outer",
-    res,
-    surfaceA,
-    surfaceB,
-    current: surfaceA,
-    version: 0,
-    subscribers: new Set<() => void>(),
-  };
+export function buildResPod(res: AnyRes, vertexTag: VertexGearTagData | undefined): ResPod {
+  return { res, surface: buildSurface(res, vertexTag) };
 }
