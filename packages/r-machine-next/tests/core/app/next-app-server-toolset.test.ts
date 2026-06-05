@@ -1,3 +1,4 @@
+import { PLUG_MACHINE_ACCESSOR } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError, RMachineUsageError } from "r-machine/errors";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -729,7 +730,65 @@ describe("createNextAppServerToolset", () => {
     ])("%s calls validateServerOnlyUsage", async (methodName, invoke) => {
       const toolset = await createToolset();
       await invoke(toolset);
-      expect(vi.mocked(internal.validateServerOnlyUsage)).toHaveBeenCalledWith(methodName);
+      // Second arg is the machine's test-mode flag (false for the mock machine).
+      expect(vi.mocked(internal.validateServerOnlyUsage)).toHaveBeenCalledWith(methodName, false);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // test mode
+  // -----------------------------------------------------------------------
+
+  describe("test mode", () => {
+    it("ServerPlug.useR() with no params throws when NOT in test mode (no bound locale)", async () => {
+      const machine = createMockMachine();
+      const toolset = await createNextAppServerToolset(
+        machine,
+        TEST_SERVER_KIT,
+        createMockImpl(),
+        MockNextClientRMachine
+      );
+
+      await expect(toolset.ServerPlug("common").useR()).rejects.toThrow(/Cannot determine locale/);
+    });
+
+    it("ServerPlug.useR() with no params falls back to the default locale in test mode", async () => {
+      const machine = createMockMachine();
+      const toolset = await createNextAppServerToolset(
+        machine,
+        TEST_SERVER_KIT,
+        createMockImpl(),
+        MockNextClientRMachine
+      );
+
+      machine[PLUG_MACHINE_ACCESSOR].testMode.enter();
+      await toolset.ServerPlug("common").useR();
+
+      expect(spies(machine).getGatePlugin).toHaveBeenCalledWith(
+        TEST_SERVER_KIT,
+        expect.anything(),
+        "en", // default locale
+        expect.any(Function)
+      );
+      machine[PLUG_MACHINE_ACCESSOR].testMode.exit();
+    });
+
+    it("rebuilds the locale context on a new epoch so a later bind of a different locale does not conflict", async () => {
+      const machine = createMockMachine();
+      const toolset = await createNextAppServerToolset(
+        machine,
+        TEST_SERVER_KIT,
+        createMockImpl(),
+        MockNextClientRMachine
+      );
+
+      machine[PLUG_MACHINE_ACCESSOR].testMode.enter(); // epoch 1
+      toolset.bindLocale("en");
+      machine[PLUG_MACHINE_ACCESSOR].testMode.exit();
+
+      machine[PLUG_MACHINE_ACCESSOR].testMode.enter(); // epoch 2 → fresh locale context (no react.cache outside a request)
+      expect(() => toolset.bindLocale("it")).not.toThrow();
+      machine[PLUG_MACHINE_ACCESSOR].testMode.exit();
     });
   });
 });

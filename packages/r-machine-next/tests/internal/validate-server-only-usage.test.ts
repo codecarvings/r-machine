@@ -36,6 +36,12 @@ describe("validateServerOnlyUsage", () => {
 
       expect(() => validateServerOnlyUsage("MyComponent")).toThrow(/MyComponent/);
     });
+
+    it("does NOT throw when testMode is true (server-component unit testing)", async () => {
+      const { validateServerOnlyUsage } = await importModules();
+
+      expect(() => validateServerOnlyUsage("Foo", true)).not.toThrow();
+    });
   });
 
   describe("in a server environment (React lacks useState)", () => {

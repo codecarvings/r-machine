@@ -24,7 +24,15 @@ import type {
   PluginCtxAugmenter,
   ResEquipment,
 } from "r-machine/core";
-import { createPlug, createRequestScope, getNamespaceList, getNamespaceMap, getPlugOutline } from "r-machine/core";
+import {
+  createPlug,
+  createRequestScope,
+  getNamespaceList,
+  getNamespaceMap,
+  getPlugOutline,
+  PLUG_MACHINE_ACCESSOR,
+  type PlugMachineBridge,
+} from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { cache, type ReactNode } from "react";
@@ -111,6 +119,12 @@ export async function createNextAppServerToolset<
   const { autoLocaleBinding } = impl;
 
   const validateLocale = rMachine.localeHelper.validateLocale;
+  // Reach the hidden plug-machine accessor. Indexed through `PlugMachineBridge`
+  // (imported alongside the symbol from `r-machine/core`) so the `unique symbol`
+  // key resolves; the `as unknown` step is required because the built `RMachine`
+  // type and `r-machine/core` see the symbol under distinct identities across
+  // the package boundary (see the comment on `PlugMachineBridge`).
+  const plugMachine = (rMachine as unknown as PlugMachineBridge)[PLUG_MACHINE_ACCESSOR];
 
   // Dynamic import to bypass the "next/headers" import issue in pages/ directory
   // (next/headers only works in Server Components / App Router).
@@ -135,12 +149,32 @@ export async function createNextAppServerToolset<
   // production.
   rMachine.requestScope.installProvider(nextRequestScopeProvider);
 
-  const getContext = cache((): NextAppServerRMachineContext<L> => {
+  const getContextCached = cache((): NextAppServerRMachineContext<L> => {
     return {
       value: null,
       getLocalePromise: null,
     };
   });
+
+  // Under test mode `react.cache` has no real request scope (a unit test isn't a
+  // server request), so it can't carry a bound locale from one call to the next.
+  // Use a plain holder keyed on the machine's test-mode epoch instead: it
+  // persists for the duration of ONE test (stable epoch) but is rebuilt when the
+  // next test re-enters test mode (epoch bumps on its 0→1 transition), so a
+  // locale bound in one test can't leak into the next.
+  let testContext: NextAppServerRMachineContext<L> | null = null;
+  let testContextEpoch = -1;
+  const getContext = (): NextAppServerRMachineContext<L> => {
+    if (plugMachine.testMode.isEnabled) {
+      const epoch = plugMachine.testMode.epoch;
+      if (testContext === null || testContextEpoch !== epoch) {
+        testContext = { value: null, getLocalePromise: null };
+        testContextEpoch = epoch;
+      }
+      return testContext;
+    }
+    return getContextCached();
+  };
 
   function getLocale(): L | Promise<L> {
     const context = getContext();
@@ -168,6 +202,13 @@ export async function createNextAppServerToolset<
       });
       return context.getLocalePromise;
     } else {
+      if (plugMachine.testMode.isEnabled) {
+        // Provider-less server-component test (e.g. a component using `useR()`
+        // with no params): fall back to the default locale instead of forcing
+        // every test to bind one. Explicit `bindLocale`/`useR(locale|params)`
+        // still works (and sets context.value above).
+        return rMachine.localeHelper.defaultLocale;
+      }
       throw new RMachineUsageError(
         ERR_LOCALE_UNDETERMINED,
         "Cannot determine locale. bindLocale(locale | params) or ServerPlug.useR(locale | params) not invoked? (you must invoke bindLocale or ServerPlug.useR with a locale or route params at the beginning of every page or layout component)."
@@ -176,7 +217,7 @@ export async function createNextAppServerToolset<
   }
 
   async function NextServerRMachine({ children }: NextAppServerRMachineProps) {
-    validateServerOnlyUsage("NextServerRMachine");
+    validateServerOnlyUsage("NextServerRMachine", plugMachine.testMode.isEnabled);
 
     // Create a fresh request scope for this render. The scope holds the
     // OuterGear slot map plus per-Plug wireCaches; it's request-scoped so the
@@ -220,7 +261,7 @@ export async function createNextAppServerToolset<
 
   const localeCache = new Map<AnyLocale, L>();
   function bindLocale(locale: AnyLocale | Promise<RMachineParams<LK>>) {
-    validateServerOnlyUsage("bindLocale");
+    validateServerOnlyUsage("bindLocale", plugMachine.testMode.isEnabled);
 
     function syncBindLocale(localeOption: AnyLocale): L {
       let locale = localeCache.get(localeOption);
@@ -276,7 +317,7 @@ export async function createNextAppServerToolset<
   }
 
   async function setLocale(newLocale: L) {
-    validateServerOnlyUsage("setLocale");
+    validateServerOnlyUsage("setLocale", plugMachine.testMode.isEnabled);
 
     const error = validateLocale(newLocale);
     if (error) {
@@ -324,7 +365,7 @@ export async function createNextAppServerToolset<
     };
 
     const useR = async (firstArg?: unknown): Promise<unknown> => {
-      validateServerOnlyUsage("ServerPlug.useR");
+      validateServerOnlyUsage("ServerPlug.useR", plugMachine.testMode.isEnabled);
 
       let locale: L;
       let resolvedParams: Record<string, unknown> | undefined;
@@ -345,7 +386,7 @@ export async function createNextAppServerToolset<
     };
 
     const useUnboundR = async (firstArg: unknown): Promise<unknown> => {
-      validateServerOnlyUsage("ServerPlug.useUnboundR");
+      validateServerOnlyUsage("ServerPlug.useUnboundR", plugMachine.testMode.isEnabled);
 
       let locale: L;
       let resolvedParams: Record<string, unknown> | undefined;

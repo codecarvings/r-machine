@@ -31,7 +31,9 @@ import {
   type GearPlugKitMap,
   type InternalEventBus,
   type NamespaceMap,
+  PLUG_MACHINE_ACCESSOR,
   type PluginCtxAugmenter,
+  type PlugMachine,
   type RequestScope,
   type RequestScopeProvider,
   type ResComposerConnector,
@@ -40,6 +42,7 @@ import {
   ResLayoutResolver,
   ResManager,
   type ShellPlugKitMap,
+  TestMode,
   type VertexGearMap,
   type Wire,
   WireManager,
@@ -164,7 +167,7 @@ export class RMachine<
       },
       // Stamped onto every Plug built through this connector so test helpers can
       // reach `disposeResources()` from `r.plug` alone (`@r-machine/testing`).
-      machine: this,
+      machine: this[PLUG_MACHINE_ACCESSOR],
     };
   }
 
@@ -211,6 +214,23 @@ export class RMachine<
     return this.resManager.getPlugin(kit, nsDeps, locale, augmentCtx, [], 0, undefined);
   }
 
+  readonly [PLUG_MACHINE_ACCESSOR]: PlugMachine = {
+    // Dispose all resolved resources for this instance: tear down every
+    // process-tier slot (running `Symbol.dispose`) and clear the resolution
+    // caches, while KEEPING loaded blueprints (modules are not re-imported).
+    // Primarily a test-isolation primitive — call it in `afterEach` so a stateful
+    // OuterGear resolved (as a dependency or kit) in one test cannot leak into the
+    // next. Request scopes are unaffected (use `requestScope.dispose`). Reachable
+    // from a resource's `r.plug` via `getPlugMachine` (see `@r-machine/testing`).
+    disposeResources: () => this.resManager.disposeResources(),
+    // Per-instance test-mode controller. Toggled by `@r-machine/testing`'s
+    // `mockPlug` (it reaches this via the Plug's `getPlugMachine` back-reference)
+    // and read by the adapter guards off the `rMachine` they close over. Never
+    // enabled in production (the testing package is never imported there). See
+    // `TestMode`.
+    testMode: new TestMode(),
+  };
+
   readonly requestScope = {
     // Install a provider that RM consults to discover the active request scope
     // (e.g. an AsyncLocalStorage-backed lookup in @r-machine/next). Outer/Vertex
@@ -247,17 +267,6 @@ export class RMachine<
   // are a no-op.
   reloadModule(path: string): void {
     this.blueprintManager.reloadModule(path);
-  }
-
-  // Dispose all resolved resources for this instance: tear down every
-  // process-tier slot (running `Symbol.dispose`) and clear the resolution
-  // caches, while KEEPING loaded blueprints (modules are not re-imported).
-  // Primarily a test-isolation primitive — call it in `afterEach` so a stateful
-  // OuterGear resolved (as a dependency or kit) in one test cannot leak into the
-  // next. Request scopes are unaffected (use `requestScope.dispose`). Reachable
-  // from a resource's `r.plug` via `getPlugMachine` (see `@r-machine/testing`).
-  disposeResources(): void {
-    this.resManager.disposeResources();
   }
 
   // `RMachine.create` is intended to produce a single canonical instance per

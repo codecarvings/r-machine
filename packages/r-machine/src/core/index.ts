@@ -54,9 +54,11 @@ export {
   getPlugResolve,
   type ListPlugin,
   type MapPlugin,
+  PLUG_MACHINE_ACCESSOR,
   type PlugBody,
   type PluginCtxAugmenter,
   type PlugMachine,
+  type PlugMachineBridge,
   type PlugMode,
   type PlugResolve,
   setPlugMachine,
@@ -131,6 +133,7 @@ export {
 export { createShellComposer, type ShellComposer } from "./shell-composer.js";
 export type { ShellPlugKitMap } from "./shell-plug.js";
 export type { AnyClientGearSurface, AnySurface, Surface } from "./surface.js";
+export { TestMode } from "./test-mode.js";
 export {
   buildVertexKey,
   tryGetVertexGearTag,

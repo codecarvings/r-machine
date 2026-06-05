@@ -1,4 +1,5 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
+import { PLUG_MACHINE_ACCESSOR } from "r-machine/core";
 import { RMachineError } from "r-machine/errors";
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -167,6 +168,39 @@ describe("createReactBareToolset › $.locale", () => {
       expect(error).toBeInstanceOf(RMachineError);
       expect(error).toHaveProperty("code", ERR_CONTEXT_NOT_FOUND);
     }
+  });
+
+  describe("test mode (provider-less render)", () => {
+    it("renders a Plug consumer WITHOUT a provider, resolving the default locale", async () => {
+      const { mock, toolset: toolsetP } = make();
+      const toolset = await toolsetP;
+      mock[PLUG_MACHINE_ACCESSOR].testMode.enter();
+      try {
+        function Orphan() {
+          const { $ } = (toolset.Plug as () => { useR: () => { $: { locale: string } } })().useR();
+          return <span data-testid="locale">{$.locale}</span>;
+        }
+        render(<Orphan />); // no <ReactRMachine> — the throw is relaxed under test mode
+        // safeCtx fell back to fallbackCtx → the machine's default locale.
+        expect(screen.getByTestId("locale").textContent).toBe("en");
+      } finally {
+        mock[PLUG_MACHINE_ACCESSOR].testMode.exit();
+      }
+    });
+
+    it("still throws ERR_CONTEXT_NOT_FOUND when NOT in test mode", async () => {
+      const { Plug } = await make().toolset;
+      function Orphan() {
+        (Plug as AnyPlug)().useR();
+        return null;
+      }
+      try {
+        render(<Orphan />);
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toHaveProperty("code", ERR_CONTEXT_NOT_FOUND);
+      }
+    });
   });
 });
 

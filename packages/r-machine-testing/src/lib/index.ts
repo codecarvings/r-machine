@@ -13,7 +13,7 @@
 
 export { disposeResources } from "./dispose-resources.js";
 export { createEventCollector, type EventCollector } from "./event-collector.js";
-export { mockPlug } from "./mock-plug.js";
+export { mockPlug, resetMockPlugs } from "./mock-plug.js";
 export {
   type SourceLocation,
   type VerifyIssue,

@@ -17,6 +17,7 @@ import type { AnyResAtlas } from "./res-atlas.js";
 import { type AnyNamespace, isHandle } from "./res-domain.js";
 import type { AnyNamespaceList, HandleList, SurfaceList } from "./res-list.js";
 import type { AnyNamespaceMap, HandleMap, SurfaceMap } from "./res-map.js";
+import type { TestMode } from "./test-mode.js";
 
 export type PlugRealm = "res" | "gate";
 export type PlugMode = "map" | "list";
@@ -101,13 +102,37 @@ export type PlugResolve<PH extends AnyPlugHead> = (
   chain: readonly AnyNamespace[]
 ) => Promise<ExtractPlugin<PH>>;
 
+// `Symbol.for` (global registry), NOT `Symbol`: the accessor is indexed across
+// the package boundary at RUNTIME (the @r-machine/next and @r-machine/react
+// toolsets read `rMachine[PLUG_MACHINE_ACCESSOR]`). Bundlers (e.g. Next) can
+// evaluate the r-machine module more than once per process; a plain `Symbol`
+// would then be a different identity per instance and the index would read
+// `undefined`. The registered symbol is shared across all instances. The
+// `unique symbol` TYPE is kept for compile-time property keying.
+export const PLUG_MACHINE_ACCESSOR: unique symbol = Symbol.for("r-machine.PLUG_MACHINE_ACCESSOR");
+
 // Minimal capability the owning RMachine exposes back through a Plug. Kept
 // deliberately narrow (no import of the lib-side RMachine into core, and no
-// wide surface leaking onto the consumer Plug): the only thing reachable from
-// a Plug is the ability to drop all resolved resource state for its machine —
-// the seam `@r-machine/testing` uses to isolate tests (`disposeResources`).
+// wide surface leaking onto the consumer Plug): the only things reachable from
+// a Plug are the seams `@r-machine/testing` uses — dropping all resolved
+// resource state (`disposeResources`) and toggling the machine's per-instance
+// test mode (reached via `getPlugMachine` from `mockPlug`).
 export interface PlugMachine {
   disposeResources(): void;
+  readonly testMode: TestMode;
+}
+
+// Structural interface for anything exposing the plug-machine accessor (the
+// RMachine instance). Same co-location + unique-symbol-identity rationale as
+// `BusBridge`/`BUS_ACCESSOR`: TypeScript ties `unique symbol` identity to the
+// import path, so an adapter that imports the host type (`RMachine`) from one
+// module and `PLUG_MACHINE_ACCESSOR` from another can end up with two distinct
+// symbol identities — `host[PLUG_MACHINE_ACCESSOR]` silently degrades to `any`
+// (TS7015). Cross-package consumers index through this interface, imported
+// alongside the symbol from `r-machine/core`, so both identities come through
+// the same module.
+export interface PlugMachineBridge {
+  readonly [PLUG_MACHINE_ACCESSOR]: PlugMachine;
 }
 
 const plugHeadSymbol = Symbol("plugHead");

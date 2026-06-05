@@ -20,6 +20,7 @@ import {
   type ExtractCtx,
   type ExtractKit,
   type ExtractResAtlas,
+  getPlugMachine,
   getPlugResolve,
   type PlugBody,
   type PlugResolve,
@@ -35,12 +36,58 @@ const plugMockSymbol = Symbol("plugMock");
 
 type ResetPlug = () => void;
 
+// Active resets across all mock plugs / test-mode entries, so `resetMockPlugs()`
+// can drain a test that forgot its own reset (a leaked test-mode refcount would
+// otherwise poison the next test's epoch transition).
+const activeResets = new Set<ResetPlug>();
+
+// Enter the plug's owning machine into test mode and return an idempotent reset
+// that, on the LAST exit for that machine (refcount→0), wipes its resolved
+// resource state for isolation. `restore` undoes a plug-resolve override (used
+// by `.with(...)`); omitted by `.passthrough()` which seeds nothing.
+function enterAndBuildReset(plug: PlugBody<AnyPlugHead>, restore?: () => void): ResetPlug {
+  const machine = getPlugMachine(plug);
+  machine?.testMode.enter();
+  let done = false;
+  const reset: ResetPlug = () => {
+    if (done) {
+      return;
+    }
+    done = true;
+    activeResets.delete(reset);
+    restore?.();
+    machine?.testMode.exit();
+    if (machine && !machine.testMode.isEnabled) {
+      machine.disposeResources();
+    }
+  };
+  activeResets.add(reset);
+  return reset;
+}
+
+/**
+ * Force every still-active mock plug / test-mode entry to reset. Intended for a
+ * global `afterEach(resetMockPlugs)` safety net so one test's leaked mock can't
+ * bleed into the next.
+ */
+export function resetMockPlugs(): void {
+  for (const reset of [...activeResets]) {
+    reset();
+  }
+}
+
 interface MapMockPlug<PH extends AnyMapPlugHead> {
   readonly with: (data: MockPlugMapData<PH>) => ResetPlug;
+  // Enter test mode for this plug's machine WITHOUT seeding it — the escape
+  // hatch for tests that render against real defaults (a server component using
+  // its default locale, a client component without a provider). The resolve
+  // passes through to production unchanged.
+  readonly passthrough: () => ResetPlug;
 }
 
 interface ListMockPlug<PH extends AnyListPlugHead> {
   readonly with: (data: MockPlugListData<PH>) => ResetPlug;
+  readonly passthrough: () => ResetPlug;
 }
 
 interface MockPlug {
@@ -79,10 +126,11 @@ export const mockPlug: MockPlug = (plug: PlugBody<AnyPlugHead>) => {
       (resolve as any)[plugMockSymbol] = true;
 
       setPlugResolve(plug, resolve);
-      return () => {
-        setPlugResolve(plug, prevResolve);
-      };
+      // enter() AFTER the double-mock guard + setPlugResolve, so a rejected
+      // mock never bumps the machine's test-mode refcount.
+      return enterAndBuildReset(plug, () => setPlugResolve(plug, prevResolve));
     },
+    passthrough: () => enterAndBuildReset(plug),
   };
 };
 

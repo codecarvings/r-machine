@@ -40,6 +40,8 @@ import {
   getPlugOutline,
   isOuterGearLayoutType,
   isVertexGearLayoutType,
+  PLUG_MACHINE_ACCESSOR,
+  type PlugMachineBridge,
 } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
@@ -110,6 +112,12 @@ export async function createReactBareToolset<
   options: CreateReactBareToolsetOptions = {}
 ): Promise<ReactBareToolset<RA, L, EF, KM>> {
   const validateLocale = rMachine.localeHelper.validateLocale;
+  // Reach the hidden plug-machine accessor. Indexed through `PlugMachineBridge`
+  // (imported alongside the symbol from `r-machine/core`) so the `unique symbol`
+  // key resolves; the `as unknown` step is required because the built `RMachine`
+  // type and `r-machine/core` see the symbol under distinct identities across
+  // the package boundary (see the comment on `PlugMachineBridge`).
+  const plugMachine = (rMachine as unknown as PlugMachineBridge)[PLUG_MACHINE_ACCESSOR];
   const reactCompilerSupport = options.reactCompiler === true;
 
   // Reactive (gear:outer) entries placed in the consumer kit reach every plug
@@ -495,8 +503,10 @@ export async function createReactBareToolset<
 
       // Throw only AFTER every hook has been called. The throw aborts the
       // render but the hook count is now stable across renders, which keeps
-      // React 19 + Turbopack happy.
-      if (ctx === null) {
+      // React 19 + Turbopack happy. Under test mode the throw is relaxed so a
+      // plug consumer can render WITHOUT a provider — `safeCtx` already fell
+      // back to `fallbackCtx` (the machine's default locale).
+      if (ctx === null && !plugMachine.testMode.isEnabled) {
         throw new RMachineUsageError(ERR_CONTEXT_NOT_FOUND, "ReactBareToolsetContext not found.");
       }
 

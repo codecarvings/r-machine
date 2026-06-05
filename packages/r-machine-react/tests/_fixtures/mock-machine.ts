@@ -2,9 +2,11 @@ import type { RMachine } from "r-machine";
 import {
   type AnyResAtlas,
   type ExperimentalFlags,
+  PLUG_MACHINE_ACCESSOR,
   PROCESS_SCOPE_PROVIDER,
   type ResEquipment,
   type ResLayoutEntryType,
+  TestMode,
   type Wire,
 } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "r-machine/errors";
@@ -92,6 +94,7 @@ export function createMockMachine(
       ),
     },
     getWire: vi.fn(overrides.getWire ?? (defaultGetWire as never)),
+    [PLUG_MACHINE_ACCESSOR]: { disposeResources: vi.fn(), testMode: new TestMode() },
     // Default to non-vertex so plugs in tests use the shared wireCache path.
     resolveLayoutEntryType: vi.fn(overrides.resolveLayoutEntryType ?? (() => "shell")),
     // No request scope on the client — return the process-default provider so
