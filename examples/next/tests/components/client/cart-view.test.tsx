@@ -2,14 +2,11 @@
 
 import { mockPlug } from "@r-machine/testing";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { Suspense } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CartView } from "@/components/client/CartView";
-import { NextClientRMachine } from "@/r-machine/client-toolset";
 import { r as cartR } from "@/r-machine/outer/cart";
 
-// NextClientRMachine wires `$.setLocale` through next/navigation; stub it so the
-// provider mounts in jsdom.
+// The Next client toolset reads next/navigation hooks during render; stub them.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
@@ -26,10 +23,11 @@ afterEach(() => {
   cleanup();
 });
 
-// A component test for a real plug consumer. The SAME `mockPlug` primitive used
-// on gears seeds `outer/cart` here; the component resolves it through the real
-// `NextClientRMachine` runtime, so we assert the actual rendered (localized) DOM
-// and that a UI interaction drives the reactive update.
+// A component test for a real plug consumer, rendered WITHOUT a
+// `<NextClientRMachine>` provider: the SAME `mockPlug` primitive that seeds gears
+// also seeds `outer/cart` and flips test mode, which relaxes the provider guard
+// and falls back to the default locale. We assert the actual rendered (localized)
+// DOM and that a UI interaction drives the reactive update.
 describe("CartView (component, en)", () => {
   it("renders the mockPlug-seeded cart and reacts to removing a line", async () => {
     const reset = mockPlug(cartR.plug).with({
@@ -46,13 +44,7 @@ describe("CartView (component, en)", () => {
     });
 
     await act(async () => {
-      render(
-        <NextClientRMachine locale="en">
-          <Suspense fallback={<div>loading…</div>}>
-            <CartView />
-          </Suspense>
-        </NextClientRMachine>
-      );
+      render(<CartView />);
     });
 
     // Seeded lines render, money is USD-formatted, count is pluralized.

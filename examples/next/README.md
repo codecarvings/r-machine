@@ -23,7 +23,7 @@ resource the container resolves for the active locale.
 | **Mono shell** | [`shell/lib/fmt`](src/r-machine/shell/lib/fmt.ts) | Per-locale `Intl` formatters — USD vs EUR currency, number grouping, pluralization. The engine behind the "wow" moment. |
 | **Typed dependency scoping** | everywhere | `outer/cart` *cannot* import `inner/catalog` (the validity matrix forbids `outer → inner`), so cart lines carry a denormalized price snapshot — the compiler steers you to the correct design. |
 | **Server / client split** | [`app/[locale]`](src/app/[locale]) + [`components`](src/components) | Pages and server components read inner/shell via `ServerPlug`; client islands read outer/vertex via `ClientPlug`. Product data crosses the boundary as plain props. |
-| **Unit testing with `mockPlug`** | [`tests/r-machine`](tests/r-machine) | One testing primitive for everything: it seeds gears in resource tests **and** seeds a real component (`cart-view.test.tsx`) rendered through the live runtime. `verifyResourceAtlas` checks every shell resolves for every locale. |
+| **Unit testing with `mockPlug`** | [`tests/`](tests) | One primitive for every surface. `mockPlug(r.plug).with(...)` seeds gears in [resource tests](tests/r-machine), a **client component with no provider** ([`cart-view`](tests/components/client/cart-view.test.tsx)), a **server component** ([`header`](tests/components/server/header.test.tsx)), and a **server page** via `useR(params)` ([`product-page`](tests/app/product-page.test.tsx)) — invoking it flips a test mode that relaxes the framework guards (server-only, provider, locale binding). `verifyResourceAtlas` checks every shell resolves for every locale. |
 
 ## Run it
 
@@ -42,3 +42,4 @@ pnpm test     # vitest: resource + component + atlas tests
 - `src/app/[locale]/` — catalog, `product/[id]`, and `cart` routes.
 - `src/components/` — `client/*` (plug consumers) and `server/*` server components.
 - `src/lib/` — the async ports (`catalog-port`, `cart-port`).
+- `tests/` — resource, client-component, server-component, and server-page tests, all driven by `mockPlug`.
