@@ -1,4 +1,11 @@
-import { getPlugMachine } from "r-machine/core";
+import {
+  type AnyPlugHead,
+  createPlug,
+  getPlugMachine,
+  getPlugOverride,
+  type PlugBody,
+  setPlugMachine,
+} from "r-machine/core";
 import type { RMachineUsageError } from "r-machine/errors";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ERR_PLUG_ALREADY_MOCKED } from "../../src/errors/index.js";
@@ -102,6 +109,60 @@ describe("mockPlug", () => {
       expect(inst.label()).toBe("init");
       // `head.ports` was never mutated → production port throws again.
       await expect(inst.save()).rejects.toThrow("persist port not mocked");
+    });
+  });
+
+  describe("consumer-level: post-resolution override on a gate plug", () => {
+    // A consumer (`realm: "gate"`) plug's own resolve is never invoked at
+    // consume time, so `mockPlug` registers a `PlugOverride` (read by core's
+    // getWire/getGatePlugin) instead of wrapping the resolve. Synthesise a
+    // minimal gate plug bound to the fixture machine so test mode works.
+    const makeGatePlug = (): PlugBody<AnyPlugHead> => {
+      const plug = createPlug({ realm: "gate", mode: "map", nsDepList: [] } as unknown as AnyPlugHead);
+      setPlugMachine(plug, getPlugMachine(counter.plug)!);
+      return plug;
+    };
+
+    it("registers an override (locale + transform) and enters test mode; reset clears both", () => {
+      const gate = makeGatePlug();
+      expect(getPlugOverride(gate)).toBeUndefined();
+
+      const reset = mockPlug(gate).with({ "outer/shared": { value: 42 }, $: { locale: "it" } } as never);
+
+      const override = getPlugOverride(gate);
+      expect(override?.locale).toBe("it");
+      expect(typeof override?.transform).toBe("function");
+      expect(machine().testMode.isEnabled).toBe(true);
+
+      // The transform rewrites a resolved map plugin's dep surface in place.
+      const resolved = { "outer/shared": { value: 1 }, $: { kit: {} } };
+      const out = override?.transform?.(resolved) as { "outer/shared": { value: number } };
+      expect(out["outer/shared"].value).toBe(42);
+      expect((resolved as { "outer/shared": { value: number } })["outer/shared"].value).toBe(1); // original untouched
+
+      reset();
+      expect(getPlugOverride(gate)).toBeUndefined();
+      expect(machine().testMode.isEnabled).toBe(false);
+    });
+
+    it("does NOT touch the consumer plug's resolve (the no-op path it replaces)", () => {
+      const gate = makeGatePlug();
+      track(mockPlug(gate).with({ $: { locale: "en" } } as never));
+      // The override seam is used, not setPlugResolve: a registered override
+      // exists and is what core consults.
+      expect(getPlugOverride(gate)).toBeDefined();
+    });
+
+    it("throws ERR_PLUG_ALREADY_MOCKED on a double mock of the same gate plug", () => {
+      const gate = makeGatePlug();
+      const reset = mockPlug(gate).with({ $: { locale: "it" } } as never);
+      try {
+        mockPlug(gate).with({ $: { locale: "en" } } as never);
+        expect.unreachable("second mock on the same gate plug should throw");
+      } catch (err) {
+        expect((err as RMachineUsageError).code).toBe(ERR_PLUG_ALREADY_MOCKED);
+      }
+      reset();
     });
   });
 

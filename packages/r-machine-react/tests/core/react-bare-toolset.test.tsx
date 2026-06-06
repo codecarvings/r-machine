@@ -363,7 +363,14 @@ describe("createReactBareToolset › resource resolution via Plug", () => {
   it("calls getWire with the kit, the namespace deps, and the current locale", async () => {
     const { mock, toolset } = make();
     mountResource(await toolset, "common");
-    expect(spies(mock).getWire).toHaveBeenCalledWith({}, ["common"], "en", expect.any(Function), undefined);
+    expect(spies(mock).getWire).toHaveBeenCalledWith(
+      {},
+      ["common"],
+      "en",
+      expect.any(Function),
+      undefined,
+      expect.any(Function)
+    );
   });
 
   it("re-resolves with the updated locale after a re-render", async () => {
@@ -383,14 +390,28 @@ describe("createReactBareToolset › resource resolution via Plug", () => {
         <Consumer />
       </t.ReactRMachine>
     );
-    expect(spies(mock).getWire).toHaveBeenCalledWith({}, ["common"], "it", expect.any(Function), undefined);
+    expect(spies(mock).getWire).toHaveBeenCalledWith(
+      {},
+      ["common"],
+      "it",
+      expect.any(Function),
+      undefined,
+      expect.any(Function)
+    );
   });
 
   it("passes a different namespace through to getWire", async () => {
     const { mock, toolset } = make({ resolve: (ns) => (ns === "nav" ? { home: "Home" } : { greeting: "hello" }) });
     const get = mountResource<{ home: string }>(await toolset, "nav");
     expect(get().home).toBe("Home");
-    expect(spies(mock).getWire).toHaveBeenCalledWith({}, ["nav"], "en", expect.any(Function), undefined);
+    expect(spies(mock).getWire).toHaveBeenCalledWith(
+      {},
+      ["nav"],
+      "en",
+      expect.any(Function),
+      undefined,
+      expect.any(Function)
+    );
   });
 
   it("suspends while the wire is pending, then resolves when it settles", async () => {
@@ -464,6 +485,13 @@ describe("createReactBareToolset › multiple deps via Plug (list form)", () => 
     );
     expect(common?.greeting).toBe("hello");
     expect(nav?.home).toBe("Home");
-    expect(spies(mock).getWire).toHaveBeenCalledWith({}, ["common", "nav"], "en", expect.any(Function), undefined);
+    expect(spies(mock).getWire).toHaveBeenCalledWith(
+      {},
+      ["common", "nav"],
+      "en",
+      expect.any(Function),
+      undefined,
+      expect.any(Function)
+    );
   });
 });

@@ -248,6 +248,7 @@ describe("createNextAppNoProxyServerToolset", () => {
         TEST_SERVER_KIT,
         expect.anything(),
         "it",
+        expect.any(Function),
         expect.any(Function)
       );
     });

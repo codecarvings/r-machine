@@ -290,12 +290,26 @@ describe("createReactToolset › resource resolution", () => {
         </t.ReactRMachine>
       );
     });
-    expect(spies(machine).getWire).toHaveBeenCalledWith({}, ["common"], "en", expect.any(Function), undefined);
+    expect(spies(machine).getWire).toHaveBeenCalledWith(
+      {},
+      ["common"],
+      "en",
+      expect.any(Function),
+      undefined,
+      expect.any(Function)
+    );
 
     await act(async () => {
       await setLocale("it");
     });
-    expect(spies(machine).getWire).toHaveBeenCalledWith({}, ["common"], "it", expect.any(Function), undefined);
+    expect(spies(machine).getWire).toHaveBeenCalledWith(
+      {},
+      ["common"],
+      "it",
+      expect.any(Function),
+      undefined,
+      expect.any(Function)
+    );
   });
 });
 

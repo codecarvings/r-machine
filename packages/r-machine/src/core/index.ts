@@ -51,6 +51,7 @@ export {
   getPlugId,
   getPlugMachine,
   getPlugOutline,
+  getPlugOverride,
   getPlugResolve,
   type ListPlugin,
   type MapPlugin,
@@ -60,8 +61,10 @@ export {
   type PlugMachine,
   type PlugMachineBridge,
   type PlugMode,
+  type PlugOverride,
   type PlugResolve,
   setPlugMachine,
+  setPlugOverride,
   setPlugResolve,
 } from "./plug.js";
 export type { Cassette, CassetteRecorder, ReadableCell } from "./reactivity/cassette-recorder.js";

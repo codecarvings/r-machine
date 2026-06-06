@@ -13,7 +13,7 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import type { BusHost } from "./event-bus.js";
-import type { PluginCtxAugmenter } from "./plug.js";
+import { type AnyPlugHead, getPlugOverride, type PlugBody, type PluginCtxAugmenter } from "./plug.js";
 import type { CassetteRecorder } from "./reactivity/cassette-recorder.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { isNamespaceList } from "./res-list.js";
@@ -37,7 +37,13 @@ export class WireManager {
     nsDeps: AnyNamespaceCollection,
     locale: AnyLocale,
     augmentCtx: PluginCtxAugmenter,
-    vertexGearMap?: VertexGearMap | undefined
+    vertexGearMap?: VertexGearMap | undefined,
+    // The consuming Plug, when known. Carries a `mockPlug` override whose
+    // post-resolution `transform` is applied to every resolved plugin (so it
+    // survives reactive re-resolves). Undefined in production → zero overhead.
+    // Same 6th-param contract as `RMachine.getWire`, so tests that bind
+    // `wireManager.getWire` as the machine's getWire stay correct.
+    plug?: PlugBody<AnyPlugHead> | undefined
   ): Wire {
     return createWire(
       this.resManager,
@@ -48,7 +54,8 @@ export class WireManager {
       vertexGearMap,
       ++nextGenId,
       this.busHost,
-      this.recorder
+      this.recorder,
+      plug
     );
   }
 }
@@ -62,7 +69,8 @@ function createWire(
   vertexGearMap: VertexGearMap | undefined,
   genId: number,
   busHost: BusHost,
-  recorder: CassetteRecorder
+  recorder: CassetteRecorder,
+  plug?: PlugBody<AnyPlugHead> | undefined
 ): Wire {
   let currentLocale = locale;
   let currentVertexGearMap = vertexGearMap;
@@ -126,15 +134,15 @@ function createWire(
 
   function resolve() {
     busHost.bus?.emit({ type: "wire:resolveTriggered", genId });
-    currentPluginPromise = resManager.getPlugin(
-      kit,
-      nsDeps,
-      currentLocale,
-      augmentCtx,
-      [],
-      genId,
-      currentVertexGearMap
-    );
+    let promise = resManager.getPlugin(kit, nsDeps, currentLocale, augmentCtx, [], genId, currentVertexGearMap);
+    // Apply a consumer plug's `mockPlug` override to the resolved plugin. Read
+    // each resolve (cheap) so a late-registered override is honored, and so it
+    // persists across reactive re-resolves. Undefined in production.
+    const transform = plug !== undefined ? getPlugOverride(plug)?.transform : undefined;
+    if (transform !== undefined) {
+      promise = promise.then(transform);
+    }
+    currentPluginPromise = promise;
     dirty = false;
   }
 

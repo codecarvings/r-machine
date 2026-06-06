@@ -360,6 +360,7 @@ describe("createNextAppServerToolset", () => {
           TEST_SERVER_KIT,
           expect.anything(),
           "en",
+          expect.any(Function),
           expect.any(Function)
         );
       });
@@ -381,6 +382,7 @@ describe("createNextAppServerToolset", () => {
           TEST_SERVER_KIT,
           expect.anything(),
           "it",
+          expect.any(Function),
           expect.any(Function)
         );
       });
@@ -409,6 +411,7 @@ describe("createNextAppServerToolset", () => {
           TEST_SERVER_KIT,
           expect.anything(),
           "it",
+          expect.any(Function),
           expect.any(Function)
         );
       });
@@ -429,6 +432,7 @@ describe("createNextAppServerToolset", () => {
           TEST_SERVER_KIT,
           expect.anything(),
           "it",
+          expect.any(Function),
           expect.any(Function)
         );
       });
@@ -544,6 +548,7 @@ describe("createNextAppServerToolset", () => {
           TEST_SERVER_KIT,
           expect.anything(),
           "it",
+          expect.any(Function),
           expect.any(Function)
         );
         // Context locale should not be bound — a second call with a different
@@ -576,6 +581,7 @@ describe("createNextAppServerToolset", () => {
           TEST_SERVER_KIT,
           expect.anything(),
           "it",
+          expect.any(Function),
           expect.any(Function)
         );
       });
@@ -768,6 +774,7 @@ describe("createNextAppServerToolset", () => {
         TEST_SERVER_KIT,
         expect.anything(),
         "en", // default locale
+        expect.any(Function),
         expect.any(Function)
       );
       machine[PLUG_MACHINE_ACCESSOR].testMode.exit();

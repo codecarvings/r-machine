@@ -20,10 +20,13 @@ import {
   type ExtractCtx,
   type ExtractKit,
   type ExtractResAtlas,
+  getPlugHead,
   getPlugMachine,
+  getPlugOverride,
   getPlugResolve,
   type PlugBody,
   type PlugResolve,
+  setPlugOverride,
   setPlugResolve,
 } from "r-machine/core";
 import { RMachineUsageError } from "r-machine/errors";
@@ -98,36 +101,48 @@ interface MockPlug {
 export const mockPlug: MockPlug = (plug: PlugBody<AnyPlugHead>) => {
   return {
     with: (data: MockPlugMapData<AnyMapPlugHead> | MockPlugListData<AnyListPlugHead>) => {
+      const overrides = data as Record<string, unknown>;
+      // A `$.locale` override re-resolves in the effective locale: shells (and
+      // locale-aware deps) resolve their content BY locale, so patching
+      // `$.locale` on the result alone would not change resolved content.
+      const localeOverride = (overrides.$ as { locale?: AnyLocale } | undefined)?.locale;
+      // Shared post-resolution rewrite, reused by both plug kinds. A
+      // `$.locale`-only override is a no-op here (already applied by locale).
+      const transform = (plugin: unknown): unknown =>
+        hasOverrides(overrides)
+          ? Array.isArray(plugin)
+            ? cloneListPlugin(plugin, overrides)
+            : cloneMapPlugin(plugin as object, overrides)
+          : plugin;
+
+      // B — CONSUMER plug (`realm: "gate"`): its own resolve is never invoked
+      // at consume time (deps resolve by namespace via getWire/getGatePlugin),
+      // so register a post-resolution override that core applies there.
+      if (getPlugHead(plug).realm === "gate") {
+        if (getPlugOverride(plug) !== undefined) {
+          throw new RMachineUsageError(ERR_PLUG_ALREADY_MOCKED, "Plug is already mocked.");
+        }
+        setPlugOverride(plug, { locale: localeOverride, transform });
+        // enter() AFTER the double-mock guard so a rejected mock never bumps
+        // the machine's test-mode refcount.
+        return enterAndBuildReset(plug, () => setPlugOverride(plug, undefined));
+      }
+
+      // A — RESOURCE plug: wrap its resolve, which IS invoked during
+      // by-namespace resolution (res-matrix.ts).
       const prevResolve = getPlugResolve(plug);
       if ((prevResolve as any)[plugMockSymbol]) {
         throw new RMachineUsageError(ERR_PLUG_ALREADY_MOCKED, "Plug is already mocked.");
       }
-
-      const overrides = data as Record<string, unknown>;
-
       const resolve: PlugResolve<AnyPlugHead> = async (
         locale: AnyLocale | undefined,
         chain: readonly AnyNamespace[]
       ) => {
-        // A `$.locale` override is applied by re-resolving in the effective
-        // locale: shells (and locale-aware deps) resolve their content BY the
-        // locale threaded into `prevResolve`, so patching `$.locale` on the
-        // result alone would not change resolved content.
-        const ctx = overrides.$ as { locale?: AnyLocale } | undefined;
-        const effLocale = ctx?.locale ?? locale;
-        const plugin = await prevResolve(effLocale, chain);
-        if (!hasOverrides(overrides)) {
-          return plugin;
-        }
-        return (
-          Array.isArray(plugin) ? cloneListPlugin(plugin, overrides) : cloneMapPlugin(plugin as object, overrides)
-        ) as never;
+        const plugin = await prevResolve(localeOverride ?? locale, chain);
+        return transform(plugin) as never;
       };
       (resolve as any)[plugMockSymbol] = true;
-
       setPlugResolve(plug, resolve);
-      // enter() AFTER the double-mock guard + setPlugResolve, so a rejected
-      // mock never bumps the machine's test-mode refcount.
       return enterAndBuildReset(plug, () => setPlugResolve(plug, prevResolve));
     },
     passthrough: () => enterAndBuildReset(plug),

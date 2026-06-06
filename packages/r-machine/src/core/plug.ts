@@ -139,6 +139,23 @@ const plugHeadSymbol = Symbol("plugHead");
 const plugResolveSymbol = Symbol("plugResolve");
 const plugIdSymbol = Symbol("plugId");
 const plugMachineSymbol = Symbol("plugMachine");
+const plugOverrideSymbol = Symbol("plugOverride");
+
+/**
+ * A post-resolution override registered on a CONSUMER plug by `@r-machine/testing`
+ * (`mockPlug`). Unlike resource plugs, a consumer plug's own `resolve` is never
+ * invoked at consume time (deps resolve by namespace via getWire/getGatePlugin),
+ * so its mock takes effect here instead: `locale` is applied BEFORE resolution
+ * (it picks the resolution locale / wire-cache key, handled by the toolset) and
+ * `transform` rewrites the resolved plugin AFTER resolution (applied by core in
+ * getWire/getGatePlugin). Core only invokes `transform` — it carries no testing
+ * logic. Absent in production (testing is never imported), so the read is a
+ * no-op fast path.
+ */
+export interface PlugOverride {
+  readonly locale?: AnyLocale | undefined;
+  readonly transform?: ((plugin: unknown) => unknown) | undefined;
+}
 export interface PlugBody<PH extends AnyPlugHead> {
   readonly [plugHeadSymbol]: PH;
   [plugResolveSymbol]: PlugResolve<PH>;
@@ -153,6 +170,9 @@ export interface PlugBody<PH extends AnyPlugHead> {
   // `createResMatrix` when the connector carries one. Absent on plugs built
   // outside an RMachine (e.g. bare composer unit tests).
   [plugMachineSymbol]?: PlugMachine;
+  // Post-resolution override registered by `mockPlug` on CONSUMER plugs. See
+  // `PlugOverride`. Absent in production; cleared (set to undefined) on reset.
+  [plugOverrideSymbol]?: PlugOverride | undefined;
 }
 
 const defaultPlugResolve: PlugResolve<any> = () => {
@@ -188,6 +208,13 @@ export function setPlugMachine(plug: PlugBody<AnyPlugHead>, machine: PlugMachine
 }
 export function getPlugMachine(plug: PlugBody<AnyPlugHead>): PlugMachine | undefined {
   return plug[plugMachineSymbol];
+}
+
+export function setPlugOverride(plug: PlugBody<AnyPlugHead>, override: PlugOverride | undefined): void {
+  plug[plugOverrideSymbol] = override;
+}
+export function getPlugOverride(plug: PlugBody<AnyPlugHead>): PlugOverride | undefined {
+  return plug[plugOverrideSymbol];
 }
 
 interface MapPlugOutline<RA extends AnyResAtlas> {

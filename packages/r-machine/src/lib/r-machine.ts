@@ -13,6 +13,7 @@
 
 import {
   type AnyNamespaceMap,
+  type AnyPlugHead,
   type AnyResAtlas,
   type AnyResAtlasClass,
   type AnyResEquipment,
@@ -29,9 +30,11 @@ import {
   createShellComposer,
   type ExperimentalFlags,
   type GearPlugKitMap,
+  getPlugOverride,
   type InternalEventBus,
   type NamespaceMap,
   PLUG_MACHINE_ACCESSOR,
+  type PlugBody,
   type PluginCtxAugmenter,
   type PlugMachine,
   type RequestScope,
@@ -196,9 +199,14 @@ export class RMachine<
     nsDeps: NamespaceCollection<RA>,
     locale: L,
     augmentCtx: PluginCtxAugmenter,
-    vertexGearMap?: VertexGearMap | undefined
+    vertexGearMap?: VertexGearMap | undefined,
+    // The consuming Plug, when known. A consumer plug's own resolve is never
+    // invoked at consume time, so `mockPlug` registers its override on the plug;
+    // the wire reads it and applies the (post-resolution) `transform` on every
+    // re-resolution. Undefined in production → zero overhead.
+    plug?: PlugBody<AnyPlugHead>
   ): Wire {
-    return this.wireManager.getWire(kit, nsDeps, locale, augmentCtx, vertexGearMap);
+    return this.wireManager.getWire(kit, nsDeps, locale, augmentCtx, vertexGearMap, plug);
   }
 
   // Single-shot plugin resolve. Unlike `getWire`, this does NOT subscribe
@@ -209,9 +217,14 @@ export class RMachine<
     kit: NamespaceMap<RA>,
     nsDeps: NamespaceCollection<RA>,
     locale: L,
-    augmentCtx: PluginCtxAugmenter
+    augmentCtx: PluginCtxAugmenter,
+    // The consuming Plug, when known — carries a `mockPlug` override whose
+    // (post-resolution) `transform` is applied here. Undefined in production.
+    plug?: PlugBody<AnyPlugHead>
   ): Promise<unknown> {
-    return this.resManager.getPlugin(kit, nsDeps, locale, augmentCtx, [], 0, undefined);
+    const transform = plug !== undefined ? getPlugOverride(plug)?.transform : undefined;
+    const promise = this.resManager.getPlugin(kit, nsDeps, locale, augmentCtx, [], 0, undefined);
+    return transform !== undefined ? promise.then(transform) : promise;
   }
 
   readonly [PLUG_MACHINE_ACCESSOR]: PlugMachine = {

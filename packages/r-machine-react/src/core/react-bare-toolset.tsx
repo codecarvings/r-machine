@@ -38,6 +38,7 @@ import {
   getNamespaceMap,
   getPlugId,
   getPlugOutline,
+  getPlugOverride,
   isOuterGearLayoutType,
   isVertexGearLayoutType,
   PLUG_MACHINE_ACCESSOR,
@@ -282,7 +283,11 @@ export async function createReactBareToolset<
             .map(([k, v]) => `${k}=${v}`)
             .join(",")
         : "";
-      const key = `${locale}|${vgmSig}`;
+      // A consumer-plug mock can pin the resolution locale (mockPlug `$.locale`).
+      // Resolve it before the cache key so the wire entry + getWire resolve in
+      // the chosen locale. Undefined in production → no change.
+      const effLocale = (getPlugOverride(body)?.locale as L | undefined) ?? locale;
+      const key = `${effLocale}|${vgmSig}`;
       // Pick the cache: per-consumer when this consumer owns any uncovered
       // vertex dep (each consumer = its own vertex instance, see [[project-
       // vertex-per-consumer-instance]]); shared otherwise.
@@ -320,7 +325,7 @@ export async function createReactBareToolset<
         // shape so augmentCtx's closure signature stays uniform with prior
         // code; $.setLocale still routes through the latest writeLocale via
         // sharedWriteLocaleRef.
-        const localeHolder = { current: locale };
+        const localeHolder = { current: effLocale };
         const augmentCtx: PluginCtxAugmenter = ($: any) => {
           $.locale = localeHolder.current;
           $.setLocale = async (newLocale: L) => {
@@ -344,7 +349,14 @@ export async function createReactBareToolset<
             }
           };
         };
-        const wire = rMachine.getWire(kit, nsDeps as NamespaceCollection<RA>, locale, augmentCtx, vertexGearMap);
+        const wire = rMachine.getWire(
+          kit,
+          nsDeps as NamespaceCollection<RA>,
+          effLocale,
+          augmentCtx,
+          vertexGearMap,
+          body
+        );
         entry = { wire, localeHolder };
         wireCache.set(key, entry);
       }

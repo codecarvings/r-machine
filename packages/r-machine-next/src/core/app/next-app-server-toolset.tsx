@@ -30,6 +30,7 @@ import {
   getNamespaceList,
   getNamespaceMap,
   getPlugOutline,
+  getPlugOverride,
   PLUG_MACHINE_ACCESSOR,
   type PlugMachineBridge,
   setPlugMachine,
@@ -351,22 +352,25 @@ export async function createNextAppServerToolset<
     setPlugMachine(body, plugMachine);
 
     const resolvePlugin = async (locale: L, resolvedParams?: Record<string, unknown>) => {
+      // A consumer-plug mock can pin the resolution locale (mockPlug `$.locale`).
+      // Undefined in production → no change.
+      const effLocale = (getPlugOverride(body)?.locale as L | undefined) ?? locale;
       const augmentCtx: PluginCtxAugmenter = ($) => {
-        $.locale = locale;
-        $.getPath = impl.createPathComposer(locale);
+        $.locale = effLocale;
+        $.getPath = impl.createPathComposer(effLocale);
         $.setLocale = async (newLocale: L): Promise<void> => {
           const error = validateLocale(newLocale);
           if (error) {
             throw new RMachineUsageError(ERR_UNKNOWN_LOCALE, `Cannot set invalid locale: "${newLocale}".`, error);
           }
-          await impl.writeLocale(locale, newLocale, cookies, headers);
+          await impl.writeLocale(effLocale, newLocale, cookies, headers);
         };
         if (resolvedParams !== undefined) {
           $.params = resolvedParams;
         }
       };
 
-      return await rMachine.getGatePlugin(serverKit, nsDeps as NamespaceCollection<RA>, locale, augmentCtx);
+      return await rMachine.getGatePlugin(serverKit, nsDeps as NamespaceCollection<RA>, effLocale, augmentCtx, body);
     };
 
     const useR = async (firstArg?: unknown): Promise<unknown> => {

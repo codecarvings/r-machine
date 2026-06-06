@@ -1,12 +1,15 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import {
+  type AnyPlugHead,
   BlueprintManager,
   type BusHost,
   createCassetteRecorder,
   createOuterGearComposer,
+  type PlugBody,
   type ResComposerConnector,
   ResLayoutResolver,
   ResManager,
+  setPlugOverride,
   type Wire,
   WireManager,
 } from "r-machine/core";
@@ -299,6 +302,39 @@ describe("Counter — end-to-end via real RMachine + OuterGear stateful + Plug.u
       fireEvent.click(button);
     });
     expect(button.textContent).toBe("count: 2");
+  });
+
+  it("applies a consumer-plug PlugOverride.transform to the resolved plugin in render", async () => {
+    const { fakeMachine } = buildRealEnv();
+    const { ReactRMachine, Plug } = await createReactBareToolset(fakeMachine as never, {} as never);
+    const CounterPlug = (Plug as any)("v/counter");
+
+    // Mimic `mockPlug`'s consumer (gate) branch: register a post-resolution
+    // override on the consumer plug. The real wire (getWire → wireManager) must
+    // read it and rewrite the resolved plugin before the consumer reads it.
+    setPlugOverride(CounterPlug as PlugBody<AnyPlugHead>, {
+      transform: (plugin) => {
+        const arr = plugin as unknown[];
+        return [{ count: 99, inc: () => {} }, arr[arr.length - 1]];
+      },
+    });
+
+    function Counter() {
+      const [counter] = (CounterPlug as any).useR() as [{ count: number }];
+      return <div>count: {counter.count}</div>;
+    }
+
+    await act(async () => {
+      render(
+        <ReactRMachine locale="en">
+          <React.Suspense fallback={<div>loading</div>}>
+            <Counter />
+          </React.Suspense>
+        </ReactRMachine>
+      );
+    });
+
+    expect((await screen.findByText(/count:/)).textContent).toBe("count: 99");
   });
 
   // Regression: setInterval-driven actions (fired outside any React event
