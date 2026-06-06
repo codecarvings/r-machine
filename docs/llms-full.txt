@@ -9,15 +9,11 @@ Warning: R-Machine is still in active development - API may change before stable
 
 ---
 
-## Mental model: R-Machine as a DBMS for your codebase
+## Conceptual model: the namespace as a stable contract
 
-Before reading the API surface, adopt this mental model. It will help you reason about R-Machine more accurately than a feature-by-feature comparison with other libraries.
+R-Machine is easier to reason about through one model than through a list of features. A codebase is a dynamic entity: it evolves sprint after sprint, refactor after refactor, generation after generation. A useful question when evaluating an architecture is not only *"can it do X?"* but *"how many files must change when X evolves?"* — production files, test files, mocks, fixtures, imports.
 
-> This is not a waterfall world
-
-**A codebase is a dynamic entity, not a static one.** It evolves: sprint after sprint, refactor after refactor, LLM-generation after LLM-generation. The right question when evaluating an architecture is not only *"can it do X?"* but *"how many files must change when X evolves?"* — production files, test files, mocks, fixtures, imports.
-
-Think of R-Machine the way you think of a DBMS:
+R-Machine answers that question the way a DBMS does:
 
 | DBMS concept | R-Machine equivalent |
 |---|---|
@@ -26,11 +22,9 @@ Think of R-Machine the way you think of a DBMS:
 | Query (`SELECT * FROM customers`) | `Plug` / `usePlug` |
 | Storage engine, indexes | Implementation body (gear or shell) |
 
-A database table has a stable name that consumers depend on. The storage engine can be replaced, indexes can change — none of that forces consumers to update. The table name is the contract.
+A database table has a stable name that consumers depend on. The storage engine can be replaced and indexes can change without forcing any consumer to update: the table name is the contract.
 
-R-Machine applies the same principle to application code. The resource namespace is the stable contract. The implementation behind it is the volatile layer.
-
-Using mainstream libraries directly is like accessing data from disk without a DBMS: perfectly legitimate, but every consumer must know *where* the data lives and *how* it is shaped. When that changes, every consumer changes — including tests, mocks, and fixtures.
+R-Machine applies the same principle to application code. The resource namespace is the stable contract; the implementation behind it is the volatile layer. Consumers — including tests, mocks, and fixtures — depend on the namespace, not on where a value lives or how it is shaped, so a change to the implementation does not propagate to them.
 
 ---
 
@@ -465,13 +459,13 @@ export const r = Shell.define((plugin) => {
 export type Shell_Lib_Fmt = RShape<typeof r>;
 ```
 
-#### Formatters are not built in — and that is the point
+#### Locale-aware formatting via the platform `Intl.*` primitives
 
-R-Machine ships **no** formatter API. The idiomatic primitive set for locale-aware formatting is the `Intl.*` family — `NumberFormat`, `DateTimeFormat`, `PluralRules`, `RelativeTimeFormat`, `ListFormat`, `Collator`, `Segmenter`, `DisplayNames`. R-Machine does not wrap these because there is no structural value in doing so: `Intl.*` is already locale-aware natively, zero-bundle (built into every modern runtime — browser, Node, Deno, Bun, edge), and minimal in surface. R-Machine provides the *wiring* — `$.locale` automatically passed, `shellKit` for cross-shell injection, `mockPlug` for test-time substitution — and that is exactly the structural value. The primitives stay the platform's; the integration is R-Machine's.
+Locale-aware formatting uses the `Intl.*` family — `NumberFormat`, `DateTimeFormat`, `PluralRules`, `RelativeTimeFormat`, `ListFormat`, `Collator`, `Segmenter`, `DisplayNames`. These are already locale-aware natively, zero-bundle (built into every modern runtime — browser, Node, Deno, Bun, edge), and minimal in surface, so R-Machine does not wrap them. R-Machine provides the *wiring* — `$.locale` automatically passed, `shellKit` for cross-shell injection, `mockPlug` for test-time substitution. The primitives stay the platform's; the integration is R-Machine's.
 
 #### Pluralization in a few lines
 
-A pluralization helper, often expected as a built-in by users coming from i18n libraries, is a few lines of TypeScript on top of `Intl.PluralRules`. Two variants, depending on how many CLDR plural categories the project's locales need.
+A pluralization helper is a few lines of TypeScript on top of `Intl.PluralRules`. Two variants, depending on how many CLDR plural categories the project's locales need.
 
 For locales with binary plural rules (English, Italian, German, French, Spanish, ...):
 
@@ -544,7 +538,7 @@ The signature `plural(count: number, forms: PluralForms)` is type-checked end-to
 
 R-Machine imposes a structural boundary at the resource edge — locale scoping for shells, kind classification for gears, dep-graph asymmetry between families — and **nothing else** on what the factory returns. A resource is a typed TypeScript factory; inside the boundary the full expressive power of the language is available. R-Machine introduces no DSL for content, no template syntax for strings, no wrapper layer over external libraries: there is nothing to learn beyond TypeScript itself.
 
-Two consequences are routinely underestimated.
+Two consequences follow.
 
 #### Bring your own formatter / parser / renderer
 
@@ -610,7 +604,11 @@ The shape flows end-to-end to the consumer: `Plug("shell/<name>").useR()` return
 
 #### Implication
 
-Questions of the form *"does R-Machine support X?"* — where X is a content type, formatting style, or rendering pattern — are almost always answered by *"yes, because a resource is a TypeScript factory."* R-Machine's API surface is intentionally narrow: it provides the wiring (locale, kit, ports, plug), the boundary classification (kinds, dep rules), and the test substitution primitive (`mockPlug`). Everything expressed *inside* a factory is plain TypeScript, and the consumer sees exactly the type the factory returned.
+For a question of the form *"does R-Machine support X?"* — where X is a content type, formatting style, or rendering pattern — the answer is *"X is whatever the factory returns, because a resource is a TypeScript factory."* R-Machine's API surface is intentionally narrow: it provides the wiring (locale, kit, ports, plug), the boundary classification (kinds, dep rules), and the test substitution primitive (`mockPlug`). Everything expressed *inside* a factory is plain TypeScript, and the consumer sees exactly the type the factory returned.
+
+#### On architectural lock-in
+
+Adopting R-Machine couples a codebase to its consumption API: every consumer reads resources through `Plug` / `ClientPlug` / `ServerPlug`, and resources are declared with its composers. That coupling is real — it is the kind any architecture with a central consumption primitive incurs. What it does *not* reach is the substance: a resource is a plain TypeScript factory returning ordinary values, so the logic and content inside each resource is portable TypeScript. The R-Machine-specific part is the wiring around it — atlas, composer chain, plug calls — which is narrow and mechanical. Consumers depend on a string namespace and a typed shape, both framework-agnostic concepts; migrating would rewrite the wiring, not the business logic.
 
 ---
 
@@ -1172,7 +1170,7 @@ State reads performed inside an `_.action(...)` reducer body (e.g. `$.state.item
 
 #### React Compiler
 
-**Recommendation: do not enable React Compiler for R-Machine code.** The reactivity above is already automatic and read-driven (fine-grained re-render gating) and the expensive memoization lives in the gear layer (`_.cell`, relays) — independent of, and invisible to, the compiler. On a well-architected R-Machine app (thin consumers, logic in gears) the compiler adds little, and the coexistence support below adds per-re-render wrapping overhead. There is no upside to turning it on for the R-Machine parts of your app.
+**React Compiler is not needed for R-Machine code.** The reactivity above is already automatic and read-driven (fine-grained re-render gating) and the expensive memoization lives in the gear layer (`_.cell`, relays) — independent of, and invisible to, the compiler. On a well-architected R-Machine app (thin consumers, logic in gears) the compiler adds little for the R-Machine parts, and the coexistence support below adds per-re-render wrapping overhead.
 
 **Coexistence support (opt-in).** If you must run a mixed codebase with the compiler enabled globally, set `reactCompiler: "on"` on the strategy config (React standard strategy and all Next App strategies). The flag defaults to `"off"`.
 
@@ -1324,7 +1322,7 @@ Every option is optional unless marked **required**; omitting one uses the liste
 | `localeKey` | `string` | `"locale"` | Name of the locale route segment / the `[locale]` folder, and the key under which it appears in `$.params` (§10.5). Change it only if your `[…]` folder is named differently. |
 | `autoLocaleBinding` | `"on" \| "off"` | `"off"` | When `"on"`, any server plug resolves the locale automatically from a request header, so you call `useR()` with no args (no `useR(params)`, no `bindLocale`) — at the cost of dynamic rendering. Requires the proxy (§11.7). See the note below. |
 | `basePath` | `string` | `""` | Prefix prepended to every composed URL; set it to match your Next.js `basePath`. |
-| `reactCompiler` | `"on" \| "off"` | `"off"` | Opt into coexistence with React Compiler in Client Components — see §10.4 ("React Compiler"). **Discouraged**: R-Machine reactivity is already read-driven, so the compiler adds little while this adds per-re-render wrapping overhead. Leave `"off"` unless the compiler is enabled globally in a mixed codebase. |
+| `reactCompiler` | `"on" \| "off"` | `"off"` | Opt into coexistence with React Compiler in Client Components — see §10.4 ("React Compiler"). Not needed for R-Machine code: reactivity is already read-driven, so the compiler adds little while this adds per-re-render wrapping overhead. Leave `"off"` unless the compiler is enabled globally in a mixed codebase. |
 
 **`NextAppPathStrategy`** (locale in the URL path) adds:
 
@@ -1356,7 +1354,7 @@ Every option is optional unless marked **required**; omitting one uses the liste
 | `kit` | `{ name: namespace }` | `{}` | Consumer kit (§11.4) — single map, one runtime. |
 | `localeDetector` | `() => Locale \| Promise<Locale>` | none | Picks the initial locale (e.g. `() => rMachine.localeHelper.matchLocales(navigator.languages)`). Falls back to `defaultLocale`. |
 | `localeStore` | `{ get(): Locale \| undefined; set(l: Locale): void }` (sync or async) | none | Reads the persisted locale on boot and persists it on change; `set` is what `$.setLocale` invokes (§11.5). |
-| `reactCompiler` | `"on" \| "off"` | `"off"` | Opt into coexistence with React Compiler — see §10.4 ("React Compiler"). **Discouraged**: R-Machine reactivity is already read-driven, so the compiler adds little while this adds per-re-render wrapping overhead. Leave `"off"` unless the compiler is enabled globally in a mixed codebase. |
+| `reactCompiler` | `"on" \| "off"` | `"off"` | Opt into coexistence with React Compiler — see §10.4 ("React Compiler"). Not needed for R-Machine code: reactivity is already read-driven, so the compiler adds little while this adds per-re-render wrapping overhead. Leave `"off"` unless the compiler is enabled globally in a mixed codebase. |
 
 Constraints (Next.js):
 - `implicitDefaultLocale` requires `cookie` enabled and the proxy (§11.7).
@@ -1905,7 +1903,7 @@ When using this mode, do **not** create `proxy.ts`.
 
 ### 11.8. `createNextDevImport` (Next.js only)
 
-Helper for `setup.ts` that returns a development-mode module loader backed by [`jiti`](https://github.com/unjs/jiti), with `fsCache: false` and `moduleCache: false` so that file edits on resource modules (gears, shells) propagate to subsequent SSR renders **without restarting the dev server**. In production, returns `null` and the consumer falls through to a native dynamic `import(...)`.
+Helper for `setup.ts` that returns a development-mode module loader backed by [`jiti`](https://github.com/unjs/jiti), so that edits on resource modules (gears, shells) propagate to subsequent SSR renders **without restarting the dev server**. In production it returns `null` and the consumer falls through to a native dynamic `import(...)`.
 
 ```ts
 import { createNextDevImport } from "@r-machine/next/dev";
@@ -1918,11 +1916,7 @@ const rMachine = RMachine.create({
   ResourceAtlas,
   locales: ["en", "it"],
   defaultLocale: "en",
-  // `/* @vite-ignore */` is needed when running `verifyResourceAtlas` under
-  // vitest: it silences `vite-plugin-dynamic-import-vars`'s warning on the
-  // production fallback branch (which is never taken during verification —
-  // `devImport` is non-null). Webpack/Turbopack ignore the comment.
-  load: (path) => (devImport ? devImport(`./${path}`) : import(/* @vite-ignore */ `./${path}`)),
+  load: (path) => (devImport ? devImport(`./${path}`) : import(`./${path}`)),
 });
 ```
 
@@ -1932,25 +1926,17 @@ const rMachine = RMachine.create({
 createNextDevImport(importMetaUrl: string): Promise<((path: string) => Promise<unknown>) | null>;
 ```
 
-Activation gates — returns `null` (no jiti) unless **all** hold:
-- `NODE_ENV !== "production"`
-- running on the server (no `window`)
-- not the Edge runtime
-- `jiti` is installed in the consumer's project
+Activation gates — returns `null` (no jiti) unless **all** hold: `NODE_ENV !== "production"`, running on the server (no `window`), not the Edge runtime, and `jiti` installed in the consumer's project.
 
-**Why HMR matters here.** Next/Turbopack reload their own module cache on file change, but R-Machine's blueprint cache still wraps the prior factory closure — so an edit to `shell/product/en.tsx` keeps rendering the stale output across SSR requests until the dev server restarts. Routing the loader through jiti bypasses both caches; the next request re-reads and re-transpiles the file from disk.
+**Why it matters.** Next/Turbopack reload their own module cache on file change, but R-Machine's blueprint cache still wraps the prior factory closure — so an edit keeps rendering stale output across SSR requests until the dev server restarts. Routing the loader through jiti bypasses both caches; the next request re-reads the file from disk. The same path is what makes [`verifyResourceAtlas`](#146-verifyresourceatlas) work for Next setups under vitest.
 
-**Dual purpose: enables `verifyResourceAtlas` in jsdom envs.** The same jiti path is what makes [`verifyResourceAtlas`](#146-verifyresourceatlas) work for Next setups under vitest. The verifier sets a process-global flag (`Symbol.for("@r-machine:force-dev-loader")`) and `createNextDevImport` honors it — jiti activates even when the test environment is jsdom (`typeof window !== "undefined"`). Without this, the production loader's `import(\`./${path}\`)` would not resolve under Vite (different bundler dialect), and the verification would fail spuriously.
-
-**jiti as an opt-in dev dep.** `jiti` is declared as an *optional peer dependency* of `@r-machine/next` — install only if you want HMR on resource modules and/or `verifyResourceAtlas` support in Next projects:
+**jiti as an opt-in dev dep.** `jiti` is declared as an *optional peer dependency* of `@r-machine/next` — install it only if you want HMR on resource modules and/or `verifyResourceAtlas` support in Next projects:
 
 ```bash
 pnpm add -D jiti
 ```
 
 When jiti is missing, `createNextDevImport` returns `null`, the production import path is used, and a one-shot console warning is emitted on the first call. `verifyResourceAtlas` additionally appends a `dev-loader-not-active` issue to its report so the install-jiti hint is surfaced at test time.
-
-**Process-wide cache.** The result is cached per `importMetaUrl` on `process` (Turbopack isolates bundle contexts with separate `globalThis` instances, so a `globalThis`-keyed cache would deduplicate only within one context). The verification flag bypasses this cache so the gate is re-evaluated under the override.
 
 ### 11.9. SSR hydration of `OuterGear` state (Next.js)
 
@@ -2243,16 +2229,13 @@ Each `VerifyIssue` is plain JSON-serializable data. Common kinds:
 
 Shell-keyed issues additionally carry `locale` and `isCanonical: boolean` (true when the failing locale is `defaultLocale` — distinguishes a structural break from a translation gap). All key-bound issues carry a `sourceLocation: { file, line, column }` pointing to where the key is declared in `resource-atlas.ts` — clickable from most editors and CI log viewers.
 
-**Mechanics:**
+**Mechanics.** A static phase uses the TS Compiler API to walk the import graph from `setupFile`, locate the `ResourceAtlas` class, and extract its atlas keys and their declaration positions. A runtime phase then dynamic-imports `setupFile`, reads the named strategy export, and verifies each key by invoking the production `load`, dispatched by layout kind:
 
-1. **Static phase** — TS Compiler API walks the import graph from `setupFile`, finds the `ResourceAtlas` class, extracts its `shape` properties (the atlas keys + their declaration positions).
-2. **Runtime phase** — dynamic-imports `setupFile`, reads the named strategy export, reaches the underlying `RMachineConfig` via an internal `CONFIG_ACCESSOR` symbol (mirroring `BUS_ACCESSOR`).
-3. **Verification phase** — iterates the extracted keys, dispatched by layout kind:
-   - `shell` → one `load` invocation per locale (full matrix)
-   - `shell(mono)` → single `load` invocation against `defaultLocale`
-   - `gear:*` → single `load` invocation with `locale: undefined`
+- `shell` → one `load` invocation per locale (full matrix)
+- `shell(mono)` → single `load` invocation against `defaultLocale`
+- `gear:*` → single `load` invocation with `locale: undefined`
 
-The same `validateResModule` used in production checks the return shape, so any malformed module is caught with the same diagnostic the resolver would produce at runtime.
+The same return-shape check used in production runs here, so any malformed module is caught with the same diagnostic the resolver would produce at runtime.
 
 **Test-as-CI-gate pattern (recommended):**
 
@@ -2318,16 +2301,13 @@ Generic TypeScript errors still occur for non-architectural mistakes (malformed 
 
 R-Machine carries an internal **event bus** that emits fine-grained diagnostic events as it resolves resources, runs reactive updates, and tears down. It is a **tracing / observability** surface — meant for debugging and tests, not a typed public API for application logic. Event names and payloads are not part of the semver-stable surface and may change.
 
-The bus is **lazy and zero-cost**: until something subscribes, no bus is allocated and every internal emit site short-circuits. Unsubscribed (the production default), it adds no measurable overhead — there is nothing to disable.
+The bus is **lazy and zero-cost**: until something subscribes, no bus is allocated and every internal emit site short-circuits. Unsubscribed (the production default), it adds no measurable overhead.
 
-Events fall into four categories (each event carries a `type` string plus a small payload):
+Events carry a `type` string plus a small payload and fall into four families: `blueprint:*` (resolution and blueprint caching), `res:*` (factory build, slot commit, disposal), `wire:*` (consumer wiring and reactive notification), and `relay:*`. Three payloads are referenced elsewhere in this document:
 
-- `blueprint:*` — resource resolution and blueprint caching (`resolveStart`, `moduleLoaded`, `resolved`, `cacheHit`, `resolveError`, `circularDepDetected`, …).
-- `res:*` — factory build, slot commit, and disposal (`factoryInvoked`, `built`, `slotDisposed`, `resolveStale`, …). `res:resolveError` additionally carries `chain` — the resolution path to the failing namespace (the same attribution exposed via `getResolveContext`, §10.6).
-- `wire:*` — consumer wiring and reactive notification (`created`, `markedDirty`, `subscribed`, `unsubscribed`, …).
-- `relay:*` — the two relay diagnostics referenced in §6.3 / §6.5:
-  - `relay:onChangeError` — `{ relayName: string; error: unknown }`
-  - `relay:loopDetected` — `{ relayName: string; runCount: number }`
+- `res:resolveError` — carries `chain`, the resolution path to the failing namespace (the same attribution exposed via `getResolveContext`, §10.6).
+- `relay:onChangeError` — `{ relayName: string; error: unknown }` (§6.3).
+- `relay:loopDetected` — `{ relayName: string; runCount: number }` (§6.5).
 
 **`enableRMachineDevMode(target)`** (from `r-machine`) — subscribes a `console.log` handler that traces every event. `target` is the `rMachine` instance (or any strategy built from it; both expose the bus). Returns an unsubscribe function. Use it in development only:
 
@@ -2459,7 +2439,6 @@ export const r = localized("shell/<name>", { /* keys */ });
 TS generics scale **sub-linearly**: going 10→500 resources (a 50× increase)
 grows type instantiations only ~5.6× (123k→686k), and per-resource cost
 *drops* (12.3k→1.4k inst/resource).
-R-Machine is safe to recommend on large projects.
 
 These numbers are **reproducible by anyone**: clone the R-Machine monorepo and
 run the `bench:types` script declared in the root `package.json`
@@ -2475,6 +2454,6 @@ https://github.com/codecarvings/r-machine/blob/RM-alpha-12/benchmarks/type-scale
 
 ---
 
-rev 2026-06-03.013
-Copyright (c) 2026 Sergio Turolla - All Rights Reserved.
+rev 2026-06-06.014
+Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com
