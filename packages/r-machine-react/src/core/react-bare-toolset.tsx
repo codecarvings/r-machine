@@ -42,6 +42,7 @@ import {
   isVertexGearLayoutType,
   PLUG_MACHINE_ACCESSOR,
   type PlugMachineBridge,
+  setPlugMachine,
 } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
@@ -178,6 +179,10 @@ export async function createReactBareToolset<
     };
 
     const body = createPlug(head as unknown as AnyPlugHead);
+    // Stamp the owning RMachine onto the consumer plug so test helpers can reach
+    // it from the plug alone (e.g. `mockPlug(componentPlug)` entering test mode),
+    // mirroring `createResMatrix` for resource plugs (res-matrix.ts).
+    setPlugMachine(body, plugMachine);
 
     // Pre-compute the subset of top-level deps that resolve to a vertex
     // layout (`gear:outer(vertex)`). Used below to decide whether a

@@ -32,6 +32,7 @@ import {
   getPlugOutline,
   PLUG_MACHINE_ACCESSOR,
   type PlugMachineBridge,
+  setPlugMachine,
 } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
@@ -344,6 +345,10 @@ export async function createNextAppServerToolset<
     };
 
     const body = createPlug(head as unknown as AnyPlugHead);
+    // Stamp the owning RMachine onto the consumer plug so test helpers can reach
+    // it from the plug alone (e.g. `mockPlug(componentPlug)` entering test mode),
+    // mirroring `createResMatrix` for resource plugs (res-matrix.ts).
+    setPlugMachine(body, plugMachine);
 
     const resolvePlugin = async (locale: L, resolvedParams?: Record<string, unknown>) => {
       const augmentCtx: PluginCtxAugmenter = ($) => {

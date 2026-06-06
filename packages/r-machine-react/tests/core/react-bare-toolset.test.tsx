@@ -1,5 +1,5 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
-import { PLUG_MACHINE_ACCESSOR } from "r-machine/core";
+import { getPlugMachine, PLUG_MACHINE_ACCESSOR } from "r-machine/core";
 import { RMachineError } from "r-machine/errors";
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -185,6 +185,33 @@ describe("createReactBareToolset › $.locale", () => {
         expect(screen.getByTestId("locale").textContent).toBe("en");
       } finally {
         mock[PLUG_MACHINE_ACCESSOR].testMode.exit();
+      }
+    });
+
+    // Regression: a consumer plug must carry the owning RMachine back-reference
+    // so `mockPlug(componentPlug)` can reach test mode FROM THE PLUG ALONE. Before
+    // the fix, `setPlugMachine` ran only for resource plugs (res-matrix.ts), so
+    // `getPlugMachine(consumerPlug)` was undefined, `mockPlug`'s `.enter()` was a
+    // silent no-op, and the provider-less render still threw.
+    it("stamps the owning RMachine on the consumer plug, so test mode is reachable from the plug (mockPlug path)", async () => {
+      const { mock, toolset: toolsetP } = make();
+      const toolset = await toolsetP;
+      const plug = (toolset.Plug as AnyPlug)();
+      // The back-reference IS the machine the toolset's render guard reads.
+      const machine = getPlugMachine(plug as never);
+      expect(machine).toBe(mock[PLUG_MACHINE_ACCESSOR]);
+
+      // Drive test mode the way `mockPlug` does — through the plug, not the mock.
+      machine?.testMode.enter();
+      try {
+        function Orphan() {
+          const { $ } = (plug as { useR: () => { $: { locale: string } } }).useR();
+          return <span data-testid="locale">{$.locale}</span>;
+        }
+        render(<Orphan />); // no <ReactRMachine> — relaxed because the plug reached test mode
+        expect(screen.getByTestId("locale").textContent).toBe("en");
+      } finally {
+        machine?.testMode.exit();
       }
     });
 
