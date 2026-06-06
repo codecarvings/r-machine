@@ -1,6 +1,6 @@
 {
   "private": true,
-  "description": "Monorepo for R-Machine — a typed resource layer for TypeScript applications with first-class i18n support",
+  "description": "Monorepo for R-Machine — typed resource layer with structural uniformity under change for TypeScript.",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "type": "module",
   "homepage": "https://rmachine.dev",
@@ -9,7 +9,7 @@
     "url": "git+https://github.com/codecarvings/r-machine.git"
   },
   "bugs": "https://github.com/codecarvings/r-machine/issues",
-  "packageManager": "pnpm@11.3.0",
+  "packageManager": "pnpm@11.5.2",
   "scripts": {
     "check": "biome check --write .",
     "check:dry": "biome check .",
@@ -100,7 +100,7 @@
     }
   ],
   "devDependencies": {
-    "@biomejs/biome": "2.4.15",
+    "@biomejs/biome": "2.4.16",
     "@changesets/cli": "^2.31.0",
     "@playwright/test": "^1.60.0",
     "@r-machine/next": "workspace:*",
@@ -108,24 +108,24 @@
     "@size-limit/esbuild-why": "^12.1.0",
     "@size-limit/preset-small-lib": "^12.1.0",
     "@testing-library/react": "^16.3.2",
-    "@types/node": "^24.12.4",
-    "@types/react": "^19.2.15",
+    "@types/node": "^24.13.1",
+    "@types/react": "^19.2.17",
     "@types/semver": "^7.7.1",
-    "@vitest/coverage-v8": "^4.1.7",
-    "@vitest/ui": "^4.1.7",
+    "@vitest/coverage-v8": "^4.1.8",
+    "@vitest/ui": "^4.1.8",
     "husky": "9.1.7",
     "jsdom": "^29.1.1",
-    "lint-staged": "^17.0.5",
-    "next": "^16.2.6",
+    "lint-staged": "^17.0.7",
+    "next": "^16.2.7",
     "prettier": "^3.8.3",
     "r-machine": "workspace:*",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "semver": "^7.8.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "semver": "^7.8.2",
     "size-limit": "^12.1.0",
-    "tsx": "^4.22.3",
+    "tsx": "^4.22.4",
     "typescript": "~6.0.3",
-    "vitest": "^4.1.7",
+    "vitest": "^4.1.8",
     "zshy": "0.7.2"
   }
 }

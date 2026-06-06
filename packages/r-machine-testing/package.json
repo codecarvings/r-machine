@@ -1,7 +1,7 @@
 {
   "name": "@r-machine/testing",
   "version": "1.0.0-alpha.11",
-  "description": "Testing utilities for R-Machine — one type-checked substitution primitive across gears, shells, and vertex-scoped state.",
+  "description": "Testing utilities for R-Machine — typed resource layer with structural uniformity under change for Typescript.",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -12,6 +12,7 @@
   },
   "bugs": "https://github.com/codecarvings/r-machine/issues",
   "keywords": [
+    "rmachine",
     "typescript",
     "type-safe",
     "typesafe",

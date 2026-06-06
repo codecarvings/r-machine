@@ -12,6 +12,7 @@
   },
   "bugs": "https://github.com/codecarvings/r-machine/issues",
   "keywords": [
+    "rmachine",
     "r-machine",
     "cli",
     "typescript",
@@ -57,7 +58,7 @@
     "dev": "tsx --conditions @r-machine/source src/bin.ts"
   },
   "dependencies": {
-    "@clack/prompts": "^1.4.0",
+    "@clack/prompts": "^1.5.1",
     "citty": "^0.2.2",
     "picocolors": "^1.1.1"
   }
