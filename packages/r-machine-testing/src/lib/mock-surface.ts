@@ -19,10 +19,11 @@ import type {
   Getter,
   HandleMap,
   RelayBrand,
+  RuntimeAction,
 } from "r-machine/core";
 
 type MockSurfaceItem<I> =
-  I extends Getter<infer V> ? V : I extends Action<infer F> ? F : I extends RelayBrand ? never : I;
+  I extends Getter<infer V> ? V : I extends Action<infer F> ? RuntimeAction<F> : I extends RelayBrand ? never : I;
 
 type MockSurface<RD extends AnyResDomain> = {
   [K in keyof RD as K extends `$${string}` | symbol ? never : K]?: MockSurfaceItem<RD[K]>;

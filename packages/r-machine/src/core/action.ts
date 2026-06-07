@@ -20,6 +20,7 @@ export interface ActionBrand {
   readonly [actionBrand]: true;
 }
 export type Action<F extends (...args: any[]) => any> = F & ActionBrand;
+export type RuntimeAction<F extends (...args: any[]) => any> = (...args: Parameters<F>) => void;
 
 export type AnyAction = Action<(...args: any[]) => any>;
 

@@ -24,8 +24,8 @@ describe("Surface<R, N, LET> — member projection", () => {
     expectTypeOf<S["count"]>().toEqualTypeOf<number>();
   });
 
-  it("preserves Action<F> as F", () => {
-    expectTypeOf<S["add"]>().toEqualTypeOf<(n: number) => { x: number }>();
+  it("projects Action<F> to a void-returning function with F's parameters", () => {
+    expectTypeOf<S["add"]>().toEqualTypeOf<(n: number) => void>();
   });
 
   it("collapses non-$ Relay members to never", () => {

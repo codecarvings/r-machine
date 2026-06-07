@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-export type { Action } from "./action.js";
+export type { Action, RuntimeAction } from "./action.js";
 export { type BaseGearComposer, createBaseGearComposer } from "./base-gear-composer.js";
 export type { BaseGearNamespaceList } from "./base-gear-plug.js";
 export { BlueprintManager } from "./blueprint-manager.js";
