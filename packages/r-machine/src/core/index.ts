@@ -47,6 +47,7 @@ export {
   type ExtractCtx,
   type ExtractKit,
   type ExtractResAtlas,
+  type ExtractState,
   getPlugHead,
   getPlugId,
   getPlugMachine,
