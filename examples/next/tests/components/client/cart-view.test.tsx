@@ -50,7 +50,6 @@ describe("CartView (component, en)", () => {
         },
         removeItem(productId: string) {
           lines = lines.filter((l) => l.productId !== productId);
-          return { lines };
         },
       },
     });

@@ -96,6 +96,12 @@ export type ExtractPlugin<T extends AnyPlugHead | PlugBody<AnyPlugHead>> =
       : T extends AnyListPlugHead
         ? ListPlugin<T[typeof resAtlas], T["deps"], T[typeof ctx]>
         : never;
+export type ExtractState<T extends AnyPlugHead | PlugBody<AnyPlugHead>> =
+  T extends PlugBody<infer PH extends AnyPlugHead>
+    ? ExtractState<PH>
+    : T extends { readonly defaultState: infer S }
+      ? S
+      : never;
 
 export type PlugResolve<PH extends AnyPlugHead> = (
   locale: AnyLocale | undefined,

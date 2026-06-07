@@ -13,7 +13,7 @@
 
 import type { DeepPartial } from "./deep-partial.js";
 import { setMemberName } from "./member-name.js";
-import type { AnyState } from "./outer-gear.js";
+import type { AnyState } from "./state.js";
 
 const actionBrand: unique symbol = Symbol("action");
 export interface ActionBrand {

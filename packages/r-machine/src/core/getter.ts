@@ -12,7 +12,7 @@
  */
 
 import { setMemberName } from "./member-name.js";
-import type { AnyState } from "./outer-gear.js";
+import type { AnyState } from "./state.js";
 
 const getterBrand: unique symbol = Symbol("getter");
 export interface GetterBrand {

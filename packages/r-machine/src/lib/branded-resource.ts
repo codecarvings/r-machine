@@ -11,9 +11,11 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResOrigin, ResMatrix } from "#r-machine/core";
+import type { AnyResOrigin, ResMatrix, RState } from "#r-machine/core";
+import type { ExtractState } from "../core/plug.js";
 
-type ExtractResource<RO extends AnyResOrigin> = RO extends ResMatrix<infer R, any> ? R : RO;
+type ExtractResource<RO extends AnyResOrigin> =
+  RO extends ResMatrix<infer R, infer PB> ? R & RState<ExtractState<PB>> : RO;
 
 declare const r: unique symbol;
 interface R {

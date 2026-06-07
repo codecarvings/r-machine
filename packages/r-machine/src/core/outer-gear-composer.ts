@@ -26,7 +26,7 @@ import {
   type StatelessGetterComposer,
 } from "./getter.js";
 import { promoteMemberNames } from "./member-name.js";
-import type { AnyOuterGear, AnyState, RejectAsyncValueProps } from "./outer-gear.js";
+import type { AnyOuterGear, RejectAsyncValueProps } from "./outer-gear.js";
 import {
   createStatefulOuterGearListPlugHead,
   createStatefulOuterGearMapPlugHead,
@@ -60,6 +60,7 @@ import type { HandleMap, ValidatedDepMapType } from "./res-map.js";
 import type { GearMatrixMeta, NoExcess, ResMatrix } from "./res-matrix.js";
 import { createResMatrix } from "./res-matrix.js";
 import type { AnyResPlug } from "./res-plug.js";
+import type { AnyState } from "./state.js";
 
 // T is the actual return type, instantiated at each call site. Threaded as a
 // regular parameter (with default `R` for runtime/storage use) so an

@@ -36,7 +36,8 @@ function shallowEqual(a: unknown, b: unknown): boolean {
 
   for (const key of aKeys) {
     if (
-      !Object.hasOwn(b, key) ||
+      // biome-ignore lint/suspicious/noPrototypeBuiltins: `.call` form is intentional — avoids `Object.hasOwn` (ES2022) so the source-condition lib floor stays at ES2015.
+      !Object.prototype.hasOwnProperty.call(b, key) ||
       !Object.is((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
     ) {
       return false;

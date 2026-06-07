@@ -23,12 +23,12 @@ import {
   type GearPlugKitMap,
 } from "./gear-plug.js";
 import type { GetterCellComposer, GetterComposer, StatelessGetterComposer } from "./getter.js";
-import type { AnyState } from "./outer-gear.js";
 import type { ListPlugin, MapPlugin, PlugBody } from "./plug.js";
 import type { RelayComposer } from "./relay.js";
 import type { AnyResAtlas } from "./res-atlas.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
+import type { AnyState } from "./state.js";
 
 export type OuterGearPlugDepMap<RA extends AnyResAtlas> = HandleMap<RA, "valid@gear:outer">;
 export type OuterGearPlugDepList<RA extends AnyResAtlas> = HandleList<RA, "valid@gear:outer">;

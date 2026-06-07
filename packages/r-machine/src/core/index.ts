@@ -135,6 +135,7 @@ export {
 } from "./scope.js";
 export { createShellComposer, type ShellComposer } from "./shell-composer.js";
 export type { ShellPlugKitMap } from "./shell-plug.js";
+export type { RState, StatefulOuterStateMap } from "./state.js";
 export type { AnyClientGearSurface, AnySurface, Surface } from "./surface.js";
 export { TestMode } from "./test-mode.js";
 export {
