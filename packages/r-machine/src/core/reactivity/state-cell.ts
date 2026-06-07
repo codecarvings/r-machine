@@ -11,6 +11,8 @@
  * contact: licensing@codecarvings.com
  */
 
+import { deepFreeze } from "../deep-freeze.js";
+import { isDevEnv } from "../dev-env.js";
 import type { CassetteRecorder, ReadableCell } from "./cassette-recorder.js";
 
 export interface StateCell<S> extends ReadableCell {
@@ -19,8 +21,16 @@ export interface StateCell<S> extends ReadableCell {
   publish(next: S): void;
 }
 
+// Dev-only: deep-freeze every value that becomes the cell's `current`, so a
+// consumer that mutates read state in place (`state.x = 1`) — instead of going
+// through an action — fails loudly with a TypeError rather than silently not
+// re-rendering. Resolved once; in production this is `false` and the
+// `deepFreeze` calls are dead-code-eliminated by bundlers.
+const FREEZE_STATE = isDevEnv();
+const guard = <S>(value: S): S => (FREEZE_STATE ? deepFreeze(value) : value);
+
 export function createStateCell<S>(initial: S, recorder: CassetteRecorder): StateCell<S> {
-  let current = initial;
+  let current = guard(initial);
   // Two tiers: internal subscribers (memo invalidate, relay markDirty)
   // always fire inline; external subscribers (Wire, consumer code)
   // are deferred via the recorder's dirty-cell queue when a transaction
@@ -48,7 +58,7 @@ export function createStateCell<S>(initial: S, recorder: CassetteRecorder): Stat
       if (Object.is(next, current)) {
         return;
       }
-      current = next;
+      current = guard(next);
       for (const cb of [...internalSubs]) {
         cb();
       }

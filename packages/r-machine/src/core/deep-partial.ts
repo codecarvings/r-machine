@@ -35,7 +35,7 @@ export type DeepPartial<T> =
         ? { [K in keyof T]?: DeepPartial<T[K]> }
         : T;
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
+export function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (value === null || typeof value !== "object") {
     return false;
   }
