@@ -61,6 +61,7 @@ import type { GearMatrixMeta, NoExcess, ResMatrix } from "./res-matrix.js";
 import { createResMatrix } from "./res-matrix.js";
 import type { AnyResPlug } from "./res-plug.js";
 import type { AnyState } from "./state.js";
+import { setStateAccess, tryGetStateAccess } from "./state.js";
 
 // T is the actual return type, instantiated at each call site. Threaded as a
 // regular parameter (with default `R` for runtime/storage use) so an
@@ -808,19 +809,35 @@ function buildStatefulOuterGearMapMatrix<
     connector,
     meta,
     head,
-    cursor: (plugin: unknown, selfNs?: AnyNamespace) =>
-      buildStatefulOuterGearCursor<S>((plugin as { $: PluginWithStateCell<S> }).$[stateCellSlot], recorder, selfNs),
+    cursor: (plugin: unknown, selfNs?: AnyNamespace) => {
+      const cell = (plugin as { $: PluginWithStateCell<S> }).$[stateCellSlot];
+      const cursor = buildStatefulOuterGearCursor<S>(cell, recorder, selfNs);
+      // Stash the live state cell on the cursor so `postProcess` can stamp it
+      // onto `res` (the testing layer reaches it via the surface). See state.ts.
+      setStateAccess(cursor, cell);
+      return cursor;
+    },
     userFactory: effectiveFactory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
     augmentCtx: ($) => {
       const cell = createStateCell(defaultState, recorder);
       ($ as unknown as { [stateCellSlot]: StateCell<S> })[stateCellSlot] = cell;
+      // Also expose the cell on `$` so the resource's own resolve output
+      // (`{ ...deps, $ }`) carries it — the `mockPlug` controller's own-state.
+      setStateAccess($, cell);
       Object.defineProperty($, "state", {
         get: () => cell.read(),
         enumerable: true,
       });
       $.defaultState = defaultState;
     },
-    postProcess: (raw, c) => statefulPostProcessAfterConversion(raw, c as StatefulOuterGearCursor<S>),
+    postProcess: (raw, c) => {
+      const res = statefulPostProcessAfterConversion(raw, c as StatefulOuterGearCursor<S>);
+      const cell = tryGetStateAccess(c as object);
+      if (cell !== undefined) {
+        setStateAccess(res, cell);
+      }
+      return res;
+    },
   });
 
   const clone = (fn?: StatefulCloneFn<AnyRes, ThisPlug, S>) =>
@@ -984,19 +1001,30 @@ function buildStatefulOuterGearListMatrix<
     cursor: (plugin: unknown, selfNs?: AnyNamespace) => {
       const arr = plugin as ReadonlyArray<unknown>;
       const ctx = arr[arr.length - 1] as PluginWithStateCell<S>;
-      return buildStatefulOuterGearCursor<S>(ctx[stateCellSlot], recorder, selfNs);
+      const cell = ctx[stateCellSlot];
+      const cursor = buildStatefulOuterGearCursor<S>(cell, recorder, selfNs);
+      setStateAccess(cursor, cell);
+      return cursor;
     },
     userFactory: effectiveFactory as (plugin: unknown, cursor: never) => unknown | Promise<unknown>,
     augmentCtx: ($) => {
       const cell = createStateCell(defaultState, recorder);
       ($ as unknown as { [stateCellSlot]: StateCell<S> })[stateCellSlot] = cell;
+      setStateAccess($, cell);
       Object.defineProperty($, "state", {
         get: () => cell.read(),
         enumerable: true,
       });
       $.defaultState = defaultState;
     },
-    postProcess: (raw, c) => statefulPostProcessAfterConversion(raw, c as unknown as StatefulOuterGearCursor<S>),
+    postProcess: (raw, c) => {
+      const res = statefulPostProcessAfterConversion(raw, c as unknown as StatefulOuterGearCursor<S>);
+      const cell = tryGetStateAccess(c as object);
+      if (cell !== undefined) {
+        setStateAccess(res, cell);
+      }
+      return res;
+    },
   });
 
   const clone = (fn?: StatefulCloneFn<AnyRes, ThisPlug, S>) =>

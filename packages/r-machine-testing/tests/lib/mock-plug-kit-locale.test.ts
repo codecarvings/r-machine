@@ -3,16 +3,16 @@ import { mockPlug } from "../../src/lib/mock-plug.js";
 import { r as kitConsumer } from "../fixtures/mock-plug/kit-consumer.js";
 import { r as greet } from "../fixtures/mock-plug/shell-greet.js";
 
-const resets: Array<() => void> = [];
+const controllers: Array<{ reset: () => void }> = [];
 afterEach(() => {
-  for (const reset of resets.splice(0)) {
-    reset();
+  for (const ctrl of controllers.splice(0)) {
+    ctrl.reset();
   }
 });
 
 describe("mockPlug — kit override (map hoist mirror)", () => {
   it("overrides a kit entry and mirrors it onto the hoisted top-level", async () => {
-    resets.push(
+    controllers.push(
       mockPlug(kitConsumer.plug).with({
         $: { kit: { helper: { greet: () => "MOCKED" } } },
       })
@@ -26,7 +26,7 @@ describe("mockPlug — kit override (map hoist mirror)", () => {
   });
 
   it("restores the production kit after reset", async () => {
-    const reset = mockPlug(kitConsumer.plug).with({
+    const { reset } = mockPlug(kitConsumer.plug).with({
       $: { kit: { helper: { greet: () => "MOCKED" } } },
     });
     await kitConsumer.create();
@@ -43,7 +43,7 @@ describe("mockPlug — locale override (§14.3/14.4)", () => {
     const def = await greet.create();
     expect(def.greeting).toBe("Hello"); // default (no locale) → fallback branch
 
-    resets.push(mockPlug(greet.plug).with({ $: { locale: "it" } }));
+    controllers.push(mockPlug(greet.plug).with({ $: { locale: "it" } }));
     const localized = await greet.create();
     expect(localized.greeting).toBe("Ciao");
   });

@@ -11,7 +11,7 @@ const FIXTURES: Product[] = [
 describe("Inner_Catalog", () => {
   it("resolves products through the async port and looks them up", async () => {
     // Mock only the async port; the real `base/store-config` dep resolves.
-    const reset = mockPlug(r.plug).with({
+    const { reset } = mockPlug(r.plug).with({
       $: { ports: { fetchProducts: async () => FIXTURES } },
     });
 

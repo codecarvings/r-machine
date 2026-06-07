@@ -38,7 +38,7 @@ const CATALOG: Product[] = [
 // the locale from the route params and `validateServerOnlyUsage` is relaxed.
 describe("ProductPage (server page, en)", () => {
   it("resolves via useR(params) and renders the seeded product, price formatted server-side", async () => {
-    const reset = mockPlug(catalogR.plug).with({
+    const { reset } = mockPlug(catalogR.plug).with({
       $: { ports: { fetchProducts: async () => CATALOG } },
     });
 

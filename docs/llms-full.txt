@@ -1928,7 +1928,7 @@ createNextDevImport(importMetaUrl: string): Promise<((path: string) => Promise<u
 
 Activation gates — returns `null` (no jiti) unless **all** hold: `NODE_ENV !== "production"`, running on the server (no `window`), not the Edge runtime, and `jiti` installed in the consumer's project.
 
-**Why it matters.** Next/Turbopack reload their own module cache on file change, but R-Machine's blueprint cache still wraps the prior factory closure — so an edit keeps rendering stale output across SSR requests until the dev server restarts. Routing the loader through jiti bypasses both caches; the next request re-reads the file from disk. The same path is what makes [`verifyResourceAtlas`](#146-verifyresourceatlas) work for Next setups under vitest.
+**Why it matters.** Next/Turbopack reload their own module cache on file change, but R-Machine's blueprint cache still wraps the prior factory closure — so an edit keeps rendering stale output across SSR requests until the dev server restarts. Routing the loader through jiti bypasses both caches; the next request re-reads the file from disk. The same path is what makes [`verifyResourceAtlas`](#149-verifyresourceatlas) work for Next setups under vitest.
 
 **jiti as an opt-in dev dep.** `jiti` is declared as an *optional peer dependency* of `@r-machine/next` — install it only if you want HMR on resource modules and/or `verifyResourceAtlas` support in Next projects:
 
@@ -2078,15 +2078,28 @@ The exported `plug` is the test-time mock target.
 
 ## 14. Testing: `mockPlug`
 
-Single primitive, uniform across families.
+Single primitive, uniform across families: gears, shells, the consumer plug exported by a component, even a vertex. You always mock **the plug of the thing under test** — when you test a component you mock *its own* plug, not the plug of one of its dependencies.
 
 ```ts
-mockPlug(plug).with({ /* override */ });
+const ctrl = mockPlug(plug).with({ /* resolution overrides */ });
 ```
 
-The override object is structurally type-checked against the plug's resolved shape: misnamed deps, wrong shapes, missing required fields all caught at compile time.
+`mockPlug(plug)` returns `{ with, default }`. Both `with(...)` and `default()` enter the plug's machine into **test mode** (relaxing the provider/locale guards so a consumer renders without a `<…RMachine>` provider) and return a **controller** — the handle you use to reset the mock and to drive live state.
 
-### 14.1. What can be overridden
+### 14.1. Two channels — the mental model
+
+`mockPlug` exposes two distinct ways to influence what the plug produces. Keeping them separate is the key to the whole API:
+
+| Channel | How | What it touches | Nature |
+| --- | --- | --- | --- |
+| **`.with({ … })`** | argument object, checked against the plug's resolved shape | **resolution inputs**: `$.locale`, `$.ports`, `$.kit`, dep-surface members | **static** — substituted once, when the plug resolves |
+| **the controller** | `ctrl.state`, `ctrl.deps.X.state`, `ctrl.kit.X.state` | the **live state** of stateful outer/vertex gears | **reactive** — drives the *real* shared cell; real getters and real actions stay coherent and re-render |
+
+State is deliberately **not** a `.with(...)` override. It is not a static value pasted on top of the result — it is a live cell. So it lives on the returned controller, where reads and writes go through the real reactive cell (§14.3). `.with(...)` covers only the inputs consumed *during* resolution.
+
+The `.with(...)` object is structurally type-checked against the plug's resolved shape: misnamed deps, wrong shapes, missing required fields all caught at compile time.
+
+### 14.2. Channel A — resolution overrides (`.with`)
 
 **Always available:**
 - Direct dependencies declared by the plug — by name (map form) or position (list form).
@@ -2094,12 +2107,11 @@ The override object is structurally type-checked against the plug's resolved sha
 
 **Conditional on the resource:**
 - `$.locale` — for shells, and for plugs of components that consume shells. Gears do not have a locale.
-- `$.state` — only for outer gears declared with `withState(...)`.
 - `$.ports` — only for resources declared with `withPorts({...})` (any composer).
 
-Anything not overridden runs through the production factory. Override is applied as a deep partial on top of the resulting Surface. Production code paths not substituted are still exercised, including any `[Symbol.dispose]` teardown.
+Anything not overridden runs through the production factory. Each override is applied as a deep partial on top of the resulting Surface. Production code paths not substituted are still exercised, including any `[Symbol.dispose]` teardown. `mockPlug` also reaches `$`-prefixed members (relays, internal actions).
 
-### 14.2. Resource-level test
+Resource-level test — override a port, drive the rest of the real factory:
 
 ```ts
 import { mockPlug } from "@r-machine/testing";
@@ -2107,9 +2119,8 @@ import { r } from "./outer/post-form";
 
 const calls: Array<[string, string]> = [];
 
-mockPlug(r.plug).with({
+const ctrl = mockPlug(r.plug).with({
   $: {
-    state: { pending: true },
     ports: {
       createPost: async (title, body) => { calls.push([title, body]); },
     },
@@ -2119,9 +2130,73 @@ mockPlug(r.plug).with({
 const instance = await r.create();
 await instance.submit("hello", "world");
 expect(calls).toEqual([["hello", "world"]]);
+
+ctrl.reset();
 ```
 
-### 14.3. Client Component test
+### 14.3. Channel B — the state controller (live, reactive)
+
+The controller carries a `state` handle for every stateful gear in reach, typed from the atlas:
+
+- `ctrl.state` — the mocked plug's **own** state, present only when the plug is itself a stateful outer gear (declared with `withState(...)`).
+- `ctrl.deps.<key>.state` — a **dependency's** state. `<key>` is the dep name (map form) or numeric index (list form), e.g. `ctrl.deps[0].state`.
+- `ctrl.kit.<key>.state` — a **kit entry's** state (client kits may hold stateful outer gears).
+
+Only stateful outer/vertex gears appear; everything else is absent from the type, so an out-of-band access is invisible in autocomplete.
+
+**Writing is a deep-partial merge** — the same shape an action reducer returns. `ctrl.state = { count: 10 }` merges over the current state (other keys survive; arrays are replaced wholesale). It does **not** replace the whole state object.
+
+**Reading returns the full current state.** Because a write is a partial patch, the complete value only exists once the plug has resolved (its default merged with any patches). Therefore **reading `.state` before the plug resolves throws** `ERR_STATE_NOT_RESOLVED` — a loud "render (or `create`) the plug first" rather than a misleading partial.
+
+**Seed before, drive after.** A write *before* resolution is queued and applied (once) when the gear's cell comes to life; writes *after* resolution publish straight to the live cell. So the order in a test is: seed → render/`create` → drive and read.
+
+```ts
+const ctrl = mockPlug(counter.plug).default();
+
+ctrl.state = { count: 10, label: "x" }; // seed: queued until resolve
+
+const inst = await counter.create();    // cell comes to life; seed applied
+expect(inst.count()).toBe(10);          // the REAL getter reads the seeded cell
+expect(ctrl.state).toEqual({ count: 10, label: "x" });
+
+ctrl.state = { count: 20 };             // live deep-partial merge — `label` survives
+expect(inst.count()).toBe(20);
+
+inst.bump(5);                           // a REAL action publishes to the same cell
+expect(ctrl.state).toEqual({ count: 25, label: "x" }); // the controller observes it
+```
+
+Driving a **dependency's** state is identical, through `ctrl.deps`:
+
+```ts
+const ctrl = mockPlug(sharedConsumer.plug).default();
+ctrl.deps[0].state = { n: 5 };          // seed the dependency's cell
+const inst = await sharedConsumer.create();
+expect(inst.sharedValue()).toBe(5);     // the consumer's real getter reads it
+```
+
+Because the cell is the **real, shared** one, the dependency's real getters, real actions, and the consumer's reactivity all stay coherent — there is no fake surface to keep in sync. For a vertex gear the cell is the per-consumer instance the consumer received, so the controller binds to exactly that instance.
+
+> In React, a write that should re-render (`ctrl.state = …`, or a real action) must run inside `act(...)`, the standard RTL requirement. The binding assumes the dependency resolves once and its cell stays stable for the test; a re-mount or a second `r.create()` creates a new cell and the handle tracks the most recent one.
+
+### 14.4. `.default()` and the lifecycle
+
+`.default()` is exactly `.with({})`: resolve against the real defaults — no resolution override — while still returning the controller. Use it when you want real production output (a server component at its default locale, a client component without a provider) and only need to seed/observe state, or when you need nothing but test mode:
+
+```ts
+const { reset } = mockPlug(plug).default(); // just enter test mode
+```
+
+Every `mockPlug` call bumps the machine's test-mode refcount; the controller's **`reset()`** undoes that one mock (removes its override, clears its state binding) and, on the last exit for that machine, wipes the resolved resource state so the next test starts clean. Call `reset()` at the end of a test, or install the global safety net once:
+
+```ts
+import { resetMockPlugs } from "@r-machine/testing";
+afterEach(resetMockPlugs); // drains any mock a test forgot to reset
+```
+
+With `afterEach(resetMockPlugs)` in place, the render-style examples below can omit a manual `reset()`.
+
+### 14.5. Client Component test
 
 ```tsx
 import { render, screen } from "@testing-library/react";
@@ -2134,7 +2209,7 @@ render(<Greeting />);
 expect(screen.getByText("Ciao")).toBeInTheDocument();
 ```
 
-### 14.4. Server Component test (non-page)
+### 14.6. Server Component test (non-page)
 
 ```tsx
 import { render, screen } from "@testing-library/react";
@@ -2147,7 +2222,7 @@ render(await LocalizedHeader());
 expect(screen.getByText("Ciao")).toBeInTheDocument();
 ```
 
-### 14.5. Server Page test
+### 14.7. Server Page test
 
 For Server Pages (route handlers in `app/.../page.tsx`), locale is bound from URL `params` via `plug.useR(params)`. Overriding `$.locale` via `mockPlug` is a no-op — the page's own `plug.useR(params)` call wins.
 
@@ -2175,9 +2250,57 @@ Override-key convention mirrors the dep declaration form:
 - list-form `ServerPlug("inner/visit-counter")` → key `0`
 - map-form `ServerPlug({ counter: "inner/visit-counter" })` → key `counter`
 
-`mockPlug` also reaches `$`-prefixed members (relays, internal actions).
+### 14.8. End-to-end: a component test driven by real state
 
-### 14.6. `verifyResourceAtlas`
+The payoff of the two channels together. We test `CartView` by mocking **its own** plug — not the cart gear's. `.with` sets the locale; the controller seeds the `outer/cart` dependency's real state. No fake surface: the real getters (`lines`/`itemCount`/`subtotal`) compute, the real `removeItem` action publishes, and a click re-renders through the real reactivity — no manual `rerender`.
+
+```tsx
+// @vitest-environment jsdom
+import { mockPlug } from "@r-machine/testing";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
+import { CartView, plug } from "@/components/client/CartView";
+
+// The Next client toolset reads next/navigation hooks during render; stub them.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn(), prefetch: vi.fn() }),
+  usePathname: () => "/cart",
+}));
+afterEach(cleanup);
+
+it("drives the cart dependency's real state and reacts to the real removeItem", async () => {
+  const ctrl = mockPlug(plug).with({ $: { locale: "it" } });
+
+  // Seed the dependency's state BEFORE render → applied when the cart resolves.
+  ctrl.deps[0].state = {
+    lines: [
+      { productId: "kbd-01", name: "Mechanical Keyboard", unitPrice: 129.99, qty: 1 },
+      { productId: "mon-01", name: "4K Monitor", unitPrice: 1299, qty: 2 },
+    ],
+  };
+
+  await act(async () => { render(<CartView />); });
+
+  // Real getters read the seeded cell; money is EUR-formatted, count pluralized (it).
+  expect(screen.getByText("2.727,99 €")).toBeInTheDocument(); // 129.99 + 1299*2
+  expect(screen.getByText("3 articoli")).toBeInTheDocument(); // 1 + 2
+
+  // Click "Rimuovi" on the 4K Monitor → the REAL removeItem action publishes to
+  // the shared cell → the wire re-renders. No manual rerender.
+  const removeButtons = screen.getAllByRole("button", { name: "Rimuovi" });
+  await act(async () => { fireEvent.click(removeButtons[1]); });
+
+  expect(screen.queryByText("4K Monitor")).not.toBeInTheDocument();
+  expect(screen.getByText("1 articolo")).toBeInTheDocument(); // count updated (singular)
+
+  // Observe the dependency's state through the controller after the action.
+  expect((ctrl.deps[0].state as { lines: unknown[] }).lines).toHaveLength(1);
+
+  ctrl.reset();
+});
+```
+
+### 14.9. `verifyResourceAtlas`
 
 End-to-end completeness check for a project's resource atlas. Catches the one class of bug the type system cannot see: a key declared in `ResourceAtlas` whose resource cannot be resolved at runtime — typically a missing locale variant (`shell/landing/en.tsx` exists, `it.tsx` is missing) or a misconfigured loader.
 
@@ -2454,6 +2577,6 @@ https://github.com/codecarvings/r-machine/blob/RM-alpha-12/benchmarks/type-scale
 
 ---
 
-rev 2026-06-06.014
+rev 2026-06-07.015
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com

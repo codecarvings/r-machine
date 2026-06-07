@@ -32,6 +32,7 @@ import {
 import { RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import { ERR_PLUG_ALREADY_MOCKED } from "#r-machine/testing/errors";
+import { createStateBinding, type MockListController, type MockMapController } from "./mock-controller.js";
 import { cloneListPlugin, cloneMapPlugin, hasOverrides } from "./mock-merge.js";
 import type { MockSurfaceMap } from "./mock-surface.js";
 
@@ -47,7 +48,7 @@ const activeResets = new Set<ResetPlug>();
 // Enter the plug's owning machine into test mode and return an idempotent reset
 // that, on the LAST exit for that machine (refcount→0), wipes its resolved
 // resource state for isolation. `restore` undoes a plug-resolve override (used
-// by `.with(...)`); omitted by `.passthrough()` which seeds nothing.
+// by `.with(...)`); omitted by `.default()` which seeds nothing.
 function enterAndBuildReset(plug: PlugBody<AnyPlugHead>, restore?: () => void): ResetPlug {
   const machine = getPlugMachine(plug);
   machine?.testMode.enter();
@@ -80,17 +81,20 @@ export function resetMockPlugs(): void {
 }
 
 interface MapMockPlug<PH extends AnyMapPlugHead> {
-  readonly with: (data: MockPlugMapData<PH>) => ResetPlug;
-  // Enter test mode for this plug's machine WITHOUT seeding it — the escape
-  // hatch for tests that render against real defaults (a server component using
-  // its default locale, a client component without a provider). The resolve
-  // passes through to production unchanged.
-  readonly passthrough: () => ResetPlug;
+  // Resolve WITH overrides (locale / ports / kit / dep-surface members) + the
+  // controller to drive state.
+  readonly with: (data: MockPlugMapData<PH>) => MockMapController<PH>;
+  // Resolve against the real DEFAULTS (no override) + the controller. Exactly
+  // `with({})`: the escape hatch for tests that render real production output (a
+  // server component at its default locale, a client component without a
+  // provider) while still seeding/observing state through the controller — or,
+  // when only test mode is needed, `const { reset } = mockPlug(p).default()`.
+  readonly default: () => MockMapController<PH>;
 }
 
 interface ListMockPlug<PH extends AnyListPlugHead> {
-  readonly with: (data: MockPlugListData<PH>) => ResetPlug;
-  readonly passthrough: () => ResetPlug;
+  readonly with: (data: MockPlugListData<PH>) => MockListController<PH>;
+  readonly default: () => MockListController<PH>;
 }
 
 interface MockPlug {
@@ -99,53 +103,65 @@ interface MockPlug {
 }
 
 export const mockPlug: MockPlug = (plug: PlugBody<AnyPlugHead>) => {
-  return {
-    with: (data: MockPlugMapData<AnyMapPlugHead> | MockPlugListData<AnyListPlugHead>) => {
-      const overrides = data as Record<string, unknown>;
-      // A `$.locale` override re-resolves in the effective locale: shells (and
-      // locale-aware deps) resolve their content BY locale, so patching
-      // `$.locale` on the result alone would not change resolved content.
-      const localeOverride = (overrides.$ as { locale?: AnyLocale } | undefined)?.locale;
-      // Shared post-resolution rewrite, reused by both plug kinds. A
-      // `$.locale`-only override is a no-op here (already applied by locale).
-      const transform = (plugin: unknown): unknown =>
-        hasOverrides(overrides)
-          ? Array.isArray(plugin)
-            ? cloneListPlugin(plugin, overrides)
-            : cloneMapPlugin(plugin as object, overrides)
-          : plugin;
-
-      // B — CONSUMER plug (`realm: "gate"`): its own resolve is never invoked
-      // at consume time (deps resolve by namespace via getWire/getGatePlugin),
-      // so register a post-resolution override that core applies there.
-      if (getPlugHead(plug).realm === "gate") {
-        if (getPlugOverride(plug) !== undefined) {
-          throw new RMachineUsageError(ERR_PLUG_ALREADY_MOCKED, "Plug is already mocked.");
-        }
-        setPlugOverride(plug, { locale: localeOverride, transform });
-        // enter() AFTER the double-mock guard so a rejected mock never bumps
-        // the machine's test-mode refcount.
-        return enterAndBuildReset(plug, () => setPlugOverride(plug, undefined));
+  const withData = (data: MockPlugMapData<AnyMapPlugHead> | MockPlugListData<AnyListPlugHead>) => {
+    const overrides = data as Record<string, unknown>;
+    // A `$.locale` override re-resolves in the effective locale: shells (and
+    // locale-aware deps) resolve their content BY locale, so patching
+    // `$.locale` on the result alone would not change resolved content.
+    const localeOverride = (overrides.$ as { locale?: AnyLocale } | undefined)?.locale;
+    // Per-call state binding: the transform binds the controller's cells from
+    // each resolved plugin; the controller's handles read/write through it.
+    const binding = createStateBinding(plug);
+    // Shared post-resolution rewrite, reused by both plug kinds: ALWAYS bind the
+    // controller cells; clone only when there is a surface/ctx override (so
+    // `default()` = `with({})` is a pure bind that returns the plugin unchanged).
+    const transform = (plugin: unknown): unknown => {
+      binding.bind(plugin);
+      if (!hasOverrides(overrides)) {
+        return plugin;
       }
+      return Array.isArray(plugin) ? cloneListPlugin(plugin, overrides) : cloneMapPlugin(plugin as object, overrides);
+    };
 
-      // A — RESOURCE plug: wrap its resolve, which IS invoked during
-      // by-namespace resolution (res-matrix.ts).
-      const prevResolve = getPlugResolve(plug);
-      if ((prevResolve as any)[plugMockSymbol]) {
+    // B — CONSUMER plug (`realm: "gate"`): its own resolve is never invoked
+    // at consume time (deps resolve by namespace via getWire/getGatePlugin),
+    // so register a post-resolution override that core applies there.
+    if (getPlugHead(plug).realm === "gate") {
+      if (getPlugOverride(plug) !== undefined) {
         throw new RMachineUsageError(ERR_PLUG_ALREADY_MOCKED, "Plug is already mocked.");
       }
-      const resolve: PlugResolve<AnyPlugHead> = async (
-        locale: AnyLocale | undefined,
-        chain: readonly AnyNamespace[]
-      ) => {
-        const plugin = await prevResolve(localeOverride ?? locale, chain);
-        return transform(plugin) as never;
-      };
-      (resolve as any)[plugMockSymbol] = true;
-      setPlugResolve(plug, resolve);
-      return enterAndBuildReset(plug, () => setPlugResolve(plug, prevResolve));
-    },
-    passthrough: () => enterAndBuildReset(plug),
+      setPlugOverride(plug, { locale: localeOverride, transform });
+      // enter() AFTER the double-mock guard so a rejected mock never bumps
+      // the machine's test-mode refcount.
+      const reset = enterAndBuildReset(plug, () => {
+        setPlugOverride(plug, undefined);
+        binding.clear();
+      });
+      return binding.makeController(reset) as never;
+    }
+
+    // A — RESOURCE plug: wrap its resolve, which IS invoked during
+    // by-namespace resolution (res-matrix.ts).
+    const prevResolve = getPlugResolve(plug);
+    if ((prevResolve as any)[plugMockSymbol]) {
+      throw new RMachineUsageError(ERR_PLUG_ALREADY_MOCKED, "Plug is already mocked.");
+    }
+    const resolve: PlugResolve<AnyPlugHead> = async (locale: AnyLocale | undefined, chain: readonly AnyNamespace[]) => {
+      const plugin = await prevResolve(localeOverride ?? locale, chain);
+      return transform(plugin) as never;
+    };
+    (resolve as any)[plugMockSymbol] = true;
+    setPlugResolve(plug, resolve);
+    const reset = enterAndBuildReset(plug, () => {
+      setPlugResolve(plug, prevResolve);
+      binding.clear();
+    });
+    return binding.makeController(reset) as never;
+  };
+
+  return {
+    with: withData,
+    default: () => withData({} as never),
   };
 };
 
@@ -160,14 +176,17 @@ type MockPlugListDeps<PH extends AnyListPlugHead> = MockSurfaceMap<
   Omit<TupleToObject<PH["deps"] extends readonly unknown[] ? PH["deps"] : never>, "$">
 >;
 
+// `$.state` and `$.defaultState` are intentionally NOT overridable here: live
+// state is driven by the returned controller (`ctrl.state` / `ctrl.deps.X.state`),
+// the single, typed, reactive way to set it. `.with(...)` covers RESOLUTION
+// inputs only (`$.locale`, `$.ports`, `$.kit`). (`$.defaultState` was already a
+// runtime no-op.)
 type MockCtxContent<PH extends AnyPlugHead, C> = {
-  [K in keyof C]?: K extends "kit"
+  [K in keyof C as K extends "state" | "defaultState" ? never : K]?: K extends "kit"
     ? MockSurfaceMap<ExtractResAtlas<PH>, ExtractKit<PH>>
     : K extends "ports"
       ? Partial<C[K]>
-      : // `$.state` is applied as a deep-partial over the current state at
-        // runtime (untouched keys survive); the type mirrors that. For `$.locale`
-        // (a string) DeepPartial is the identity.
+      : // e.g. `$.locale` (a string) — DeepPartial is the identity.
         DeepPartial<C[K]>;
 };
 

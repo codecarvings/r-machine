@@ -7,7 +7,7 @@ const seedEmpty = () => mockPlug(r.plug).with({ $: { ports: { loadCartSnapshot: 
 
 describe("Outer_Cart", () => {
   it("adds distinct items and computes itemCount + subtotal", async () => {
-    const reset = seedEmpty();
+    const { reset } = seedEmpty();
     const cart = await r.create();
 
     cart.addItem({ productId: "a", name: "Alpha", unitPrice: 10 });
@@ -21,7 +21,7 @@ describe("Outer_Cart", () => {
   });
 
   it("merges quantity when the same product is added twice", async () => {
-    const reset = seedEmpty();
+    const { reset } = seedEmpty();
     const cart = await r.create();
 
     cart.addItem({ productId: "a", name: "Alpha", unitPrice: 10 });
@@ -35,7 +35,7 @@ describe("Outer_Cart", () => {
   });
 
   it("setQty(0) and removeItem shrink the array (proves array replacement, not element-merge)", async () => {
-    const reset = seedEmpty();
+    const { reset } = seedEmpty();
     const cart = await r.create();
 
     cart.addItem({ productId: "a", name: "Alpha", unitPrice: 10 });
@@ -54,7 +54,7 @@ describe("Outer_Cart", () => {
   });
 
   it("setQty updates an existing line quantity", async () => {
-    const reset = seedEmpty();
+    const { reset } = seedEmpty();
     const cart = await r.create();
 
     cart.addItem({ productId: "a", name: "Alpha", unitPrice: 10 });
@@ -67,7 +67,7 @@ describe("Outer_Cart", () => {
   });
 
   it("seeds initial state from the loadCartSnapshot port", async () => {
-    const reset = mockPlug(r.plug).with({
+    const { reset } = mockPlug(r.plug).with({
       $: {
         ports: {
           loadCartSnapshot: async () => ({ lines: [{ productId: "x", name: "X", unitPrice: 7, qty: 3 }] }),
@@ -84,7 +84,7 @@ describe("Outer_Cart", () => {
   });
 
   it("fires the relay onChange when lines change", async () => {
-    const reset = seedEmpty();
+    const { reset } = seedEmpty();
     const logSpy = vitest.spyOn(console, "log").mockImplementation(() => {});
     const cart = await r.create();
 

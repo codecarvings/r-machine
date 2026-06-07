@@ -18,6 +18,10 @@ export default mergeConfig(
     resolve: {
       conditions: ["@r-machine/source"],
       alias: [
+        // `@r-machine/source` condition is unreliable in vitest (see below), so
+        // pin this package's own `#r-machine/testing/*` subpaths to source too —
+        // else a newly-added error code resolves to the STALE built `errors/`.
+        { find: /^#r-machine\/testing\/errors$/, replacement: path.resolve(__dirname, "./src/errors/index.ts") },
         { find: /^#r-machine\/testing$/, replacement: path.resolve(__dirname, "./src/lib/index.ts") },
 
         // Force `r-machine`'s OWN internal subpath imports (`#r-machine/*`) to

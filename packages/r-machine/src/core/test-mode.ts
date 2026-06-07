@@ -14,7 +14,7 @@
 /**
  * Per-RMachine "test mode" controller.
  *
- * Test mode is entered by `@r-machine/testing`'s `mockPlug` (`.with`/`.passthrough`)
+ * Test mode is entered by `@r-machine/testing`'s `mockPlug` (`.with`/`.default`)
  * (reaching the owning machine via the Plug's `getPlugMachine` back-reference)
  * and read by the adapter guards (`@r-machine/next`, `@r-machine/react`) off the
  * `rMachine` they close over. While enabled it lets those guards relax

@@ -27,12 +27,12 @@ function treeText(node: ReactNode): string {
 }
 
 // A server COMPONENT test for a component with its OWN plug, resolved via
-// `useR()` with NO params. `.passthrough()` enters test mode without seeding any
+// `useR()` with NO params. `.default()` enters test mode without seeding any
 // resource, so `Header` resolves `shell/common` at the machine's DEFAULT locale
 // instead of throwing ERR_LOCALE_UNDETERMINED. The real (en) nav labels render.
 describe("Header (server component, default locale)", () => {
   it("renders against the default locale under test mode (useR() with no params)", async () => {
-    const reset = mockPlug(catalogR.plug).passthrough();
+    const { reset } = mockPlug(catalogR.plug).default();
 
     const el = await Header();
     const text = treeText(el as ReactNode);

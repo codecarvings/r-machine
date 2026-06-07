@@ -70,6 +70,7 @@ export {
 } from "./plug.js";
 export type { Cassette, CassetteRecorder, ReadableCell } from "./reactivity/cassette-recorder.js";
 export { createCassetteRecorder } from "./reactivity/cassette-recorder.js";
+export type { StateCell } from "./reactivity/state-cell.js";
 export type { RelayBrand } from "./relay.js";
 export type { AnyRes, AnyResOrigin } from "./res.js";
 export type {
@@ -136,7 +137,7 @@ export {
 } from "./scope.js";
 export { createShellComposer, type ShellComposer } from "./shell-composer.js";
 export type { ShellPlugKitMap } from "./shell-plug.js";
-export type { RState, StatefulOuterStateMap } from "./state.js";
+export { type RState, type StatefulOuterStateMap, setStateAccess, tryGetStateAccess } from "./state.js";
 export type { AnyClientGearSurface, AnySurface, Surface } from "./surface.js";
 export { TestMode } from "./test-mode.js";
 export {

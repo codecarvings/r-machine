@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { StateCell } from "./reactivity/state-cell.js";
 import type { AnyResAtlas, ResAtlas } from "./res-atlas.js";
 
 export type AnyState = unknown; // Record<PropertyKey, unknown> & object;
@@ -43,3 +44,23 @@ export type StatefulOuterStateMap<RA extends AnyResAtlas> =
           : never]: ExtractRState<RD[K]>;
       }
     : never;
+
+// Internal back-reference from a stateful OuterGear's `res` (and the surface
+// built from it) to its live `StateCell`. Stamped during composing and copied
+// onto the surface by `buildSurface` (res-pod.ts) — exactly like the vertex
+// gear tag. The testing layer (`mockPlug` controller) reads it to drive/read a
+// resource's state reactively; production code never reads it, so it stays an
+// invisible internal detail. A vertex gear carries its per-instance cell here,
+// so a consumer's controller binds to the specific instance it received.
+const stateAccessSymbol = Symbol("stateAccess");
+interface StateAccess {
+  readonly [stateAccessSymbol]: StateCell<unknown>;
+}
+
+export function tryGetStateAccess(target: object): StateCell<unknown> | undefined {
+  return (target as Partial<StateAccess>)[stateAccessSymbol];
+}
+
+export function setStateAccess(target: object, cell: StateCell<unknown>): void {
+  (target as { [stateAccessSymbol]: StateCell<unknown> })[stateAccessSymbol] = cell;
+}

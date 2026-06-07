@@ -15,6 +15,7 @@ import { isGetter } from "./getter.js";
 import { isRelay } from "./relay.js";
 import type { AnyRes } from "./res.js";
 import type { AnyResolvedNamespaceMap } from "./res-map.js";
+import { setStateAccess, tryGetStateAccess } from "./state.js";
 import type { AnySurface } from "./surface.js";
 import { setVertexGearTag, type VertexGearTagData } from "./vertex-gear.js";
 
@@ -51,6 +52,14 @@ function buildSurface(res: AnyRes, vertexTag: VertexGearTagData | undefined): An
   }
   if (vertexTag !== undefined) {
     setVertexGearTag(surface as AnyRes, vertexTag);
+  }
+  // Carry the stateful OuterGear's live cell from `res` onto the surface (the
+  // surface strips `$`, where the cell otherwise lives) so the `mockPlug`
+  // controller can reach a dependency's state. For a vertex gear this is the
+  // per-instance cell, so a consumer binds to the exact instance it received.
+  const stateCell = tryGetStateAccess(res);
+  if (stateCell !== undefined) {
+    setStateAccess(surface, stateCell);
   }
   return surface;
 }

@@ -35,12 +35,6 @@ import { deepPartialMerge } from "r-machine/core";
 
 type AnyRecord = Record<string, unknown>;
 
-interface StateCellLike {
-  read(): unknown;
-  peek(): unknown;
-  publish(next: unknown): void;
-}
-
 function hasOwn(obj: object, key: PropertyKey): boolean {
   return Object.hasOwn(obj, key);
 }
@@ -49,6 +43,7 @@ function hasOwn(obj: object, key: PropertyKey): boolean {
  * True when `data` carries an override that requires post-processing the
  * resolved plugin. A `$.locale`-only override is a no-op here: it is already
  * applied by re-resolving the plug in the effective locale (see mock-plug.ts).
+ * State is NOT a resolution override — it is driven by the mockPlug controller.
  */
 export function hasOverrides(data: AnyRecord): boolean {
   for (const key of Object.keys(data)) {
@@ -60,29 +55,7 @@ export function hasOverrides(data: AnyRecord): boolean {
   if (ctx === undefined) {
     return false;
   }
-  return ctx.ports !== undefined || ctx.state !== undefined || ctx.kit !== undefined;
-}
-
-/**
- * Locate the OuterGear state cell hanging off `$` under its private slot
- * symbol. The slot symbol is internal to the core composer and not part of the
- * public `r-machine/core` surface, so we detect the cell structurally instead
- * of importing the symbol. `$` carries at most one StateCell-shaped symbol.
- */
-function findStateCell($: object): StateCellLike | undefined {
-  for (const sym of Object.getOwnPropertySymbols($)) {
-    const value = ($ as Record<symbol, unknown>)[sym];
-    if (
-      value !== null &&
-      typeof value === "object" &&
-      typeof (value as Partial<StateCellLike>).publish === "function" &&
-      typeof (value as Partial<StateCellLike>).peek === "function" &&
-      typeof (value as Partial<StateCellLike>).read === "function"
-    ) {
-      return value as StateCellLike;
-    }
-  }
-  return undefined;
+  return ctx.ports !== undefined || ctx.kit !== undefined;
 }
 
 /**
@@ -155,21 +128,17 @@ export function cloneKit(kit: object, kitOverride: AnyRecord): object {
 
 /**
  * Clone the `$` context applying ctx-level overrides. `$.ports` is deep-merged
- * onto a fresh ports object (never mutating the shared `head.ports`). `$.state`
- * seeds the resource's state cell, which keeps every state reader consistent —
- * the `$.state` accessor, cursor identity getters (`cell.read()`) and action
- * reducers all observe the same seeded value. The cell is freshly created on
- * each resolve of the resource under test, so seeding it is local and safe.
- * `$.kit` is cloned with per-entry overrides (see `cloneKit`).
+ * onto a fresh ports object (never mutating the shared `head.ports`); `$.kit` is
+ * cloned with per-entry overrides (see `cloneKit`). State is NOT handled here —
+ * live state is driven by the mockPlug controller (`ctrl.state` / `ctrl.deps`).
  */
 export function cloneCtx($: object, ctxOverride: AnyRecord | undefined): object {
   if (ctxOverride === undefined) {
     return $;
   }
   const overridePorts = ctxOverride.ports !== undefined;
-  const overrideState = ctxOverride.state !== undefined;
   const overrideKit = ctxOverride.kit !== undefined;
-  if (!overridePorts && !overrideState && !overrideKit) {
+  if (!overridePorts && !overrideKit) {
     return $;
   }
 
@@ -194,23 +163,6 @@ export function cloneCtx($: object, ctxOverride: AnyRecord | undefined): object 
       writable: true,
       value: cloneKit(($ as AnyRecord).kit as object, ctxOverride.kit as AnyRecord),
     });
-  }
-
-  if (overrideState) {
-    const cell = findStateCell($);
-    if (cell !== undefined) {
-      // Seed the (fresh, own) cell; `$.state`, identity getters and actions
-      // all read through it and stay consistent.
-      cell.publish(deepPartialMerge(cell.peek(), ctxOverride.state));
-    } else {
-      // No state cell (resource declared no state): best-effort static value.
-      Object.defineProperty(out, "state", {
-        enumerable: true,
-        configurable: true,
-        writable: false,
-        value: ctxOverride.state,
-      });
-    }
   }
 
   return out;
