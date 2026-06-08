@@ -32,7 +32,7 @@ function treeText(node: ReactNode): string {
 // instead of throwing ERR_LOCALE_UNDETERMINED. The real (en) nav labels render.
 describe("Header (server component, default locale)", () => {
   it("renders against the default locale under test mode (useR() with no params)", async () => {
-    const { reset } = mockPlug(catalogR.plug).default();
+    using _ctrl = mockPlug(catalogR.plug).default();
 
     const el = await Header();
     const text = treeText(el as ReactNode);
@@ -40,7 +40,5 @@ describe("Header (server component, default locale)", () => {
     expect(text).toContain("Catalog"); // shell/common en nav labels
     expect(text).toContain("Cart");
     expect(text).toContain("R-Mart");
-
-    reset();
   });
 });

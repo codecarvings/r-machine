@@ -87,6 +87,7 @@ type OwnState<PH extends AnyPlugHead> = [ExtractState<PH>] extends [undefined]
 
 interface MockController {
   readonly reset: () => void;
+  readonly [Symbol.dispose]: () => void;
 }
 
 export type MockMapController<PH extends AnyMapPlugHead> = MockController &
@@ -244,6 +245,7 @@ export function createStateBinding(plug: PlugBody<AnyPlugHead>): StateBinding {
 
   const makeController = (reset: () => void): Record<string, unknown> => ({
     reset,
+    [Symbol.dispose]: reset,
     deps: handleProxy("dep"),
     kit: handleProxy("kit"),
     // Own state (present in the type only for a stateful OuterGear plug).

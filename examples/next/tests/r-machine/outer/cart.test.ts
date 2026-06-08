@@ -7,7 +7,7 @@ const seedEmpty = () => mockPlug(r.plug).with({ $: { ports: { loadCartSnapshot: 
 
 describe("Outer_Cart", () => {
   it("adds distinct items and computes itemCount + subtotal", async () => {
-    const { reset } = seedEmpty();
+    using _ctrl = seedEmpty();
     const cart = await r.create();
 
     cart.addItem({ productId: "a", name: "Alpha", unitPrice: 10 });
@@ -16,12 +16,10 @@ describe("Outer_Cart", () => {
     expect(cart.lines()).toHaveLength(2);
     expect(cart.itemCount()).toBe(3); // 1 + 2
     expect(cart.subtotal()).toBe(50); // 10*1 + 20*2
-
-    reset();
   });
 
   it("merges quantity when the same product is added twice", async () => {
-    const { reset } = seedEmpty();
+    using _ctrl = seedEmpty();
     const cart = await r.create();
 
     cart.addItem({ productId: "a", name: "Alpha", unitPrice: 10 });
@@ -30,12 +28,10 @@ describe("Outer_Cart", () => {
     expect(cart.lines()).toHaveLength(1);
     expect(cart.itemCount()).toBe(2);
     expect(cart.subtotal()).toBe(20);
-
-    reset();
   });
 
   it("setQty(0) and removeItem shrink the array (proves array replacement, not element-merge)", async () => {
-    const { reset } = seedEmpty();
+    using _ctrl = seedEmpty();
     const cart = await r.create();
 
     cart.addItem({ productId: "a", name: "Alpha", unitPrice: 10 });
@@ -49,12 +45,10 @@ describe("Outer_Cart", () => {
     cart.removeItem("b");
     expect(cart.lines()).toHaveLength(0);
     expect(cart.subtotal()).toBe(0);
-
-    reset();
   });
 
   it("setQty updates an existing line quantity", async () => {
-    const { reset } = seedEmpty();
+    using _ctrl = seedEmpty();
     const cart = await r.create();
 
     cart.addItem({ productId: "a", name: "Alpha", unitPrice: 10 });
@@ -62,12 +56,10 @@ describe("Outer_Cart", () => {
 
     expect(cart.itemCount()).toBe(5);
     expect(cart.subtotal()).toBe(50);
-
-    reset();
   });
 
   it("seeds initial state from the loadCartSnapshot port", async () => {
-    const { reset } = mockPlug(r.plug).with({
+    using _ctrl = mockPlug(r.plug).with({
       $: {
         ports: {
           loadCartSnapshot: async () => ({ lines: [{ productId: "x", name: "X", unitPrice: 7, qty: 3 }] }),
@@ -79,12 +71,10 @@ describe("Outer_Cart", () => {
     expect(cart.lines()).toHaveLength(1);
     expect(cart.itemCount()).toBe(3);
     expect(cart.subtotal()).toBe(21);
-
-    reset();
   });
 
   it("fires the relay onChange when lines change", async () => {
-    const { reset } = seedEmpty();
+    using _ctrl = seedEmpty();
     const logSpy = vitest.spyOn(console, "log").mockImplementation(() => {});
     const cart = await r.create();
 
@@ -92,6 +82,5 @@ describe("Outer_Cart", () => {
     expect(logSpy).toHaveBeenCalledWith("cart changed: 1 line(s)");
 
     logSpy.mockRestore();
-    reset();
   });
 });

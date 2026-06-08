@@ -7,7 +7,7 @@ import {
   setPlugMachine,
 } from "r-machine/core";
 import type { RMachineUsageError } from "r-machine/errors";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ERR_PLUG_ALREADY_MOCKED, ERR_STATE_NOT_RESOLVED } from "../../src/errors/index.js";
 import { mockPlug, resetMockPlugs } from "../../src/lib/mock-plug.js";
 import { r as listForm } from "../fixtures/mock-plug/list-form.js";
@@ -18,29 +18,18 @@ import { r as sharedConsumer } from "../fixtures/mock-plug/shared-consumer.js";
 // returns the same instance for either plug.
 const machine = () => getPlugMachine(counter.plug) as { testMode: { isEnabled: boolean }; disposeResources(): void };
 
-// Mocks live on the (singleton) plug; restore after every test so a leftover
-// mock can't trip `ERR_PLUG_ALREADY_MOCKED` in the next one.
-const controllers: Array<{ reset: () => void }> = [];
-afterEach(() => {
-  for (const ctrl of controllers.splice(0)) {
-    ctrl.reset();
-  }
-});
-
-function track<T extends { reset: () => void }>(ctrl: T): T {
-  controllers.push(ctrl);
-  return ctrl;
-}
-
+// Mocks live on the (singleton) plug; cleanup-only mocks are bound with `using`
+// so their `[Symbol.dispose]` (= reset) restores the plug at block-scope exit —
+// even on a failing assertion — so a leftover mock can't trip
+// `ERR_PLUG_ALREADY_MOCKED` in the next test. Lifecycle tests below that ASSERT
+// on reset still call `reset()` explicitly.
 describe("mockPlug", () => {
   describe("resource-level (§14.2): state + ports + members", () => {
     it("seeds state (deep-partial), overrides ports, and runs production members", async () => {
       const saved: number[] = [];
-      const ctrl = track(
-        mockPlug(counter.plug).with({
-          $: { ports: { persist: async (n) => void saved.push(n) } },
-        })
-      );
+      using ctrl = mockPlug(counter.plug).with({
+        $: { ports: { persist: async (n) => void saved.push(n) } },
+      });
       ctrl.state = { count: 10 }; // deep-partial: `label` must survive
 
       const inst = await counter.create();
@@ -87,7 +76,7 @@ describe("mockPlug", () => {
       }
 
       reset(); // restore, then a fresh mock must take hold
-      const ctrl = track(mockPlug(counter.plug).with({}));
+      using ctrl = mockPlug(counter.plug).with({});
       ctrl.state = { count: 3 };
 
       const inst = await counter.create();
@@ -148,7 +137,7 @@ describe("mockPlug", () => {
 
     it("does NOT touch the consumer plug's resolve (the no-op path it replaces)", () => {
       const gate = makeGatePlug();
-      track(mockPlug(gate).with({ $: { locale: "en" } } as never));
+      using _ctrl = mockPlug(gate).with({ $: { locale: "en" } } as never);
       // The override seam is used, not setPlugResolve: a registered override
       // exists and is what core consults.
       expect(getPlugOverride(gate)).toBeDefined();
@@ -243,7 +232,7 @@ describe("mockPlug", () => {
 
   describe("controller: state handles (read/write the live cell)", () => {
     it("own state (`ctrl.state`): seed before resolve, then read/write live", async () => {
-      const ctrl = track(mockPlug(counter.plug).default());
+      using ctrl = mockPlug(counter.plug).default();
 
       // Read before the plug is resolved → loud error (no cell, no seed).
       try {
@@ -273,7 +262,7 @@ describe("mockPlug", () => {
 
     it("dep state (`ctrl.deps[0].state`): drives a stateful OuterGear dependency's cell", async () => {
       // `shared-consumer` depends on the stateful `outer/shared` (state `{ n }`).
-      const ctrl = track(mockPlug(sharedConsumer.plug).default());
+      using ctrl = mockPlug(sharedConsumer.plug).default();
 
       ctrl.deps[0].state = { n: 5 }; // seed the dependency's state
 

@@ -38,7 +38,7 @@ const CATALOG: Product[] = [
 // the locale from the route params and `validateServerOnlyUsage` is relaxed.
 describe("ProductPage (server page, en)", () => {
   it("resolves via useR(params) and renders the seeded product, price formatted server-side", async () => {
-    const { reset } = mockPlug(catalogR.plug).with({
+    using _ctrl = mockPlug(catalogR.plug).with({
       $: { ports: { fetchProducts: async () => CATALOG } },
     });
 
@@ -48,7 +48,5 @@ describe("ProductPage (server page, en)", () => {
     expect(text).toContain("Mechanical Keyboard");
     expect(text).toContain("$129.99"); // fmt kit, en → USD
     expect(text).toContain("Peripherals"); // shell/catalog en category label
-
-    reset();
   });
 });

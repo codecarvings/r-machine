@@ -11,7 +11,8 @@ const FIXTURES: Product[] = [
 describe("Inner_Catalog", () => {
   it("resolves products through the async port and looks them up", async () => {
     // Mock only the async port; the real `base/store-config` dep resolves.
-    const { reset } = mockPlug(r.plug).with({
+    // InnerGear resources are stateless — `using` just exits test mode on scope end.
+    using _ctrl = mockPlug(r.plug).with({
       $: { ports: { fetchProducts: async () => FIXTURES } },
     });
 
@@ -24,8 +25,5 @@ describe("Inner_Catalog", () => {
     expect(catalog.byCategory(null)).toHaveLength(3);
     // `categories` flows in from the real base gear.
     expect(catalog.categories).toEqual(["peripherals", "displays", "audio"]);
-
-    // InnerGear resources are stateless — nothing to dispose.
-    reset();
   });
 });

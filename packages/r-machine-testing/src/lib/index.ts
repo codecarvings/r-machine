@@ -11,7 +11,6 @@
  * contact: licensing@codecarvings.com
  */
 
-export { disposeResources } from "./dispose-resources.js";
 export { createEventCollector, type EventCollector } from "./event-collector.js";
 export { mockPlug, resetMockPlugs } from "./mock-plug.js";
 export {

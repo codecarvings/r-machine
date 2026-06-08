@@ -1,22 +1,14 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { mockPlug } from "../../src/lib/mock-plug.js";
 import { r as kitConsumer } from "../fixtures/mock-plug/kit-consumer.js";
 import { r as greet } from "../fixtures/mock-plug/shell-greet.js";
 
-const controllers: Array<{ reset: () => void }> = [];
-afterEach(() => {
-  for (const ctrl of controllers.splice(0)) {
-    ctrl.reset();
-  }
-});
-
 describe("mockPlug — kit override (map hoist mirror)", () => {
   it("overrides a kit entry and mirrors it onto the hoisted top-level", async () => {
-    controllers.push(
-      mockPlug(kitConsumer.plug).with({
-        $: { kit: { helper: { greet: () => "MOCKED" } } },
-      })
-    );
+    // `using` restores the plug at scope exit via `[Symbol.dispose]`.
+    using _ctrl = mockPlug(kitConsumer.plug).with({
+      $: { kit: { helper: { greet: () => "MOCKED" } } },
+    });
 
     const inst = await kitConsumer.create();
     expect(inst.viaKit()).toBe("MOCKED"); // via $.kit.helper
@@ -43,7 +35,7 @@ describe("mockPlug — locale override (§14.3/14.4)", () => {
     const def = await greet.create();
     expect(def.greeting).toBe("Hello"); // default (no locale) → fallback branch
 
-    controllers.push(mockPlug(greet.plug).with({ $: { locale: "it" } }));
+    using _ctrl = mockPlug(greet.plug).with({ $: { locale: "it" } });
     const localized = await greet.create();
     expect(localized.greeting).toBe("Ciao");
   });

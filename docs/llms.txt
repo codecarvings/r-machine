@@ -1,6 +1,6 @@
 # R-Machine
 
-> i18n and DI are two sides of the same coin.
+> A stable namespace is the contract; the implementation behind it is free to change.
 
 https://rmachine.dev
 
@@ -10,6 +10,8 @@ Warning: R-Machine is still in active development - API may change before stable
 ---
 
 R-Machine is not an i18n library. It is not a DI container. It is not a state management library. It does what all three do, but classifying it as any one of them — or as a bundle of three — misses the design. The unification is structural, not packaged: there is one declaration syntax, one consumer primitive, and one testing primitive across all of them.
+
+Because the dependency graph is explicit and named rather than implicit, a change behind a namespace is statically verifiable — which makes the codebase predictable to refactor, for humans and for coding agents alike.
 
 ---
 
@@ -92,6 +94,6 @@ https://rmachine.dev/llms-full.txt
 
 ---
 
-rev 2026-06-07.015
+rev 2026-06-08.016
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com
