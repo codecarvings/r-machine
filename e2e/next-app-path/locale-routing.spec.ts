@@ -31,11 +31,16 @@ test.describe("Next.js path strategy — locale routing", () => {
     // Wait for the locale switcher to be hydrated, then open the dropdown
     const switcher = page.locator("#locale-switcher-button");
     await expect(switcher).toBeVisible();
-    await switcher.click();
 
-    // Wait for the dropdown to appear and select Italian
+    // The trigger is server-rendered and visible before React/Radix hydrates,
+    // so an early click can be dropped. Retry opening until the menu appears.
     const italianOption = page.getByRole("menuitem", { name: "Italiano" });
-    await expect(italianOption).toBeVisible();
+    await expect(async () => {
+      if (!(await italianOption.isVisible())) {
+        await switcher.click();
+      }
+      await expect(italianOption).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10_000 });
     await italianOption.click();
 
     // Should navigate to /it with Italian content
