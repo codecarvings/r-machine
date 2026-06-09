@@ -351,7 +351,7 @@ describe("createNextAppPathServerImpl", () => {
 
         expect(mockRewrite).toHaveBeenCalledOnce();
         const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
-        expect(url.pathname).toBe("/en/");
+        expect(url.pathname).toBe("/en");
       });
 
       it("normalizes mixed-case locale via getCanonicalUnicodeLocaleId", async () => {
@@ -700,7 +700,7 @@ describe("createNextAppPathServerImpl", () => {
 
           expect(mockRewrite).toHaveBeenCalledOnce();
           const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
-          expect(url.pathname).toBe("/en/");
+          expect(url.pathname).toBe("/en");
           expect(mockRedirectResponse).not.toHaveBeenCalled();
         });
 
@@ -993,7 +993,7 @@ describe("createNextAppPathServerImpl", () => {
 
         expect(mockRewrite).toHaveBeenCalledOnce();
         const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
-        expect(url.pathname).toBe("/en/");
+        expect(url.pathname).toBe("/en");
       });
 
       it("rewrites nested paths correctly", async () => {

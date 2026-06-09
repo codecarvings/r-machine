@@ -139,7 +139,11 @@ export async function createNextAppPathServerImpl<
         const newUrl = request.nextUrl.clone();
         // Reconstruct canonical URL
         const canonicalContentPath = contentPathCanonicalizer.get(locale, contentPath);
-        newUrl.pathname = `/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${canonicalContentPath.value}`;
+        const localeSeg = lowercaseLocaleSw ? locale.toLowerCase() : locale;
+        // Avoid a trailing slash for the locale root ("/") to keep the rewritten
+        // pathname consistent with the redirect/href forms (no "/en/" vs "/en").
+        newUrl.pathname =
+          canonicalContentPath.value === "/" ? `/${localeSeg}` : `/${localeSeg}${canonicalContentPath.value}`;
 
         const changeHeaders = autoLBSw || !canonicalContentPath.dynamic;
         if (!changeHeaders) {

@@ -325,7 +325,7 @@ describe("createNextAppOriginServerImpl", () => {
 
         expect(mockRewrite).toHaveBeenCalledOnce();
         const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
-        expect(url.pathname).toBe("/it/");
+        expect(url.pathname).toBe("/it");
       });
 
       it("resolves the same locale for repeated requests from the same origin", async () => {
@@ -339,7 +339,7 @@ describe("createNextAppOriginServerImpl", () => {
         const [url1] = mockRewrite.mock.calls[0] as MockRewriteArgs;
         const [url2] = mockRewrite.mock.calls[1] as MockRewriteArgs;
         expect(url1.pathname).toBe("/it/about");
-        expect(url2.pathname).toBe("/it/");
+        expect(url2.pathname).toBe("/it");
       });
     });
 
@@ -367,7 +367,7 @@ describe("createNextAppOriginServerImpl", () => {
 
         expect(mockRewrite).toHaveBeenCalledOnce();
         const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
-        expect(url.pathname).toBe("/en/");
+        expect(url.pathname).toBe("/en");
       });
 
       it("rewrites nested paths correctly", async () => {

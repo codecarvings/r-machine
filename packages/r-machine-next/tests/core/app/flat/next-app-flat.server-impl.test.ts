@@ -373,7 +373,7 @@ describe("createNextAppFlatServerImpl", () => {
 
         expect(rMachine.localeHelper.matchLocalesForAcceptLanguageHeader).toHaveBeenCalledOnce();
         const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
-        expect(url.pathname).toBe("/en/");
+        expect(url.pathname).toBe("/en");
       });
 
       it("falls back to Accept-Language when no cookie is set", async () => {
@@ -384,7 +384,7 @@ describe("createNextAppFlatServerImpl", () => {
 
         expect(rMachine.localeHelper.matchLocalesForAcceptLanguageHeader).toHaveBeenCalledOnce();
         const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
-        expect(url.pathname).toBe("/en/");
+        expect(url.pathname).toBe("/en");
       });
 
       it("reads locale from a custom-named cookie", async () => {
@@ -425,7 +425,7 @@ describe("createNextAppFlatServerImpl", () => {
 
         expect(mockRewrite).toHaveBeenCalledOnce();
         const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
-        expect(url.pathname).toBe("/en/");
+        expect(url.pathname).toBe("/en");
       });
 
       it("rewrites nested paths correctly", async () => {
