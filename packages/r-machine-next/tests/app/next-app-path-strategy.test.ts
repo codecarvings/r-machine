@@ -332,8 +332,8 @@ describe("NextAppPathStrategy", () => {
     it("getPath handles root path /", () => {
       const strategy = createTranslatedStrategy();
 
-      expect((strategy as any).hrefHelper.getPath("en", "/")).toBe("/en/");
-      expect((strategy as any).hrefHelper.getPath("it", "/")).toBe("/it/");
+      expect((strategy as any).hrefHelper.getPath("en", "/")).toBe("/en");
+      expect((strategy as any).hrefHelper.getPath("it", "/")).toBe("/it");
     });
 
     it("getPath omits locale prefix for root path when implicitDefaultLocale is on", () => {
@@ -343,7 +343,7 @@ describe("NextAppPathStrategy", () => {
       });
 
       expect((strategy as any).hrefHelper.getPath("en", "/")).toBe("/");
-      expect((strategy as any).hrefHelper.getPath("it", "/")).toBe("/it/");
+      expect((strategy as any).hrefHelper.getPath("it", "/")).toBe("/it");
     });
 
     it("getPath is unaffected by basePath configuration", () => {

@@ -430,8 +430,8 @@ describe("NextAppPathStrategyCore", () => {
       it("returns root path for any locale", () => {
         const strategy = createDynamicStrategy();
 
-        expect((strategy as any).hrefHelper.getPath("en", "/")).toBe("/en/");
-        expect((strategy as any).hrefHelper.getPath("it", "/")).toBe("/it/");
+        expect((strategy as any).hrefHelper.getPath("en", "/")).toBe("/en");
+        expect((strategy as any).hrefHelper.getPath("it", "/")).toBe("/it");
       });
 
       it("returns locale-prefixed paths for declared paths", () => {
@@ -577,8 +577,8 @@ describe("NextAppPathStrategyPathTranslator", () => {
         false
       );
 
-      expect(translator.get("en", "/", {})).toEqual({ value: "/en/", dynamic: false });
-      expect(translator.get("it", "/", {})).toEqual({ value: "/it/", dynamic: false });
+      expect(translator.get("en", "/", {})).toEqual({ value: "/en", dynamic: false });
+      expect(translator.get("it", "/", {})).toEqual({ value: "/it", dynamic: false });
     });
 
     it("prefixes path with original locale when lowercaseLocale is false", () => {
@@ -590,24 +590,24 @@ describe("NextAppPathStrategyPathTranslator", () => {
         false
       );
 
-      expect(translator.get("en", "/", {})).toEqual({ value: "/en/", dynamic: false });
-      expect(translator.get("it", "/", {})).toEqual({ value: "/it/", dynamic: false });
+      expect(translator.get("en", "/", {})).toEqual({ value: "/en", dynamic: false });
+      expect(translator.get("it", "/", {})).toEqual({ value: "/it", dynamic: false });
     });
 
     it("lowercases mixed-case locale when lowercaseLocale is true", () => {
       const mixedLocales = ["en-US", "it-IT"];
       const translator = new NextAppPathStrategyPathTranslator(createMockAtlas(), mixedLocales, "en-US", true, false);
 
-      expect(translator.get("en-US", "/", {})).toEqual({ value: "/en-us/", dynamic: false });
-      expect(translator.get("it-IT", "/", {})).toEqual({ value: "/it-it/", dynamic: false });
+      expect(translator.get("en-US", "/", {})).toEqual({ value: "/en-us", dynamic: false });
+      expect(translator.get("it-IT", "/", {})).toEqual({ value: "/it-it", dynamic: false });
     });
 
     it("preserves mixed-case locale when lowercaseLocale is false", () => {
       const mixedLocales = ["en-US", "it-IT"];
       const translator = new NextAppPathStrategyPathTranslator(createMockAtlas(), mixedLocales, "en-US", false, false);
 
-      expect(translator.get("en-US", "/", {})).toEqual({ value: "/en-US/", dynamic: false });
-      expect(translator.get("it-IT", "/", {})).toEqual({ value: "/it-IT/", dynamic: false });
+      expect(translator.get("en-US", "/", {})).toEqual({ value: "/en-US", dynamic: false });
+      expect(translator.get("it-IT", "/", {})).toEqual({ value: "/it-IT", dynamic: false });
     });
   });
 
@@ -621,7 +621,7 @@ describe("NextAppPathStrategyPathTranslator", () => {
     it("still prefixes non-default locale when enabled", () => {
       const translator = new NextAppPathStrategyPathTranslator(createMockAtlas(), tLocales, tDefaultLocale, true, true);
 
-      expect(translator.get("it", "/", {})).toEqual({ value: "/it/", dynamic: false });
+      expect(translator.get("it", "/", {})).toEqual({ value: "/it", dynamic: false });
     });
 
     it("prefixes default locale when disabled", () => {
@@ -633,7 +633,7 @@ describe("NextAppPathStrategyPathTranslator", () => {
         false
       );
 
-      expect(translator.get("en", "/", {})).toEqual({ value: "/en/", dynamic: false });
+      expect(translator.get("en", "/", {})).toEqual({ value: "/en", dynamic: false });
     });
   });
 

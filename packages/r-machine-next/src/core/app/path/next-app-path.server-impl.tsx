@@ -173,8 +173,10 @@ export async function createNextAppPathServerImpl<
           // Implicit URL - no locale prefix
           url = new URL(`${basePath}${pathname}`, request.url);
         } else {
-          // Standard locale-prefixed URL
-          url = new URL(`${basePath}/${lowercaseLocaleSw ? locale.toLowerCase() : locale}${pathname}`, request.url);
+          // Standard locale-prefixed URL — avoid a trailing slash on root ("/"),
+          // which Next (trailingSlash:false) would re-normalize, causing a 2nd redirect
+          const localeSeg = lowercaseLocaleSw ? locale.toLowerCase() : locale;
+          url = new URL(`${basePath}/${localeSeg}${pathname === "/" ? "" : pathname}`, request.url);
         }
         return NextResponse.redirect(url);
       }

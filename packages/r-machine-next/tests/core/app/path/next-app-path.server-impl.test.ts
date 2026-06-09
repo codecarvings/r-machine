@@ -429,6 +429,19 @@ describe("createNextAppPathServerImpl", () => {
         expect(url.pathname).toBe("/en/about");
       });
 
+      it("redirects root to the locale prefix without a trailing slash", async () => {
+        // Regression: "/" must redirect to "/it", not "/it/", otherwise Next
+        // (trailingSlash:false) re-normalizes "/it/" -> "/it" in a second hop.
+        const { impl } = await createImpl({ atlas: aboutAtlas });
+        const proxy = impl.createProxy() as AnyProxyFn;
+
+        proxy(createMockRequest("/", { cookie: "it" }));
+
+        expect(mockRedirectResponse).toHaveBeenCalledOnce();
+        const [url] = mockRedirectResponse.mock.calls[0] as [URL];
+        expect(url.pathname).toBe("/it");
+      });
+
       it("passes through Next.js internal paths", async () => {
         const { impl } = await createImpl();
         const proxy = impl.createProxy() as AnyProxyFn;
@@ -527,7 +540,7 @@ describe("createNextAppPathServerImpl", () => {
 
         expect(mockRedirectResponse).toHaveBeenCalledOnce();
         const [url] = mockRedirectResponse.mock.calls[0] as [URL];
-        expect(url.pathname).toBe("/it/");
+        expect(url.pathname).toBe("/it");
       });
 
       it("passes through URLs not matching the custom pathMatcher", async () => {
@@ -656,7 +669,7 @@ describe("createNextAppPathServerImpl", () => {
 
           expect(mockRedirectResponse).toHaveBeenCalledOnce();
           const [url] = mockRedirectResponse.mock.calls[0] as [URL];
-          expect(url.pathname).toBe("/it/");
+          expect(url.pathname).toBe("/it");
         });
 
         it("does not auto-detect on non-root paths", async () => {
@@ -702,7 +715,7 @@ describe("createNextAppPathServerImpl", () => {
 
           expect(mockRedirectResponse).toHaveBeenCalledOnce();
           const [url] = mockRedirectResponse.mock.calls[0] as [URL];
-          expect(url.pathname).toBe("/it/");
+          expect(url.pathname).toBe("/it");
         });
 
         it("falls back to Accept-Language when no cookie on root", async () => {
@@ -789,7 +802,7 @@ describe("createNextAppPathServerImpl", () => {
 
         expect(mockRedirectResponse).toHaveBeenCalledOnce();
         const [url] = mockRedirectResponse.mock.calls[0] as [URL];
-        expect(url.pathname).toBe("/it/");
+        expect(url.pathname).toBe("/it");
       });
 
       it("skips cookie when cookie is disabled", async () => {

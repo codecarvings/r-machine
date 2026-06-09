@@ -238,7 +238,10 @@ export class NextAppPathStrategyPathTranslator extends HrefTranslator {
       if (this.implicitDefaultLocale && locale === this.defaultLocale) {
         return path;
       }
-      return `/${this.lowercaseLocale ? locale.toLowerCase() : locale}${path}`;
+      const prefix = `/${this.lowercaseLocale ? locale.toLowerCase() : locale}`;
+      // Avoid a trailing slash for the locale root ("/"), which Next
+      // (trailingSlash:false) would re-normalize, causing a redirect hop.
+      return path === "/" ? prefix : `${prefix}${path}`;
     },
     preApply: false,
   };
