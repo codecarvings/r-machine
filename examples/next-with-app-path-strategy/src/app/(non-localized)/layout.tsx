@@ -2,7 +2,7 @@ import "../globals.css";
 import type { Metadata } from "next";
 import Footer from "@/components/server/footer";
 import NonLocalizedHeader from "@/components/server/non-localized-header";
-import { generateLocaleStaticParams, ServerPlug } from "@/r-machine/server-toolset";
+import { bindLocale, generateLocaleStaticParams } from "@/r-machine/server-toolset";
 import { localeHelper } from "@/r-machine/setup";
 
 // Pre-render the static params for all locales
@@ -12,9 +12,8 @@ export const metadata: Metadata = {
   title: "R-Machine ⧹ Examples ⧹ Next App ⧹ Path Strategy",
 };
 
-export const plug = ServerPlug("shell/common");
 export default async function NonLocalizedLayout({ children }: LayoutProps<"/">) {
-  const [common] = await plug.useR(localeHelper.defaultLocale);
+  await bindLocale(localeHelper.defaultLocale); // Set the default locale for non-localized paths
 
   return (
     <html lang="en">
@@ -22,7 +21,7 @@ export default async function NonLocalizedLayout({ children }: LayoutProps<"/">)
         <div className="min-h-screen bg-background">
           <NonLocalizedHeader />
           {children}
-          <Footer r={common.footer} />
+          <Footer />
         </div>
       </body>
     </html>
