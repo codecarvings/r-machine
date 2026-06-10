@@ -9,7 +9,6 @@ import type { CatalogSort } from "@/r-machine/vertex/catalog-filter";
 // share one reactive vertex instance because the parent wraps them in a
 // <VertexFrame>.
 export const plug = ClientPlug("vertex/catalog-filter", "shell/catalog");
-
 export function CatalogFilterBar({ categories }: { categories: readonly string[] }) {
   const [filter, s] = plug.useR();
 

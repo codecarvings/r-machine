@@ -18,7 +18,6 @@ const localeItems = {
 } as const;
 
 export const plug = ClientPlug();
-
 export function LocaleSwitcher() {
   const { $ } = plug.useR();
 

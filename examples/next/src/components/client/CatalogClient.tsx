@@ -10,7 +10,6 @@ import { CatalogGrid } from "./CatalogGrid";
 // get its own independent vertex instance; with it, both read and write the same
 // reactive filter state.
 export const plug = ClientPlug({ filter: "vertex/catalog-filter" });
-
 export function CatalogClient({ products, categories }: { products: Product[]; categories: readonly string[] }) {
   const { filter } = plug.useR();
 

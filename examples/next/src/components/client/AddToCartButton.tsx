@@ -10,7 +10,6 @@ import type { Product } from "@/r-machine/inner/catalog";
 // only touches the `outer/cart` state — it never imports the catalog gear, which
 // the resource-validity matrix forbids for client/outer surfaces anyway.
 export const plug = ClientPlug("outer/cart", "shell/product");
-
 export function AddToCartButton({ product }: { product: Pick<Product, "id" | "name" | "price"> }) {
   const [cart, s] = plug.useR();
   const [justAdded, setJustAdded] = useState(false);

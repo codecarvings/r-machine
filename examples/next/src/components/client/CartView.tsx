@@ -10,7 +10,6 @@ import { ClientPlug } from "@/r-machine/client-toolset";
 // the count through `$.kit.fmt.plural`, so switching locale re-resolves the whole
 // thing — language AND currency AND number grouping change at once.
 export const plug = ClientPlug("outer/cart", "shell/cart");
-
 export function CartView() {
   const [cart, s, $] = plug.useR();
 

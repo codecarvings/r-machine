@@ -8,7 +8,6 @@ import { ClientPlug } from "@/r-machine/client-toolset";
 // Header cart indicator. Because `outer/cart` is browser-session state, the count
 // stays live across navigation (and even survives the locale-switch navigation).
 export const plug = ClientPlug("outer/cart");
-
 export function CartBadge() {
   const [cart, $] = plug.useR();
 

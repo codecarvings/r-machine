@@ -6,8 +6,7 @@ import { ServerPlug } from "@/r-machine/server-toolset";
 // Reads the async `inner/catalog` (server-only) + `shell/catalog`. Awaiting the
 // plug is what suspends — kept in a child component so the page-level <Suspense>
 // can render the skeleton while the catalog port resolves.
-const plug = ServerPlug("inner/catalog", "shell/catalog");
-
+export const plug = ServerPlug("inner/catalog", "shell/catalog");
 async function CatalogContent({ params }: PageProps<"/[locale]">) {
   const [catalog, s] = await plug.useR(params);
 

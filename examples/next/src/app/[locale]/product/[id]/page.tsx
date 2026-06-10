@@ -8,8 +8,7 @@ import { ServerPlug } from "@/r-machine/server-toolset";
 // `shell/product` and `shell/catalog` chrome. The price is formatted server-side
 // via the `fmt` kit; the only interactive bit (Add to cart) is delegated to a
 // client island that receives the product as plain props.
-const plug = ServerPlug("inner/catalog", "shell/product", "shell/catalog");
-
+export const plug = ServerPlug("inner/catalog", "shell/product", "shell/catalog");
 export default async function ProductPage({ params }: PageProps<"/[locale]/product/[id]">) {
   const [catalog, sp, sc, $] = await plug.useR(params);
 
