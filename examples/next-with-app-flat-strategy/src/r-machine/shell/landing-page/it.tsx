@@ -2,16 +2,20 @@ import { localized } from "@/r-machine/setup";
 
 export const r = localized("shell/landing-page", {
   hero: {
-    title: "i18n Type-Safe per Applicazioni Moderne",
-    subtitle:
-      "R-Machine offre internazionalizzazione completamente type-safe alle tue app Next.js con minimo overhead runtime e un'esperienza di sviluppo superiore.",
+    title: "Routing del Locale con R-Machine",
+    // Tagline per-strategia: dice dove vive il locale in questa strategia.
+    subtitle: "Il locale vive in un cookie — l'URL resta lo stesso.",
     cta: {
-      primary: "Inizia Ora",
       secondary: "GitHub Repository",
     },
   },
-  features: {
-    title: "Perché R-Machine?",
-    subtitle: "Costruito per sviluppatori che richiedono type safety e performance.",
+  timer: {
+    title: "Stato del gear client",
+    note: "L'interval vive in un OuterGear, non nel componente. Il suo stato sopravvive al cambio di locale.",
+    unit: { one: "secondo", other: "secondi" },
+  },
+  playground: {
+    title: "Prova il routing",
+    subtitle: "Segui i link e osserva come cambia l'URL per il locale corrente.",
   },
 });

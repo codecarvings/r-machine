@@ -13,14 +13,14 @@ export async function generateStaticParams({
 }) {
   // biome-ignore lint/correctness/useHookAtTopLevel: This is not a Hook
   const [dynamic] = await paramsPlug.useUnboundR(locale); // No need to bind locale
-  return dynamic.items.map((item) => ({ slug: item.slug }));
+  return dynamic.items.map((item: any) => ({ slug: item.slug }));
 }
 
 export const pagePlug = ServerPlug("shell/example-dynamic");
 export default async function DynamicSlugPage({ params }: PageProps<"/[locale]/example-dynamic/[slug]">) {
-  const [example, $] = await pagePlug.useR(params);
+  const [s, $] = await pagePlug.useR(params);
 
-  const item = example.items.find((i) => i.slug === $.params.slug);
+  const item = s.items.find((i: any) => i.slug === $.params.slug);
 
   if (!item) {
     notFound();
@@ -35,12 +35,12 @@ export default async function DynamicSlugPage({ params }: PageProps<"/[locale]/e
             <CardDescription>slug: {$.params.slug}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">{example.detail.feature}</p>
+            <p className="text-sm text-muted-foreground">{s.detail.feature}</p>
           </CardContent>
         </Card>
 
         <Button variant="ghost" asChild>
-          <Link href={$.getPath("/example-dynamic")}>← {example.detail.backLink}</Link>
+          <Link href={$.getPath("/example-dynamic")}>← {s.detail.backLink}</Link>
         </Button>
       </div>
     </section>

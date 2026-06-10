@@ -3,7 +3,7 @@ import { localized, Shell } from "@/r-machine/setup";
 export const r = Shell.define((plugin) => {
   const { $ } = plugin;
   return localized("shell/common", {
-    title: `[${$.locale}] - R-Machine ⧹ Examples ⧹ Next App ⧹ Path Strategy (senza proxy)`,
+    title: `[${$.locale}] - R-Machine ⧹ Examples ⧹ Next.js Locale Routing`,
     footer: {
       message: (
         <>

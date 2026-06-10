@@ -17,4 +17,8 @@ export const r = localized("shell/navigation", {
     label: "Route Dinamiche",
     description: "Route con parametro [slug]",
   },
+  helloWorld: {
+    label: "Hello world",
+    description: "Route non localizzata (senza prefisso locale)",
+  },
 });

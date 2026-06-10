@@ -9,7 +9,7 @@ import { localeHelper } from "@/r-machine/setup";
 export const generateStaticParams = generateLocaleStaticParams;
 
 export const metadata: Metadata = {
-  title: "R-Machine ⧹ Examples ⧹ Next App ⧹ Path Strategy",
+  title: "R-Machine ⧹ Examples ⧹ Next.js Locale Routing",
 };
 
 export default async function NonLocalizedLayout({ children }: LayoutProps<"/">) {

@@ -16,26 +16,26 @@ import { ClientPlug } from "@/r-machine/client-toolset";
 
 export const plug = ClientPlug("shell/navigation");
 export function MainNav() {
-  const [nav, $] = plug.useR();
+  const [s, $] = plug.useR();
 
   return (
     <NavigationMenu>
       <NavigationMenuList>
         <NavigationMenuItem>
           <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link href={$.getPath("/")}>{nav.home}</Link>
+            <Link href={$.getPath("/")}>{s.home}</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
 
         <NavigationMenuItem>
-          <NavigationMenuTrigger>{nav.exampleStatic.label}</NavigationMenuTrigger>
+          <NavigationMenuTrigger>{s.exampleStatic.label}</NavigationMenuTrigger>
           <NavigationMenuContent>
             <ul className="grid gap-3 p-4 w-[300px]">
-              <ListItem href={$.getPath("/example-static/page-1")} title={nav.exampleStatic.page1.label}>
-                {nav.exampleStatic.page1.description}
+              <ListItem href={$.getPath("/example-static/page-1")} title={s.exampleStatic.page1.label}>
+                {s.exampleStatic.page1.description}
               </ListItem>
-              <ListItem href={$.getPath("/example-static/page-2")} title={nav.exampleStatic.page2.label}>
-                {nav.exampleStatic.page2.description}
+              <ListItem href={$.getPath("/example-static/page-2")} title={s.exampleStatic.page2.label}>
+                {s.exampleStatic.page2.description}
               </ListItem>
             </ul>
           </NavigationMenuContent>
@@ -43,7 +43,7 @@ export function MainNav() {
 
         <NavigationMenuItem>
           <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-            <Link href={$.getPath("/example-dynamic")}>{nav.exampleDynamic.label}</Link>
+            <Link href={$.getPath("/example-dynamic")}>{s.exampleDynamic.label}</Link>
           </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>

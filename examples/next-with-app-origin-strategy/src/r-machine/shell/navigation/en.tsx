@@ -17,6 +17,10 @@ export const r = {
     label: "Dynamic Routes",
     description: "Routes with [slug] parameter",
   },
+  helloWorld: {
+    label: "Hello world",
+    description: "Non-localized route (no locale prefix)",
+  },
 };
 
 export type Shell_Navigation = RShape<typeof r>;

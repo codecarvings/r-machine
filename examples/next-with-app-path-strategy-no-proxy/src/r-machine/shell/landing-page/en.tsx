@@ -2,17 +2,21 @@ import type { RShape } from "@/r-machine/setup";
 
 export const r = {
   hero: {
-    title: "Type-Safe i18n for Modern Applications",
-    subtitle:
-      "R-Machine brings fully type-safe internationalization to your Next.js apps with minimal runtime overhead and superior developer experience.",
+    title: "Locale Routing with R-Machine",
+    // Per-strategy tagline: says where the locale lives under this strategy.
+    subtitle: "The locale lives in the URL — wired without a proxy.",
     cta: {
-      primary: "Get Started",
       secondary: "GitHub Repository",
     },
   },
-  features: {
-    title: "Why R-Machine?",
-    subtitle: "Built for developers who demand type safety and performance.",
+  timer: {
+    title: "Client gear state",
+    note: "The interval lives in an OuterGear, not in the component. Its state survives locale navigation.",
+    unit: { one: "second", other: "seconds" },
+  },
+  playground: {
+    title: "Try the routing",
+    subtitle: "Follow the links and watch how the URL changes for the current locale.",
   },
 };
 

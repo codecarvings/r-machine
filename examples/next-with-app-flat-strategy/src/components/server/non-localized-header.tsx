@@ -11,7 +11,7 @@ export default function NonLocalizedHeader() {
             <Link href="/">
               <Image src={RMachineLogo} alt="R-Machine Logo" className="size-8" priority />
             </Link>
-            <span className="text-md font-medium text-foreground">R-Machine ⧹ Examples ⧹ Next App ⧹ Flat Strategy</span>
+            <span className="text-md font-medium text-foreground">R-Machine ⧹ Examples ⧹ Next.js Locale Routing</span>
           </div>
         </div>
       </div>
