@@ -19,6 +19,7 @@ import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { isNamespaceList } from "./res-list.js";
 import type { ResManager } from "./res-manager.js";
 import type { AnyNamespaceMap } from "./res-map.js";
+import { ASYNC, fulfilledThenable } from "./sync-resolve.js";
 import type { VertexGearMap } from "./vertex-gear.js";
 import type { Wire } from "./wire.js";
 
@@ -137,11 +138,35 @@ function createWire(
 
   function resolve() {
     busHost.bus?.emit({ type: "wire:resolveTriggered", genId });
-    let promise = resManager.getPlugin(kit, nsDeps, currentLocale, augmentCtx, [], genId, currentVertexGearMap);
     // Apply a consumer plug's `mockPlug` override to the resolved plugin. Read
     // each resolve (cheap) so a late-registered override is honored, and so it
     // persists across reactive re-resolves. Undefined in production.
     const transform = plug !== undefined ? getPlugOverride(plug)?.transform : undefined;
+
+    // Fast path: when no mockPlug transform is in play (always the case in
+    // production), try to assemble the plugin synchronously from already-warm
+    // dependency slots. On success we hand `use()` a fulfilled-tagged thenable
+    // it can unwrap WITHOUT suspending. The sync attempt only ever declines
+    // (returns ASYNC) — it never produces a wrong plugin — so falling through
+    // to the async path below is always safe. A synchronous throw (e.g. a
+    // covered-vertex lookup that the async path reports with attribution) also
+    // falls through, so the async path owns the error.
+    if (transform === undefined) {
+      let sync: unknown;
+      try {
+        sync = resManager.getPluginSync(kit, nsDeps, currentLocale, augmentCtx, [], genId, currentVertexGearMap);
+      } catch {
+        sync = ASYNC;
+      }
+      if (sync !== ASYNC) {
+        currentPluginPromise = fulfilledThenable(sync);
+        dirty = false;
+        busHost.bus?.emit({ type: "wire:resolvedSync", genId });
+        return;
+      }
+    }
+
+    let promise = resManager.getPlugin(kit, nsDeps, currentLocale, augmentCtx, [], genId, currentVertexGearMap);
     if (transform !== undefined) {
       promise = promise.then(transform);
     }

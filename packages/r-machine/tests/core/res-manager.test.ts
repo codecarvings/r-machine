@@ -10,6 +10,7 @@ import { getResCacheKey, ResManager } from "../../src/core/res-manager.js";
 import type { AnyNamespaceMap } from "../../src/core/res-map.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
 import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-module.js";
+import { ASYNC } from "../../src/core/sync-resolve.js";
 import { buildVertexKey } from "../../src/core/vertex-gear.js";
 import {
   ERR_CIRCULAR_DEPENDENCY,
@@ -1132,5 +1133,241 @@ describe("ResManager — $.kit.fmt end-user access", () => {
     expect(plugin.$.kit.fmt.number(7)).toBe("n:7");
     // Same underlying surface, exposed two ways.
     expect(plugin.fmt).toBe(plugin.$.kit.fmt);
+  });
+});
+
+// ─── Synchronous fast path (Tier A) ──────────────────────────────────────────
+// `getPluginSync` assembles a plugin WITHOUT awaiting, by reading already-warm
+// dependency slots. It returns the `ASYNC` sentinel the moment any pod is not
+// synchronously available, so the wire falls back to the async `getPlugin`.
+
+describe("ResManager — getPluginSync (Tier A: warm slots)", () => {
+  it("returns the assembled plugin (not ASYNC) when every list dep is already warm", async () => {
+    const env = createRmTestEnv({
+      modules: {
+        "g/A": () => makeRawModule({ a: 1 }),
+        "g/B": () => makeRawModule({ b: 2 }),
+      },
+    });
+
+    // Warm both dep slots via the async path.
+    const asyncPlugin = (await env.rm.getPlugin(
+      {},
+      ["g/A", "g/B"],
+      undefined,
+      () => {},
+      [],
+      1,
+      undefined
+    )) as unknown[];
+
+    const sync = env.rm.getPluginSync({}, ["g/A", "g/B"], undefined, () => {}, [], 1, undefined);
+
+    expect(sync).not.toBe(ASYNC);
+    const syncPlugin = sync as unknown[];
+    // Same underlying surfaces (both read from the same warm slots).
+    expect(syncPlugin[0]).toBe(asyncPlugin[0]);
+    expect(syncPlugin[1]).toBe(asyncPlugin[1]);
+    // List plugin shape: [...deps, $].
+    expect(syncPlugin).toHaveLength(3);
+    expect(syncPlugin[2]).toHaveProperty("kit");
+  });
+
+  it("returns the assembled plugin for map-form deps when warm", async () => {
+    const env = createRmTestEnv({
+      modules: {
+        "g/A": () => makeRawModule({ a: 1 }),
+      },
+    });
+    await env.rm.getPlugin({}, { a: "g/A" }, undefined, () => {}, [], 1, undefined);
+
+    const sync = env.rm.getPluginSync({}, { a: "g/A" }, undefined, () => {}, [], 1, undefined);
+
+    expect(sync).not.toBe(ASYNC);
+    expect(sync).toHaveProperty("a");
+    expect(sync).toHaveProperty("$");
+  });
+
+  it("resolves warm eager-kit entries synchronously too", async () => {
+    const env = createRmTestEnv({
+      gearKit: { a: "g/A" },
+      modules: {
+        "g/A": () => makeRawModule({ a: 1 }),
+        "g/B": () => makeRawModule({ b: 2 }),
+      },
+    });
+    // Warm both the kit member (g/A) and the explicit dep (g/B).
+    await env.rm.getPlugin({ a: "g/A" }, ["g/B"], undefined, () => {}, [], 1, undefined);
+
+    const sync = env.rm.getPluginSync({ a: "g/A" }, ["g/B"], undefined, () => {}, [], 1, undefined);
+
+    expect(sync).not.toBe(ASYNC);
+    const $ = (sync as unknown[])[(sync as unknown[]).length - 1] as { kit: Record<string, unknown> };
+    expect($.kit).toHaveProperty("a");
+  });
+
+  it("emits cacheHit but NOT resolveStart/factoryInvoked on a warm sync resolve", async () => {
+    const bridge = makeTestBridge();
+    const env = createRmTestEnv({
+      modules: {
+        "g/A": () => makeRawModule({ a: 1 }),
+      },
+      busHost: bridge,
+    });
+    await env.rm.getPlugin({}, ["g/A"], undefined, () => {}, [], 1, undefined);
+
+    // Observe only the sync-phase events.
+    const collector = collectEvents(bridge);
+    const sync = env.rm.getPluginSync({}, ["g/A"], undefined, () => {}, [], 1, undefined);
+    expect(sync).not.toBe(ASYNC);
+
+    const types = collector.events.map((e) => e.type);
+    expect(types).toContain("res:cacheHit");
+    expect(types).not.toContain("res:resolveStart");
+    expect(types).not.toContain("res:factoryInvoked");
+    collector.dispose();
+  });
+
+  it("does not load any module (no factory work) on the sync path", async () => {
+    const env = createRmTestEnv({
+      modules: {
+        "g/A": () => makeRawModule({ a: 1 }),
+      },
+    });
+    await env.rm.getPlugin({}, ["g/A"], undefined, () => {}, [], 1, undefined);
+    const loadsBefore = env.loadCalls.length;
+
+    env.rm.getPluginSync({}, ["g/A"], undefined, () => {}, [], 1, undefined);
+
+    expect(env.loadCalls.length).toBe(loadsBefore);
+  });
+});
+
+describe("ResManager — getPluginSync (declines → ASYNC)", () => {
+  it("returns ASYNC for a cold dependency (slot never resolved)", () => {
+    const env = createRmTestEnv({
+      modules: {
+        "g/A": () => makeRawModule({ a: 1 }),
+      },
+    });
+
+    const sync = env.rm.getPluginSync({}, ["g/A"], undefined, () => {}, [], 1, undefined);
+
+    expect(sync).toBe(ASYNC);
+    // Crucially, declining must not have created a slot or loaded the module.
+    expect(env.loadCalls).toHaveLength(0);
+    expect(env.rmInternal.slots.has(env.keyOf("g/A"))).toBe(false);
+  });
+
+  it("returns ASYNC when a dep slot is still in-flight (Promise content)", async () => {
+    let releaseGate!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseGate = resolve;
+    });
+    const env = createRmTestEnv({
+      modules: {
+        "g/X": async () => {
+          await gate;
+          return makeRawModule({ x: 1 });
+        },
+      },
+    });
+
+    // Kick off the async resolve but do NOT await — the slot exists with a
+    // Promise content.
+    const pending = env.rm.getPlugin({}, ["g/X"], undefined, () => {}, [], 1, undefined);
+
+    const sync = env.rm.getPluginSync({}, ["g/X"], undefined, () => {}, [], 1, undefined);
+    expect(sync).toBe(ASYNC);
+
+    releaseGate();
+    await pending;
+    // Now warm → sync succeeds.
+    expect(env.rm.getPluginSync({}, ["g/X"], undefined, () => {}, [], 1, undefined)).not.toBe(ASYNC);
+  });
+
+  it("returns ASYNC when a warm slot has gone stale (generation bumped)", async () => {
+    const env = createRmTestEnv({
+      modules: {
+        "g/A": () => makeRawModule({ a: 1 }),
+      },
+    });
+    await env.rm.getPlugin({}, ["g/A"], undefined, () => {}, [], 1, undefined);
+    expect(env.rm.getPluginSync({}, ["g/A"], undefined, () => {}, [], 1, undefined)).not.toBe(ASYNC);
+
+    // Simulate an HMR generation bump without disposing the slot.
+    env.rmInternal.generationByNs.set("g/A", 1);
+
+    expect(env.rm.getPluginSync({}, ["g/A"], undefined, () => {}, [], 1, undefined)).toBe(ASYNC);
+  });
+});
+
+describe("ResManager — getPluginSync (vertex)", () => {
+  it("creator cache hit: returns the same vertex surface as the warm async resolve", async () => {
+    const env = createRmTestEnv({
+      modules: {
+        "v/V": (rm) => makeVertexModule(rm, {}, { v: 1 }),
+      },
+    });
+    // Warm the creator slot under genId 42, occurrence "0".
+    const asyncPlugin = (await env.rm.getPlugin({}, ["v/V"], undefined, () => {}, [], 42, undefined)) as unknown[];
+
+    const sync = env.rm.getPluginSync({}, ["v/V"], undefined, () => {}, [], 42, undefined);
+
+    expect(sync).not.toBe(ASYNC);
+    expect((sync as unknown[])[0]).toBe(asyncPlugin[0]);
+    // No second factory invocation.
+    expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(1);
+  });
+
+  it("covered path: shares the parent's slot synchronously", async () => {
+    const env = createRmTestEnv({
+      modules: {
+        "v/V": (rm) => makeVertexModule(rm, {}, { v: 1 }),
+      },
+    });
+    // Parent creates the vertex once.
+    await env.rmInternal.getPod("v/V", undefined, 7, undefined, [], "0");
+    const parentVKey = env.vKey(7, "0");
+
+    const sync = env.rm.getPluginSync({}, ["v/V"], undefined, () => {}, [], 99, { "v/V": parentVKey });
+
+    expect(sync).not.toBe(ASYNC);
+    // No new vertex slot under the consumer genId.
+    expect(env.rmInternal.vertexSlotsByGenId.has(99)).toBe(false);
+    expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(1);
+  });
+
+  it("covered path with a MISSING parent slot returns ASYNC (does not throw) — async path owns the error", async () => {
+    const env = createRmTestEnv({
+      modules: {
+        "v/V": (rm) => makeVertexModule(rm, {}, { v: 1 }),
+      },
+    });
+    const missingVKey = env.vKey(7, "0"); // never created
+
+    // Sync declines silently.
+    expect(env.rm.getPluginSync({}, ["v/V"], undefined, () => {}, [], 99, { "v/V": missingVKey })).toBe(ASYNC);
+
+    // The async path throws the attributed vertex-not-found error.
+    try {
+      await env.rm.getPlugin({}, ["v/V"], undefined, () => {}, [], 99, { "v/V": missingVKey });
+      expect.unreachable("expected getPlugin to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RMachineResolveError);
+      expect((error as RMachineResolveError).code).toBe(ERR_VERTEX_INSTANCE_NOT_FOUND);
+    }
+  });
+
+  it("creator MISS returns ASYNC without creating a slot or running the factory (Phase 1)", () => {
+    const env = createRmTestEnv({
+      modules: {
+        "v/V": (rm) => makeVertexModule(rm, {}, { v: 1 }),
+      },
+    });
+
+    expect(env.rm.getPluginSync({}, ["v/V"], undefined, () => {}, [], 42, undefined)).toBe(ASYNC);
+    expect(env.loadCalls).toHaveLength(0);
+    expect(env.rmInternal.vertexSlotsByGenId.has(42)).toBe(false);
   });
 });

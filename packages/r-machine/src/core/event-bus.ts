@@ -118,6 +118,10 @@ export type ResEvent =
 export type WireEvent =
   | { type: "wire:created"; genId: number; locale: AnyLocale; topLevelNs: readonly AnyNamespace[] }
   | { type: "wire:resolveTriggered"; genId: number }
+  // Emitted when resolve() produced the plugin synchronously (all dep pods were
+  // already resolved in their slots) and returned a fulfilled-tagged thenable,
+  // so the React consumer reads it via `use()` without suspending.
+  | { type: "wire:resolvedSync"; genId: number }
   | { type: "wire:rmSubscribed"; genId: number }
   | { type: "wire:rmUnsubscribed"; genId: number; vertexSlotsDisposed: number }
   | { type: "wire:markedDirty"; genId: number; subscriberCount: number }

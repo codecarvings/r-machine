@@ -1,0 +1,46 @@
+/**
+ * Copyright (c) 2026 Sergio Turolla
+ *
+ * This file is part of r-machine, licensed under the
+ * GNU Affero General Public License v3.0 (AGPL-3.0-only).
+ *
+ * You may use, modify, and distribute this file under the terms
+ * of the AGPL-3.0. See LICENSE in this package for details.
+ *
+ * If you need to use this software in a proprietary project,
+ * contact: licensing@codecarvings.com
+ */
+
+// Synchronous-resolution fast path primitives.
+//
+// `getPluginPromise()` normally returns a real Promise that React's `use()`
+// suspends on at first read. When the plugin can be produced WITHOUT awaiting
+// anything (all dependency pods are already resolved in their slots), we can
+// instead hand `use()` a thenable pre-tagged as fulfilled, which it unwraps
+// synchronously — no Suspense fallback. See [[wire-manager.resolve]] and
+// `ResManager.getPluginSync`.
+//
+// The sync path is a strict optimization: every layer attempts a synchronous
+// resolve and returns the `ASYNC` sentinel the moment anything is genuinely
+// asynchronous, at which point the caller falls back to the untouched async
+// path. The sync path can therefore only ever *decline* to optimize — it can
+// never produce a wrong plugin.
+
+// Returned by any `*Sync` resolver to signal "not synchronously resolvable —
+// fall back to the async path". A unique symbol so it can never collide with a
+// legitimately-resolved plugin value (which may itself be any value, including
+// `undefined` or other falsy primitives).
+export const ASYNC: unique symbol = Symbol("rm.sync.async");
+
+export type MaybeAsync<T> = T | typeof ASYNC;
+
+// A Promise pre-tagged the way React 19's `use()` recognizes a settled value,
+// so reading it during render returns the value synchronously instead of
+// suspending. React reads `.status`/`.value` off the thenable; the underlying
+// `Promise.resolve(value)` keeps it awaitable for any non-React consumer too.
+export function fulfilledThenable(value: unknown): Promise<unknown> {
+  const t = Promise.resolve(value) as Promise<unknown> & { status: string; value: unknown };
+  t.status = "fulfilled";
+  t.value = value;
+  return t;
+}

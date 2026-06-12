@@ -12,17 +12,8 @@
  *
  * Generalized from the local helper in tests/integration/commit-tracking.test.tsx.
  */
-import type { Wire } from "r-machine/core";
+import { fulfilledThenable, type Wire } from "r-machine/core";
 import { vi } from "vitest";
-
-// A Promise pre-tagged the way React 19's `use()` recognizes a settled value,
-// so reading it during render does not suspend.
-function fulfilledThenable(value: unknown): Promise<unknown> {
-  const t = Promise.resolve(value) as Promise<unknown> & { status: string; value: unknown };
-  t.status = "fulfilled";
-  t.value = value;
-  return t;
-}
 
 export interface FakeWireController {
   readonly wire: Wire;

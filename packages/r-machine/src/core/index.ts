@@ -140,6 +140,7 @@ export { createShellComposer, type ShellComposer } from "./shell-composer.js";
 export type { ShellPlugKitMap } from "./shell-plug.js";
 export { type RState, type StatefulOuterStateMap, setStateAccess, tryGetStateAccess } from "./state.js";
 export type { AnyClientGearSurface, AnySurface, Surface } from "./surface.js";
+export { ASYNC, fulfilledThenable, type MaybeAsync } from "./sync-resolve.js";
 export { TestMode } from "./test-mode.js";
 export {
   buildVertexKey,

@@ -1,12 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
-import type { PluginCtxAugmenter } from "../../src/core/plug.js";
+import {
+  type AnyPlugHead,
+  createPlug,
+  type PlugBody,
+  type PluginCtxAugmenter,
+  setPlugOverride,
+} from "../../src/core/plug.js";
 import { createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
 import { createStateCell } from "../../src/core/reactivity/state-cell.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "../../src/core/res-domain.js";
 import type { ResManager } from "../../src/core/res-manager.js";
 import type { AnyNamespaceMap } from "../../src/core/res-map.js";
+import { ASYNC } from "../../src/core/sync-resolve.js";
 import type { VertexGearMap } from "../../src/core/vertex-gear.js";
 import { WireManager } from "../../src/core/wire-manager.js";
+import { collectEvents, makeTestBridge } from "../_fixtures/event-bus-helpers.js";
 
 // --- helpers -----------------------------------------------------------------
 
@@ -638,5 +646,111 @@ describe("WireManager — commit-tracking (cassette → consumer-notify channel)
     // clearCassetteSubs() was wire-wide.
     expect(notifyA).toHaveBeenCalledTimes(1);
     expect(notifyB).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ─── Synchronous fast path orchestration ─────────────────────────────────────
+// resolve() asks ResManager.getPluginSync first; on a non-ASYNC result it wraps
+// the value in a fulfilled-tagged thenable (so React `use()` reads it without
+// suspending) and skips the async getPlugin entirely. On ASYNC it falls back.
+
+interface SyncMockRm {
+  readonly rm: ResManager;
+  readonly getPluginCalls: number;
+  readonly getPluginSyncCalls: number;
+}
+
+function createSyncMockRm(syncResult: () => unknown): SyncMockRm {
+  const counters = { getPlugin: 0, getPluginSync: 0 };
+  let pluginIdx = 0;
+  const rm = {
+    getPlugin(): Promise<unknown> {
+      counters.getPlugin++;
+      return Promise.resolve({ pluginId: pluginIdx++ });
+    },
+    getPluginSync(): unknown {
+      counters.getPluginSync++;
+      return syncResult();
+    },
+    subscribe(): () => void {
+      return () => {};
+    },
+    disposeAllVertexSlotsByGenId(): void {},
+    disposeVertexSlotsByOwnershipChange(): void {},
+  };
+  return {
+    rm: rm as unknown as ResManager,
+    get getPluginCalls() {
+      return counters.getPlugin;
+    },
+    get getPluginSyncCalls() {
+      return counters.getPluginSync;
+    },
+  };
+}
+
+type TaggedThenable = Promise<unknown> & { status?: string; value?: unknown };
+
+describe("WireManager — synchronous fast path", () => {
+  it("returns a fulfilled-tagged thenable and skips async getPlugin when getPluginSync resolves", () => {
+    const syncValue = { ready: true };
+    const mock = createSyncMockRm(() => syncValue);
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+
+    const p = wire.getPluginPromise() as TaggedThenable;
+
+    // React `use()` reads these synchronously — no suspend.
+    expect(p.status).toBe("fulfilled");
+    expect(p.value).toBe(syncValue);
+    // The async path was never touched.
+    expect(mock.getPluginSyncCalls).toBe(1);
+    expect(mock.getPluginCalls).toBe(0);
+  });
+
+  it("emits wire:resolvedSync on a synchronous resolve", () => {
+    const bridge = makeTestBridge();
+    const mock = createSyncMockRm(() => ({ ready: true }));
+    const wm = new WireManager(mock.rm, bridge, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+
+    const collector = collectEvents(bridge);
+    wire.getPluginPromise();
+
+    const types = collector.events.map((e) => e.type);
+    expect(types).toContain("wire:resolvedSync");
+    collector.dispose();
+  });
+
+  it("falls back to async getPlugin (plain pending promise) when getPluginSync returns ASYNC", async () => {
+    const mock = createSyncMockRm(() => ASYNC);
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+
+    const p = wire.getPluginPromise() as TaggedThenable;
+
+    // Plain promise — not pre-tagged, so React `use()` suspends on it.
+    expect("status" in p).toBe(false);
+    expect(mock.getPluginSyncCalls).toBe(1);
+    expect(mock.getPluginCalls).toBe(1);
+    await expect(p).resolves.toMatchObject({ pluginId: 0 });
+  });
+
+  it("skips the sync attempt entirely when a mockPlug transform is registered", async () => {
+    const mock = createSyncMockRm(() => ({ shouldBeIgnored: true }));
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+
+    const plug = createPlug({} as never) as PlugBody<AnyPlugHead>;
+    setPlugOverride(plug, { transform: (raw) => ({ transformed: raw }) });
+
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx, undefined, plug);
+
+    const p = wire.getPluginPromise() as TaggedThenable;
+
+    // Sync path was never consulted; async getPlugin + .then(transform) ran.
+    expect(mock.getPluginSyncCalls).toBe(0);
+    expect(mock.getPluginCalls).toBe(1);
+    expect("status" in p).toBe(false);
+    await expect(p).resolves.toMatchObject({ transformed: { pluginId: 0 } });
   });
 });

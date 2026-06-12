@@ -27,6 +27,7 @@ import { buildResPod, type ResPod } from "./res-pod.js";
 import { attachResolveContext } from "./resolve-context.js";
 import { PROCESS_SCOPE_PROVIDER, type RequestScope, type RequestScopeProvider, type Slot } from "./scope.js";
 import type { AnySurface } from "./surface.js";
+import { ASYNC } from "./sync-resolve.js";
 import { buildVertexKey, type VertexGearMap, type VertexGearTagData } from "./vertex-gear.js";
 
 // SEP = U+001F (Unit Separator). An empty locale prefix means `undefined`.
@@ -282,6 +283,60 @@ export class ResManager {
     return this.resolvePod(namespace, locale, key, layoutType, undefined, chain);
   }
 
+  // Synchronous sibling of `getPod`: returns a pod ONLY when it is already
+  // resolved (its slot exists, is fresh, and holds a committed `ResPod` rather
+  // than an in-flight Promise). Any miss / staleness / in-flight content yields
+  // the `ASYNC` sentinel so the caller falls back to the async `getPod`.
+  //
+  // Phase 1 (Tier A) never *creates* a pod here — it only reads warm slots, so
+  // no user factory ever runs on this path. The vertex-creator miss therefore
+  // returns ASYNC (synchronous vertex creation is Phase 2 / Tier B). The
+  // covered-vertex missing/stale case also returns ASYNC instead of throwing:
+  // the async `getPod` owns the `ERR_VERTEX_INSTANCE_NOT_FOUND` throw with its
+  // resolve-context attribution.
+  protected getPodSync(
+    namespace: AnyNamespace,
+    locale: AnyLocale | undefined,
+    genId: number,
+    vertexGearMap: VertexGearMap | undefined,
+    occurrenceTag: string = ""
+  ): ResPod | typeof ASYNC {
+    const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
+    const slotsMap = this.slotsForLayout(layoutType);
+    if (layoutType === "gear:outer(vertex)") {
+      const parentVertexKey = vertexGearMap?.[namespace];
+      if (parentVertexKey !== undefined) {
+        const consumerKey = getResCacheKey(namespace, locale, layoutType, parentVertexKey);
+        const consumerSlot = slotsMap.get(consumerKey);
+        if (consumerSlot === undefined || !this.isSlotFresh(consumerSlot) || consumerSlot.content instanceof Promise) {
+          return ASYNC;
+        }
+        this.busHost.bus?.emit({
+          type: "res:vertexConsumerResolved",
+          namespace,
+          consumerVertexKey: parentVertexKey,
+        });
+        return consumerSlot.content;
+      }
+      const myVertexKey = buildVertexKey(genId, occurrenceTag);
+      const creatorKey = getResCacheKey(namespace, locale, layoutType, myVertexKey);
+      const creatorSlot = slotsMap.get(creatorKey);
+      if (creatorSlot !== undefined && this.isSlotFresh(creatorSlot) && !(creatorSlot.content instanceof Promise)) {
+        this.busHost.bus?.emit({ type: "res:cacheHit", namespace, locale, generation: creatorSlot.generation });
+        return creatorSlot.content;
+      }
+      return ASYNC;
+    }
+
+    const key = getResCacheKey(namespace, locale, layoutType);
+    const cached = slotsMap.get(key);
+    if (cached !== undefined && this.isSlotFresh(cached) && !(cached.content instanceof Promise)) {
+      this.busHost.bus?.emit({ type: "res:cacheHit", namespace, locale, generation: cached.generation });
+      return cached.content;
+    }
+    return ASYNC;
+  }
+
   async getPlugin(
     kit: AnyNamespaceMap,
     nsDeps: AnyNamespaceCollection,
@@ -319,6 +374,87 @@ export class ResManager {
         ? this.loadListDeps(nsDeps, locale, genId, vertexGearMap, chain)
         : this.loadMapDeps(nsDeps, locale, genId, vertexGearMap, chain),
     ]);
+
+    return isList
+      ? this.buildListPlugin(kitDeps, deps as AnyResolvedNamespaceList, locale, augmentCtx, deferredKitEntries)
+      : this.buildMapPlugin(kitDeps, deps as AnyResolvedNamespaceMap, locale, augmentCtx, deferredKitEntries);
+  }
+
+  // Synchronous sibling of `getPlugin`: assembles the plugin WITHOUT awaiting,
+  // by reading every eager-kit entry and every dep from already-resolved slots
+  // via `getPodSync`. Returns the `ASYNC` sentinel the moment any pod is not
+  // synchronously available, so the caller (wire `resolve()`) falls back to the
+  // async `getPlugin`.
+  //
+  // Mirrors `getPlugin`'s kit partition and reuses the SAME synchronous
+  // `buildListPlugin`/`buildMapPlugin` builders (including the deferred-kit
+  // cycle getters), so a sync-assembled plugin is byte-identical to the async
+  // one. Deps are resolved sequentially rather than via `Promise.all` — with
+  // all pods already warm there is no I/O to overlap, so ordering is moot.
+  getPluginSync(
+    kit: AnyNamespaceMap,
+    nsDeps: AnyNamespaceCollection,
+    locale: AnyLocale | undefined,
+    augmentCtx: PluginCtxAugmenter,
+    chain: readonly AnyNamespace[],
+    genId: number,
+    vertexGearMap: VertexGearMap | undefined
+  ): unknown | typeof ASYNC {
+    const isList = isNamespaceList(nsDeps);
+    const eagerKitEntries: Array<readonly [string, AnyNamespace]> = [];
+    const deferredKitEntries: Array<readonly [string, AnyNamespace]> = [];
+    for (const entry of Object.entries(kit)) {
+      if (chain.includes(entry[1])) {
+        deferredKitEntries.push(entry);
+      } else {
+        eagerKitEntries.push(entry);
+      }
+    }
+
+    // Eager kit: each must already be a committed pod.
+    const kitPairs: Array<readonly [string, AnySurface]> = [];
+    for (const [k, ns] of eagerKitEntries) {
+      const pod = this.getPodSync(ns, locale, 0, undefined);
+      if (pod === ASYNC) {
+        return ASYNC;
+      }
+      kitPairs.push([k, pod.surface]);
+    }
+    const kitDeps = Object.fromEntries(kitPairs) as AnyResolvedNamespaceMap;
+
+    let deps: AnyResolvedNamespaceList | AnyResolvedNamespaceMap;
+    if (isList) {
+      const list: AnySurface[] = [];
+      const nsList = nsDeps as AnyNamespaceList;
+      for (let i = 0; i < nsList.length; i++) {
+        const pod = this.getPodSync(nsList[i] as AnyNamespace, locale, genId, vertexGearMap, String(i));
+        if (pod === ASYNC) {
+          return ASYNC;
+        }
+        list.push(pod.surface);
+      }
+      deps = list;
+    } else {
+      const pairs: Array<readonly [string, AnySurface]> = [];
+      for (const [key, namespace] of Object.entries(nsDeps as AnyNamespaceMap)) {
+        const pod = this.getPodSync(namespace, locale, genId, vertexGearMap, key);
+        if (pod === ASYNC) {
+          return ASYNC;
+        }
+        pairs.push([key, pod.surface]);
+      }
+      deps = Object.fromEntries(pairs) as AnyResolvedNamespaceMap;
+    }
+
+    // Only commit to emitting the partition event once we know the whole graph
+    // resolved synchronously (so a partial sync attempt that bails leaves no
+    // misleading trace).
+    this.busHost.bus?.emit({
+      type: "res:kitPartitioned",
+      selfNamespace: chain.length > 0 ? chain[chain.length - 1] : undefined,
+      eager: eagerKitEntries.map(([, ns]) => ns),
+      deferred: deferredKitEntries.map(([, ns]) => ns),
+    });
 
     return isList
       ? this.buildListPlugin(kitDeps, deps as AnyResolvedNamespaceList, locale, augmentCtx, deferredKitEntries)
