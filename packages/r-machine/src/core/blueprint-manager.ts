@@ -25,6 +25,7 @@ import {
   validateResModule,
 } from "./res-module.js";
 import type { ResFamily } from "./res-plug.js";
+import { ASYNC } from "./sync-resolve.js";
 
 // SEP = U+001F (Unit Separator). An empty locale prefix means `undefined`.
 // For blueprint-manager: only `shell` is locale-keyed. `shell(mono)` is unique
@@ -314,6 +315,28 @@ export class BlueprintManager {
     key: string
   ): Promise<Blueprint> {
     return this.getBlueprintInternal(namespace, locale, layoutEntryType, key, []);
+  }
+
+  // Synchronous sibling of `getBlueprint` (Tier B sync fast path): returns the
+  // resolved Blueprint ONLY when it is already cached (module imported and
+  // deps' blueprints loaded). Returns ASYNC for a cache miss, an in-flight
+  // Promise entry, or whenever `bypassCache` (dev/HMR) is on — in dev the
+  // cached blueprint may reference a stale factory closure, so the sync path
+  // must defer to the async one which forces a fresh import.
+  getBlueprintSync(
+    _namespace: AnyNamespace,
+    _locale: AnyLocale | undefined,
+    _layoutEntryType: ResLayoutEntryType,
+    key: string
+  ): Blueprint | typeof ASYNC {
+    if (this.bypassCache) {
+      return ASYNC;
+    }
+    const cached = this.cache.get(key);
+    if (cached === undefined || cached instanceof Promise) {
+      return ASYNC;
+    }
+    return cached;
   }
 
   getForwardClosure(nsList: Iterable<AnyNamespace>): Set<AnyNamespace> {

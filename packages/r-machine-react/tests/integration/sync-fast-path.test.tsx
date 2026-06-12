@@ -8,8 +8,9 @@
  * fallback renders) until the async resolve settles. See the sync-resolve fast
  * path in core (`ResManager.getPluginSync` + `wire-manager.resolve`).
  */
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import {
+  ASYNC,
   BlueprintManager,
   type BusHost,
   createCassetteRecorder,
@@ -39,6 +40,10 @@ function buildEnv() {
     getWire: async (nsDeps, locale, augmentCtx, chain) => {
       const plugin = await rm.getPlugin({}, nsDeps, locale, augmentCtx, chain, 0, undefined);
       return { plugin };
+    },
+    getWireSync: (nsDeps, locale, augmentCtx, chain) => {
+      const plugin = rm.getPluginSync({}, nsDeps, locale, augmentCtx, chain, 0, undefined);
+      return plugin === ASYNC ? ASYNC : { plugin };
     },
   };
 
@@ -99,4 +104,54 @@ describe("Tier A end-to-end — warm slot resolves without a Suspense fallback",
   // "suspends while the wire is pending, then resolves when it settles" in
   // tests/core/react-bare-toolset.test.tsx. The warm case above is the new
   // behavior this fast path introduces.
+});
+
+describe("Tier B end-to-end — stateful gear re-created synchronously in render phase", () => {
+  it("re-creates a disposed sync-eligible gear without a fallback, and its state stays reactive", async () => {
+    const { fakeMachine, rm } = buildEnv();
+    const { ReactRMachine, Plug } = await createReactBareToolset(fakeMachine as never, {} as never);
+
+    // Warm: the async resolve proves the OuterGear factory synchronous
+    // (sync-eligible) and caches its blueprint. Then dispose ONLY the slot
+    // (keep the blueprint) to mirror a teardown — so the next resolve must
+    // CREATE the instance, which Tier B does synchronously via `createSync`.
+    await rm.getPlugin({}, ["v/counter"], "en", noopAugment, [], 1, undefined);
+    const slots = (rm as unknown as { slots: Map<string, { namespace: string }> }).slots;
+    for (const [k, slot] of slots) {
+      if (slot.namespace === "v/counter") {
+        slots.delete(k);
+      }
+    }
+
+    const CounterPlug = (Plug as any)("v/counter");
+    function Counter() {
+      const [counter] = (CounterPlug as any).useR() as [{ count: number; inc: () => unknown }];
+      return (
+        <button type="button" onClick={() => counter.inc()}>
+          count: {counter.count}
+        </button>
+      );
+    }
+
+    // Tier B: the gear's factory runs synchronously DURING render (cursor +
+    // state cells included), producing a fulfilled-tagged thenable → no
+    // Suspense fallback on the first render.
+    render(
+      <ReactRMachine locale="en">
+        <React.Suspense fallback={<span data-testid="fallback">loading</span>}>
+          <Counter />
+        </React.Suspense>
+      </ReactRMachine>
+    );
+
+    expect(screen.queryByTestId("fallback")).toBeNull();
+    const button = screen.getByRole("button");
+    expect(button.textContent).toBe("count: 0");
+
+    // The sync-created instance's state is fully reactive.
+    await act(async () => {
+      fireEvent.click(button);
+    });
+    expect(button.textContent).toBe("count: 1");
+  });
 });

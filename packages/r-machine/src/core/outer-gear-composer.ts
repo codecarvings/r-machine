@@ -62,6 +62,7 @@ import { createResMatrix } from "./res-matrix.js";
 import type { AnyResPlug } from "./res-plug.js";
 import type { AnyState } from "./state.js";
 import { setStateAccess, tryGetStateAccess } from "./state.js";
+import { isThenable } from "./sync-resolve.js";
 
 // T is the actual return type, instantiated at each call site. Threaded as a
 // regular parameter (with default `R` for runtime/storage use) so an
@@ -607,6 +608,36 @@ function statelessPostProcess(raw: unknown, cursor: unknown): AnyRes {
   return wrapWithRelayCleanup(raw as AnyRes, cursor);
 }
 
+// Run the user factory chain (user `.define` body → optional state conversion →
+// optional clone-composed fn) returning SYNCHRONOUSLY when every step is sync,
+// and a Promise only when something genuinely awaits. A sync result makes the
+// matrix Tier-B sync-eligible (see res-matrix `createSync` /
+// `isResMatrixSyncEligible`), so a synchronous gear can be re-created in render
+// phase without Suspense; an async body keeps the gear on the async path.
+function runOuterFactory(
+  rawUserFactory: (plugin: unknown, cursor: unknown) => unknown,
+  plugin: unknown,
+  cursor: unknown,
+  convert: ((raw: unknown, cursor: unknown) => unknown) | undefined,
+  composedFn: ((res: never, plugin: never, cursor: never) => unknown) | undefined
+): unknown | Promise<unknown> {
+  const rawOrPromise = rawUserFactory(plugin, cursor);
+  if (isThenable(rawOrPromise)) {
+    return (async () => {
+      const raw = await rawOrPromise;
+      const converted = convert ? convert(raw, cursor) : raw;
+      return composedFn ? await composedFn(converted as never, plugin as never, cursor as never) : converted;
+    })();
+  }
+  const converted = convert ? convert(rawOrPromise, cursor) : rawOrPromise;
+  if (composedFn === undefined) {
+    return converted;
+  }
+  // composedFn may itself be sync or async — return its value verbatim so a
+  // sync chain stays sync (and an async clone fn falls back to the async path).
+  return composedFn(converted as never, plugin as never, cursor as never);
+}
+
 export function createOuterGearComposer<RA extends AnyResAtlas, KM extends GearPlugKitMap<RA>>(
   connector: ResComposerConnector,
   recorder: CassetteRecorder
@@ -796,14 +827,14 @@ function buildStatefulOuterGearMapMatrix<
   // Convert array→object BEFORE the user's clone fn sees it, so fn operates
   // on the same R the matrix advertises at the type level (StateDef factories
   // return arrays at runtime but their R is the derived object shape).
-  const effectiveFactory = async (plugin: unknown, cursor: unknown): Promise<unknown> => {
-    const raw = await (rawUserFactory as (plugin: unknown, cursor: unknown) => unknown | Promise<unknown>)(
+  const effectiveFactory = (plugin: unknown, cursor: unknown): unknown | Promise<unknown> =>
+    runOuterFactory(
+      rawUserFactory as (plugin: unknown, cursor: unknown) => unknown,
       plugin,
-      cursor
+      cursor,
+      (raw, c) => convertStatefulRaw(raw, c as StatefulOuterGearCursor<S>),
+      composedFn as ((res: never, plugin: never, cursor: never) => unknown) | undefined
     );
-    const converted = convertStatefulRaw(raw, cursor as StatefulOuterGearCursor<S>);
-    return composedFn ? await composedFn(converted, plugin as never, cursor as StatefulOuterGearCursor<S>) : converted;
-  };
 
   const matrix = createResMatrix({
     connector,
@@ -985,14 +1016,14 @@ function buildStatefulOuterGearListMatrix<
     defaultState
   );
 
-  const effectiveFactory = async (plugin: unknown, cursor: unknown): Promise<unknown> => {
-    const raw = await (rawUserFactory as (plugin: unknown, cursor: unknown) => unknown | Promise<unknown>)(
+  const effectiveFactory = (plugin: unknown, cursor: unknown): unknown | Promise<unknown> =>
+    runOuterFactory(
+      rawUserFactory as (plugin: unknown, cursor: unknown) => unknown,
       plugin,
-      cursor
+      cursor,
+      (raw, c) => convertStatefulRaw(raw, c as StatefulOuterGearCursor<S>),
+      composedFn as ((res: never, plugin: never, cursor: never) => unknown) | undefined
     );
-    const converted = convertStatefulRaw(raw, cursor as StatefulOuterGearCursor<S>);
-    return composedFn ? await composedFn(converted, plugin as never, cursor as StatefulOuterGearCursor<S>) : converted;
-  };
 
   const matrix = createResMatrix({
     connector,
@@ -1128,13 +1159,14 @@ function buildStatelessOuterGearMapMatrix<
   type ThisPlug = StatelessOuterGearMapPlug<RA, KM, DM, PM>;
   const head = createGearMapPlugHead<"outer", RA, KM, DM, PM, GearPluginCtx<RA, KM, PM>>("outer", deps, ports);
 
-  const effectiveFactory = async (plugin: unknown, cursor: unknown): Promise<unknown> => {
-    const raw = await (rawUserFactory as (plugin: unknown, cursor: unknown) => unknown | Promise<unknown>)(
+  const effectiveFactory = (plugin: unknown, cursor: unknown): unknown | Promise<unknown> =>
+    runOuterFactory(
+      rawUserFactory as (plugin: unknown, cursor: unknown) => unknown,
       plugin,
-      cursor
+      cursor,
+      undefined,
+      composedFn as ((res: never, plugin: never, cursor: never) => unknown) | undefined
     );
-    return composedFn ? await composedFn(raw as AnyRes, plugin as never, cursor as StatelessOuterGearCursor) : raw;
-  };
 
   const matrix = createResMatrix({
     connector: connector,
@@ -1210,13 +1242,14 @@ function buildStatelessOuterGearListMatrix<
   type ThisPlug = StatelessOuterGearListPlug<RA, KM, DL, PM>;
   const head = createGearListPlugHead<"outer", RA, KM, DL, PM, GearPluginCtx<RA, KM, PM>>("outer", deps, ports);
 
-  const effectiveFactory = async (plugin: unknown, cursor: unknown): Promise<unknown> => {
-    const raw = await (rawUserFactory as (plugin: unknown, cursor: unknown) => unknown | Promise<unknown>)(
+  const effectiveFactory = (plugin: unknown, cursor: unknown): unknown | Promise<unknown> =>
+    runOuterFactory(
+      rawUserFactory as (plugin: unknown, cursor: unknown) => unknown,
       plugin,
-      cursor
+      cursor,
+      undefined,
+      composedFn as ((res: never, plugin: never, cursor: never) => unknown) | undefined
     );
-    return composedFn ? await composedFn(raw as AnyRes, plugin as never, cursor as StatelessOuterGearCursor) : raw;
-  };
 
   const matrix = createResMatrix({
     connector: connector,

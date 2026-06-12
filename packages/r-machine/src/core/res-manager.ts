@@ -14,7 +14,7 @@
 import { ERR_CIRCULAR_DEPENDENCY, ERR_VERTEX_INSTANCE_NOT_FOUND, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { Blueprint } from "./blueprint.js";
-import type { BlueprintManager } from "./blueprint-manager.js";
+import { type BlueprintManager, getBlueprintResCacheKey } from "./blueprint-manager.js";
 import type { BusHost } from "./event-bus.js";
 import type { PluginCtxAugmenter } from "./plug.js";
 import { type AnyRes, tryGetDispose } from "./res.js";
@@ -23,6 +23,7 @@ import type { AnyResEquipment } from "./res-equipment.js";
 import { isOuterGearLayoutType, type ResLayoutEntryType, type ResLayoutResolver } from "./res-layout.js";
 import { type AnyNamespaceList, type AnyResolvedNamespaceList, isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap, AnyResolvedNamespaceMap } from "./res-map.js";
+import { type AnyResMatrix, isResMatrixSyncEligible } from "./res-matrix.js";
 import { buildResPod, type ResPod } from "./res-pod.js";
 import { attachResolveContext } from "./resolve-context.js";
 import { PROCESS_SCOPE_PROVIDER, type RequestScope, type RequestScopeProvider, type Slot } from "./scope.js";
@@ -138,9 +139,23 @@ export class ResManager {
     // mismatch. Capture-once guarantees consistency.
     const slotsMap = this.slotsForLayout(layoutType);
     let slot!: Slot;
+    // The BLUEPRINT is cached per (namespace, locale) — NOT per the res slot
+    // key. For vertex gears the slot `key` is per-instance (genId + occurrence
+    // tag), but their blueprint (the module/factory + dep graph) is identical
+    // across instances. Keying the blueprint by the slot key would re-import
+    // the module for every instance AND make a freshly-mounted vertex consumer
+    // (new wire → new genId) miss the cache, defeating the Tier-B sync fast
+    // path on navigation. `getBlueprintResCacheKey` is the dedicated, genId-
+    // agnostic blueprint key (also used by the BM's own dep preloading).
+    const blueprintKey = getBlueprintResCacheKey(namespace, locale, layoutType);
     const podPromise = (async () => {
       try {
-        const blueprint: Blueprint = await this.blueprintManager.getBlueprint(namespace, locale, layoutType, key);
+        const blueprint: Blueprint = await this.blueprintManager.getBlueprint(
+          namespace,
+          locale,
+          layoutType,
+          blueprintKey
+        );
         let pod: ResPod;
         if (blueprint.originType === "res") {
           pod = buildResPod(blueprint.origin as AnyRes, vertexTag);
@@ -283,15 +298,13 @@ export class ResManager {
     return this.resolvePod(namespace, locale, key, layoutType, undefined, chain);
   }
 
-  // Synchronous sibling of `getPod`: returns a pod ONLY when it is already
-  // resolved (its slot exists, is fresh, and holds a committed `ResPod` rather
-  // than an in-flight Promise). Any miss / staleness / in-flight content yields
-  // the `ASYNC` sentinel so the caller falls back to the async `getPod`.
+  // Synchronous sibling of `getPod`. Returns a pod when it is already resolved
+  // (warm fresh slot, non-Promise content) OR when it can be created
+  // synchronously (Tier B: cached blueprint + sync-eligible factory, via
+  // `resolvePodSync`). Returns the `ASYNC` sentinel for anything that cannot be
+  // done without awaiting, so the caller falls back to the async `getPod`.
   //
-  // Phase 1 (Tier A) never *creates* a pod here — it only reads warm slots, so
-  // no user factory ever runs on this path. The vertex-creator miss therefore
-  // returns ASYNC (synchronous vertex creation is Phase 2 / Tier B). The
-  // covered-vertex missing/stale case also returns ASYNC instead of throwing:
+  // The covered-vertex missing/stale case returns ASYNC instead of throwing:
   // the async `getPod` owns the `ERR_VERTEX_INSTANCE_NOT_FOUND` throw with its
   // resolve-context attribution.
   protected getPodSync(
@@ -299,6 +312,7 @@ export class ResManager {
     locale: AnyLocale | undefined,
     genId: number,
     vertexGearMap: VertexGearMap | undefined,
+    chain: readonly AnyNamespace[],
     occurrenceTag: string = ""
   ): ResPod | typeof ASYNC {
     const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
@@ -306,6 +320,8 @@ export class ResManager {
     if (layoutType === "gear:outer(vertex)") {
       const parentVertexKey = vertexGearMap?.[namespace];
       if (parentVertexKey !== undefined) {
+        // Covered path: a parent VertexFrame owns this instance. We never
+        // create it here — only read the parent's slot when already resolved.
         const consumerKey = getResCacheKey(namespace, locale, layoutType, parentVertexKey);
         const consumerSlot = slotsMap.get(consumerKey);
         if (consumerSlot === undefined || !this.isSlotFresh(consumerSlot) || consumerSlot.content instanceof Promise) {
@@ -325,7 +341,36 @@ export class ResManager {
         this.busHost.bus?.emit({ type: "res:cacheHit", namespace, locale, generation: creatorSlot.generation });
         return creatorSlot.content;
       }
-      return ASYNC;
+      // Creator miss → try Tier B sync creation. Register the vertex index
+      // entry AFTER a successful commit (unlike the async getPod, which
+      // registers before resolvePod): resolvePodSync may decline with ASYNC
+      // without creating a slot, and we must not leave a phantom index tag.
+      const pod = this.resolvePodSync(
+        namespace,
+        locale,
+        creatorKey,
+        layoutType,
+        { namespace, genId, occurrenceTag },
+        chain,
+        slotsMap
+      );
+      if (pod === ASYNC) {
+        return ASYNC;
+      }
+      const vertexIdx = this.vertexIndex();
+      let byNs = vertexIdx.get(genId);
+      if (!byNs) {
+        byNs = new Map();
+        vertexIdx.set(genId, byNs);
+      }
+      let tags = byNs.get(namespace);
+      if (!tags) {
+        tags = new Set();
+        byNs.set(namespace, tags);
+      }
+      tags.add(occurrenceTag);
+      this.busHost.bus?.emit({ type: "res:vertexSlotRegistered", namespace, genId, occurrenceTag });
+      return pod;
     }
 
     const key = getResCacheKey(namespace, locale, layoutType);
@@ -334,7 +379,60 @@ export class ResManager {
       this.busHost.bus?.emit({ type: "res:cacheHit", namespace, locale, generation: cached.generation });
       return cached.content;
     }
-    return ASYNC;
+    return this.resolvePodSync(namespace, locale, key, layoutType, undefined, chain, slotsMap);
+  }
+
+  // Synchronous sibling of `resolvePod`. Builds the pod WITHOUT awaiting: it
+  // needs the blueprint already cached (`getBlueprintSync`) and, for factory
+  // resources, the matrix proven sync-eligible (`createSync` ran sync once on
+  // the async path). Returns ASYNC otherwise. A synchronous throw from the user
+  // factory propagates up to the wire's resolve(), which falls back to the
+  // async path so the error surfaces with full resolve-context attribution.
+  //
+  // No `await` happens, so the async path's post-await stale checks
+  // (generation / slot-identity drift) are unnecessary — nothing can interleave
+  // between the freshness read and the commit. The slot is created only on
+  // success, holding the resolved pod directly (no in-flight Promise slot).
+  protected resolvePodSync(
+    namespace: AnyNamespace,
+    locale: AnyLocale | undefined,
+    key: string,
+    layoutType: ResLayoutEntryType,
+    vertexTag: VertexGearTagData | undefined,
+    chain: readonly AnyNamespace[],
+    slotsMap: Map<string, Slot>
+  ): ResPod | typeof ASYNC {
+    // Blueprint keyed per (namespace, locale), genId-agnostic (see resolvePod).
+    // This is what lets a fresh vertex consumer (new wire/genId) find the
+    // cached blueprint and create its pod synchronously.
+    const blueprintKey = getBlueprintResCacheKey(namespace, locale, layoutType);
+    const blueprint = this.blueprintManager.getBlueprintSync(namespace, locale, layoutType, blueprintKey);
+    if (blueprint === ASYNC) {
+      return ASYNC;
+    }
+    let pod: ResPod;
+    if (blueprint.originType === "res") {
+      pod = buildResPod(blueprint.origin as AnyRes, vertexTag);
+    } else {
+      if (!isResMatrixSyncEligible(blueprint.origin)) {
+        return ASYNC;
+      }
+      const createSync = (blueprint.origin as AnyResMatrix).createSync as (
+        locale: AnyLocale | undefined,
+        chain: readonly AnyNamespace[]
+      ) => AnyRes | typeof ASYNC;
+      this.busHost.bus?.emit({ type: "res:factoryInvoked", namespace, locale });
+      const res = createSync(locale, [...chain, namespace]);
+      if (res === ASYNC) {
+        return ASYNC;
+      }
+      pod = buildResPod(res, vertexTag);
+    }
+    const generation = this.generationByNs.get(namespace) ?? 0;
+    const slot: Slot = { key, namespace, generation, content: pod };
+    slotsMap.set(key, slot);
+    this.busHost.bus?.emit({ type: "res:slotCommitted", namespace, generation });
+    return pod;
   }
 
   async getPlugin(
@@ -414,7 +512,7 @@ export class ResManager {
     // Eager kit: each must already be a committed pod.
     const kitPairs: Array<readonly [string, AnySurface]> = [];
     for (const [k, ns] of eagerKitEntries) {
-      const pod = this.getPodSync(ns, locale, 0, undefined);
+      const pod = this.getPodSync(ns, locale, 0, undefined, chain);
       if (pod === ASYNC) {
         return ASYNC;
       }
@@ -427,7 +525,7 @@ export class ResManager {
       const list: AnySurface[] = [];
       const nsList = nsDeps as AnyNamespaceList;
       for (let i = 0; i < nsList.length; i++) {
-        const pod = this.getPodSync(nsList[i] as AnyNamespace, locale, genId, vertexGearMap, String(i));
+        const pod = this.getPodSync(nsList[i] as AnyNamespace, locale, genId, vertexGearMap, chain, String(i));
         if (pod === ASYNC) {
           return ASYNC;
         }
@@ -437,7 +535,7 @@ export class ResManager {
     } else {
       const pairs: Array<readonly [string, AnySurface]> = [];
       for (const [key, namespace] of Object.entries(nsDeps as AnyNamespaceMap)) {
-        const pod = this.getPodSync(namespace, locale, genId, vertexGearMap, key);
+        const pod = this.getPodSync(namespace, locale, genId, vertexGearMap, chain, key);
         if (pod === ASYNC) {
           return ASYNC;
         }

@@ -17,6 +17,7 @@ import {
   type AnyResAtlas,
   type AnyResAtlasClass,
   type AnyResEquipment,
+  ASYNC,
   type BaseGearNamespaceList,
   BlueprintManager,
   BUS_ACCESSOR,
@@ -157,6 +158,16 @@ export class RMachine<
         return {
           plugin,
         };
+      },
+      // Sync sibling (Tier B): assemble the dependency plugin synchronously when
+      // every transitive dep is warm / sync-eligible; otherwise decline so the
+      // caller falls back to the async `getWire`.
+      getWireSync: (deps, locale, augmentCtx, chain) => {
+        const plugin = this.resManager.getPluginSync(kit, deps, locale, augmentCtx, chain, 0, undefined);
+        if (plugin === ASYNC) {
+          return ASYNC;
+        }
+        return { plugin };
       },
       // Stamped onto every Plug built through this connector so test helpers can
       // reach `disposeResources()` from `r.plug` alone (`@r-machine/testing`).

@@ -17,6 +17,7 @@ import type { AnyResAtlas } from "./res-atlas.js";
 import { type AnyNamespace, isHandle } from "./res-domain.js";
 import type { AnyNamespaceList, HandleList, SurfaceList } from "./res-list.js";
 import type { AnyNamespaceMap, HandleMap, SurfaceMap } from "./res-map.js";
+import { ASYNC } from "./sync-resolve.js";
 import type { TestMode } from "./test-mode.js";
 
 export type PlugRealm = "res" | "gate";
@@ -108,6 +109,16 @@ export type PlugResolve<PH extends AnyPlugHead> = (
   chain: readonly AnyNamespace[]
 ) => Promise<ExtractPlugin<PH>>;
 
+// Synchronous sibling of `PlugResolve` (Tier B sync fast path). Returns the
+// resolved plugin, or the `ASYNC` sentinel when the deps cannot be resolved
+// synchronously (no `getWireSync` on the connector, or any transitive dep is
+// not warm / not sync-eligible). The default (set by `createPlug`) always
+// returns ASYNC, so a plug whose sync resolve was never wired simply declines.
+export type PlugResolveSync<PH extends AnyPlugHead> = (
+  locale: AnyLocale | undefined,
+  chain: readonly AnyNamespace[]
+) => ExtractPlugin<PH> | typeof ASYNC;
+
 // `Symbol.for` (global registry), NOT `Symbol`: the accessor is indexed across
 // the package boundary at RUNTIME (the @r-machine/next and @r-machine/react
 // toolsets read `rMachine[PLUG_MACHINE_ACCESSOR]`). Bundlers (e.g. Next) can
@@ -143,6 +154,7 @@ export interface PlugMachineBridge {
 
 const plugHeadSymbol = Symbol("plugHead");
 const plugResolveSymbol = Symbol("plugResolve");
+const plugResolveSyncSymbol = Symbol("plugResolveSync");
 const plugIdSymbol = Symbol("plugId");
 const plugMachineSymbol = Symbol("plugMachine");
 const plugOverrideSymbol = Symbol("plugOverride");
@@ -165,6 +177,7 @@ export interface PlugOverride {
 export interface PlugBody<PH extends AnyPlugHead> {
   readonly [plugHeadSymbol]: PH;
   [plugResolveSymbol]: PlugResolve<PH>;
+  [plugResolveSyncSymbol]: PlugResolveSync<PH>;
   // Stable identity for the lifetime of this Plug instance. Used by the
   // React adapter to key per-Plug request-scoped wireCaches (so server SSR
   // of client components doesn't reuse a wire whose plugin was disposed at
@@ -184,12 +197,16 @@ export interface PlugBody<PH extends AnyPlugHead> {
 const defaultPlugResolve: PlugResolve<any> = () => {
   throw new RMachineResolveError(ERR_RESOLVE_FAILED, "Plug resolve not set.");
 };
+// Default sync resolve: decline. A plug only gains a real sync resolve when
+// `createResMatrix` wires one through a connector that exposes `getWireSync`.
+const defaultPlugResolveSync: PlugResolveSync<any> = () => ASYNC;
 export function createPlug<H extends AnyPlugHead>(head: H): PlugBody<H> {
   // Workaround for HMR warnings (export not being a React component)
   function Plug() {}
   Plug.displayName = "RMachinePlug";
   (Plug as any)[plugHeadSymbol] = head;
   (Plug as any)[plugResolveSymbol] = defaultPlugResolve as PlugResolve<H>;
+  (Plug as any)[plugResolveSyncSymbol] = defaultPlugResolveSync as PlugResolveSync<H>;
   (Plug as any)[plugIdSymbol] = Symbol("plug");
   return Plug as unknown as PlugBody<H>;
 }
@@ -203,6 +220,13 @@ export function getPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>): PlugRe
 }
 export function setPlugResolve<H extends AnyPlugHead>(plug: PlugBody<H>, resolve: PlugResolve<H>): void {
   plug[plugResolveSymbol] = resolve;
+}
+
+export function getPlugResolveSync<H extends AnyPlugHead>(plug: PlugBody<H>): PlugResolveSync<H> {
+  return plug[plugResolveSyncSymbol];
+}
+export function setPlugResolveSync<H extends AnyPlugHead>(plug: PlugBody<H>, resolve: PlugResolveSync<H>): void {
+  plug[plugResolveSyncSymbol] = resolve;
 }
 
 export function getPlugId(plug: PlugBody<AnyPlugHead>): symbol {

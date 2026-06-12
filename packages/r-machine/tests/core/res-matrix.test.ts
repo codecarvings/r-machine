@@ -4,9 +4,11 @@ import {
   type AnyResMatrix,
   createResMatrix,
   type GearMatrixMeta,
+  isResMatrixSyncEligible,
   type ShellMatrixMeta,
   tryGetResMatrixMeta,
 } from "../../src/core/res-matrix.js";
+import { ASYNC } from "../../src/core/sync-resolve.js";
 
 // --- helpers -----------------------------------------------------------------
 
@@ -17,13 +19,32 @@ type AnyMeta = GearMatrixMeta | ShellMatrixMeta;
 // production. The tests under this file don't exercise resolution — they
 // pin construction-time behavior — so passing minimal `as never` fakes is
 // the same pattern blueprint-manager.test.ts uses.
-function makeOptions(meta: AnyMeta, overrides?: { userFactory?: () => Promise<unknown> }) {
+function makeOptions(meta: AnyMeta, overrides?: { userFactory?: (...a: unknown[]) => unknown }) {
   return {
     connector: { getWire: async () => ({ plugin: undefined }) } as never,
     meta,
     head: { realm: "res", family: meta.family, mode: "list", deps: [], nsDeps: [], nsDepList: [], ports: {} } as never,
     cursor: undefined,
     userFactory: overrides?.userFactory ?? (async () => ({})),
+  };
+}
+
+// Options whose connector also exposes a `getWireSync`, so `createSync` can run.
+// `wireSyncResult` controls whether the sync dep-resolve succeeds or declines.
+function makeSyncOptions(
+  meta: AnyMeta,
+  opts: { userFactory: (...a: unknown[]) => unknown; wireSyncResult?: { plugin: unknown } | typeof ASYNC }
+) {
+  const wireSyncResult = opts.wireSyncResult ?? { plugin: {} };
+  return {
+    connector: {
+      getWire: async () => ({ plugin: {} }),
+      getWireSync: () => wireSyncResult,
+    } as never,
+    meta,
+    head: { realm: "res", family: meta.family, mode: "list", deps: [], nsDeps: [], nsDepList: [], ports: {} } as never,
+    cursor: undefined,
+    userFactory: opts.userFactory,
   };
 }
 
@@ -59,14 +80,15 @@ describe("createResMatrix", () => {
       expect("meta" in mat).toBe(false);
     });
 
-    it("lists exactly the public string-keyed own properties: `create`, `plug`", () => {
-      // No accidental extras leaking into the public surface. The meta
-      // lives under a symbol key and must not appear in Object.keys().
-      // Derivation methods (clone/withPorts/withState) are added by
-      // specialized matrix builders, not by createResMatrix itself.
+    it("lists exactly the public string-keyed own properties: `create`, `createSync`, `plug`", () => {
+      // No accidental extras leaking into the public surface. The meta and the
+      // Tier-B sync-eligibility holder live under symbol keys and must not
+      // appear in Object.keys(). `createSync` is the synchronous sibling of
+      // `create` (Tier B fast path). Derivation methods (clone/withPorts/
+      // withState) are added by specialized matrix builders, not here.
       const mat = createResMatrix(makeOptions(gearMeta));
 
-      expect(Object.keys(mat).sort()).toEqual(["create", "plug"]);
+      expect(Object.keys(mat).sort()).toEqual(["create", "createSync", "plug"]);
     });
   });
 
@@ -219,5 +241,49 @@ describe("createResMatrix ⇄ tryGetResMatrixMeta round-trip", () => {
       const mat = createResMatrix(makeOptions(meta));
       expect(tryGetResMatrixMeta(mat)).toEqual(meta);
     }
+  });
+});
+
+// --- Tier B sync fast path ---------------------------------------------------
+
+describe("createResMatrix — sync eligibility inference", () => {
+  it("is NOT eligible before any resolve", () => {
+    const mat = createResMatrix(makeOptions(gearMeta, { userFactory: () => ({}) }));
+    expect(isResMatrixSyncEligible(mat)).toBe(false);
+  });
+
+  it("becomes eligible after an async resolve whose user factory returns synchronously", async () => {
+    const mat = createResMatrix(makeOptions(gearMeta, { userFactory: () => ({}) }));
+    await mat.create();
+    expect(isResMatrixSyncEligible(mat)).toBe(true);
+  });
+
+  it("stays NOT eligible when the user factory is async", async () => {
+    const mat = createResMatrix(makeOptions(gearMeta, { userFactory: async () => ({}) }));
+    await mat.create();
+    expect(isResMatrixSyncEligible(mat)).toBe(false);
+  });
+});
+
+describe("createResMatrix — createSync", () => {
+  it("declines (ASYNC) when the connector exposes no getWireSync", () => {
+    const mat = createResMatrix(makeOptions(gearMeta, { userFactory: () => ({}) }));
+    expect(mat.createSync()).toBe(ASYNC);
+  });
+
+  it("runs the factory synchronously and returns the resource when getWireSync resolves", () => {
+    const resource = { ok: true };
+    const mat = createResMatrix(makeSyncOptions(gearMeta, { userFactory: () => resource }));
+    expect(mat.createSync()).toBe(resource);
+  });
+
+  it("declines (ASYNC) when getWireSync declines (a transitive dep is not sync)", () => {
+    const mat = createResMatrix(makeSyncOptions(gearMeta, { userFactory: () => ({}), wireSyncResult: ASYNC }));
+    expect(mat.createSync()).toBe(ASYNC);
+  });
+
+  it("declines (ASYNC) defensively when the factory unexpectedly returns a thenable", () => {
+    const mat = createResMatrix(makeSyncOptions(gearMeta, { userFactory: () => Promise.resolve({}) }));
+    expect(mat.createSync()).toBe(ASYNC);
   });
 });

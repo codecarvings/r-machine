@@ -72,6 +72,41 @@ function makeVertexModule(rm: ResManager, kit: AnyNamespaceMap, resource: AnyRes
   return { r: matrix };
 }
 
+// A vertex module with a SYNCHRONOUS user factory and a connector that exposes
+// `getWireSync` — i.e. a module that becomes Tier-B sync-eligible after its
+// first async resolve. Used to exercise `resolvePodSync` (sync vertex creation
+// from a cached blueprint).
+function makeSyncVertexModule(rm: ResManager, kit: AnyNamespaceMap, makeResource: () => AnyRes): AnyResModule {
+  const head = {
+    realm: "res",
+    family: "gear",
+    mode: "list",
+    deps: [],
+    nsDeps: [],
+    nsDepList: [],
+    ports: {},
+  };
+  const connector: ResComposerConnector = {
+    getWire: async (nsDeps, locale, augmentCtx, chain) => {
+      const plugin = await rm.getPlugin(kit, nsDeps, locale, augmentCtx, chain, 0, undefined);
+      return { plugin };
+    },
+    getWireSync: (nsDeps, locale, augmentCtx, chain) => {
+      const plugin = rm.getPluginSync(kit, nsDeps, locale, augmentCtx, chain, 0, undefined);
+      return plugin === ASYNC ? ASYNC : { plugin };
+    },
+  };
+  const matrix = createResMatrix({
+    connector,
+    meta: { family: "gear", role: "outer" },
+    head: head as never,
+    cursor: undefined,
+    // Synchronous factory → proves sync-eligible on the first async resolve.
+    userFactory: () => makeResource(),
+  });
+  return { r: matrix };
+}
+
 // Generic gear matrix module (inner/base/outer). The userFactory receives the
 // resolved plugin (a list `[...deps, $]`), so the test can both verify
 // kit access works in non-cyclic cases and assert cycle errors when the
@@ -357,8 +392,10 @@ describe("ResManager — vertex slot tracking", () => {
     await env.rmInternal.getPod("v/V", undefined, 42, undefined, [], "0");
     await env.rmInternal.getPod("v/V", undefined, 42, undefined, [], "1");
 
-    // Two factory invocations because the tags discriminate distinct slots.
-    expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(2);
+    // The blueprint (module) is loaded ONCE — it is keyed per-namespace, shared
+    // across instances. The two tags still discriminate two distinct SLOTS
+    // (the factory runs per slot, producing independent pods).
+    expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(1);
     expect(env.rmInternal.vertexSlotsByGenId.get(42)).toEqual(new Map([["v/V", new Set(["0", "1"])]]));
     expect(env.rmInternal.slots.has(env.keyOf("v/V", undefined, env.vKey(42, "0")))).toBe(true);
     expect(env.rmInternal.slots.has(env.keyOf("v/V", undefined, env.vKey(42, "1")))).toBe(true);
@@ -491,9 +528,10 @@ describe("ResManager — vertex duplicate-deps in a single Plug", () => {
     // Simulates `Plug("v/V", "v/V").useR()` resolving under one wire's genId.
     const plugin = (await env.rm.getPlugin({}, ["v/V", "v/V"], undefined, () => {}, [], 42, undefined)) as unknown[];
 
-    // Two distinct slots → two factory invocations → distinct resource
-    // identities exposed in the plugin's deps array.
-    expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(2);
+    // One shared blueprint load (keyed per-namespace), but two distinct slots →
+    // the factory still runs per slot → distinct resource identities in the
+    // plugin's deps array.
+    expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(1);
     expect(plugin[0]).not.toBe(plugin[1]);
     expect(env.rmInternal.vertexSlotsByGenId.get(42)).toEqual(new Map([["v/V", new Set(["0", "1"])]]));
   });
@@ -535,7 +573,8 @@ describe("ResManager — vertex duplicate-deps in a single Plug", () => {
       b: unknown;
     };
 
-    expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(2);
+    // One shared blueprint load; two distinct slots → distinct instances.
+    expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(1);
     expect(plugin.a).not.toBe(plugin.b);
     // Tags come from the map keys (`"a"`, `"b"`), not numeric positions.
     expect(env.rmInternal.vertexSlotsByGenId.get(42)).toEqual(new Map([["v/V", new Set(["a", "b"])]]));
@@ -1286,7 +1325,7 @@ describe("ResManager — getPluginSync (declines → ASYNC)", () => {
     expect(env.rm.getPluginSync({}, ["g/X"], undefined, () => {}, [], 1, undefined)).not.toBe(ASYNC);
   });
 
-  it("returns ASYNC when a warm slot has gone stale (generation bumped)", async () => {
+  it("returns ASYNC after invalidation evicts the blueprint (real staleness path)", async () => {
     const env = createRmTestEnv({
       modules: {
         "g/A": () => makeRawModule({ a: 1 }),
@@ -1295,8 +1334,12 @@ describe("ResManager — getPluginSync (declines → ASYNC)", () => {
     await env.rm.getPlugin({}, ["g/A"], undefined, () => {}, [], 1, undefined);
     expect(env.rm.getPluginSync({}, ["g/A"], undefined, () => {}, [], 1, undefined)).not.toBe(ASYNC);
 
-    // Simulate an HMR generation bump without disposing the slot.
-    env.rmInternal.generationByNs.set("g/A", 1);
+    // A real HMR invalidation cascade bumps the generation, disposes the slot
+    // AND evicts the blueprint — so the sync path has no cached blueprint to
+    // re-create from and must defer to the async path (which re-imports).
+    // (Generation only ever bumps via invalidate, which always evicts; a
+    // generation bump WITHOUT eviction does not occur in production.)
+    env.triggerHmr("g/A");
 
     expect(env.rm.getPluginSync({}, ["g/A"], undefined, () => {}, [], 1, undefined)).toBe(ASYNC);
   });
@@ -1369,5 +1412,158 @@ describe("ResManager — getPluginSync (vertex)", () => {
     expect(env.rm.getPluginSync({}, ["v/V"], undefined, () => {}, [], 42, undefined)).toBe(ASYNC);
     expect(env.loadCalls).toHaveLength(0);
     expect(env.rmInternal.vertexSlotsByGenId.has(42)).toBe(false);
+  });
+});
+
+// ─── Synchronous fast path (Tier B) ──────────────────────────────────────────
+// `resolvePodSync` CREATES a pod synchronously when its blueprint is already
+// cached AND (for factory resources) the matrix has proven sync-eligible on a
+// prior async resolve. The key real-world trigger: a slot was disposed (e.g.
+// vertex teardown) but its blueprint survived, and the same wire re-resolves.
+
+describe("ResManager — getPluginSync (Tier B: sync creation)", () => {
+  it("re-creates a RAW resource synchronously from a cached blueprint after its slot was disposed", async () => {
+    const env = createRmTestEnv({
+      modules: {
+        "g/A": () => makeRawModule({ a: 1 }),
+      },
+    });
+    // First async resolve caches the blueprint and creates the slot.
+    await env.rm.getPlugin({}, ["g/A"], undefined, () => {}, [], 1, undefined);
+    // Dispose ONLY the slot (mirrors a teardown); the blueprint survives.
+    env.rmInternal.slots.delete(env.keyOf("g/A"));
+    const loadsBefore = env.loadCalls.length;
+
+    const sync = env.rm.getPluginSync({}, ["g/A"], undefined, () => {}, [], 1, undefined);
+
+    expect(sync).not.toBe(ASYNC);
+    // Re-created from the cached blueprint — no module re-load.
+    expect(env.loadCalls.length).toBe(loadsBefore);
+    // Slot re-committed.
+    expect(env.rmInternal.slots.has(env.keyOf("g/A"))).toBe(true);
+  });
+
+  it("declines (ASYNC) for a RAW resource whose blueprint is NOT cached", () => {
+    const env = createRmTestEnv({
+      modules: {
+        "g/A": () => makeRawModule({ a: 1 }),
+      },
+    });
+    // Never resolved → blueprint not cached.
+    expect(env.rm.getPluginSync({}, ["g/A"], undefined, () => {}, [], 1, undefined)).toBe(ASYNC);
+    expect(env.loadCalls).toHaveLength(0);
+  });
+
+  it("re-creates a sync-eligible VERTEX synchronously after its slot was disposed (factory runs in-sync)", async () => {
+    let factoryRuns = 0;
+    const env = createRmTestEnv({
+      modules: {
+        "v/V": (rm) =>
+          makeSyncVertexModule(rm, {}, () => {
+            factoryRuns++;
+            return { v: factoryRuns };
+          }),
+      },
+    });
+    // First async resolve: proves the factory synchronous (eligible), caches the
+    // blueprint, creates the slot + vertex index entry under genId 42 / tag "0".
+    await env.rm.getPlugin({}, ["v/V"], undefined, () => {}, [], 42, undefined);
+    expect(factoryRuns).toBe(1);
+    // Dispose the vertex slot + index (blueprint survives).
+    env.rm.disposeAllVertexSlotsByGenId(42);
+    expect(env.rmInternal.vertexSlotsByGenId.has(42)).toBe(false);
+    const loadsBefore = env.loadCalls.length;
+
+    const sync = env.rm.getPluginSync({}, ["v/V"], undefined, () => {}, [], 42, undefined);
+
+    expect(sync).not.toBe(ASYNC);
+    // The factory re-ran synchronously (no module re-load).
+    expect(factoryRuns).toBe(2);
+    expect(env.loadCalls.length).toBe(loadsBefore);
+    // Slot AND vertex index were re-registered (so disposal still finds it).
+    expect(env.rmInternal.slots.has(env.keyOf("v/V", undefined, env.vKey(42, "0")))).toBe(true);
+    expect(env.rmInternal.vertexSlotsByGenId.get(42)).toEqual(new Map([["v/V", new Set(["0"])]]));
+  });
+
+  it("declines (ASYNC) for a VERTEX whose factory is async (never sync-eligible)", async () => {
+    const env = createRmTestEnv({
+      modules: {
+        // makeVertexModule uses an ASYNC userFactory → never eligible.
+        "v/V": (rm) => makeVertexModule(rm, {}, { v: 1 }),
+      },
+    });
+    await env.rm.getPlugin({}, ["v/V"], undefined, () => {}, [], 42, undefined);
+    env.rm.disposeAllVertexSlotsByGenId(42);
+    const loadsBefore = env.loadCalls.length;
+
+    // Blueprint is cached, but the matrix never proved sync → decline.
+    expect(env.rm.getPluginSync({}, ["v/V"], undefined, () => {}, [], 42, undefined)).toBe(ASYNC);
+    // No speculative slot/index, no module re-load.
+    expect(env.loadCalls.length).toBe(loadsBefore);
+    expect(env.rmInternal.vertexSlotsByGenId.has(42)).toBe(false);
+  });
+
+  it("propagates a synchronous factory throw (so the wire falls back to the async path)", async () => {
+    let shouldThrow = false;
+    const env = createRmTestEnv({
+      modules: {
+        "v/V": (rm) =>
+          makeSyncVertexModule(rm, {}, () => {
+            if (shouldThrow) {
+              throw new Error("boom");
+            }
+            return { v: 1 };
+          }),
+      },
+    });
+    // Warm: proves eligible, caches blueprint.
+    await env.rm.getPlugin({}, ["v/V"], undefined, () => {}, [], 42, undefined);
+    env.rm.disposeAllVertexSlotsByGenId(42);
+
+    // Now make the sync factory throw — resolvePodSync must let it propagate.
+    shouldThrow = true;
+    try {
+      env.rm.getPluginSync({}, ["v/V"], undefined, () => {}, [], 42, undefined);
+      expect.unreachable("expected getPluginSync to throw");
+    } catch (error) {
+      expect((error as Error).message).toBe("boom");
+    }
+    // No slot/index left behind by the failed sync attempt.
+    expect(env.rmInternal.vertexSlotsByGenId.has(42)).toBe(false);
+    expect(env.rmInternal.slots.has(env.keyOf("v/V", undefined, env.vKey(42, "0")))).toBe(false);
+  });
+
+  it("re-creates a sync-eligible vertex under a DIFFERENT genId after disposal (navigation scenario)", async () => {
+    // This is the navigation case: leaving a view disposes the vertex slot, and
+    // returning mounts a FRESH wire with a NEW genId. Because the blueprint is
+    // keyed per-namespace (not per-genId), the new wire still finds it cached
+    // and re-creates the pod synchronously — no Suspense flash on re-navigation.
+    let runs = 0;
+    const env = createRmTestEnv({
+      modules: {
+        "v/V": (rm) =>
+          makeSyncVertexModule(rm, {}, () => {
+            runs++;
+            return { v: runs };
+          }),
+      },
+    });
+    // Wire A (genId 1) resolves async → caches the (ns-keyed) blueprint, proves
+    // eligible, creates the slot.
+    await env.rm.getPlugin({}, ["v/V"], undefined, () => {}, [], 1, undefined);
+    expect(runs).toBe(1);
+    // Navigate away: dispose wire A's vertex slot. The blueprint survives.
+    env.rm.disposeAllVertexSlotsByGenId(1);
+    const loadsBefore = env.loadCalls.length;
+
+    // Navigate back: a brand-new wire (genId 2) resolves synchronously.
+    const sync = env.rm.getPluginSync({}, ["v/V"], undefined, () => {}, [], 2, undefined);
+
+    expect(sync).not.toBe(ASYNC);
+    expect(runs).toBe(2); // factory re-ran synchronously
+    expect(env.loadCalls.length).toBe(loadsBefore); // blueprint shared — no module re-load
+    // A fresh slot + index entry under the NEW genId.
+    expect(env.rmInternal.slots.has(env.keyOf("v/V", undefined, env.vKey(2, "0")))).toBe(true);
+    expect(env.rmInternal.vertexSlotsByGenId.get(2)).toEqual(new Map([["v/V", new Set(["0"])]]));
   });
 });

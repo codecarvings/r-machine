@@ -6,8 +6,11 @@ import {
   getPlugId,
   getPlugOutline,
   getPlugResolve,
+  getPlugResolveSync,
   setPlugResolve,
+  setPlugResolveSync,
 } from "../../src/core/plug.js";
+import { ASYNC } from "../../src/core/sync-resolve.js";
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "../../src/errors/index.js";
 
 // Minimal stand-in head; createPlug only stores it verbatim.
@@ -59,6 +62,24 @@ describe("getPlugResolve / setPlugResolve", () => {
     const out = await getPlugResolve(plug)("en", ["g/x"] as never);
 
     expect(out).toEqual(["resolved"]);
+    expect(resolve).toHaveBeenCalledWith("en", ["g/x"]);
+  });
+});
+
+describe("getPlugResolveSync / setPlugResolveSync (Tier B)", () => {
+  it("the default sync resolve declines with the ASYNC sentinel", () => {
+    const plug = createPlug(fakeHead());
+    expect(getPlugResolveSync(plug)(undefined, [])).toBe(ASYNC);
+  });
+
+  it("setPlugResolveSync installs a sync resolver that getPlugResolveSync returns", () => {
+    const plug = createPlug(fakeHead());
+    const resolve = vi.fn(() => ["sync"] as never);
+    setPlugResolveSync(plug, resolve);
+
+    const out = getPlugResolveSync(plug)("en", ["g/x"] as never);
+
+    expect(out).toEqual(["sync"]);
     expect(resolve).toHaveBeenCalledWith("en", ["g/x"]);
   });
 });

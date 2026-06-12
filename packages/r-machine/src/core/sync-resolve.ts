@@ -44,3 +44,15 @@ export function fulfilledThenable(value: unknown): Promise<unknown> {
   t.value = value;
   return t;
 }
+
+// True when `v` is then-able (a Promise or any custom thenable). The sync
+// resolution path uses this to detect an ASYNC user factory: if invoking it
+// returns a thenable, the factory is not synchronous and the sync attempt must
+// bail. Mirrors the private predicate in relay.ts.
+export function isThenable(v: unknown): v is PromiseLike<unknown> {
+  return (
+    v !== null &&
+    (typeof v === "object" || typeof v === "function") &&
+    typeof (v as { then?: unknown }).then === "function"
+  );
+}

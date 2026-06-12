@@ -13,11 +13,20 @@
 
 import type { AnyLocale } from "#r-machine/locale";
 import type { GearRole } from "./gear-plug.js";
-import { createPlug, getPlugResolve, type PluginCtxAugmenter, setPlugMachine, setPlugResolve } from "./plug.js";
+import {
+  createPlug,
+  getPlugResolve,
+  getPlugResolveSync,
+  type PluginCtxAugmenter,
+  setPlugMachine,
+  setPlugResolve,
+  setPlugResolveSync,
+} from "./plug.js";
 import type { AnyRes, AnyResOrigin } from "./res.js";
 import type { ResComposerConnector } from "./res-composer-connector.js";
 import type { AnyNamespace } from "./res-domain.js";
 import type { AnyResPlug, AnyResPlugHead } from "./res-plug.js";
+import { ASYNC, isThenable } from "./sync-resolve.js";
 
 export interface GearMatrixMeta {
   readonly family: "gear";
@@ -40,6 +49,13 @@ type ResMatrixMeta = GearMatrixMeta | ShellMatrixMeta;
 
 const resMatrixMetaSymbol: unique symbol = Symbol("resMatrixMeta");
 
+// Mutable eligibility holder for the Tier B sync fast path. Set by the async
+// `create` the first time it observes the user factory returning synchronously
+// (a non-thenable). `resolvePodSync` reads it via `isResMatrixSyncEligible` and
+// only runs `createSync` (the factory, in render phase) when it is true — so an
+// async factory's synchronous prefix is never executed speculatively.
+const resMatrixSyncEligibleSymbol: unique symbol = Symbol("resMatrixSyncEligible");
+
 // Cannot use ResMatrix<R extends AnyRes, ...> because of res tags.
 // The base type carries only what's universally observable: identity (meta),
 // resolution (`create`) and the plug. Derivation methods (`clone`, `withPorts`,
@@ -48,13 +64,25 @@ const resMatrixMetaSymbol: unique symbol = Symbol("resMatrixMeta");
 export interface ResMatrix<R, P extends AnyResPlug> {
   readonly [resMatrixMetaSymbol]: ResMatrixMeta;
   readonly create: () => Promise<R>;
+  // Synchronous sibling of `create` (Tier B). Runs the user factory in the
+  // current tick, returning the resource or `ASYNC` when a dep can't be
+  // resolved synchronously / the factory turns out async. Only invoked by
+  // `resolvePodSync` once the matrix is sync-eligible.
+  readonly createSync: () => R | typeof ASYNC;
   readonly plug: P;
+  readonly [resMatrixSyncEligibleSymbol]: { eligible: boolean };
 }
 
 export type AnyResMatrix = ResMatrix<any, any>;
 
 export function tryGetResMatrixMeta(origin: AnyResOrigin): ResMatrixMeta | undefined {
   return (origin as Partial<AnyResMatrix>)[resMatrixMetaSymbol];
+}
+
+// True when this origin is a matrix whose user factory has already proven
+// synchronous on a prior async resolve (see `resMatrixSyncEligibleSymbol`).
+export function isResMatrixSyncEligible(origin: AnyResOrigin): boolean {
+  return (origin as Partial<AnyResMatrix>)[resMatrixSyncEligibleSymbol]?.eligible ?? false;
 }
 
 type CursorFactory = (plugin: unknown, selfNs?: AnyNamespace) => unknown;
@@ -81,17 +109,40 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
     setPlugMachine(plug, connector.machine);
   }
 
-  setPlugResolve(plug, async (locale: AnyLocale | undefined, chain: readonly AnyNamespace[]) => {
-    const buildCtx2: PluginCtxAugmenter = ($) => {
+  // Shared per-resolve ctx augmenter (locale + ports + user augmentCtx). Used
+  // by both the async and the sync plug resolve so they build an identical `$`.
+  const makeBuildCtx2 = (locale: AnyLocale | undefined): PluginCtxAugmenter => {
+    return ($) => {
       if (meta.family === "shell") {
         $.locale = locale;
       }
       $.ports = head.ports;
       return augmentCtx !== undefined ? augmentCtx($) : defaultBuildCtx($);
     };
-    const wire = await connector.getWire(head.nsDeps, locale, buildCtx2, chain);
+  };
+
+  setPlugResolve(plug, async (locale: AnyLocale | undefined, chain: readonly AnyNamespace[]) => {
+    const wire = await connector.getWire(head.nsDeps, locale, makeBuildCtx2(locale), chain);
     return wire.plugin as never;
   });
+
+  // Sync sibling of the plug resolve. Declines (ASYNC) when the connector has
+  // no sync path or any transitive dep isn't synchronously resolvable.
+  setPlugResolveSync(plug, (locale: AnyLocale | undefined, chain: readonly AnyNamespace[]) => {
+    if (connector.getWireSync === undefined) {
+      return ASYNC;
+    }
+    const wire = connector.getWireSync(head.nsDeps, locale, makeBuildCtx2(locale), chain);
+    if (wire === ASYNC) {
+      return ASYNC;
+    }
+    return wire.plugin as never;
+  });
+
+  // Eligibility holder mutated by `create` (below) and read via
+  // `isResMatrixSyncEligible`. Starts false → the first resolve always takes
+  // the async path, which proves whether the factory is synchronous.
+  const eligibility = { eligible: false };
 
   // `chain` defaults to empty so the public `create(): () => Promise<R>`
   // contract holds when called with no args (e.g. `r.create()` in resource-level
@@ -109,13 +160,40 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
     // provider to compute depth(relay) relative to mutation sources.
     const selfNs = chain.length > 0 ? chain[chain.length - 1] : undefined;
     const resolvedCursor = typeof cursor === "function" ? (cursor as CursorFactory)(plugin, selfNs) : cursor;
-    const raw = await userFactory(plugin, resolvedCursor as never);
+    const rawOrPromise = userFactory(plugin, resolvedCursor as never);
+    // Tier B inference: the user factory proves itself synchronous when it
+    // returns a non-thenable. Stamp eligibility so a later sync resolve may run
+    // it in render phase. (Whether the DEPS are synchronously resolvable is
+    // re-checked independently each time `createSync` runs.)
+    eligibility.eligible = !isThenable(rawOrPromise);
+    const raw = await rawOrPromise;
+    return (postProcess ? postProcess(raw, resolvedCursor as never) : raw) as AnyRes;
+  };
+
+  const createSync = (
+    locale: AnyLocale | undefined = undefined,
+    chain: readonly AnyNamespace[] = []
+  ): AnyRes | typeof ASYNC => {
+    const plugin = getPlugResolveSync(plug)(locale, chain);
+    if (plugin === ASYNC) {
+      return ASYNC;
+    }
+    const selfNs = chain.length > 0 ? chain[chain.length - 1] : undefined;
+    const resolvedCursor = typeof cursor === "function" ? (cursor as CursorFactory)(plugin, selfNs) : cursor;
+    const raw = userFactory(plugin, resolvedCursor as never);
+    // Defensive: createSync is only invoked when eligible, but a pathological
+    // factory that flips to async still bails cleanly here.
+    if (isThenable(raw)) {
+      return ASYNC;
+    }
     return (postProcess ? postProcess(raw, resolvedCursor as never) : raw) as AnyRes;
   };
 
   return {
     [resMatrixMetaSymbol]: meta,
     create: create as () => Promise<AnyRes>,
+    createSync: createSync as () => AnyRes | typeof ASYNC,
     plug,
+    [resMatrixSyncEligibleSymbol]: eligibility,
   };
 }

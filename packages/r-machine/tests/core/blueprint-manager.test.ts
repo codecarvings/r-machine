@@ -5,6 +5,7 @@ import type { AnyNamespace } from "../../src/core/res-domain.js";
 import { type AnyResLayout, ResLayoutResolver } from "../../src/core/res-layout.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
 import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-module.js";
+import { ASYNC } from "../../src/core/sync-resolve.js";
 
 // --- helpers -----------------------------------------------------------------
 
@@ -50,6 +51,7 @@ interface TestEnvOptions {
   readonly modules: Record<string, () => AnyResModule | Promise<AnyResModule>>;
   readonly kitDeps?: { gear?: string[]; shell?: string[] };
   readonly priority?: string[];
+  readonly bypassCache?: boolean;
 }
 
 function createTestEnv(options: TestEnvOptions) {
@@ -76,7 +78,8 @@ function createTestEnv(options: TestEnvOptions) {
       shell: options.kitDeps?.shell ?? [],
     },
     options.priority ?? [],
-    { bus: undefined }
+    { bus: undefined },
+    options.bypassCache ?? false
   );
 
   return {
@@ -518,5 +521,58 @@ describe("BlueprintManager — race protection", () => {
     // The old load's dep graph side effects must not have been applied.
     expect(reverseDeps.get("g/A")?.has("g/X") ?? false).toBe(false);
     expect(reverseDeps.get("g/B")?.has("g/X")).toBe(true);
+  });
+});
+
+describe("BlueprintManager — getBlueprintSync (Tier B)", () => {
+  const layoutOf = (ns: string) => new ResLayoutResolver(TEST_LAYOUT).resolveLayoutEntryType(ns);
+
+  it("returns the cached Blueprint when it is already resolved", async () => {
+    const env = createTestEnv({ modules: { "g/X": () => makeMatrixModule("gear", "inner", []) } });
+    const blueprint = await loadByNs(env, "g/X");
+
+    const sync = env.bm.getBlueprintSync("g/X", undefined, layoutOf("g/X"), env.keyOf("g/X"));
+
+    expect(sync).toBe(blueprint);
+  });
+
+  it("returns ASYNC for a namespace that was never loaded", () => {
+    const env = createTestEnv({ modules: { "g/X": () => makeMatrixModule("gear", "inner", []) } });
+    expect(env.bm.getBlueprintSync("g/X", undefined, layoutOf("g/X"), env.keyOf("g/X"))).toBe(ASYNC);
+  });
+
+  it("returns ASYNC while a blueprint is still in-flight (Promise cache entry)", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    const env = createTestEnv({
+      modules: {
+        "g/X": async () => {
+          await gate;
+          return makeMatrixModule("gear", "inner", []);
+        },
+      },
+    });
+    const pending = loadByNs(env, "g/X"); // do not await — cache holds a Promise
+
+    expect(env.bm.getBlueprintSync("g/X", undefined, layoutOf("g/X"), env.keyOf("g/X"))).toBe(ASYNC);
+
+    release();
+    await pending;
+    // Now resolved → sync returns it.
+    expect(env.bm.getBlueprintSync("g/X", undefined, layoutOf("g/X"), env.keyOf("g/X"))).not.toBe(ASYNC);
+  });
+
+  it("returns ASYNC even for a cached blueprint when bypassCache (dev/HMR) is on", async () => {
+    const env = createTestEnv({
+      modules: { "g/X": () => makeMatrixModule("gear", "inner", []) },
+      bypassCache: true,
+    });
+    await loadByNs(env, "g/X");
+
+    // In dev the cached blueprint may reference a stale factory closure, so the
+    // sync path must defer to the async one (which forces a fresh import).
+    expect(env.bm.getBlueprintSync("g/X", undefined, layoutOf("g/X"), env.keyOf("g/X"))).toBe(ASYNC);
   });
 });
