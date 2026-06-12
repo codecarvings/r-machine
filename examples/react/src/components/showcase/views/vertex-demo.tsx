@@ -12,15 +12,16 @@ function CounterWidget({ label }: { label: string }) {
   );
 }
 
-const framePlug = Plug({ counter: "vertex/counter" });
+const framePlug = Plug({ counter: "vertex/counter", showcase: "shell/showcase" });
 export function VertexDemo() {
-  const { counter } = framePlug.useR();
+  const { counter, showcase: s } = framePlug.useR();
+  const t = s.views.vertex;
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Independent — no frame</CardTitle>
+          <CardTitle className="text-base">{t.independentTitle}</CardTitle>
         </CardHeader>
         <CardContent className="flex gap-3">
           <CounterWidget label="A" />
@@ -30,7 +31,7 @@ export function VertexDemo() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Shared — inside a VertexFrame</CardTitle>
+          <CardTitle className="text-base">{t.sharedTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <VertexFrame gear={[counter]}>
@@ -42,9 +43,7 @@ export function VertexDemo() {
         </CardContent>
       </Card>
 
-      <p className="text-xs text-muted-foreground">
-        A and B are independent instances. C and D share one instance via the frame — increment either and both move.
-      </p>
+      <p className="text-xs text-muted-foreground">{t.note}</p>
     </div>
   );
 }

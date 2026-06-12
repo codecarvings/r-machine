@@ -2,9 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plug } from "@/r-machine/toolset";
 
-export const plug = Plug("outer/operator", "outer/timer");
+export const plug = Plug("outer/operator", "outer/timer", "shell/showcase");
 export function GearDepsDemo() {
-  const [operator, timer] = plug.useR();
+  const [operator, timer, s] = plug.useR();
 
   return (
     <Card>
@@ -18,9 +18,7 @@ export function GearDepsDemo() {
           </div>
         </div>
         <Button onClick={operator.add10}>operator.add10() → timer.add(10)</Button>
-        <p className="text-xs text-muted-foreground">
-          operator depends on timer (by token). Its getter derives from the timer, and its action commands it.
-        </p>
+        <p className="text-xs text-muted-foreground">{s.views["gear-deps"].note}</p>
       </CardContent>
     </Card>
   );

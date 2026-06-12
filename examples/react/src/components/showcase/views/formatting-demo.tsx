@@ -32,9 +32,7 @@ export function FormattingDemo() {
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          Switch locale (top-right) — number grouping, currency and plural rules all change with it.
-        </p>
+        <p className="text-xs text-muted-foreground">{s.views.formatting.note}</p>
       </CardContent>
     </Card>
   );

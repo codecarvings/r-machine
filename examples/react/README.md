@@ -28,6 +28,7 @@ R-Machine **i18n is dependency injection**.
 | **Localization without a router** | [`shell/showcase`](src/r-machine/shell/showcase/en.tsx) | Every string is a localized shell; the locale is persisted to `localStorage` and reapplied on reload — no URL. |
 | **BaseGear** | [`base/config`](src/r-machine/base/config.ts) | Stateless app config the timer depends on. |
 | **Source on demand** | [`code-block`](src/components/showcase/code-block.tsx) | Each view's "Source" tab shows the real file via `?raw`, highlighted with `shiki`. |
+| **Testing with `mockPlug`** | [`tests/`](tests) | `mockPlug` seeds/observes a gear's real state; client components render with **no provider**. Plus `verifyResourceAtlas`. |
 
 ## Run it
 
@@ -36,7 +37,7 @@ pnpm install
 pnpm dev       # http://localhost:5173
 pnpm build     # tsc -b && vite build
 pnpm preview   # serve the production build
-pnpm test      # vitest: verifyResourceAtlas (every shell resolves for every locale)
+pnpm test      # vitest: gear, gear-dependency & component (mockPlug) tests + verifyResourceAtlas
 ```
 
 (From the monorepo root: `pnpm --filter @r-machine/examples-react <script>`.)

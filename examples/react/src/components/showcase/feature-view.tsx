@@ -21,8 +21,8 @@ export function FeatureView({ view }: { view: ViewId }) {
 
       <Tabs defaultValue="demo">
         <TabsList>
-          <TabsTrigger value="demo">Demo</TabsTrigger>
-          <TabsTrigger value="source">Source</TabsTrigger>
+          <TabsTrigger value="demo">{s.ui.demoTab}</TabsTrigger>
+          <TabsTrigger value="source">{s.ui.sourceTab}</TabsTrigger>
         </TabsList>
         <TabsContent value="demo" className="pt-4">
           <Demo />
