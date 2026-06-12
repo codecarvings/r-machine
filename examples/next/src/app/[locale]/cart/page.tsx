@@ -1,4 +1,4 @@
-import { CartView } from "@/components/client/CartView";
+import { CartView } from "@/components/client/cart-view";
 
 // Thin server shell around the client cart. `outer/cart` is client state, so the
 // whole cart lives in <CartView>.

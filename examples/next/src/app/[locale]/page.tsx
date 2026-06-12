@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { CatalogClient } from "@/components/client/CatalogClient";
+import { CatalogClient } from "@/components/client/catalog-client";
 import CatalogSkeleton from "@/components/server/catalog-skeleton";
 import { ServerPlug } from "@/r-machine/server-toolset";
 

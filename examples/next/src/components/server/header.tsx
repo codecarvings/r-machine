@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { CartBadge } from "@/components/client/CartBadge";
+import { CartBadge } from "@/components/client/cart-badge";
 import { LocaleSwitcher } from "@/components/client/locale-switcher";
 import RMachineLogo from "@/gfx/r-machine.logo.svg";
 import { ServerPlug } from "@/r-machine/server-toolset";

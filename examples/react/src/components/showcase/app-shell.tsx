@@ -1,9 +1,9 @@
 import { DelayedSuspense } from "@r-machine/react/utils";
-import { LocaleSwitcher } from "@/components/client/LocaleSwitcher";
+import { LocaleSwitcher } from "@/components/showcase/locale-switcher";
 import RMachineLogo from "@/gfx/r-machine.logo.svg";
 import { Plug } from "@/r-machine/toolset";
-import { FeatureView } from "./FeatureView";
-import { Sidebar } from "./Sidebar";
+import { FeatureView } from "./feature-view";
+import { Sidebar } from "./sidebar";
 
 export const plug = Plug("outer/nav", "shell/showcase");
 export function AppShell() {

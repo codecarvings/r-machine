@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AddToCartButton } from "@/components/client/AddToCartButton";
+import { AddToCartButton } from "@/components/client/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
 import { ServerPlug } from "@/r-machine/server-toolset";
 

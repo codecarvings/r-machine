@@ -1,5 +1,5 @@
 import { RoutePlayground } from "@/components/client/route-playground";
-import { TimerCard } from "@/components/client/TimerCard";
+import { TimerCard } from "@/components/client/timer-card";
 import Hero from "@/components/server/hero";
 import { bindLocale } from "@/r-machine/server-toolset";
 

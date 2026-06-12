@@ -3,7 +3,7 @@
 import { mockPlug } from "@r-machine/testing";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CartView, plug } from "@/components/client/CartView";
+import { CartView, plug } from "@/components/client/cart-view";
 
 // The Next client toolset reads next/navigation hooks during render; stub them.
 vi.mock("next/navigation", () => ({

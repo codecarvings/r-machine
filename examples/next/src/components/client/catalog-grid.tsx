@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { ProductCard } from "@/components/product-card";
+import { ProductCard } from "@/components/client/product-card";
 import { ClientPlug } from "@/r-machine/client-toolset";
 import type { Product } from "@/r-machine/inner/catalog";
 
