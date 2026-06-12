@@ -1,3 +1,4 @@
+import { DelayedSuspense } from "@r-machine/react/utils";
 import { LocaleSwitcher } from "@/components/client/LocaleSwitcher";
 import RMachineLogo from "@/gfx/r-machine.logo.svg";
 import { Plug } from "@/r-machine/toolset";
@@ -28,7 +29,9 @@ export function AppShell() {
           <Sidebar />
         </aside>
         <main className="min-w-0 flex-1">
-          <FeatureView view={nav.view} />
+          <DelayedSuspense>
+            <FeatureView view={nav.view} />
+          </DelayedSuspense>
         </main>
       </div>
     </div>

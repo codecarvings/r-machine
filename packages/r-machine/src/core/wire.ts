@@ -46,4 +46,14 @@ export interface Wire {
   // disposes ALL remaining consumers automatically.
   readonly disposeConsumer: (consumerKey: object) => void;
   readonly updateRequest: (locale: AnyLocale, vertexGearMap?: VertexGearMap | undefined) => void;
+  // Ownership claim for the frameless-vertex "share then split" protocol. An
+  // uncovered vertex consumer has no React-stable per-consumer identity before
+  // its first commit (useRef/useId both reset on every pre-commit Suspense
+  // retry), so sibling consumers transiently share one wire (keyed by a
+  // module-level default key) to break the suspend loop and reach commit. The
+  // FIRST consumer to commit claims the wire as its own instance; later
+  // committers detect a foreign owner and move to a fresh wire. See the React
+  // layer (`getDefaultKey` in react-bare-toolset). `null` until claimed.
+  readonly getOwner: () => object | null;
+  readonly claimOwner: (token: object) => void;
 }

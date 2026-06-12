@@ -48,7 +48,18 @@ import {
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { ReactNode } from "react";
-import { createContext, use, useContext, useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from "react";
+import {
+  createContext,
+  startTransition,
+  use,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "../errors/error-codes.js";
 import { wrapReactiveResult } from "./react-compiler-support.js";
 import type { ReactPlugDefiner, ReactPlugKitMap } from "./react-plug.js";
@@ -253,6 +264,42 @@ export async function createReactBareToolset<
     // cache is GC-bound to the consumer's lifetime even if explicit dispose
     // is missed.
     const perConsumerWireCaches = new WeakMap<object, Map<string, WireEntry>>();
+
+    // Frameless-vertex "share then split" support.
+    //
+    // An uncovered vertex consumer needs per-consumer identity (one wire = one
+    // genId = one instance), but React gives NO stable per-consumer key before
+    // the first commit: `useRef` AND `useId` both reset on every pre-commit
+    // Suspense retry. Anchoring the per-consumer cache on the reset-prone ref
+    // produced a new wire (new pending promise) every retry → infinite suspend
+    // loop. See [[project-open-bug-frameless-vertex-csr-suspense-loop]].
+    //
+    // Fix: `getDefaultKey()` hands out a module-stable key (re-derived each
+    // render, so it survives the ref reset). Sibling consumers transiently
+    // share it → share one wire → all reach commit on the resolved shared
+    // promise. The FIRST to commit claims the wire+key (post-commit, where
+    // `useRef` IS stable); the next `getDefaultKey()` then rotates to a fresh
+    // unclaimed key so later/late-mounting consumers get their own fresh
+    // (count-0) wire — no stale flash. Non-first committers of the SAME wire
+    // detect a foreign owner and move to a rotated key (see the layout effect
+    // in `useBareReactPlug`). The key carries `owner` so rotation is driven by
+    // claim, not by timing. `body` is fixed for this closure, so a single
+    // closure-scoped "current key" suffices (no per-plug Map needed).
+    type DefaultKey = { owner: object | null };
+    let currentDefaultKey: DefaultKey | null = null;
+    const getDefaultKey = (): DefaultKey => {
+      if (currentDefaultKey === null || currentDefaultKey.owner !== null) {
+        currentDefaultKey = { owner: null }; // lazy rotation: only once the current is claimed
+      }
+      return currentDefaultKey;
+    };
+    // True when this plug has at least one vertex dep NOT covered by a
+    // VertexFrame ancestor — i.e. the consumer is the per-instance CREATOR and
+    // needs the share-then-split path. Covered / non-vertex consumers resolve
+    // via the shared `${locale}|${vgmSig}` cache and skip all of it.
+    const computeHasUncoveredVertex = (vgm: ReturnType<typeof useVertexFrame>): boolean =>
+      hasAnyVertexDep && (vgm ? [...vertexDepsSet].some((ns) => vgm[ns] === undefined) : true);
+
     const plugId = getPlugId(body);
     // Resolves which cache backs `wireCache` for this consumer's render:
     //   - Server inside an active request scope: a fresh-per-request Map kept
@@ -301,20 +348,13 @@ export async function createReactBareToolset<
       // the same plug under no VertexFrame end up sharing one slot — the
       // "3 instances tick in sync, all show the same value" symptom.
       let wireCache: Map<string, WireEntry>;
-      if (hasAnyVertexDep) {
-        const hasUncoveredVertex = vertexGearMap
-          ? [...vertexDepsSet].some((ns) => vertexGearMap[ns] === undefined)
-          : true;
-        if (hasUncoveredVertex) {
-          let pcc = perConsumerWireCaches.get(consumerKey);
-          if (pcc === undefined) {
-            pcc = new Map<string, WireEntry>();
-            perConsumerWireCaches.set(consumerKey, pcc);
-          }
-          wireCache = pcc;
-        } else {
-          wireCache = getWireCache(requestScope);
+      if (computeHasUncoveredVertex(vertexGearMap)) {
+        let pcc = perConsumerWireCaches.get(consumerKey);
+        if (pcc === undefined) {
+          pcc = new Map<string, WireEntry>();
+          perConsumerWireCaches.set(consumerKey, pcc);
         }
+        wireCache = pcc;
       } else {
         wireCache = getWireCache(requestScope);
       }
@@ -390,20 +430,37 @@ export async function createReactBareToolset<
       const safeCtx = ctx ?? fallbackCtx;
       sharedWriteLocaleRef.current = safeCtx.writeLocale;
 
-      // Stable per-consumer identity. Used both for the wire cache (when
-      // the plug has uncovered vertex deps, each consumer gets its own
-      // wire = its own genId = its own vertex slot — see [[project-vertex-
-      // per-consumer-instance]]) AND for the wire's internal per-consumer
-      // cassette/unsubs/epoch state (so siblings sharing a wire don't tear
-      // down each other's subscriptions on commit). The same opaque token
-      // serves both purposes; the wire treats it as identity, never reads
-      // it.
+      // Frameless vertex consumer? Then it is a per-instance CREATOR and takes
+      // the share-then-split path (see getDefaultKey). Covered / non-vertex
+      // consumers resolve via the shared `${locale}|${vgmSig}` cache.
+      const hasUncoveredVertex = computeHasUncoveredVertex(vertexGearMap);
+
+      // PER-CONSUMER token: the wire's per-consumer cassette/unsubs/epoch state,
+      // its disposeConsumer key, AND (for uncovered vertex) the owner identity.
+      // It MUST stay per-consumer: sharing it across siblings would make their
+      // commits collide on one cassette epoch, so the owner's commit would be
+      // superseded and never subscribe to its cell. Stable post-commit; its
+      // pre-commit reset only churns a couple of throwaway ConsumerStates on the
+      // shared wire (empty, cleaned on teardown).
       const consumerKeyRef = useRef<object | null>(null);
       if (consumerKeyRef.current === null) {
         consumerKeyRef.current = {};
       }
 
-      const wire = getOrCreateWire(safeCtx.locale, vertexGearMap, requestScope, consumerKeyRef.current);
+      // WIRE-LOOKUP key (separate from the tracking token above). For an
+      // uncovered vertex consumer this is a MODULE-STABLE default key, re-derived
+      // from getDefaultKey() each render so it survives the pre-commit ref reset
+      // (the reset is exactly what made the old key churn a new wire every
+      // Suspense retry → infinite loop). Siblings transiently share one wire to
+      // reach commit; the owner/move layout effect below then rotates this to a
+      // unique key for non-owners. For covered / non-vertex the shared
+      // `${locale}|${vgmSig}` cache ignores it.
+      const lookupKeyRef = useRef<object | null>(null);
+      if (lookupKeyRef.current === null) {
+        lookupKeyRef.current = hasUncoveredVertex ? getDefaultKey() : consumerKeyRef.current;
+      }
+
+      const wire = getOrCreateWire(safeCtx.locale, vertexGearMap, requestScope, lookupKeyRef.current);
 
       // Local re-render channel for cassette-tracked dep changes. Kept
       // SEPARATE from useSyncExternalStore (which is the RM-driven re-resolve
@@ -485,6 +542,49 @@ export async function createReactBareToolset<
         commitRef.current?.();
       });
 
+      // Frameless-vertex "share then split". Runs post-commit via
+      // useLayoutEffect (before paint, before the passive commit effect above),
+      // where useRef is finally stable. The FIRST consumer to commit on a
+      // transiently-shared wire CLAIMS it (and marks the default key claimed, so
+      // the next getDefaultKey() rotates → later / late-mounting consumers get a
+      // fresh count-0 wire, no stale flash). A non-first committer of the SAME
+      // wire detects a foreign owner and MOVES to a fresh rotated key, then
+      // re-renders (as a transition) onto its own wire — React keeps the shared
+      // count-0 instance on screen during the brief fork, so no fallback flash.
+      // Idempotent under StrictMode: re-running claim is a no-op (claimOwner +
+      // owner check), re-running move sets the same rotated key. `[wire]` deps:
+      // runs on mount and re-runs when a move swaps the wire (→ the moved
+      // consumer then claims its new wire). Covered / non-vertex skip entirely.
+      useLayoutEffect(() => {
+        if (!hasUncoveredVertex) {
+          return;
+        }
+        const ownerToken = consumerKeyRef.current as object;
+        const owner = wire.getOwner();
+        if (owner === null) {
+          wire.claimOwner(ownerToken);
+          // Mark the default key claimed → the next getDefaultKey() rotates, so
+          // later / late-mounting consumers get a fresh count-0 wire.
+          (lookupKeyRef.current as { owner: object | null }).owner = ownerToken;
+        } else if (owner !== ownerToken) {
+          // Move to a FRESH UNIQUE lookup key (not the registry's): post-commit
+          // the token is stable, so each mover mints its own key and lands on
+          // its own wire directly — O(N) for a batch, never the O(N^2) chain
+          // that re-rotating onto one shared key would cause. The registry only
+          // rotates via the owner's claim above, so late mounts still get fresh
+          // keys.
+          lookupKeyRef.current = { owner: ownerToken };
+          // Re-render as a TRANSITION so React keeps the already-committed shared
+          // instance (always count 0 here) on screen while this consumer's own
+          // wire resolves — no Suspense fallback flash for the brief, module-
+          // cached fork. Without this the boundary blinks to its fallback once
+          // per mover (×2 under StrictMode), which reads as a slow load.
+          startTransition(() => {
+            forceRerenderRef.current();
+          });
+        }
+      }, [wire, hasUncoveredVertex]);
+
       // Per-consumer cleanup. Fires when the wire identity changes (e.g.
       // locale switch) and on unmount. We dispose this consumer's entry on
       // the OLD wire so its cassette + cell subs don't leak. Wire-level
@@ -505,6 +605,7 @@ export async function createReactBareToolset<
       useEffect(() => {
         mountedRef.current = true;
         const key = consumerKeyRef.current;
+        const lookupKey = lookupKeyRef.current;
         return () => {
           mountedRef.current = false;
           queueMicrotask(() => {
@@ -513,6 +614,13 @@ export async function createReactBareToolset<
             }
             if (key !== null) {
               wire.disposeConsumer(key);
+            }
+            // Frameless-vertex: if this consumer still held the registry's
+            // CURRENT default key, drop it so the next consumer starts on a
+            // fresh key (and the shared wire is disposed by the normal
+            // last-subscriber teardown). If it was already rotated away, no-op.
+            if (currentDefaultKey !== null && currentDefaultKey === lookupKey) {
+              currentDefaultKey = null;
             }
           });
         };

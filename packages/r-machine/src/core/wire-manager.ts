@@ -79,6 +79,9 @@ function createWire(
   // Strict Mode's double lazy-init is harmless.
   let dirty = true;
   let currentPluginPromise: Promise<unknown> | null = null;
+  // Frameless-vertex ownership: claimed by the first consumer that commits on
+  // this wire (see Wire.claimOwner / [[project-vertex-per-consumer-instance]]).
+  let owner: object | null = null;
 
   const topLevelNs: AnyNamespace[] = isNamespaceList(nsDeps) ? [...nsDeps] : Object.values(nsDeps);
 
@@ -154,6 +157,15 @@ function createWire(
         resolve();
       }
       return currentPluginPromise as Promise<unknown>;
+    },
+
+    getOwner: () => owner,
+    // Idempotent: only the first claim sticks (StrictMode double-invokes the
+    // committing consumer's layout effect; the second call is a no-op).
+    claimOwner: (token: object) => {
+      if (owner === null) {
+        owner = token;
+      }
     },
 
     subscribe: (callback: () => void) => {

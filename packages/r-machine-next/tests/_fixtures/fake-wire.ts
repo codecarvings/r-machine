@@ -64,6 +64,8 @@ export function createFakeWire(plugin: unknown, options: FakeWireOptions = {}): 
   const unsubscribeSpy = vi.fn();
   const disposeConsumerSpy = vi.fn();
   const updateRequestSpy = vi.fn();
+  const getOwnerSpy = vi.fn(() => null);
+  const claimOwnerSpy = vi.fn();
 
   const wire: Wire = {
     getPluginPromise: () => currentPromise,
@@ -77,6 +79,8 @@ export function createFakeWire(plugin: unknown, options: FakeWireOptions = {}): 
     startTracking: startTrackingSpy as never,
     disposeConsumer: disposeConsumerSpy as never,
     updateRequest: updateRequestSpy as never,
+    getOwner: getOwnerSpy as never,
+    claimOwner: claimOwnerSpy as never,
   };
 
   const fireSubscribers = () => {
