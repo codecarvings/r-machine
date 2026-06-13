@@ -57,7 +57,5 @@ const CATALOG: Product[] = [
 ];
 
 export async function fetchProducts(): Promise<Product[]> {
-  // Simulated network latency → the catalog server component suspends.
-  await new Promise((resolve) => setTimeout(resolve, 800));
   return CATALOG;
 }

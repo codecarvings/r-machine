@@ -319,6 +319,11 @@ export class RMachine<
     const slot = globalThis as unknown as Record<symbol, Out | undefined>;
     const existing = slot[key];
     if (existing) {
+      if (isDevEnv(true)) {
+        // Next - HMR support
+        existing.resManager.disposeResources();
+      }
+
       return existing;
     }
     const created = new RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF>(

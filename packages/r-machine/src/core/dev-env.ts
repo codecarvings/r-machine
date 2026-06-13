@@ -23,6 +23,10 @@ declare const process: { env: { NODE_ENV?: string } } | undefined;
  * tracing) gate on this; bundlers statically replace `process.env.NODE_ENV`,
  * so the guarded code is dead-code-eliminated from production builds.
  */
-export function isDevEnv(): boolean {
-  return typeof process !== "undefined" && process.env.NODE_ENV !== "production";
+export function isDevEnv(excludeTest = false): boolean {
+  if (excludeTest) {
+    return typeof process !== "undefined" && process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test";
+  } else {
+    return typeof process !== "undefined" && process.env.NODE_ENV !== "production";
+  }
 }
