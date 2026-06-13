@@ -18,7 +18,8 @@ export interface Product {
 // products resolve.
 export const r = InnerGear.withDeps({ store: "base/store-config" })
   .withPorts({ fetchProducts })
-  .define(async ({ store, $ }) => {
+  .define(async (plugin) => {
+    const { store, $ } = plugin;
     const products = await $.ports.fetchProducts();
 
     return {

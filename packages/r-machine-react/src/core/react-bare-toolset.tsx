@@ -348,7 +348,15 @@ export async function createReactBareToolset<
       // the same plug under no VertexFrame end up sharing one slot — the
       // "3 instances tick in sync, all show the same value" symptom.
       let wireCache: Map<string, WireEntry>;
-      if (computeHasUncoveredVertex(vertexGearMap)) {
+      if (computeHasUncoveredVertex(vertexGearMap) && !requestScope) {
+        // CLIENT only (no request scope): the per-consumer module-level cache
+        // backs the share-then-split Suspense path (getDefaultKey). With a
+        // request scope active (server SSR) we must NOT use it — SSR never
+        // commits, so the module-stable key is never claimed and the wire would
+        // persist across requests (stale SSR/HMR + cross-request state leak).
+        // The request-scoped cache below gives per-request isolation; uncovered
+        // siblings still share via the `${locale}|` key exactly as they already
+        // do on the server. See [[project-vertex-per-consumer-instance]].
         let pcc = perConsumerWireCaches.get(consumerKey);
         if (pcc === undefined) {
           pcc = new Map<string, WireEntry>();
@@ -457,7 +465,13 @@ export async function createReactBareToolset<
       // `${locale}|${vgmSig}` cache ignores it.
       const lookupKeyRef = useRef<object | null>(null);
       if (lookupKeyRef.current === null) {
-        lookupKeyRef.current = hasUncoveredVertex ? getDefaultKey() : consumerKeyRef.current;
+        // The module-stable share-then-split key is a CLIENT-only concern (it
+        // survives React's pre-commit ref reset across Suspense retries). On the
+        // server a request scope is active and routes the wire through the
+        // request-scoped cache, so we must NOT derive (and thus mutate) the
+        // module-level `getDefaultKey()` there — it would leak the wire across
+        // requests. See getOrCreateWire.
+        lookupKeyRef.current = hasUncoveredVertex && !requestScope ? getDefaultKey() : consumerKeyRef.current;
       }
 
       const wire = getOrCreateWire(safeCtx.locale, vertexGearMap, requestScope, lookupKeyRef.current);
