@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, ExperimentalFlags, ResEquipment, SwitchableOption } from "r-machine/core";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags, SwitchableOption } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { Strategy } from "r-machine/strategy";
 import type {
@@ -90,7 +90,7 @@ const defaultConfig: NextAppStrategyConfig<
 export abstract class NextAppStrategyCore<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
+  E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
   C extends AnyNextAppStrategyConfig,
 > extends Strategy<RA, L, E, EF, C> {

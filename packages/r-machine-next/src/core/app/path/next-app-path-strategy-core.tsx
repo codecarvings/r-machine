@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, ExperimentalFlags, ResEquipment, SwitchableOption } from "r-machine/core";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags, SwitchableOption } from "r-machine/core";
 import { RMachineConfigError } from "r-machine/errors";
 import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
 import type { StrategyHelpers } from "r-machine/strategy";
@@ -117,7 +117,7 @@ export interface NextAppPathStrategyHelpers<L extends AnyLocale, PA extends AnyP
 export abstract class NextAppPathStrategyCore<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
+  E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
   C extends AnyNextAppPathStrategyConfig,
 > extends NextAppStrategyCore<RA, L, E, EF, C> {

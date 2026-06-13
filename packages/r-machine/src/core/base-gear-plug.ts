@@ -11,10 +11,11 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { Namespace } from "#r-machine/core";
 import type { GearListPlugHead, GearMapPlugHead, GearPluginCtx, GearPlugKitMap } from "./gear-plug.js";
 import type { ListPlugin, MapPlugin, PlugBody } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { HandleList, NamespaceList } from "./res-list.js";
+import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 import type { AnyPortMap } from "./res-plug.js";
 
@@ -22,7 +23,8 @@ export type BaseGearPlugDepMap<RA extends AnyResAtlas> = HandleMap<RA, "shape@ge
 export type BaseGearPlugDepList<RA extends AnyResAtlas> = HandleList<RA, "shape@gear:base">;
 export type BaseGearPlugPortMap = AnyPortMap;
 
-export type BaseGearNamespaceList<RA extends AnyResAtlas> = NamespaceList<RA, "shape@gear:base">;
+// export type BaseGearNamespaceList<RA extends AnyResAtlas> = NamespaceList<RA, "shape@gear:base">;
+export type BaseGearNamespaceList<RA extends AnyResAtlas> = Namespace<RA["shape@gear:base"]>[]; // Not Readonly param
 
 type BaseGearPluginCtx<
   RA extends AnyResAtlas,

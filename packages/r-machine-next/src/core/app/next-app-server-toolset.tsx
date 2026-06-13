@@ -16,13 +16,13 @@ import type { RMachine } from "r-machine";
 import type {
   AnyPlugHead,
   AnyResAtlas,
+  AnyResEquipment,
   ExperimentalFlags,
   HandleList,
   HandleMap,
   NamespaceCollection,
   NamespaceList,
   PluginCtxAugmenter,
-  ResEquipment,
 } from "r-machine/core";
 import {
   createPlug,
@@ -106,7 +106,7 @@ interface NextAppServerRMachineContext<L extends AnyLocale> {
 export async function createNextAppServerToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
+  E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
   SKM extends NextServerPlugKitMap<RA>,
   PA extends AnyPathAtlas,

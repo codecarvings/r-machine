@@ -17,7 +17,7 @@ import type { VertexFrameType } from "@r-machine/react/core";
 import { type CreateReactBareToolsetOptions, createReactBareToolset, RequestScopeContext } from "@r-machine/react/core";
 import { usePathname, useRouter } from "next/navigation";
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import { type ReactNode, useEffect, useRef } from "react";
@@ -70,7 +70,7 @@ export interface NextAppClientImpl<L extends AnyLocale> {
 export async function createNextAppClientToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
+  E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
   CKM extends NextClientPlugKitMap<RA>,
   PA extends AnyPathAtlas,

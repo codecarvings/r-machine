@@ -12,7 +12,7 @@
  */
 
 import type { RMachine } from "r-machine";
-import { type AnyResAtlas, type ExperimentalFlags, getNamespaceMap, type ResEquipment } from "r-machine/core";
+import { type AnyResAtlas, type AnyResEquipment, type ExperimentalFlags, getNamespaceMap } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { AnyPathAtlas, NextClientPlugKitMap, NextServerPlugKitMap } from "#r-machine/next/core";
 import {
@@ -43,7 +43,7 @@ export const convertNextAppPathStrategyConfigParamsToConfig = <
 export class NextAppPathStrategy<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
+  E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
   CKM extends NextClientPlugKitMap<RA>,
   SKM extends NextServerPlugKitMap<RA>,
@@ -53,7 +53,7 @@ export class NextAppPathStrategy<
   static create<
     RA extends AnyResAtlas,
     L extends AnyLocale,
-    E extends ResEquipment<RA>,
+    E extends AnyResEquipment<RA>,
     EF extends ExperimentalFlags,
     CKM extends NextClientPlugKitMap<RA> = {},
     SKM extends NextServerPlugKitMap<RA> = {},

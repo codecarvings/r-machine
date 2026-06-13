@@ -12,6 +12,7 @@ const rMachine = RMachine.create({
   ResourceAtlas,
   // `@vite-ignore` is needed for `verifyResourceAtlas` tests under vitest; Webpack/Turbopack ignore the comment.
   load: (path) => (devImport ? devImport(`./${path}`) : import(/* @vite-ignore */ `./${path}`)),
+  bridgeGears: ["base/store-config"],
   shellKit: {
     fmt: "shell/lib/fmt",
   },

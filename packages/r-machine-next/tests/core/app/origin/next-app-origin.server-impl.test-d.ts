@@ -1,5 +1,5 @@
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
@@ -17,7 +17,7 @@ describe("createNextAppOriginServerImpl", () => {
   it("first parameter is RMachine<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>", () => {
     expectTypeOf(createNextAppOriginServerImpl)
       .parameter(0)
-      .toEqualTypeOf<RMachine<AnyResAtlas, AnyLocale, ResEquipment<AnyResAtlas>, ExperimentalFlags>>();
+      .toEqualTypeOf<RMachine<AnyResAtlas, AnyLocale, AnyResEquipment<AnyResAtlas>, ExperimentalFlags>>();
   });
 
   it("second parameter is AnyNextAppOriginStrategyConfig", () => {

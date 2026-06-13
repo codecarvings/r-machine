@@ -14,7 +14,7 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
 import { RMachineConfigError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
@@ -33,7 +33,7 @@ const default_implicit_matcher: RegExp | null = defaultPathMatcher; // Implicit 
 export async function createNextAppPathServerImpl<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
+  E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
   C extends AnyNextAppPathStrategyConfig,
 >(

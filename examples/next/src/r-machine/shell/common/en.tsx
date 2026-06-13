@@ -1,9 +1,9 @@
 import { type RShape, Shell } from "@/r-machine/setup";
 
-export const r = Shell.define((plugin) => {
-  const { $ } = plugin;
+export const r = Shell.withDeps("base/store-config").define((plugin) => {
+  const [config, $] = plugin;
   return {
-    title: `R-Mart — R-Machine ⧹ Examples ⧹ Next App [${$.locale}]`,
+    title: `${config.defaultSort} — R-Machine ⧹ Examples ⧹ Next App [${$.locale}]`,
     nav: {
       catalog: "Catalog",
       cart: "Cart",

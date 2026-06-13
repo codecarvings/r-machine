@@ -14,7 +14,7 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import { localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
@@ -26,7 +26,7 @@ const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
 export async function createNextAppFlatServerImpl<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
+  E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
   C extends AnyNextAppFlatStrategyConfig,
 >(

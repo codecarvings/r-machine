@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { StrategyHelpers } from "r-machine/strategy";
 import { type CookieDeclaration, defaultCookieDeclaration } from "r-machine/strategy/web";
@@ -83,7 +83,7 @@ export interface NextAppFlatStrategyHelpers<L extends AnyLocale, PA extends AnyP
 export abstract class NextAppFlatStrategyCore<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
+  E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
   C extends AnyNextAppFlatStrategyConfig,
 > extends NextAppStrategyCore<RA, L, E, EF, C> {
