@@ -212,13 +212,27 @@ Place this file alongside `setup.ts` inside the `r-machine/` folder:
 // src/r-machine/vite-plugin-r-machine-hmr.ts
 import type { Plugin } from "vite";
 
-// Detects changes to R-Machine resource files and sends custom HMR events
-// to the client so it can reload only the changed module.
-// R_MACHINE_DIR points to the directory where this plugin file lives —
-// adjust if you move the file outside of src/r-machine/.
+// HMR for R-Machine resource modules. On a file change it walks Vite's module
+// graph UP from the changed file to find every RESOURCE module that
+// (transitively) imports it, then sends a custom "r-machine:update" event per
+// resource so the client can `reloadModule` it. Walking the graph is what makes
+// editing a TRANSITIVE dependency — a port, or a shared lib OUTSIDE r-machine/ —
+// also refresh its consumers. R_MACHINE_DIR points to this plugin file's
+// directory — adjust if you move it outside src/r-machine/.
 
 const R_MACHINE_DIR = import.meta.dirname;
 const EXT_RE = /\.(ts|tsx)$/;
+
+// The r-machine loader-path (e.g. `shell/landing-page/en`, `inner/catalog`) for
+// an absolute file path, or null when the file is not a resource module.
+// Resources live in a subdirectory, so a relative path without a `/`
+// (e.g. `setup`, `resource-atlas`) is excluded.
+function toResourcePath(file: string): string | null {
+  const prefix = `${R_MACHINE_DIR}/`;
+  if (!file.startsWith(prefix) || !EXT_RE.test(file)) return null;
+  const rel = file.slice(prefix.length).replace(EXT_RE, "");
+  return rel.includes("/") ? rel : null;
+}
 
 export function rMachineHmr(): Plugin {
   return {
@@ -226,28 +240,55 @@ export function rMachineHmr(): Plugin {
     apply: "serve",
     hotUpdate({ file, type }) {
       if (this.environment.name !== "client") return;
-      if (!EXT_RE.test(file)) return;
-
-      const prefix = `${R_MACHINE_DIR}/`;
-      if (!file.startsWith(prefix)) return;
-
-      const relativePath = file.slice(prefix.length).replace(EXT_RE, "");
-      if (!relativePath.includes("/")) return; // skip top-level files (setup.ts, etc.)
+      // Per-environment module graph (the non-deprecated API).
+      const { moduleGraph } = this.environment;
 
       if (type === "delete") {
-        this.environment.hot.send({ type: "full-reload" });
-        return [];
+        if (toResourcePath(file)) {
+          this.environment.hot.send({ type: "full-reload" });
+          return [];
+        }
+        return;
       }
-
       if (type !== "update") return;
 
-      this.environment.hot.send({
-        type: "custom",
-        event: "r-machine:update",
-        data: { file: relativePath, changeType: type, timestamp: Date.now() },
-      });
+      // BFS up the importer graph; stop at the first resource layer — R-Machine's
+      // reloadModule → invalidate cascades to resource-dependents via its own
+      // reverse-dep graph. As we go we bump each module's HMR timestamp: the
+      // cache-busted resource re-import then gets FRESH transitive deps (Vite
+      // rewrites import URLs with the imported module's lastHMRTimestamp).
+      // Without this, suppressing Vite's default HMR (`return []` below) would
+      // leave a transitive dep browser-cached → the resource would re-evaluate
+      // but bind the STALE dep.
+      const hmrTimestamp = Date.now();
+      const affected = new Set<string>();
+      const seen = new Set<unknown>();
+      const stack = [...(moduleGraph.getModulesByFile(file) ?? [])];
+      while (stack.length > 0) {
+        const mod = stack.pop();
+        if (!mod || seen.has(mod)) continue;
+        seen.add(mod);
+        if (!mod.id || mod.id.startsWith("\x00")) continue; // skip virtual modules
+        moduleGraph.invalidateModule(mod, new Set(), hmrTimestamp, true);
+        const resourcePath = mod.file ? toResourcePath(mod.file) : null;
+        if (resourcePath) {
+          affected.add(resourcePath);
+          continue;
+        }
+        for (const importer of mod.importers) stack.push(importer);
+      }
 
-      return []; // suppress the default HMR update for this file
+      // Unrelated to r-machine → let Vite handle it (e.g. React Fast Refresh).
+      if (affected.size === 0) return;
+
+      for (const resourcePath of affected) {
+        this.environment.hot.send({
+          type: "custom",
+          event: "r-machine:update",
+          data: { file: resourcePath, changeType: type, timestamp: Date.now() },
+        });
+      }
+      return []; // suppress the default HMR update
     },
   };
 }
@@ -268,29 +309,22 @@ export default defineConfig({
 
 ### 4.3 Add the client-side handler in `setup.ts`
 
-Add this block after `rMachine` is created, and update the `load` function
-to support cache-busting for changed modules:
+Add this block after `rMachine` is created — it just invalidates the changed
+resource; the next resolve re-imports it via the always-cache-busting `load`:
 
 ```ts
 // After RMachine.create(...):
-const modulesToReload = new Set<string>();
 if (import.meta.hot) {
-  import.meta.hot.on("r-machine:update", ({ file, changeType }) => {
-    console.log(`[HMR] ${changeType} detected in ${file}`);
-    modulesToReload.add(file);
+  import.meta.hot.on("r-machine:update", ({ file }) => {
     rMachine.reloadModule(file);
   });
 }
-
-// Inside the load function, before the final return:
-if (import.meta.hot && modulesToReload.has(path)) {
-  modulesToReload.delete(path);
-  const freshUrl = new URL(`${resolved}?t=${Date.now()}`, import.meta.url).href;
-  return import(/* @vite-ignore */ freshUrl) as Promise<AnyResModule>;
-}
 ```
 
-Full `load` function with HMR support:
+Then make `load` cache-bust in dev. `load` only runs on a blueprint cache miss
+(initial load + after `reloadModule`), so the always-fresh import is not
+per-render overhead — and there's no module-scoped reload set to desync with the
+globalThis RMachine singleton's captured `load` closure:
 
 ```ts
 load: async (path) => {
@@ -299,8 +333,9 @@ load: async (path) => {
   const resolved = moduleLoaders[tsx] ? tsx : moduleLoaders[ts] ? ts : null;
   if (!resolved) throw new Error(`R-Machine: module not found: ${path}`);
 
-  if (import.meta.hot && modulesToReload.has(path)) {
-    modulesToReload.delete(path);
+  if (import.meta.hot) {
+    // In dev, ALWAYS import with a cache-busting query so an HMR-invalidated
+    // module (and its freshly-bumped transitive deps) is re-fetched.
     const freshUrl = new URL(`${resolved}?t=${Date.now()}`, import.meta.url).href;
     return import(/* @vite-ignore */ freshUrl) as Promise<AnyResModule>;
   }
