@@ -20,6 +20,14 @@ vertex) and every consumer (plain `create()` calls or React components), inherit
 the same boundary behaviour as a real `Plug`. Calling it also enters test mode,
 relaxing the client/server usage guards so resources resolve without a provider.
 
+## Documentation
+
+→ Full reference: [`llms-full.txt`](https://rmachine.dev/llms-full.txt) · real test
+suites in
+[`examples/next/tests`](https://github.com/codecarvings/r-machine/tree/main/examples/next/tests)
+and
+[`examples/react/tests`](https://github.com/codecarvings/r-machine/tree/main/examples/react/tests).
+
 ## Install
 
 ```sh
@@ -99,14 +107,6 @@ Two more helpers:
 - **`verifyResourceAtlas(setupFile)`** — asserts every shell resolves in every
   configured locale, catching missing translations at test time.
 - **`createEventCollector()`** — captures resource lifecycle events for assertions.
-
-## Documentation
-
-→ Full reference: [`llms-full.txt`](https://rmachine.dev/llms-full.txt) · real test
-suites in
-[`examples/next/tests`](https://github.com/codecarvings/r-machine/tree/main/examples/next/tests)
-and
-[`examples/react/tests`](https://github.com/codecarvings/r-machine/tree/main/examples/react/tests).
 
 ---
 

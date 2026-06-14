@@ -19,6 +19,14 @@ Next.js **App Router** integration for R-Machine. Adds SSR-aware plugs
 (`ServerPlug` / `ClientPlug`), locale-aware routing, and a dev import shim for
 clean HMR.
 
+## Documentation
+
+→ Full reference: [`llms-full.txt`](https://rmachine.dev/llms-full.txt) · runnable
+example
+[`examples/next`](https://github.com/codecarvings/r-machine/tree/main/examples/next)
+plus the `next-with-app-*` routing-strategy variants in
+[`examples/`](https://github.com/codecarvings/r-machine/tree/main/examples).
+
 ## Install
 
 ```sh
@@ -33,6 +41,70 @@ npm install -D jiti
 > production builds.
 
 ## Setup
+
+An R-Machine project lives in **one folder** — conventionally `src/r-machine/`.
+A few wiring files bootstrap the machine; everything else is your resources, with
+**one subfolder per family**:
+
+```
+src/r-machine/
+├── setup.ts             # creates the machine + strategy; exports the producer toolset
+├── server-toolset.ts    # server consumer toolset (ServerPlug, NextServerRMachine, …)
+├── client-toolset.ts    # client consumer toolset (ClientPlug, VertexFrame, …) — "use client"
+├── resource-atlas.ts    # layout map (folder → family) + the typed resource registry
+├── path-atlas.ts        # path map with translated URL segments per locale
+│
+├── inner/               # InnerGear resources (server-only)
+├── base/                # BaseGear resources
+├── outer/               # OuterGear resources
+├── vertex/              # vertex gears
+└── shell/               # locale-aware content - shell
+    └── lib/             # single-file shell - shell(mono)
+```
+
+Unlike a plain React app, the consumer toolset is **split in two** — server and
+client.
+
+### `resource-atlas.ts` — the registry
+
+The heart of the boilerplate. It maps each folder to a resource **family** and
+registers every resource namespace against its exported type. This is the one file
+you touch when adding or removing a resource — the
+[`r-machine`](https://www.npmjs.com/package/r-machine) skill can scaffold both the
+resource file and this entry for you:
+
+```ts
+// src/r-machine/resource-atlas.ts
+import { defineLayout } from "r-machine";
+import type { Shell_Lib_Fmt } from "./shell/lib/fmt";
+
+// 1. Map each folder to a resource family.
+const folders = defineLayout({
+  "inner/": "gear:inner", // server-only
+  "base/": "gear:base",
+  "outer/": "gear:outer",
+  "vertex/": "gear:outer(vertex)",
+  "shell/": "shell",
+  "shell/lib/": "shell(mono)", // single-file shell — no per-locale variants
+});
+
+// 2. Register every resource namespace → its exported type.
+type ResourceMap = {
+  "shell/lib/fmt": Shell_Lib_Fmt;
+};
+
+export class ResourceAtlas extends folders<ResourceMap>() {}
+
+// 3. (optional) Typed dependency tokens for type-safe `.withDeps(...)`.
+const token = ResourceAtlas.getTokenBuilder();
+export const fmt = token("shell/lib/fmt");
+```
+
+### `setup.ts` — the machine + producer toolset
+
+Creates the machine from the atlas, derives the **producer** toolset (`InnerGear`,
+`OuterGear`, `Shell`, …) you use to _declare_ resources, then creates the strategy
+(here the path-segment one — see [Locale routing strategies](#locale-routing-strategies)):
 
 ```ts
 // src/r-machine/setup.ts
@@ -65,6 +137,144 @@ export const strategy = NextAppPathStrategy.create(rMachine, {
   PathAtlas,
   cookie: "on",
 });
+```
+
+### `server-toolset.ts` / `client-toolset.ts` — the consumer toolsets
+
+These two files declare the typed **tools** you'll reach for throughout your app:
+`ServerPlug` / `ClientPlug` to read resources from server and client components, the
+`<NextServerRMachine>` / `<NextClientRMachine>` providers, the `rMachineProxy`,
+locale helpers, and so on.
+
+```ts
+// src/r-machine/client-toolset.ts
+"use client";
+import { strategy } from "./setup";
+
+export const { NextClientRMachine, ClientPlug, VertexFrame } =
+  await strategy.createClientToolset();
+```
+
+```ts
+// src/r-machine/server-toolset.ts
+import { NextClientRMachine } from "./client-toolset";
+import { strategy } from "./setup";
+
+export const {
+  ServerPlug,
+  NextServerRMachine,
+  generateLocaleStaticParams,
+  bindLocale,
+  setLocale,
+  rMachineProxy,
+} = await strategy.createServerToolset(NextClientRMachine);
+```
+
+### `path-atlas.ts` — the route map
+
+It declares your app's route tree, which powers typed,
+locale-aware `href` helpers. For the **path** and **origin** strategies it also
+**localizes URL segments** per locale (e.g. `/product` → `/prodotti` in Italian).
+The **flat** strategy doesn't localize paths, so there its atlas just declares the
+structure (no per-locale segments):
+
+```ts
+// src/r-machine/path-atlas.ts
+import { declarePathAtlas } from "@r-machine/next";
+import type { Locale } from "./setup";
+
+export class PathAtlas extends declarePathAtlas<Locale>().as({
+  "/product": { it: "/prodotti", "/[id]": {} },
+  "/cart": { it: "/carrello" },
+}) {}
+```
+
+### Wrap your app
+
+Wrap the locale layout in `<NextServerRMachine>`, and expose the locales as static
+params. The provider takes a `fallback` shown while the first resources load:
+
+```tsx
+// src/app/[locale]/layout.tsx
+import { DelayedSuspense } from "@r-machine/react/utils";
+import ContentLoading from "@/components/content-loading";
+import {
+  generateLocaleStaticParams,
+  NextServerRMachine,
+  ServerPlug,
+} from "@/r-machine/server-toolset";
+
+export const generateStaticParams = generateLocaleStaticParams;
+export const dynamicParams = false;
+
+const pagePlug = ServerPlug();
+export default async function LocaleLayout({
+  params,
+  children,
+}: LayoutProps<"/[locale]">) {
+  const { $ } = await pagePlug.useR(params);
+
+  return (
+    <html lang={$.locale}>
+      <body>
+        <NextServerRMachine>
+          <DelayedSuspense fallback={<ContentLoading />}>
+            {children}
+          </DelayedSuspense>
+        </NextServerRMachine>
+      </body>
+    </html>
+  );
+}
+```
+
+## Usage
+
+Declare a `Shell` — one file per locale. The canonical file fixes the shape; each
+variant is type-checked against it:
+
+```tsx
+// src/r-machine/shell/greeting/en.tsx — canonical (defines the shape)
+import { type RShape } from "@/r-machine/setup";
+
+export const r = { hello: "Hello", cta: "Get started" };
+export type Shell_Greeting = RShape<typeof r>;
+```
+
+```tsx
+// src/r-machine/shell/greeting/it.tsx — variant (type-checked against canonical)
+import { localized } from "@/r-machine/setup";
+
+export const r = localized("shell/greeting", { hello: "Ciao", cta: "Inizia" });
+```
+
+Register it in `resource-atlas.ts` (`"shell/greeting": Shell_Greeting`), then read
+it. A **`ServerPlug`** is async and binds the locale from the route `params`; a
+**`ClientPlug`** reads it from context synchronously:
+
+```tsx
+// a Server Component
+import { ServerPlug } from "@/r-machine/server-toolset";
+
+export const plug = ServerPlug("shell/greeting");
+export default async function Greeting({ params }: PageProps<"/[locale]">) {
+  const [s] = await plug.useR(params);
+
+  return <h1>{s.hello}</h1>;
+}
+```
+
+```tsx
+// a Client Component
+"use client";
+import { ClientPlug } from "@/r-machine/client-toolset";
+
+export const plug = ClientPlug("shell/greeting");
+export function GreetingButton() {
+  const [s] = plug.useR();
+
+  return <button>{s.cta}</button>;
+}
 ```
 
 ## Conceptual model: the namespace as a stable contract
@@ -102,12 +312,12 @@ consumed, and the compiler enforces it — no runtime guard, no leaked secret. T
 is the package that makes the whole spectrum usable, from server-only to reactive
 client state.
 
-| Family                            | Where it runs         | Consumed by           | Typical use                                                                                                         |
-| --------------------------------- | --------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **`InnerGear`**                   | **Server only**       | `ServerPlug` only     | Secrets, DB access, server actions. Wiring it into `Plug`/`ClientPlug` is a **compile-time error**.                 |
-| **`BaseGear`**                    | Server **and** client | any plug              | Shared, stateless logic and config (e.g. a bridge gear)                                                             |
-| **`OuterGear`**                   | Client                | `Plug` / `ClientPlug` | Stateful, reactive logic — state, actions, memo cells                                                               |
-| **Vertex** (`gear:outer(vertex)`) | Client                | `Plug` / `ClientPlug` | An `OuterGear` with a per-consumer instance; shareable across a subtree via `<VertexFrame>`, and never a dependency |
+| Family                            | Where it runs         | Consumed by           | Typical use                                                                                         |
+| --------------------------------- | --------------------- | --------------------- | --------------------------------------------------------------------------------------------------- |
+| **`InnerGear`**                   | **Server only**       | `ServerPlug` only     | Secrets, DB access, server actions. Wiring it into `Plug`/`ClientPlug` is a **compile-time error**. |
+| **`BaseGear`**                    | Server **and** client | any plug              | Shared, stateless logic and config (e.g. a bridge gear)                                             |
+| **`OuterGear`**                   | Client                | `Plug` / `ClientPlug` | Stateful, reactive logic — state, actions, memo cells                                               |
+| **Vertex** (`gear:outer(vertex)`) | Client                | `Plug` / `ClientPlug` | An `OuterGear` with a per-consumer instance; shareable across a subtree via `<VertexFrame>`         |
 
 The differentiator: a server-only `InnerGear` simply **cannot be imported into
 client code** — the type error fires at the consumer, before anything ships to the
@@ -126,14 +336,6 @@ resolved from each request:
 
 `@r-machine/next/dev` exports `createNextDevImport`, a [jiti](https://github.com/unjs/jiti)-based
 loader that keeps resource modules hot-reloading correctly under `next dev`.
-
-## Documentation
-
-→ Full reference: [`llms-full.txt`](https://rmachine.dev/llms-full.txt) · runnable
-example
-[`examples/next`](https://github.com/codecarvings/r-machine/tree/main/examples/next)
-plus the `next-with-app-*` routing-strategy variants in
-[`examples/`](https://github.com/codecarvings/r-machine/tree/main/examples).
 
 ---
 

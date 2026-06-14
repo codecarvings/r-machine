@@ -21,6 +21,20 @@ Monorepo containing the R-Machine packages.
 | [`@r-machine/testing`](./packages/r-machine-testing) | [![npm](https://img.shields.io/npm/v/@r-machine/testing)](https://www.npmjs.com/package/@r-machine/testing) | Testing utilities |
 | [`rforge`](./packages/rforge) | [![npm](https://img.shields.io/npm/v/rforge)](https://www.npmjs.com/package/rforge) | Command-line interface for R-Machine |
 
+## Documentation
+
+→ Full reference: [`llms-full.txt`](https://rmachine.dev/llms-full.txt) · runnable
+example [`examples/`](./examples).
+
+| Example | Description |
+|---------|-------------|
+| [`next`](./examples/next) | Next.js App Router |
+| [`next-with-app-flat-strategy`](./examples/next-with-app-flat-strategy) | Next.js App Router with cookie-based locale detection |
+| [`next-with-app-origin-strategy`](./examples/next-with-app-origin-strategy) | Next.js App Router with origin-based routing |
+| [`next-with-app-path-strategy`](./examples/next-with-app-path-strategy) | Next.js App Router with path segment routing |
+| [`next-with-app-path-strategy-no-proxy`](./examples/next-with-app-path-strategy-no-proxy) | Path strategy without proxy |
+| [`react`](./examples/react) | React + Vite |
+
 ## Conceptual model: the namespace as a stable contract
 
 R-Machine is easier to reason about through one model than through a list of
@@ -105,9 +119,9 @@ import { Plug } from "@/r-machine/toolset";
 import { Button } from "@/components/ui/button";
 
 export const plug = Plug("outer/counter", "shell/common");
-
 export default function MyComponent() {
   const [counter, shell] = plug.useR();
+
   return (
     <div>
       <h1>{counter.count}</h1>
@@ -119,22 +133,29 @@ export default function MyComponent() {
 
 For tests, `mockPlug(r.plug).with({ ... })` is the **single** override primitive — uniform across gears, shells and vertex resources.
 
-## Documentation
+## Setup
 
-→ Full reference: [`llms-full.txt`](https://rmachine.dev/llms-full.txt).
+How you wire R-Machine into an app depends on the framework. Most of the structure
+is shared; a few pieces are specific to the framework and the locale-routing
+strategy you pick. Follow the package guide for your stack:
 
-## Examples
+- **React (Vite / SPA)** → [`@r-machine/react`](./packages/r-machine-react)
+- **Next.js (App Router)** → [`@r-machine/next`](./packages/r-machine-next)
 
-The [`examples/`](./examples) directory contains working applications:
+In both cases an R-Machine project lives in **one folder** (conventionally
+`src/r-machine/`): a few wiring files, plus one subfolder per resource family.
 
-| Example | Description |
-|---------|-------------|
-| [`next`](./examples/next) | Next.js App Router |
-| [`next-with-app-flat-strategy`](./examples/next-with-app-flat-strategy) | Next.js App Router with cookie-based locale detection |
-| [`next-with-app-origin-strategy`](./examples/next-with-app-origin-strategy) | Next.js App Router with origin-based routing |
-| [`next-with-app-path-strategy`](./examples/next-with-app-path-strategy) | Next.js App Router with path segment routing |
-| [`next-with-app-path-strategy-no-proxy`](./examples/next-with-app-path-strategy-no-proxy) | Path strategy without proxy |
-| [`react`](./examples/react) | React + Vite |
+The common pieces:
+
+| File / folder | Role |
+|---|---|
+| `setup.ts` | Creates the machine and the locale-routing **strategy**; exports the producer toolset used to *declare* resources |
+| `resource-atlas.ts` | The **registry**: maps each folder to a resource family and registers every resource namespace against its type |
+| `toolset.ts`, … | Derives the typed **consumer tools** (`Plug`, the provider, `<VertexFrame>`, …) you use across the app. Next splits this into `server-toolset.ts` + `client-toolset.ts` |
+| `path-atlas.ts` | *(Next only)* the route map — typed `href` helpers, plus localized URL segments for the path / origin strategies |
+| `base/` `outer/` `vertex/` `shell/` … | Your resources, one subfolder per family. `inner/` (server-only gears) applies to Next server components only |
+
+→ Full, copy-pasteable setup lives in the package READMEs linked above.
 
 ## Monorepo Structure
 

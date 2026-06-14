@@ -19,6 +19,12 @@ React (Vite / SPA) integration for R-Machine. Wires the core machine to React vi
 and switching, and `<VertexFrame>` to share a single vertex resource instance
 across a subtree of consumers.
 
+## Documentation
+
+→ Full reference: [`llms-full.txt`](https://rmachine.dev/llms-full.txt) · runnable
+example:
+[`examples/react`](https://github.com/codecarvings/r-machine/tree/main/examples/react).
+
 ## Install
 
 ```sh
@@ -28,7 +34,63 @@ npm install r-machine @r-machine/react
 
 ## Setup
 
-Create the machine, then a React strategy from it:
+An R-Machine project lives in **one folder** — conventionally `src/r-machine/`.
+Three wiring files bootstrap the machine; everything else is your resources, with
+**one subfolder per family**:
+
+```
+src/r-machine/
+├── setup.ts            # creates the machine + strategy; exports the producer toolset
+├── toolset.ts          # derives the consumer toolset (Plug, VertexFrame, provider)
+├── resource-atlas.ts   # layout map (folder → family) + the typed resource registry
+├── vite-plugin-r-machine-hmr.ts   # (Vite dev) HMR plugin — see "HMR with Vite" below
+│
+├── base/               # BaseGear resources
+├── outer/              # OuterGear resources
+├── vertex/             # vertex gears
+└── shell/              # locale-aware content - shell
+    └── lib/            # single-file shell - shell(mono)
+```
+
+### `resource-atlas.ts` — the registry
+
+The heart of the boilerplate. It maps each folder to a resource **family** and
+registers every resource namespace against its exported type. This is the one file
+you touch when adding or removing a resource — the
+[`r-machine`](https://www.npmjs.com/package/r-machine) skill can scaffold both the
+resource file and this entry for you:
+
+```ts
+// src/r-machine/resource-atlas.ts
+import { defineLayout } from "r-machine";
+import type { Shell_Lib_Fmt } from "./shell/lib/fmt";
+
+// 1. Map each folder to a resource family.
+const folders = defineLayout({
+  "base/": "gear:base",
+  "outer/": "gear:outer",
+  "vertex/": "gear:outer(vertex)",
+  "shell/": "shell",
+  "shell/lib/": "shell(mono)", // single-file shell — no per-locale variants
+});
+
+// 2. Register every resource namespace → its exported type.
+type ResourceMap = {
+  "shell/lib/fmt": Shell_Lib_Fmt;
+};
+
+export class ResourceAtlas extends folders<ResourceMap>() {}
+
+// 3. (optional) Typed dependency tokens for type-safe `.withDeps(...)`.
+const token = ResourceAtlas.getTokenBuilder();
+export const fmt = token("shell/lib/fmt");
+```
+
+### `setup.ts` — the machine + producer toolset
+
+Creates the machine from the atlas and derives the **producer** toolset
+(`OuterGear`, `BaseGear`, `Shell`, …) you use to _declare_ resources, then creates
+the React strategy:
 
 ```ts
 // src/r-machine/setup.ts
@@ -41,7 +103,7 @@ const rMachine = RMachine.create({
   defaultLocale: "en",
   ResourceAtlas,
   // See examples/react for the Vite `import.meta.glob` loader used in production.
-  load: (path) => import(/* @vite-ignore */ `./${path}`),
+  load: (path) => import(`./${path}`),
   shellKit: { fmt: "shell/lib/fmt" },
   experimental: { outerGear: "on" },
 });
@@ -61,8 +123,11 @@ export const strategy = ReactStandardStrategy.create(rMachine, {
 });
 ```
 
-Then derive the consumer toolset (`Plug`, `VertexFrame`, and the provider) from the
-strategy:
+### `toolset.ts` — the consumer toolset
+
+Derives the **consumer** toolset from the strategy: `Plug` to read resources,
+`<VertexFrame>` to scope vertex instances, and `<ReactRMachine>` — the provider you
+wrap your app in:
 
 ```ts
 // src/r-machine/toolset.ts
@@ -72,8 +137,67 @@ export const { ReactRMachine, Plug, VertexFrame } =
   await strategy.createToolset();
 ```
 
-Wrap your app in `<ReactRMachine>` and read resources from any component with
-`Plug(...).useR()`.
+### Wrap your app
+
+Wrap the app in `<ReactRMachine>`. Because resources resolve asynchronously, the
+provider takes a `fallback` shown while the first resources load (it's backed by
+Suspense):
+
+```tsx
+// src/App.tsx
+import { ReactRMachine } from "@/r-machine/toolset";
+import { AppShell } from "./components/app-shell";
+import ContentLoading from "./components/content-loading";
+
+export default function App() {
+  return (
+    <ReactRMachine fallback={<ContentLoading />}>
+      <AppShell />
+    </ReactRMachine>
+  );
+}
+```
+
+Inside the tree, read resources from any component with `Plug(...).useR()`.
+
+## Usage
+
+Declare a `Shell` — one file per locale. The canonical file fixes the shape; each
+variant is type-checked against it:
+
+```tsx
+// src/r-machine/shell/greeting/en.tsx — canonical (defines the shape)
+import { type RShape } from "@/r-machine/setup";
+
+export const r = { hello: "Hello", cta: "Get started" };
+export type Shell_Greeting = RShape<typeof r>;
+```
+
+```tsx
+// src/r-machine/shell/greeting/it.tsx — variant (type-checked against canonical)
+import { localized } from "@/r-machine/setup";
+
+export const r = localized("shell/greeting", { hello: "Ciao", cta: "Inizia" });
+```
+
+Register it in `resource-atlas.ts` (`"shell/greeting": Shell_Greeting`), then read
+it from any component with `Plug` — locale resolution is automatic:
+
+```tsx
+// src/components/greeting.tsx
+import { Plug } from "@/r-machine/toolset";
+
+export const plug = Plug("shell/greeting");
+export function Greeting() {
+  const [s] = plug.useR();
+
+  return (
+    <button>
+      {s.hello} — {s.cta}
+    </button>
+  );
+}
+```
 
 ## Conceptual model: the namespace as a stable contract
 
@@ -108,12 +232,12 @@ In a React (client-only) app you build with three gear families plus locale-awar
 shells. They share one declaration syntax and one consumer primitive (`Plug`), and
 differ only in scope and lifetime:
 
-| Family                            | What it is                              | Typical use                                                                   |
-| --------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------- |
-| **`BaseGear`**                    | Static, stateless logic & config        | Shared constants, derived config, helpers wired as deps                       |
-| **`OuterGear`**                   | Stateful, reactive logic                | Component / app state — state, actions, memo cells                            |
-| **Vertex** (`gear:outer(vertex)`) | An `OuterGear` instanced _per consumer_ | Isolated-by-default widgets, shared on demand via `<VertexFrame>` (see below) |
-| **`Shell`**                       | Multi-locale content                    | Translated strings & locale-aware formatting                                  |
+| Family                            | What it is                              | Typical use                                                       |
+| --------------------------------- | --------------------------------------- | ----------------------------------------------------------------- |
+| **`BaseGear`**                    | Static, stateless logic & config        | Shared constants, derived config, helpers wired as deps           |
+| **`OuterGear`**                   | Stateful, reactive logic                | Component / app state — state, actions, memo cells                |
+| **Vertex** (`gear:outer(vertex)`) | An `OuterGear` instanced _per consumer_ | Isolated-by-default widgets, shared on demand via `<VertexFrame>` |
+| **`Shell`**                       | Multi-locale content                    | Translated strings & locale-aware formatting                      |
 
 > **No `InnerGear` here.** `InnerGear` is **server-only** and consumable solely by
 > `ServerPlug` — it exists for the Next.js App Router via
@@ -122,47 +246,6 @@ differ only in scope and lifetime:
 
 See the [`r-machine`](https://www.npmjs.com/package/r-machine) core README for the
 `Shell` / `Gear` / `Plug` declaration syntax.
-
-## Vertex gears & `<VertexFrame>`
-
-A **vertex gear** is an `OuterGear` placed under a vertex layout
-(`gear:outer(vertex)`). It flips the default sharing rule: instead of one shared
-instance, **every consumer gets its own** — independent state, lifecycle and
-reactivity. Two components that plug the same vertex resource are fully isolated:
-
-```tsx
-const widgetPlug = Plug("vertex/counter");
-function CounterWidget({ label }: { label: string }) {
-  const [counter] = widgetPlug.useR();
-  return (
-    <button onClick={counter.inc}>
-      {label}: {counter.count}
-    </button>
-  );
-}
-
-// <CounterWidget label="A" /> and <CounterWidget label="B" /> are SEPARATE counters.
-```
-
-To opt _into_ sharing for a subtree, resolve an instance with a parent plug and
-hand it to `<VertexFrame>`. Every consumer under the frame reads that one instance:
-
-```tsx
-const framePlug = Plug({ counter: "vertex/counter" });
-function Group() {
-  const { counter } = framePlug.useR();
-  return (
-    <VertexFrame gear={[counter]}>
-      <CounterWidget label="C" />
-      <CounterWidget label="D" /> {/* C and D now share one counter */}
-    </VertexFrame>
-  );
-}
-```
-
-This _isolated by default, shared on demand_ model — scoped to an arbitrary part of
-the React tree rather than a global store or a hand-rolled Context provider — is
-hard to express with conventional state libraries.
 
 ## HMR with Vite
 
@@ -180,7 +263,38 @@ the resource modules that (transitively) import it, then emits a custom
 just those modules:
 
 ```ts
-// src/r-machine/setup.ts — alongside RMachine.create(...)
+// src/r-machine/setup.ts
+import type { AnyResModule } from "r-machine/core";
+
+const moduleLoaders = import.meta.glob<AnyResModule>("./**/*.{tsx,ts}", {});
+
+const rMachine = RMachine.create({
+  ...
+  load: async (path) => {
+    const modulePathTsx = `./${path}.tsx`;
+    const modulePathTs = `./${path}.ts`;
+    const resolvedPath = moduleLoaders[modulePathTsx]
+      ? modulePathTsx
+      : moduleLoaders[modulePathTs]
+        ? modulePathTs
+        : null;
+
+    if (!resolvedPath) {
+      throw new Error(`Module not found: ${path}`);
+    }
+
+    if (import.meta.hot) {
+      // In dev, ALWAYS import with a cache-busting query so an HMR-invalidated
+      // module (and its freshly-bumped transitive deps) is re-fetched.
+      const freshUrl = new URL(`${resolvedPath}?t=${Date.now()}`, import.meta.url).href;
+      return import(/* @vite-ignore */ freshUrl) as Promise<AnyResModule>;
+    }
+
+    return moduleLoaders[resolvedPath]!();
+  },
+  ...
+});
+
 if (import.meta.hot) {
   import.meta.hot.on("r-machine:update", ({ file }) => {
     rMachine.reloadModule(file);
@@ -196,12 +310,6 @@ The plugin is **plain, commented code you own** — copy it and adapt the paths 
 your project layout as needed. When you scaffold a Vite project with the
 [`rforge`](https://www.npmjs.com/package/rforge) skill, it sets up an analogous
 plugin for you.
-
-## Documentation
-
-→ Full reference: [`llms-full.txt`](https://rmachine.dev/llms-full.txt) · runnable
-example:
-[`examples/react`](https://github.com/codecarvings/r-machine/tree/main/examples/react).
 
 ---
 

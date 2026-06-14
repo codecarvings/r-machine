@@ -24,6 +24,12 @@ toolset (`InnerGear`, `BaseGear`, `OuterGear`, `Shell`, `localized`) from it.
 > [`@r-machine/next`](https://www.npmjs.com/package/@r-machine/next) to consume
 > resources from components.
 
+## Documentation
+
+→ Full reference: [`llms-full.txt`](https://rmachine.dev/llms-full.txt) · working
+examples in
+[`examples/`](https://github.com/codecarvings/r-machine/tree/main/examples).
+
 ## Install
 
 ```sh
@@ -117,9 +123,9 @@ one or many:
 import { Plug } from "@/r-machine/toolset";
 
 export const plug = Plug("outer/counter", "shell/common");
-
 export default function MyComponent() {
   const [counter, shell] = plug.useR();
+
   return (
     <button onClick={counter.inc}>
       {shell.addButton} ({counter.count})
@@ -128,11 +134,29 @@ export default function MyComponent() {
 }
 ```
 
-## Documentation
+## Setup
 
-→ Full reference: [`llms-full.txt`](https://rmachine.dev/llms-full.txt) · working
-examples in
-[`examples/`](https://github.com/codecarvings/r-machine/tree/main/examples).
+How you wire R-Machine into an app depends on the framework. Most of the structure
+is shared; a few pieces are specific to the framework and the locale-routing
+strategy you pick. Follow the package guide for your stack:
+
+- **React (Vite / SPA)** → [`@r-machine/react`](https://www.npmjs.com/package/@r-machine/react)
+- **Next.js (App Router)** → [`@r-machine/next`](https://www.npmjs.com/package/@r-machine/next)
+
+In both cases an R-Machine project lives in **one folder** (conventionally
+`src/r-machine/`): a few wiring files, plus one subfolder per resource family.
+
+The common pieces:
+
+| File / folder                         | Role                                                                                                                                                                    |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setup.ts`                            | Creates the machine and the locale-routing **strategy**; exports the producer toolset used to _declare_ resources                                                       |
+| `resource-atlas.ts`                   | The **registry**: maps each folder to a resource family and registers every resource namespace against its type                                                         |
+| `toolset.ts`, …                       | Derives the typed **consumer tools** (`Plug`, the provider, `<VertexFrame>`, …) you use across the app. Next splits this into `server-toolset.ts` + `client-toolset.ts` |
+| `path-atlas.ts`                       | _(Next only)_ the route map — typed `href` helpers, plus localized URL segments for the path / origin strategies                                                        |
+| `base/` `outer/` `vertex/` `shell/` … | Your resources, one subfolder per family. `inner/` (server-only gears) applies to Next server components only                                                           |
+
+→ Full, copy-pasteable setup lives in the package READMEs linked above.
 
 ---
 
