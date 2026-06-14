@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { createCassetteRecorder } from "../../../src/core/reactivity/cassette-recorder.js";
-import { createStateCell } from "../../../src/core/reactivity/state-cell.js";
+import { createCassetteRecorder } from "../../src/core/cassette-recorder.js";
+import { createStateCell } from "../../src/core/state-cell.js";
 
 describe("createStateCell", () => {
   it("read() tracks the cell into the active cassette and returns current value", () => {

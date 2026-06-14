@@ -12,9 +12,9 @@
  */
 
 import type { AnyLocale } from "#r-machine/locale";
+import type { CassetteRecorder } from "./cassette-recorder.js";
 import type { BusHost } from "./event-bus.js";
 import { type AnyPlugHead, getPlugOverride, type PlugBody, type PluginCtxAugmenter } from "./plug.js";
-import type { CassetteRecorder } from "./reactivity/cassette-recorder.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { isNamespaceList } from "./res-list.js";
 import type { ResManager } from "./res-manager.js";

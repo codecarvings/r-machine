@@ -15,6 +15,8 @@ export type { Action, RuntimeAction } from "./action.js";
 export { type BaseGearComposer, createBaseGearComposer } from "./base-gear-composer.js";
 export type { BaseGearNamespaceList } from "./base-gear-plug.js";
 export { BlueprintManager } from "./blueprint-manager.js";
+export type { CassetteRecorder } from "./cassette-recorder.js";
+export { createCassetteRecorder } from "./cassette-recorder.js";
 export type { SwitchableOption } from "./config-options.js";
 export { type DeepPartial, deepPartialMerge } from "./deep-partial.js";
 export { isDevEnv } from "./dev-env.js";
@@ -59,9 +61,6 @@ export {
   setPlugOverride,
   setPlugResolve,
 } from "./plug.js";
-export type { CassetteRecorder } from "./reactivity/cassette-recorder.js";
-export { createCassetteRecorder } from "./reactivity/cassette-recorder.js";
-export type { StateCell } from "./reactivity/state-cell.js";
 export type { RelayBrand } from "./relay.js";
 export type { AnyRes, AnyResOrigin } from "./res.js";
 export type { AnyResAtlas, AnyResAtlasClass, ResAtlasClass } from "./res-atlas.js";
@@ -103,6 +102,7 @@ export { createRequestScope, PROCESS_SCOPE_PROVIDER, type RequestScope, type Req
 export { createShellComposer, type ShellComposer } from "./shell-composer.js";
 export type { ShellPlugKitMap } from "./shell-plug.js";
 export { type RState, type StatefulOuterStateMap, tryGetStateAccess } from "./state.js";
+export type { StateCell } from "./state-cell.js";
 export type { AnyClientGearSurface } from "./surface.js";
 export { ASYNC, COVERED_PENDING, fulfilledThenable } from "./sync-resolve.js";
 export { TestMode } from "./test-mode.js";

@@ -11,10 +11,10 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { CassetteRecorder, RelayRuntime } from "./cassette-recorder.js";
 import { type Cmd, isCmd } from "./cmd.js";
 import { type EqualsStrategy, resolveEquals } from "./comparer.js";
 import { getMemberName, setMemberName } from "./member-name.js";
-import type { CassetteRecorder, RelayRuntime } from "./reactivity/cassette-recorder.js";
 import type { AnyNamespace } from "./res-domain.js";
 
 // biome-ignore lint/suspicious/noConfusingVoidType: This is intentional

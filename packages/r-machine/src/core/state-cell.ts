@@ -11,9 +11,9 @@
  * contact: licensing@codecarvings.com
  */
 
-import { deepFreeze } from "../deep-freeze.js";
-import { isDevEnv } from "../dev-env.js";
 import type { CassetteRecorder, ReadableCell } from "./cassette-recorder.js";
+import { deepFreeze } from "./deep-freeze.js";
+import { isDevEnv } from "./dev-env.js";
 
 export interface StateCell<S> extends ReadableCell {
   read(): S;

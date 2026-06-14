@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { createCassetteRecorder } from "../../src/core/cassette-recorder.js";
 import {
   type AnyPlugHead,
   createPlug,
@@ -6,11 +7,10 @@ import {
   type PluginCtxAugmenter,
   setPlugOverride,
 } from "../../src/core/plug.js";
-import { createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
-import { createStateCell } from "../../src/core/reactivity/state-cell.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "../../src/core/res-domain.js";
 import type { ResManager } from "../../src/core/res-manager.js";
 import type { AnyNamespaceMap } from "../../src/core/res-map.js";
+import { createStateCell } from "../../src/core/state-cell.js";
 import { ASYNC, COVERED_PENDING } from "../../src/core/sync-resolve.js";
 import type { VertexGearMap } from "../../src/core/vertex-gear.js";
 import { WireManager } from "../../src/core/wire-manager.js";

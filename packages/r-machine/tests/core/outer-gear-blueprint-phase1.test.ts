@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { BlueprintManager } from "../../src/core/blueprint-manager.js";
+import { type CassetteRecorder, createCassetteRecorder } from "../../src/core/cassette-recorder.js";
 import type { BusHost } from "../../src/core/event-bus.js";
 import { createOuterGearComposer } from "../../src/core/outer-gear-composer.js";
-import { type CassetteRecorder, createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
 import type { AnyRes } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import type { AnyNamespace } from "../../src/core/res-domain.js";

@@ -13,7 +13,9 @@
 
 import { ERR_INVALID_ARGUMENTS, RMachineUsageError } from "#r-machine/errors";
 import type { ActionComposer, AnyAction, DefaultAction } from "./action.js";
+import { makeAction } from "./action-runtime.js";
 import type { BaseGearPlugPortMap } from "./base-gear-plug.js";
+import type { CassetteRecorder } from "./cassette-recorder.js";
 import { type CmdComposer, createCmd } from "./cmd.js";
 import { lazyGetters } from "./composer-utils.js";
 import { type DeepPartial, deepPartialMerge } from "./deep-partial.js";
@@ -25,6 +27,7 @@ import {
   type GetterComposer,
   type StatelessGetterComposer,
 } from "./getter.js";
+import { createGetterCell } from "./getter-cell.js";
 import { promoteMemberNames } from "./member-name.js";
 import type { AnyOuterGear, RejectAsyncValueProps } from "./outer-gear.js";
 import {
@@ -46,10 +49,6 @@ import {
   type StatelessOuterGearMapPlugin,
 } from "./outer-gear-plug.js";
 import { type ExtractPlugin, getPlugOutline } from "./plug.js";
-import { makeAction } from "./reactivity/action-runtime.js";
-import type { CassetteRecorder } from "./reactivity/cassette-recorder.js";
-import { createGetterCell } from "./reactivity/getter-cell.js";
-import { createStateCell, type StateCell } from "./reactivity/state-cell.js";
 import { type AnyRelay, createRelay, createRelayRuntime, type RelayComposer } from "./relay.js";
 import { type AnyRes, tryGetDispose } from "./res.js";
 import type { AnyResAtlas } from "./res-atlas.js";
@@ -62,6 +61,7 @@ import { createResMatrix } from "./res-matrix.js";
 import type { AnyResPlug } from "./res-plug.js";
 import type { AnyState } from "./state.js";
 import { setStateAccess, tryGetStateAccess } from "./state.js";
+import { createStateCell, type StateCell } from "./state-cell.js";
 import { isThenable } from "./sync-resolve.js";
 
 // T is the actual return type, instantiated at each call site. Threaded as a

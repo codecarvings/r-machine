@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { makeAction } from "../../../src/core/reactivity/action-runtime.js";
-import { createCassetteRecorder } from "../../../src/core/reactivity/cassette-recorder.js";
-import { createGetterCell } from "../../../src/core/reactivity/getter-cell.js";
-import { createStateCell } from "../../../src/core/reactivity/state-cell.js";
+import { makeAction } from "../../src/core/action-runtime.js";
+import { createCassetteRecorder } from "../../src/core/cassette-recorder.js";
+import { createGetterCell } from "../../src/core/getter-cell.js";
+import { createStateCell } from "../../src/core/state-cell.js";
 
 describe("createGetterCell", () => {
   it("cache miss: the memo's private cassette captures transitive deps; outer captures only the memo", () => {

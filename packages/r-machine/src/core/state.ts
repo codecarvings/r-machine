@@ -11,8 +11,8 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { StateCell } from "./reactivity/state-cell.js";
 import type { AnyResAtlas, ResAtlas } from "./res-atlas.js";
+import type { StateCell } from "./state-cell.js";
 
 export type AnyState = unknown; // Record<PropertyKey, unknown> & object;
 

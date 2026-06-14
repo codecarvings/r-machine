@@ -12,10 +12,10 @@
  */
 import { createBaseGearComposer } from "../../src/core/base-gear-composer.js";
 import { BlueprintManager } from "../../src/core/blueprint-manager.js";
+import { type CassetteRecorder, createCassetteRecorder } from "../../src/core/cassette-recorder.js";
 import type { BusHost } from "../../src/core/event-bus.js";
 import { createInnerGearComposer } from "../../src/core/inner-gear-composer.js";
 import { createOuterGearComposer } from "../../src/core/outer-gear-composer.js";
-import { type CassetteRecorder, createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
 import type { AnyRes } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import type { AnyNamespace } from "../../src/core/res-domain.js";

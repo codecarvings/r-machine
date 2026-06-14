@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { createCassetteRecorder } from "../../src/core/cassette-recorder.js";
 import { isCmd } from "../../src/core/cmd.js";
 import { promoteMemberNames } from "../../src/core/member-name.js";
 import { buildStatefulOuterGearCursor, stateCellSlot } from "../../src/core/outer-gear-composer.js";
-
-import { createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
-import { createStateCell, type StateCell } from "../../src/core/reactivity/state-cell.js";
 import type { AnyRes } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
+import { createStateCell, type StateCell } from "../../src/core/state-cell.js";
 
 function buildMatrix<S>(
   recorder: ReturnType<typeof createCassetteRecorder>,

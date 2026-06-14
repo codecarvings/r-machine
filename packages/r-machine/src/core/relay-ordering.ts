@@ -12,7 +12,7 @@
  */
 
 import type { BlueprintManager } from "./blueprint-manager.js";
-import type { RelayOrderingProvider, RelayRuntime } from "./reactivity/cassette-recorder.js";
+import type { RelayOrderingProvider, RelayRuntime } from "./cassette-recorder.js";
 
 /**
  * Builds the relay ordering provider used at runtime to flush dirty relays.

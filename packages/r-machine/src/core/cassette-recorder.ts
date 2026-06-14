@@ -11,9 +11,9 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { Cmd } from "../cmd.js";
-import type { BusHost } from "../event-bus.js";
-import type { AnyNamespace } from "../res-domain.js";
+import type { Cmd } from "./cmd.js";
+import type { BusHost } from "./event-bus.js";
+import type { AnyNamespace } from "./res-domain.js";
 
 export interface ReadableCell {
   subscribe(cb: () => void): () => void;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createCassetteRecorder, type ReadableCell } from "../../../src/core/reactivity/cassette-recorder.js";
+import { createCassetteRecorder, type ReadableCell } from "../../src/core/cassette-recorder.js";
 
 // --- helpers -----------------------------------------------------------------
 

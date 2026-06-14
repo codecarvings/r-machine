@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
+import { makeAction } from "../../src/core/action-runtime.js";
 import type { BlueprintManager } from "../../src/core/blueprint-manager.js";
-import { makeAction } from "../../src/core/reactivity/action-runtime.js";
 import {
   createCassetteRecorder,
   type RegisteredRelay,
   type RelayOrderingProvider,
   type RelayRuntime,
-} from "../../src/core/reactivity/cassette-recorder.js";
-import { createStateCell } from "../../src/core/reactivity/state-cell.js";
+} from "../../src/core/cassette-recorder.js";
 import { createRelay, createRelayRuntime } from "../../src/core/relay.js";
 import { createBlueprintRelayOrderingProvider } from "../../src/core/relay-ordering.js";
 import type { AnyNamespace } from "../../src/core/res-domain.js";
+import { createStateCell } from "../../src/core/state-cell.js";
 
 // --- mock BPM helper ----------------------------------------------------
 

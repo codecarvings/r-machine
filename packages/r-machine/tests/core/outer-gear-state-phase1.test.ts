@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
+import { createCassetteRecorder } from "../../src/core/cassette-recorder.js";
 import {
   buildStatefulOuterGearCursor,
   stateCellSlot,
   wrapWithRelayCleanup,
 } from "../../src/core/outer-gear-composer.js";
-import { createCassetteRecorder } from "../../src/core/reactivity/cassette-recorder.js";
-import { createStateCell, type StateCell } from "../../src/core/reactivity/state-cell.js";
 import { type AnyRes, tryGetDispose } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
 import { buildResPod } from "../../src/core/res-pod.js";
+import { createStateCell, type StateCell } from "../../src/core/state-cell.js";
 
 // --- helpers -----------------------------------------------------------------
 

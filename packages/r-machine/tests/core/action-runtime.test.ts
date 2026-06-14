@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { makeAction } from "../../../src/core/reactivity/action-runtime.js";
-import { createCassetteRecorder } from "../../../src/core/reactivity/cassette-recorder.js";
-import { createStateCell } from "../../../src/core/reactivity/state-cell.js";
+import { makeAction } from "../../src/core/action-runtime.js";
+import { createCassetteRecorder } from "../../src/core/cassette-recorder.js";
+import { createStateCell } from "../../src/core/state-cell.js";
 
 describe("makeAction", () => {
   it("merges a partial into current state and publishes", () => {

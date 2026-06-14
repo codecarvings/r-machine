@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { createEventBus, type InternalEvent } from "../../../src/core/event-bus.js";
-import { makeAction } from "../../../src/core/reactivity/action-runtime.js";
-import { createCassetteRecorder } from "../../../src/core/reactivity/cassette-recorder.js";
-import { createGetterCell } from "../../../src/core/reactivity/getter-cell.js";
-import { createStateCell } from "../../../src/core/reactivity/state-cell.js";
-import { type AnyRelay, createRelay, createRelayRuntime } from "../../../src/core/relay.js";
+import { makeAction } from "../../src/core/action-runtime.js";
+import { createCassetteRecorder } from "../../src/core/cassette-recorder.js";
+import { createEventBus, type InternalEvent } from "../../src/core/event-bus.js";
+import { createGetterCell } from "../../src/core/getter-cell.js";
+import { type AnyRelay, createRelay, createRelayRuntime } from "../../src/core/relay.js";
+import { createStateCell } from "../../src/core/state-cell.js";
 
 // Local helper: createRelay is generic in T but createRelayRuntime accepts
 // AnyRelay (Relay<any>) — variance-unsafe cast needed in tests.
