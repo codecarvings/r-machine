@@ -1,10 +1,4 @@
-> # ⚠️ New API preview — diverges from `main`
->
-> This branch (`RM-alpha-12`) ships a **completely reshaped** R-Machine public API. It is **not** API-compatible with the version currently published from the `main` branch. The new design unifies **i18n, dependency injection and state management around a single declaration syntax**, a single consumer primitive (`Plug`), and a single testing primitive (`mockPlug`).
->
-> 📖 **LLM-ready documentation**: [`llms-full.txt`](https://rmachine.dev/llms-full.txt).
->
-> 💡 **Tip**: ask your LLM of choice to describe the new R-Machine API — the full specification is available at <https://rmachine.dev> — and to contrast it with mainstream i18n / DI / state libraries. The design choices are easier to appreciate side-by-side.
+⚠️ **WARNING: THIS LIBRARY IS STILL IN DEVELOPMENT** ⚠️
 
 ---
 
@@ -26,6 +20,33 @@ Monorepo containing the R-Machine packages.
 | [`@r-machine/next`](./packages/r-machine-next) | [![npm](https://img.shields.io/npm/v/@r-machine/next)](https://www.npmjs.com/package/@r-machine/next) | Next.js App Router integration |
 | [`@r-machine/testing`](./packages/r-machine-testing) | [![npm](https://img.shields.io/npm/v/@r-machine/testing)](https://www.npmjs.com/package/@r-machine/testing) | Testing utilities |
 | [`rforge`](./packages/rforge) | [![npm](https://img.shields.io/npm/v/rforge)](https://www.npmjs.com/package/rforge) | Command-line interface for R-Machine |
+
+## Conceptual model: the namespace as a stable contract
+
+R-Machine is easier to reason about through one model than through a list of
+features. A codebase is a dynamic entity: it evolves sprint after sprint, refactor
+after refactor, generation after generation. A useful question when evaluating an
+architecture is not only *"can it do X?"* but *"how many files must change when X
+evolves?"* — production files, test files, mocks, fixtures, imports.
+
+R-Machine answers that question the way a DBMS does:
+
+| DBMS concept | R-Machine equivalent |
+|---|---|
+| Table name (`customers`) | Resource namespace (`outer/cart`, `shell/checkout`) |
+| Schema (column types) | TypeScript interface |
+| Query (`SELECT * FROM customers`) | `Plug(...).useR()` |
+| Storage engine, indexes | Implementation body (gear or shell) |
+
+A database table has a stable name that consumers depend on. The storage engine can
+be replaced and indexes can change without forcing any consumer to update: the table
+name is the contract.
+
+R-Machine applies the same principle to application code. The resource namespace is
+the stable contract; the implementation behind it is the volatile layer. Consumers —
+including tests, mocks, and fixtures — depend on the namespace, not on where a value
+lives or how it is shaped, so a change to the implementation does not propagate to
+them.
 
 ## Core concepts at a glance
 
@@ -81,7 +102,7 @@ Components reach any resource through `Plug` (or `ClientPlug` / `ServerPlug` for
 ```tsx
 // components/my-component.tsx
 import { Plug } from "@/r-machine/toolset";
-import { Button } from "/ui/button";
+import { Button } from "@/components/ui/button";
 
 export const plug = Plug("outer/counter", "shell/common");
 
@@ -98,7 +119,9 @@ export default function MyComponent() {
 
 For tests, `mockPlug(r.plug).with({ ... })` is the **single** override primitive — uniform across gears, shells and vertex resources.
 
-→ Full reference, including `BaseGear`, vertex layout, cursor primitives, framework strategies and testing: [`llms-full.txt`](https://rmachine.dev/llms-full.txt).
+## Documentation
+
+→ Full reference: [`llms-full.txt`](https://rmachine.dev/llms-full.txt).
 
 ## Examples
 

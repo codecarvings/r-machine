@@ -11,8 +11,14 @@
 
 ---
 
-The `rforge` CLI is the companion tool for [R-Machine](https://rmachine.dev).
-It provides scaffolding, diagnostics, and LLM-agent skill generation for projects that use R-Machine.
+The `rforge` CLI is the companion tool for [R-Machine](https://rmachine.dev) —
+intended to provide scaffolding, diagnostics, and LLM-agent skill generation for
+projects that use R-Machine.
+
+> 🌱 **Early development.** `rforge` is the newest, least complete R-Machine
+> package. **Today it ships a single command — [`rforge skill`](#rforge-skill)** —
+> while the rest of the toolbox (scaffolding, diagnostics) is still on the roadmap.
+> Expect the command surface to grow and change.
 
 ## Install
 
@@ -33,7 +39,25 @@ rforge --help
 rforge --version
 ```
 
-> 🚧 This package is an early draft.
+## Commands
+
+### `rforge skill`
+
+Installs the R-Machine **LLM-agent Skill** into your project so AI coding agents
+(Claude Code and others) know how to scaffold and extend R-Machine resources
+correctly.
+
+```sh
+rforge skill [--out <dir>] [--force]
+```
+
+| Flag          | Default            | Description                                                             |
+| ------------- | ------------------ | ----------------------------------------------------------------------- |
+| `--out <dir>` | `./.claude/skills` | Skills directory to install into. The Skill lands in `<out>/r-machine`. |
+| `--force`     | `false`            | Overwrite an existing Skill at the destination.                         |
+
+Commit the installed folder to share it with your team; re-run with `--force` to
+refresh it after upgrading `rforge`.
 
 ---
 
