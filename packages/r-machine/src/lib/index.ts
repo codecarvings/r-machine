@@ -11,18 +11,10 @@
  * contact: licensing@codecarvings.com
  */
 
-export { getResolveContext, type ResolveContext } from "../core/resolve-context.js";
+export { getResolveContext } from "../core/resolve-context.js";
 export type { BrandedResource } from "./branded-resource.js";
 export { enableRMachineDevMode } from "./dev-mode.js";
 export { dispose } from "./dispose.js";
 export { defineLayout } from "./layout.js";
-export {
-  RMachine,
-  type RMachineLocale,
-} from "./r-machine.js";
-export {
-  CONFIG_ACCESSOR,
-  type ConfigBridge,
-  type RMachineConfig,
-  type RMachineConfigParams,
-} from "./r-machine-config.js";
+export { RMachine, type RMachineLocale } from "./r-machine.js";
+export { CONFIG_ACCESSOR, type RMachineConfig } from "./r-machine-config.js";

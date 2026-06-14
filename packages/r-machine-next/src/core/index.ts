@@ -12,26 +12,17 @@
  */
 
 export { HrefCanonicalizer } from "./href-canonicalizer.js";
-export { HrefMapper } from "./href-mapper.js";
 export { HrefTranslator } from "./href-translator.js";
 export type { NextClientPlugDefiner, NextClientPlugKitMap } from "./next-client-plug.js";
 export type { NextServerPlugDefiner, NextServerPlugKitMap } from "./next-server-plug.js";
-export type {
-  BoundPathComposer,
-  PathParamMap,
-  PathParams,
-  PathSelector,
-} from "./path.js";
+export type { BoundPathComposer, PathParamMap, PathParams, PathSelector } from "./path.js";
 export {
   type AnyPathAtlas,
-  type AnyPathAtlasClass,
   type AnySegment,
-  type AnySegmentEntryKey,
   type BuiltPathAtlas,
   buildPathAtlas,
   type PathAtlas,
   type PathAtlasClass,
   type Segment,
-  type TranslatableSegment,
 } from "./path-atlas.js";
 export type { RMachineProxy } from "./proxy.js";

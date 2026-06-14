@@ -4,23 +4,14 @@ import { describe, expectTypeOf, it } from "vitest";
 import {
   type AnyReactStandardStrategyConfig,
   createReactBareToolset,
-  createReactToolset,
-  type ReactBareRMachine,
-  type ReactBareToolset,
-  type ReactImpl,
   type ReactPlugKitMap,
   type ReactStandardStrategyConfig,
   type ReactStandardStrategyConfigParams,
   ReactStandardStrategyCore,
-  ReactStrategyCore,
   type ReactToolset,
   RequestScopeContext,
   type VertexFrameType,
 } from "../../src/core/index.js";
-import type {
-  ReactBareRMachine as OriginalReactBareRMachine,
-  ReactBareToolset as OriginalReactBareToolset,
-} from "../../src/core/react-bare-toolset.js";
 import { createReactBareToolset as originalCreateReactBareToolset } from "../../src/core/react-bare-toolset.js";
 import type { ReactPlugKitMap as OriginalReactPlugKitMap } from "../../src/core/react-plug.js";
 import type {
@@ -29,12 +20,7 @@ import type {
   ReactStandardStrategyConfigParams as OriginalConfigParams,
 } from "../../src/core/react-standard-strategy-core.js";
 import { ReactStandardStrategyCore as OriginalStandardStrategyCoreValue } from "../../src/core/react-standard-strategy-core.js";
-import { ReactStrategyCore as OriginalReactStrategyCoreValue } from "../../src/core/react-strategy-core.js";
-import type {
-  ReactImpl as OriginalReactImpl,
-  ReactToolset as OriginalReactToolset,
-} from "../../src/core/react-toolset.js";
-import { createReactToolset as originalCreateReactToolset } from "../../src/core/react-toolset.js";
+import type { ReactToolset as OriginalReactToolset } from "../../src/core/react-toolset.js";
 import { RequestScopeContext as OriginalRequestScopeContext } from "../../src/core/scope-context.js";
 import type { VertexFrame as OriginalVertexFrame } from "../../src/core/vertex-frame.js";
 
@@ -49,15 +35,8 @@ type KM = {};
 describe("core barrel exports", () => {
   it("re-exports value exports (functions / classes / context) identical to originals", () => {
     expectTypeOf(createReactBareToolset).toEqualTypeOf(originalCreateReactBareToolset);
-    expectTypeOf(createReactToolset).toEqualTypeOf(originalCreateReactToolset);
-    expectTypeOf(ReactStrategyCore).toEqualTypeOf(OriginalReactStrategyCoreValue);
     expectTypeOf(ReactStandardStrategyCore).toEqualTypeOf(OriginalStandardStrategyCoreValue);
     expectTypeOf(RequestScopeContext).toEqualTypeOf(OriginalRequestScopeContext);
-  });
-
-  it("re-exports ReactBareRMachine / ReactBareToolset identical to originals", () => {
-    expectTypeOf<ReactBareRMachine<L>>().toEqualTypeOf<OriginalReactBareRMachine<L>>();
-    expectTypeOf<ReactBareToolset<RA, L, EF, KM>>().toEqualTypeOf<OriginalReactBareToolset<RA, L, EF, KM>>();
   });
 
   it("re-exports the strategy config types (incl. the Params + Any aliases)", () => {
@@ -66,8 +45,7 @@ describe("core barrel exports", () => {
     expectTypeOf<AnyReactStandardStrategyConfig>().toEqualTypeOf<OriginalAnyStandardConfig>();
   });
 
-  it("re-exports createReactToolset surface types (ReactImpl / ReactToolset)", () => {
-    expectTypeOf<ReactImpl<L>>().toEqualTypeOf<OriginalReactImpl<L>>();
+  it("re-exports createReactToolset surface types (ReactToolset)", () => {
     expectTypeOf<ReactToolset<RA, L, EF, KM>>().toEqualTypeOf<OriginalReactToolset<RA, L, EF, KM>>();
   });
 

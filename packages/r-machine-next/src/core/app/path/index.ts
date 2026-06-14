@@ -16,6 +16,4 @@ export {
   type NextAppPathStrategyConfig,
   type NextAppPathStrategyConfigParams,
   NextAppPathStrategyCore,
-  NextAppPathStrategyPathCanonicalizer,
-  NextAppPathStrategyPathTranslator,
 } from "./next-app-path-strategy-core.js";

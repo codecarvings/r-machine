@@ -11,12 +11,6 @@
  * contact: licensing@codecarvings.com
  */
 
-export { createEventCollector, type EventCollector } from "./event-collector.js";
+export { createEventCollector } from "./event-collector.js";
 export { mockPlug, resetMockPlugs } from "./mock-plug.js";
-export {
-  type SourceLocation,
-  type VerifyIssue,
-  type VerifyReport,
-  type VerifyResourceAtlasOptions,
-  verifyResourceAtlas,
-} from "./verify-resource-atlas.js";
+export { verifyResourceAtlas } from "./verify-resource-atlas.js";

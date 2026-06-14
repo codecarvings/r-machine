@@ -1,12 +1,10 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type {
   AnyPathAtlas,
-  AnyPathAtlasClass,
   AnySegment,
   BoundPathComposer,
   BuiltPathAtlas,
   HrefCanonicalizer,
-  HrefMapper,
   HrefTranslator,
   PathAtlas,
   PathAtlasClass,
@@ -15,7 +13,6 @@ import type {
   PathSelector,
   RMachineProxy,
   Segment,
-  TranslatableSegment,
 } from "../../src/core/index.js";
 import { buildPathAtlas } from "../../src/core/index.js";
 
@@ -23,8 +20,6 @@ import { buildPathAtlas } from "../../src/core/index.js";
 describe("core barrel exports", () => {
   it("exports all expected symbols", () => {
     expectTypeOf<HrefCanonicalizer>().toBeObject();
-
-    expectTypeOf<HrefMapper<any>>().toBeObject();
 
     expectTypeOf<HrefTranslator>().toBeObject();
 
@@ -39,8 +34,6 @@ describe("core barrel exports", () => {
 
     expectTypeOf<BuiltPathAtlas<AnyPathAtlas>>().toBeObject();
 
-    expectTypeOf<AnyPathAtlasClass>().toBeConstructibleWith();
-
     expectTypeOf<PathAtlas<AnySegment>>().toBeObject();
 
     expectTypeOf<PathAtlasClass<AnyPathAtlas>>().toBeConstructibleWith();
@@ -52,8 +45,6 @@ describe("core barrel exports", () => {
     expectTypeOf<PathSelector<AnyPathAtlas>>().toExtend<string>();
 
     expectTypeOf<Segment<{}>>().toBeObject();
-
-    expectTypeOf<TranslatableSegment<{}>>().toBeObject();
 
     expectTypeOf<RMachineProxy>().toBeFunction();
   });

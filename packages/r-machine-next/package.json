@@ -49,12 +49,6 @@
   "module": "./lib/index.js",
   "zshy": {
     "exports": {
-      "./errors": "./src/errors/index.ts",
-      "./core": "./src/core/index.ts",
-      "./core/app": "./src/core/app/index.ts",
-      "./core/app/flat": "./src/core/app/flat/index.ts",
-      "./core/app/origin": "./src/core/app/origin/index.ts",
-      "./core/app/path": "./src/core/app/path/index.ts",
       "./app/flat": "./src/app/flat/index.ts",
       "./app/origin": "./src/app/origin/index.ts",
       "./app/path": "./src/app/path/index.ts",
@@ -66,42 +60,6 @@
     }
   },
   "exports": {
-    "./errors": {
-      "@r-machine/source": "./src/errors/index.ts",
-      "types": "./errors/index.d.cts",
-      "import": "./errors/index.js",
-      "require": "./errors/index.cjs"
-    },
-    "./core": {
-      "@r-machine/source": "./src/core/index.ts",
-      "types": "./core/index.d.cts",
-      "import": "./core/index.js",
-      "require": "./core/index.cjs"
-    },
-    "./core/app": {
-      "@r-machine/source": "./src/core/app/index.ts",
-      "types": "./core/app/index.d.cts",
-      "import": "./core/app/index.js",
-      "require": "./core/app/index.cjs"
-    },
-    "./core/app/flat": {
-      "@r-machine/source": "./src/core/app/flat/index.ts",
-      "types": "./core/app/flat/index.d.cts",
-      "import": "./core/app/flat/index.js",
-      "require": "./core/app/flat/index.cjs"
-    },
-    "./core/app/origin": {
-      "@r-machine/source": "./src/core/app/origin/index.ts",
-      "types": "./core/app/origin/index.d.cts",
-      "import": "./core/app/origin/index.js",
-      "require": "./core/app/origin/index.cjs"
-    },
-    "./core/app/path": {
-      "@r-machine/source": "./src/core/app/path/index.ts",
-      "types": "./core/app/path/index.d.cts",
-      "import": "./core/app/path/index.js",
-      "require": "./core/app/path/index.cjs"
-    },
     "./app/flat": {
       "@r-machine/source": "./src/app/flat/index.ts",
       "types": "./app/flat/index.d.cts",
