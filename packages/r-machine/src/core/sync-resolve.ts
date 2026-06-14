@@ -32,6 +32,15 @@
 // `undefined` or other falsy primitives).
 export const ASYNC: unique symbol = Symbol("rm.sync.async");
 
+// Returned by the synchronous resolvers specifically for a COVERED vertex
+// consumer whose parent (creator) slot is transiently absent/stale — e.g. an
+// HMR `invalidate` disposed the creator slot and it has not been re-committed
+// yet. Distinct from `ASYNC` because the caller MUST NOT fall back to the async
+// path (whose covered branch THROWS `ERR_VERTEX_INSTANCE_NOT_FOUND`): instead
+// the wire suspends on a stable pending promise and retries on the next render,
+// once the creator re-resolves and re-commits the slot. See [[wire-manager.resolve]].
+export const COVERED_PENDING: unique symbol = Symbol("rm.sync.coveredPending");
+
 export type MaybeAsync<T> = T | typeof ASYNC;
 
 // A Promise pre-tagged the way React 19's `use()` recognizes a settled value,

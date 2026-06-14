@@ -10,7 +10,7 @@ import { getResCacheKey, ResManager } from "../../src/core/res-manager.js";
 import type { AnyNamespaceMap } from "../../src/core/res-map.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
 import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-module.js";
-import { ASYNC } from "../../src/core/sync-resolve.js";
+import { ASYNC, COVERED_PENDING } from "../../src/core/sync-resolve.js";
 import { buildVertexKey } from "../../src/core/vertex-gear.js";
 import {
   ERR_CIRCULAR_DEPENDENCY,
@@ -216,6 +216,14 @@ function createRmTestEnv(options: RmTestEnvOptions) {
       chain: readonly AnyNamespace[],
       occurrenceTag?: string
     ): Promise<unknown>;
+    getPodSync(
+      namespace: AnyNamespace,
+      locale: string | undefined,
+      genId: number,
+      vertexGearMap: Record<AnyNamespace, string> | undefined,
+      chain: readonly AnyNamespace[],
+      occurrenceTag?: string
+    ): unknown;
   };
 
   return {
@@ -1381,7 +1389,7 @@ describe("ResManager — getPluginSync (vertex)", () => {
     expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(1);
   });
 
-  it("covered path with a MISSING parent slot returns ASYNC (does not throw) — async path owns the error", async () => {
+  it("covered path with a MISSING parent slot returns COVERED_PENDING (does not throw) — async path owns the error", async () => {
     const env = createRmTestEnv({
       modules: {
         "v/V": (rm) => makeVertexModule(rm, {}, { v: 1 }),
@@ -1389,10 +1397,13 @@ describe("ResManager — getPluginSync (vertex)", () => {
     });
     const missingVKey = env.vKey(7, "0"); // never created
 
-    // Sync declines silently.
-    expect(env.rm.getPluginSync({}, ["v/V"], undefined, () => {}, [], 99, { "v/V": missingVKey })).toBe(ASYNC);
+    // Sync returns COVERED_PENDING (NOT ASYNC): the wire must suspend + retry,
+    // not fall through to the async path (which throws). See [[wire-manager.resolve]].
+    expect(env.rm.getPluginSync({}, ["v/V"], undefined, () => {}, [], 99, { "v/V": missingVKey })).toBe(
+      COVERED_PENDING
+    );
 
-    // The async path throws the attributed vertex-not-found error.
+    // The async path still throws the attributed vertex-not-found error.
     try {
       await env.rm.getPlugin({}, ["v/V"], undefined, () => {}, [], 99, { "v/V": missingVKey });
       expect.unreachable("expected getPlugin to throw");
@@ -1400,6 +1411,47 @@ describe("ResManager — getPluginSync (vertex)", () => {
       expect(error).toBeInstanceOf(RMachineResolveError);
       expect((error as RMachineResolveError).code).toBe(ERR_VERTEX_INSTANCE_NOT_FOUND);
     }
+  });
+
+  it("getPodSync covered: returns the pod when the parent slot is fresh", async () => {
+    const env = createRmTestEnv({
+      modules: {
+        "v/V": (rm) => makeVertexModule(rm, {}, { v: 1 }),
+      },
+    });
+    await env.rmInternal.getPod("v/V", undefined, 7, undefined, [], "0");
+    const parentVKey = env.vKey(7, "0");
+
+    const pod = env.rmInternal.getPodSync("v/V", undefined, 99, { "v/V": parentVKey }, []);
+
+    expect(pod).not.toBe(ASYNC);
+    expect(pod).not.toBe(COVERED_PENDING);
+    expect((pod as { surface: unknown }).surface).toBeDefined();
+  });
+
+  it("getPodSync covered: returns COVERED_PENDING (not ASYNC) when the parent slot is missing", () => {
+    const env = createRmTestEnv({
+      modules: {
+        "v/V": (rm) => makeVertexModule(rm, {}, { v: 1 }),
+      },
+    });
+    const missingVKey = env.vKey(7, "0"); // never created
+
+    expect(env.rmInternal.getPodSync("v/V", undefined, 99, { "v/V": missingVKey }, [])).toBe(COVERED_PENDING);
+  });
+
+  it("getPodSync covered: returns COVERED_PENDING when the parent slot is stale (generation bumped)", async () => {
+    const env = createRmTestEnv({
+      modules: {
+        "v/V": (rm) => makeVertexModule(rm, {}, { v: 1 }),
+      },
+    });
+    await env.rmInternal.getPod("v/V", undefined, 7, undefined, [], "0");
+    const parentVKey = env.vKey(7, "0");
+    // Stale the parent slot the way invalidate() does (bump the namespace gen).
+    env.rmInternal.generationByNs.set("v/V", (env.rmInternal.generationByNs.get("v/V") ?? 0) + 1);
+
+    expect(env.rmInternal.getPodSync("v/V", undefined, 99, { "v/V": parentVKey }, [])).toBe(COVERED_PENDING);
   });
 
   it("creator MISS returns ASYNC without creating a slot or running the factory (Phase 1)", () => {

@@ -122,6 +122,10 @@ export type WireEvent =
   // already resolved in their slots) and returned a fulfilled-tagged thenable,
   // so the React consumer reads it via `use()` without suspending.
   | { type: "wire:resolvedSync"; genId: number }
+  // Emitted when resolve() found a COVERED vertex dep whose parent (creator) slot
+  // is transiently missing (e.g. mid-HMR invalidate). The wire suspends on a
+  // stable pending promise and stays dirty to retry on the next render.
+  | { type: "wire:coveredPending"; genId: number }
   | { type: "wire:rmSubscribed"; genId: number }
   | { type: "wire:rmUnsubscribed"; genId: number; vertexSlotsDisposed: number }
   | { type: "wire:markedDirty"; genId: number; subscriberCount: number }

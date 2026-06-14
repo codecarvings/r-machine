@@ -23,6 +23,7 @@ import {
   BUS_ACCESSOR,
   type BusHost,
   type CassetteRecorder,
+  COVERED_PENDING,
   createBaseGearComposer,
   createCassetteRecorder,
   createEventBus,
@@ -163,8 +164,10 @@ export class RMachine<
       // every transitive dep is warm / sync-eligible; otherwise decline so the
       // caller falls back to the async `getWire`.
       getWireSync: (deps, locale, augmentCtx, chain) => {
+        // No vertexGearMap here (gear→gear, genId 0) so COVERED_PENDING can't
+        // occur; decline (→ async fallback) for both sentinels defensively.
         const plugin = this.resManager.getPluginSync(kit, deps, locale, augmentCtx, chain, 0, undefined);
-        if (plugin === ASYNC) {
+        if (plugin === ASYNC || plugin === COVERED_PENDING) {
           return ASYNC;
         }
         return { plugin };

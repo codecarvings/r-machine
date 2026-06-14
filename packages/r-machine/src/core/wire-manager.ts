@@ -19,7 +19,7 @@ import type { AnyNamespace, AnyNamespaceCollection } from "./res-domain.js";
 import { isNamespaceList } from "./res-list.js";
 import type { ResManager } from "./res-manager.js";
 import type { AnyNamespaceMap } from "./res-map.js";
-import { ASYNC, fulfilledThenable } from "./sync-resolve.js";
+import { ASYNC, COVERED_PENDING, fulfilledThenable } from "./sync-resolve.js";
 import type { VertexGearMap } from "./vertex-gear.js";
 import type { Wire } from "./wire.js";
 
@@ -80,6 +80,13 @@ function createWire(
   // Strict Mode's double lazy-init is harmless.
   let dirty = true;
   let currentPluginPromise: Promise<unknown> | null = null;
+  // Stable never-settling promise handed to `use()` while a COVERED vertex dep's
+  // parent (creator) slot is transiently missing (e.g. mid-HMR `invalidate`,
+  // before the creator re-commits). Reusing ONE identity keeps the
+  // useSyncExternalStore snapshot stable (no re-render loop) while the wire stays
+  // `dirty` so the next render retries — by which point the creator's Suspense
+  // re-resolve has re-committed the slot. Reset to null on any real resolve.
+  let coveredPendingPromise: Promise<unknown> | null = null;
   // Frameless-vertex ownership: claimed by the first consumer that commits on
   // this wire (see Wire.claimOwner / [[project-vertex-per-consumer-instance]]).
   let owner: object | null = null;
@@ -158,20 +165,57 @@ function createWire(
       } catch {
         sync = ASYNC;
       }
+      if (sync === COVERED_PENDING) {
+        suspendCoveredPending();
+        return;
+      }
       if (sync !== ASYNC) {
+        coveredPendingPromise = null;
         currentPluginPromise = fulfilledThenable(sync);
         dirty = false;
         busHost.bus?.emit({ type: "wire:resolvedSync", genId });
         return;
       }
+    } else if (
+      currentVertexGearMap !== undefined &&
+      topLevelNs.some((ns) => currentVertexGearMap?.[ns] !== undefined)
+    ) {
+      // mockPlug transform present AND this consumer has a covered vertex dep: the
+      // async path below would THROW on a covered vertex whose parent slot is
+      // transiently missing. Probe the sync resolver (which never throws for that
+      // case — it returns COVERED_PENDING) so we take the suspend path here too;
+      // the transform applies on the eventual resolve. Skipped entirely when no
+      // dep is covered, preserving "transform ⇒ sync path not consulted".
+      let probe: unknown;
+      try {
+        probe = resManager.getPluginSync(kit, nsDeps, currentLocale, augmentCtx, [], genId, currentVertexGearMap);
+      } catch {
+        probe = ASYNC;
+      }
+      if (probe === COVERED_PENDING) {
+        suspendCoveredPending();
+        return;
+      }
     }
 
+    coveredPendingPromise = null;
     let promise = resManager.getPlugin(kit, nsDeps, currentLocale, augmentCtx, [], genId, currentVertexGearMap);
     if (transform !== undefined) {
       promise = promise.then(transform);
     }
     currentPluginPromise = promise;
     dirty = false;
+  }
+
+  // COVERED_PENDING handling: hand `use()` a stable never-settling promise so it
+  // suspends, and KEEP `dirty` true so the next render re-resolves. See the
+  // `coveredPendingPromise` declaration above.
+  function suspendCoveredPending(): void {
+    if (coveredPendingPromise === null) {
+      coveredPendingPromise = new Promise<unknown>(() => {});
+    }
+    currentPluginPromise = coveredPendingPromise;
+    busHost.bus?.emit({ type: "wire:coveredPending", genId });
   }
 
   busHost.bus?.emit({ type: "wire:created", genId, locale, topLevelNs: [...topLevelNs] });

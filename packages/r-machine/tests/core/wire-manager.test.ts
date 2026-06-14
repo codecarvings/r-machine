@@ -11,7 +11,7 @@ import { createStateCell } from "../../src/core/reactivity/state-cell.js";
 import type { AnyNamespace, AnyNamespaceCollection } from "../../src/core/res-domain.js";
 import type { ResManager } from "../../src/core/res-manager.js";
 import type { AnyNamespaceMap } from "../../src/core/res-map.js";
-import { ASYNC } from "../../src/core/sync-resolve.js";
+import { ASYNC, COVERED_PENDING } from "../../src/core/sync-resolve.js";
 import type { VertexGearMap } from "../../src/core/vertex-gear.js";
 import { WireManager } from "../../src/core/wire-manager.js";
 import { collectEvents, makeTestBridge } from "../_fixtures/event-bus-helpers.js";
@@ -752,5 +752,57 @@ describe("WireManager — synchronous fast path", () => {
     expect(mock.getPluginCalls).toBe(1);
     expect("status" in p).toBe(false);
     await expect(p).resolves.toMatchObject({ transformed: { pluginId: 0 } });
+  });
+
+  it("COVERED_PENDING: suspends on a STABLE pending promise and never calls async getPlugin", () => {
+    const mock = createSyncMockRm(() => COVERED_PENDING);
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["v/V"], "en-US", noopAugmentCtx);
+
+    const p1 = wire.getPluginPromise() as TaggedThenable;
+    const p2 = wire.getPluginPromise() as TaggedThenable;
+
+    // Same identity across reads → useSyncExternalStore snapshot is stable (no loop).
+    expect(p1).toBe(p2);
+    // Pending (never settled), so React `use()` suspends rather than throwing.
+    expect("status" in p1).toBe(false);
+    // The async path (which would THROW for a covered-missing dep) is never touched.
+    expect(mock.getPluginCalls).toBe(0);
+  });
+
+  it("COVERED_PENDING → fulfilled once the parent re-commits (wire stays dirty and retries)", () => {
+    let ready = false;
+    const syncValue = { ready: true };
+    const mock = createSyncMockRm(() => (ready ? syncValue : COVERED_PENDING));
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["v/V"], "en-US", noopAugmentCtx);
+
+    const pending = wire.getPluginPromise() as TaggedThenable;
+    expect("status" in pending).toBe(false);
+
+    // Creator re-commits the slot → next render's resolve() finds it (the wire
+    // stayed dirty through COVERED_PENDING, so it re-resolves without an RM notify).
+    ready = true;
+    const resolved = wire.getPluginPromise() as TaggedThenable;
+
+    expect(resolved.status).toBe("fulfilled");
+    expect(resolved.value).toBe(syncValue);
+    expect(resolved).not.toBe(pending);
+    expect(mock.getPluginCalls).toBe(0);
+  });
+
+  it("emits wire:coveredPending when a covered vertex dep's parent slot is missing", () => {
+    const bridge = makeTestBridge();
+    const mock = createSyncMockRm(() => COVERED_PENDING);
+    const wm = new WireManager(mock.rm, bridge, createCassetteRecorder());
+    const wire = wm.getWire({}, ["v/V"], "en-US", noopAugmentCtx);
+
+    const collector = collectEvents(bridge);
+    wire.getPluginPromise();
+
+    const types = collector.events.map((e) => e.type);
+    expect(types).toContain("wire:coveredPending");
+    expect(types).not.toContain("wire:resolvedSync");
+    collector.dispose();
   });
 });

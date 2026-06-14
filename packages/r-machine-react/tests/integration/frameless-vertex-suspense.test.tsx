@@ -64,7 +64,7 @@ function buildVertexEnv() {
     getWire: wm.getWire.bind(wm),
     resolveLayoutEntryType: (ns: string) => resolver.resolveLayoutEntryType(ns as never),
   };
-  return { fakeMachine };
+  return { fakeMachine, rm, wm };
 }
 
 type Counter = { count: number; inc: () => unknown };
@@ -251,6 +251,108 @@ describe("frameless VertexGear consumer — no Suspense loop, independent instan
     // Shared instance: incrementing C moves D too.
     expect(c.textContent).toBe("1");
     expect(d.textContent).toBe("1");
+  });
+
+  it("covered consumers survive an HMR invalidate of the vertex without crashing", async () => {
+    // Regression: editing the vertex gear file triggers `invalidate`, which
+    // disposes the creator slot and notifies all subscribers SYNCHRONOUSLY. A
+    // covered consumer's snapshot read can run before the creator re-commits, so
+    // its covered lookup found a missing parent slot and the async path THREW
+    // ERR_VERTEX_INSTANCE_NOT_FOUND (unhandled rejection + render crash). The fix
+    // makes the covered miss SUSPEND (COVERED_PENDING) and retry once the creator
+    // re-resolves. See [[wire-manager.resolve]].
+    const { fakeMachine, rm } = buildVertexEnv();
+    const toolset = await createReactBareToolset(fakeMachine as never, {} as never);
+    const { ReactRMachine, Plug } = toolset;
+    const VertexFrame = (toolset as any).VertexFrame;
+    const CounterPlug = (Plug as any)("v/counter");
+
+    const caught: unknown[] = [];
+    class Boundary extends React.Component<{ children: React.ReactNode }, { error: unknown }> {
+      override state = { error: null as unknown };
+      static getDerivedStateFromError(error: unknown) {
+        return { error };
+      }
+      override componentDidCatch(error: unknown) {
+        caught.push(error);
+      }
+      override render() {
+        return this.state.error ? <div data-testid="boundary">crashed</div> : this.props.children;
+      }
+    }
+
+    const rejections: unknown[] = [];
+    const onRejection = (e: PromiseRejectionEvent) => rejections.push(e.reason);
+    window.addEventListener("unhandledrejection", onRejection);
+
+    function Widget({ label }: { label: string }) {
+      const [c] = (CounterPlug as any).useR() as [Counter];
+      return (
+        <button type="button" data-testid={label} onClick={() => c.inc()}>
+          {c.count}
+        </button>
+      );
+    }
+    function App() {
+      const [frameCounter] = (CounterPlug as any).useR() as [Counter];
+      return (
+        <VertexFrame gear={[frameCounter as never]}>
+          <Widget label="C" />
+          <Widget label="D" />
+        </VertexFrame>
+      );
+    }
+
+    try {
+      await act(async () => {
+        render(
+          <ReactRMachine locale="en">
+            <Boundary>
+              <React.Suspense fallback={<div>loading</div>}>
+                <App />
+              </React.Suspense>
+            </Boundary>
+          </ReactRMachine>
+        );
+      });
+
+      const c = await screen.findByTestId("C");
+      const d = await screen.findByTestId("D");
+      await act(async () => {
+        fireEvent.click(c);
+      });
+      expect(c.textContent).toBe("1");
+      expect(d.textContent).toBe("1");
+
+      // HMR: invalidate the vertex (disposes the creator slot, notifies subscribers).
+      await act(async () => {
+        rm.invalidate("v/counter" as never);
+      });
+      // Let any deferred microtask teardown / unhandled rejections flush.
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      // No crash: the boundary never tripped and nothing rejected unhandled.
+      expect(caught).toEqual([]);
+      expect(screen.queryByTestId("boundary")).toBeNull();
+      expect(rejections).toEqual([]);
+
+      // Recovered to a FRESH shared instance (invalidate rebuilt it at count 0).
+      const c2 = await screen.findByTestId("C");
+      const d2 = await screen.findByTestId("D");
+      expect(c2.textContent).toBe("0");
+      expect(d2.textContent).toBe("0");
+
+      // Still a live, shared instance after recovery.
+      await act(async () => {
+        fireEvent.click(c2);
+      });
+      expect(c2.textContent).toBe("1");
+      expect(d2.textContent).toBe("1");
+    } finally {
+      window.removeEventListener("unhandledrejection", onRejection);
+    }
   });
 
   it("two frameless siblings stay independent under React.StrictMode", async () => {

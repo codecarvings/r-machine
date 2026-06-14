@@ -28,7 +28,7 @@ import { buildResPod, type ResPod } from "./res-pod.js";
 import { attachResolveContext } from "./resolve-context.js";
 import { PROCESS_SCOPE_PROVIDER, type RequestScope, type RequestScopeProvider, type Slot } from "./scope.js";
 import type { AnySurface } from "./surface.js";
-import { ASYNC } from "./sync-resolve.js";
+import { ASYNC, COVERED_PENDING } from "./sync-resolve.js";
 import { buildVertexKey, type VertexGearMap, type VertexGearTagData } from "./vertex-gear.js";
 
 // SEP = U+001F (Unit Separator). An empty locale prefix means `undefined`.
@@ -314,7 +314,7 @@ export class ResManager {
     vertexGearMap: VertexGearMap | undefined,
     chain: readonly AnyNamespace[],
     occurrenceTag: string = ""
-  ): ResPod | typeof ASYNC {
+  ): ResPod | typeof ASYNC | typeof COVERED_PENDING {
     const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
     const slotsMap = this.slotsForLayout(layoutType);
     if (layoutType === "gear:outer(vertex)") {
@@ -325,7 +325,12 @@ export class ResManager {
         const consumerKey = getResCacheKey(namespace, locale, layoutType, parentVertexKey);
         const consumerSlot = slotsMap.get(consumerKey);
         if (consumerSlot === undefined || !this.isSlotFresh(consumerSlot) || consumerSlot.content instanceof Promise) {
-          return ASYNC;
+          // The parent (creator) slot is transiently absent/stale (e.g. HMR
+          // invalidate disposed it and it has not been re-committed yet).
+          // Return COVERED_PENDING — NOT ASYNC — so the wire suspends and
+          // retries instead of falling through to the async path, whose covered
+          // branch throws ERR_VERTEX_INSTANCE_NOT_FOUND.
+          return COVERED_PENDING;
         }
         this.busHost.bus?.emit({
           type: "res:vertexConsumerResolved",
@@ -497,7 +502,7 @@ export class ResManager {
     chain: readonly AnyNamespace[],
     genId: number,
     vertexGearMap: VertexGearMap | undefined
-  ): unknown | typeof ASYNC {
+  ): unknown | typeof ASYNC | typeof COVERED_PENDING {
     const isList = isNamespaceList(nsDeps);
     const eagerKitEntries: Array<readonly [string, AnyNamespace]> = [];
     const deferredKitEntries: Array<readonly [string, AnyNamespace]> = [];
@@ -509,23 +514,31 @@ export class ResManager {
       }
     }
 
-    // Eager kit: each must already be a committed pod.
+    // Eager kit: each must already be a committed pod. Kit entries carry no
+    // vertexGearMap, so they can never hit the covered path (no COVERED_PENDING);
+    // the defensive check just narrows the type.
     const kitPairs: Array<readonly [string, AnySurface]> = [];
     for (const [k, ns] of eagerKitEntries) {
       const pod = this.getPodSync(ns, locale, 0, undefined, chain);
-      if (pod === ASYNC) {
+      if (pod === ASYNC || pod === COVERED_PENDING) {
         return ASYNC;
       }
       kitPairs.push([k, pod.surface]);
     }
     const kitDeps = Object.fromEntries(kitPairs) as AnyResolvedNamespaceMap;
 
+    // A covered vertex dep whose parent slot is transiently missing returns
+    // COVERED_PENDING. It DOMINATES ASYNC: we must not fall through to the async
+    // path (its covered branch throws). Return it so the wire suspends + retries.
     let deps: AnyResolvedNamespaceList | AnyResolvedNamespaceMap;
     if (isList) {
       const list: AnySurface[] = [];
       const nsList = nsDeps as AnyNamespaceList;
       for (let i = 0; i < nsList.length; i++) {
         const pod = this.getPodSync(nsList[i] as AnyNamespace, locale, genId, vertexGearMap, chain, String(i));
+        if (pod === COVERED_PENDING) {
+          return COVERED_PENDING;
+        }
         if (pod === ASYNC) {
           return ASYNC;
         }
@@ -536,6 +549,9 @@ export class ResManager {
       const pairs: Array<readonly [string, AnySurface]> = [];
       for (const [key, namespace] of Object.entries(nsDeps as AnyNamespaceMap)) {
         const pod = this.getPodSync(namespace, locale, genId, vertexGearMap, chain, key);
+        if (pod === COVERED_PENDING) {
+          return COVERED_PENDING;
+        }
         if (pod === ASYNC) {
           return ASYNC;
         }
