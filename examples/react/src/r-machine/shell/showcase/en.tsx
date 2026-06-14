@@ -31,8 +31,7 @@ export const r = {
       sidebarNotePre: "The sidebar reads and writes a single OuterGear. The active view below is just",
       sidebarNotePost: "state:",
       activeViewLabel: "active view",
-      hmrNote:
-        "Edit a resource and save — thanks to HMR, the OuterGear keeps its state and this selection persists.",
+      hmrNote: "Edit a resource and save — thanks to HMR, the OuterGear keeps its state and this selection persists.",
     },
     "outer-gear": {
       heading: "OuterGear — reactive state",
