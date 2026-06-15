@@ -1,7 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { RMachine } from "#r-machine";
 import type { AnyResAtlas } from "#r-machine/core";
-import type { AnyLocale } from "#r-machine/locale";
 import { Strategy } from "../../src/strategy/strategy.js";
 
 // Minimal atlas-instance shape for type testing. Strategy now generics on
@@ -45,15 +44,7 @@ describe("Strategy", () => {
     new Strategy({} as RMachine<TestAtlas, string, TestResEquipment, {}>, {} as TestConfig);
   });
 
-  it("should be constructable through subclasses", () => {
-    expectTypeOf(TestStrategy).toBeConstructibleWith({} as RMachine<TestAtlas, string, TestResEquipment, {}>, {
-      option: "test",
-      enabled: true,
-    });
-  });
-
   it("rMachine property should be readonly RMachine<RA, L, E, EF>", () => {
-    expectTypeOf<TestStrategy>().toHaveProperty("rMachine");
     expectTypeOf<TestStrategy["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, string, TestResEquipment, {}>>();
 
     const strategy = new TestStrategy({} as RMachine<TestAtlas, string, TestResEquipment, {}>, {} as TestConfig);
@@ -62,7 +53,6 @@ describe("Strategy", () => {
   });
 
   it("config property should be readonly C", () => {
-    expectTypeOf<TestStrategy>().toHaveProperty("config");
     expectTypeOf<TestStrategy["config"]>().toEqualTypeOf<TestConfig>();
 
     const strategy = new TestStrategy({} as RMachine<TestAtlas, string, TestResEquipment, {}>, {} as TestConfig);
@@ -119,15 +109,6 @@ describe("Strategy type constraints", () => {
   it("L should reject types that do not extend AnyLocale", () => {
     // @ts-expect-error - number does not extend AnyLocale (string)
     class _InvalidL extends Strategy<TestAtlas, number, TestResEquipment, {}, TestConfig> {}
-  });
-
-  it("L should accept AnyLocale and string literal unions", () => {
-    expectTypeOf<Strategy<TestAtlas, AnyLocale, TestResEquipment, {}, TestConfig>>().toBeObject();
-    expectTypeOf<Strategy<TestAtlas, "en" | "it", TestResEquipment, {}, TestConfig>>().toBeObject();
-  });
-
-  it("Strategy instances should extend Strategy base type", () => {
-    expectTypeOf<TestStrategy>().toExtend<Strategy<TestAtlas, string, TestResEquipment, {}, TestConfig>>();
   });
 
   it("different atlas instances should produce different Strategy types", () => {

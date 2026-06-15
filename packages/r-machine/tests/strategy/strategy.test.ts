@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { RMachine, type RMachineConfig } from "#r-machine";
-import type { AnyResAtlas } from "#r-machine/core";
+import { CONFIG_ACCESSOR, RMachine, type RMachineConfig } from "#r-machine";
+import { type AnyResAtlas, BUS_ACCESSOR } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 import { Strategy } from "../../src/strategy/strategy.js";
 
@@ -132,6 +132,34 @@ describe("Strategy", () => {
       const s2 = new DefaultStrategy(rMachine, { b: 2 });
       expect(s1.rMachine).toBe(s2.rMachine);
       expect(s1.config).not.toBe(s2.config);
+    });
+  });
+
+  describe("getHelpers", () => {
+    it("surfaces the RMachine's localeHelper", () => {
+      const rMachine = createTestRMachine();
+      const strategy = new DefaultStrategy(rMachine, {});
+      expect(strategy.getHelpers().localeHelper).toBe(rMachine.localeHelper);
+    });
+
+    it("memoizes the helpers object so repeated calls return the same reference", () => {
+      const strategy = new DefaultStrategy(createTestRMachine(), {});
+      const first = strategy.getHelpers();
+      expect(strategy.getHelpers()).toBe(first);
+    });
+  });
+
+  describe("accessor delegation", () => {
+    it("[BUS_ACCESSOR] returns the underlying RMachine's event bus", () => {
+      const rMachine = createTestRMachine();
+      const strategy = new DefaultStrategy(rMachine, {});
+      expect(strategy[BUS_ACCESSOR]()).toBe(rMachine[BUS_ACCESSOR]());
+    });
+
+    it("[CONFIG_ACCESSOR] returns the underlying RMachine's config", () => {
+      const rMachine = createTestRMachine();
+      const strategy = new DefaultStrategy(rMachine, {});
+      expect(strategy[CONFIG_ACCESSOR]()).toBe(rMachine[CONFIG_ACCESSOR]());
     });
   });
 });

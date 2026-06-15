@@ -1,80 +1,21 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { CustomLocaleDetector, CustomLocaleStore } from "../../src/strategy/strategy-options.js";
 
+// Both are plain types. An exact match pins function-ness, parameters, return
+// type and (for the store) the readonly members in a single assertion — the
+// per-facet `toBeFunction`/`parameters`/`returns`/assignable checks it replaces
+// were all subsumed by it.
 describe("CustomLocaleDetector", () => {
-  it("should be a function type", () => {
-    expectTypeOf<CustomLocaleDetector>().toBeFunction();
-  });
-
-  it("should accept no parameters", () => {
-    expectTypeOf<CustomLocaleDetector>().parameters.toEqualTypeOf<[]>();
-  });
-
-  it("should return string or Promise<string>", () => {
-    expectTypeOf<CustomLocaleDetector>().returns.toEqualTypeOf<string | Promise<string>>();
-  });
-
-  it("sync function returning string should be assignable", () => {
-    const syncDetector = () => "en";
-    expectTypeOf(syncDetector).toExtend<CustomLocaleDetector>();
-  });
-
-  it("async function returning string should be assignable", () => {
-    const asyncDetector = async () => "en";
-    expectTypeOf(asyncDetector).toExtend<CustomLocaleDetector>();
+  it("is () => string | Promise<string> (sync or async)", () => {
+    expectTypeOf<CustomLocaleDetector>().toEqualTypeOf<() => string | Promise<string>>();
   });
 });
 
 describe("CustomLocaleStore", () => {
-  it("should be an object type", () => {
-    expectTypeOf<CustomLocaleStore>().toBeObject();
-  });
-
-  it("should have readonly get property", () => {
-    expectTypeOf<CustomLocaleStore>().toHaveProperty("get");
-  });
-
-  it("should have readonly set property", () => {
-    expectTypeOf<CustomLocaleStore>().toHaveProperty("set");
-  });
-
-  it("get should be a function with no parameters", () => {
-    expectTypeOf<CustomLocaleStore["get"]>().parameters.toEqualTypeOf<[]>();
-  });
-
-  it("get should return string | undefined | Promise<string | undefined>", () => {
-    expectTypeOf<CustomLocaleStore["get"]>().returns.toEqualTypeOf<string | undefined | Promise<string | undefined>>();
-  });
-
-  it("set should accept string parameter", () => {
-    expectTypeOf<CustomLocaleStore["set"]>().parameter(0).toEqualTypeOf<string>();
-  });
-
-  it("set should return void or Promise<void>", () => {
-    expectTypeOf<CustomLocaleStore["set"]>().returns.toEqualTypeOf<void | Promise<void>>();
-  });
-
-  it("sync implementation should be assignable", () => {
-    const syncStore: CustomLocaleStore = {
-      get: () => "en",
-      set: (_newLocale: string) => {},
-    };
-    expectTypeOf(syncStore).toExtend<CustomLocaleStore>();
-  });
-
-  it("async implementation should be assignable", () => {
-    const asyncStore: CustomLocaleStore = {
-      get: async () => "en",
-      set: async (_newLocale: string) => {},
-    };
-    expectTypeOf(asyncStore).toExtend<CustomLocaleStore>();
-  });
-
-  it("get returning undefined should be valid", () => {
-    const store: CustomLocaleStore = {
-      get: () => undefined,
-      set: (_newLocale: string) => {},
-    };
-    expectTypeOf(store).toExtend<CustomLocaleStore>();
+  it("is { readonly get; readonly set } with sync-or-async signatures", () => {
+    expectTypeOf<CustomLocaleStore>().toEqualTypeOf<{
+      readonly get: () => string | undefined | Promise<string | undefined>;
+      readonly set: (newLocale: string) => void | Promise<void>;
+    }>();
   });
 });
