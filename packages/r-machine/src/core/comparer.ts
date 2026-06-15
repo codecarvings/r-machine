@@ -57,7 +57,6 @@ function shallowEqual(a: unknown, b: unknown): boolean {
 export const Comparer = {
   identity: Object.is,
   shallow: shallowEqual,
-  // deep: deepEqual,  ← V2, additive
 } as const;
 
 /** Built-in strategy names, derived from the `Comparer` namespace keys. */

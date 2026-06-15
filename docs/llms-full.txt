@@ -4,7 +4,7 @@
 
 https://rmachine.dev
 
-https://github.com/codecarvings/r-machine/tree/RM-alpha-12
+https://github.com/codecarvings/r-machine/
 Warning: R-Machine is still in active development - API may change before stable release.
 
 ---
@@ -1940,7 +1940,7 @@ When jiti is missing, `createNextDevImport` returns `null`, the production impor
 
 ### 11.9. SSR hydration of `OuterGear` state (Next.js)
 
-An `OuterGear` is a plain async factory (§4.9), so giving it a server-derived initial state is just ordinary code inside `define(...)` — what goes in the factory is entirely up to you. This section shows **one convenient pattern**, not a requirement: seed the state from a **server snapshot read through a port**, awaited via the canonical `_.action()` (§6.1). (`withSerializer` — true server→client state transfer — is planned for V2 and will streamline this; until then, this pattern covers the case.)
+An `OuterGear` is a plain async factory (§4.9), so giving it a server-derived initial state is just ordinary code inside `define(...)` — what goes in the factory is entirely up to you. This section shows **one convenient pattern**, not a requirement: seed the state from a **server snapshot read through a port**, awaited via the canonical `_.action()` (§6.1).
 
 The end-to-end shape, four files:
 
@@ -2003,7 +2003,7 @@ export default function Page() {
 
 Caveats:
 - **Determinism is required.** If the snapshot source varies between the two reads (wall-clock, randomness, a session mutated in between), the renders differ and React warns. Key the data to the request so both reads agree.
-- **The snapshot is read twice** — once on the server, once on the client (the factory re-runs during hydration). For idempotent reads this is acceptable; dedupe / cache if it matters. `withSerializer` (V2) will transfer the server state to the client and remove the second read.
+- **The snapshot is read twice** — once on the server, once on the client (the factory re-runs during hydration). For idempotent reads this is acceptable; dedupe / cache if it matters.
 - **`ServerPlug` cannot consume an `OuterGear`** (§10.2) — the consumer is always a `Plug` / `ClientPlug`.
 
 ---
@@ -2591,12 +2591,12 @@ IntelliSense latency — so you can re-verify the claims on your own machine
 rather than trusting the published figures.
 
 Full benchmark + methodology:
-https://github.com/codecarvings/r-machine/tree/RM-alpha-12/benchmarks/type-scale
+https://github.com/codecarvings/r-machine/tree/main/benchmarks/type-scale
 Last generated report:
-https://github.com/codecarvings/r-machine/blob/RM-alpha-12/benchmarks/type-scale/results/REPORT.md
+https://github.com/codecarvings/r-machine/blob/main/benchmarks/type-scale/results/REPORT.md
 
 ---
 
-rev 2026-06-08.016
+rev 2026-06-15.017
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com
