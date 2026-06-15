@@ -196,11 +196,11 @@ export function parseAcceptLanguageHeader(header: string): readonly string[] {
  * @see https://www.rfc-editor.org/rfc/rfc4647.html#section-2.1
  */
 function isValidLanguageRange(range: string): boolean {
-  /* v8 ignore start */
+  // Reachable for a non-empty part that starts with ";" (e.g. ";q=0.5"), whose
+  // range segment trims to "". Covered by the empty-range-segment test.
   if (!range) {
     return false;
   }
-  /* v8 ignore stop */
 
   // Wildcard is always valid
   if (range === "*") {
