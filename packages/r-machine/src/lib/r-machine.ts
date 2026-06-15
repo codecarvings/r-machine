@@ -102,17 +102,6 @@ export class RMachine<
     // set — used by tests and by the bare reactivity layer.
     this.cassetteRecorder.setRelayOrderingProvider(createBlueprintRelayOrderingProvider(this.blueprintManager));
     this.wireManager = new WireManager(this.resManager, this.busHost, this.cassetteRecorder);
-
-    // this.warnExperimental();
-  }
-
-  protected warnExperimental() {
-    const display = (feature: string) =>
-      console.warn(`R-Machine: ${feature} (experimental). API may change before stable release.`);
-
-    if (this.config.experimental.outerGear === "on") {
-      display("Outer Gear is enabled");
-    }
   }
 
   readonly localeHelper: LocaleHelper<L>;

@@ -288,38 +288,3 @@ describe("enableRMachineDevMode", () => {
   });
 });
 
-describe("RMachine — warnExperimental (currently unreferenced; see note)", () => {
-  // NOTE: the constructor's call site is commented out, so this method is dead
-  // in production today. Covered directly to document its contract; flagged to
-  // the maintainer to either wire it up (uncomment the call) or remove it.
-  it("warns when an experimental feature is enabled", () => {
-    const { rm } = makeMachine("warn-on");
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    try {
-      (rm as unknown as { warnExperimental(): void }).warnExperimental();
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Outer Gear is enabled"));
-    } finally {
-      warnSpy.mockRestore();
-    }
-  });
-
-  it("stays silent when no experimental feature is enabled", () => {
-    const innerOnly = defineLayout({ "inner/": "gear:inner" });
-    class InnerAtlas extends innerOnly<{ "inner/x": { v: number } }>() {}
-    const rm = RMachine.create({
-      instanceName: "block-c-warn-off",
-      locales: ["en"],
-      defaultLocale: "en",
-      ResourceAtlas: InnerAtlas,
-      load: emptyLoad,
-    });
-
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    try {
-      (rm as unknown as { warnExperimental(): void }).warnExperimental();
-      expect(warnSpy).not.toHaveBeenCalled();
-    } finally {
-      warnSpy.mockRestore();
-    }
-  });
-});
