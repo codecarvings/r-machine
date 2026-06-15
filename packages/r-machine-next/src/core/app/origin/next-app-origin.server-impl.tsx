@@ -128,11 +128,18 @@ export async function createNextAppOriginServerImpl<
             }
 
             if (locale === undefined) {
-              // Origin not found in map, use default locale
+              // Origin not found in map: fall back to the default locale, but do
+              // NOT cache it. The cache key derives from the client-controllable
+              // `Host` header, so caching misses would let arbitrary hosts grow
+              // `originCacheMap` without bound (a memory-exhaustion vector). The
+              // miss path is cheap anyway (a loop over the small `localeOriginMap`),
+              // so skipping the cache costs nothing while keeping the map bounded
+              // to the number of known origins.
               locale = defaultLocale;
+            } else {
+              // Known origin → safe to cache (bounded by `localeOriginMap` size).
+              originCacheMap.set(origin, locale);
             }
-
-            originCacheMap.set(origin, locale!);
           }
 
           return rewriteToCanonicalLocalePath(request, locale!, pathname);

@@ -341,6 +341,47 @@ describe("createNextAppOriginServerImpl", () => {
         expect(url1.pathname).toBe("/it/about");
         expect(url2.pathname).toBe("/it");
       });
+
+      // The cache key is `${protocol}//${host}` and `host` is client-controllable.
+      // Caching unknown origins would let arbitrary hosts grow `originCacheMap`
+      // without bound. These two tests pin the boundedness guarantee by observing
+      // the resolution loop (a spy on a map entry's `includes`): it must re-run on
+      // every miss (unknown origin) but only once for a hit (known origin).
+      it("does not cache unknown origins (resolution loop re-runs on each miss)", async () => {
+        const enIncludes = vi.fn((o: string) => ["https://en.example.com"].includes(o));
+        const { impl } = await createImpl({
+          atlas: aboutAtlas,
+          localeOriginMap: { en: { includes: enIncludes } as unknown as string[] },
+        });
+        const proxy = impl.createProxy() as AnyProxyFn;
+
+        proxy(createMockRequest("/about", "https:", "unknown.example.com"));
+        proxy(createMockRequest("/about", "https:", "unknown.example.com"));
+
+        // Miss is never cached → the map is scanned again on the second request.
+        expect(enIncludes).toHaveBeenCalledTimes(2);
+        expect(mockRewrite).toHaveBeenCalledTimes(2);
+        const [url1] = mockRewrite.mock.calls[0] as MockRewriteArgs;
+        const [url2] = mockRewrite.mock.calls[1] as MockRewriteArgs;
+        expect(url1.pathname).toBe("/en/about");
+        expect(url2.pathname).toBe("/en/about");
+      });
+
+      it("caches known origins (resolution loop runs once across repeated hits)", async () => {
+        const enIncludes = vi.fn((o: string) => ["https://en.example.com"].includes(o));
+        const { impl } = await createImpl({
+          atlas: aboutAtlas,
+          localeOriginMap: { en: { includes: enIncludes } as unknown as string[] },
+        });
+        const proxy = impl.createProxy() as AnyProxyFn;
+
+        proxy(createMockRequest("/about", "https:", "en.example.com"));
+        proxy(createMockRequest("/about", "https:", "en.example.com"));
+
+        // Hit is cached → the map is scanned only on the first request.
+        expect(enIncludes).toHaveBeenCalledTimes(1);
+        expect(mockRewrite).toHaveBeenCalledTimes(2);
+      });
     });
 
     // -------------------------------------------------------------------
