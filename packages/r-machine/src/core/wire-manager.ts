@@ -345,6 +345,23 @@ function createWire(
     // Tear down a single consumer's tracking state. Called by the consumer
     // on unmount (or when the active wire identity changes — e.g. a locale
     // switch routes the consumer to a different cached wire).
+    //
+    // SCOPE — deliberately per-consumer ONLY. This disposes just this
+    // consumer's cassette + cell subscriptions and drops it from `consumers`.
+    // It intentionally does NOT touch `unsubFromRm` or `subscribers`: those,
+    // plus vertex-slot teardown, are owned exclusively by the subscriber
+    // channel's last-subscriber-out path (see `subscribe` above), which also
+    // calls `disposeAllConsumers()` and is thus a strict superset of this.
+    //
+    // The two channels are orthogonal by design and fire independently: a
+    // locale switch legitimately calls `disposeConsumer` while OTHER consumers
+    // keep `subscribers` non-empty and the wire alive. So we can't assert
+    // anything here about `subscribers`/`unsubFromRm` without false positives —
+    // hence a note, not a guard. The contract for callers: `disposeConsumer` is
+    // NOT full wire teardown. A consumer must also go through the
+    // subscribe/unsubscribe channel (the React adapter pairs both on unmount);
+    // relying on `disposeConsumer` alone would leak the RM subscription and any
+    // vertex slots this wire created.
     disposeConsumer: (consumerKey: object) => {
       const state = consumers.get(consumerKey);
       if (state === undefined) {
