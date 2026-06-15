@@ -252,6 +252,12 @@ describe("createResMatrix — sync eligibility inference", () => {
     expect(isResMatrixSyncEligible(mat)).toBe(false);
   });
 
+  it("falls back to false for an origin that carries no sync-eligibility symbol", () => {
+    // A plain resource (no symbol) must read as not-eligible rather than throw
+    // on the missing holder — exercises the `?? false` fallback.
+    expect(isResMatrixSyncEligible({} as AnyRes)).toBe(false);
+  });
+
   it("becomes eligible after an async resolve whose user factory returns synchronously", async () => {
     const mat = createResMatrix(makeOptions(gearMeta, { userFactory: () => ({}) }));
     await mat.create();

@@ -287,6 +287,28 @@ describe("ResLayoutResolver — resolvePath", () => {
   });
 });
 
+// --- ResLayoutResolver — defensive runtime guards ----------------------------
+// These paths are unreachable through the typed API (a layout's values are
+// ResLayoutEntryType), but the resolver is a runtime primitive that JS callers
+// can feed malformed input — the guards must throw a clear RMachineResolveError
+// rather than return garbage.
+
+describe("ResLayoutResolver — defensive runtime guards", () => {
+  it("resolveLayoutEntryType throws when a matched entry has a falsy type", () => {
+    const resolver = new ResLayoutResolver({ "app/": "" as never });
+    const error = captureResolveError(() => resolver.resolveLayoutEntryType("app/home"));
+    expect(error.code).toBe(ERR_RESOLVE_FAILED);
+    expect(error.message).toContain('"app/home"');
+  });
+
+  it("resolvePath throws for an unrecognized layout type", () => {
+    const resolver = new ResLayoutResolver({ "app/": "gear:inner" });
+    const error = captureResolveError(() => resolver.resolvePath("app", "en", "bogus" as never));
+    expect(error.code).toBe(ERR_RESOLVE_FAILED);
+    expect(error.message).toContain('"app"');
+  });
+});
+
 // --- helper functions --------------------------------------------------------
 
 describe("getResFamilyFromLayoutType", () => {
