@@ -832,7 +832,12 @@ describe("createNextAppServerToolset", () => {
       spies(machine).requestScope.dispose.mockImplementation(() => {
         throw new Error("dispose boom");
       });
-      const toolset = await createNextAppServerToolset(machine, TEST_SERVER_KIT, createMockImpl(), MockNextClientRMachine);
+      const toolset = await createNextAppServerToolset(
+        machine,
+        TEST_SERVER_KIT,
+        createMockImpl(),
+        MockNextClientRMachine
+      );
       toolset.bindLocale("en");
 
       const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -848,7 +853,12 @@ describe("createNextAppServerToolset", () => {
 
     it("resolves a map-mode ServerPlug (named deps)", async () => {
       const machine = createMockMachine();
-      const toolset = await createNextAppServerToolset(machine, TEST_SERVER_KIT, createMockImpl(), MockNextClientRMachine);
+      const toolset = await createNextAppServerToolset(
+        machine,
+        TEST_SERVER_KIT,
+        createMockImpl(),
+        MockNextClientRMachine
+      );
       toolset.bindLocale("en");
 
       await toolset.ServerPlug({ c: "common" }).useR();
@@ -864,13 +874,19 @@ describe("createNextAppServerToolset", () => {
 
     it("reuses the test-mode locale context across calls within the same epoch", async () => {
       const machine = createMockMachine();
-      const toolset = await createNextAppServerToolset(machine, TEST_SERVER_KIT, createMockImpl(), MockNextClientRMachine);
+      const toolset = await createNextAppServerToolset(
+        machine,
+        TEST_SERVER_KIT,
+        createMockImpl(),
+        MockNextClientRMachine
+      );
 
       machine[PLUG_MACHINE_ACCESSOR].testMode.enter();
       try {
         // Two operations in one epoch → the second getContext() reuses the
         // already-built test context (no rebuild).
         toolset.bindLocale("en");
+        // biome-ignore lint/correctness/useHookAtTopLevel: ServerPlug(...).useR() is a plug method, not a React hook; it must run inside the testMode window.
         await toolset.ServerPlug("common").useR();
         expect(spies(machine).getGatePlugin).toHaveBeenCalled();
       } finally {
@@ -880,7 +896,12 @@ describe("createNextAppServerToolset", () => {
 
     it("caches the validated locale across repeated getValidLocale calls (useUnboundR, same locale)", async () => {
       const machine = createMockMachine();
-      const toolset = await createNextAppServerToolset(machine, TEST_SERVER_KIT, createMockImpl(), MockNextClientRMachine);
+      const toolset = await createNextAppServerToolset(
+        machine,
+        TEST_SERVER_KIT,
+        createMockImpl(),
+        MockNextClientRMachine
+      );
 
       const plug = toolset.ServerPlug("common");
       await plug.useUnboundR("it");

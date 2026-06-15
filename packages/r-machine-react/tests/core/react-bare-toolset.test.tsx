@@ -514,9 +514,7 @@ describe("createReactBareToolset › React Compiler support (reactCompiler: true
     const t = await makeRC().toolset;
     let captured: { $: { kit: { cart: { ns: string } } } } | undefined;
     function Consumer() {
-      captured = (
-        t.Plug as unknown as () => { useR: () => { $: { kit: { cart: { ns: string } } } } }
-      )().useR();
+      captured = (t.Plug as unknown as () => { useR: () => { $: { kit: { cart: { ns: string } } } } })().useR();
       return null;
     }
     render(

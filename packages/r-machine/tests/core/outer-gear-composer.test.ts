@@ -259,10 +259,12 @@ describe("OuterGear composer — async factory and sync clone fold", () => {
   it("a sync clone fn over a sync body stays on the synchronous fold path", async () => {
     const env = buildResolveEnv(LAYOUT, {
       "g/g": outerGearModule((c) =>
-        (c.define((_p: any, cursor: any) => ({ v: cursor.getter(() => 1) })) as any).clone((res: any, _p: any, cursor: any) => ({
-          v: res.v,
-          doubled: cursor.getter(() => 2),
-        }))
+        (c.define((_p: any, cursor: any) => ({ v: cursor.getter(() => 1) })) as any).clone(
+          (res: any, _p: any, cursor: any) => ({
+            v: res.v,
+            doubled: cursor.getter(() => 2),
+          })
+        )
       ),
     });
 
@@ -279,9 +281,15 @@ describe("OuterGear composer — async factory and sync clone fold", () => {
 describe("OuterGear composer — stateless matrix clone & port overrides", () => {
   it("map: clone() with no transform, and withPorts(overrides).clone()", async () => {
     const env = buildResolveEnv(LAYOUT, {
-      "g/plain": outerGearModule((c) => (c.define((_p: any, cursor: any) => ({ v: cursor.getter(() => 1) })) as any).clone()),
+      "g/plain": outerGearModule((c) =>
+        (c.define((_p: any, cursor: any) => ({ v: cursor.getter(() => 1) })) as any).clone()
+      ),
       "g/ported": outerGearModule((c) =>
-        ((c.withPorts as any)({ n: () => 1 }).define(({ $ }: any, cursor: any) => ({ v: cursor.getter(() => $.ports.n()) })) as any)
+        (
+          (c.withPorts as any)({ n: () => 1 }).define(({ $ }: any, cursor: any) => ({
+            v: cursor.getter(() => $.ports.n()),
+          })) as any
+        )
           .withPorts({ n: () => 9 })
           .clone()
       ),
@@ -295,14 +303,18 @@ describe("OuterGear composer — stateless matrix clone & port overrides", () =>
     const env = buildResolveEnv(LAYOUT, {
       "g/counter": counterModule,
       "g/cloned": outerGearModule((c) =>
-        ((c.withDeps as any)("g/counter").define(([ctr]: any, cursor: any) => ({ m: cursor.getter(() => ctr.read) })) as any).clone(
-          (res: any, _p: any, cursor: any) => ({ m: res.m, extra: cursor.getter(() => 1) })
-        )
+        (
+          (c.withDeps as any)("g/counter").define(([ctr]: any, cursor: any) => ({
+            m: cursor.getter(() => ctr.read),
+          })) as any
+        ).clone((res: any, _p: any, cursor: any) => ({ m: res.m, extra: cursor.getter(() => 1) }))
       ),
       "g/ported": outerGearModule((c) =>
-        ((c.withDeps as any)("g/counter")
-          .withPorts({ n: () => 1 })
-          .define(([_ctr, $]: any, cursor: any) => ({ v: cursor.getter(() => $.ports.n()) })) as any)
+        (
+          (c.withDeps as any)("g/counter")
+            .withPorts({ n: () => 1 })
+            .define(([_ctr, $]: any, cursor: any) => ({ v: cursor.getter(() => $.ports.n()) })) as any
+        )
           .withPorts({ n: () => 7 })
           .clone()
       ),
@@ -330,7 +342,9 @@ describe("OuterGear composer — stateful matrix clone & port/state overrides", 
 
   it("map: clone(fn) folds an extra member over the converted resource", async () => {
     const env = buildResolveEnv(LAYOUT, {
-      "g/g": portedStatefulMap((m) => m.clone((res: any, _p: any, cursor: any) => ({ ...res, extra: cursor.getter(() => 1) }))),
+      "g/g": portedStatefulMap((m) =>
+        m.clone((res: any, _p: any, cursor: any) => ({ ...res, extra: cursor.getter(() => 1) }))
+      ),
     });
     const res = (await env.resolve("g/g" as AnyNamespace)) as { tag: string; n: number; extra: number };
     expect(res.extra).toBe(1);
@@ -345,7 +359,12 @@ describe("OuterGear composer — stateful matrix clone & port/state overrides", 
 
   it("map: withPorts(overrides).withState(overrides).clone() applies both", async () => {
     const env = buildResolveEnv(LAYOUT, {
-      "g/g": portedStatefulMap((m) => m.withPorts({ tag: () => "p3" }).withState({ n: 5 }).clone()),
+      "g/g": portedStatefulMap((m) =>
+        m
+          .withPorts({ tag: () => "p3" })
+          .withState({ n: 5 })
+          .clone()
+      ),
     });
     const res = (await env.resolve("g/g" as AnyNamespace)) as { tag: string; n: number };
     expect(res.tag).toBe("p3");
@@ -355,7 +374,12 @@ describe("OuterGear composer — stateful matrix clone & port/state overrides", 
   it("map: withState(overrides).clone() and withState(overrides).withPorts(overrides).clone()", async () => {
     const env = buildResolveEnv(LAYOUT, {
       "g/state": portedStatefulMap((m) => m.withState({ n: 8 }).clone()),
-      "g/both": portedStatefulMap((m) => m.withState({ n: 9 }).withPorts({ tag: () => "p4" }).clone()),
+      "g/both": portedStatefulMap((m) =>
+        m
+          .withState({ n: 9 })
+          .withPorts({ tag: () => "p4" })
+          .clone()
+      ),
     });
     expect(((await env.resolve("g/state" as AnyNamespace)) as { n: number }).n).toBe(8);
     const both = (await env.resolve("g/both" as AnyNamespace)) as { tag: string; n: number };
@@ -381,9 +405,19 @@ describe("OuterGear composer — stateful matrix clone & port/state overrides", 
       "g/counter": counterModule,
       "g/clone": portedStatefulList((m) => m.clone((res: any) => res)),
       "g/pw": portedStatefulList((m) => m.withPorts({ tag: () => "lp" }).clone()),
-      "g/pws": portedStatefulList((m) => m.withPorts({ tag: () => "lp2" }).withState({ n: 1 }).clone()),
+      "g/pws": portedStatefulList((m) =>
+        m
+          .withPorts({ tag: () => "lp2" })
+          .withState({ n: 1 })
+          .clone()
+      ),
       "g/sw": portedStatefulList((m) => m.withState({ n: 2 }).clone()),
-      "g/swp": portedStatefulList((m) => m.withState({ n: 3 }).withPorts({ tag: () => "lp3" }).clone()),
+      "g/swp": portedStatefulList((m) =>
+        m
+          .withState({ n: 3 })
+          .withPorts({ tag: () => "lp3" })
+          .clone()
+      ),
     });
 
     expect(((await env.resolve("g/clone" as AnyNamespace)) as { tag: string; n: number }).tag).toBe("base");
@@ -449,10 +483,12 @@ describe("OuterGear composer — chained clone folding", () => {
   it("an async stateful body with a clone fn folds through the async conversion path", async () => {
     const env = buildResolveEnv(LAYOUT, {
       "g/g": outerGearModule((c) =>
-        (c.withState({ n: 0 }).define(async ({ $ }: any, cursor: any) => {
-          await Promise.resolve();
-          return { n: cursor.getter(() => $.state.n) };
-        }) as any).clone((res: any, _p: any, cursor: any) => ({ ...res, extra: cursor.getter(() => 9) }))
+        (
+          c.withState({ n: 0 }).define(async ({ $ }: any, cursor: any) => {
+            await Promise.resolve();
+            return { n: cursor.getter(() => $.state.n) };
+          }) as any
+        ).clone((res: any, _p: any, cursor: any) => ({ ...res, extra: cursor.getter(() => 9) }))
       ),
     });
 

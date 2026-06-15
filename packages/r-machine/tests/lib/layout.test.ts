@@ -1,5 +1,5 @@
-import { createToken } from "#r-machine/core";
 import { describe, expect, it } from "vitest";
+import { createToken } from "#r-machine/core";
 import { defineLayout } from "../../src/lib/layout.js";
 
 // defineLayout builds the user-facing ResourceAtlas base class. The builder and

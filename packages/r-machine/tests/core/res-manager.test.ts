@@ -10,11 +10,7 @@ import { getResCacheKey, ResManager } from "../../src/core/res-manager.js";
 import type { AnyNamespaceMap } from "../../src/core/res-map.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
 import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-module.js";
-import {
-  createRequestScope,
-  PROCESS_SCOPE_PROVIDER,
-  type RequestScopeProvider,
-} from "../../src/core/scope.js";
+import { createRequestScope, PROCESS_SCOPE_PROVIDER, type RequestScopeProvider } from "../../src/core/scope.js";
 import { ASYNC, COVERED_PENDING } from "../../src/core/sync-resolve.js";
 import { buildVertexKey } from "../../src/core/vertex-gear.js";
 import {
@@ -1890,11 +1886,7 @@ describe("ResManager — request-scope vertex routing & teardown", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
       expect(() => env.rm.disposeRequestScope(scope)).not.toThrow();
-      expect(errorSpy).toHaveBeenCalledWith(
-        "[r-machine] disposeRequestScope error for",
-        "v/V",
-        expect.anything()
-      );
+      expect(errorSpy).toHaveBeenCalledWith("[r-machine] disposeRequestScope error for", "v/V", expect.anything());
     } finally {
       errorSpy.mockRestore();
     }

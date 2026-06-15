@@ -151,9 +151,11 @@ describe("Shell composer — clone() and port overrides", () => {
         )
       ),
       "s/ported": shellModule((c) =>
-        ((c.withDeps as any)("b/config")
-          .withPorts({ v: () => "a" })
-          .define(([_cfg, $]: any) => ({ v: $.ports.v() })) as any)
+        (
+          (c.withDeps as any)("b/config")
+            .withPorts({ v: () => "a" })
+            .define(([_cfg, $]: any) => ({ v: $.ports.v() })) as any
+        )
           .withPorts({ v: () => "z" })
           .clone()
       ),

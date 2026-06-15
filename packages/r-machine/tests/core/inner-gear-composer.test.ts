@@ -173,9 +173,11 @@ describe("InnerGear composer — clone() and port overrides", () => {
         )
       ),
       "i/ported": innerGearModule((c) =>
-        ((c.withDeps as any)("i/config")
-          .withPorts({ v: () => 1 })
-          .define(([_cfg, $]: any) => ({ v: $.ports.v() })) as any)
+        (
+          (c.withDeps as any)("i/config")
+            .withPorts({ v: () => 1 })
+            .define(([_cfg, $]: any) => ({ v: $.ports.v() })) as any
+        )
           .withPorts({ v: () => 8 })
           .clone()
       ),

@@ -1,6 +1,6 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ASYNC, createPlug, createRequestScope, setPlugOverride } from "#r-machine/core";
 import { RMachineConfigError } from "#r-machine/errors";
-import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AnyPlugHead } from "../../src/core/plug.js";
 import type { AnyNamespace } from "../../src/core/res-domain.js";
 import type { AnyResModule } from "../../src/core/res-module.js";
@@ -287,4 +287,3 @@ describe("enableRMachineDevMode", () => {
     }
   });
 });
-

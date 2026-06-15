@@ -139,9 +139,11 @@ describe("BaseGear composer — clone() and port overrides", () => {
     const env = buildResolveEnv(LAYOUT, {
       "b/config": baseGearModule((c) => c.define(() => ({ apiBase: "base" }))),
       "b/c": baseGearModule((c) =>
-        ((c.withDeps as any)("b/config")
-          .withPorts({ v: () => 1 })
-          .define(([_cfg, $]: any) => ({ v: $.ports.v() })) as any)
+        (
+          (c.withDeps as any)("b/config")
+            .withPorts({ v: () => 1 })
+            .define(([_cfg, $]: any) => ({ v: $.ports.v() })) as any
+        )
           .withPorts({ v: () => 8 })
           .clone()
       ),
