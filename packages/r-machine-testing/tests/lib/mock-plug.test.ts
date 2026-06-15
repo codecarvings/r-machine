@@ -1,5 +1,5 @@
 import {
-  type AnyPlugHead,
+  type AnyMapPlugHead,
   createPlug,
   getPlugMachine,
   getPlugOverride,
@@ -10,7 +10,9 @@ import type { RMachineUsageError } from "r-machine/errors";
 import { describe, expect, it, vi } from "vitest";
 import { ERR_PLUG_ALREADY_MOCKED, ERR_STATE_NOT_RESOLVED } from "../../src/errors/index.js";
 import { mockPlug, resetMockPlugs } from "../../src/lib/mock-plug.js";
+import { r as kitConsumer } from "../fixtures/mock-plug/kit-consumer.js";
 import { r as listForm } from "../fixtures/mock-plug/list-form.js";
+import { r as mappedConsumer } from "../fixtures/mock-plug/mapped-consumer.js";
 import { r as counter } from "../fixtures/mock-plug/outer-counter.js";
 import { r as sharedConsumer } from "../fixtures/mock-plug/shared-consumer.js";
 
@@ -107,8 +109,10 @@ describe("mockPlug", () => {
     // consume time, so `mockPlug` registers a `PlugOverride` (read by core's
     // getWire/getGatePlugin) instead of wrapping the resolve. Synthesise a
     // minimal gate plug bound to the fixture machine so test mode works.
-    const makeGatePlug = (): PlugBody<AnyPlugHead> => {
-      const plug = createPlug({ realm: "gate", mode: "map", nsDepList: [] } as unknown as AnyPlugHead);
+    const makeGatePlug = (): PlugBody<AnyMapPlugHead> => {
+      // The synthetic gate plug is map-mode, so type it as a map head — mockPlug's
+      // overloads require a map/list head, not the wide AnyPlugHead.
+      const plug = createPlug({ realm: "gate", mode: "map", nsDepList: [] } as unknown as AnyMapPlugHead);
       setPlugMachine(plug, getPlugMachine(counter.plug)!);
       return plug;
     };
@@ -231,6 +235,15 @@ describe("mockPlug", () => {
   });
 
   describe("controller: state handles (read/write the live cell)", () => {
+    // `ctrl.deps` is a runtime Proxy that mints a live state handle per access.
+    // A consumer's atlas is shape-only — it cannot carry a *dependency's* STATE
+    // type (see project_resatlas_member_perf_trap: dep state-views are derived
+    // per-plug in the testing layer, never on ResAtlas) — so the controller type
+    // omits `deps` for stateful dependencies. Tests reach the live handles via
+    // this typed view; own-state (`ctrl.state`) stays fully typed off the head.
+    type DepHandles<S> = Record<PropertyKey, { state: S }>;
+    const depsView = <S>(ctrl: object): DepHandles<S> => (ctrl as unknown as { deps: DepHandles<S> }).deps;
+
     it("own state (`ctrl.state`): seed before resolve, then read/write live", async () => {
       using ctrl = mockPlug(counter.plug).default();
 
@@ -263,21 +276,22 @@ describe("mockPlug", () => {
     it("dep state (`ctrl.deps[0].state`): drives a stateful OuterGear dependency's cell", async () => {
       // `shared-consumer` depends on the stateful `outer/shared` (state `{ n }`).
       using ctrl = mockPlug(sharedConsumer.plug).default();
+      const deps = depsView<{ n: number }>(ctrl);
 
-      ctrl.deps[0].state = { n: 5 }; // seed the dependency's state
+      deps[0].state = { n: 5 }; // seed the dependency's state
 
       const inst = await sharedConsumer.create();
       // The consumer's real getter reads the dep's seeded state.
       expect(inst.sharedValue()).toBe(5);
-      expect(ctrl.deps[0].state).toEqual({ n: 5 });
+      expect(deps[0].state).toEqual({ n: 5 });
 
       // Live write through the controller → the consumer's getter reflects it.
-      ctrl.deps[0].state = { n: 9 };
+      deps[0].state = { n: 9 };
       expect(inst.sharedValue()).toBe(9);
 
       // Driving the dep's real action also updates what the controller reads.
       inst.bumpShared();
-      expect(ctrl.deps[0].state).toEqual({ n: 10 });
+      expect(deps[0].state).toEqual({ n: 10 });
     });
 
     it("reset() clears the controller (state throws again after reset)", async () => {
@@ -291,6 +305,60 @@ describe("mockPlug", () => {
       try {
         void ctrl.state;
         expect.unreachable("reading state after reset should throw");
+      } catch (err) {
+        expect((err as RMachineUsageError).code).toBe(ERR_STATE_NOT_RESOLVED);
+      }
+    });
+
+    it("named dep state (`ctrl.deps.shared.state`): drives a map-form stateful dependency", async () => {
+      // `mapped-consumer` depends on `outer/shared` under the NAMED key `shared`,
+      // so the controller binds it via the object branch (head.nsDeps), not the
+      // positional list branch.
+      using ctrl = mockPlug(mappedConsumer.plug).default();
+      const deps = depsView<{ n: number }>(ctrl);
+
+      deps.shared.state = { n: 7 }; // seed the named dependency's state
+
+      const inst = await mappedConsumer.create();
+      expect(inst.sharedValue()).toBe(7);
+      expect(deps.shared.state).toEqual({ n: 7 });
+
+      // Live write through the named handle is reflected by the consumer's getter.
+      deps.shared.state = { n: 11 };
+      expect(inst.sharedValue()).toBe(11);
+
+      // The dep's real action publishes to the same cell the controller reads.
+      inst.bumpShared();
+      expect(deps.shared.state).toEqual({ n: 12 });
+    });
+
+    it("binds a live cell even when nothing was seeded (read-only controller use)", async () => {
+      // No `ctrl.state = ...` before resolve: the bind attaches the cell with no
+      // queued seed, then reads/writes go straight to the production-default cell.
+      using ctrl = mockPlug(counter.plug).default();
+
+      const inst = await counter.create();
+      // Production default, untouched — the controller still reads the live cell.
+      expect(ctrl.state).toEqual({ count: 0, label: "init" });
+
+      ctrl.state = { count: 4 };
+      expect(inst.count()).toBe(4);
+    });
+
+    it("binds kit entries on resolve without exposing a handle for stateless ones", async () => {
+      // `kit-consumer` carries the machine-wide `helper` kit (a stateless
+      // BaseGear). Resolving it walks the kit-binding loop; the entry has no
+      // state cell, so it binds to nothing and `ctrl.kit.helper.state` stays
+      // unresolved (the type layer also hides it — it is out-of-band here).
+      using ctrl = mockPlug(kitConsumer.plug).default();
+
+      const inst = await kitConsumer.create();
+      expect(inst.viaKit()).toBe("hi x"); // production kit runs untouched
+
+      // Reaching for a stateless kit entry's `.state` throws — there is no cell.
+      try {
+        void (ctrl as unknown as { kit: Record<string, { state: unknown }> }).kit.helper.state;
+        expect.unreachable("a stateless kit entry has no live state cell");
       } catch (err) {
         expect((err as RMachineUsageError).code).toBe(ERR_STATE_NOT_RESOLVED);
       }

@@ -40,6 +40,8 @@ export default defineConfig({
         "r-machine-next/src/errors/**": FULL,
         "r-machine-next/src/internal/**": FULL,
         "r-machine-next/src/lib/**": FULL,
+        "r-machine-testing/src/errors/**": FULL,
+        "r-machine-testing/src/lib/**": FULL,
       },
     },
   },

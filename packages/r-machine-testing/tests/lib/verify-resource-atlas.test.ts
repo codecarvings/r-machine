@@ -1,10 +1,23 @@
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import nodePath from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { verifyResourceAtlas } from "../../src/lib/verify-resource-atlas.js";
+
+const FORCE_DEV_LOADER_FLAG = Symbol.for("@r-machine:force-dev-loader");
 
 const FIXTURE_DIR = nodePath.resolve(__dirname, "../fixtures/verify-resource-atlas");
 const fixture = (name: string) => nodePath.join(FIXTURE_DIR, name);
 const ATLAS_FILE = fixture("resource-atlas.ts");
+
+// Temp directories created by tests that need a tsconfig-less tree; removed
+// after each test so the temp area stays clean.
+const tempDirs: string[] = [];
+afterEach(() => {
+  for (const dir of tempDirs.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 describe("verifyResourceAtlas", () => {
   describe("happy path", () => {
@@ -187,6 +200,112 @@ describe("verifyResourceAtlas", () => {
       });
       // Fatal failures stop before the verification phase runs.
       expect(report.totalChecks).toBe(0);
+    });
+
+    it("fires when the located ResourceAtlas class has no `shape` (not from defineLayout)", async () => {
+      const report = await verifyResourceAtlas(fixture("no-shape-setup.ts"));
+
+      expect(report.ok).toBe(false);
+      expect(report.issues).toHaveLength(1);
+      expect(report.issues[0]).toMatchObject({ kind: "atlas-extraction-failed" });
+      expect(report.issues[0].kind === "atlas-extraction-failed" && report.issues[0].reason).toMatch(
+        /no "shape" property/i
+      );
+    });
+
+    it("follows a cyclic import graph without looping (visited guard) and still reports failure", async () => {
+      // cyclic-setup → cyclic-a → cyclic-b → cyclic-a (already visited). No
+      // ResourceAtlas anywhere, so extraction fails cleanly instead of looping.
+      const report = await verifyResourceAtlas(fixture("cyclic-setup.ts"));
+
+      expect(report.ok).toBe(false);
+      expect(report.issues[0]).toMatchObject({ kind: "atlas-extraction-failed" });
+    });
+
+    it("skips an import that does not resolve to a source file", async () => {
+      // The setup imports `./does-not-exist.js`, which has no resolvable source —
+      // the import-graph walk skips it and ends with no ResourceAtlas found.
+      const report = await verifyResourceAtlas(fixture("missing-import-setup.ts"));
+
+      expect(report.ok).toBe(false);
+      expect(report.issues[0]).toMatchObject({ kind: "atlas-extraction-failed" });
+    });
+  });
+
+  describe("config-access-failed", () => {
+    it("surfaces a non-Error thrown during the setup import via String() coercion", async () => {
+      // The setup throws a raw string at module top-level; the runtime import
+      // rejects with it and `errorMessage` coerces the non-Error to a string.
+      const report = await verifyResourceAtlas(fixture("throw-string-toplevel-setup.ts"));
+
+      expect(report.ok).toBe(false);
+      expect(report.issues).toHaveLength(1);
+      expect(report.issues[0]).toMatchObject({ kind: "config-access-failed" });
+      expect(report.issues[0].kind === "config-access-failed" && report.issues[0].reason).toBe(
+        "non-error top-level failure"
+      );
+    });
+  });
+
+  describe("serializeError variants", () => {
+    it("serializes a non-Error loader throw and a degenerate (no-name/no-stack) Error", async () => {
+      const report = await verifyResourceAtlas(fixture("serialize-variants-setup.ts"));
+
+      expect(report.ok).toBe(false);
+      const errors = report.issues
+        .filter((i): i is Extract<typeof i, { kind: "loader-error" }> => i.kind === "loader-error")
+        .map((i) => i.error);
+
+      // Non-Error throw → UnknownError + String(value).
+      expect(errors).toContainEqual({ name: "UnknownError", message: "raw string failure" });
+      // Empty-name Error → name falls back to "Error"; deleted stack → omitted.
+      const degenerate = errors.find((e) => e.message === "degenerate error");
+      expect(degenerate?.name).toBe("Error");
+      expect(degenerate && "stack" in degenerate).toBe(false);
+    });
+  });
+
+  describe("readCompilerOptions edge cases", () => {
+    it("honors an explicit `tsconfig` option (tolerating a degenerate config)", async () => {
+      // Exercises the explicit-tsconfig path (vs. the auto findConfigFile walk).
+      // The file's JSON root is `null`; TS reads it as an empty config, and
+      // extraction still completes against the ok setup.
+      const report = await verifyResourceAtlas(fixture("ok-setup.ts"), {
+        tsconfig: fixture("bad-tsconfig.json"),
+      });
+      expect(report.setupFile).toBe(fixture("ok-setup.ts"));
+    });
+
+    it("falls back to default options when no tsconfig is found near the setup file", async () => {
+      // A setup file in a tsconfig-less temp tree: findConfigFile returns
+      // nothing → default compiler options. Extraction can't resolve the atlas
+      // there, so it reports a clean extraction failure (no crash).
+      const dir = mkdtempSync(nodePath.join(tmpdir(), "rm-verify-notsconfig-"));
+      tempDirs.push(dir);
+      const setup = nodePath.join(dir, "setup.ts");
+      writeFileSync(setup, "export const strategy = {};\n");
+
+      const report = await verifyResourceAtlas(setup);
+      expect(report.setupFile).toBe(setup);
+      expect(report.ok).toBe(false);
+      expect(report.issues[0]).toMatchObject({ kind: "atlas-extraction-failed" });
+    });
+  });
+
+  describe("force-dev-loader refcount", () => {
+    afterEach(() => {
+      delete (globalThis as Record<symbol, unknown>)[FORCE_DEV_LOADER_FLAG];
+    });
+
+    it("decrements (without deleting) when another holder still owns the flag", async () => {
+      // Pre-seed the ref-counted flag as if a concurrent verify already acquired
+      // it: this call's release decrements 2→1 (the else branch) instead of
+      // deleting, leaving the outstanding holder's count intact.
+      (globalThis as Record<symbol, number>)[FORCE_DEV_LOADER_FLAG] = 1;
+
+      await verifyResourceAtlas(fixture("ok-setup.ts"));
+
+      expect((globalThis as Record<symbol, number>)[FORCE_DEV_LOADER_FLAG]).toBe(1);
     });
   });
 });

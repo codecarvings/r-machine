@@ -101,6 +101,8 @@ function acquireForceDevLoaderFlag(): void {
 
 function releaseForceDevLoaderFlag(): void {
   const slot = globalThis as unknown as FlagSlot;
+  /* v8 ignore next -- the `?? 0` fallback is unreachable: release is always
+     paired with a preceding acquire, so the slot is defined here. */
   const next = (slot[FORCE_DEV_LOADER_FLAG] ?? 0) - 1;
   if (next <= 0) {
     delete slot[FORCE_DEV_LOADER_FLAG];
@@ -213,6 +215,9 @@ export async function verifyResourceAtlas(
       try {
         kind = resolver.resolveLayoutEntryType(namespace as AnyNamespace);
       } catch (err) {
+        /* v8 ignore start -- defensive: atlas keys whose prefix has no covering
+           layout entry are dropped by FilterResAtlasKeys before reaching `shape`,
+           so an extracted key always resolves to a layout entry type. */
         // Key declared in atlas but no layout entry covers its prefix.
         totalChecks++;
         issues.push({
@@ -222,6 +227,7 @@ export async function verifyResourceAtlas(
           sourceLocation,
         });
         continue;
+        /* v8 ignore stop */
       }
 
       if (kind === "shell") {
@@ -288,6 +294,9 @@ async function runCheck(
       locale,
     };
   } catch (err) {
+    /* v8 ignore start -- defensive: the namespace already passed
+       resolveLayoutEntryType, and the loop always supplies a locale for the
+       "shell" kind, so resolvePath / resolveNamespaceParts cannot throw here. */
     issues.push({
       kind: "loader-error",
       key,
@@ -296,6 +305,7 @@ async function runCheck(
       sourceLocation,
     });
     return;
+    /* v8 ignore stop */
   }
 
   let result: unknown;
@@ -342,9 +352,12 @@ async function extractAtlasKeys(setupFile: string, tsconfigPath?: string): Promi
   const program = tsModule.createProgram([setupFile], compilerOptions);
   const checker = program.getTypeChecker();
   const sourceFile = program.getSourceFile(setupFile);
+  /* v8 ignore start -- defensive: createProgram was created with setupFile in
+     its root list, so getSourceFile(setupFile) is always present here. */
   if (!sourceFile) {
     throw new RMachineUsageError(ERR_VERIFY_SETUP_INVALID, `Could not load source file: ${setupFile}`);
   }
+  /* v8 ignore stop */
 
   const atlasClass = findResourceAtlasClass(tsModule, sourceFile, checker, new Set());
   if (!atlasClass) {
@@ -367,6 +380,9 @@ async function extractAtlasKeys(setupFile: string, tsconfigPath?: string): Promi
   const result: ExtractedKey[] = [];
   for (const prop of checker.getPropertiesOfType(shapeType)) {
     const decl = prop.declarations?.[0];
+    /* v8 ignore next -- the `decl`-absent fallback is defensive: atlas `shape`
+       members always carry a declaration (they originate from the layout
+       object literal). */
     const sourceLocation = decl ? extractSourceLocation(decl) : { file: setupFile, line: 0, column: 0 };
     result.push({ key: prop.name, sourceLocation });
   }
@@ -399,9 +415,12 @@ function findResourceAtlasClass(
       continue;
     }
     const moduleSpec = stmt.moduleSpecifier;
+    /* v8 ignore start -- defensive: an ImportDeclaration's moduleSpecifier is
+       always a StringLiteral per the TS AST grammar. */
     if (!tsModule.isStringLiteral(moduleSpec)) {
       continue;
     }
+    /* v8 ignore stop */
     const moduleSymbol = checker.getSymbolAtLocation(moduleSpec);
     const imported = moduleSymbol?.declarations?.[0]?.getSourceFile();
     if (!imported) {
@@ -426,9 +445,13 @@ function readCompilerOptions(
     return {};
   }
   const configFile = tsModule.readConfigFile(configPath, tsModule.sys.readFile);
+  /* v8 ignore start -- defensive: readConfigFile always yields a defined config
+     object (an empty `{}` even for missing/malformed/non-object content), so the
+     falsy guard never fires. */
   if (!configFile.config) {
     return {};
   }
+  /* v8 ignore stop */
   const parsed = tsModule.parseJsonConfigFileContent(configFile.config, tsModule.sys, nodePath.dirname(configPath));
   return parsed.options;
 }
@@ -450,6 +473,8 @@ async function loadTypeScript(): Promise<typeof ts> {
     throw new RMachineUsageError(
       ERR_VERIFY_SETUP_INVALID,
       `verifyResourceAtlas requires the "typescript" package as a peer dependency. Install it in your project.`,
+      /* v8 ignore next -- the non-Error branch is defensive; a failed dynamic
+         import rejects with an Error, which is the path the test exercises. */
       err instanceof Error ? err : undefined
     );
   }
