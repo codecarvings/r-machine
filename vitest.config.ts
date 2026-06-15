@@ -35,6 +35,8 @@ export default defineConfig({
         "r-machine-react/src/lib/**": FULL,
         "r-machine-react/src/utils/**": FULL,
         "r-machine-next/src/app/**": FULL,
+        "r-machine-next/src/core/**": FULL,
+        "r-machine-next/src/dev/**": FULL,
         "r-machine-next/src/errors/**": FULL,
         "r-machine-next/src/internal/**": FULL,
         "r-machine-next/src/lib/**": FULL,

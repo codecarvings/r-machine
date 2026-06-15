@@ -798,4 +798,125 @@ describe("createNextAppServerToolset", () => {
       machine[PLUG_MACHINE_ACCESSOR].testMode.exit();
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Coverage completion (D2)
+  // -----------------------------------------------------------------------
+
+  describe("coverage completion", () => {
+    it("reuses the in-flight locale promise across concurrent auto-bound resolutions", async () => {
+      mockHeadersMap.set("x-rm-locale", "it");
+      const machine = createMockMachine();
+      const toolset = await createNextAppServerToolset(
+        machine,
+        TEST_SERVER_KIT,
+        createMockImpl({ autoLocaleBinding: true }),
+        MockNextClientRMachine
+      );
+
+      // Both resolutions share one react-cached context; the second getLocale()
+      // sees the first's still-pending headers() promise and reuses it.
+      await Promise.all([toolset.ServerPlug("common").useR(), toolset.ServerPlug("common").useR()]);
+
+      expect(spies(machine).getGatePlugin).toHaveBeenCalledWith(
+        TEST_SERVER_KIT,
+        expect.anything(),
+        "it",
+        expect.any(Function),
+        expect.any(Function)
+      );
+    });
+
+    it("logs and continues when requestScope.dispose throws during the after() cleanup", async () => {
+      const machine = createMockMachine();
+      spies(machine).requestScope.dispose.mockImplementation(() => {
+        throw new Error("dispose boom");
+      });
+      const toolset = await createNextAppServerToolset(machine, TEST_SERVER_KIT, createMockImpl(), MockNextClientRMachine);
+      toolset.bindLocale("en");
+
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        await toolset.NextServerRMachine({ children: "x" });
+        expect(errorSpy).toHaveBeenCalledWith("[r-machine/next] requestScope.dispose failed", expect.anything());
+        // Cleanup still unregisters the scope after swallowing the dispose error.
+        expect(mockUnregisterScope).toHaveBeenCalledTimes(1);
+      } finally {
+        errorSpy.mockRestore();
+      }
+    });
+
+    it("resolves a map-mode ServerPlug (named deps)", async () => {
+      const machine = createMockMachine();
+      const toolset = await createNextAppServerToolset(machine, TEST_SERVER_KIT, createMockImpl(), MockNextClientRMachine);
+      toolset.bindLocale("en");
+
+      await toolset.ServerPlug({ c: "common" }).useR();
+
+      expect(spies(machine).getGatePlugin).toHaveBeenCalledWith(
+        TEST_SERVER_KIT,
+        expect.anything(),
+        "en",
+        expect.any(Function),
+        expect.any(Function)
+      );
+    });
+
+    it("reuses the test-mode locale context across calls within the same epoch", async () => {
+      const machine = createMockMachine();
+      const toolset = await createNextAppServerToolset(machine, TEST_SERVER_KIT, createMockImpl(), MockNextClientRMachine);
+
+      machine[PLUG_MACHINE_ACCESSOR].testMode.enter();
+      try {
+        // Two operations in one epoch → the second getContext() reuses the
+        // already-built test context (no rebuild).
+        toolset.bindLocale("en");
+        await toolset.ServerPlug("common").useR();
+        expect(spies(machine).getGatePlugin).toHaveBeenCalled();
+      } finally {
+        machine[PLUG_MACHINE_ACCESSOR].testMode.exit();
+      }
+    });
+
+    it("caches the validated locale across repeated getValidLocale calls (useUnboundR, same locale)", async () => {
+      const machine = createMockMachine();
+      const toolset = await createNextAppServerToolset(machine, TEST_SERVER_KIT, createMockImpl(), MockNextClientRMachine);
+
+      const plug = toolset.ServerPlug("common");
+      await plug.useUnboundR("it");
+      await plug.useUnboundR("it"); // second call hits the locale cache (no re-validate)
+
+      expect(machine.localeHelper.validateLocale).toHaveBeenCalledTimes(1);
+    });
+
+    it("$.setLocale validates then writes the locale, and throws on an invalid one", async () => {
+      let capturedSetLocale: ((l: string) => Promise<void>) | undefined;
+      const writeLocale = vi.fn();
+      const machine = createMockMachine({
+        getGatePlugin: (_kit, _nsDeps, _locale, augmentCtx) => {
+          const $ = {} as Record<string, unknown>;
+          (augmentCtx as ($: Record<string, unknown>) => void)($);
+          capturedSetLocale = $.setLocale as (l: string) => Promise<void>;
+          return Promise.resolve({});
+        },
+      });
+      const toolset = await createNextAppServerToolset(
+        machine,
+        TEST_SERVER_KIT,
+        createMockImpl({ writeLocale }),
+        MockNextClientRMachine
+      );
+      toolset.bindLocale("en");
+      await toolset.ServerPlug("common").useR();
+
+      expect(capturedSetLocale).toBeDefined();
+      // Valid → delegates to impl.writeLocale.
+      await capturedSetLocale?.("it");
+      expect(writeLocale).toHaveBeenCalledTimes(1);
+
+      // Invalid → throws before writeLocale runs again.
+      await expect(capturedSetLocale?.("xx")).rejects.toThrow(/invalid locale/i);
+      expect(writeLocale).toHaveBeenCalledTimes(1);
+    });
+  });
 });

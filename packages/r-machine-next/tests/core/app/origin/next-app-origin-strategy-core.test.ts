@@ -212,6 +212,20 @@ describe("NextAppOriginStrategyCore", () => {
   });
 
   // -----------------------------------------------------------------------
+  // getHelpers
+  // -----------------------------------------------------------------------
+
+  describe("getHelpers", () => {
+    it("includes the strategy's hrefHelper and memoizes the result across calls", () => {
+      const { strategy } = createTestStrategy();
+
+      const helpers = strategy.getHelpers();
+      expect(helpers.hrefHelper).toBe((strategy as any).hrefHelper);
+      expect(strategy.getHelpers()).toBe(helpers);
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // hrefHelper
   // -----------------------------------------------------------------------
 

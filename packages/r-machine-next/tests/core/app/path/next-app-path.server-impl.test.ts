@@ -1221,6 +1221,23 @@ describe("createNextAppPathServerImpl", () => {
       expect(mockRedirect).toHaveBeenCalledOnce();
     });
 
+    it("entrance.GET ignores an out-of-list cookie locale and falls back to Accept-Language", async () => {
+      const { impl, rMachine } = await createImpl({
+        implicitDefaultLocale: "off",
+        autoLocaleBinding: "off",
+        matchLocaleReturn: "it",
+      });
+      // "fr" is a syntactically valid cookie value but not one of the configured
+      // locales → getLocaleFromCookie drops it and detection falls through.
+      const cookiesFn = createMockCookiesGetFn({ cookie: "fr" });
+      const headersFn = createMockHeadersFn({ "accept-language": "it-IT" });
+
+      const handlers = impl.createRouteHandlers(cookiesFn, headersFn) as AnyRouteHandlers;
+      await handlers.entrance.GET();
+
+      expect(rMachine.localeHelper.matchLocalesForAcceptLanguageHeader).toHaveBeenCalledWith("it-IT");
+    });
+
     it("entrance.GET skips cookie lookup when cookie is disabled", async () => {
       const { impl } = await createImpl({
         implicitDefaultLocale: "off",

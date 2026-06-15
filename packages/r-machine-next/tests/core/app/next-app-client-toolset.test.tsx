@@ -202,6 +202,57 @@ describe("createNextAppClientToolset", () => {
       expect(cleanup1).toHaveBeenCalledTimes(1);
     });
 
+    it("looks up the request scope from the registry when a scopeId prop is provided", async () => {
+      const { NextClientRMachine } = await createNextAppClientToolset(createMockMachine(), {}, createMockImpl());
+
+      // Passing a scopeId string exercises the registry-lookup branch (vs the
+      // `null` fallback when no scopeId is present). The browser registry is
+      // empty, so lookup yields null and RM falls back to process-tier slots.
+      await act(async () => {
+        render(
+          <NextClientRMachine locale="en" scopeId="rsc-client-test">
+            <div>scoped child</div>
+          </NextClientRMachine>
+        );
+      });
+
+      screen.getByText("scoped child");
+    });
+
+    it("does not rebuild $.getPath / $.setLocale on a re-render with unchanged locale and pathname", async () => {
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
+        createMockMachine(),
+        {},
+        createMockImpl()
+      );
+
+      function Probe() {
+        (ClientPlug as () => { useR: () => unknown })().useR();
+        return <div>stable</div>;
+      }
+
+      let rerender!: (ui: ReactNode) => void;
+      await act(async () => {
+        ({ rerender } = render(
+          <NextClientRMachine locale="en">
+            <Probe />
+          </NextClientRMachine>
+        ));
+      });
+
+      // Same locale + same pathname ("/") → the conditional getPath/setLocale
+      // rebuilds are skipped (localeChanged false, pathname unchanged).
+      await act(async () => {
+        rerender(
+          <NextClientRMachine locale="en">
+            <Probe />
+          </NextClientRMachine>
+        );
+      });
+
+      screen.getByText("stable");
+    });
+
     it("provides locale to children via ClientPlug $.locale", async () => {
       const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
         createMockMachine(),
