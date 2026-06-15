@@ -91,4 +91,30 @@ describe("createStateCell", () => {
       }).toThrow(TypeError);
     });
   });
+
+  // Production path: the deep-freeze is a dev-only aid. With NODE_ENV=production
+  // the guard collapses to identity (FREEZE_STATE is false), so state is NOT
+  // frozen — the freeze cost is paid only in dev. Re-imported with the env
+  // stubbed because FREEZE_STATE is a module-load-time constant.
+  describe("production: no deep-freeze (perf path)", () => {
+    it("does not freeze state when NODE_ENV is production", async () => {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.resetModules();
+      try {
+        const { createStateCell: createProdCell } = await import("../../src/core/state-cell.js");
+        const { createCassetteRecorder: createProdRecorder } = await import("../../src/core/cassette-recorder.js");
+
+        const cell = createProdCell({ count: 0 }, createProdRecorder());
+        const state = cell.read() as { count: number };
+
+        expect(Object.isFrozen(state)).toBe(false);
+        // Mutable in production — no TypeError, unlike the dev path above.
+        state.count = 1;
+        expect((cell.peek() as { count: number }).count).toBe(1);
+      } finally {
+        vi.unstubAllEnvs();
+        vi.resetModules();
+      }
+    });
+  });
 });

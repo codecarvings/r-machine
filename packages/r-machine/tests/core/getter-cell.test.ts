@@ -115,4 +115,64 @@ describe("createGetterCell", () => {
     expect(sub).toHaveBeenCalledTimes(1);
     expect(formatted.read()).toBe("$10");
   });
+
+  it("unsubscribe detaches an external subscriber (it stops being notified)", () => {
+    const recorder = createCassetteRecorder();
+    const cell = createStateCell({ items: [1, 2, 3] }, recorder);
+    const count = createGetterCell(() => cell.read().items.length, recorder);
+    const sub = vi.fn();
+
+    count.read();
+    const unsub = count.subscribe(sub);
+    unsub();
+
+    const setItems = makeAction(cell, (items: number[]) => ({ items }), recorder, "setItems");
+    setItems([1, 2]);
+
+    expect(sub).not.toHaveBeenCalled();
+  });
+
+  it("notifies an external subscriber inline when the dep changes outside a transaction", () => {
+    const recorder = createCassetteRecorder();
+    const cell = createStateCell({ items: [1, 2, 3] }, recorder);
+    const count = createGetterCell(() => cell.read().items.length, recorder);
+    const sub = vi.fn();
+
+    count.read();
+    count.subscribe(sub);
+
+    // A direct publish (not via makeAction) runs outside any transaction, so the
+    // external flush happens inline rather than through the deferred dirty queue.
+    cell.publish({ items: [1, 2] });
+
+    expect(sub).toHaveBeenCalledTimes(1);
+    expect(count.read()).toBe(2);
+  });
+
+  it("swallows a re-entrant invalidation when a body mutates its own dependency", () => {
+    const recorder = createCassetteRecorder();
+    const cell = createStateCell(0, recorder);
+    let reentered = false;
+    const g = createGetterCell(() => {
+      const v = cell.read();
+      if (v === 5) {
+        // Mutating a dependency from within the body fires that dep's internal
+        // subscribers while this cell is mid-recompute. The `recomputing` guard
+        // must swallow the re-entrant invalidate instead of recursing forever.
+        reentered = true;
+        cell.publish(99);
+      }
+      return v;
+    }, recorder);
+    const sub = vi.fn();
+
+    g.read(); // prime → subscribes g to cell
+    g.subscribe(sub); // external sub so the next invalidate recomputes eagerly
+
+    cell.publish(5); // → g.invalidate → recompute → body publishes(99) → re-entrant invalidate
+
+    expect(reentered).toBe(true);
+    // The outer invalidate notified exactly once; the re-entrant one was swallowed.
+    expect(sub).toHaveBeenCalledTimes(1);
+  });
 });

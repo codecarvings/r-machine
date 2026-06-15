@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deepPartialMerge } from "../../src/core/deep-partial.js";
+import { deepPartialMerge, isPlainObject } from "../../src/core/deep-partial.js";
 
 describe("deepPartialMerge", () => {
   it("returns prev reference unchanged when partial is undefined", () => {
@@ -53,5 +53,16 @@ describe("deepPartialMerge", () => {
 
   it("non-object partial against object prev returns the partial as-is", () => {
     expect(deepPartialMerge({ a: 1 } as unknown, 42)).toBe(42);
+  });
+});
+
+describe("isPlainObject — null-prototype objects", () => {
+  it("treats a null-prototype object as plain, so the merge recurses into it", () => {
+    expect(isPlainObject(Object.create(null))).toBe(true);
+
+    // End-to-end: a null-proto prev is recursed into, not replaced wholesale.
+    const prev = Object.assign(Object.create(null), { a: 1, b: 2 });
+    const next = deepPartialMerge(prev, { a: 9 } as Partial<typeof prev>);
+    expect(next).toEqual({ a: 9, b: 2 });
   });
 });
