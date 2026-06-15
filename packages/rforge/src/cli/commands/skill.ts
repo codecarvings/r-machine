@@ -49,9 +49,12 @@ export interface InstallSkillResult {
  * than hard-coding `../../`, walk up from the current module until a
  * `skill/SKILL.md` is found. This works for both the published package and the
  * source tree.
+ *
+ * `startDir` defaults to this module's directory; it is a seam for tests to
+ * exercise the walk from an arbitrary location.
  */
-export async function locateBundledSkill(): Promise<string> {
-  let dir = dirname(fileURLToPath(import.meta.url));
+export async function locateBundledSkill(startDir = dirname(fileURLToPath(import.meta.url))): Promise<string> {
+  let dir = startDir;
 
   for (;;) {
     const candidate = join(dir, "skill");
