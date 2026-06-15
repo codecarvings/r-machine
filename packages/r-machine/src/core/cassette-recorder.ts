@@ -202,6 +202,9 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
         }
         inserted = false;
         const idx = stack.indexOf(cassette);
+        // `inserted === true` implies the cassette is in the stack (insert pushes
+        // it; nothing else removes it), so idx is always >= 0 here.
+        /* v8 ignore next */
         if (idx >= 0) {
           stack.splice(idx, 1);
         }
@@ -268,6 +271,9 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
     relays.push({ runtime: r, namespace });
     return () => {
       const idx = relays.findIndex((entry) => entry.runtime === r);
+      // dispose() calls this at most once (it guards on a `disposed` flag), so
+      // the relay is always still registered here — idx is never < 0.
+      /* v8 ignore next */
       if (idx >= 0) {
         relays.splice(idx, 1);
       }
@@ -302,6 +308,10 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
     try {
       while (dirtyRelays.size > 0 || dirtyCells.size > 0) {
         iterations++;
+        // Defensive backstop: only reachable with >100 flush iterations where no
+        // single relay hits the per-relay loop limit (3). The per-relay detection
+        // catches realistic loops long before this fires.
+        /* v8 ignore start */
         if (iterations > FLUSH_HARD_CAP) {
           console.error(
             `R-Machine: relay flush exceeded ${FLUSH_HARD_CAP} iterations — aborting to prevent infinite loop.`
@@ -310,6 +320,7 @@ export function createCassetteRecorder(busHost?: BusHost): CassetteRecorder {
           dirtyCells.clear();
           return;
         }
+        /* v8 ignore stop */
         // ─── Phase 1: relays ──────────────────────────────────────────────
         // Each dirty relay fires onChange and returns the sync cmds it
         // produced. We COLLECT them here; we do NOT dispatch them inline.

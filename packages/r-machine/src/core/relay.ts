@@ -140,6 +140,10 @@ export function createRelayRuntime(
       for (const dep of cassette.getDeps()) {
         depUnsubs.push(
           dep.subscribeInternal(() => {
+            // Defensive: a dep can notify an already-disposed relay only during a
+            // re-entrant notification snapshot (a resource disposed inside a
+            // reactive body), which the framework itself never triggers.
+            /* v8 ignore next */
             if (!disposed) {
               recorder.markRelayDirty(runtime);
             }
@@ -189,6 +193,9 @@ export function createRelayRuntime(
   for (const dep of cassette.getDeps()) {
     depUnsubs.push(
       dep.subscribeInternal(() => {
+        // Defensive: see the matching guard in runIfDirty — reachable only via a
+        // resource disposed inside a reactive body, which the framework never does.
+        /* v8 ignore next */
         if (!disposed) {
           recorder.markRelayDirty(runtime);
         }

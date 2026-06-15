@@ -250,4 +250,117 @@ describe("createRelayRuntime", () => {
     set(2);
     expect(onChange).toHaveBeenCalledTimes(1);
   });
+
+  it("dispose is idempotent — a second dispose is a no-op", () => {
+    const recorder = createCassetteRecorder();
+    const cell = createStateCell(0, recorder);
+    const handle = createRelayRuntime(mk({ select: () => cell.read(), onChange: vi.fn() }, "r"), recorder);
+
+    handle.dispose();
+    expect(() => handle.dispose()).not.toThrow();
+  });
+
+  it("a relay disposed mid-flush by another relay is skipped (runIfDirty guards on disposed)", () => {
+    const recorder = createCassetteRecorder();
+    const cell = createStateCell(0, recorder);
+    let handleB!: { dispose(): void };
+    const onChangeB = vi.fn();
+
+    // A and B both read `cell`, so a single action marks both dirty in one
+    // flush. The flush snapshots the relay order up front, so B is still in the
+    // ordered list when A's onChange disposes it — B.runIfDirty must early-out
+    // on `disposed` instead of firing onChangeB.
+    createRelayRuntime(
+      mk(
+        {
+          select: () => cell.read(),
+          onChange: () => {
+            handleB.dispose();
+          },
+        },
+        "A"
+      ),
+      recorder
+    );
+    handleB = createRelayRuntime(mk({ select: () => cell.read(), onChange: onChangeB }, "B"), recorder);
+
+    const set = makeAction(cell, (n: number) => n, recorder, "set");
+    set(1);
+
+    expect(onChangeB).not.toHaveBeenCalled();
+  });
+
+  it("select that throws on a later tick emits a relay error and skips onChange", () => {
+    const events: InternalEvent[] = [];
+    const bus = createEventBus();
+    bus.subscribe((e) => events.push(e));
+    const recorder = createCassetteRecorder({ bus });
+    const cell = createStateCell(0, recorder);
+    let failNow = false;
+    const onChange = vi.fn();
+    createRelayRuntime(
+      mk(
+        {
+          select: () => {
+            const v = cell.read();
+            if (failNow) {
+              throw new Error("boom");
+            }
+            return v;
+          },
+          onChange,
+        },
+        "rLater"
+      ),
+      recorder
+    );
+
+    failNow = true;
+    const set = makeAction(cell, (n: number) => n, recorder, "set");
+    set(1); // runIfDirty re-runs select → it throws → relay error, onChange skipped
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(events.some((e) => e.type === "relay:onChangeError" && e.relayName === "rLater")).toBe(true);
+  });
+
+  it("recovers when the initial select reads a dep then throws: first successful run fires onChange(next, next)", () => {
+    const events: InternalEvent[] = [];
+    const bus = createEventBus();
+    bus.subscribe((e) => events.push(e));
+    const recorder = createCassetteRecorder({ bus });
+    const cell = createStateCell(0, recorder);
+    let failInitial = true;
+    const onChange = vi.fn();
+
+    createRelayRuntime(
+      mk(
+        {
+          // Reads `cell` (captured as a dep) BEFORE throwing, so the relay still
+          // subscribes even though the initial pass left `prev` unseeded.
+          select: () => {
+            const v = cell.read();
+            if (failInitial) {
+              throw new Error("init boom");
+            }
+            return v;
+          },
+          onChange,
+        },
+        "rRecover"
+      ),
+      recorder
+    );
+
+    expect(events.some((e) => e.type === "relay:onChangeError" && e.relayName === "rRecover")).toBe(true);
+    expect(onChange).not.toHaveBeenCalled();
+
+    failInitial = false;
+    const set = makeAction(cell, (n: number) => n, recorder, "set");
+    set(5);
+
+    // First successful run with prev still unseeded: prevForCallback falls back
+    // to next, so onChange sees (5, 5) rather than a stale/sentinel previous.
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith(5, 5);
+  });
 });

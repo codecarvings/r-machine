@@ -389,6 +389,27 @@ describe("WireManager — updateRequest", () => {
     expect(mock.getPluginCalls[1].locale).toBe("it-IT");
     expect(mock.getPluginCalls[1].vertexGearMap).toBe(newVgm);
   });
+
+  it("a throwing subscriber during the deferred update notify is caught and logged", async () => {
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const cb = vi.fn(() => {
+      throw new Error("boom");
+    });
+    wire.subscribe(cb);
+    wire.getPluginPromise();
+
+    // updateRequest fires subscribers on a microtask; a throwing one must be
+    // swallowed (console.error) so siblings still get notified.
+    wire.updateRequest("it-IT", undefined);
+    await Promise.resolve();
+
+    expect(cb).toHaveBeenCalledOnce();
+    expect(errSpy).toHaveBeenCalled();
+    errSpy.mockRestore();
+  });
 });
 
 describe("WireManager — genId allocation", () => {
@@ -647,6 +668,27 @@ describe("WireManager — commit-tracking (cassette → consumer-notify channel)
     expect(notifyA).toHaveBeenCalledTimes(1);
     expect(notifyB).toHaveBeenCalledTimes(1);
   });
+
+  it("a stale commit superseded by a later startTracking from the same consumer is a no-op", () => {
+    const mock = createMockRm();
+    const recorder = createCassetteRecorder();
+    const wm = new WireManager(mock.rm, { bus: undefined }, recorder);
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+    const notify = vi.fn();
+    const consumer = {};
+    const cell = createStateCell({ v: 0 }, recorder);
+
+    const staleCommit = wire.startTracking(notify, consumer); // epoch N
+    cell.read();
+    wire.startTracking(notify, consumer); // epoch N+1 supersedes; left uncommitted
+
+    // The stale commit's epoch no longer matches the consumer's current epoch,
+    // so it wires nothing rather than committing the abandoned cassette.
+    staleCommit();
+
+    cell.publish({ v: 1 });
+    expect(notify).not.toHaveBeenCalled();
+  });
 });
 
 // ─── Synchronous fast path orchestration ─────────────────────────────────────
@@ -804,5 +846,78 @@ describe("WireManager — synchronous fast path", () => {
     expect(types).toContain("wire:coveredPending");
     expect(types).not.toContain("wire:resolvedSync");
     collector.dispose();
+  });
+
+  // With a transform present the normal sync fast path is skipped — BUT when the
+  // consumer also has a covered vertex dep, the async path would throw on a
+  // transiently-missing parent slot, so resolve() still probes the sync resolver
+  // (which returns COVERED_PENDING instead of throwing) and takes the suspend path.
+  it("with a transform AND a covered vertex dep, probes sync and suspends on COVERED_PENDING", () => {
+    const mock = createSyncMockRm(() => COVERED_PENDING);
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const plug = createPlug({} as never) as PlugBody<AnyPlugHead>;
+    setPlugOverride(plug, { transform: (raw) => ({ transformed: raw }) });
+    const vgm: VertexGearMap = { "v/V": "1\x1f0" };
+
+    const wire = wm.getWire({}, ["v/V"], "en-US", noopAugmentCtx, vgm, plug);
+    const p = wire.getPluginPromise() as TaggedThenable;
+
+    // Probe ran (COVERED_PENDING) → suspend on a stable pending promise; the
+    // throwing async path is never reached.
+    expect("status" in p).toBe(false);
+    expect(mock.getPluginSyncCalls).toBe(1);
+    expect(mock.getPluginCalls).toBe(0);
+  });
+
+  it("with a transform AND a covered vertex dep, falls through to async when the sync probe declines", async () => {
+    const mock = createSyncMockRm(() => ASYNC);
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const plug = createPlug({} as never) as PlugBody<AnyPlugHead>;
+    setPlugOverride(plug, { transform: (raw) => ({ transformed: raw }) });
+    const vgm: VertexGearMap = { "v/V": "1\x1f0" };
+
+    const wire = wm.getWire({}, ["v/V"], "en-US", noopAugmentCtx, vgm, plug);
+    const p = wire.getPluginPromise() as TaggedThenable;
+
+    // Probe declined (ASYNC) → fall through to async getPlugin + .then(transform).
+    expect(mock.getPluginSyncCalls).toBe(1);
+    expect(mock.getPluginCalls).toBe(1);
+    await expect(p).resolves.toMatchObject({ transformed: { pluginId: 0 } });
+  });
+
+  it("with a transform AND a covered vertex dep, a throwing sync probe falls through to async", async () => {
+    const mock = createSyncMockRm(() => {
+      throw new Error("probe boom");
+    });
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const plug = createPlug({} as never) as PlugBody<AnyPlugHead>;
+    setPlugOverride(plug, { transform: (raw) => ({ transformed: raw }) });
+    const vgm: VertexGearMap = { "v/V": "1\x1f0" };
+
+    const wire = wm.getWire({}, ["v/V"], "en-US", noopAugmentCtx, vgm, plug);
+    const p = wire.getPluginPromise() as TaggedThenable;
+
+    // The probe threw → treated as ASYNC → async getPlugin + .then(transform).
+    expect(mock.getPluginSyncCalls).toBe(1);
+    expect(mock.getPluginCalls).toBe(1);
+    await expect(p).resolves.toMatchObject({ transformed: { pluginId: 0 } });
+  });
+});
+
+describe("WireManager — frameless-vertex ownership (claimOwner / getOwner)", () => {
+  it("the first claim sticks; a later claim is a no-op (StrictMode double-invoke)", () => {
+    const mock = createMockRm();
+    const wm = new WireManager(mock.rm, { bus: undefined }, createCassetteRecorder());
+    const wire = wm.getWire({}, ["g/A"], "en-US", noopAugmentCtx);
+
+    expect(wire.getOwner()).toBeNull();
+
+    const first = {};
+    wire.claimOwner(first);
+    expect(wire.getOwner()).toBe(first);
+
+    // owner is already set → the second claim must not overwrite it.
+    wire.claimOwner({});
+    expect(wire.getOwner()).toBe(first);
   });
 });

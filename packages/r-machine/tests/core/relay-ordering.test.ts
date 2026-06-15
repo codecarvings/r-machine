@@ -110,6 +110,27 @@ describe("createBlueprintRelayOrderingProvider", () => {
     expect(ordered).toEqual([ra, rz]);
   });
 
+  it("orders a mix where namespaces lack depth/priority and some relays lack a namespace", () => {
+    // Exercises every +Infinity fallback arm (missing depth, missing priority,
+    // and absent namespace) across the multi-way sort comparator.
+    const provider = createBlueprintRelayOrderingProvider(
+      mockBpm({
+        depths: new Map<AnyNamespace, number>([["a", 0]]), // only "a" reachable
+        priorities: new Map<AnyNamespace, number>([["a", 5]]), // only "a" has a priority
+      })
+    );
+    const rA = fakeRuntime("a"); // depth 0, priority 5
+    const rZ = fakeRuntime("z"); // ns "z": depth +Inf, priority +Inf
+    const rOrphan = fakeRuntime("orphan"); // no namespace: depth +Inf, priority +Inf
+    const full: RegisteredRelay[] = [entry(rZ, "z"), entry(rOrphan, undefined), entry(rA, "a")];
+
+    const ordered = provider.order(new Set([rA, rZ, rOrphan]), new Set(["a"]), full);
+
+    // a (depth 0) first; z and orphan tie on +Inf depth and +Inf priority →
+    // registration order (z before orphan).
+    expect(ordered).toEqual([rA, rZ, rOrphan]);
+  });
+
   it("excludes non-dirty relays from output", () => {
     const provider = createBlueprintRelayOrderingProvider(
       mockBpm({ depths: new Map<AnyNamespace, number>([["a", 0]]) })

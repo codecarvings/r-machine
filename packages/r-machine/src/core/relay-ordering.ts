@@ -12,7 +12,7 @@
  */
 
 import type { BlueprintManager } from "./blueprint-manager.js";
-import type { RelayOrderingProvider, RelayRuntime } from "./cassette-recorder.js";
+import type { RegisteredRelay, RelayOrderingProvider, RelayRuntime } from "./cassette-recorder.js";
 
 /**
  * Builds the relay ordering provider used at runtime to flush dirty relays.
@@ -43,26 +43,31 @@ export function createBlueprintRelayOrderingProvider(bpm: BlueprintManager): Rel
       for (let i = 0; i < fullList.length; i++) {
         regIndex.set(fullList[i]!.runtime, i);
       }
+      // Per-entry metrics, extracted so each fallback arm (missing depth /
+      // missing priority / absent namespace → +Infinity) is exercised once,
+      // independent of which side of a comparison the entry happens to land on.
+      const depthOf = (e: RegisteredRelay): number =>
+        e.namespace !== undefined ? (depths.get(e.namespace) ?? Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY;
+      const priorityOf = (e: RegisteredRelay): number =>
+        e.namespace !== undefined
+          ? (bpm.getPriority(e.namespace) ?? Number.POSITIVE_INFINITY)
+          : Number.POSITIVE_INFINITY;
+
       const candidates = fullList.filter((entry) => dirtyRelays.has(entry.runtime));
       candidates.sort((a, b) => {
-        const dA =
-          a.namespace !== undefined ? (depths.get(a.namespace) ?? Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY;
-        const dB =
-          b.namespace !== undefined ? (depths.get(b.namespace) ?? Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY;
+        const dA = depthOf(a);
+        const dB = depthOf(b);
         if (dA !== dB) {
           return dA - dB;
         }
-        const pA =
-          a.namespace !== undefined
-            ? (bpm.getPriority(a.namespace) ?? Number.POSITIVE_INFINITY)
-            : Number.POSITIVE_INFINITY;
-        const pB =
-          b.namespace !== undefined
-            ? (bpm.getPriority(b.namespace) ?? Number.POSITIVE_INFINITY)
-            : Number.POSITIVE_INFINITY;
+        const pA = priorityOf(a);
+        const pB = priorityOf(b);
         if (pA !== pB) {
           return pA - pB;
         }
+        // candidates ⊆ fullList ⊆ regIndex, so both lookups are always defined;
+        // the `?? 0` is an unreachable defensive fallback.
+        /* v8 ignore next */
         return (regIndex.get(a.runtime) ?? 0) - (regIndex.get(b.runtime) ?? 0);
       });
       return candidates.map((entry) => entry.runtime);

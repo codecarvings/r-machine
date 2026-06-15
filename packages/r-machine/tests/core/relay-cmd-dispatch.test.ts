@@ -86,6 +86,30 @@ describe("relay cmd dispatch (sync)", () => {
     expect(order).toEqual([1, 2, 3]);
   });
 
+  it("an error thrown by a synchronously-dispatched cmd is caught and emitted as relay:onChangeError", () => {
+    const events: InternalEvent[] = [];
+    const bus = createEventBus();
+    bus.subscribe((e) => events.push(e));
+    const recorder = createCassetteRecorder({ bus });
+    const trigger = createStateCell(0, recorder);
+    const cell = createStateCell(0, recorder);
+    const boom = makeAction(
+      cell,
+      () => {
+        throw new Error("sync cmd boom");
+      },
+      recorder,
+      "boom"
+    );
+    createRelayRuntime(mk({ select: () => trigger.read(), onChange: () => createCmd(boom, []) }, "r"), recorder);
+
+    const fire = makeAction(trigger, (n: number) => n, recorder, "fire");
+    // The flush swallows the cmd error so the triggering action does not throw.
+    expect(() => fire(1)).not.toThrow();
+
+    expect(events.some((e) => e.type === "relay:onChangeError" && e.relayName === "<cmd-dispatch>")).toBe(true);
+  });
+
   it("invalid return values (string, number, object) are ignored", () => {
     const recorder = createCassetteRecorder();
     const cell = createStateCell(0, recorder);
@@ -297,5 +321,56 @@ describe("relay async onChange (out-of-band)", () => {
     expect(target.peek()).toBe(99);
     expect(targetSpy).toHaveBeenCalledTimes(1);
     expect(targetSpy).toHaveBeenCalledWith(99, 0);
+  });
+
+  it("an async onChange that resolves without a cmd dispatches nothing (no transaction)", async () => {
+    const recorder = createCassetteRecorder();
+    const trigger = createStateCell(0, recorder);
+    const target = createStateCell(0, recorder);
+
+    // A watcher on `target` proves the empty resolve opens no transaction.
+    const targetSpy = vi.fn();
+    createRelayRuntime(mk({ select: () => target.read(), onChange: (c, p) => targetSpy(c, p) }, "watcher"), recorder);
+    // Resolves to `undefined` → normalizeCmds yields [] → nothing dispatched.
+    createRelayRuntime(mk({ select: () => trigger.read(), onChange: () => Promise.resolve(undefined) }, "r"), recorder);
+
+    const fire = makeAction(trigger, (n: number) => n, recorder, "fire");
+    expect(() => fire(1)).not.toThrow();
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(targetSpy).not.toHaveBeenCalled();
+    expect(target.peek()).toBe(0);
+  });
+
+  it("an error thrown while dispatching an async-resolved cmd is emitted as relay:onChangeError", async () => {
+    const events: InternalEvent[] = [];
+    const bus = createEventBus();
+    bus.subscribe((e) => events.push(e));
+    const recorder = createCassetteRecorder({ bus });
+    const trigger = createStateCell(0, recorder);
+    const cell = createStateCell(0, recorder);
+    const boom = makeAction(
+      cell,
+      () => {
+        throw new Error("cmd boom");
+      },
+      recorder,
+      "boom"
+    );
+
+    createRelayRuntime(
+      mk({ select: () => trigger.read(), onChange: () => Promise.resolve(createCmd(boom, [])) }, "rThrow"),
+      recorder
+    );
+
+    const fire = makeAction(trigger, (n: number) => n, recorder, "fire");
+    fire(1);
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(events.some((e) => e.type === "relay:onChangeError" && e.relayName === "rThrow")).toBe(true);
   });
 });

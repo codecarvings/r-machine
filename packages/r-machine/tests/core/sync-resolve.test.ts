@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ASYNC, fulfilledThenable } from "../../src/core/sync-resolve.js";
+import { ASYNC, fulfilledThenable, isThenable } from "../../src/core/sync-resolve.js";
 
 describe("sync-resolve — ASYNC sentinel", () => {
   it("is a stable symbol (identity holds across reads)", () => {
@@ -38,5 +38,30 @@ describe("sync-resolve — fulfilledThenable", () => {
       expect(t.value).toBe(value);
       await expect(t).resolves.toBe(value);
     }
+  });
+});
+
+describe("sync-resolve — isThenable", () => {
+  it("is true for a Promise and for a custom object thenable", () => {
+    expect(isThenable(Promise.resolve())).toBe(true);
+    // biome-ignore lint/suspicious/noThenProperty: intentional thenable under test
+    const objThenable = { then: () => {} };
+    expect(isThenable(objThenable)).toBe(true);
+  });
+
+  it("is true for a function that carries a `then` method", () => {
+    // A thenable can be a function (not just an object) — covers that branch.
+    // biome-ignore lint/suspicious/noThenProperty: intentional thenable under test
+    const fnThenable = Object.assign(() => {}, { then: () => {} });
+    expect(isThenable(fnThenable)).toBe(true);
+  });
+
+  it("is false for null, plain objects, plain functions, and primitives", () => {
+    expect(isThenable(null)).toBe(false);
+    expect(isThenable(undefined)).toBe(false);
+    expect(isThenable({})).toBe(false);
+    expect(isThenable(() => {})).toBe(false);
+    expect(isThenable(42)).toBe(false);
+    expect(isThenable("then")).toBe(false);
   });
 });
