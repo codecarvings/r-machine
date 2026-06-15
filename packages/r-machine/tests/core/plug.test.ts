@@ -40,6 +40,14 @@ describe("createPlug / getPlugHead", () => {
     expect(getPlugId(a)).toBe(getPlugId(a)); // stable
     expect(getPlugId(a)).not.toBe(getPlugId(b)); // unique
   });
+
+  it("the plug body is a callable no-op marker (HMR component-shaped export)", () => {
+    // The plug is a function so HMR / React tooling treats the export as a
+    // component; invoking it is a harmless no-op.
+    const plug = createPlug(fakeHead());
+    expect(typeof plug).toBe("function");
+    expect((plug as unknown as () => unknown)()).toBeUndefined();
+  });
 });
 
 describe("getPlugResolve / setPlugResolve", () => {

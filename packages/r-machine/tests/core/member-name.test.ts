@@ -144,4 +144,11 @@ describe("member auto-naming + promotion", () => {
     await resolveRaw(matrix);
     expect(getMemberName(captured.inc as never)).toBe("action:1");
   });
+
+  it("promoteMemberNames is a no-op for null / undefined / primitive resources", () => {
+    expect(() => promoteMemberNames(null)).not.toThrow();
+    expect(() => promoteMemberNames(undefined)).not.toThrow();
+    expect(() => promoteMemberNames(42)).not.toThrow();
+    expect(() => promoteMemberNames("not-an-object")).not.toThrow();
+  });
 });

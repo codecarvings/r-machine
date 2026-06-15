@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ERR_CIRCULAR_DEPENDENCY, RMachineResolveError } from "#r-machine/errors";
 import { BlueprintManager, getBlueprintResCacheKey } from "../../src/core/blueprint-manager.js";
 import type { GearRole } from "../../src/core/gear-plug.js";
 import type { AnyNamespace } from "../../src/core/res-domain.js";
@@ -574,5 +575,191 @@ describe("BlueprintManager — getBlueprintSync (Tier B)", () => {
     // In dev the cached blueprint may reference a stale factory closure, so the
     // sync path must defer to the async one (which forces a fresh import).
     expect(env.bm.getBlueprintSync("g/X", undefined, layoutOf("g/X"), env.keyOf("g/X"))).toBe(ASYNC);
+  });
+});
+
+describe("BlueprintManager — circular dependencies", () => {
+  it("throws a circular-dependency error for a direct self-dependency", async () => {
+    const env = createTestEnv({
+      modules: { "g/X": () => makeMatrixModule("gear", "inner", ["g/X"]) },
+    });
+    await expect(loadByNs(env, "g/X")).rejects.toMatchObject({ code: ERR_CIRCULAR_DEPENDENCY });
+  });
+
+  it("detects a circular dependency across concurrent resolutions (wait-cycle)", async () => {
+    let releaseA!: () => void;
+    let releaseB!: () => void;
+    const gateA = new Promise<void>((r) => {
+      releaseA = r;
+    });
+    const gateB = new Promise<void>((r) => {
+      releaseB = r;
+    });
+    const env = createTestEnv({
+      modules: {
+        "g/A": async () => {
+          await gateA;
+          return makeMatrixModule("gear", "inner", ["g/B"]);
+        },
+        "g/B": async () => {
+          await gateB;
+          return makeMatrixModule("gear", "inner", ["g/A"]);
+        },
+      },
+    });
+
+    const pA = loadByNs(env, "g/A");
+    const pB = loadByNs(env, "g/B");
+
+    // Let A's module load and register its wait on the in-flight B before B's
+    // module loads and resolves A (which is what trips the wait-cycle check).
+    releaseA();
+    await new Promise((r) => setTimeout(r, 0));
+    releaseB();
+
+    const results = await Promise.allSettled([pA, pB]);
+    const reasons = results.filter((r): r is PromiseRejectedResult => r.status === "rejected").map((r) => r.reason);
+    expect(reasons.length).toBeGreaterThan(0);
+    expect(reasons.some((e) => e?.code === ERR_CIRCULAR_DEPENDENCY)).toBe(true);
+  });
+});
+
+describe("BlueprintManager — module validation", () => {
+  it("rejects when a loaded module fails validation", async () => {
+    const env = createTestEnv({
+      modules: { "g/X": () => ({ r: "not-a-resource" }) as unknown as AnyResModule },
+    });
+    await expect(loadByNs(env, "g/X")).rejects.toBeInstanceOf(RMachineResolveError);
+  });
+});
+
+describe("BlueprintManager — graph traversals (extra coverage)", () => {
+  it("getForwardClosure dedupes a shared dep reached via two paths (diamond)", async () => {
+    const env = createTestEnv({
+      modules: {
+        "g/A": () => makeMatrixModule("gear", "inner", ["g/B", "g/C"]),
+        "g/B": () => makeMatrixModule("gear", "inner", ["g/D"]),
+        "g/C": () => makeMatrixModule("gear", "inner", ["g/D"]),
+        "g/D": () => makeMatrixModule("gear", "inner", []),
+      },
+    });
+    await loadByNs(env, "g/A");
+
+    expect(env.bm.getForwardClosure(["g/A"])).toEqual(new Set(["g/A", "g/B", "g/C", "g/D"]));
+  });
+
+  it("reverseBfsDepths ignores a duplicate source namespace", () => {
+    const env = createTestEnv({
+      modules: { "g/A": () => makeMatrixModule("gear", "inner", []) },
+    });
+    const depths = env.bm.reverseBfsDepths(["g/A", "g/A"]);
+    expect(depths.get("g/A")).toBe(0);
+    expect(depths.size).toBe(1);
+  });
+});
+
+describe("BlueprintManager — evict last shell-locale entry", () => {
+  it("removes the namespace from keysByNs when its last shell-locale entry is evicted", async () => {
+    const env = createTestEnv({
+      modules: { "s/Y": () => makeRawModule({ greeting: "hi" }) },
+    });
+    await loadByNs(env, "s/Y", "en");
+    expect(env.inspect().keysByNs.has("s/Y")).toBe(true);
+
+    env.bm.evictBlueprint("s/Y", "en"); // only locale entry → keys empties → ns key removed
+
+    expect(env.inspect().keysByNs.has("s/Y")).toBe(false);
+  });
+
+  it("evicting a shell locale that was never cached is a no-op (keyCount 0)", async () => {
+    const env = createTestEnv({
+      modules: { "s/Y": () => makeRawModule({ greeting: "hi" }) },
+    });
+    await loadByNs(env, "s/Y", "en");
+
+    // "it" was never loaded → cache.delete returns false; the cached "en" entry
+    // and the keysByNs set are left intact.
+    env.bm.evictBlueprint("s/Y", "it");
+
+    expect(env.inspect().cache.has(env.keyOf("s/Y", "en"))).toBe(true);
+    expect(env.inspect().keysByNs.has("s/Y")).toBe(true);
+  });
+
+  it("evicting a shell locale for a never-loaded namespace is a safe no-op", () => {
+    const env = createTestEnv({ modules: {} });
+    expect(() => env.bm.evictBlueprint("s/Z", "en")).not.toThrow();
+  });
+});
+
+describe("BlueprintManager — concurrent resolution edge cases", () => {
+  it("registers multiple concurrent dep-waits under the same ancestor", async () => {
+    let releaseB!: () => void;
+    let releaseC!: () => void;
+    const gateB = new Promise<void>((r) => {
+      releaseB = r;
+    });
+    const gateC = new Promise<void>((r) => {
+      releaseC = r;
+    });
+    const env = createTestEnv({
+      modules: {
+        "g/A": () => makeMatrixModule("gear", "inner", ["g/B", "g/C"]),
+        "g/B": async () => {
+          await gateB;
+          return makeMatrixModule("gear", "inner", []);
+        },
+        "g/C": async () => {
+          await gateC;
+          return makeMatrixModule("gear", "inner", []);
+        },
+      },
+    });
+
+    // B and C are in-flight first; A then waits on both under the same ancestor.
+    const pB = loadByNs(env, "g/B");
+    const pC = loadByNs(env, "g/C");
+    const pA = loadByNs(env, "g/A");
+    await new Promise((r) => setTimeout(r, 0));
+    releaseB();
+    releaseC();
+
+    await Promise.all([pA, pB, pC]);
+    // No cycle (B, C don't depend on A) → all resolve cleanly.
+    expect(env.inspect().cache.has(env.keyOf("g/A"))).toBe(true);
+  });
+
+  it("an in-flight resolve that errors after being evicted+replaced does not clobber the fresh entry", async () => {
+    let rejectOld!: (e: Error) => void;
+    const oldLoad = new Promise<AnyResModule>((_resolve, reject) => {
+      rejectOld = reject;
+    });
+    let xLoadCount = 0;
+    const env = createTestEnv({
+      modules: {
+        "g/X": () => {
+          xLoadCount++;
+          return xLoadCount === 1 ? oldLoad : makeMatrixModule("gear", "inner", ["g/B"]);
+        },
+        "g/B": () => makeMatrixModule("gear", "inner", []),
+      },
+    });
+
+    const oldPromise = loadByNs(env, "g/X"); // in-flight (old)
+    env.bm.evictBlueprint("g/X");
+    const newPromise = loadByNs(env, "g/X"); // fresh resolve replaces the cache entry
+    rejectOld(new Error("old load failed")); // old resolve errors → cleanup identity check is false
+
+    const results = await Promise.allSettled([oldPromise, newPromise]);
+    expect(results[0]?.status).toBe("rejected");
+    expect(results[1]?.status).toBe("fulfilled");
+    // The fresh resolve owns the entry; the old error did not delete it.
+    expect(env.inspect().forwardDeps.get("g/X")).toEqual(new Set(["g/B"]));
+  });
+});
+
+describe("BlueprintManager — getForwardClosure on unmapped namespace", () => {
+  it("returns just the namespace itself when it has no recorded forward deps", () => {
+    const env = createTestEnv({ modules: {} });
+    expect(env.bm.getForwardClosure(["g/never-loaded"])).toEqual(new Set(["g/never-loaded"]));
   });
 });
