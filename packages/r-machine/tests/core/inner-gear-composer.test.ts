@@ -107,4 +107,81 @@ describe("InnerGear composer — resolution through the full stack", () => {
     expect(res.viaKit).toBe("kitted");
     expect(res.viaHoist).toBe("kitted");
   });
+
+  it("map deps + withPorts → both `named` deps and `$.ports.*` available", async () => {
+    const env = buildResolveEnv(LAYOUT, {
+      "i/config": innerGearModule((c) => c.define(() => ({ apiBase: "base" }))),
+      "i/svc": innerGearModule((c) =>
+        (c.withDeps as any)({ cfg: "i/config" })
+          .withPorts({ tag: () => "P" })
+          .define(({ cfg, $ }: any) => ({ url: cfg.apiBase, tag: $.ports.tag() }))
+      ),
+    });
+
+    expect(await env.resolve("i/svc" as AnyNamespace)).toEqual({ url: "base", tag: "P" });
+  });
+
+  it("list deps + withPorts → positional deps and `$.ports.*` together", async () => {
+    const env = buildResolveEnv(LAYOUT, {
+      "i/config": innerGearModule((c) => c.define(() => ({ apiBase: "base" }))),
+      "i/svc": innerGearModule((c) =>
+        (c.withDeps as any)("i/config")
+          .withPorts({ tag: () => "Q" })
+          .define(([cfg, $]: any) => ({ url: cfg.apiBase, tag: $.ports.tag() }))
+      ),
+    });
+
+    expect(await env.resolve("i/svc" as AnyNamespace)).toEqual({ url: "base", tag: "Q" });
+  });
+});
+
+describe("InnerGear composer — clone() and port overrides", () => {
+  it("clone() with no transform → resource identical to the source factory", async () => {
+    const env = buildResolveEnv(LAYOUT, {
+      "i/c": innerGearModule((c) => (c.define(() => ({ n: 1 })) as any).clone()),
+    });
+
+    expect(await env.resolve("i/c" as AnyNamespace)).toEqual({ n: 1 });
+  });
+
+  it("clone(fn) → transform runs over the awaited base factory output", async () => {
+    const env = buildResolveEnv(LAYOUT, {
+      "i/c": innerGearModule((c) => (c.define(() => ({ n: 1 })) as any).clone((res: any) => ({ n: res.n + 10 }))),
+    });
+
+    expect(await env.resolve("i/c" as AnyNamespace)).toEqual({ n: 11 });
+  });
+
+  it("map matrix: withPorts(overrides).clone() → overridden port value wins", async () => {
+    const env = buildResolveEnv(LAYOUT, {
+      "i/c": innerGearModule((c) =>
+        ((c.withPorts as any)({ v: () => 1 }).define(({ $ }: any) => ({ v: $.ports.v() })) as any)
+          .withPorts({ v: () => 9 })
+          .clone()
+      ),
+    });
+
+    expect(await env.resolve("i/c" as AnyNamespace)).toEqual({ v: 9 });
+  });
+
+  it("list matrix: clone(fn) and withPorts(overrides).clone()", async () => {
+    const env = buildResolveEnv(LAYOUT, {
+      "i/config": innerGearModule((c) => c.define(() => ({ apiBase: "base" }))),
+      "i/cloned": innerGearModule((c) =>
+        ((c.withDeps as any)("i/config").define(([cfg]: any) => ({ n: cfg.apiBase.length })) as any).clone(
+          (res: any) => ({ n: res.n + 5 })
+        )
+      ),
+      "i/ported": innerGearModule((c) =>
+        ((c.withDeps as any)("i/config")
+          .withPorts({ v: () => 1 })
+          .define(([_cfg, $]: any) => ({ v: $.ports.v() })) as any)
+          .withPorts({ v: () => 8 })
+          .clone()
+      ),
+    });
+
+    expect(await env.resolve("i/cloned" as AnyNamespace)).toEqual({ n: 9 });
+    expect(await env.resolve("i/ported" as AnyNamespace)).toEqual({ v: 8 });
+  });
 });

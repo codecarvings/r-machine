@@ -864,6 +864,9 @@ function buildStatefulOuterGearMapMatrix<
     postProcess: (raw, c) => {
       const res = statefulPostProcessAfterConversion(raw, c as StatefulOuterGearCursor<S>);
       const cell = tryGetStateAccess(c as object);
+      // The cursor always carries state access (set in the cursor factory
+      // above), so `cell` is never undefined here; the guard is defensive.
+      /* v8 ignore next */
       if (cell !== undefined) {
         setStateAccess(res, cell);
       }
@@ -1051,6 +1054,9 @@ function buildStatefulOuterGearListMatrix<
     postProcess: (raw, c) => {
       const res = statefulPostProcessAfterConversion(raw, c as unknown as StatefulOuterGearCursor<S>);
       const cell = tryGetStateAccess(c as object);
+      // The cursor always carries state access (set in the cursor factory
+      // above), so `cell` is never undefined here; the guard is defensive.
+      /* v8 ignore next */
       if (cell !== undefined) {
         setStateAccess(res, cell);
       }
