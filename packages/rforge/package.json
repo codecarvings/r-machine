@@ -1,6 +1,6 @@
 {
   "name": "rforge",
-  "version": "1.0.0-alpha.11",
+  "version": "1.0.0-alpha.12",
   "description": "Command-line interface for R-Machine — scaffolding, diagnostics, and LLM-agent skill generation.",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "AGPL-3.0-only",
