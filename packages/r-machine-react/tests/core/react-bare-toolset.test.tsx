@@ -1,1012 +1,583 @@
-import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
+import { getPlugMachine, PLUG_MACHINE_ACCESSOR } from "r-machine/core";
 import { RMachineError } from "r-machine/errors";
-import type { ReactNode } from "react";
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ERR_CONTEXT_NOT_FOUND, ERR_MISSING_WRITE_LOCALE } from "#r-machine/react/errors";
 import { createReactBareToolset } from "../../src/core/react-bare-toolset.js";
-import { createMockMachine, spies } from "../_fixtures/mock-machine.js";
-import { React19ErrorBoundary } from "../_fixtures/react19-error-boundary.js";
+import { createFakeWire } from "../_fixtures/fake-wire.js";
+import { type CreateMockMachineOptions, createMockMachine, spies } from "../_fixtures/mock-machine.js";
 
 afterEach(cleanup);
 
-// ---------------------------------------------------------------------------
-// createReactBareToolset
-// ---------------------------------------------------------------------------
+type Ctx = { locale: string; setLocale: (l: string) => void | Promise<void> };
+type BareToolset = Awaited<ReturnType<typeof createReactBareToolset>>;
+// Loose views onto the (heavily generic) Plug for runtime assertions.
+type AnyPlug = (...a: unknown[]) => { useR: () => unknown };
 
-describe("createReactBareToolset", () => {
-  // -----------------------------------------------------------------------
-  // ReactRMachine (provider component)
-  // -----------------------------------------------------------------------
+// In the current API the toolset exposes { ReactRMachine, Plug }. Locale and
+// setLocale live on the `$` context returned by `Plug().useR()`; resources are
+// resolved via `Plug("ns").useR()` (a `[...surfaces, $]` tuple). The mock's
+// getWire returns synchronously-resolved wires, so consumers read without
+// suspending — the "cached resource" path.
 
-  describe("ReactRMachine", () => {
-    it("renders children when a valid locale is provided", async () => {
-      const { ReactRMachine } = await createReactBareToolset(createMockMachine());
+function make(overrides: CreateMockMachineOptions = {}) {
+  const mock = createMockMachine(overrides);
+  return { mock, toolset: createReactBareToolset(mock as never, {} as never) };
+}
 
-      render(
-        <ReactRMachine locale="en">
-          <div>child content</div>
-        </ReactRMachine>
-      );
+// Renders a probe that reads the `$` context via a no-dep Plug; returns a getter
+// for the latest captured context.
+function mountCtx(t: BareToolset, opts: { locale?: string; writeLocale?: (l: string) => unknown } = {}): () => Ctx {
+  let ctx: Ctx | undefined;
+  function Probe() {
+    const { $ } = (t.Plug as () => { useR: () => { $: Ctx } })().useR();
+    ctx = $;
+    return <span data-testid="locale">{$.locale}</span>;
+  }
+  render(
+    <t.ReactRMachine locale={opts.locale ?? "en"} writeLocale={opts.writeLocale as never}>
+      <Probe />
+    </t.ReactRMachine>
+  );
+  return () => ctx as Ctx;
+}
 
-      screen.getByText("child content");
-    });
+describe("createReactBareToolset › ReactRMachine (provider)", () => {
+  it("renders children when a valid locale is provided", async () => {
+    const { ReactRMachine } = await make().toolset;
+    render(<ReactRMachine locale="en">hello</ReactRMachine>);
+    expect(screen.getByText("hello")).toBeDefined();
+  });
 
-    // Intentional pattern: try/catch + expect.unreachable allows multiple granular
-    // assertions on the caught error (type, code, innerError). Do not simplify.
-    it("throws RMachineError for an invalid locale", async () => {
-      const { ReactRMachine } = await createReactBareToolset(createMockMachine());
+  // Intentional pattern: try/catch + expect.unreachable — do not simplify.
+  it("throws RMachineError for an invalid locale, with the locale in the message and a wrapped innerError", async () => {
+    const { ReactRMachine } = await make().toolset;
+    try {
+      render(<ReactRMachine locale="xx">child</ReactRMachine>);
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RMachineError);
+      expect((error as RMachineError).message).toContain("xx");
+      expect((error as RMachineError).innerError).toBeDefined();
+    }
+  });
 
-      try {
-        render(
-          <ReactRMachine locale="xx">
-            <div>child</div>
-          </ReactRMachine>
-        );
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineError);
-      }
-    });
-
-    it("includes the invalid locale in the error message", async () => {
-      const { ReactRMachine } = await createReactBareToolset(createMockMachine());
-
-      expect(() =>
-        render(
-          <ReactRMachine locale="xx">
-            <div>child</div>
-          </ReactRMachine>
-        )
-      ).toThrow(/invalid locale provided "xx"/);
-    });
-
-    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
-    it("wraps the validation error as innerError", async () => {
-      const { ReactRMachine } = await createReactBareToolset(createMockMachine());
-
-      try {
-        render(
-          <ReactRMachine locale="xx">
-            <div>child</div>
-          </ReactRMachine>
-        );
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineError);
-        expect((error as RMachineError).innerError).toBeInstanceOf(RMachineError);
-      }
-    });
-
-    it("inner provider overrides outer provider", async () => {
-      const { ReactRMachine, useLocale } = await createReactBareToolset(createMockMachine());
-
-      function LocaleDisplay() {
-        return <span data-testid="locale">{useLocale()}</span>;
-      }
-
-      render(
-        <ReactRMachine locale="en">
-          <ReactRMachine locale="it">
-            <LocaleDisplay />
-          </ReactRMachine>
-        </ReactRMachine>
-      );
-
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-    });
-
-    it("memoizes context value when locale and writeLocale are stable", async () => {
-      const { ReactRMachine } = await createReactBareToolset(createMockMachine());
-      const writeLocale = vi.fn();
-
-      let renderCount = 0;
-      const MemoChild = React.memo(function MemoChild() {
-        renderCount++;
-        return null;
-      });
-
-      const { rerender } = render(
-        <ReactRMachine locale="en" writeLocale={writeLocale}>
-          <MemoChild />
-        </ReactRMachine>
-      );
-
-      expect(renderCount).toBe(1);
-
-      rerender(
-        <ReactRMachine locale="en" writeLocale={writeLocale}>
-          <MemoChild />
-        </ReactRMachine>
-      );
-
-      // MemoChild should not re-render because useMemo keeps the same context value
-      expect(renderCount).toBe(1);
-    });
-
-    it("updates context when writeLocale prop changes", async () => {
-      const writeLocale1 = vi.fn();
-      const writeLocale2 = vi.fn();
-      const { ReactRMachine, useSetLocale } = await createReactBareToolset(createMockMachine());
-
-      function SetLocaleButton() {
-        const setLocale = useSetLocale();
-        return (
-          <button type="button" onClick={() => setLocale("it")}>
-            change
-          </button>
-        );
-      }
-
-      const { rerender } = render(
-        <ReactRMachine locale="en" writeLocale={writeLocale1}>
-          <SetLocaleButton />
-        </ReactRMachine>
-      );
-
-      rerender(
-        <ReactRMachine locale="en" writeLocale={writeLocale2}>
-          <SetLocaleButton />
-        </ReactRMachine>
-      );
-
-      await act(async () => {
-        screen.getByText("change").click();
-      });
-
-      expect(writeLocale1).not.toHaveBeenCalled();
-      expect(writeLocale2).toHaveBeenCalledWith("it");
-    });
-
-    it("re-renders children when locale changes", async () => {
-      const { ReactRMachine, useLocale } = await createReactBareToolset(createMockMachine());
-
-      function LocaleDisplay() {
-        return <span>{useLocale()}</span>;
-      }
-
-      const { rerender } = render(
-        <ReactRMachine locale="en">
-          <LocaleDisplay />
-        </ReactRMachine>
-      );
-
-      expect(screen.queryByText("en")).not.toBeNull();
-      expect(screen.queryByText("it")).toBeNull();
-
-      rerender(
+  it("inner provider overrides outer provider (locale read via $.locale)", async () => {
+    const { ReactRMachine, Plug } = await make().toolset;
+    function LocaleDisplay() {
+      const { $ } = (Plug as () => { useR: () => { $: Ctx } })().useR();
+      return <span data-testid="locale">{$.locale}</span>;
+    }
+    render(
+      <ReactRMachine locale="en">
         <ReactRMachine locale="it">
           <LocaleDisplay />
         </ReactRMachine>
-      );
-
-      expect(screen.queryByText("it")).not.toBeNull();
-      expect(screen.queryByText("en")).toBeNull();
-    });
-
-    it("passes writeLocale through context", async () => {
-      const writeLocale = vi.fn();
-      const { ReactRMachine, useSetLocale } = await createReactBareToolset(createMockMachine());
-
-      function SetLocaleButton() {
-        const setLocale = useSetLocale();
-        return (
-          <button type="button" onClick={() => setLocale("it")}>
-            change
-          </button>
-        );
-      }
-
-      render(
-        <ReactRMachine locale="en" writeLocale={writeLocale}>
-          <SetLocaleButton />
-        </ReactRMachine>
-      );
-
-      await act(async () => {
-        screen.getByText("change").click();
-      });
-
-      expect(writeLocale).toHaveBeenCalledWith("it");
-    });
+      </ReactRMachine>
+    );
+    expect(screen.getByTestId("locale").textContent).toBe("it");
   });
 
-  // -----------------------------------------------------------------------
-  // ReactRMachine.probe
-  // -----------------------------------------------------------------------
-
-  describe("ReactRMachine.probe", () => {
-    it("returns the locale if it is valid", async () => {
-      const { ReactRMachine } = await createReactBareToolset(createMockMachine());
-      expect(ReactRMachine.probe("en")).toBe("en");
-      expect(ReactRMachine.probe("it")).toBe("it");
+  it("memoizes the context value when locale and writeLocale are stable", async () => {
+    const { ReactRMachine } = await make().toolset;
+    const writeLocale = vi.fn();
+    let renderCount = 0;
+    const MemoChild = React.memo(function MemoChild() {
+      renderCount++;
+      return null;
     });
 
-    it("returns undefined if the locale is invalid", async () => {
-      const { ReactRMachine } = await createReactBareToolset(createMockMachine());
-      expect(ReactRMachine.probe("xx")).toBeUndefined();
-    });
+    const { rerender } = render(
+      <ReactRMachine locale="en" writeLocale={writeLocale}>
+        <MemoChild />
+      </ReactRMachine>
+    );
+    expect(renderCount).toBe(1);
 
-    it("returns undefined if the locale is undefined", async () => {
-      const { ReactRMachine } = await createReactBareToolset(createMockMachine());
-      expect(ReactRMachine.probe(undefined)).toBeUndefined();
-    });
-
-    it("returns undefined for an empty string", async () => {
-      const { ReactRMachine } = await createReactBareToolset(createMockMachine());
-      expect(ReactRMachine.probe("")).toBeUndefined();
-    });
-
-    it("calls validateLocale on the machine for each probe", async () => {
-      const mock = createMockMachine();
-      const { ReactRMachine } = await createReactBareToolset(mock);
-
-      ReactRMachine.probe("en");
-      ReactRMachine.probe("xx");
-
-      expect(mock.localeHelper.validateLocale).toHaveBeenCalledWith("en");
-      expect(mock.localeHelper.validateLocale).toHaveBeenCalledWith("xx");
-    });
-
-    it("does not call validateLocale when locale is undefined", async () => {
-      const mock = createMockMachine();
-      const { ReactRMachine } = await createReactBareToolset(mock);
-
-      vi.mocked(mock.localeHelper.validateLocale).mockClear();
-      ReactRMachine.probe(undefined);
-
-      expect(mock.localeHelper.validateLocale).not.toHaveBeenCalled();
-    });
-
-    it("calls validateLocale when locale is an empty string", async () => {
-      const mock = createMockMachine();
-      const { ReactRMachine } = await createReactBareToolset(mock);
-
-      vi.mocked(mock.localeHelper.validateLocale).mockClear();
-      ReactRMachine.probe("");
-
-      expect(mock.localeHelper.validateLocale).toHaveBeenCalledWith("");
-    });
+    rerender(
+      <ReactRMachine locale="en" writeLocale={writeLocale}>
+        <MemoChild />
+      </ReactRMachine>
+    );
+    expect(renderCount).toBe(1);
   });
 
-  // -----------------------------------------------------------------------
-  // useLocale
-  // -----------------------------------------------------------------------
+  it("re-renders children when the locale prop changes", async () => {
+    const { ReactRMachine, Plug } = await make().toolset;
+    function LocaleDisplay() {
+      const { $ } = (Plug as () => { useR: () => { $: Ctx } })().useR();
+      return <span>{$.locale}</span>;
+    }
+    const { rerender } = render(
+      <ReactRMachine locale="en">
+        <LocaleDisplay />
+      </ReactRMachine>
+    );
+    expect(screen.queryByText("en")).not.toBeNull();
 
-  describe("useLocale", () => {
-    it("returns the current locale from context", async () => {
-      const { ReactRMachine, useLocale } = await createReactBareToolset(createMockMachine());
+    rerender(
+      <ReactRMachine locale="it">
+        <LocaleDisplay />
+      </ReactRMachine>
+    );
+    expect(screen.queryByText("it")).not.toBeNull();
+    expect(screen.queryByText("en")).toBeNull();
+  });
+});
 
-      const { result } = renderHook(() => useLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
-      });
-
-      expect(result.current).toBe("en");
-    });
-
-    it("updates when the provider locale changes", async () => {
-      const { ReactRMachine, useLocale } = await createReactBareToolset(createMockMachine());
-
-      function LocaleDisplay() {
-        return <span data-testid="locale">{useLocale()}</span>;
-      }
-
-      const { rerender } = render(
-        <ReactRMachine locale="en">
-          <LocaleDisplay />
-        </ReactRMachine>
-      );
-
-      expect(screen.getByTestId("locale").textContent).toBe("en");
-
-      rerender(
-        <ReactRMachine locale="it">
-          <LocaleDisplay />
-        </ReactRMachine>
-      );
-
-      expect(screen.getByTestId("locale").textContent).toBe("it");
-    });
-
-    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
-    it("throws when used outside ReactRMachine", async () => {
-      const { useLocale } = await createReactBareToolset(createMockMachine());
-
-      try {
-        renderHook(() => useLocale());
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineError);
-        expect(error).toHaveProperty("code", ERR_CONTEXT_NOT_FOUND);
-      }
-    });
-
-    it("throws with a descriptive context-not-found message", async () => {
-      const { useLocale } = await createReactBareToolset(createMockMachine());
-
-      expect(() => renderHook(() => useLocale())).toThrow(/ReactBareToolsetContext not found/);
-    });
+describe("createReactBareToolset › ReactRMachine.probe", () => {
+  it("returns the locale when valid, undefined when invalid / undefined / empty", async () => {
+    const { ReactRMachine } = await make().toolset;
+    expect(ReactRMachine.probe("en")).toBe("en");
+    expect(ReactRMachine.probe("xx")).toBeUndefined();
+    expect(ReactRMachine.probe(undefined)).toBeUndefined();
+    expect(ReactRMachine.probe("")).toBeUndefined();
   });
 
-  // -----------------------------------------------------------------------
-  // useSetLocale
-  // -----------------------------------------------------------------------
+  it("calls validateLocale for a defined locale but not for undefined", async () => {
+    const { mock, toolset } = make();
+    const { ReactRMachine } = await toolset;
 
-  describe("useSetLocale", () => {
-    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
-    it("throws when used outside ReactRMachine", async () => {
-      const { useSetLocale } = await createReactBareToolset(createMockMachine());
-      try {
-        renderHook(() => useSetLocale());
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineError);
-        expect(error).toHaveProperty("code", ERR_CONTEXT_NOT_FOUND);
-      }
-    });
+    ReactRMachine.probe("en");
+    expect(spies(mock).localeHelper.validateLocale).toHaveBeenCalledWith("en");
 
-    it("is a no-op when the new locale equals the current locale", async () => {
-      const writeLocale = vi.fn();
-      const { ReactRMachine, useSetLocale } = await createReactBareToolset(createMockMachine());
+    spies(mock).localeHelper.validateLocale.mockClear();
+    ReactRMachine.probe(undefined);
+    expect(spies(mock).localeHelper.validateLocale).not.toHaveBeenCalled();
+  });
+});
 
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <ReactRMachine locale="en" writeLocale={writeLocale}>
-            {children}
-          </ReactRMachine>
-        ),
-      });
-
-      await act(async () => {
-        await result.current("en");
-      });
-
-      expect(writeLocale).not.toHaveBeenCalled();
-    });
-
-    it("calls writeLocale with the new locale", async () => {
-      const writeLocale = vi.fn();
-      const { ReactRMachine, useSetLocale } = await createReactBareToolset(createMockMachine());
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <ReactRMachine locale="en" writeLocale={writeLocale}>
-            {children}
-          </ReactRMachine>
-        ),
-      });
-
-      await act(async () => {
-        await result.current("it");
-      });
-
-      expect(writeLocale).toHaveBeenCalledWith("it");
-    });
-
-    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
-    it("throws when the new locale is invalid", async () => {
-      const writeLocale = vi.fn();
-      const { ReactRMachine, useSetLocale } = await createReactBareToolset(createMockMachine());
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <ReactRMachine locale="en" writeLocale={writeLocale}>
-            {children}
-          </ReactRMachine>
-        ),
-      });
-
-      try {
-        await act(async () => {
-          await result.current("xx");
-        });
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineError);
-      }
-
-      expect(writeLocale).not.toHaveBeenCalled();
-    });
-
-    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
-    it("throws when no writeLocale function is provided", async () => {
-      const { ReactRMachine, useSetLocale } = await createReactBareToolset(createMockMachine());
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
-      });
-
-      try {
-        await act(async () => {
-          await result.current("it");
-        });
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineError);
-        expect(error).toHaveProperty("code", ERR_MISSING_WRITE_LOCALE);
-      }
-    });
-
-    it("awaits an async writeLocale", async () => {
-      const order: string[] = [];
-      const asyncWriteLocale = vi.fn(async () => {
-        await new Promise<void>((r) => setTimeout(r, 10));
-        order.push("writeLocale-done");
-      });
-
-      const { ReactRMachine, useSetLocale } = await createReactBareToolset(createMockMachine());
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <ReactRMachine locale="en" writeLocale={asyncWriteLocale}>
-            {children}
-          </ReactRMachine>
-        ),
-      });
-
-      await act(async () => {
-        await result.current("it");
-        order.push("setLocale-done");
-      });
-
-      expect(asyncWriteLocale).toHaveBeenCalledWith("it");
-      expect(order).toEqual(["writeLocale-done", "setLocale-done"]);
-    });
-
-    it("handles a synchronous writeLocale", async () => {
-      const syncWriteLocale = vi.fn();
-      const { ReactRMachine, useSetLocale } = await createReactBareToolset(createMockMachine());
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <ReactRMachine locale="en" writeLocale={syncWriteLocale}>
-            {children}
-          </ReactRMachine>
-        ),
-      });
-
-      await act(async () => {
-        await result.current("it");
-      });
-
-      expect(syncWriteLocale).toHaveBeenCalledWith("it");
-    });
-
-    it("returns a stable function reference when context is unchanged", async () => {
-      const writeLocale = vi.fn();
-      const { ReactRMachine, useSetLocale } = await createReactBareToolset(createMockMachine());
-
-      const { result, rerender } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <ReactRMachine locale="en" writeLocale={writeLocale}>
-            {children}
-          </ReactRMachine>
-        ),
-      });
-
-      const firstRef = result.current;
-      rerender();
-      expect(result.current).toBe(firstRef);
-    });
-
-    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
-    it("throws the raw validation error without innerError wrapping", async () => {
-      const writeLocale = vi.fn();
-      const { ReactRMachine, useSetLocale } = await createReactBareToolset(createMockMachine());
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <ReactRMachine locale="en" writeLocale={writeLocale}>
-            {children}
-          </ReactRMachine>
-        ),
-      });
-
-      try {
-        await act(async () => {
-          await result.current("xx");
-        });
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineError);
-        expect((error as RMachineError).innerError).toBeUndefined();
-      }
-    });
-
-    it("validates the locale before checking for writeLocale", async () => {
-      const { ReactRMachine, useSetLocale } = await createReactBareToolset(createMockMachine());
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
-      });
-
-      // Invalid locale should throw validation error, not "No writeLocale" error
-      await expect(
-        act(async () => {
-          await result.current("xx");
-        })
-      ).rejects.toThrow(/invalid|is not in the list/i);
-    });
-
-    it("propagates a synchronous error thrown by writeLocale", async () => {
-      const writeLocale = vi.fn(() => {
-        throw new Error("storage failure");
-      });
-      const { ReactRMachine, useSetLocale } = await createReactBareToolset(createMockMachine());
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <ReactRMachine locale="en" writeLocale={writeLocale}>
-            {children}
-          </ReactRMachine>
-        ),
-      });
-
-      await expect(
-        act(async () => {
-          await result.current("it");
-        })
-      ).rejects.toThrow("storage failure");
-    });
-
-    it("propagates a rejected promise from writeLocale", async () => {
-      const writeLocale = vi.fn(() => Promise.reject(new Error("network error")));
-      const { ReactRMachine, useSetLocale } = await createReactBareToolset(createMockMachine());
-
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: ({ children }: { children: ReactNode }) => (
-          <ReactRMachine locale="en" writeLocale={writeLocale}>
-            {children}
-          </ReactRMachine>
-        ),
-      });
-
-      await expect(
-        act(async () => {
-          await result.current("it");
-        })
-      ).rejects.toThrow("network error");
-    });
-
-    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
-    it("throws ERR_MISSING_WRITE_LOCALE after writeLocale prop is removed", async () => {
-      const writeLocale = vi.fn();
-      const { ReactRMachine, useSetLocale } = await createReactBareToolset(createMockMachine());
-
-      let currentWrapper: ({ children }: { children: ReactNode }) => React.JSX.Element;
-      currentWrapper = ({ children }: { children: ReactNode }) => (
-        <ReactRMachine locale="en" writeLocale={writeLocale}>
-          {children}
-        </ReactRMachine>
-      );
-
-      const { result, rerender } = renderHook(() => useSetLocale(), {
-        wrapper: (props: { children: ReactNode }) => currentWrapper(props),
-      });
-
-      // Remove writeLocale on rerender
-      currentWrapper = ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>;
-      rerender();
-
-      try {
-        await act(async () => {
-          await result.current("it");
-        });
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineError);
-        expect(error).toHaveProperty("code", ERR_MISSING_WRITE_LOCALE);
-      }
-    });
+describe("createReactBareToolset › $.locale", () => {
+  it("returns the current locale from context", async () => {
+    const getCtx = mountCtx(await make().toolset, { locale: "en" });
+    expect(getCtx().locale).toBe("en");
   });
 
-  // -----------------------------------------------------------------------
-  // useR
-  // -----------------------------------------------------------------------
+  // Intentional pattern: try/catch + expect.unreachable — do not simplify.
+  it("throws ERR_CONTEXT_NOT_FOUND when read outside ReactRMachine", async () => {
+    const { Plug } = await make().toolset;
+    function Orphan() {
+      (Plug as AnyPlug)().useR();
+      return null;
+    }
+    try {
+      render(<Orphan />);
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RMachineError);
+      expect(error).toHaveProperty("code", ERR_CONTEXT_NOT_FOUND);
+    }
+  });
 
-  describe("useR", () => {
-    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
-    it("throws when used outside ReactRMachine", async () => {
-      const { useR } = await createReactBareToolset(createMockMachine());
+  describe("test mode (provider-less render)", () => {
+    it("renders a Plug consumer WITHOUT a provider, resolving the default locale", async () => {
+      const { mock, toolset: toolsetP } = make();
+      const toolset = await toolsetP;
+      mock[PLUG_MACHINE_ACCESSOR].testMode.enter();
       try {
-        renderHook(() => useR("common"));
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineError);
-        expect(error).toHaveProperty("code", ERR_CONTEXT_NOT_FOUND);
-      }
-    });
-
-    it("returns the resource synchronously when cached", async () => {
-      const resource = { greeting: "hello" };
-      const mock = createMockMachine({
-        hybridPickR: () => resource,
-      });
-      const { ReactRMachine, useR } = await createReactBareToolset(mock);
-
-      const { result } = renderHook(() => useR("common"), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
-      });
-
-      expect(result.current).toBe(resource);
-    });
-
-    it("calls hybridPickR with the current locale and namespace", async () => {
-      const mock = createMockMachine();
-      const { ReactRMachine, useR } = await createReactBareToolset(mock);
-
-      renderHook(() => useR("common"), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
-      });
-
-      expect(spies(mock).hybridPickR).toHaveBeenCalledWith("en", "common");
-    });
-
-    it("calls hybridPickR with the updated locale after re-render", async () => {
-      const mock = createMockMachine();
-      const { ReactRMachine, useR } = await createReactBareToolset(mock);
-
-      function UseRConsumer() {
-        useR("common");
-        return null;
-      }
-
-      const { rerender } = render(
-        <ReactRMachine locale="en">
-          <UseRConsumer />
-        </ReactRMachine>
-      );
-
-      rerender(
-        <ReactRMachine locale="it">
-          <UseRConsumer />
-        </ReactRMachine>
-      );
-
-      expect(spies(mock).hybridPickR).toHaveBeenCalledWith("it", "common");
-    });
-
-    it("throws the promise for Suspense when resource is not cached", async () => {
-      const pending = new Promise<{ greeting: string }>(() => {});
-      const mock = createMockMachine({
-        hybridPickR: () => pending,
-      });
-      const { ReactRMachine, useR } = await createReactBareToolset(mock);
-
-      let thrown: unknown;
-      function Thrower() {
-        try {
-          // biome-ignore lint/correctness/useHookAtTopLevel: intentional — capturing the thrown promise
-          useR("common");
-        } catch (e) {
-          thrown = e;
-          throw e;
+        function Orphan() {
+          const { $ } = (toolset.Plug as () => { useR: () => { $: { locale: string } } })().useR();
+          return <span data-testid="locale">{$.locale}</span>;
         }
-        return null;
+        render(<Orphan />); // no <ReactRMachine> — the throw is relaxed under test mode
+        // safeCtx fell back to fallbackCtx → the machine's default locale.
+        expect(screen.getByTestId("locale").textContent).toBe("en");
+      } finally {
+        mock[PLUG_MACHINE_ACCESSOR].testMode.exit();
       }
-
-      render(
-        <ReactRMachine locale="en">
-          <React19ErrorBoundary>
-            <Thrower />
-          </React19ErrorBoundary>
-        </ReactRMachine>
-      );
-
-      expect(thrown).toBe(pending);
     });
 
-    it("resolves from Suspense when the promise settles", async () => {
-      const resource = { greeting: "hello" };
-      let resolved = false;
-      let resolve!: () => void;
-      const pending = new Promise<{ greeting: string }>((r) => {
-        resolve = () => {
-          resolved = true;
-          r(resource);
-        };
-      });
-      const mock = createMockMachine({
-        hybridPickR: () => (resolved ? resource : pending),
-      });
-      const { ReactRMachine, useR } = await createReactBareToolset(mock);
+    // Regression: a consumer plug must carry the owning RMachine back-reference
+    // so `mockPlug(componentPlug)` can reach test mode FROM THE PLUG ALONE. Before
+    // the fix, `setPlugMachine` ran only for resource plugs (res-matrix.ts), so
+    // `getPlugMachine(consumerPlug)` was undefined, `mockPlug`'s `.enter()` was a
+    // silent no-op, and the provider-less render still threw.
+    it("stamps the owning RMachine on the consumer plug, so test mode is reachable from the plug (mockPlug path)", async () => {
+      const { mock, toolset: toolsetP } = make();
+      const toolset = await toolsetP;
+      const plug = (toolset.Plug as AnyPlug)();
+      // The back-reference IS the machine the toolset's render guard reads.
+      const machine = getPlugMachine(plug as never);
+      expect(machine).toBe(mock[PLUG_MACHINE_ACCESSOR]);
 
-      function Consumer() {
-        const r = useR("common");
-        return <span data-testid="resource">{r.greeting}</span>;
+      // Drive test mode the way `mockPlug` does — through the plug, not the mock.
+      machine?.testMode.enter();
+      try {
+        function Orphan() {
+          const { $ } = (plug as { useR: () => { $: { locale: string } } }).useR();
+          return <span data-testid="locale">{$.locale}</span>;
+        }
+        render(<Orphan />); // no <ReactRMachine> — relaxed because the plug reached test mode
+        expect(screen.getByTestId("locale").textContent).toBe("en");
+      } finally {
+        machine?.testMode.exit();
       }
+    });
 
+    it("still throws ERR_CONTEXT_NOT_FOUND when NOT in test mode", async () => {
+      const { Plug } = await make().toolset;
+      function Orphan() {
+        (Plug as AnyPlug)().useR();
+        return null;
+      }
+      try {
+        render(<Orphan />);
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect(error).toHaveProperty("code", ERR_CONTEXT_NOT_FOUND);
+      }
+    });
+  });
+});
+
+describe("createReactBareToolset › $.setLocale", () => {
+  it("is a no-op when the new locale equals the current locale", async () => {
+    const writeLocale = vi.fn();
+    const getCtx = mountCtx(await make().toolset, { locale: "en", writeLocale });
+    await act(async () => {
+      await getCtx().setLocale("en");
+    });
+    expect(writeLocale).not.toHaveBeenCalled();
+  });
+
+  it("calls writeLocale with the new locale (sync and async)", async () => {
+    const syncWrite = vi.fn();
+    const getSync = mountCtx(await make().toolset, { writeLocale: syncWrite });
+    await act(async () => {
+      await getSync().setLocale("it");
+    });
+    expect(syncWrite).toHaveBeenCalledWith("it");
+
+    cleanup();
+    const asyncWrite = vi.fn(async () => {});
+    const getAsync = mountCtx(await make().toolset, { writeLocale: asyncWrite });
+    await act(async () => {
+      await getAsync().setLocale("it");
+    });
+    expect(asyncWrite).toHaveBeenCalledWith("it");
+  });
+
+  // Intentional pattern: try/catch + expect.unreachable — do not simplify.
+  it("validates the locale before checking writeLocale, throwing the raw validation error", async () => {
+    // No writeLocale, but an invalid locale must surface the validation error
+    // (not ERR_MISSING_WRITE_LOCALE).
+    const getCtx = mountCtx(await make().toolset);
+    try {
+      await getCtx().setLocale("xx");
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect((error as RMachineError).message).toContain("xx");
+      expect(error).not.toHaveProperty("code", ERR_MISSING_WRITE_LOCALE);
+    }
+  });
+
+  it("throws ERR_MISSING_WRITE_LOCALE for a valid locale when no writeLocale is provided", async () => {
+    const getCtx = mountCtx(await make().toolset);
+    await expect(getCtx().setLocale("it")).rejects.toHaveProperty("code", ERR_MISSING_WRITE_LOCALE);
+  });
+
+  it("throws ERR_MISSING_WRITE_LOCALE after the writeLocale prop is removed", async () => {
+    const { ReactRMachine, Plug } = await make().toolset;
+    let ctx: Ctx | undefined;
+    function Probe() {
+      const { $ } = (Plug as () => { useR: () => { $: Ctx } })().useR();
+      ctx = $;
+      return null;
+    }
+    const writeLocale = vi.fn();
+    const { rerender } = render(
+      <ReactRMachine locale="en" writeLocale={writeLocale}>
+        <Probe />
+      </ReactRMachine>
+    );
+    await act(async () => {
+      await ctx?.setLocale("it");
+    });
+    expect(writeLocale).toHaveBeenCalledWith("it");
+
+    rerender(
+      <ReactRMachine locale="en">
+        <Probe />
+      </ReactRMachine>
+    );
+    await expect(ctx?.setLocale("it")).rejects.toHaveProperty("code", ERR_MISSING_WRITE_LOCALE);
+  });
+
+  it("propagates a synchronous error thrown by writeLocale", async () => {
+    const boom = new Error("write failed");
+    const getCtx = mountCtx(await make().toolset, {
+      writeLocale: () => {
+        throw boom;
+      },
+    });
+    await expect(getCtx().setLocale("it")).rejects.toBe(boom);
+  });
+
+  it("propagates a rejected promise from writeLocale", async () => {
+    const boom = new Error("async write failed");
+    const getCtx = mountCtx(await make().toolset, { writeLocale: () => Promise.reject(boom) });
+    await expect(getCtx().setLocale("it")).rejects.toBe(boom);
+  });
+});
+
+describe("createReactBareToolset › resource resolution via Plug", () => {
+  function mountResource<T>(t: BareToolset, ns: string, locale = "en"): () => T {
+    let res: T | undefined;
+    function Probe() {
+      const [r] = (t.Plug as unknown as (...a: unknown[]) => { useR: () => [T] })(ns).useR();
+      res = r;
+      return null;
+    }
+    render(
+      <t.ReactRMachine locale={locale}>
+        <Probe />
+      </t.ReactRMachine>
+    );
+    return () => res as T;
+  }
+
+  // Intentional pattern: try/catch + expect.unreachable — do not simplify.
+  it("throws ERR_CONTEXT_NOT_FOUND when used outside ReactRMachine", async () => {
+    const { Plug } = await make().toolset;
+    function Orphan() {
+      (Plug as AnyPlug)("common").useR();
+      return null;
+    }
+    try {
+      render(<Orphan />);
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toHaveProperty("code", ERR_CONTEXT_NOT_FOUND);
+    }
+  });
+
+  it("resolves the resource for a namespace (cached → synchronous)", async () => {
+    const get = mountResource<{ greeting: string }>(
+      await make({ resolve: () => ({ greeting: "hello" }) }).toolset,
+      "common"
+    );
+    expect(get().greeting).toBe("hello");
+  });
+
+  it("calls getWire with the kit, the namespace deps, and the current locale", async () => {
+    const { mock, toolset } = make();
+    mountResource(await toolset, "common");
+    expect(spies(mock).getWire).toHaveBeenCalledWith(
+      {},
+      ["common"],
+      "en",
+      expect.any(Function),
+      undefined,
+      expect.any(Function)
+    );
+  });
+
+  it("re-resolves with the updated locale after a re-render", async () => {
+    const { mock, toolset } = make();
+    const t = await toolset;
+    function Consumer() {
+      (t.Plug as AnyPlug)("common").useR();
+      return null;
+    }
+    const { rerender } = render(
+      <t.ReactRMachine locale="en">
+        <Consumer />
+      </t.ReactRMachine>
+    );
+    rerender(
+      <t.ReactRMachine locale="it">
+        <Consumer />
+      </t.ReactRMachine>
+    );
+    expect(spies(mock).getWire).toHaveBeenCalledWith(
+      {},
+      ["common"],
+      "it",
+      expect.any(Function),
+      undefined,
+      expect.any(Function)
+    );
+  });
+
+  it("passes a different namespace through to getWire", async () => {
+    const { mock, toolset } = make({ resolve: (ns) => (ns === "nav" ? { home: "Home" } : { greeting: "hello" }) });
+    const get = mountResource<{ home: string }>(await toolset, "nav");
+    expect(get().home).toBe("Home");
+    expect(spies(mock).getWire).toHaveBeenCalledWith(
+      {},
+      ["nav"],
+      "en",
+      expect.any(Function),
+      undefined,
+      expect.any(Function)
+    );
+  });
+
+  it("suspends while the wire is pending, then resolves when it settles", async () => {
+    const fake = createFakeWire([{ greeting: "hello" }, {}], { pending: true });
+    const t = await make({ getWire: () => fake.wire }).toolset;
+
+    function Consumer() {
+      const [common] = (t.Plug as unknown as (...a: unknown[]) => { useR: () => [{ greeting: string }] })(
+        "common"
+      ).useR();
+      return <span data-testid="resource">{common.greeting}</span>;
+    }
+
+    await act(async () => {
       render(
-        <ReactRMachine locale="en">
+        <t.ReactRMachine locale="en">
           <React.Suspense fallback={<span data-testid="fallback">loading</span>}>
             <Consumer />
           </React.Suspense>
-        </ReactRMachine>
+        </t.ReactRMachine>
       );
-
-      screen.getByTestId("fallback");
-
-      await act(async () => {
-        resolve();
-      });
-
-      expect((await screen.findByTestId("resource")).textContent).toBe("hello");
     });
+    screen.getByTestId("fallback");
 
-    it("propagates a synchronous error from hybridPickR", async () => {
-      const mock = createMockMachine({
-        hybridPickR: () => {
-          throw new Error("pickR exploded");
-        },
-      });
-      const { ReactRMachine, useR } = await createReactBareToolset(mock);
-
-      expect(() =>
-        renderHook(() => useR("common"), {
-          wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
-        })
-      ).toThrow("pickR exploded");
+    await act(async () => {
+      fake.setPlugin([{ greeting: "hello" }, {}]);
     });
-
-    it("passes a different namespace to hybridPickR", async () => {
-      const navResource = { home: "Home" };
-      const mock = createMockMachine({
-        hybridPickR: (_locale, namespace) => (namespace === "nav" ? navResource : { greeting: "hello" }),
-      });
-      const { ReactRMachine, useR } = await createReactBareToolset(mock);
-
-      const { result } = renderHook(() => useR("nav"), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
-      });
-
-      expect(result.current).toBe(navResource);
-      expect(spies(mock).hybridPickR).toHaveBeenCalledWith("en", "nav");
-    });
+    expect((await screen.findByTestId("resource")).textContent).toBe("hello");
   });
 
-  // -----------------------------------------------------------------------
-  // useRKit
-  // -----------------------------------------------------------------------
+  it("propagates a synchronous error thrown during wire resolution", async () => {
+    const t = await make({
+      getWire: () => {
+        throw new Error("getWire exploded");
+      },
+    }).toolset;
+    function Orphan() {
+      (t.Plug as AnyPlug)("common").useR();
+      return null;
+    }
+    expect(() =>
+      render(
+        <t.ReactRMachine locale="en">
+          <Orphan />
+        </t.ReactRMachine>
+      )
+    ).toThrow("getWire exploded");
+  });
+});
 
-  describe("useRKit", () => {
-    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
-    it("throws when used outside ReactRMachine", async () => {
-      const { useRKit } = await createReactBareToolset(createMockMachine());
-      try {
-        renderHook(() => useRKit("common", "nav"));
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineError);
-        expect(error).toHaveProperty("code", ERR_CONTEXT_NOT_FOUND);
-      }
+describe("createReactBareToolset › React Compiler support (reactCompiler: true)", () => {
+  // outer/* namespaces classify as gear:outer (reactive); everything else is a
+  // static shell. A reactive entry in the kit AND in the deps exercises every
+  // reachability path of the fresh-identity wrapper.
+  function makeRC() {
+    const mock = createMockMachine({
+      resolveLayoutEntryType: (ns) => (ns.startsWith("outer/") ? "gear:outer" : "shell"),
+      resolve: (ns) => ({ ns }),
     });
+    return {
+      mock,
+      toolset: createReactBareToolset(mock as never, { cart: "outer/cart" } as never, { reactCompiler: true }),
+    };
+  }
 
-    it("returns the resource kit synchronously when cached", async () => {
-      const kit = [{ greeting: "hello" }, { home: "Home" }] as const;
-      const mock = createMockMachine({
-        hybridPickRKit: () => kit,
-      });
-      const { ReactRMachine, useRKit } = await createReactBareToolset(mock);
+  it("wraps a reactive (outer) list dep in a fresh identity that reads through, stable across non-commit re-renders", async () => {
+    const t = await makeRC().toolset;
+    // Reuse the SAME plug instance across renders so the wire (and resolved
+    // result) keep their identity — only then does the wrapper cache get a hit.
+    const plug = (t.Plug as unknown as (...a: unknown[]) => { useR: () => [{ ns: string }] })("outer/dep");
+    const seen: Array<{ ns: string }> = [];
+    function Consumer() {
+      const [dep] = plug.useR();
+      seen.push(dep);
+      return <span data-testid="ns">{dep.ns}</span>;
+    }
 
-      const { result } = renderHook(() => useRKit("common", "nav"), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
-      });
+    const { rerender } = render(
+      <t.ReactRMachine locale="en">
+        <Consumer />
+      </t.ReactRMachine>
+    );
+    // Reads forward through the passthrough Proxy.
+    expect(screen.getByTestId("ns").textContent).toBe("outer/dep");
 
-      expect(result.current).toBe(kit);
-    });
+    rerender(
+      <t.ReactRMachine locale="en">
+        <Consumer />
+      </t.ReactRMachine>
+    );
+    // No tracked commit between renders → the wrapper cache returns the SAME
+    // wrapped identity (the React Compiler memoization contract).
+    expect(seen.length).toBeGreaterThanOrEqual(2);
+    expect(seen[seen.length - 1]).toBe(seen[0]);
+  });
 
-    it("calls hybridPickRKit with the current locale and namespaces", async () => {
-      const mock = createMockMachine();
-      const { ReactRMachine, useRKit } = await createReactBareToolset(mock);
+  it("wraps a reactive $.kit entry even when the plug declares no reactive deps", async () => {
+    // No deps → hasAnyReactiveDep is false, so the wrap path is reached only via
+    // hasAnyReactiveKit (the right side of the `||`).
+    const t = await makeRC().toolset;
+    let captured: { $: { kit: { cart: { ns: string } } } } | undefined;
+    function Consumer() {
+      captured = (t.Plug as unknown as () => { useR: () => { $: { kit: { cart: { ns: string } } } } })().useR();
+      return null;
+    }
+    render(
+      <t.ReactRMachine locale="en">
+        <Consumer />
+      </t.ReactRMachine>
+    );
+    expect(captured?.$.kit.cart.ns).toBe("outer/cart");
+  });
 
-      renderHook(() => useRKit("common", "nav"), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
-      });
-
-      expect(spies(mock).hybridPickRKit).toHaveBeenCalledWith("en", "common", "nav");
-    });
-
-    it("calls hybridPickRKit with a single namespace", async () => {
-      const mock = createMockMachine({
-        hybridPickRKit: () => [{ greeting: "hello" }],
-      });
-      const { ReactRMachine, useRKit } = await createReactBareToolset(mock);
-
-      renderHook(() => useRKit("common"), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
-      });
-
-      expect(spies(mock).hybridPickRKit).toHaveBeenCalledWith("en", "common");
-    });
-
-    it("throws the promise for Suspense when resources are not cached", async () => {
-      const pending = new Promise<unknown>(() => {});
-      const mock = createMockMachine({
-        hybridPickRKit: () => pending,
-      });
-      const { ReactRMachine, useRKit } = await createReactBareToolset(mock);
-
-      let thrown: unknown;
-      function Thrower() {
-        try {
-          // biome-ignore lint/correctness/useHookAtTopLevel: intentional — capturing the thrown promise
-          useRKit("common", "nav");
-        } catch (e) {
-          thrown = e;
-          throw e;
+  it("wraps reactive map-mode deps and reactive $.kit entries, forwarding reads", async () => {
+    const t = await makeRC().toolset;
+    let captured: { d: { ns: string }; $: { kit: { cart: { ns: string } } } } | undefined;
+    function Consumer() {
+      captured = (
+        t.Plug as unknown as (...a: unknown[]) => {
+          useR: () => { d: { ns: string }; $: { kit: { cart: { ns: string } } } };
         }
-        return null;
-      }
+      )({ d: "outer/dep" }).useR();
+      return null;
+    }
+    render(
+      <t.ReactRMachine locale="en">
+        <Consumer />
+      </t.ReactRMachine>
+    );
 
-      render(
-        <ReactRMachine locale="en">
-          <React19ErrorBoundary>
-            <Thrower />
-          </React19ErrorBoundary>
-        </ReactRMachine>
-      );
-
-      expect(thrown).toBe(pending);
-    });
-
-    it("resolves from Suspense when the promise settles", async () => {
-      const kit = [{ greeting: "hello" }, { home: "Home" }] as const;
-      let resolved = false;
-      let resolve!: () => void;
-      const pending = new Promise<unknown>((r) => {
-        resolve = () => {
-          resolved = true;
-          r(kit);
-        };
-      });
-      const mock = createMockMachine({
-        hybridPickRKit: () => (resolved ? kit : pending),
-      });
-      const { ReactRMachine, useRKit } = await createReactBareToolset(mock);
-
-      function Consumer() {
-        const [common] = useRKit("common", "nav");
-        return <span data-testid="resource">{common.greeting}</span>;
-      }
-
-      render(
-        <ReactRMachine locale="en">
-          <React.Suspense fallback={<span data-testid="fallback">loading</span>}>
-            <Consumer />
-          </React.Suspense>
-        </ReactRMachine>
-      );
-
-      screen.getByTestId("fallback");
-
-      await act(async () => {
-        resolve();
-      });
-
-      expect((await screen.findByTestId("resource")).textContent).toBe("hello");
-    });
-
-    it("propagates a synchronous error from hybridPickRKit", async () => {
-      const mock = createMockMachine({
-        hybridPickRKit: () => {
-          throw new Error("pickRKit exploded");
-        },
-      });
-      const { ReactRMachine, useRKit } = await createReactBareToolset(mock);
-
-      expect(() =>
-        renderHook(() => useRKit("common", "nav"), {
-          wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
-        })
-      ).toThrow("pickRKit exploded");
-    });
-
-    it("calls hybridPickRKit with updated locale after re-render", async () => {
-      const mock = createMockMachine();
-      const { ReactRMachine, useRKit } = await createReactBareToolset(mock);
-
-      function UseRKitConsumer() {
-        useRKit("common", "nav");
-        return null;
-      }
-
-      const { rerender } = render(
-        <ReactRMachine locale="en">
-          <UseRKitConsumer />
-        </ReactRMachine>
-      );
-
-      rerender(
-        <ReactRMachine locale="it">
-          <UseRKitConsumer />
-        </ReactRMachine>
-      );
-
-      expect(spies(mock).hybridPickRKit).toHaveBeenCalledWith("it", "common", "nav");
-    });
+    // Map-mode reactive dep key and the reactive kit entry both read through.
+    expect(captured?.d.ns).toBe("outer/dep");
+    expect(captured?.$.kit.cart.ns).toBe("outer/cart");
   });
+});
 
-  // -----------------------------------------------------------------------
-  // useFmt
-  // -----------------------------------------------------------------------
-
-  describe("useFmt", () => {
-    // Intentional pattern: try/catch + expect.unreachable — do not simplify.
-    it("throws when used outside ReactRMachine", async () => {
-      const { useFmt } = await createReactBareToolset(createMockMachine());
-      try {
-        renderHook(() => useFmt());
-        expect.unreachable("should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(RMachineError);
-        expect(error).toHaveProperty("code", ERR_CONTEXT_NOT_FOUND);
-      }
+describe("createReactBareToolset › multiple deps via Plug (list form)", () => {
+  it("resolves several namespaces as a positional tuple and forwards the list to getWire", async () => {
+    const { mock, toolset } = make({
+      resolve: (ns) => (ns === "nav" ? { home: "Home" } : { greeting: "hello" }),
     });
-
-    it("calls rMachine.fmt with the current locale", async () => {
-      const mock = createMockMachine();
-      const { ReactRMachine, useFmt } = await createReactBareToolset(mock);
-
-      renderHook(() => useFmt(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
-      });
-
-      expect(spies(mock).fmt).toHaveBeenCalledWith("en");
-    });
-
-    it("returns the formatter object from rMachine.fmt", async () => {
-      const formatter = { date: (d: Date) => d.toISOString() };
-      const mock = createMockMachine({ fmt: () => formatter });
-      const { ReactRMachine, useFmt } = await createReactBareToolset(mock);
-
-      const { result } = renderHook(() => useFmt(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
-      });
-
-      expect(result.current).toBe(formatter);
-    });
-
-    it("returns updated formatters when locale changes", async () => {
-      const enFormatter = { label: "Hello" };
-      const itFormatter = { label: "Ciao" };
-      const mock = createMockMachine({
-        fmt: (locale) => (locale === "it" ? itFormatter : enFormatter),
-      });
-      const { ReactRMachine, useFmt } = await createReactBareToolset(mock);
-
-      function FmtConsumer() {
-        const fmt = useFmt();
-        return <span data-testid="label">{(fmt as typeof enFormatter).label}</span>;
-      }
-
-      const { rerender } = render(
-        <ReactRMachine locale="en">
-          <FmtConsumer />
-        </ReactRMachine>
-      );
-
-      expect(screen.getByTestId("label").textContent).toBe("Hello");
-
-      rerender(
-        <ReactRMachine locale="it">
-          <FmtConsumer />
-        </ReactRMachine>
-      );
-
-      expect(screen.getByTestId("label").textContent).toBe("Ciao");
-    });
-
-    it("returns synchronously without throwing a promise", async () => {
-      const formatter = { greeting: "hi" };
-      const mock = createMockMachine({ fmt: () => formatter });
-      const { ReactRMachine, useFmt } = await createReactBareToolset(mock);
-
-      const { result } = renderHook(() => useFmt(), {
-        wrapper: ({ children }: { children: ReactNode }) => <ReactRMachine locale="en">{children}</ReactRMachine>,
-      });
-
-      expect(result.current).toBe(formatter);
-      expect(spies(mock).fmt).toHaveBeenCalledTimes(1);
-    });
+    const t = await toolset;
+    let common: { greeting: string } | undefined;
+    let nav: { home: string } | undefined;
+    function Probe() {
+      const [c, n] = (
+        t.Plug as unknown as (...a: unknown[]) => { useR: () => [{ greeting: string }, { home: string }] }
+      )("common", "nav").useR();
+      common = c;
+      nav = n;
+      return null;
+    }
+    render(
+      <t.ReactRMachine locale="en">
+        <Probe />
+      </t.ReactRMachine>
+    );
+    expect(common?.greeting).toBe("hello");
+    expect(nav?.home).toBe("Home");
+    expect(spies(mock).getWire).toHaveBeenCalledWith(
+      {},
+      ["common", "nav"],
+      "en",
+      expect.any(Function),
+      undefined,
+      expect.any(Function)
+    );
   });
 });

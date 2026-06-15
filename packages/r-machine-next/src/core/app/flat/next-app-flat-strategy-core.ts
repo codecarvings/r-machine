@@ -11,47 +11,63 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
+import type { StrategyHelpers } from "r-machine/strategy";
 import { type CookieDeclaration, defaultCookieDeclaration } from "r-machine/strategy/web";
 import {
-  type AnyPathAtlasProvider,
+  type AnyPathAtlas,
   buildPathAtlas,
   HrefCanonicalizer,
   HrefTranslator,
+  type NextClientPlugKitMap,
+  type NextServerPlugKitMap,
   type PathParamMap,
   type PathParams,
   type PathSelector,
 } from "#r-machine/next/core";
-import { defaultPathMatcher } from "#r-machine/next/internal";
 import {
   type NextAppStrategyConfig,
+  type NextAppStrategyConfigParams,
   NextAppStrategyCore,
-  type PartialNextAppStrategyConfig,
-} from "../next-app-strategy-core.js";
+} from "#r-machine/next/core/app";
+import { defaultPathMatcher } from "#r-machine/next/internal";
 
 // Locale not available for flat strategy since locale is stored in the cookie
-interface HrefHelper<PAP extends AnyPathAtlasProvider> {
-  readonly getPath: PathComposer<PAP>;
+interface HrefHelper<PA extends AnyPathAtlas> {
+  readonly getPath: PathComposer<PA>;
 }
-type PathComposer<PAP extends AnyPathAtlasProvider> = <P extends PathSelector<PAP>, O extends PathParamMap<P>>(
+type PathComposer<PA extends AnyPathAtlas> = <P extends PathSelector<PA>, O extends PathParamMap<P>>(
   path: P,
   ...args: [keyof PathParamMap<P>] extends [never] ? [params?: PathParams<P, O>] : [params: PathParams<P, O>]
 ) => string;
 
-export interface NextAppFlatStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string>
-  extends NextAppStrategyConfig<PAP, LK> {
+export interface NextAppFlatStrategyConfig<
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+> extends NextAppStrategyConfig<RA, CKM, SKM, PA, LK> {
   readonly cookie: CookieDeclaration;
   readonly pathMatcher: RegExp | null;
 }
-export type AnyNextAppFlatStrategyConfig = NextAppFlatStrategyConfig<any, any>;
-export interface PartialNextAppFlatStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string>
-  extends PartialNextAppStrategyConfig<PAP, LK> {
+export type AnyNextAppFlatStrategyConfig = NextAppFlatStrategyConfig<any, any, any, any, any>;
+export interface NextAppFlatStrategyConfigParams<
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+> extends NextAppStrategyConfigParams<RA, CKM, SKM, PA, LK> {
   readonly cookie?: CookieDeclaration;
   readonly pathMatcher?: RegExp | null;
 }
 
 const defaultConfig: NextAppFlatStrategyConfig<
+  AnyResAtlas,
+  typeof NextAppStrategyCore.defaultConfig.clientKit,
+  typeof NextAppStrategyCore.defaultConfig.serverKit,
   InstanceType<typeof NextAppStrategyCore.defaultConfig.PathAtlas>,
   typeof NextAppStrategyCore.defaultConfig.localeKey
 > = {
@@ -60,26 +76,31 @@ const defaultConfig: NextAppFlatStrategyConfig<
   pathMatcher: defaultPathMatcher,
 };
 
+export interface NextAppFlatStrategyHelpers<L extends AnyLocale, PA extends AnyPathAtlas> extends StrategyHelpers<L> {
+  readonly hrefHelper: HrefHelper<PA>;
+}
+
 export abstract class NextAppFlatStrategyCore<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
   C extends AnyNextAppFlatStrategyConfig,
-> extends NextAppStrategyCore<RA, L, FP, C> {
+> extends NextAppStrategyCore<RA, L, E, EF, C> {
   static override readonly defaultConfig = defaultConfig;
 
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, false);
   protected readonly pathTranslator = new HrefTranslator(
     this.pathAtlas,
-    this.rMachine.locales,
-    this.rMachine.defaultLocale
+    this.rMachine.localeHelper.locales,
+    this.rMachine.localeHelper.defaultLocale
   );
   protected readonly pathCanonicalizer = new HrefCanonicalizer(
     this.pathAtlas,
-    this.rMachine.locales,
-    this.rMachine.defaultLocale
+    this.rMachine.localeHelper.locales,
+    this.rMachine.localeHelper.defaultLocale
   );
-  private readonly defaultLocale = this.rMachine.defaultLocale;
+  private readonly defaultLocale = this.rMachine.localeHelper.defaultLocale;
 
   protected async createClientImpl() {
     const module = await import("./next-app-flat.client-impl.js");
@@ -91,7 +112,17 @@ export abstract class NextAppFlatStrategyCore<
     return module.createNextAppFlatServerImpl(this.rMachine, this.config, this.pathTranslator, this.pathCanonicalizer);
   }
 
-  readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
+  protected readonly hrefHelper: HrefHelper<InstanceType<C["PathAtlas"]>> = {
     getPath: (path, ...args) => this.pathTranslator.get(this.defaultLocale, path, args[0]).value,
   };
+
+  override getHelpers(): NextAppFlatStrategyHelpers<L, InstanceType<C["PathAtlas"]>> {
+    if (!this._helpers) {
+      this._helpers = {
+        ...super.getHelpers(),
+        hrefHelper: this.hrefHelper,
+      };
+    }
+    return this._helpers as NextAppFlatStrategyHelpers<L, InstanceType<C["PathAtlas"]>>;
+  }
 }

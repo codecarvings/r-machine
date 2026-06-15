@@ -1,13 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
-import { validateServerOnlyUsage } from "#r-machine/next/internal";
 import { createNextAppOriginServerImpl } from "../../../../src/core/app/origin/next-app-origin.server-impl.js";
 import type { AnyNextAppOriginStrategyConfig } from "../../../../src/core/app/origin/next-app-origin-strategy-core.js";
 import { aboutAtlas, aboutWithTeamAtlas, createMockAtlas, productsAtlas } from "../../../_fixtures/_helpers.js";
 import { TEST_DEFAULT_LOCALE as defaultLocale, TEST_LOCALES as locales } from "../../../_fixtures/constants.js";
 import { createMockMachineForProxy } from "../../../_fixtures/mock-machine.js";
 import { createMockHeadersFn } from "../../../_fixtures/mock-server-helpers.js";
-import type { AnyProxyFn, AnySupplierFn, MockRewriteArgs } from "../../../_fixtures/test-types.js";
+import type { AnyPathComposer, AnyProxyFn, MockRewriteArgs } from "../../../_fixtures/test-types.js";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -26,14 +25,6 @@ vi.mock("next/server", () => ({
     next: (...args: any[]) => mockNext(...args),
   },
 }));
-
-vi.mock("#r-machine/next/internal", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("#r-machine/next/internal")>();
-  return {
-    ...actual,
-    validateServerOnlyUsage: vi.fn(),
-  };
-});
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -127,7 +118,7 @@ describe("createNextAppOriginServerImpl", () => {
     expect(typeof impl.writeLocale).toBe("function");
     expect(typeof impl.createLocaleStaticParamsGenerator).toBe("function");
     expect(typeof impl.createProxy).toBe("function");
-    expect(typeof impl.createBoundPathComposerSupplier).toBe("function");
+    expect(typeof impl.createPathComposer).toBe("function");
   });
 
   it("localeKey matches strategyConfig", async () => {
@@ -334,7 +325,7 @@ describe("createNextAppOriginServerImpl", () => {
 
         expect(mockRewrite).toHaveBeenCalledOnce();
         const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
-        expect(url.pathname).toBe("/it/");
+        expect(url.pathname).toBe("/it");
       });
 
       it("resolves the same locale for repeated requests from the same origin", async () => {
@@ -348,7 +339,48 @@ describe("createNextAppOriginServerImpl", () => {
         const [url1] = mockRewrite.mock.calls[0] as MockRewriteArgs;
         const [url2] = mockRewrite.mock.calls[1] as MockRewriteArgs;
         expect(url1.pathname).toBe("/it/about");
-        expect(url2.pathname).toBe("/it/");
+        expect(url2.pathname).toBe("/it");
+      });
+
+      // The cache key is `${protocol}//${host}` and `host` is client-controllable.
+      // Caching unknown origins would let arbitrary hosts grow `originCacheMap`
+      // without bound. These two tests pin the boundedness guarantee by observing
+      // the resolution loop (a spy on a map entry's `includes`): it must re-run on
+      // every miss (unknown origin) but only once for a hit (known origin).
+      it("does not cache unknown origins (resolution loop re-runs on each miss)", async () => {
+        const enIncludes = vi.fn((o: string) => ["https://en.example.com"].includes(o));
+        const { impl } = await createImpl({
+          atlas: aboutAtlas,
+          localeOriginMap: { en: { includes: enIncludes } as unknown as string[] },
+        });
+        const proxy = impl.createProxy() as AnyProxyFn;
+
+        proxy(createMockRequest("/about", "https:", "unknown.example.com"));
+        proxy(createMockRequest("/about", "https:", "unknown.example.com"));
+
+        // Miss is never cached → the map is scanned again on the second request.
+        expect(enIncludes).toHaveBeenCalledTimes(2);
+        expect(mockRewrite).toHaveBeenCalledTimes(2);
+        const [url1] = mockRewrite.mock.calls[0] as MockRewriteArgs;
+        const [url2] = mockRewrite.mock.calls[1] as MockRewriteArgs;
+        expect(url1.pathname).toBe("/en/about");
+        expect(url2.pathname).toBe("/en/about");
+      });
+
+      it("caches known origins (resolution loop runs once across repeated hits)", async () => {
+        const enIncludes = vi.fn((o: string) => ["https://en.example.com"].includes(o));
+        const { impl } = await createImpl({
+          atlas: aboutAtlas,
+          localeOriginMap: { en: { includes: enIncludes } as unknown as string[] },
+        });
+        const proxy = impl.createProxy() as AnyProxyFn;
+
+        proxy(createMockRequest("/about", "https:", "en.example.com"));
+        proxy(createMockRequest("/about", "https:", "en.example.com"));
+
+        // Hit is cached → the map is scanned only on the first request.
+        expect(enIncludes).toHaveBeenCalledTimes(1);
+        expect(mockRewrite).toHaveBeenCalledTimes(2);
       });
     });
 
@@ -376,7 +408,7 @@ describe("createNextAppOriginServerImpl", () => {
 
         expect(mockRewrite).toHaveBeenCalledOnce();
         const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
-        expect(url.pathname).toBe("/en/");
+        expect(url.pathname).toBe("/en");
       });
 
       it("rewrites nested paths correctly", async () => {
@@ -518,24 +550,13 @@ describe("createNextAppOriginServerImpl", () => {
   });
 
   // -----------------------------------------------------------------------
-  // createBoundPathComposerSupplier
+  // createPathComposer
   // -----------------------------------------------------------------------
 
-  describe("createBoundPathComposerSupplier", () => {
-    it("calls validateServerOnlyUsage", async () => {
-      const { impl } = await createImpl();
-      const supplier = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-
-      await supplier();
-
-      expect(validateServerOnlyUsage).toHaveBeenCalledWith("getPathComposer");
-    });
-
+  describe("createPathComposer", () => {
     it("returns a path composer function", async () => {
       const { impl } = await createImpl();
-      const supplier = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-
-      const composer = await supplier();
+      const composer = impl.createPathComposer("en");
 
       expect(typeof composer).toBe("function");
     });
@@ -543,10 +564,8 @@ describe("createNextAppOriginServerImpl", () => {
     it("composer translates static paths for the current locale", async () => {
       const { impl } = await createImpl({ atlas: aboutAtlas });
 
-      const supplierEn = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-      const supplierIt = impl.createBoundPathComposerSupplier(async () => "it") as AnySupplierFn;
-      const composerEn = await supplierEn();
-      const composerIt = await supplierIt();
+      const composerEn = impl.createPathComposer("en") as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerEn("/about")).toBe("/about");
       expect(composerIt("/about")).toBe("/chi-siamo");
@@ -555,10 +574,8 @@ describe("createNextAppOriginServerImpl", () => {
     it("composer substitutes params in dynamic paths", async () => {
       const { impl } = await createImpl({ atlas: productsAtlas });
 
-      const supplierEn = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-      const supplierIt = impl.createBoundPathComposerSupplier(async () => "it") as AnySupplierFn;
-      const composerEn = await supplierEn();
-      const composerIt = await supplierIt();
+      const composerEn = impl.createPathComposer("en") as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerEn("/products/[id]", { id: "99" })).toBe("/products/99");
       expect(composerIt("/products/[id]", { id: "99" })).toBe("/prodotti/99");
@@ -567,8 +584,7 @@ describe("createNextAppOriginServerImpl", () => {
     it("composer handles nested paths", async () => {
       const { impl } = await createImpl({ atlas: aboutWithTeamAtlas });
 
-      const supplier = impl.createBoundPathComposerSupplier(async () => "it") as AnySupplierFn;
-      const composer = await supplier();
+      const composer = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composer("/about/team")).toBe("/chi-siamo/staff");
     });
@@ -576,8 +592,7 @@ describe("createNextAppOriginServerImpl", () => {
     it("composer handles root path", async () => {
       const { impl } = await createImpl();
 
-      const supplier = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-      const composer = await supplier();
+      const composer = impl.createPathComposer("en");
 
       expect(composer("/")).toBe("/");
     });
@@ -613,7 +628,7 @@ describe("createNextAppOriginServerImpl", () => {
       expect(mockRedirect).toHaveBeenCalledWith("https://it.example.com/chi-siamo");
     });
 
-    it("createBoundPathComposerSupplier uses pathTranslator for composition", async () => {
+    it("createPathComposer uses pathTranslator for composition", async () => {
       const rMachine = createMockMachineForProxy();
       const strategyConfig = createMockStrategyConfig();
       const atlas = aboutAtlas;
@@ -631,8 +646,7 @@ describe("createNextAppOriginServerImpl", () => {
         pathCanonicalizer
       );
 
-      const supplier = impl.createBoundPathComposerSupplier(async () => "it") as AnySupplierFn;
-      const composer = await supplier();
+      const composer = impl.createPathComposer("it") as AnyPathComposer;
       const result = composer("/about");
 
       expect(pathTranslatorGet).toHaveBeenCalledWith("it", "/about", undefined);

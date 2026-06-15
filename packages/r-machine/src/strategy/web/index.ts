@@ -11,4 +11,4 @@
  * contact: licensing@codecarvings.com
  */
 
-export { type CookieDeclaration, defaultCookieDeclaration } from "./web-options.js";
+export { type CookieDeclaration, defaultCookieDeclaration, getCookie, setCookie } from "./cookie.js";

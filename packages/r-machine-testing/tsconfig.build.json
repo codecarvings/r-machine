@@ -1,0 +1,13 @@
+{
+  "extends": "../../configs/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": ".",
+    "customConditions": ["@r-machine/source"],
+    "types": ["node"],
+    "paths": {
+      "#r-machine/testing/errors": ["./src/errors"],
+      "#r-machine/testing": ["./src/lib"]
+    }
+  }
+}

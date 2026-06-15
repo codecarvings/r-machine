@@ -11,19 +11,21 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
-import type { NextAppClientImpl } from "../next-app-client-toolset.js";
+import type { NextAppClientImpl } from "#r-machine/next/core/app";
 import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-core.js";
 
 export async function createNextAppOriginClientImpl<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
   C extends AnyNextAppOriginStrategyConfig,
 >(
-  _rMachine: RMachine<RA, L, FP>,
+  _rMachine: RMachine<RA, L, E, EF>,
   _strategyConfig: C,
   pathTranslator: HrefTranslator,
   urlTranslator: HrefTranslator,
@@ -50,12 +52,6 @@ export async function createNextAppOriginClientImpl<
       router.push(url);
     },
 
-    createUsePathComposer: (useLocale) => {
-      return () => {
-        const locale = useLocale();
-
-        return (path, params) => pathTranslator.get(locale, path, params).value;
-      };
-    },
+    createPathComposer: (locale) => (path, params) => pathTranslator.get(locale, path, params).value,
   } as NextAppClientImpl<L>;
 }

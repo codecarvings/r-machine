@@ -9,7 +9,6 @@ import {
   docsWithCatchAllAtlas,
   productsAtlas,
 } from "../../../_fixtures/_helpers.js";
-import type { TestLocale } from "../../../_fixtures/constants.js";
 import { TEST_DEFAULT_LOCALE as defaultLocale, TEST_LOCALES as locales } from "../../../_fixtures/constants.js";
 import { createMockMachine } from "../../../_fixtures/mock-machine.js";
 import { createMockRouter } from "../../../_fixtures/mock-router.js";
@@ -19,21 +18,17 @@ import type { AnyPathComposer } from "../../../_fixtures/test-types.js";
 // Mocks
 // ---------------------------------------------------------------------------
 
+const mockGetCookie = vi.fn<(name: string) => string | undefined>();
 const mockSetCookie = vi.fn();
 
-vi.mock("#r-machine/next/internal", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("#r-machine/next/internal")>();
+vi.mock("r-machine/strategy/web", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("r-machine/strategy/web")>();
   return {
     ...actual,
+    getCookie: (name: string) => mockGetCookie(name),
     setCookie: (...args: unknown[]) => mockSetCookie(...args),
   };
 });
-
-const mockCookiesGet = vi.fn<(name: string) => string | undefined>();
-
-vi.mock("js-cookie", () => ({
-  default: { get: (name: string) => mockCookiesGet(name) },
-}));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -92,27 +87,27 @@ describe("createNextAppFlatClientImpl", () => {
   describe("onLoad", () => {
     it("syncs cookie to the current locale when mismatched", async () => {
       const { impl } = await createImpl();
-      mockCookiesGet.mockReturnValue("it");
+      mockGetCookie.mockReturnValue("it");
 
       impl.onLoad!("en");
 
-      expect(mockCookiesGet).toHaveBeenCalledWith("NEXT_LOCALE");
+      expect(mockGetCookie).toHaveBeenCalledWith("NEXT_LOCALE");
       expect(mockSetCookie).toHaveBeenCalledWith("NEXT_LOCALE", "en", expect.objectContaining({ path: "/" }));
     });
 
     it("skips cookie update when locale already matches", async () => {
       const { impl } = await createImpl();
-      mockCookiesGet.mockReturnValue("en");
+      mockGetCookie.mockReturnValue("en");
 
       impl.onLoad!("en");
 
-      expect(mockCookiesGet).toHaveBeenCalledWith("NEXT_LOCALE");
+      expect(mockGetCookie).toHaveBeenCalledWith("NEXT_LOCALE");
       expect(mockSetCookie).not.toHaveBeenCalled();
     });
 
     it("initializes cookie with the current locale when not yet set", async () => {
       const { impl } = await createImpl();
-      mockCookiesGet.mockReturnValue(undefined);
+      mockGetCookie.mockReturnValue(undefined);
 
       impl.onLoad!("en");
 
@@ -121,11 +116,11 @@ describe("createNextAppFlatClientImpl", () => {
 
     it("reads and writes using the custom cookie name from config", async () => {
       const { impl } = await createImpl({ cookieOverrides: { name: "MY_LOCALE" } });
-      mockCookiesGet.mockReturnValue("it");
+      mockGetCookie.mockReturnValue("it");
 
       impl.onLoad!("en");
 
-      expect(mockCookiesGet).toHaveBeenCalledWith("MY_LOCALE");
+      expect(mockGetCookie).toHaveBeenCalledWith("MY_LOCALE");
       expect(mockSetCookie).toHaveBeenCalledWith("MY_LOCALE", "en", expect.objectContaining({ path: "/" }));
     });
   });
@@ -273,22 +268,14 @@ describe("createNextAppFlatClientImpl", () => {
   });
 
   // -----------------------------------------------------------------------
-  // createUsePathComposer
+  // createPathComposer
   // -----------------------------------------------------------------------
 
-  describe("createUsePathComposer", () => {
-    it("returns a hook factory function", async () => {
+  describe("createPathComposer", () => {
+    it("returns a path composer function", async () => {
       const { impl } = await createImpl();
 
-      const usePathComposer = impl.createUsePathComposer(() => "en");
-
-      expect(typeof usePathComposer).toBe("function");
-    });
-
-    it("the hook returns a path composer function", async () => {
-      const { impl } = await createImpl();
-
-      const composer = impl.createUsePathComposer(() => "en")();
+      const composer = impl.createPathComposer("en");
 
       expect(typeof composer).toBe("function");
     });
@@ -296,8 +283,8 @@ describe("createNextAppFlatClientImpl", () => {
     it("composer translates static paths for the current locale", async () => {
       const { impl } = await createImpl({ atlas: aboutAtlas });
 
-      const composerEn = impl.createUsePathComposer(() => "en")() as AnyPathComposer;
-      const composerIt = impl.createUsePathComposer(() => "it")() as AnyPathComposer;
+      const composerEn = impl.createPathComposer("en") as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerEn("/about")).toBe("/about");
       expect(composerIt("/about")).toBe("/chi-siamo");
@@ -306,32 +293,17 @@ describe("createNextAppFlatClientImpl", () => {
     it("composer substitutes params in dynamic paths", async () => {
       const { impl } = await createImpl({ atlas: productsAtlas });
 
-      const composerEn = impl.createUsePathComposer(() => "en")() as AnyPathComposer;
-      const composerIt = impl.createUsePathComposer(() => "it")() as AnyPathComposer;
+      const composerEn = impl.createPathComposer("en") as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerEn("/products/[id]", { id: "99" })).toBe("/products/99");
       expect(composerIt("/products/[id]", { id: "99" })).toBe("/prodotti/99");
     });
 
-    it("composer reads locale from useLocale on each invocation", async () => {
-      const { impl } = await createImpl({ atlas: aboutAtlas });
-
-      let currentLocale = "en";
-      const useLocale = () => currentLocale as TestLocale;
-      const usePathComposer = impl.createUsePathComposer(useLocale);
-
-      const composer1 = usePathComposer() as AnyPathComposer;
-      expect(composer1("/about")).toBe("/about");
-
-      currentLocale = "it";
-      const composer2 = usePathComposer() as AnyPathComposer;
-      expect(composer2("/about")).toBe("/chi-siamo");
-    });
-
     it("composer handles root path", async () => {
       const { impl } = await createImpl();
 
-      const composer = impl.createUsePathComposer(() => "en")();
+      const composer = impl.createPathComposer("en");
 
       expect(composer("/")).toBe("/");
     });
@@ -339,7 +311,7 @@ describe("createNextAppFlatClientImpl", () => {
     it("composer handles nested paths", async () => {
       const { impl } = await createImpl({ atlas: aboutWithTeamAtlas });
 
-      const composerIt = impl.createUsePathComposer(() => "it")() as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerIt("/about/team")).toBe("/chi-siamo/staff");
     });
@@ -347,8 +319,8 @@ describe("createNextAppFlatClientImpl", () => {
     it("composer handles catch-all paths with array params", async () => {
       const { impl } = await createImpl({ atlas: docsWithCatchAllAtlas });
 
-      const composerEn = impl.createUsePathComposer(() => "en")() as AnyPathComposer;
-      const composerIt = impl.createUsePathComposer(() => "it")() as AnyPathComposer;
+      const composerEn = impl.createPathComposer("en") as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerEn("/docs/[...slug]", { slug: ["getting-started", "install"] })).toBe(
         "/docs/getting-started/install"
@@ -393,7 +365,7 @@ describe("createNextAppFlatClientImpl", () => {
 
       const impl = await createNextAppFlatClientImpl(rMachine, strategyConfig, pathTranslator, pathCanonicalizer);
 
-      const composer = impl.createUsePathComposer(() => "it")() as AnyPathComposer;
+      const composer = impl.createPathComposer("it") as AnyPathComposer;
       const result = composer("/about");
 
       expect(pathTranslatorGet).toHaveBeenCalledWith("it", "/about", undefined);

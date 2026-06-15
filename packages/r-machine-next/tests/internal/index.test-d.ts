@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { CookiesFn, HeadersFn, NextProxy, NextProxyResult, Prettify } from "../../src/internal/index.js";
-import { defaultPathMatcher, setCookie, validateServerOnlyUsage } from "../../src/internal/index.js";
+import { defaultPathMatcher, validateServerOnlyUsage } from "../../src/internal/index.js";
 
 // Barrel test: uses a single it() to verify export completeness only. Type shape tests belong in dedicated files.
 describe("internal barrel exports", () => {
@@ -8,8 +8,6 @@ describe("internal barrel exports", () => {
     type Result = Prettify<{ a: string; b: number }>;
 
     expectTypeOf(defaultPathMatcher).toEqualTypeOf<RegExp>();
-
-    expectTypeOf(setCookie).toBeFunction();
 
     expectTypeOf(validateServerOnlyUsage).toBeFunction();
 

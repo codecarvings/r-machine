@@ -1,66 +1,36 @@
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import { createReactStandardImpl } from "../../src/core/react-standard.impl.js";
-import type { ReactStandardStrategyConfig } from "../../src/core/react-standard-strategy-core.js";
+import type { AnyReactStandardStrategyConfig } from "../../src/core/react-standard-strategy-core.js";
 import type { ReactImpl } from "../../src/core/react-toolset.js";
+import type { TestAtlas } from "../_fixtures/mock-machine.js";
 
-// ---------------------------------------------------------------------------
-// createReactStandardImpl — function signature
-// ---------------------------------------------------------------------------
+type E = ResEquipment<TestAtlas>;
+type EF = ExperimentalFlags;
+type Cfg = AnyReactStandardStrategyConfig<TestAtlas>;
 
-describe("createReactStandardImpl", () => {
-  describe("function signature", () => {
-    it("is a function", () => {
-      expectTypeOf(createReactStandardImpl).toBeFunction();
-    });
+describe("createReactStandardImpl — function signature", () => {
+  const fn = createReactStandardImpl<TestAtlas, AnyLocale, E, EF, Cfg>;
 
-    it("first parameter accepts RMachine<AnyResourceAtlas, AnyLocale, AnyFmtProvider>", () => {
-      expectTypeOf(createReactStandardImpl<AnyResourceAtlas, AnyLocale, AnyFmtProvider>)
-        .parameter(0)
-        .toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>();
-    });
-
-    it("second parameter is ReactStandardStrategyConfig", () => {
-      expectTypeOf(createReactStandardImpl<AnyResourceAtlas, AnyLocale, AnyFmtProvider>)
-        .parameter(1)
-        .toEqualTypeOf<ReactStandardStrategyConfig>();
-    });
-
-    it("takes exactly two parameters", () => {
-      expectTypeOf(createReactStandardImpl<AnyResourceAtlas, AnyLocale, AnyFmtProvider>).parameters.toEqualTypeOf<
-        [rMachine: RMachine<AnyResourceAtlas, AnyLocale, AnyFmtProvider>, strategyConfig: ReactStandardStrategyConfig]
-      >();
-    });
-
-    it("returns Promise<ReactImpl<L>>", () => {
-      expectTypeOf(createReactStandardImpl<AnyResourceAtlas, AnyLocale, AnyFmtProvider>).returns.toEqualTypeOf<
-        Promise<ReactImpl<AnyLocale>>
-      >();
-    });
+  it("is a function taking (RMachine<RA, L, E, EF>, config) and returning Promise<ReactImpl<L>>", () => {
+    expectTypeOf(createReactStandardImpl).toBeFunction();
+    expectTypeOf(fn).parameter(0).toEqualTypeOf<RMachine<TestAtlas, AnyLocale, E, EF>>();
+    expectTypeOf(fn).parameter(1).toEqualTypeOf<Cfg>();
+    expectTypeOf(fn).returns.toEqualTypeOf<Promise<ReactImpl<AnyLocale>>>();
   });
 });
 
-// ---------------------------------------------------------------------------
-// Narrowed Locale type
-// ---------------------------------------------------------------------------
-
-describe("narrowed Locale type", () => {
+describe("createReactStandardImpl — narrowed Locale type", () => {
   type AppLocale = "en" | "it";
-  type AppAtlas = { readonly common: { readonly greeting: string } };
 
-  it("returns ReactImpl with narrowed locale", () => {
-    type Resolved = Awaited<ReturnType<typeof createReactStandardImpl<AppAtlas, AppLocale, AnyFmtProvider>>>;
+  it("returns ReactImpl narrowed to L (readLocale / writeLocale follow)", () => {
+    type Resolved = Awaited<
+      ReturnType<typeof createReactStandardImpl<TestAtlas, AppLocale, E, EF, AnyReactStandardStrategyConfig<TestAtlas>>>
+    >;
     expectTypeOf<Resolved>().toEqualTypeOf<ReactImpl<AppLocale>>();
-  });
-
-  it("readLocale returns narrowed locale type", () => {
-    type Resolved = Awaited<ReturnType<typeof createReactStandardImpl<AppAtlas, AppLocale, AnyFmtProvider>>>;
     expectTypeOf<Resolved["readLocale"]>().returns.toEqualTypeOf<AppLocale | Promise<AppLocale>>();
-  });
-
-  it("writeLocale accepts narrowed locale type", () => {
-    type Resolved = Awaited<ReturnType<typeof createReactStandardImpl<AppAtlas, AppLocale, AnyFmtProvider>>>;
     expectTypeOf<Resolved["writeLocale"]>().parameter(0).toEqualTypeOf<AppLocale>();
   });
 });

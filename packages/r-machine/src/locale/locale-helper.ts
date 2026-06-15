@@ -18,8 +18,8 @@ import { parseAcceptLanguageHeader } from "./parse-accept-language-header.js";
 
 export class LocaleHelper<L extends AnyLocale> {
   constructor(
-    protected readonly locales: LocaleList<L>,
-    protected readonly defaultLocale: L
+    readonly locales: LocaleList<L>,
+    readonly defaultLocale: L
   ) {
     this.localeSet = new Set(locales);
   }

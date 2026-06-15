@@ -1,27 +1,39 @@
 {
   "name": "r-machine",
   "version": "1.0.0-alpha.11",
-  "description": "Framework-agnostic typed resource layer for TypeScript — organize, type, and compose your application resources across locales",
+  "description": "R-Machine — typed resource layer with structural uniformity under change for TypeScript.",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "AGPL-3.0-only",
   "type": "module",
-  "homepage": "https://r-machine.codecarvings.com",
+  "homepage": "https://rmachine.dev",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/codecarvings/r-machine.git"
   },
   "bugs": "https://github.com/codecarvings/r-machine/issues",
   "keywords": [
+    "rmachine",
     "typescript",
     "type-safe",
-    "resources",
+    "typesafe",
+    "uniformity-under-change",
+    "refactor-safe",
     "resource-layer",
     "i18n",
     "internationalization",
-    "localization",
-    "l10n",
+    "dependency-injection",
+    "state-management",
+    "reactive",
+    "testable",
+    "ai-friendly",
     "llm-friendly",
-    "ai-friendly"
+    "react",
+    "nextjs",
+    "no-codegen",
+    "intellisense",
+    "shell",
+    "gear",
+    "plug"
   ],
   "sideEffects": false,
   "files": [
@@ -39,6 +51,7 @@
     "exports": {
       "./errors": "./src/errors/index.ts",
       "./locale": "./src/locale/index.ts",
+      "./core": "./src/core/index.ts",
       ".": "./src/lib/index.ts",
       "./strategy": "./src/strategy/index.ts",
       "./strategy/web": "./src/strategy/web/index.ts"
@@ -59,6 +72,12 @@
       "types": "./locale/index.d.cts",
       "import": "./locale/index.js",
       "require": "./locale/index.cjs"
+    },
+    "./core": {
+      "@r-machine/source": "./src/core/index.ts",
+      "types": "./core/index.d.cts",
+      "import": "./core/index.js",
+      "require": "./core/index.cjs"
     },
     ".": {
       "@r-machine/source": "./src/lib/index.ts",
@@ -89,6 +108,11 @@
       "@r-machine/source": "./src/locale/index.ts",
       "types": "./locale/index.d.cts",
       "default": "./locale/index.js"
+    },
+    "#r-machine/core": {
+      "@r-machine/source": "./src/core/index.ts",
+      "types": "./core/index.d.cts",
+      "default": "./core/index.js"
     },
     "#r-machine": {
       "@r-machine/source": "./src/lib/index.ts",

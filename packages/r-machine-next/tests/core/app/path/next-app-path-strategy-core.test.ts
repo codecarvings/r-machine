@@ -1,4 +1,4 @@
-import type { AnyFmtProvider } from "r-machine";
+import type { ExperimentalFlags, ResEquipment } from "r-machine/core";
 import { RMachineConfigError } from "r-machine/errors";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
@@ -45,9 +45,12 @@ vi.mock("../../../../src/core/app/next-app-no-proxy-server-toolset.js", () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-type SimpleConfig = NextAppPathStrategyConfig<SimplePathAtlas, "locale">;
-type TranslatedConfig = NextAppPathStrategyConfig<TranslatedPathAtlas, "locale">;
-type DynamicConfig = NextAppPathStrategyConfig<DynamicPathAtlas, "locale">;
+type CKM = typeof NextAppPathStrategyCore.defaultConfig.clientKit;
+type SKM = typeof NextAppPathStrategyCore.defaultConfig.serverKit;
+type EF = ExperimentalFlags;
+type SimpleConfig = NextAppPathStrategyConfig<TestAtlas, CKM, SKM, SimplePathAtlas, "locale">;
+type TranslatedConfig = NextAppPathStrategyConfig<TestAtlas, CKM, SKM, TranslatedPathAtlas, "locale">;
+type DynamicConfig = NextAppPathStrategyConfig<TestAtlas, CKM, SKM, DynamicPathAtlas, "locale">;
 
 function createTestConfig(overrides?: Partial<SimpleConfig>): SimpleConfig {
   return {
@@ -60,7 +63,18 @@ function createTestConfig(overrides?: Partial<SimpleConfig>): SimpleConfig {
 function createTestStrategy(configOverrides?: Partial<SimpleConfig>) {
   const config = createTestConfig(configOverrides);
 
-  class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig> {}
+  class TestPathStrategy extends NextAppPathStrategyCore<
+    TestAtlas,
+    TestLocale,
+    ResEquipment<TestAtlas>,
+    EF,
+    SimpleConfig
+  > {
+    // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
+    constructor(machine: any, cfg: any) {
+      super(machine, cfg);
+    }
+  }
 
   const rMachine = createMockMachine();
   const strategy = new TestPathStrategy(rMachine, config);
@@ -75,7 +89,18 @@ function createTranslatedStrategy(configOverrides?: Partial<TranslatedConfig>) {
     ...configOverrides,
   } as TranslatedConfig;
 
-  class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, TranslatedConfig> {}
+  class TestPathStrategy extends NextAppPathStrategyCore<
+    TestAtlas,
+    TestLocale,
+    ResEquipment<TestAtlas>,
+    EF,
+    TranslatedConfig
+  > {
+    // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
+    constructor(machine: any, cfg: any) {
+      super(machine, cfg);
+    }
+  }
 
   const rMachine = createMockMachine();
   const strategy = new TestPathStrategy(rMachine, config);
@@ -90,7 +115,18 @@ function createDynamicStrategy(configOverrides?: Partial<DynamicConfig>) {
     ...configOverrides,
   } as DynamicConfig;
 
-  class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, DynamicConfig> {}
+  class TestPathStrategy extends NextAppPathStrategyCore<
+    TestAtlas,
+    TestLocale,
+    ResEquipment<TestAtlas>,
+    EF,
+    DynamicConfig
+  > {
+    // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
+    constructor(machine: any, cfg: any) {
+      super(machine, cfg);
+    }
+  }
 
   const rMachine = createMockMachine();
   return new TestPathStrategy(rMachine, config);
@@ -145,7 +181,7 @@ describe("NextAppPathStrategyCore", () => {
     it("creates pathAtlas from config.PathAtlas", () => {
       const { strategy } = createTestStrategy();
       expect((strategy as any).pathAtlas).toBeDefined();
-      expect((strategy as any).pathAtlas.decl).toEqual({});
+      expect((strategy as any).pathAtlas.segment).toEqual({});
     });
 
     it("creates pathTranslator as NextAppPathStrategyPathTranslator", () => {
@@ -240,7 +276,7 @@ describe("NextAppPathStrategyCore", () => {
   describe("createClientImpl", () => {
     it("delegates to createNextAppPathClientImpl with correct args", async () => {
       const { strategy, rMachine, config } = createTestStrategy();
-      const expectedResult = { onLoad: undefined, writeLocale: vi.fn(), createUsePathComposer: vi.fn() };
+      const expectedResult = { onLoad: undefined, writeLocale: vi.fn(), createPathComposer: vi.fn() };
       mockCreateClientImpl.mockReturnValue(expectedResult);
 
       const result = await (strategy as any).createClientImpl();
@@ -359,7 +395,12 @@ describe("NextAppPathStrategyCore", () => {
 
       const result = await strategy.createNoProxyServerToolset(MockNextClientRMachine);
 
-      expect(mockCreateNoProxyServerToolset).toHaveBeenCalledWith(rMachine, mockImpl, MockNextClientRMachine);
+      expect(mockCreateNoProxyServerToolset).toHaveBeenCalledWith(
+        rMachine,
+        NextAppPathStrategyCore.defaultConfig.serverKit,
+        mockImpl,
+        MockNextClientRMachine
+      );
       expect(result).toBe(expectedToolset);
     });
 
@@ -381,6 +422,20 @@ describe("NextAppPathStrategyCore", () => {
   });
 
   // -----------------------------------------------------------------------
+  // getHelpers
+  // -----------------------------------------------------------------------
+
+  describe("getHelpers", () => {
+    it("includes the strategy's hrefHelper and memoizes the result across calls", () => {
+      const strategy = createDynamicStrategy();
+
+      const helpers = strategy.getHelpers();
+      expect(helpers.hrefHelper).toBe((strategy as any).hrefHelper);
+      expect(strategy.getHelpers()).toBe(helpers);
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // hrefHelper
   // -----------------------------------------------------------------------
 
@@ -389,22 +444,22 @@ describe("NextAppPathStrategyCore", () => {
       it("returns root path for any locale", () => {
         const strategy = createDynamicStrategy();
 
-        expect(strategy.hrefHelper.getPath("en", "/")).toBe("/en/");
-        expect(strategy.hrefHelper.getPath("it", "/")).toBe("/it/");
+        expect((strategy as any).hrefHelper.getPath("en", "/")).toBe("/en");
+        expect((strategy as any).hrefHelper.getPath("it", "/")).toBe("/it");
       });
 
       it("returns locale-prefixed paths for declared paths", () => {
         const { strategy } = createTranslatedStrategy();
 
-        expect(strategy.hrefHelper.getPath("en", "/about")).toBe("/en/about");
-        expect(strategy.hrefHelper.getPath("it", "/about")).toBe("/it/chi-siamo");
+        expect((strategy as any).hrefHelper.getPath("en", "/about")).toBe("/en/about");
+        expect((strategy as any).hrefHelper.getPath("it", "/about")).toBe("/it/chi-siamo");
       });
 
       it("substitutes dynamic segment params", () => {
         const { strategy } = createTranslatedStrategy();
 
-        expect(strategy.hrefHelper.getPath("en", "/products/[id]", { id: "42" })).toBe("/en/products/42");
-        expect(strategy.hrefHelper.getPath("it", "/products/[id]", { id: "42" })).toBe("/it/prodotti/42");
+        expect((strategy as any).hrefHelper.getPath("en", "/products/[id]", { id: "42" })).toBe("/en/products/42");
+        expect((strategy as any).hrefHelper.getPath("it", "/products/[id]", { id: "42" })).toBe("/it/prodotti/42");
       });
 
       it("lowercases mixed-case locale in prefix", () => {
@@ -415,13 +470,24 @@ describe("NextAppPathStrategyCore", () => {
           localeLabel: "lowercase",
         } as DynamicConfig;
 
-        class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, MixedLocale, AnyFmtProvider, DynamicConfig> {}
+        class TestPathStrategy extends NextAppPathStrategyCore<
+          TestAtlas,
+          MixedLocale,
+          ResEquipment<TestAtlas>,
+          EF,
+          DynamicConfig
+        > {
+          // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
+          constructor(machine: any, cfg: any) {
+            super(machine, cfg);
+          }
+        }
 
         const rMachine = createMockMachine<MixedLocale>({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
         const strategy = new TestPathStrategy(rMachine, config);
 
-        expect(strategy.hrefHelper.getPath("en-US" as any, "/about")).toBe("/en-us/about");
-        expect(strategy.hrefHelper.getPath("it-IT" as any, "/about")).toBe("/it-it/about");
+        expect((strategy as any).hrefHelper.getPath("en-US" as any, "/about")).toBe("/en-us/about");
+        expect((strategy as any).hrefHelper.getPath("it-IT" as any, "/about")).toBe("/it-it/about");
       });
 
       it("preserves locale case with strict localeLabel", () => {
@@ -432,20 +498,31 @@ describe("NextAppPathStrategyCore", () => {
           localeLabel: "strict",
         } as DynamicConfig;
 
-        class TestPathStrategy extends NextAppPathStrategyCore<TestAtlas, MixedLocale, AnyFmtProvider, DynamicConfig> {}
+        class TestPathStrategy extends NextAppPathStrategyCore<
+          TestAtlas,
+          MixedLocale,
+          ResEquipment<TestAtlas>,
+          EF,
+          DynamicConfig
+        > {
+          // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
+          constructor(machine: any, cfg: any) {
+            super(machine, cfg);
+          }
+        }
 
         const rMachine = createMockMachine<MixedLocale>({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" });
         const strategy = new TestPathStrategy(rMachine, config);
 
-        expect(strategy.hrefHelper.getPath("en-US" as any, "/about")).toBe("/en-US/about");
-        expect(strategy.hrefHelper.getPath("it-IT" as any, "/about")).toBe("/it-IT/about");
+        expect((strategy as any).hrefHelper.getPath("en-US" as any, "/about")).toBe("/en-US/about");
+        expect((strategy as any).hrefHelper.getPath("it-IT" as any, "/about")).toBe("/it-IT/about");
       });
 
       it("omits locale prefix for default locale when implicitDefaultLocale is on", () => {
         const { strategy } = createTranslatedStrategy({ implicitDefaultLocale: "on", cookie: "on" });
 
-        expect(strategy.hrefHelper.getPath("en", "/about")).toBe("/about");
-        expect(strategy.hrefHelper.getPath("it", "/about")).toBe("/it/chi-siamo");
+        expect((strategy as any).hrefHelper.getPath("en", "/about")).toBe("/about");
+        expect((strategy as any).hrefHelper.getPath("it", "/about")).toBe("/it/chi-siamo");
       });
 
       it("omits locale prefix for default locale when implicitDefaultLocale is custom", () => {
@@ -454,15 +531,15 @@ describe("NextAppPathStrategyCore", () => {
           cookie: "on",
         });
 
-        expect(strategy.hrefHelper.getPath("en", "/about")).toBe("/about");
-        expect(strategy.hrefHelper.getPath("it", "/about")).toBe("/it/chi-siamo");
+        expect((strategy as any).hrefHelper.getPath("en", "/about")).toBe("/about");
+        expect((strategy as any).hrefHelper.getPath("it", "/about")).toBe("/it/chi-siamo");
       });
 
       it("does not prepend basePath to the result", () => {
         const { strategy } = createTranslatedStrategy({ basePath: "/app" });
 
-        expect(strategy.hrefHelper.getPath("en", "/about")).toBe("/en/about");
-        expect(strategy.hrefHelper.getPath("it", "/about")).toBe("/it/chi-siamo");
+        expect((strategy as any).hrefHelper.getPath("en", "/about")).toBe("/en/about");
+        expect((strategy as any).hrefHelper.getPath("it", "/about")).toBe("/it/chi-siamo");
       });
     });
   });
@@ -514,8 +591,8 @@ describe("NextAppPathStrategyPathTranslator", () => {
         false
       );
 
-      expect(translator.get("en", "/", {})).toEqual({ value: "/en/", dynamic: false });
-      expect(translator.get("it", "/", {})).toEqual({ value: "/it/", dynamic: false });
+      expect(translator.get("en", "/", {})).toEqual({ value: "/en", dynamic: false });
+      expect(translator.get("it", "/", {})).toEqual({ value: "/it", dynamic: false });
     });
 
     it("prefixes path with original locale when lowercaseLocale is false", () => {
@@ -527,24 +604,24 @@ describe("NextAppPathStrategyPathTranslator", () => {
         false
       );
 
-      expect(translator.get("en", "/", {})).toEqual({ value: "/en/", dynamic: false });
-      expect(translator.get("it", "/", {})).toEqual({ value: "/it/", dynamic: false });
+      expect(translator.get("en", "/", {})).toEqual({ value: "/en", dynamic: false });
+      expect(translator.get("it", "/", {})).toEqual({ value: "/it", dynamic: false });
     });
 
     it("lowercases mixed-case locale when lowercaseLocale is true", () => {
       const mixedLocales = ["en-US", "it-IT"];
       const translator = new NextAppPathStrategyPathTranslator(createMockAtlas(), mixedLocales, "en-US", true, false);
 
-      expect(translator.get("en-US", "/", {})).toEqual({ value: "/en-us/", dynamic: false });
-      expect(translator.get("it-IT", "/", {})).toEqual({ value: "/it-it/", dynamic: false });
+      expect(translator.get("en-US", "/", {})).toEqual({ value: "/en-us", dynamic: false });
+      expect(translator.get("it-IT", "/", {})).toEqual({ value: "/it-it", dynamic: false });
     });
 
     it("preserves mixed-case locale when lowercaseLocale is false", () => {
       const mixedLocales = ["en-US", "it-IT"];
       const translator = new NextAppPathStrategyPathTranslator(createMockAtlas(), mixedLocales, "en-US", false, false);
 
-      expect(translator.get("en-US", "/", {})).toEqual({ value: "/en-US/", dynamic: false });
-      expect(translator.get("it-IT", "/", {})).toEqual({ value: "/it-IT/", dynamic: false });
+      expect(translator.get("en-US", "/", {})).toEqual({ value: "/en-US", dynamic: false });
+      expect(translator.get("it-IT", "/", {})).toEqual({ value: "/it-IT", dynamic: false });
     });
   });
 
@@ -558,7 +635,7 @@ describe("NextAppPathStrategyPathTranslator", () => {
     it("still prefixes non-default locale when enabled", () => {
       const translator = new NextAppPathStrategyPathTranslator(createMockAtlas(), tLocales, tDefaultLocale, true, true);
 
-      expect(translator.get("it", "/", {})).toEqual({ value: "/it/", dynamic: false });
+      expect(translator.get("it", "/", {})).toEqual({ value: "/it", dynamic: false });
     });
 
     it("prefixes default locale when disabled", () => {
@@ -570,7 +647,7 @@ describe("NextAppPathStrategyPathTranslator", () => {
         false
       );
 
-      expect(translator.get("en", "/", {})).toEqual({ value: "/en/", dynamic: false });
+      expect(translator.get("en", "/", {})).toEqual({ value: "/en", dynamic: false });
     });
   });
 

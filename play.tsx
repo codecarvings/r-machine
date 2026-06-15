@@ -1,41 +1,20 @@
-import { FormattersSeed, RMachine, type RMachineLocale, type RMachineRCtx } from "r-machine";
+import { defineLayout, RMachine, type RMachineLocale } from "r-machine";
 
-type ResourceAtlas = {
-  ns1: { message: string };
-  ns2: { message: string };
-  ns3: { message: string };
-};
+const folders = defineLayout({
+  "base/": "gear:base",
+  "shell/": "shell",
+});
 
-const rMachineBuilder = RMachine.builder({
+type ResourceMap = {};
+
+class ResourceAtlas extends folders<ResourceMap>() {}
+
+const rMachine = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
-  rModuleResolver: async (namespace, locale) => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return {
-      default: async ($) => {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { message: `${namespace}(${$.namespace}) in ${locale}(${$.locale})` };
-      },
-    };
-  },
+  ResourceAtlas,
+  load: async () => undefined!, // Implement your resource loading logic here
 });
-type Locale = RMachineLocale<typeof rMachineBuilder>;
 
-class Formatters extends FormattersSeed.create((locale: Locale) => {
-  return {
-    uppercase: (str: string) => str.toUpperCase() + locale,
-  };
-}) {}
-
-const rMachineExtBuilder = rMachineBuilder.with({ Formatters });
-export type R$ = RMachineRCtx<typeof rMachineExtBuilder>;
-
-const rMachine = rMachineExtBuilder.create<ResourceAtlas>();
-export const { uppercase } = rMachine.fmt("en");
-
-const r = await rMachine.pickR("en", "ns1");
-console.log(r.message);
-
-const [r1, r2] = await rMachine.pickRKit("it", "ns1", "ns2");
-console.log(r1.message);
-console.log(r2.message);
+export const { BaseGear, InnerGear, Shell, localized } = rMachine.createToolset();
+export type Locale = RMachineLocale<typeof rMachine>;

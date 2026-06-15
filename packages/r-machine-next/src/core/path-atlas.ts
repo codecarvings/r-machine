@@ -15,67 +15,66 @@ import { RMachineConfigError } from "r-machine/errors";
 import { type AnyLocale, validateCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { ERR_PATH_ATLAS_MALFORMED } from "#r-machine/next/errors";
 
-export type AnySegmentKey = `/${string}`;
-type AnyDynamicSegmentKey = `/[${string}]`;
-type AnyCatchAllSegmentKey = `/[...${string}]`;
-type AnyOptionalCatchAllSegmentKey = `/[[...${string}]]`;
+export type AnySegmentEntryKey = `/${string}`;
+type AnyDynamicSegmentEntryKey = `/[${string}]`;
+type AnyCatchAllSegmentEntryKey = `/[...${string}]`;
+type AnyOptionalCatchAllSegmentEntryKey = `/[[...${string}]]`;
 
 const __error = Symbol("__error");
 const __invalidKey = Symbol("__invalidKey");
 const __invalidValue = Symbol("__invalidValue");
 
-type Segment<T, L extends AnyLocale = AnyLocale> =
-  T extends TranslatableSegmentDecl<T, L> ? T : TranslatableSegmentDecl<T, L>;
-type DynamicSegment<T, L extends AnyLocale = AnyLocale> =
-  T extends NonTranslatableSegmentDecl<T, L> ? T : NonTranslatableSegmentDecl<T, L>;
+type SegmentEntry<T, L extends AnyLocale = AnyLocale> =
+  T extends TranslatableSegment<T, L> ? T : TranslatableSegment<T, L>;
+type DynamicSegmentEntry<T, L extends AnyLocale = AnyLocale> = T extends Segment<T, L> ? T : Segment<T, L>;
 
 type EmptyObject = {
   [key: string]: never;
 };
 
-export type NonTranslatableSegmentDecl<T, L extends AnyLocale = AnyLocale> = {
+export type Segment<T, L extends AnyLocale = AnyLocale> = {
   [K in keyof T]: K extends "/"
     ? { [__error]: "Invalid empty segment key"; [__invalidKey]: K }
-    : K extends AnyCatchAllSegmentKey | AnyOptionalCatchAllSegmentKey
+    : K extends AnyCatchAllSegmentEntryKey | AnyOptionalCatchAllSegmentEntryKey
       ? T[K] extends EmptyObject
-        ? DynamicSegment<T[K], L>
+        ? DynamicSegmentEntry<T[K], L>
         : {
             [__error]: "Catch all segment declarations must be empty objects";
             [__invalidKey]: K;
             [__invalidValue]: T[K];
           }
-      : K extends AnyDynamicSegmentKey
+      : K extends AnyDynamicSegmentEntryKey
         ? T[K] extends object
-          ? DynamicSegment<T[K], L>
+          ? DynamicSegmentEntry<T[K], L>
           : { [__error]: "Dynamic segment declarations must be objects"; [__invalidKey]: K; [__invalidValue]: T[K] }
-        : K extends AnySegmentKey
+        : K extends AnySegmentEntryKey
           ? T[K] extends object
-            ? Segment<T[K], L>
+            ? SegmentEntry<T[K], L>
             : { [__error]: "Segment declarations must be objects"; [__invalidKey]: K; [__invalidValue]: T[K] }
           : { [__error]: "Unexpected translation. Object keys must match pattern /${string}"; [__invalidKey]: K };
 };
 
-export type TranslatableSegmentDecl<T, L extends AnyLocale = AnyLocale> = {
+export type TranslatableSegment<T, L extends AnyLocale = AnyLocale> = {
   [K in keyof T]: K extends "/"
     ? { [__error]: "Invalid empty segment key"; [__invalidKey]: K }
-    : K extends AnyCatchAllSegmentKey | AnyOptionalCatchAllSegmentKey
+    : K extends AnyCatchAllSegmentEntryKey | AnyOptionalCatchAllSegmentEntryKey
       ? T[K] extends EmptyObject
-        ? DynamicSegment<T[K], L>
+        ? DynamicSegmentEntry<T[K], L>
         : {
             [__error]: "Catch all segment declarations must be empty objects";
             [__invalidKey]: K;
             [__invalidValue]: T[K];
           }
-      : K extends AnyDynamicSegmentKey
+      : K extends AnyDynamicSegmentEntryKey
         ? T[K] extends object
-          ? DynamicSegment<T[K], L>
+          ? DynamicSegmentEntry<T[K], L>
           : { [__error]: "Dynamic segment declarations must be objects"; [__invalidKey]: K; [__invalidValue]: T[K] }
-        : K extends AnySegmentKey
+        : K extends AnySegmentEntryKey
           ? T[K] extends object
-            ? Segment<T[K], L>
+            ? SegmentEntry<T[K], L>
             : { [__error]: "Segment declarations must be objects"; [__invalidKey]: K; [__invalidValue]: T[K] }
           : K extends L
-            ? T[K] extends AnySegmentKey
+            ? T[K] extends AnySegmentEntryKey
               ? T[K]
               : {
                   [__error]: "Segment translations must match pattern /${string}";
@@ -88,31 +87,30 @@ export type TranslatableSegmentDecl<T, L extends AnyLocale = AnyLocale> = {
               };
 };
 
-// --- Provider ---
-export type AnyPathAtlas = object;
+// --- Path Atlas ---
+export type AnySegment = Record<string, unknown>;
 
-export interface PathAtlasProvider<PA extends AnyPathAtlas> {
-  readonly decl: PA;
+export interface PathAtlas<S extends AnySegment> {
+  readonly segment: S;
 }
-export type AnyPathAtlasProvider = PathAtlasProvider<AnyPathAtlas>;
+export type AnyPathAtlas = PathAtlas<AnySegment>;
 
-// --- Provider Ctor ---
-export interface PathAtlasProviderCtor<PAP extends AnyPathAtlasProvider> {
-  new (): PAP;
+// --- Path Atlas Class ---
+export interface PathAtlasClass<PA extends AnyPathAtlas> {
+  new (): PA;
 }
-export type AnyPathAtlasProviderCtor = PathAtlasProviderCtor<AnyPathAtlasProvider>;
-
-// --- Extended ---
-export type ExtendedPathAtlasProvider<PAP extends AnyPathAtlasProvider> = PAP & { containsTranslations: boolean };
+export type AnyPathAtlasClass = PathAtlasClass<AnyPathAtlas>;
 
 // Build and validate PathAtlas
-export function buildPathAtlas<PAP extends AnyPathAtlasProvider>(
-  ctor: PathAtlasProviderCtor<PAP>,
+export type BuiltPathAtlas<PA extends AnyPathAtlas> = PA & { containsTranslations: boolean };
+
+export function buildPathAtlas<PA extends AnyPathAtlas>(
+  ctor: PathAtlasClass<PA>,
   allowTranslation: boolean
-): ExtendedPathAtlasProvider<PAP> {
+): BuiltPathAtlas<PA> {
   const instance = new ctor();
   const context: ValidationContext = { foundTranslation: false };
-  validatePathAtlasDecl(instance.decl, "", allowTranslation, context);
+  validateSegment(instance.segment, "", allowTranslation, context);
   return Object.assign(instance, { containsTranslations: context.foundTranslation });
 }
 
@@ -120,41 +118,41 @@ interface ValidationContext {
   foundTranslation: boolean;
 }
 
-const DYNAMIC_SEGMENT_REGEX = /^\[([^\].]+)\]$/;
-const CATCH_ALL_SEGMENT_REGEX = /^\[\.\.\.([^\]]+)\]$/;
-const OPTIONAL_CATCH_ALL_SEGMENT_REGEX = /^\[\[\.\.\.([^\]]+)\]\]$/;
+const DYNAMIC_SEGMENT_ENTRY_REGEX = /^\[([^\].]+)\]$/;
+const CATCH_ALL_SEGMENT_ENTRY_REGEX = /^\[\.\.\.([^\]]+)\]$/;
+const OPTIONAL_CATCH_ALL_SEGMENT_ENTRY_REGEX = /^\[\[\.\.\.([^\]]+)\]\]$/;
 
-function isSegmentKey(key: string): boolean {
+function isSegmentEntryKey(key: string): boolean {
   return key.startsWith("/");
 }
 
-function isDynamicSegment(segment: string): boolean {
+function isDynamicSegmentEntry(segment: string): boolean {
   return (
-    DYNAMIC_SEGMENT_REGEX.test(segment) ||
-    CATCH_ALL_SEGMENT_REGEX.test(segment) ||
-    OPTIONAL_CATCH_ALL_SEGMENT_REGEX.test(segment)
+    DYNAMIC_SEGMENT_ENTRY_REGEX.test(segment) ||
+    CATCH_ALL_SEGMENT_ENTRY_REGEX.test(segment) ||
+    OPTIONAL_CATCH_ALL_SEGMENT_ENTRY_REGEX.test(segment)
   );
 }
 
-function isCatchAllSegment(segment: string): boolean {
-  return CATCH_ALL_SEGMENT_REGEX.test(segment) || OPTIONAL_CATCH_ALL_SEGMENT_REGEX.test(segment);
+function isCatchAllSegmentEntry(segment: string): boolean {
+  return CATCH_ALL_SEGMENT_ENTRY_REGEX.test(segment) || OPTIONAL_CATCH_ALL_SEGMENT_ENTRY_REGEX.test(segment);
 }
 
-function validatePathAtlasDecl(
-  decl: object,
+function validateSegment(
+  segment: AnySegment,
   path: string,
   allowTranslation: boolean,
   context: ValidationContext
 ): void {
   const dynamicChildKeys: string[] = [];
 
-  for (const [key, value] of Object.entries(decl)) {
-    if (isSegmentKey(key)) {
+  for (const [key, value] of Object.entries(segment)) {
+    if (isSegmentEntryKey(key)) {
       const segment = key.slice(1);
-      if (isDynamicSegment(segment)) {
+      if (isDynamicSegmentEntry(segment)) {
         dynamicChildKeys.push(key);
       }
-      validateSegmentDecl(key, value, path, allowTranslation, context);
+      validateSegmentEntry(key, value, path, allowTranslation, context);
     } else {
       validateTranslation(key, value, path, allowTranslation, context);
     }
@@ -168,7 +166,7 @@ function validatePathAtlasDecl(
   }
 }
 
-function validateSegmentDecl(
+function validateSegmentEntry(
   key: string,
   value: unknown,
   parentPath: string,
@@ -197,8 +195,8 @@ function validateSegmentDecl(
 
   const segment = key.slice(1);
 
-  if (isDynamicSegment(segment)) {
-    const translationKeys = Object.keys(value).filter((k) => !isSegmentKey(k));
+  if (isDynamicSegmentEntry(segment)) {
+    const translationKeys = Object.keys(value).filter((k) => !isSegmentEntryKey(k));
     if (translationKeys.length > 0) {
       throw new RMachineConfigError(
         ERR_PATH_ATLAS_MALFORMED,
@@ -207,8 +205,8 @@ function validateSegmentDecl(
     }
   }
 
-  if (isCatchAllSegment(segment)) {
-    const childSegmentKeys = Object.keys(value).filter(isSegmentKey);
+  if (isCatchAllSegmentEntry(segment)) {
+    const childSegmentKeys = Object.keys(value).filter(isSegmentEntryKey);
     if (childSegmentKeys.length > 0) {
       throw new RMachineConfigError(
         ERR_PATH_ATLAS_MALFORMED,
@@ -217,7 +215,7 @@ function validateSegmentDecl(
     }
   }
 
-  validatePathAtlasDecl(value as object, currentPath, allowTranslation, context);
+  validateSegment(value as AnySegment, currentPath, allowTranslation, context);
 }
 
 function validateTranslation(

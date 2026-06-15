@@ -17,8 +17,8 @@ describe("getTranslatedHref", () => {
 
     it("returns path with static segments", () => {
       const mappedSegments = [
-        { decl: true, segment: "about", kind: "static" as const },
-        { decl: true, segment: "team", kind: "static" as const },
+        { declared: true, segment: "about", kind: "static" as const },
+        { declared: true, segment: "team", kind: "static" as const },
       ];
       expect(getTranslatedHref("en", "/about/team", mappedSegments)).toBe("/about/team");
     });
@@ -27,24 +27,24 @@ describe("getTranslatedHref", () => {
   describe("dynamic segments", () => {
     it("substitutes dynamic segment with param value", () => {
       const mappedSegments = [
-        { decl: true, segment: "products", kind: "static" as const },
-        { decl: true, segment: "id", kind: "dynamic" as const },
+        { declared: true, segment: "products", kind: "static" as const },
+        { declared: true, segment: "id", kind: "dynamic" as const },
       ];
       expect(getTranslatedHref("en", "/products/[id]", mappedSegments, { id: "123" })).toBe("/products/123");
     });
 
     it("encodes param values", () => {
-      const mappedSegments = [{ decl: true, segment: "query", kind: "dynamic" as const }];
+      const mappedSegments = [{ declared: true, segment: "query", kind: "dynamic" as const }];
       expect(getTranslatedHref("en", "/[query]", mappedSegments, { query: "hello world" })).toBe("/hello%20world");
     });
 
     it("converts numeric param values to string", () => {
-      const mappedSegments = [{ decl: true, segment: "id", kind: "dynamic" as const }];
+      const mappedSegments = [{ declared: true, segment: "id", kind: "dynamic" as const }];
       expect(getTranslatedHref("en", "/[id]", mappedSegments, { id: 12345 })).toBe("/12345");
     });
 
     it("encodes special URL characters in param values", () => {
-      const mappedSegments = [{ decl: true, segment: "query", kind: "dynamic" as const }];
+      const mappedSegments = [{ declared: true, segment: "query", kind: "dynamic" as const }];
 
       expect(getTranslatedHref("en", "/[query]", mappedSegments, { query: "a/b" })).toBe("/a%2Fb");
       expect(getTranslatedHref("en", "/[query]", mappedSegments, { query: "a?b=c" })).toBe("/a%3Fb%3Dc");
@@ -53,15 +53,15 @@ describe("getTranslatedHref", () => {
     });
 
     it("encodes unicode characters in param values", () => {
-      const mappedSegments = [{ decl: true, segment: "name", kind: "dynamic" as const }];
+      const mappedSegments = [{ declared: true, segment: "name", kind: "dynamic" as const }];
       expect(getTranslatedHref("it", "/[name]", mappedSegments, { name: "caffè" })).toBe("/caff%C3%A8");
     });
 
     it("handles multiple dynamic segments", () => {
       const mappedSegments = [
-        { decl: true, segment: "category", kind: "dynamic" as const },
-        { decl: true, segment: "productId", kind: "dynamic" as const },
-        { decl: true, segment: "variant", kind: "dynamic" as const },
+        { declared: true, segment: "category", kind: "dynamic" as const },
+        { declared: true, segment: "productId", kind: "dynamic" as const },
+        { declared: true, segment: "variant", kind: "dynamic" as const },
       ];
       expect(
         getTranslatedHref("en", "/[category]/[productId]/[variant]", mappedSegments, {
@@ -74,10 +74,10 @@ describe("getTranslatedHref", () => {
 
     it("handles mixed static and dynamic segments", () => {
       const mappedSegments = [
-        { decl: true, segment: "shop", kind: "static" as const },
-        { decl: true, segment: "category", kind: "dynamic" as const },
-        { decl: true, segment: "items", kind: "static" as const },
-        { decl: true, segment: "id", kind: "dynamic" as const },
+        { declared: true, segment: "shop", kind: "static" as const },
+        { declared: true, segment: "category", kind: "dynamic" as const },
+        { declared: true, segment: "items", kind: "static" as const },
+        { declared: true, segment: "id", kind: "dynamic" as const },
       ];
       expect(
         getTranslatedHref("en", "/shop/[category]/items/[id]", mappedSegments, {
@@ -89,18 +89,18 @@ describe("getTranslatedHref", () => {
 
     it("handles static segment after dynamic segment", () => {
       const mappedSegments = [
-        { decl: true, segment: "id", kind: "dynamic" as const },
-        { decl: true, segment: "edit", kind: "static" as const },
+        { declared: true, segment: "id", kind: "dynamic" as const },
+        { declared: true, segment: "edit", kind: "static" as const },
       ];
       expect(getTranslatedHref("en", "/[id]/edit", mappedSegments, { id: "123" })).toBe("/123/edit");
     });
 
     it("handles deeply nested path with all segment types", () => {
       const mappedSegments = [
-        { decl: true, segment: "api", kind: "static" as const },
-        { decl: true, segment: "version", kind: "dynamic" as const },
-        { decl: true, segment: "resources", kind: "static" as const },
-        { decl: true, segment: "path", kind: "catchAll" as const },
+        { declared: true, segment: "api", kind: "static" as const },
+        { declared: true, segment: "version", kind: "dynamic" as const },
+        { declared: true, segment: "resources", kind: "static" as const },
+        { declared: true, segment: "path", kind: "catchAll" as const },
       ];
       expect(
         getTranslatedHref("en", "/api/[version]/resources/[...path]", mappedSegments, {
@@ -114,8 +114,8 @@ describe("getTranslatedHref", () => {
   describe("catch-all segments", () => {
     it("substitutes catch-all segment with array values", () => {
       const mappedSegments = [
-        { decl: true, segment: "docs", kind: "static" as const },
-        { decl: true, segment: "path", kind: "catchAll" as const },
+        { declared: true, segment: "docs", kind: "static" as const },
+        { declared: true, segment: "path", kind: "catchAll" as const },
       ];
       expect(
         getTranslatedHref("en", "/docs/[...path]", mappedSegments, {
@@ -126,26 +126,26 @@ describe("getTranslatedHref", () => {
 
     it("substitutes optional catch-all segment with array values", () => {
       const mappedSegments = [
-        { decl: true, segment: "docs", kind: "static" as const },
-        { decl: true, segment: "path", kind: "optionalCatchAll" as const },
+        { declared: true, segment: "docs", kind: "static" as const },
+        { declared: true, segment: "path", kind: "optionalCatchAll" as const },
       ];
       expect(getTranslatedHref("en", "/docs/[[...path]]", mappedSegments, { path: ["intro"] })).toBe("/docs/intro");
     });
 
     it("handles catch-all with single element array", () => {
-      const mappedSegments = [{ decl: true, segment: "path", kind: "catchAll" as const }];
+      const mappedSegments = [{ declared: true, segment: "path", kind: "catchAll" as const }];
       expect(getTranslatedHref("en", "/[...path]", mappedSegments, { path: ["single"] })).toBe("/single");
     });
 
     it("handles catch-all with many elements", () => {
-      const mappedSegments = [{ decl: true, segment: "path", kind: "catchAll" as const }];
+      const mappedSegments = [{ declared: true, segment: "path", kind: "catchAll" as const }];
       expect(getTranslatedHref("en", "/[...path]", mappedSegments, { path: ["a", "b", "c", "d", "e"] })).toBe(
         "/a/b/c/d/e"
       );
     });
 
     it("encodes values in catch-all arrays", () => {
-      const mappedSegments = [{ decl: true, segment: "path", kind: "catchAll" as const }];
+      const mappedSegments = [{ declared: true, segment: "path", kind: "catchAll" as const }];
       expect(getTranslatedHref("en", "/[...path]", mappedSegments, { path: ["hello world", "foo/bar"] })).toBe(
         "/hello%20world/foo%2Fbar"
       );
@@ -153,16 +153,16 @@ describe("getTranslatedHref", () => {
 
     it("handles empty catch-all array", () => {
       const mappedSegments = [
-        { decl: true, segment: "docs", kind: "static" as const },
-        { decl: true, segment: "path", kind: "catchAll" as const },
+        { declared: true, segment: "docs", kind: "static" as const },
+        { declared: true, segment: "path", kind: "catchAll" as const },
       ];
       expect(getTranslatedHref("en", "/docs/[...path]", mappedSegments, { path: [] })).toBe("/docs");
     });
 
     it("handles empty optional catch-all array", () => {
       const mappedSegments = [
-        { decl: true, segment: "docs", kind: "static" as const },
-        { decl: true, segment: "path", kind: "optionalCatchAll" as const },
+        { declared: true, segment: "docs", kind: "static" as const },
+        { declared: true, segment: "path", kind: "optionalCatchAll" as const },
       ];
       expect(getTranslatedHref("en", "/docs/[[...path]]", mappedSegments, { path: [] })).toBe("/docs");
     });
@@ -170,43 +170,43 @@ describe("getTranslatedHref", () => {
 
   describe("error handling", () => {
     it("throws when dynamic param is missing", () => {
-      const mappedSegments = [{ decl: true, segment: "id", kind: "dynamic" as const }];
+      const mappedSegments = [{ declared: true, segment: "id", kind: "dynamic" as const }];
       expect(() => getTranslatedHref("en", "/[id]", mappedSegments, {})).toThrow(/parameter "id" is missing/);
     });
 
     it("throws when params object is undefined for dynamic segment", () => {
-      const mappedSegments = [{ decl: true, segment: "id", kind: "dynamic" as const }];
+      const mappedSegments = [{ declared: true, segment: "id", kind: "dynamic" as const }];
       expect(() => getTranslatedHref("en", "/[id]", mappedSegments, undefined)).toThrow(/parameter "id" is missing/);
     });
 
     it("throws when catch-all param is not an array", () => {
-      const mappedSegments = [{ decl: true, segment: "path", kind: "catchAll" as const }];
+      const mappedSegments = [{ declared: true, segment: "path", kind: "catchAll" as const }];
       expect(() => getTranslatedHref("en", "/[...path]", mappedSegments, { path: "not-array" })).toThrow(
         /parameter "path" is expected to be an array/
       );
     });
 
     it("throws when optional catch-all param is not an array", () => {
-      const mappedSegments = [{ decl: true, segment: "path", kind: "optionalCatchAll" as const }];
+      const mappedSegments = [{ declared: true, segment: "path", kind: "optionalCatchAll" as const }];
       expect(() => getTranslatedHref("en", "/[[...path]]", mappedSegments, { path: "not-array" })).toThrow(
         /parameter "path" is expected to be an array/
       );
     });
 
     it("throws when param value results in empty segment", () => {
-      const mappedSegments = [{ decl: true, segment: "id", kind: "dynamic" as const }];
+      const mappedSegments = [{ declared: true, segment: "id", kind: "dynamic" as const }];
       expect(() => getTranslatedHref("en", "/[id]", mappedSegments, { id: "" })).toThrow(/empty path segment/);
     });
 
     it("throws when catch-all array contains empty string", () => {
-      const mappedSegments = [{ decl: true, segment: "path", kind: "catchAll" as const }];
+      const mappedSegments = [{ declared: true, segment: "path", kind: "catchAll" as const }];
       expect(() => getTranslatedHref("en", "/[...path]", mappedSegments, { path: ["valid", ""] })).toThrow(
         /empty path segment/
       );
     });
 
     it("includes locale and path info in error message", () => {
-      const mappedSegments = [{ decl: true, segment: "id", kind: "dynamic" as const }];
+      const mappedSegments = [{ declared: true, segment: "id", kind: "dynamic" as const }];
       expect(() => getTranslatedHref("it", "/users/[id]", mappedSegments, {})).toThrow(
         /Cannot translate path "\/users\/\[id\]" for locale "it"/
       );

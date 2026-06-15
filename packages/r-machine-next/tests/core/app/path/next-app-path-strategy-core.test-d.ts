@@ -1,19 +1,19 @@
-import type { AnyFmtProvider, EmptyFmtProvider, RMachine } from "r-machine";
-import type { SwitchableOption } from "r-machine/strategy";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment, SwitchableOption } from "r-machine/core";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import { describe, expectTypeOf, it } from "vitest";
 import type {
-  AnyPathAtlasProvider,
+  AnyPathAtlas,
   HrefCanonicalizer,
   HrefTranslator,
-  PathAtlasProviderCtor,
+  PathAtlasClass,
   PathParamMap,
   PathSelector,
 } from "#r-machine/next/core";
 import type {
   AnyNextAppPathStrategyConfig,
   NextAppPathStrategyConfig,
-  PartialNextAppPathStrategyConfig,
+  NextAppPathStrategyConfigParams,
 } from "../../../../src/core/app/path/next-app-path-strategy-core.js";
 import {
   NextAppPathStrategyCore,
@@ -22,6 +22,10 @@ import {
 } from "../../../../src/core/app/path/next-app-path-strategy-core.js";
 import type { SimplePathAtlas, TestLocale, TranslatedPathAtlas } from "../../../_fixtures/constants.js";
 import type { TestAtlas } from "../../../_fixtures/mock-machine.js";
+
+type CKM = typeof NextAppPathStrategyCore.defaultConfig.clientKit;
+type SKM = typeof NextAppPathStrategyCore.defaultConfig.serverKit;
+type EF = ExperimentalFlags;
 
 type CookieOption = SwitchableOption | CookieDeclaration;
 type LocaleLabelOption = "strict" | "lowercase";
@@ -33,15 +37,18 @@ type AutoDetectLocaleOption = SwitchableOption | { readonly pathMatcher: RegExp 
 // ---------------------------------------------------------------------------
 
 describe("NextAppPathStrategyConfig", () => {
-  type Config = NextAppPathStrategyConfig<SimplePathAtlas, "locale">;
+  type Config = NextAppPathStrategyConfig<TestAtlas, CKM, SKM, SimplePathAtlas, "locale">;
 
   it("has exactly the expected properties", () => {
     type Keys = keyof Config;
     expectTypeOf<Keys>().toEqualTypeOf<
+      | "clientKit"
+      | "serverKit"
       | "PathAtlas"
       | "localeKey"
       | "autoLocaleBinding"
       | "basePath"
+      | "reactCompiler"
       | "cookie"
       | "localeLabel"
       | "autoDetectLocale"
@@ -49,8 +56,8 @@ describe("NextAppPathStrategyConfig", () => {
     >();
   });
 
-  it("PathAtlas is PathAtlasProviderCtor<PAP>", () => {
-    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasProviderCtor<SimplePathAtlas>>();
+  it("PathAtlas is PathAtlasClass<PAD>", () => {
+    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasClass<SimplePathAtlas>>();
   });
 
   it("localeKey is the literal string type", () => {
@@ -98,7 +105,9 @@ describe("NextAppPathStrategyConfig", () => {
 
 describe("AnyNextAppPathStrategyConfig", () => {
   it("is assignable from a concrete NextAppPathStrategyConfig", () => {
-    expectTypeOf<NextAppPathStrategyConfig<SimplePathAtlas, "locale">>().toExtend<AnyNextAppPathStrategyConfig>();
+    expectTypeOf<
+      NextAppPathStrategyConfig<TestAtlas, CKM, SKM, SimplePathAtlas, "locale">
+    >().toExtend<AnyNextAppPathStrategyConfig>();
   });
 
   it("non-generic properties retain their concrete types", () => {
@@ -111,25 +120,28 @@ describe("AnyNextAppPathStrategyConfig", () => {
   });
 
   it("generic-dependent properties widen to any", () => {
-    expectTypeOf<AnyNextAppPathStrategyConfig["PathAtlas"]>().toEqualTypeOf<PathAtlasProviderCtor<any>>();
+    expectTypeOf<AnyNextAppPathStrategyConfig["PathAtlas"]>().toEqualTypeOf<PathAtlasClass<any>>();
     expectTypeOf<AnyNextAppPathStrategyConfig["localeKey"]>().toBeAny();
   });
 });
 
 // ---------------------------------------------------------------------------
-// PartialNextAppPathStrategyConfig
+// NextAppPathStrategyConfigParams
 // ---------------------------------------------------------------------------
 
-describe("PartialNextAppPathStrategyConfig", () => {
-  type Config = PartialNextAppPathStrategyConfig<SimplePathAtlas, "locale">;
+describe("NextAppPathStrategyConfigParams", () => {
+  type Config = NextAppPathStrategyConfigParams<TestAtlas, CKM, SKM, SimplePathAtlas, "locale">;
 
   it("has exactly the expected properties", () => {
     type Keys = keyof Config;
     expectTypeOf<Keys>().toEqualTypeOf<
+      | "clientKit"
+      | "serverKit"
       | "PathAtlas"
       | "localeKey"
       | "autoLocaleBinding"
       | "basePath"
+      | "reactCompiler"
       | "cookie"
       | "localeLabel"
       | "autoDetectLocale"
@@ -178,7 +190,7 @@ describe("PartialNextAppPathStrategyConfig", () => {
 // ---------------------------------------------------------------------------
 
 describe("NextAppPathStrategyCore", () => {
-  type SimpleConfig = NextAppPathStrategyConfig<SimplePathAtlas, "locale">;
+  type SimpleConfig = NextAppPathStrategyConfig<TestAtlas, CKM, SKM, SimplePathAtlas, "locale">;
 
   it("defaultConfig extends the parent defaultConfig with path-specific properties", () => {
     expectTypeOf(NextAppPathStrategyCore.defaultConfig).toHaveProperty("cookie");
@@ -190,13 +202,13 @@ describe("NextAppPathStrategyCore", () => {
 
   it("rMachine is RMachine<RA>", () => {
     expectTypeOf<
-      NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["rMachine"]
-    >().toEqualTypeOf<RMachine<TestAtlas, TestLocale, AnyFmtProvider>>();
+      NextAppPathStrategyCore<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF, SimpleConfig>["rMachine"]
+    >().toEqualTypeOf<RMachine<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF>>();
   });
 
   it("config is C", () => {
     expectTypeOf<
-      NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["config"]
+      NextAppPathStrategyCore<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF, SimpleConfig>["config"]
     >().toEqualTypeOf<SimpleConfig>();
   });
 
@@ -206,12 +218,24 @@ describe("NextAppPathStrategyCore", () => {
 
   describe("hrefHelper", () => {
     it("has readonly getPath property", () => {
-      type Helper = NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["hrefHelper"];
+      type Helper = NextAppPathStrategyCore<
+        TestAtlas,
+        TestLocale,
+        ResEquipment<TestAtlas>,
+        EF,
+        SimpleConfig
+      >["hrefHelper"];
       expectTypeOf<Helper>().toHaveProperty("getPath");
     });
 
     it("does not have getUrl property", () => {
-      type Helper = NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["hrefHelper"];
+      type Helper = NextAppPathStrategyCore<
+        TestAtlas,
+        TestLocale,
+        ResEquipment<TestAtlas>,
+        EF,
+        SimpleConfig
+      >["hrefHelper"];
       expectTypeOf<Helper>().not.toHaveProperty("getUrl");
     });
 
@@ -219,7 +243,8 @@ describe("NextAppPathStrategyCore", () => {
       type GetPath = NextAppPathStrategyCore<
         TestAtlas,
         TestLocale,
-        AnyFmtProvider,
+        ResEquipment<TestAtlas>,
+        EF,
         SimpleConfig
       >["hrefHelper"]["getPath"];
       expectTypeOf<GetPath>().toBeFunction();
@@ -261,30 +286,35 @@ describe("NextAppPathStrategyCore", () => {
   });
 
   it("different RA produce different core types", () => {
-    type OtherAtlas = { readonly other: { readonly value: number } };
-    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppPathStrategyCore<OtherAtlas, TestLocale, AnyFmtProvider, SimpleConfig>
+    interface OtherAtlas extends AnyResAtlas {
+      readonly other: { readonly value: number };
+    }
+    expectTypeOf<
+      NextAppPathStrategyCore<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF, SimpleConfig>
+    >().not.toEqualTypeOf<
+      NextAppPathStrategyCore<OtherAtlas, TestLocale, ResEquipment<OtherAtlas>, EF, SimpleConfig>
     >();
   });
 
   it("different L produce different core types", () => {
     type OtherLocale = "fr" | "de";
-    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppPathStrategyCore<TestAtlas, OtherLocale, AnyFmtProvider, SimpleConfig>
-    >();
+    expectTypeOf<
+      NextAppPathStrategyCore<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF, SimpleConfig>
+    >().not.toEqualTypeOf<NextAppPathStrategyCore<TestAtlas, OtherLocale, ResEquipment<TestAtlas>, EF, SimpleConfig>>();
   });
 
   it("different config types produce different core types", () => {
-    type OtherConfig = NextAppPathStrategyConfig<SimplePathAtlas, "lang">;
-    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, OtherConfig>
-    >();
+    type OtherConfig = NextAppPathStrategyConfig<TestAtlas, CKM, SKM, SimplePathAtlas, "lang">;
+    expectTypeOf<
+      NextAppPathStrategyCore<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF, SimpleConfig>
+    >().not.toEqualTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF, OtherConfig>>();
   });
 
-  it("different FP produce different core types", () => {
-    expectTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppPathStrategyCore<TestAtlas, TestLocale, EmptyFmtProvider, SimpleConfig>
-    >();
+  it("different KM produce different core types", () => {
+    type OtherE = ResEquipment<TestAtlas> & { readonly __km: "other" };
+    expectTypeOf<
+      NextAppPathStrategyCore<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF, SimpleConfig>
+    >().not.toEqualTypeOf<NextAppPathStrategyCore<TestAtlas, TestLocale, OtherE, EF, SimpleConfig>>();
   });
 });
 
@@ -293,9 +323,9 @@ describe("NextAppPathStrategyCore", () => {
 // ---------------------------------------------------------------------------
 
 describe("NextAppPathStrategyPathTranslator", () => {
-  it("is constructible with (AnyPathAtlasProvider, readonly string[], string, boolean, boolean)", () => {
+  it("is constructible with (AnyPathAtlas, readonly string[], string, boolean, boolean)", () => {
     expectTypeOf(NextAppPathStrategyPathTranslator).toBeConstructibleWith(
-      {} as AnyPathAtlasProvider,
+      {} as AnyPathAtlas,
       ["en", "it"] as const,
       "en",
       true,
@@ -313,9 +343,9 @@ describe("NextAppPathStrategyPathTranslator", () => {
 // ---------------------------------------------------------------------------
 
 describe("NextAppPathStrategyPathCanonicalizer", () => {
-  it("is constructible with (AnyPathAtlasProvider, readonly string[], string, boolean)", () => {
+  it("is constructible with (AnyPathAtlas, readonly string[], string, boolean)", () => {
     expectTypeOf(NextAppPathStrategyPathCanonicalizer).toBeConstructibleWith(
-      {} as AnyPathAtlasProvider,
+      {} as AnyPathAtlas,
       ["en", "it"] as const,
       "en",
       false

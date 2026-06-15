@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
-import { defaultPathMatcher, validateServerOnlyUsage } from "#r-machine/next/internal";
+import { defaultPathMatcher } from "#r-machine/next/internal";
 import { createNextAppFlatServerImpl } from "../../../../src/core/app/flat/next-app-flat.server-impl.js";
 import type { AnyNextAppFlatStrategyConfig } from "../../../../src/core/app/flat/next-app-flat-strategy-core.js";
 import {
@@ -18,7 +18,7 @@ import {
 } from "../../../_fixtures/constants.js";
 import { createMockMachineForProxy } from "../../../_fixtures/mock-machine.js";
 import { createMockCookiesFn, createMockHeadersFn, createMockRequest } from "../../../_fixtures/mock-server-helpers.js";
-import type { AnyProxyFn, AnySupplierFn, MockRewriteArgs } from "../../../_fixtures/test-types.js";
+import type { AnyPathComposer, AnyProxyFn, MockRewriteArgs } from "../../../_fixtures/test-types.js";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -37,14 +37,6 @@ vi.mock("next/server", () => ({
     next: (...args: any[]) => mockNext(...args),
   },
 }));
-
-vi.mock("#r-machine/next/internal", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("#r-machine/next/internal")>();
-  return {
-    ...actual,
-    validateServerOnlyUsage: vi.fn(),
-  };
-});
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -381,7 +373,7 @@ describe("createNextAppFlatServerImpl", () => {
 
         expect(rMachine.localeHelper.matchLocalesForAcceptLanguageHeader).toHaveBeenCalledOnce();
         const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
-        expect(url.pathname).toBe("/en/");
+        expect(url.pathname).toBe("/en");
       });
 
       it("falls back to Accept-Language when no cookie is set", async () => {
@@ -392,7 +384,7 @@ describe("createNextAppFlatServerImpl", () => {
 
         expect(rMachine.localeHelper.matchLocalesForAcceptLanguageHeader).toHaveBeenCalledOnce();
         const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
-        expect(url.pathname).toBe("/en/");
+        expect(url.pathname).toBe("/en");
       });
 
       it("reads locale from a custom-named cookie", async () => {
@@ -433,7 +425,7 @@ describe("createNextAppFlatServerImpl", () => {
 
         expect(mockRewrite).toHaveBeenCalledOnce();
         const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
-        expect(url.pathname).toBe("/en/");
+        expect(url.pathname).toBe("/en");
       });
 
       it("rewrites nested paths correctly", async () => {
@@ -578,24 +570,13 @@ describe("createNextAppFlatServerImpl", () => {
   });
 
   // -----------------------------------------------------------------------
-  // createBoundPathComposerSupplier
+  // createPathComposer
   // -----------------------------------------------------------------------
 
-  describe("createBoundPathComposerSupplier", () => {
-    it("ensures getPathComposer is restricted to server-only usage", async () => {
+  describe("createPathComposer", () => {
+    it("returns a callable path composer", async () => {
       const { impl } = await createImpl();
-      const supplier = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-
-      await supplier();
-
-      expect(validateServerOnlyUsage).toHaveBeenCalledWith("getPathComposer");
-    });
-
-    it("supplies a callable path composer", async () => {
-      const { impl } = await createImpl();
-      const supplier = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-
-      const composer = await supplier();
+      const composer = impl.createPathComposer("en");
 
       expect(typeof composer).toBe("function");
     });
@@ -603,10 +584,8 @@ describe("createNextAppFlatServerImpl", () => {
     it("composer translates static paths for the current locale", async () => {
       const { impl } = await createImpl({ atlas: aboutAtlas });
 
-      const supplierEn = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-      const supplierIt = impl.createBoundPathComposerSupplier(async () => "it") as AnySupplierFn;
-      const composerEn = await supplierEn();
-      const composerIt = await supplierIt();
+      const composerEn = impl.createPathComposer("en") as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerEn("/about")).toBe("/about");
       expect(composerIt("/about")).toBe("/chi-siamo");
@@ -615,10 +594,8 @@ describe("createNextAppFlatServerImpl", () => {
     it("composer substitutes params in dynamic paths", async () => {
       const { impl } = await createImpl({ atlas: productsAtlas });
 
-      const supplierEn = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-      const supplierIt = impl.createBoundPathComposerSupplier(async () => "it") as AnySupplierFn;
-      const composerEn = await supplierEn();
-      const composerIt = await supplierIt();
+      const composerEn = impl.createPathComposer("en") as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerEn("/products/[id]", { id: "99" })).toBe("/products/99");
       expect(composerIt("/products/[id]", { id: "99" })).toBe("/prodotti/99");
@@ -627,8 +604,7 @@ describe("createNextAppFlatServerImpl", () => {
     it("composer handles nested paths", async () => {
       const { impl } = await createImpl({ atlas: aboutWithTeamAtlas });
 
-      const supplier = impl.createBoundPathComposerSupplier(async () => "it") as AnySupplierFn;
-      const composer = await supplier();
+      const composer = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composer("/about/team")).toBe("/chi-siamo/staff");
     });
@@ -636,8 +612,7 @@ describe("createNextAppFlatServerImpl", () => {
     it("composer handles root path", async () => {
       const { impl } = await createImpl();
 
-      const supplier = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-      const composer = await supplier();
+      const composer = impl.createPathComposer("en");
 
       expect(composer("/")).toBe("/");
     });
@@ -645,10 +620,8 @@ describe("createNextAppFlatServerImpl", () => {
     it("composer handles catch-all paths with array params", async () => {
       const { impl } = await createImpl({ atlas: docsWithCatchAllAtlas });
 
-      const supplierEn = impl.createBoundPathComposerSupplier(async () => "en") as AnySupplierFn;
-      const supplierIt = impl.createBoundPathComposerSupplier(async () => "it") as AnySupplierFn;
-      const composerEn = await supplierEn();
-      const composerIt = await supplierIt();
+      const composerEn = impl.createPathComposer("en") as AnyPathComposer;
+      const composerIt = impl.createPathComposer("it") as AnyPathComposer;
 
       expect(composerEn("/docs/[...slug]", { slug: ["getting-started", "install"] })).toBe(
         "/docs/getting-started/install"
@@ -656,6 +629,24 @@ describe("createNextAppFlatServerImpl", () => {
       expect(composerIt("/docs/[...slug]", { slug: ["getting-started", "install"] })).toBe(
         "/documenti/getting-started/install"
       );
+    });
+
+    it("path composer delegates to pathTranslator for path resolution", async () => {
+      const atlas = aboutAtlas;
+      const rMachine = createMockMachineForProxy();
+      const strategyConfig = createMockStrategyConfig();
+      const pathCanonicalizer = new HrefCanonicalizer(atlas, [...locales], defaultLocale);
+
+      const pathTranslatorGet = vi.fn().mockReturnValue({ value: "/custom-path", dynamic: false });
+      const pathTranslator = { get: pathTranslatorGet } as unknown as HrefTranslator;
+
+      const impl = await createNextAppFlatServerImpl(rMachine, strategyConfig, pathTranslator, pathCanonicalizer);
+
+      const composer = impl.createPathComposer("it") as AnyPathComposer;
+      const result = composer("/about");
+
+      expect(pathTranslatorGet).toHaveBeenCalledWith("it", "/about", undefined);
+      expect(result).toBe("/custom-path");
     });
   });
 });

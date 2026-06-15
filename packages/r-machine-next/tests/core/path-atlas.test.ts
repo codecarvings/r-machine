@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import type { AnyPathAtlasProvider } from "../../src/core/path-atlas.js";
+import type { AnyPathAtlas, AnySegment } from "../../src/core/path-atlas.js";
 import { buildPathAtlas } from "../../src/core/path-atlas.js";
 
-function createPathAtlasClass(decl: object): new () => AnyPathAtlasProvider {
+function createPathAtlasClass(segment: AnySegment): new () => AnyPathAtlas {
   return class {
-    readonly decl = decl;
+    readonly segment = segment;
   };
 }
 
-function build(decl: object, allowTranslation = true) {
-  return buildPathAtlas(createPathAtlasClass(decl), allowTranslation);
+function build(segment: AnySegment, allowTranslation = true) {
+  return buildPathAtlas(createPathAtlasClass(segment), allowTranslation);
 }
 
 describe("buildPathAtlas", () => {
@@ -51,7 +51,7 @@ describe("buildPathAtlas", () => {
 
     it("reports correct number of top-level segments", () => {
       const atlas = build({ "/about": {}, "/contact": {}, "/products": {} });
-      expect(Object.keys(atlas.decl)).toHaveLength(3);
+      expect(Object.keys(atlas.segment)).toHaveLength(3);
     });
   });
 
@@ -259,13 +259,13 @@ describe("buildPathAtlas", () => {
   describe("edge cases", () => {
     it("treats malformed dynamic-like segments as static", () => {
       const atlas = build({ "/[incomplete": {}, "/incomplete]": {} });
-      expect(Object.keys(atlas.decl)).toHaveLength(2);
+      expect(Object.keys(atlas.segment)).toHaveLength(2);
     });
 
     it("returns the same instance that was created", () => {
-      const PAP = createPathAtlasClass({ "/about": {} });
-      const atlas = buildPathAtlas(PAP, true);
-      expect(atlas).toBeInstanceOf(PAP);
+      const PAD = createPathAtlasClass({ "/about": {} });
+      const atlas = buildPathAtlas(PAD, true);
+      expect(atlas).toBeInstanceOf(PAD);
     });
   });
 
@@ -330,11 +330,11 @@ describe("buildPathAtlas", () => {
     });
 
     it("preserves original PathAtlas instance properties", () => {
-      const decl = { "/about": { it: "/chi-siamo" } };
-      const PAP = createPathAtlasClass(decl);
-      const atlas = buildPathAtlas(PAP, true);
-      expect(atlas).toBeInstanceOf(PAP);
-      expect(atlas.decl).toEqual(decl);
+      const seg = { "/about": { it: "/chi-siamo" } };
+      const PAD = createPathAtlasClass(seg);
+      const atlas = buildPathAtlas(PAD, true);
+      expect(atlas).toBeInstanceOf(PAD);
+      expect(atlas.segment).toEqual(seg);
       expect(atlas.containsTranslations).toBe(true);
     });
   });

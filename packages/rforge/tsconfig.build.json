@@ -1,0 +1,14 @@
+{
+  "extends": "../../configs/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": ".",
+    "declaration": true,
+    "customConditions": ["@r-machine/source"],
+    "types": ["node"],
+    "paths": {
+      "#rforge": ["./src/lib"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

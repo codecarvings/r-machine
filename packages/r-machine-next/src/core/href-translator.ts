@@ -20,7 +20,7 @@ import {
   type MappedHrefResult,
   type MappedPath,
   type MappedSegment,
-  type PathAtlasSegment,
+  type SegmentNode,
 } from "./href-mapper.js";
 
 type HrefTranslatorFn = (locale: AnyLocale, path: string, params?: object) => MappedHrefResult;
@@ -31,7 +31,7 @@ export class HrefTranslator extends HrefMapper<HrefTranslatorFn> {
     let mappedPath = mappedPathCache.get(path);
     if (mappedPath === undefined) {
       mappedPath = this.internalCompute(locale, path);
-      if (mappedPath.decl) {
+      if (mappedPath.declared) {
         // Cache only fully declared paths
         mappedPathCache.set(path, mappedPath);
       }
@@ -50,27 +50,27 @@ export class HrefTranslator extends HrefMapper<HrefTranslatorFn> {
 
     const inSegments = path.split("/").filter((s) => s.length !== 0);
     if (inSegments.length === 0) {
-      return { decl: true, dynamic: false, segments: [] };
+      return { declared: true, dynamic: false, segments: [] };
     }
 
     const outSegments: MappedSegment[] = [];
-    let pathDecl = true;
+    let pathDeclared = true;
     let dynamicFound = false;
 
-    let curSegment: PathAtlasSegment | undefined = this.segmentDataTree;
+    let curSegment: SegmentNode | undefined = this.segmentTree;
     function populateOutSegments(deep: number) {
       const inSegment = inSegments[deep];
-      const childSegment: PathAtlasSegment | undefined = curSegment?.children[inSegment];
+      const childSegment: SegmentNode | undefined = curSegment?.children[inSegment];
       if (childSegment !== undefined) {
         // Matching child segment found
         curSegment = childSegment;
         if (curSegment.paramKey !== undefined) {
           // Dynamic segment
-          outSegments.push({ decl: true, segment: curSegment.paramKey, kind: curSegment.kind! });
+          outSegments.push({ declared: true, segment: curSegment.paramKey, kind: curSegment.kind! });
           dynamicFound = true;
         } else {
           // Static segment
-          outSegments.push({ decl: true, segment: curSegment.translations[locale], kind: "static" });
+          outSegments.push({ declared: true, segment: curSegment.translations[locale], kind: "static" });
         }
       } else {
         // No matching child segment, use input segment as-is
@@ -78,13 +78,13 @@ export class HrefTranslator extends HrefMapper<HrefTranslatorFn> {
         const { kind, paramKey } = getSegmentData(inSegment);
         if (paramKey !== undefined) {
           // Dynamic segment
-          outSegments.push({ decl: false, segment: paramKey, kind: kind! });
+          outSegments.push({ declared: false, segment: paramKey, kind: kind! });
           dynamicFound = true;
         } else {
           // Static segment
-          outSegments.push({ decl: false, segment: inSegment, kind: "static" });
+          outSegments.push({ declared: false, segment: inSegment, kind: "static" });
         }
-        pathDecl = false;
+        pathDeclared = false;
       }
       if (deep < inSegments.length - 1) {
         populateOutSegments(deep + 1);
@@ -93,7 +93,7 @@ export class HrefTranslator extends HrefMapper<HrefTranslatorFn> {
     populateOutSegments(0);
 
     return {
-      decl: pathDecl,
+      declared: pathDeclared,
       dynamic: dynamicFound,
       segments: outSegments,
     };
@@ -141,11 +141,12 @@ export function getTranslatedHref(
             );
           }
         }
-      } else
+      } else {
         throw new RMachineUsageError(
           ERR_PATH_TRANSLATION_FAILED,
           `Cannot translate path "${path}" for locale "${locale}" because parameter "${mappedSegment.segment}" is missing.`
         );
+      }
     }
   });
 

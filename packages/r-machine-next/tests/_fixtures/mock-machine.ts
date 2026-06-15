@@ -1,34 +1,120 @@
-import type { AnyFmtProvider, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import {
+  type AnyResAtlas,
+  type ExperimentalFlags,
+  PLUG_MACHINE_ACCESSOR,
+  PROCESS_SCOPE_PROVIDER,
+  type ResEquipment,
+  type ResLayoutEntryType,
+  TestMode,
+  type Wire,
+} from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError } from "r-machine/errors";
+import type { MockInstance } from "vitest";
 import { vi } from "vitest";
 import type { TestLocale } from "./constants.js";
+import { createFakeWire } from "./fake-wire.js";
 
-export type TestAtlas = {
+export interface TestAtlas extends AnyResAtlas {
   readonly common: { readonly greeting: string };
   readonly nav: { readonly home: string };
-};
+  // No inner gears — lets the React-backed client toolset type-check (its guard
+  // rejects atlases that declare `gear:inner` entries).
+  readonly "let@gear:inner": {};
+}
 
 export const VALID_LOCALES = new Set(["en", "it"]);
 
-export interface MockMachineOverrides<L extends string = TestLocale> {
-  defaultLocale?: NoInfer<L>;
-  locales?: readonly L[];
-  hybridPickR?: (locale: string, namespace: string) => unknown;
-  hybridPickRKit?: (locale: string, ...namespaces: string[]) => unknown;
-  pickR?: (locale: string, namespace: string) => Promise<unknown>;
-  pickRKit?: (locale: string, ...namespaces: string[]) => Promise<unknown>;
-  fmt?: (locale: string) => unknown;
+/** Default per-namespace surface resolver — tests override for specific shapes. */
+const defaultResolve = (ns: string): unknown => ({ ns });
+
+export interface MockMachineSpies {
+  readonly getGatePlugin: MockInstance;
+  readonly getWire: MockInstance;
+  readonly resolveLayoutEntryType: MockInstance;
+  readonly localeHelper: {
+    readonly validateLocale: MockInstance;
+    readonly matchLocalesForAcceptLanguageHeader: MockInstance;
+  };
+  readonly requestScope: {
+    readonly installProvider: MockInstance;
+    readonly dispose: MockInstance;
+    readonly getProvider: MockInstance;
+  };
 }
 
-export function createMockMachine<L extends string = TestLocale>(overrides: MockMachineOverrides<L> = {}) {
-  const locales = overrides.locales ?? (["en", "it"] as const);
-  const defaultLocale = overrides.defaultLocale ?? "en";
+export interface CreateMockMachineOptions<L extends string = TestLocale> {
+  readonly defaultLocale?: NoInfer<L>;
+  readonly locales?: readonly L[];
+  /** Maps a (namespace, locale) to the surface a Plug resolves for it. */
+  readonly resolve?: (ns: string, locale: string) => unknown;
+  /** Which namespaces are treated as vertex (drives per-consumer wire caching). */
+  readonly resolveLayoutEntryType?: (ns: string) => ResLayoutEntryType;
+  /** Replace getWire wholesale (e.g. to inject a pending/controllable wire). */
+  readonly getWire?: (...args: unknown[]) => Wire;
+  /** Replace getGatePlugin wholesale (the single-shot, server-side resolve). */
+  readonly getGatePlugin?: (...args: unknown[]) => Promise<unknown>;
+  readonly matchLocalesForAcceptLanguageHeader?: (header: string | null) => NoInfer<L>;
+}
+
+/**
+ * Build the plugin the way RM does: assemble `$ = { kit }`, let the adapter's
+ * augmentCtx layer on `$.locale`/`$.setLocale`/`$.getPath`/`$.params`, then
+ * assemble the plugin (`[...deps, $]` for list, `{ ...kit, ...deps, $ }` for map).
+ */
+function buildPlugin(
+  resolve: (ns: string, locale: string) => unknown,
+  kit: Record<string, string>,
+  nsDeps: string[] | Record<string, string>,
+  locale: string,
+  augmentCtx: ($: Record<string, unknown>) => void
+): unknown {
+  const kitSurfaces: Record<string, unknown> = {};
+  for (const k in kit) {
+    kitSurfaces[k] = resolve(kit[k] as string, locale);
+  }
+
+  const $: Record<string, unknown> = { kit: kitSurfaces };
+  augmentCtx($);
+
+  if (Array.isArray(nsDeps)) {
+    return [...nsDeps.map((ns) => resolve(ns, locale)), $];
+  }
+  const depSurfaces: Record<string, unknown> = {};
+  for (const key in nsDeps) {
+    depSurfaces[key] = resolve(nsDeps[key] as string, locale);
+  }
+  return { ...kitSurfaces, ...depSurfaces, $ };
+}
+
+export function createMockMachine<L extends string = TestLocale>(
+  overrides: CreateMockMachineOptions<L> = {}
+): RMachine<TestAtlas, L, ResEquipment<TestAtlas>, ExperimentalFlags> {
+  const resolve = overrides.resolve ?? defaultResolve;
+  const locales = overrides.locales ?? (["en", "it"] as unknown as readonly L[]);
+  const defaultLocale = overrides.defaultLocale ?? ("en" as L);
+
+  // Default wire: settled, so client consumers don't suspend.
+  const defaultGetWire = (
+    kit: Record<string, string>,
+    nsDeps: string[] | Record<string, string>,
+    locale: string,
+    augmentCtx: ($: Record<string, unknown>) => void
+  ): Wire => createFakeWire(buildPlugin(resolve, kit, nsDeps, locale, augmentCtx)).wire;
+
+  // Default single-shot resolve mirrors getGatePlugin's contract on the server.
+  const defaultGetGatePlugin = (
+    kit: Record<string, string>,
+    nsDeps: string[] | Record<string, string>,
+    locale: string,
+    augmentCtx: ($: Record<string, unknown>) => void
+  ): Promise<unknown> => Promise.resolve(buildPlugin(resolve, kit, nsDeps, locale, augmentCtx));
 
   return {
-    locales,
     defaultLocale,
-    config: { defaultLocale, locales },
     localeHelper: {
+      locales,
+      defaultLocale,
       validateLocale: vi.fn((locale: string) =>
         VALID_LOCALES.has(locale)
           ? null
@@ -37,27 +123,67 @@ export function createMockMachine<L extends string = TestLocale>(overrides: Mock
               `Locale "${locale}" is invalid or is not in the list of locales.`
             )
       ),
+      matchLocalesForAcceptLanguageHeader: vi.fn(
+        overrides.matchLocalesForAcceptLanguageHeader ?? (() => defaultLocale)
+      ),
     },
-    hybridPickR: vi.fn(overrides.hybridPickR ?? (() => ({ greeting: "hello" }))),
-    hybridPickRKit: vi.fn(overrides.hybridPickRKit ?? (() => [{ greeting: "hello" }, { home: "Home" }])),
-    pickR: vi.fn(overrides.pickR ?? (() => Promise.resolve({ greeting: "hello" }))),
-    pickRKit: vi.fn(overrides.pickRKit ?? (() => Promise.resolve([{ greeting: "hello" }, { home: "Home" }]))),
-    fmt: vi.fn(overrides.fmt ?? (() => ({}))),
-  } as unknown as RMachine<TestAtlas, L, AnyFmtProvider>;
+    getWire: vi.fn(overrides.getWire ?? (defaultGetWire as never)),
+    getGatePlugin: vi.fn(overrides.getGatePlugin ?? (defaultGetGatePlugin as never)),
+    [PLUG_MACHINE_ACCESSOR]: { disposeResources: vi.fn(), testMode: new TestMode() },
+    // Default to non-vertex so plugs in tests use the shared wireCache path.
+    resolveLayoutEntryType: vi.fn(overrides.resolveLayoutEntryType ?? (() => "shell")),
+    requestScope: {
+      // No active request scope on the client — return the process-default
+      // provider so the React adapter falls back to its module-level wireCache.
+      getProvider: vi.fn(() => PROCESS_SCOPE_PROVIDER),
+      installProvider: vi.fn(),
+      dispose: vi.fn(),
+    },
+  } as unknown as RMachine<TestAtlas, L, ResEquipment<TestAtlas>, ExperimentalFlags>;
 }
 
+/**
+ * Lightweight machine for proxy / server-impl tests, which only consult
+ * `localeHelper` (locales, defaultLocale, matchLocalesForAcceptLanguageHeader)
+ * and never resolve a plugin.
+ */
 export function createMockMachineForProxy<L extends string = TestLocale>(
   overrides: { defaultLocale?: NoInfer<L>; locales?: readonly L[]; matchLocaleReturn?: NoInfer<L> | undefined } = {}
-) {
-  const dl = overrides.defaultLocale ?? "en";
-  const locales = overrides.locales ?? (["en", "it"] as const);
+): RMachine<TestAtlas, L, ResEquipment<TestAtlas>, ExperimentalFlags> {
+  const dl = overrides.defaultLocale ?? ("en" as L);
+  const locales = overrides.locales ?? (["en", "it"] as unknown as readonly L[]);
 
   return {
-    locales,
     defaultLocale: dl,
-    config: { defaultLocale: dl, locales },
     localeHelper: {
+      locales,
+      defaultLocale: dl,
+      validateLocale: vi.fn((locale: string) =>
+        VALID_LOCALES.has(locale)
+          ? null
+          : new RMachineConfigError(
+              ERR_UNKNOWN_LOCALE,
+              `Locale "${locale}" is invalid or is not in the list of locales.`
+            )
+      ),
       matchLocalesForAcceptLanguageHeader: vi.fn(() => overrides.matchLocaleReturn ?? dl),
     },
-  } as unknown as RMachine<TestAtlas, L, AnyFmtProvider>;
+    [PLUG_MACHINE_ACCESSOR]: { disposeResources: vi.fn(), testMode: new TestMode() },
+  } as unknown as RMachine<TestAtlas, L, ResEquipment<TestAtlas>, ExperimentalFlags>;
 }
+
+/**
+ * Type-safe cast to access vi.fn() spies on a mock machine for assertions.
+ * Keeping createMockMachine's return type as plain RMachine<TestAtlas, …>
+ * preserves generic inference at the create*Toolset(...) call site; this
+ * helper exposes the underlying vi.fn() mocks for assertions only.
+ */
+export function spies(
+  machine: RMachine<TestAtlas, AnyLocaleArg, ResEquipment<TestAtlas>, ExperimentalFlags>
+): MockMachineSpies {
+  return machine as unknown as MockMachineSpies;
+}
+
+// Loosely-typed locale arg for the spies() accessor — keeps callers from
+// having to thread their concrete L through just to read mocks.
+type AnyLocaleArg = string;

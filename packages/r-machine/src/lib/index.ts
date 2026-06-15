@@ -11,19 +11,10 @@
  * contact: licensing@codecarvings.com
  */
 
-export {
-  type AnyFmtProvider,
-  type EmptyFmtProvider,
-  EmptyFmtProviderCtor,
-  type ExtractFmt,
-} from "./fmt.js";
-export { FormattersSeed } from "./formatters-seed.js";
-export type { AnyNamespace, AnyR, AnyResourceAtlas, Namespace, R } from "./r.js";
-export type { AnyNamespaceList, AnyRKit, NamespaceList, RKit } from "./r-kit.js";
-export {
-  RMachine,
-  type RMachineLocale,
-  type RMachineRCtx,
-} from "./r-machine.js";
-export type { RMachineConfig, RMachineConfigParams } from "./r-machine-config.js";
-export type { RCtx } from "./r-module.js";
+export { getResolveContext } from "../core/resolve-context.js";
+export type { BrandedResource } from "./branded-resource.js";
+export { enableRMachineDevMode } from "./dev-mode.js";
+export { dispose } from "./dispose.js";
+export { defineLayout } from "./layout.js";
+export { RMachine, type RMachineLocale } from "./r-machine.js";
+export { CONFIG_ACCESSOR, type RMachineConfig } from "./r-machine-config.js";

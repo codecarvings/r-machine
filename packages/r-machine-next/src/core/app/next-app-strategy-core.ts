@@ -11,65 +11,109 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags, SwitchableOption } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
-import { Strategy, type SwitchableOption } from "r-machine/strategy";
-import type { AnyPathAtlasProvider, ExtendedPathAtlasProvider, PathAtlasProviderCtor } from "#r-machine/next/core";
+import { Strategy } from "r-machine/strategy";
+import type {
+  AnyPathAtlas,
+  BuiltPathAtlas,
+  NextClientPlugKitMap,
+  NextServerPlugKitMap,
+  PathAtlasClass,
+} from "#r-machine/next/core";
 import type { NextAppClientImpl, NextAppClientRMachine, NextAppClientToolset } from "./next-app-client-toolset.js";
 import type { NextAppServerImpl, NextAppServerToolset } from "./next-app-server-toolset.js";
 
 export const localeHeaderName = "x-rm-locale";
 
-export interface NextAppStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string> {
-  readonly PathAtlas: PathAtlasProviderCtor<PAP>;
+export interface NextAppStrategyConfig<
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+> {
+  readonly clientKit: CKM;
+  readonly serverKit: SKM;
+  readonly PathAtlas: PathAtlasClass<PA>;
   readonly localeKey: LK;
   readonly autoLocaleBinding: SwitchableOption;
   readonly basePath: string;
+  /**
+   * Enable coexistence with React Compiler in client components. When `on`,
+   * reactive surfaces from `ClientPlug(...).useR()` are handed a fresh identity
+   * per reactive re-render so the compiler re-evaluates the reading scopes. Off
+   * by default and DISCOURAGED — R-Machine reactivity is already read-driven, so
+   * the compiler adds little while this wrapping adds overhead.
+   */
+  readonly reactCompiler: SwitchableOption;
 }
-export type AnyNextAppStrategyConfig = NextAppStrategyConfig<any, any>;
-export interface PartialNextAppStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string> {
-  readonly PathAtlas?: PathAtlasProviderCtor<PAP>;
+export type AnyNextAppStrategyConfig = NextAppStrategyConfig<any, any, any, any, any>;
+export interface NextAppStrategyConfigParams<
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+> {
+  readonly clientKit?: CKM;
+  readonly serverKit?: SKM;
+  readonly PathAtlas?: PathAtlasClass<PA>;
   readonly localeKey?: LK;
   readonly autoLocaleBinding?: SwitchableOption;
   readonly basePath?: string;
+  readonly reactCompiler?: SwitchableOption;
 }
 
-// Need to export otherwise TS will expose the type as { decl: any; }
+const defaultKit = {} as const;
+// Need to export otherwise TS will expose the type as { segment: any; }
 export class DefaultPathAtlas {
-  readonly decl: any = {};
+  readonly segment: any = {};
 }
 const defaultLocaleKey = "locale" as const;
-const defaultConfig: NextAppStrategyConfig<DefaultPathAtlas, typeof defaultLocaleKey> = {
+const defaultConfig: NextAppStrategyConfig<
+  AnyResAtlas,
+  typeof defaultKit,
+  typeof defaultKit,
+  DefaultPathAtlas,
+  typeof defaultLocaleKey
+> = {
+  clientKit: defaultKit,
+  serverKit: defaultKit,
   PathAtlas: DefaultPathAtlas,
   localeKey: defaultLocaleKey,
   autoLocaleBinding: "off",
   basePath: "",
+  reactCompiler: "off",
 };
 
 export abstract class NextAppStrategyCore<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
   C extends AnyNextAppStrategyConfig,
-> extends Strategy<RA, L, FP, C> {
+> extends Strategy<RA, L, E, EF, C> {
   static readonly defaultConfig = defaultConfig;
 
-  protected abstract readonly pathAtlas: ExtendedPathAtlasProvider<InstanceType<C["PathAtlas"]>>;
+  protected abstract readonly pathAtlas: BuiltPathAtlas<InstanceType<C["PathAtlas"]>>;
 
   protected abstract createClientImpl(): Promise<NextAppClientImpl<L>>;
   protected abstract createServerImpl(): Promise<NextAppServerImpl<L, C["localeKey"]>>;
 
-  async createClientToolset(): Promise<NextAppClientToolset<RA, L, FP, InstanceType<C["PathAtlas"]>>> {
+  async createClientToolset(): Promise<NextAppClientToolset<RA, L, EF, C["clientKit"], InstanceType<C["PathAtlas"]>>> {
     const impl = await this.createClientImpl();
     const module = await import("./next-app-client-toolset.js");
-    return module.createNextAppClientToolset(this.rMachine, impl);
+    return module.createNextAppClientToolset(this.rMachine, this.config.clientKit, impl, {
+      reactCompiler: this.config.reactCompiler === "on",
+    });
   }
 
   async createServerToolset(
     NextClientRMachine: NextAppClientRMachine<L>
-  ): Promise<NextAppServerToolset<RA, L, FP, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
+  ): Promise<NextAppServerToolset<RA, L, C["serverKit"], InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     const impl = await this.createServerImpl();
     const module = await import("./next-app-server-toolset.js");
-    return module.createNextAppServerToolset(this.rMachine, impl, NextClientRMachine);
+    return module.createNextAppServerToolset(this.rMachine, this.config.serverKit, impl, NextClientRMachine);
   }
 }

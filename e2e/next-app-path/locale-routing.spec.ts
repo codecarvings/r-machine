@@ -5,42 +5,48 @@ test.describe("Next.js path strategy — locale routing", () => {
     const response = await page.goto("/");
     // The default locale (en) is served implicitly at the root — no /en prefix
     expect(response?.status()).toBe(200);
-    await expect(page.getByRole("heading", { name: "Type-Safe i18n for Modern Applications" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Locale Routing with R-Machine" })).toBeVisible();
   });
 
   test("renders English content at /en", async ({ page }) => {
     await page.goto("/en");
-    await expect(page.getByRole("heading", { name: "Type-Safe i18n for Modern Applications" })).toBeVisible();
-    await expect(page.getByText("Why R-Machine?")).toBeVisible();
-    await expect(page.getByText("Type-Safe Translations")).toBeVisible();
-    await expect(page.getByText("Minimal Runtime Cost")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Locale Routing with R-Machine" })).toBeVisible();
+    // Strategy badge (from base/config.strategyName)
+    await expect(page.getByText("Path strategy", { exact: true })).toBeVisible();
+    // Gear-driven landing renders
+    await expect(page.getByText("Client gear state")).toBeVisible();
+    await expect(page.getByText("Try the routing")).toBeVisible();
   });
 
   test("renders Italian content at /it", async ({ page }) => {
     await page.goto("/it");
-    await expect(page.getByRole("heading", { name: "i18n Type-Safe per Applicazioni Moderne" })).toBeVisible();
-    await expect(page.getByText("Perché R-Machine?")).toBeVisible();
-    await expect(page.getByText("Traduzioni Type-Safe")).toBeVisible();
-    await expect(page.getByText("Minimo Costo Runtime")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Routing del Locale con R-Machine" })).toBeVisible();
+    await expect(page.getByText("Stato del gear client")).toBeVisible();
+    await expect(page.getByText("Prova il routing")).toBeVisible();
   });
 
   test("switches locale via UI", async ({ page }) => {
     await page.goto("/en");
-    await expect(page.getByRole("heading", { name: "Type-Safe i18n for Modern Applications" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Locale Routing with R-Machine" })).toBeVisible();
 
     // Wait for the locale switcher to be hydrated, then open the dropdown
     const switcher = page.locator("#locale-switcher-button");
     await expect(switcher).toBeVisible();
-    await switcher.click();
 
-    // Wait for the dropdown to appear and select Italian
+    // The trigger is server-rendered and visible before React/Radix hydrates,
+    // so an early click can be dropped. Retry opening until the menu appears.
     const italianOption = page.getByRole("menuitem", { name: "Italiano" });
-    await expect(italianOption).toBeVisible();
+    await expect(async () => {
+      if (!(await italianOption.isVisible())) {
+        await switcher.click();
+      }
+      await expect(italianOption).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10_000 });
     await italianOption.click();
 
     // Should navigate to /it with Italian content
     await expect(page).toHaveURL(/\/it/);
-    await expect(page.getByRole("heading", { name: "i18n Type-Safe per Applicazioni Moderne" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Routing del Locale con R-Machine" })).toBeVisible();
   });
 
   test("translates paths per locale", async ({ page }) => {
@@ -72,13 +78,13 @@ test.describe("Next.js path strategy — locale routing", () => {
     expect(page.url()).not.toMatch(/\/(en|it)\/hello-world/);
   });
 
-  test("API route sets locale cookie", async ({ page, context }) => {
+  test("API route sets locale cookie", async ({ page }) => {
     // Visit the set-italian API route
     await page.goto("/set-italian");
 
     // Now navigating to root should redirect to Italian
     await page.goto("/");
     await expect(page).toHaveURL(/\/it/);
-    await expect(page.getByRole("heading", { name: "i18n Type-Safe per Applicazioni Moderne" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Routing del Locale con R-Machine" })).toBeVisible();
   });
 });

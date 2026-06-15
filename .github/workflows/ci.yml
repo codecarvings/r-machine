@@ -32,5 +32,8 @@ jobs:
         run: pnpm test:e2e
 
       - name: Run Check
-        run: pnpm check
+        # Use the non-writing variant so the job FAILS on format/lint drift.
+        # `pnpm check` is `biome check --write .`, which auto-fixes safe issues
+        # (all format drift) in the ephemeral checkout and exits 0 — no gating.
+        run: pnpm check:dry
 

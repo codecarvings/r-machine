@@ -2,6 +2,7 @@
   "mode": "pre",
   "tag": "alpha",
   "initialVersions": {
+    "@r-machine/examples-next": "0.0.0",
     "@r-machine/examples-next-with-app-flat-strategy": "0.0.0",
     "@r-machine/examples-next-with-app-origin-strategy": "0.0.0",
     "@r-machine/examples-next-with-app-path-strategy": "0.0.0",
@@ -9,7 +10,9 @@
     "@r-machine/examples-react": "0.0.0",
     "r-machine": "1.0.0-alpha.1",
     "@r-machine/next": "1.0.0-alpha.1",
-    "@r-machine/react": "1.0.0-alpha.1"
+    "@r-machine/react": "1.0.0-alpha.1",
+    "@r-machine/testing": "1.0.0-alpha.1",
+    "rforge": "1.0.0-alpha.1"
   },
   "changesets": [
     "bold-lions-march",

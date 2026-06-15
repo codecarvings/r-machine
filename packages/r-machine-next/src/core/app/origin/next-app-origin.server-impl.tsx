@@ -13,29 +13,30 @@
 
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
-import { type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
-import type { NextAppServerImpl } from "../next-app-server-toolset.js";
-import { localeHeaderName } from "../next-app-strategy-core.js";
+import { localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
+import type { NextProxyResult } from "#r-machine/next/internal";
 import type { AnyNextAppOriginStrategyConfig } from "./next-app-origin-strategy-core.js";
 
 const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
 
 export async function createNextAppOriginServerImpl<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
   C extends AnyNextAppOriginStrategyConfig,
 >(
-  rMachine: RMachine<RA, L, FP>,
+  rMachine: RMachine<RA, L, E, EF>,
   strategyConfig: C,
   pathTranslator: HrefTranslator,
   urlTranslator: HrefTranslator,
   pathCanonicalizer: HrefCanonicalizer
 ) {
-  const { locales, defaultLocale } = rMachine;
+  const { locales, defaultLocale } = rMachine.localeHelper;
   const { autoLocaleBinding, localeOriginMap, pathMatcher } = strategyConfig;
   const localeKey = strategyConfig.localeKey as C["localeKey"]; // Type assertion needed to use localeKey in a typed way, since it's not a generic parameter of the strategy core class
   const autoLBSw = autoLocaleBinding === "on";
@@ -76,7 +77,9 @@ export async function createNextAppOriginServerImpl<
         const newUrl = request.nextUrl.clone();
         // Reconstruct canonical URL
         const canonicalPath = pathCanonicalizer.get(locale, path);
-        newUrl.pathname = `/${locale!}${canonicalPath.value}`;
+        // Avoid a trailing slash for the locale root ("/") to keep the rewritten
+        // pathname consistent with the redirect/href forms (no "/en/" vs "/en").
+        newUrl.pathname = canonicalPath.value === "/" ? `/${locale!}` : `/${locale!}${canonicalPath.value}`;
 
         const changeHeaders = autoLBSw || !canonicalPath.dynamic;
         if (!changeHeaders) {
@@ -125,14 +128,21 @@ export async function createNextAppOriginServerImpl<
             }
 
             if (locale === undefined) {
-              // Origin not found in map, use default locale
+              // Origin not found in map: fall back to the default locale, but do
+              // NOT cache it. The cache key derives from the client-controllable
+              // `Host` header, so caching misses would let arbitrary hosts grow
+              // `originCacheMap` without bound (a memory-exhaustion vector). The
+              // miss path is cheap anyway (a loop over the small `localeOriginMap`),
+              // so skipping the cache costs nothing while keeping the map bounded
+              // to the number of known origins.
               locale = defaultLocale;
+            } else {
+              // Known origin → safe to cache (bounded by `localeOriginMap` size).
+              originCacheMap.set(origin, locale);
             }
-
-            originCacheMap.set(origin, locale!);
           }
 
-          return rewriteToCanonicalLocalePath(request, locale, pathname);
+          return rewriteToCanonicalLocalePath(request, locale!, pathname);
         }
 
         // Irrelevant URL, do not proxy
@@ -142,13 +152,6 @@ export async function createNextAppOriginServerImpl<
       return proxy;
     },
 
-    createBoundPathComposerSupplier: (getLocale) => {
-      return async () => {
-        validateServerOnlyUsage("getPathComposer");
-        const locale = await getLocale();
-
-        return (path, params) => pathTranslator.get(locale, path, params).value;
-      };
-    },
+    createPathComposer: (locale) => (path, params) => pathTranslator.get(locale, path, params).value,
   } as NextAppServerImpl<L, C["localeKey"]>;
 }

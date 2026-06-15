@@ -9,7 +9,13 @@
       "#r-machine/next/internal": ["./src/internal"],
       "#r-machine/next/core": ["./src/core"],
       "#r-machine/next/core/app": ["./src/core/app"],
-      "#r-machine/next/app": ["./src/app"],
+      "#r-machine/next/core/app/flat": ["./src/core/app/flat"],
+      "#r-machine/next/core/app/origin": ["./src/core/app/origin"],
+      "#r-machine/next/core/app/path": ["./src/core/app/path"],
+      "#r-machine/next/app/flat": ["./src/app/flat"],
+      "#r-machine/next/app/origin": ["./src/app/origin"],
+      "#r-machine/next/app/path": ["./src/app/path"],
+      "#r-machine/next/dev": ["./src/dev"],
       "#r-machine/next": ["./src/lib"],
     }
   }

@@ -11,34 +11,44 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { CustomLocaleDetector, CustomLocaleStore } from "r-machine/strategy";
+import type { ReactPlugKitMap } from "./react-plug.js";
 import { createReactStandardImpl } from "./react-standard.impl.js";
-import { ReactStrategyCore } from "./react-strategy-core.js";
+import { type ReactStrategyConfig, type ReactStrategyConfigParams, ReactStrategyCore } from "./react-strategy-core.js";
 
-export interface ReactStandardStrategyConfig {
+export interface ReactStandardStrategyConfig<RA extends AnyResAtlas, KM extends ReactPlugKitMap<RA>>
+  extends ReactStrategyConfig<RA, KM> {
   readonly localeDetector: CustomLocaleDetector | undefined;
   readonly localeStore: CustomLocaleStore | undefined;
 }
-export interface PartialReactStandardStrategyConfig {
+export type AnyReactStandardStrategyConfig<RA extends AnyResAtlas = AnyResAtlas> = ReactStandardStrategyConfig<
+  RA,
+  ReactPlugKitMap<RA>
+>;
+export interface ReactStandardStrategyConfigParams<RA extends AnyResAtlas, KM extends ReactPlugKitMap<RA>>
+  extends ReactStrategyConfigParams<RA, KM> {
   readonly localeDetector?: CustomLocaleDetector | undefined;
   readonly localeStore?: CustomLocaleStore | undefined;
 }
 
-const defaultConfig: ReactStandardStrategyConfig = {
+const defaultConfig: AnyReactStandardStrategyConfig = {
+  ...ReactStrategyCore.defaultConfig,
   localeDetector: undefined,
   localeStore: undefined,
 };
 
 export abstract class ReactStandardStrategyCore<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
-> extends ReactStrategyCore<RA, L, FP, ReactStandardStrategyConfig> {
-  static readonly defaultConfig = defaultConfig;
+  E extends ResEquipment<RA>,
+  EF extends ExperimentalFlags,
+  C extends AnyReactStandardStrategyConfig<RA>,
+> extends ReactStrategyCore<RA, L, E, EF, C> {
+  static override readonly defaultConfig = defaultConfig;
 
   protected createImpl() {
-    return createReactStandardImpl<RA, L, FP>(this.rMachine, this.config);
+    return createReactStandardImpl<RA, L, E, EF, C>(this.rMachine, this.config);
   }
 }

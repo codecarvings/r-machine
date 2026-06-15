@@ -2,26 +2,16 @@ import { describe, expectTypeOf, it } from "vitest";
 import type { RMachineError } from "../../src/errors/r-machine-error.js";
 import { RMachineResolveError } from "../../src/errors/r-machine-resolve-error.js";
 
+// Subclass surface — see r-machine-config-error.test-d.ts for the rationale on
+// why only the inheritance link and constructor signature are pinned.
 describe("RMachineResolveError", () => {
-  it("should extend RMachineError", () => {
+  it("extends RMachineError", () => {
     expectTypeOf<RMachineResolveError>().toExtend<RMachineError>();
   });
 
-  it("should extend Error", () => {
-    expectTypeOf<RMachineResolveError>().toExtend<Error>();
-  });
-
-  it("should be constructable with code, message, and optional innerError", () => {
+  it("is constructable with (code, message, innerError?)", () => {
     expectTypeOf(RMachineResolveError).constructorParameters.toEqualTypeOf<
-      [code: string, message: string, innerError?: Error]
+      [code: string, message: string, innerError?: Error | undefined]
     >();
-  });
-
-  it("should have code property of type string", () => {
-    expectTypeOf<RMachineResolveError>().toHaveProperty("code").toEqualTypeOf<string>();
-  });
-
-  it("should have readonly innerError property", () => {
-    expectTypeOf<RMachineResolveError>().toHaveProperty("innerError").toEqualTypeOf<Error | undefined>();
   });
 });

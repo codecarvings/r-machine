@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useLocale, useSetLocale } from "@/r-machine/client-toolset";
+import { ClientPlug } from "@/r-machine/client-toolset";
 import type { Locale } from "@/r-machine/setup";
 
 const localeItems = {
@@ -17,20 +17,19 @@ const localeItems = {
   "it-IT": { name: "Italiano" },
 } as const;
 
+export const plug = ClientPlug();
 export function LocaleSwitcher() {
-  // Get the current locale and the function to change it
-  const locale = useLocale();
-  const setLocale = useSetLocale();
+  const { $ } = plug.useR();
 
-  const currentLocaleItem = localeItems[locale as keyof typeof localeItems];
+  const currentLocaleItem = localeItems[$.locale];
   const setLocaleAfterMenuClose = useCallback(
     (newLocale: Locale) => {
       setTimeout(() => {
         // Delay setting the locale to allow the dropdown to close smoothly
-        setLocale(newLocale);
+        $.setLocale(newLocale);
       }, 200);
     },
-    [setLocale]
+    [$.setLocale]
   );
 
   return (

@@ -1,16 +1,17 @@
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
-import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
+import type { AnyPathAtlas, BoundPathComposer, HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
 import type { NextAppClientImpl } from "#r-machine/next/core/app";
 import { createNextAppOriginClientImpl } from "../../../../src/core/app/origin/next-app-origin.client-impl.js";
 import type { AnyNextAppOriginStrategyConfig } from "../../../../src/core/app/origin/next-app-origin-strategy-core.js";
 
 describe("createNextAppOriginClientImpl", () => {
-  it("first parameter is RMachine<AnyResourceAtlas, AnyLocale, AnyFmtProvider>", () => {
+  it("first parameter is RMachine<AnyResourceAtlas, AnyLocale, NamespaceMap<AnyResourceAtlas>>", () => {
     expectTypeOf(createNextAppOriginClientImpl)
       .parameter(0)
-      .toEqualTypeOf<RMachine<AnyResourceAtlas, AnyLocale, AnyFmtProvider>>();
+      .toEqualTypeOf<RMachine<AnyResAtlas, AnyLocale, AnyResEquipment<AnyResAtlas>, ExperimentalFlags>>();
   });
 
   it("second parameter is AnyNextAppOriginStrategyConfig", () => {
@@ -60,5 +61,19 @@ describe("createNextAppOriginClientImpl", () => {
     type P2 = Parameters<typeof createNextAppOriginClientImpl>[2];
     type P4 = Parameters<typeof createNextAppOriginClientImpl>[4];
     expectTypeOf<P2>().not.toEqualTypeOf<P4>();
+  });
+});
+
+describe("NextAppClientImpl property types (origin)", () => {
+  it("onLoad is optional (undefined allowed)", () => {
+    type OnLoad = NextAppClientImpl<AnyLocale>["onLoad"];
+    expectTypeOf<undefined>().toExtend<OnLoad>();
+  });
+
+  it("createPathComposer accepts a locale and returns a BoundPathComposer", () => {
+    type Fn = NextAppClientImpl<AnyLocale>["createPathComposer"];
+    expectTypeOf<Fn>().toBeFunction();
+    expectTypeOf<Fn>().parameter(0).toEqualTypeOf<string>();
+    expectTypeOf<ReturnType<Fn>>().toEqualTypeOf<BoundPathComposer<AnyPathAtlas>>();
   });
 });

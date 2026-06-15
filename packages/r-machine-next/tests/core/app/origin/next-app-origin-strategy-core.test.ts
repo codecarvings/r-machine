@@ -1,4 +1,4 @@
-import type { AnyFmtProvider } from "r-machine";
+import type { ExperimentalFlags, ResEquipment } from "r-machine/core";
 import { RMachineConfigError } from "r-machine/errors";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
@@ -38,8 +38,11 @@ vi.mock("../../../../src/core/app/origin/next-app-origin.server-impl.js", () => 
 // Helpers
 // ---------------------------------------------------------------------------
 
-type SimpleConfig = NextAppOriginStrategyConfig<SimplePathAtlas, "locale">;
-type TranslatedConfig = NextAppOriginStrategyConfig<TranslatedPathAtlas, "locale">;
+type CKM = typeof NextAppOriginStrategyCore.defaultConfig.clientKit;
+type SKM = typeof NextAppOriginStrategyCore.defaultConfig.serverKit;
+type EF = ExperimentalFlags;
+type SimpleConfig = NextAppOriginStrategyConfig<TestAtlas, CKM, SKM, SimplePathAtlas, "locale">;
+type TranslatedConfig = NextAppOriginStrategyConfig<TestAtlas, CKM, SKM, TranslatedPathAtlas, "locale">;
 
 function createTestConfig(overrides?: Partial<SimpleConfig>): SimpleConfig {
   return {
@@ -53,7 +56,18 @@ function createTestConfig(overrides?: Partial<SimpleConfig>): SimpleConfig {
 function createTestStrategy(configOverrides?: Partial<SimpleConfig>) {
   const config = createTestConfig(configOverrides);
 
-  class TestOriginStrategy extends NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig> {}
+  class TestOriginStrategy extends NextAppOriginStrategyCore<
+    TestAtlas,
+    TestLocale,
+    ResEquipment<TestAtlas>,
+    EF,
+    SimpleConfig
+  > {
+    // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
+    constructor(machine: any, cfg: any) {
+      super(machine, cfg);
+    }
+  }
 
   const rMachine = createMockMachine();
   const strategy = new TestOriginStrategy(rMachine, config);
@@ -72,11 +86,24 @@ function createTranslatedStrategy(
     localeKey: "locale",
     autoLocaleBinding: "off",
     basePath: "",
+    clientKit: {} as CKM,
+    serverKit: {} as SKM,
     localeOriginMap,
     pathMatcher: defaultPathMatcher,
   } as TranslatedConfig;
 
-  class TestOriginStrategy extends NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, TranslatedConfig> {}
+  class TestOriginStrategy extends NextAppOriginStrategyCore<
+    TestAtlas,
+    TestLocale,
+    ResEquipment<TestAtlas>,
+    EF,
+    TranslatedConfig
+  > {
+    // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
+    constructor(machine: any, cfg: any) {
+      super(machine, cfg);
+    }
+  }
 
   const rMachine = createMockMachine();
   return new TestOriginStrategy(rMachine, config);
@@ -117,7 +144,7 @@ describe("NextAppOriginStrategyCore", () => {
     it("creates pathAtlas from config.PathAtlas", () => {
       const { strategy } = createTestStrategy();
       expect((strategy as any).pathAtlas).toBeDefined();
-      expect((strategy as any).pathAtlas.decl).toEqual({});
+      expect((strategy as any).pathAtlas.segment).toEqual({});
     });
 
     it("creates pathTranslator as HrefTranslator", () => {
@@ -143,7 +170,7 @@ describe("NextAppOriginStrategyCore", () => {
   describe("createClientImpl", () => {
     it("delegates to createNextAppOriginClientImpl with correct args", async () => {
       const { strategy, rMachine, config } = createTestStrategy();
-      const expectedResult = { onLoad: undefined, writeLocale: vi.fn(), createUsePathComposer: vi.fn() };
+      const expectedResult = { onLoad: undefined, writeLocale: vi.fn(), createPathComposer: vi.fn() };
       mockCreateClientImpl.mockReturnValue(expectedResult);
 
       const result = await (strategy as any).createClientImpl();
@@ -185,29 +212,43 @@ describe("NextAppOriginStrategyCore", () => {
   });
 
   // -----------------------------------------------------------------------
+  // getHelpers
+  // -----------------------------------------------------------------------
+
+  describe("getHelpers", () => {
+    it("includes the strategy's hrefHelper and memoizes the result across calls", () => {
+      const { strategy } = createTestStrategy();
+
+      const helpers = strategy.getHelpers();
+      expect(helpers.hrefHelper).toBe((strategy as any).hrefHelper);
+      expect(strategy.getHelpers()).toBe(helpers);
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // hrefHelper
   // -----------------------------------------------------------------------
 
   describe("hrefHelper", () => {
     it("has getPath and getUrl functions", () => {
       const { strategy } = createTestStrategy();
-      expect(typeof strategy.hrefHelper.getPath).toBe("function");
-      expect(typeof strategy.hrefHelper.getUrl).toBe("function");
+      expect(typeof (strategy as any).hrefHelper.getPath).toBe("function");
+      expect(typeof (strategy as any).hrefHelper.getUrl).toBe("function");
     });
 
     describe("getPath", () => {
       it("delegates to pathTranslator.get and returns value", () => {
         const strategy = createTranslatedStrategy();
 
-        expect(strategy.hrefHelper.getPath("en", "/about")).toBe("/about");
-        expect(strategy.hrefHelper.getPath("it", "/about")).toBe("/chi-siamo");
+        expect((strategy as any).hrefHelper.getPath("en", "/about")).toBe("/about");
+        expect((strategy as any).hrefHelper.getPath("it", "/about")).toBe("/chi-siamo");
       });
 
       it("passes params to pathTranslator.get", () => {
         const strategy = createTranslatedStrategy();
 
-        expect(strategy.hrefHelper.getPath("en", "/products/[id]", { id: "42" })).toBe("/products/42");
-        expect(strategy.hrefHelper.getPath("it", "/products/[id]", { id: "42" })).toBe("/prodotti/42");
+        expect((strategy as any).hrefHelper.getPath("en", "/products/[id]", { id: "42" })).toBe("/products/42");
+        expect((strategy as any).hrefHelper.getPath("it", "/products/[id]", { id: "42" })).toBe("/prodotti/42");
       });
     });
 
@@ -215,17 +256,17 @@ describe("NextAppOriginStrategyCore", () => {
       it("delegates to urlTranslator.get and returns origin-prefixed value", () => {
         const strategy = createTranslatedStrategy();
 
-        expect(strategy.hrefHelper.getUrl("en", "/about")).toBe("https://en.example.com/about");
-        expect(strategy.hrefHelper.getUrl("it", "/about")).toBe("https://it.example.com/chi-siamo");
+        expect((strategy as any).hrefHelper.getUrl("en", "/about")).toBe("https://en.example.com/about");
+        expect((strategy as any).hrefHelper.getUrl("it", "/about")).toBe("https://it.example.com/chi-siamo");
       });
 
       it("passes params to urlTranslator.get", () => {
         const strategy = createTranslatedStrategy();
 
-        expect(strategy.hrefHelper.getUrl("en", "/products/[id]", { id: "42" })).toBe(
+        expect((strategy as any).hrefHelper.getUrl("en", "/products/[id]", { id: "42" })).toBe(
           "https://en.example.com/products/42"
         );
-        expect(strategy.hrefHelper.getUrl("it", "/products/[id]", { id: "42" })).toBe(
+        expect((strategy as any).hrefHelper.getUrl("it", "/products/[id]", { id: "42" })).toBe(
           "https://it.example.com/prodotti/42"
         );
       });

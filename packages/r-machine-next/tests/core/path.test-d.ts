@@ -8,17 +8,17 @@ import type { BoundPathComposer, PathParamMap, PathParams, PathSelector } from "
 // Test fixtures
 // ──────────────────────────────────────────────────────────
 
-type EmptyDeclAtlas = { readonly decl: {} };
+type EmptyDeclAtlas = { readonly segment: {} };
 
 type FlatAtlas = {
-  readonly decl: {
+  readonly segment: {
     readonly "/about": {};
     readonly "/contact": {};
   };
 };
 
 type NestedAtlas = {
-  readonly decl: {
+  readonly segment: {
     readonly "/about": {
       readonly "/team": {
         readonly "/leads": {};
@@ -31,7 +31,7 @@ type NestedAtlas = {
 };
 
 type TranslatedAtlas = {
-  readonly decl: {
+  readonly segment: {
     readonly "/about": { readonly it: "/chi-siamo"; readonly es: "/acerca-de" };
     readonly "/products": {
       readonly it: "/prodotti";
@@ -41,7 +41,7 @@ type TranslatedAtlas = {
 };
 
 type DynamicAtlas = {
-  readonly decl: {
+  readonly segment: {
     readonly "/users": {
       readonly "/[userId]": {
         readonly "/posts": {
@@ -53,7 +53,7 @@ type DynamicAtlas = {
 };
 
 type CatchAllAtlas = {
-  readonly decl: {
+  readonly segment: {
     readonly "/docs": { readonly "/[...slug]": {} };
     readonly "/files": { readonly "/[[...path]]": {} };
   };
@@ -64,14 +64,14 @@ type CatchAllAtlas = {
 // ──────────────────────────────────────────────────────────
 
 describe("PathSelector", () => {
-  describe("any-guard: produces `/${string}` when PAP is any", () => {
+  describe("any-guard: produces `/${string}` when PAD is any", () => {
     it("falls back to `/${string}`", () => {
       type Result = PathSelector<any>;
       expectTypeOf<Result>().toEqualTypeOf<`/${string}`>();
     });
   });
 
-  describe("with empty decl", () => {
+  describe("with empty segment", () => {
     it("only allows root path", () => {
       type Result = PathSelector<EmptyDeclAtlas>;
       expectTypeOf<"/">().toExtend<Result>();
@@ -338,7 +338,7 @@ describe("BoundPathComposer", () => {
     compose("/users/[userId]/posts/[postId]");
   });
 
-  it("returns string when PAP is any", () => {
+  it("returns string when PAD is any", () => {
     const compose = null as unknown as BoundPathComposer<any>;
     expectTypeOf(compose("/anything")).toBeString();
   });

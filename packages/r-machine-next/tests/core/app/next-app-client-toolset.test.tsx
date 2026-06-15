@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { RMachineError, RMachineUsageError } from "r-machine/errors";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -38,7 +38,7 @@ function createMockImpl(overrides: Partial<NextAppClientImpl<TestLocale>> = {}):
   return {
     onLoad: overrides.onLoad === undefined ? undefined : overrides.onLoad,
     writeLocale: overrides.writeLocale ?? vi.fn(),
-    createUsePathComposer: overrides.createUsePathComposer ?? (() => () => (() => "/") as any),
+    createPathComposer: overrides.createPathComposer ?? (() => (() => "/") as any),
   };
 }
 
@@ -47,14 +47,6 @@ afterEach(() => {
   currentPathname = "/";
   vi.clearAllMocks();
 });
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function createHookWrapper(NextClientRMachine: NextAppClientRMachine<TestLocale>, locale: TestLocale = "en") {
-  return ({ children }: { children: ReactNode }) => <NextClientRMachine locale={locale}>{children}</NextClientRMachine>;
-}
 
 // ---------------------------------------------------------------------------
 // createNextAppClientToolset
@@ -67,7 +59,7 @@ describe("createNextAppClientToolset", () => {
 
   describe("NextClientRMachine", () => {
     it("renders children", async () => {
-      const { NextClientRMachine } = await createNextAppClientToolset(createMockMachine(), createMockImpl());
+      const { NextClientRMachine } = await createNextAppClientToolset(createMockMachine(), {}, createMockImpl());
 
       render(
         <NextClientRMachine locale="en">
@@ -80,7 +72,11 @@ describe("createNextAppClientToolset", () => {
 
     it("calls onLoad on mount with the locale", async () => {
       const onLoad = vi.fn();
-      const { NextClientRMachine } = await createNextAppClientToolset(createMockMachine(), createMockImpl({ onLoad }));
+      const { NextClientRMachine } = await createNextAppClientToolset(
+        createMockMachine(),
+        {},
+        createMockImpl({ onLoad })
+      );
 
       await act(async () => {
         render(
@@ -97,6 +93,7 @@ describe("createNextAppClientToolset", () => {
     it("does not throw when onLoad is undefined", async () => {
       const { NextClientRMachine } = await createNextAppClientToolset(
         createMockMachine(),
+        {},
         createMockImpl({ onLoad: undefined })
       );
 
@@ -114,7 +111,11 @@ describe("createNextAppClientToolset", () => {
     it("calls cleanup returned by onLoad on unmount", async () => {
       const cleanupFn = vi.fn();
       const onLoad = vi.fn(() => cleanupFn);
-      const { NextClientRMachine } = await createNextAppClientToolset(createMockMachine(), createMockImpl({ onLoad }));
+      const { NextClientRMachine } = await createNextAppClientToolset(
+        createMockMachine(),
+        {},
+        createMockImpl({ onLoad })
+      );
 
       let unmount: () => void;
       await act(async () => {
@@ -136,7 +137,11 @@ describe("createNextAppClientToolset", () => {
 
     it("calls onLoad again when locale changes", async () => {
       const onLoad = vi.fn();
-      const { NextClientRMachine } = await createNextAppClientToolset(createMockMachine(), createMockImpl({ onLoad }));
+      const { NextClientRMachine } = await createNextAppClientToolset(
+        createMockMachine(),
+        {},
+        createMockImpl({ onLoad })
+      );
 
       let rerender: (ui: ReactNode) => void;
       await act(async () => {
@@ -169,7 +174,11 @@ describe("createNextAppClientToolset", () => {
         callCount++;
         return callCount === 1 ? cleanup1 : cleanup2;
       });
-      const { NextClientRMachine } = await createNextAppClientToolset(createMockMachine(), createMockImpl({ onLoad }));
+      const { NextClientRMachine } = await createNextAppClientToolset(
+        createMockMachine(),
+        {},
+        createMockImpl({ onLoad })
+      );
 
       let rerender: (ui: ReactNode) => void;
       await act(async () => {
@@ -193,11 +202,67 @@ describe("createNextAppClientToolset", () => {
       expect(cleanup1).toHaveBeenCalledTimes(1);
     });
 
-    it("provides locale context to children", async () => {
-      const { NextClientRMachine, useLocale } = await createNextAppClientToolset(createMockMachine(), createMockImpl());
+    it("looks up the request scope from the registry when a scopeId prop is provided", async () => {
+      const { NextClientRMachine } = await createNextAppClientToolset(createMockMachine(), {}, createMockImpl());
+
+      // Passing a scopeId string exercises the registry-lookup branch (vs the
+      // `null` fallback when no scopeId is present). The browser registry is
+      // empty, so lookup yields null and RM falls back to process-tier slots.
+      await act(async () => {
+        render(
+          <NextClientRMachine locale="en" scopeId="rsc-client-test">
+            <div>scoped child</div>
+          </NextClientRMachine>
+        );
+      });
+
+      screen.getByText("scoped child");
+    });
+
+    it("does not rebuild $.getPath / $.setLocale on a re-render with unchanged locale and pathname", async () => {
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
+        createMockMachine(),
+        {},
+        createMockImpl()
+      );
+
+      function Probe() {
+        (ClientPlug as () => { useR: () => unknown })().useR();
+        return <div>stable</div>;
+      }
+
+      let rerender!: (ui: ReactNode) => void;
+      await act(async () => {
+        ({ rerender } = render(
+          <NextClientRMachine locale="en">
+            <Probe />
+          </NextClientRMachine>
+        ));
+      });
+
+      // Same locale + same pathname ("/") → the conditional getPath/setLocale
+      // rebuilds are skipped (localeChanged false, pathname unchanged).
+      await act(async () => {
+        rerender(
+          <NextClientRMachine locale="en">
+            <Probe />
+          </NextClientRMachine>
+        );
+      });
+
+      screen.getByText("stable");
+    });
+
+    it("provides locale to children via ClientPlug $.locale", async () => {
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
+        createMockMachine(),
+        {},
+        createMockImpl()
+      );
 
       function LocaleDisplay() {
-        return <span data-testid="locale">{useLocale()}</span>;
+        const { $ } = (ClientPlug as unknown as () => { useR: () => { $: { locale: string } } })().useR();
+        return <span data-testid="locale">{$.locale}</span>;
       }
 
       await act(async () => {
@@ -213,25 +278,45 @@ describe("createNextAppClientToolset", () => {
   });
 
   // -----------------------------------------------------------------------
-  // useSetLocale
+  // ClientPlug — $.setLocale
   // -----------------------------------------------------------------------
 
-  describe("useSetLocale", () => {
+  describe("ClientPlug › $.setLocale", () => {
+    type AnyCtx = { locale: string; setLocale: (l: string) => Promise<void>; getPath: unknown };
+
+    function mountCtx(
+      NextClientRMachine: NextAppClientRMachine<TestLocale>,
+      ClientPlug: unknown,
+      locale: TestLocale = "en"
+    ): () => AnyCtx {
+      let ctx: AnyCtx | undefined;
+      function Probe() {
+        const { $ } = (ClientPlug as () => { useR: () => { $: AnyCtx } })().useR();
+        ctx = $;
+        return null;
+      }
+      render(
+        <NextClientRMachine locale={locale}>
+          <Probe />
+        </NextClientRMachine>
+      );
+      return () => ctx as AnyCtx;
+    }
+
     it("calls writeLocale with current locale, new locale, pathname, and router", async () => {
       const writeLocale = vi.fn();
       currentPathname = "/about";
 
-      const { NextClientRMachine, useSetLocale } = await createNextAppClientToolset(
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
         createMockMachine(),
+        {},
         createMockImpl({ writeLocale })
       );
 
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: createHookWrapper(NextClientRMachine),
-      });
+      const getCtx = mountCtx(NextClientRMachine, ClientPlug);
 
       await act(async () => {
-        await result.current("it");
+        await getCtx().setLocale("it");
       });
 
       expect(writeLocale).toHaveBeenCalledWith("en", "it", "/about", mockRouter);
@@ -239,55 +324,52 @@ describe("createNextAppClientToolset", () => {
 
     it("throws RMachineUsageError for an invalid locale", async () => {
       const writeLocale = vi.fn();
-      const { NextClientRMachine, useSetLocale } = await createNextAppClientToolset(
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
         createMockMachine(),
+        {},
         createMockImpl({ writeLocale })
       );
 
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: createHookWrapper(NextClientRMachine),
-      });
+      const getCtx = mountCtx(NextClientRMachine, ClientPlug);
 
       await expect(
         act(async () => {
-          await result.current("xx" as any);
+          await getCtx().setLocale("xx");
         })
       ).rejects.toBeInstanceOf(RMachineUsageError);
     });
 
     it("includes the invalid locale in the error message", async () => {
       const writeLocale = vi.fn();
-      const { NextClientRMachine, useSetLocale } = await createNextAppClientToolset(
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
         createMockMachine(),
+        {},
         createMockImpl({ writeLocale })
       );
 
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: createHookWrapper(NextClientRMachine),
-      });
+      const getCtx = mountCtx(NextClientRMachine, ClientPlug);
 
       await expect(
         act(async () => {
-          await result.current("xx" as any);
+          await getCtx().setLocale("xx");
         })
       ).rejects.toThrow(/invalid locale.*xx/i);
     });
 
     it("wraps the validation error as innerError", async () => {
       const writeLocale = vi.fn();
-      const { NextClientRMachine, useSetLocale } = await createNextAppClientToolset(
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
         createMockMachine(),
+        {},
         createMockImpl({ writeLocale })
       );
 
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: createHookWrapper(NextClientRMachine),
-      });
+      const getCtx = mountCtx(NextClientRMachine, ClientPlug);
 
       const error = await expectAsyncError(
         () =>
           act(async () => {
-            await result.current("xx" as any);
+            await getCtx().setLocale("xx");
           }),
         RMachineUsageError
       );
@@ -296,18 +378,17 @@ describe("createNextAppClientToolset", () => {
 
     it("does not call writeLocale when locale is invalid", async () => {
       const writeLocale = vi.fn();
-      const { NextClientRMachine, useSetLocale } = await createNextAppClientToolset(
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
         createMockMachine(),
+        {},
         createMockImpl({ writeLocale })
       );
 
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: createHookWrapper(NextClientRMachine),
-      });
+      const getCtx = mountCtx(NextClientRMachine, ClientPlug);
 
       try {
         await act(async () => {
-          await result.current("xx" as any);
+          await getCtx().setLocale("xx");
         });
       } catch {
         // expected
@@ -318,17 +399,16 @@ describe("createNextAppClientToolset", () => {
 
     it("still calls writeLocale when new locale equals current locale", async () => {
       const writeLocale = vi.fn();
-      const { NextClientRMachine, useSetLocale } = await createNextAppClientToolset(
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
         createMockMachine(),
+        {},
         createMockImpl({ writeLocale })
       );
 
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: createHookWrapper(NextClientRMachine),
-      });
+      const getCtx = mountCtx(NextClientRMachine, ClientPlug);
 
       await act(async () => {
-        await result.current("en");
+        await getCtx().setLocale("en");
       });
 
       expect(writeLocale).toHaveBeenCalledWith("en", "en", "/", mockRouter);
@@ -336,17 +416,16 @@ describe("createNextAppClientToolset", () => {
 
     it("handles a synchronous writeLocale", async () => {
       const writeLocale = vi.fn();
-      const { NextClientRMachine, useSetLocale } = await createNextAppClientToolset(
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
         createMockMachine(),
+        {},
         createMockImpl({ writeLocale })
       );
 
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: createHookWrapper(NextClientRMachine),
-      });
+      const getCtx = mountCtx(NextClientRMachine, ClientPlug);
 
       await act(async () => {
-        await result.current("it");
+        await getCtx().setLocale("it");
       });
 
       expect(writeLocale).toHaveBeenCalledWith("en", "it", "/", mockRouter);
@@ -358,17 +437,16 @@ describe("createNextAppClientToolset", () => {
         await new Promise<void>((r) => setTimeout(r, 10));
         order.push("writeLocale-done");
       });
-      const { NextClientRMachine, useSetLocale } = await createNextAppClientToolset(
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
         createMockMachine(),
+        {},
         createMockImpl({ writeLocale: asyncWriteLocale })
       );
 
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: createHookWrapper(NextClientRMachine),
-      });
+      const getCtx = mountCtx(NextClientRMachine, ClientPlug);
 
       await act(async () => {
-        await result.current("it");
+        await getCtx().setLocale("it");
         order.push("setLocale-done");
       });
 
@@ -380,47 +458,55 @@ describe("createNextAppClientToolset", () => {
       const writeLocale = vi.fn(() => {
         throw new Error("storage failure");
       });
-      const { NextClientRMachine, useSetLocale } = await createNextAppClientToolset(
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
         createMockMachine(),
+        {},
         createMockImpl({ writeLocale })
       );
 
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: createHookWrapper(NextClientRMachine),
-      });
+      const getCtx = mountCtx(NextClientRMachine, ClientPlug);
 
       await expect(
         act(async () => {
-          await result.current("it");
+          await getCtx().setLocale("it");
         })
       ).rejects.toThrow("storage failure");
     });
 
     it("propagates a rejected promise from writeLocale", async () => {
       const writeLocale = vi.fn(() => Promise.reject(new Error("network error")));
-      const { NextClientRMachine, useSetLocale } = await createNextAppClientToolset(
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
         createMockMachine(),
+        {},
         createMockImpl({ writeLocale })
       );
 
-      const { result } = renderHook(() => useSetLocale(), {
-        wrapper: createHookWrapper(NextClientRMachine),
-      });
+      const getCtx = mountCtx(NextClientRMachine, ClientPlug);
 
       await expect(
         act(async () => {
-          await result.current("it");
+          await getCtx().setLocale("it");
         })
       ).rejects.toThrow("network error");
     });
   });
 
-  describe("useR", () => {
-    it("returns the resource for the given namespace via NextClientRMachine context", async () => {
-      const { NextClientRMachine, useR } = await createNextAppClientToolset(createMockMachine(), createMockImpl());
+  // -----------------------------------------------------------------------
+  // ClientPlug — resource resolution
+  // -----------------------------------------------------------------------
+
+  describe("ClientPlug › resource resolution", () => {
+    it("resolves the resource for a namespace via NextClientRMachine context", async () => {
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
+        createMockMachine({ resolve: (ns) => (ns === "common" ? { greeting: "hello" } : { ns }) }),
+        {},
+        createMockImpl()
+      );
 
       function ResourceDisplay() {
-        const common = useR("common");
+        const [common] = (ClientPlug as unknown as (...a: unknown[]) => { useR: () => [{ greeting: string }] })(
+          "common"
+        ).useR();
         return <span data-testid="resource">{common.greeting}</span>;
       }
 
@@ -434,107 +520,112 @@ describe("createNextAppClientToolset", () => {
 
       expect(screen.getByTestId("resource").textContent).toBe("hello");
     });
-  });
 
-  describe("usePathComposer", () => {
-    it("delegates to impl.createUsePathComposer", async () => {
-      const composerFn = vi.fn(() => "/composed");
-      const usePathComposerHook = vi.fn(() => composerFn);
-      const createUsePathComposer = vi.fn(() => usePathComposerHook);
-
-      const { NextClientRMachine, usePathComposer } = await createNextAppClientToolset(
+    it("returns the default surface shape (ns: string) for namespace deps", async () => {
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
         createMockMachine(),
-        createMockImpl({ createUsePathComposer })
+        {},
+        createMockImpl()
       );
 
-      expect(createUsePathComposer).toHaveBeenCalledTimes(1);
-      expect(createUsePathComposer).toHaveBeenCalledWith(expect.any(Function));
-
-      const { result } = renderHook(() => usePathComposer(), {
-        wrapper: createHookWrapper(NextClientRMachine),
-      });
-
-      expect(result.current).toBe(composerFn);
-    });
-
-    it("passes useLocale as argument to createUsePathComposer", async () => {
-      let capturedUseLocale: (() => string) | undefined;
-      const createUsePathComposer = vi.fn((useLocale: () => string) => {
-        capturedUseLocale = useLocale;
-        return () => vi.fn(() => "/") as any;
-      });
-
-      const { NextClientRMachine } = await createNextAppClientToolset(
-        createMockMachine(),
-        createMockImpl({ createUsePathComposer })
-      );
-
-      const { result } = renderHook(() => capturedUseLocale!(), {
-        wrapper: createHookWrapper(NextClientRMachine, "it"),
-      });
-
-      expect(result.current).toBe("it");
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // useFmt
-  // -----------------------------------------------------------------------
-
-  describe("useFmt", () => {
-    it("returns the formatter object for the current locale via NextClientRMachine context", async () => {
-      const mockFmt = { formatDate: () => "2026-01-01" };
-      const mock = createMockMachine({ fmt: () => mockFmt });
-      const { NextClientRMachine, useFmt } = await createNextAppClientToolset(mock, createMockImpl());
-
-      function FmtDisplay() {
-        const fmt = useFmt();
-        return <span data-testid="fmt">{fmt.formatDate()}</span>;
+      let captured: unknown;
+      function Probe() {
+        const [common] = (ClientPlug as unknown as (...a: unknown[]) => { useR: () => [unknown] })("common").useR();
+        captured = common;
+        return null;
       }
 
       await act(async () => {
         render(
           <NextClientRMachine locale="en">
-            <FmtDisplay />
+            <Probe />
           </NextClientRMachine>
         );
       });
 
-      expect(screen.getByTestId("fmt").textContent).toBe("2026-01-01");
-      expect(mock.fmt).toHaveBeenCalledWith("en");
+      expect(captured).toEqual({ ns: "common" });
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // ClientPlug — $.getPath
+  // -----------------------------------------------------------------------
+
+  describe("ClientPlug › $.getPath", () => {
+    it("delegates to impl.createPathComposer with the current locale", async () => {
+      const composerFn = vi.fn(() => "/composed");
+      const createPathComposer = vi.fn(() => composerFn);
+
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
+        createMockMachine(),
+        {},
+        createMockImpl({ createPathComposer })
+      );
+
+      type AnyCtx = { locale: string; getPath: ((...args: unknown[]) => string) | undefined };
+      let capturedCtx: AnyCtx | undefined;
+      function Probe() {
+        const { $ } = (ClientPlug as () => { useR: () => { $: AnyCtx } })().useR();
+        capturedCtx = $;
+        return null;
+      }
+
+      await act(async () => {
+        render(
+          <NextClientRMachine locale="en">
+            <Probe />
+          </NextClientRMachine>
+        );
+      });
+
+      expect(createPathComposer).toHaveBeenCalledWith("en");
+      expect(capturedCtx?.getPath).toBe(composerFn);
     });
 
-    it("returns updated formatter when locale changes", async () => {
-      const mock = createMockMachine({
-        fmt: (locale: string) => ({ greeting: locale === "en" ? "Hello" : "Ciao" }),
+    it("updates getPath when locale changes", async () => {
+      const enComposer = vi.fn(() => "/en-path");
+      const itComposer = vi.fn(() => "/it-path");
+      let callCount = 0;
+      const createPathComposer = vi.fn(() => {
+        callCount++;
+        return callCount === 1 ? enComposer : itComposer;
       });
-      const { NextClientRMachine, useFmt } = await createNextAppClientToolset(mock, createMockImpl());
 
-      function FmtDisplay() {
-        const fmt = useFmt();
-        return <span data-testid="fmt">{(fmt as any).greeting}</span>;
+      const { NextClientRMachine, ClientPlug } = await createNextAppClientToolset(
+        createMockMachine(),
+        {},
+        createMockImpl({ createPathComposer })
+      );
+
+      type AnyCtx = { locale: string; getPath: ((...args: unknown[]) => string) | undefined };
+      let capturedCtx: AnyCtx | undefined;
+      function Probe() {
+        const { $ } = (ClientPlug as () => { useR: () => { $: AnyCtx } })().useR();
+        capturedCtx = $;
+        return null;
       }
 
       let rerender: (ui: ReactNode) => void;
       await act(async () => {
         ({ rerender } = render(
           <NextClientRMachine locale="en">
-            <FmtDisplay />
+            <Probe />
           </NextClientRMachine>
         ));
       });
 
-      expect(screen.getByTestId("fmt").textContent).toBe("Hello");
+      expect(capturedCtx?.getPath).toBe(enComposer);
 
       await act(async () => {
-        rerender!(
+        rerender(
           <NextClientRMachine locale="it">
-            <FmtDisplay />
+            <Probe />
           </NextClientRMachine>
         );
       });
 
-      expect(screen.getByTestId("fmt").textContent).toBe("Ciao");
+      expect(createPathComposer).toHaveBeenCalledWith("it");
+      expect(capturedCtx?.getPath).toBe(itComposer);
     });
   });
 });

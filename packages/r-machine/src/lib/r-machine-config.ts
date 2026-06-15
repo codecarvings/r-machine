@@ -12,8 +12,24 @@
  */
 
 import {
+  type AnyResAtlas,
+  type AnyResAtlasClass,
+  type AnyResEquipment,
+  type AnyResLayout,
+  type BaseGearNamespaceList,
+  type ExperimentalFlags,
+  type GearPlugKitMap,
+  getNamespaceList,
+  getNamespaceMap,
+  type NamespaceList,
+  type ResEquipment,
+  type ResModuleLoaderFn,
+  type ShellPlugKitMap,
+} from "#r-machine/core";
+import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
+  ERR_EXPERIMENTAL_OUTER_GEAR_REQUIRED,
   ERR_NO_LOCALES,
   RMachineConfigError,
 } from "#r-machine/errors";
@@ -23,22 +39,102 @@ import {
   type LocaleList,
   validateCanonicalUnicodeLocaleId,
 } from "#r-machine/locale";
-import type { RModuleResolver } from "./r-module.js";
 
-// The generic parameter LL is used to ensure that the defaultLocale is one of the locales in the list
-export interface RMachineConfigParams<LL extends AnyLocaleList> {
-  readonly locales: LL;
-  readonly defaultLocale: LL[number];
-  readonly rModuleResolver: RModuleResolver;
-}
-
-export interface RMachineConfig<L extends AnyLocale> {
+export interface RMachineConfig<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
+> {
+  readonly instanceName: string;
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
-  readonly rModuleResolver: RModuleResolver;
+  readonly resourceAtlas: RA;
+  readonly load: ResModuleLoaderFn;
+  readonly layout: AnyResLayout;
+  readonly priority: NamespaceList<RA>;
+  readonly equipment: E;
+  readonly experimental: EF;
 }
 
-export function validateRMachineConfig<L extends AnyLocale>(config: RMachineConfig<L>): RMachineConfigError | null {
+export interface RMachineConfigParams<
+  RAC extends AnyResAtlasClass,
+  LL extends AnyLocaleList,
+  BGL extends BaseGearNamespaceList<InstanceType<RAC>>,
+  GK extends GearPlugKitMap<InstanceType<RAC>>,
+  SK extends ShellPlugKitMap<InstanceType<RAC>, BGL>,
+  EF extends ExperimentalFlags,
+> {
+  readonly instanceName?: string;
+  readonly locales: LL;
+  readonly defaultLocale: LL[number];
+  readonly ResourceAtlas: RAC;
+  readonly load: ResModuleLoaderFn;
+  readonly bridgeGears?: BGL;
+  readonly gearKit?: GK;
+  readonly shellKit?: SK;
+  readonly experimental?: EF & ExperimentalFlags;
+}
+
+// ─── Internal access symbol ─────────────────────────────────────────────
+// Bridge between the public-facing Strategy/RMachine surfaces and the
+// underlying RMachineConfig. Tooling that needs to inspect the config
+// (e.g. `@r-machine/testing`'s `verifyResourceAtlas`) calls
+// `target[CONFIG_ACCESSOR]()`. Not part of the package's typed public
+// API surface. Co-located with `RMachineConfig` and `ConfigBridge` for
+// the same `unique symbol` identity reason documented on `BUS_ACCESSOR`.
+
+export const CONFIG_ACCESSOR: unique symbol = Symbol("configAccessor");
+
+export interface ConfigBridge<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
+> {
+  [CONFIG_ACCESSOR](): RMachineConfig<RA, L, E, EF>;
+}
+
+export function convertRMachineConfigParamsToConfig<
+  RAC extends AnyResAtlasClass,
+  LL extends AnyLocaleList,
+  BGL extends BaseGearNamespaceList<InstanceType<RAC>>,
+  GK extends GearPlugKitMap<InstanceType<RAC>>,
+  SK extends ShellPlugKitMap<InstanceType<RAC>, BGL>,
+  EF extends ExperimentalFlags,
+>(
+  params: RMachineConfigParams<RAC, LL, BGL, GK, SK, EF>
+): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF> {
+  // Normalize all user-supplied namespace collections through getNamespaceList /
+  // getNamespaceMap — these route every entry through getNamespace(), which
+  // strips a leading `#` (internal-namespace marker). After this single
+  // materialization the rest of the runtime (BlueprintManager kit deps,
+  // ResManager kit injection, composer dep tracking) sees only bare names.
+  const priority = Object.freeze(getNamespaceList(params.ResourceAtlas.priority as never)) as NamespaceList<
+    InstanceType<RAC>
+  >;
+  const bridgeGears = Object.freeze(getNamespaceList((params.bridgeGears ?? []) as never)) as BGL;
+  const gearKit = Object.freeze(getNamespaceMap((params.gearKit ?? {}) as never)) as GK;
+  const shellKit = Object.freeze(getNamespaceMap((params.shellKit ?? {}) as never)) as SK;
+
+  return {
+    instanceName: params.instanceName ?? "default",
+    locales: Object.freeze([...params.locales]),
+    defaultLocale: params.defaultLocale,
+    resourceAtlas: undefined!,
+    load: params.load,
+    layout: Object.freeze({ ...params.ResourceAtlas.layout }),
+    priority,
+    equipment: {
+      bridgeGears,
+      gearKit,
+      shellKit,
+    },
+    experimental: Object.freeze({ ...(params.experimental ?? ({} as EF)) }),
+  };
+}
+
+export function validateRMachineConfig(config: RMachineConfig<any, any, any, any>): RMachineConfigError | null {
   if (!config.locales.length) {
     return new RMachineConfigError(ERR_NO_LOCALES, "No locales provided.");
   }
@@ -66,12 +162,17 @@ export function validateRMachineConfig<L extends AnyLocale>(config: RMachineConf
     );
   }
 
-  return null;
-}
+  if (!config.experimental.outerGear) {
+    const outerPrefixes = Object.entries(config.layout)
+      .filter(([, type]) => (type as string).startsWith("gear:outer"))
+      .map(([prefix]) => prefix);
+    if (outerPrefixes.length) {
+      return new RMachineConfigError(
+        ERR_EXPERIMENTAL_OUTER_GEAR_REQUIRED,
+        `Layout contains "gear:outer" entries (${outerPrefixes.map((p) => `"${p}"`).join(", ")}) but the "outerGear" experimental feature is not enabled. Add \`experimental: { outerGear: "on" }\` to RMachine.create(...) to opt in.`
+      );
+    }
+  }
 
-export function cloneRMachineConfig<L extends AnyLocale>(config: RMachineConfig<L>): RMachineConfig<L> {
-  return {
-    ...config,
-    locales: Object.freeze([...config.locales]) as LocaleList<L>,
-  };
+  return null;
 }

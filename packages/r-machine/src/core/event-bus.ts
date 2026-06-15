@@ -1,0 +1,213 @@
+/**
+ * Copyright (c) 2026 Sergio Turolla
+ *
+ * This file is part of r-machine, licensed under the
+ * GNU Affero General Public License v3.0 (AGPL-3.0-only).
+ *
+ * You may use, modify, and distribute this file under the terms
+ * of the AGPL-3.0. See LICENSE in this package for details.
+ *
+ * If you need to use this software in a proprietary project,
+ * contact: licensing@codecarvings.com
+ */
+
+import type { AnyLocale } from "#r-machine/locale";
+import type { AnyNamespace } from "./res-domain.js";
+import type { ResLayoutEntryType } from "./res-layout.js";
+
+// ─── Macro-categories ───────────────────────────────────────────────────
+// All event types follow the convention "<area>:<verb-or-state>".
+// `InternalEvent` is the union emitted by the runtime managers (BPM/RM/WM).
+// Reserved for internal tests, the dev-mode logger, and a future devtools
+// extension — treat as implementation detail. A separate `RuntimeEvent`
+// union (user-observable: action dispatch, gear instantiation) will be
+// added when those emit points exist.
+
+// ─── Blueprint events ───────────────────────────────────────────────────
+
+export type BlueprintEvent =
+  | {
+      type: "blueprint:cacheHit";
+      namespace: AnyNamespace;
+      locale: AnyLocale | undefined;
+      layoutEntryType: ResLayoutEntryType;
+    }
+  | {
+      type: "blueprint:resolveStart";
+      namespace: AnyNamespace;
+      locale: AnyLocale | undefined;
+      layoutEntryType: ResLayoutEntryType;
+    }
+  | { type: "blueprint:moduleLoaded"; namespace: AnyNamespace; locale: AnyLocale | undefined }
+  | {
+      type: "blueprint:resolved";
+      namespace: AnyNamespace;
+      locale: AnyLocale | undefined;
+      depList: readonly AnyNamespace[];
+    }
+  | { type: "blueprint:resolveStale"; namespace: AnyNamespace; locale: AnyLocale | undefined }
+  | { type: "blueprint:resolveError"; namespace: AnyNamespace; locale: AnyLocale | undefined; error: unknown }
+  // `chain` is a sequence of opaque cache keys (built by getBlueprintResCacheKey).
+  // Tests usually assert on the semantic `namespace` + `locale` of the trigger;
+  // the chain is preserved verbatim for log readability and debug tooling.
+  | {
+      type: "blueprint:circularDepDetected";
+      namespace: AnyNamespace;
+      locale: AnyLocale | undefined;
+      chain: readonly string[];
+    }
+  | { type: "blueprint:evicted"; namespace: AnyNamespace; locale: AnyLocale | undefined; keyCount: number }
+  | {
+      type: "blueprint:moduleInvalidated";
+      namespace: AnyNamespace;
+      locale: AnyLocale | undefined;
+    };
+
+// ─── Res events ────────────────────────────────────────────────────
+
+export type ResEvent =
+  | { type: "res:cacheHit"; namespace: AnyNamespace; locale: AnyLocale | undefined; generation: number }
+  | {
+      type: "res:resolveStart";
+      namespace: AnyNamespace;
+      locale: AnyLocale | undefined;
+      generation: number;
+      vertexGenId: number | undefined;
+    }
+  | { type: "res:factoryInvoked"; namespace: AnyNamespace; locale: AnyLocale | undefined }
+  | { type: "res:built"; namespace: AnyNamespace }
+  | { type: "res:slotCommitted"; namespace: AnyNamespace; generation: number }
+  | {
+      type: "res:resolveStale";
+      namespace: AnyNamespace;
+      reason: "generation" | "slotIdentity";
+      teardownInvoked: boolean;
+    }
+  | {
+      type: "res:resolveError";
+      namespace: AnyNamespace;
+      error: unknown;
+      // Resolution path, root-first, ending with the failing `namespace`.
+      chain?: readonly AnyNamespace[];
+    }
+  | { type: "res:slotDisposed"; namespace: AnyNamespace; teardownInvoked: boolean }
+  | {
+      type: "res:kitPartitioned";
+      selfNamespace: AnyNamespace | undefined;
+      eager: readonly AnyNamespace[];
+      deferred: readonly AnyNamespace[];
+    }
+  | { type: "res:deferredKitAccessed"; namespace: AnyNamespace; ready: boolean }
+  | { type: "res:vertexConsumerResolved"; namespace: AnyNamespace; consumerVertexKey: string }
+  | { type: "res:vertexConsumerMissing"; namespace: AnyNamespace; vertexKey: string }
+  | { type: "res:vertexSlotRegistered"; namespace: AnyNamespace; genId: number; occurrenceTag: string }
+  | {
+      type: "res:invalidationStart";
+      rootNamespace: AnyNamespace;
+      locale: AnyLocale | undefined;
+      closure: readonly AnyNamespace[];
+    }
+  | { type: "res:subscribersNotified"; namespace: AnyNamespace; subscriberCount: number }
+  | { type: "res:subscribed"; namespaces: readonly AnyNamespace[] }
+  | { type: "res:unsubscribed"; namespaces: readonly AnyNamespace[] }
+  | { type: "res:requestScopeDisposed" }
+  | { type: "res:resourcesDisposed" };
+
+// ─── Wire events ────────────────────────────────────────────────────
+
+export type WireEvent =
+  | { type: "wire:created"; genId: number; locale: AnyLocale; topLevelNs: readonly AnyNamespace[] }
+  | { type: "wire:resolveTriggered"; genId: number }
+  // Emitted when resolve() produced the plugin synchronously (all dep pods were
+  // already resolved in their slots) and returned a fulfilled-tagged thenable,
+  // so the React consumer reads it via `use()` without suspending.
+  | { type: "wire:resolvedSync"; genId: number }
+  // Emitted when resolve() found a COVERED vertex dep whose parent (creator) slot
+  // is transiently missing (e.g. mid-HMR invalidate). The wire suspends on a
+  // stable pending promise and stays dirty to retry on the next render.
+  | { type: "wire:coveredPending"; genId: number }
+  | { type: "wire:rmSubscribed"; genId: number }
+  | { type: "wire:rmUnsubscribed"; genId: number; vertexSlotsDisposed: number }
+  | { type: "wire:markedDirty"; genId: number; subscriberCount: number }
+  | { type: "wire:updateRequested"; genId: number; localeChanged: boolean; vertexGearMapChanged: boolean }
+  | { type: "wire:subscribed"; genId: number }
+  | { type: "wire:unsubscribed"; genId: number }
+  | { type: "wire:trackingStarted"; genId: number }
+  | { type: "wire:trackingCommitted"; genId: number; depCount: number }
+  | { type: "wire:cassetteNotified"; genId: number; subscriberCount: number };
+
+// ─── Relay events ───────────────────────────────────────────────────────
+
+export type RelayEvent =
+  | { type: "relay:onChangeError"; relayName: string; error: unknown }
+  | { type: "relay:loopDetected"; relayName: string; runCount: number };
+
+// ─── Aggregato ──────────────────────────────────────────────────────────
+
+export type InternalEvent = BlueprintEvent | ResEvent | WireEvent | RelayEvent;
+
+// ─── Bus interface + factory ────────────────────────────────────────────
+
+// Emit is strictly synchronous: every subscriber returns before emit
+// returns. Tests rely on this for ordering assertions ("X happened
+// before Y"). Subscriber errors are caught — a broken collector must
+// not break the runtime, especially on the hot path of resolve/dispose.
+export interface InternalEventBus {
+  emit(event: InternalEvent): void;
+  subscribe(handler: (event: InternalEvent) => void): () => void;
+}
+
+export function createEventBus(): InternalEventBus {
+  const handlers = new Set<(event: InternalEvent) => void>();
+  return {
+    emit(event) {
+      for (const h of handlers) {
+        try {
+          h(event);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    },
+    subscribe(handler) {
+      handlers.add(handler);
+      return () => {
+        handlers.delete(handler);
+      };
+    },
+  };
+}
+
+// ─── BusHost ────────────────────────────────────────────────────────────
+// Minimal interface for objects that can hold a bus. Managers depend on
+// this, not on RMachine — keeps them free of RMachine's type parameters.
+// `bus` is `undefined` until something subscribes via BUS_ACCESSOR. Emit
+// call-sites use `this.busHost.bus?.emit(...)` — zero-cost when no
+// subscribers (optional chaining short-circuits argument evaluation).
+// Field is `T | undefined` (not `?:`) so it remains type-compatible
+// across implementations under `exactOptionalPropertyTypes: true`.
+
+export interface BusHost {
+  readonly bus: InternalEventBus | undefined;
+}
+
+// ─── Internal access symbol ─────────────────────────────────────────────
+// Bridge between the public-facing Strategy/RMachine surfaces and the
+// (lazy) bus. Public DevTools APIs use `target[BUS_ACCESSOR]()` to
+// retrieve a guaranteed-non-null bus (created on first call). Not part
+// of the package's typed public API surface.
+
+export const BUS_ACCESSOR: unique symbol = Symbol("busAccessor");
+
+// ─── BusBridge ──────────────────────────────────────────────────────────
+// Structural interface for anything that exposes the bus accessor.
+// RMachine and Strategy both implement this. Lives next to BUS_ACCESSOR
+// by design: TypeScript ties `unique symbol` identity to the import path,
+// so a downstream consumer that imports BusBridge from one path and
+// BUS_ACCESSOR from another can end up with two distinct symbol identities
+// — `target[BUS_ACCESSOR]` silently degrades to `any`. Co-locating
+// guarantees both come through the same module.
+
+export interface BusBridge {
+  [BUS_ACCESSOR](): InternalEventBus;
+}

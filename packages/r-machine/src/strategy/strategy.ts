@@ -11,18 +11,53 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "#r-machine";
-import type { AnyLocale } from "#r-machine/locale";
+import { CONFIG_ACCESSOR, type RMachine, type RMachineConfig } from "#r-machine";
+import {
+  type AnyResAtlas,
+  type AnyResEquipment,
+  BUS_ACCESSOR,
+  type ExperimentalFlags,
+  type InternalEventBus,
+} from "#r-machine/core";
+import type { AnyLocale, LocaleHelper } from "#r-machine/locale";
 
-export abstract class Strategy<RA extends AnyResourceAtlas, L extends AnyLocale, FP extends AnyFmtProvider, C> {
-  constructor(
-    readonly rMachine: RMachine<RA, L, FP>,
-    readonly config: C
+export interface StrategyHelpers<L extends AnyLocale> {
+  readonly localeHelper: LocaleHelper<L>;
+}
+
+export abstract class Strategy<
+  RA extends AnyResAtlas,
+  L extends AnyLocale,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
+  C,
+> {
+  protected constructor(
+    protected readonly rMachine: RMachine<RA, L, E, EF>,
+    protected readonly config: C
   ) {
     this.validateConfig();
   }
 
+  protected _helpers?: unknown;
+  getHelpers(): StrategyHelpers<L> {
+    if (!this._helpers) {
+      this._helpers = {
+        localeHelper: this.rMachine.localeHelper,
+      };
+    }
+    return this._helpers as StrategyHelpers<L>;
+  }
+
   protected validateConfig(): void {
     // Default implementation does nothing
+  }
+
+  [BUS_ACCESSOR](): InternalEventBus {
+    return this.rMachine[BUS_ACCESSOR]();
+  }
+
+  [CONFIG_ACCESSOR](): RMachineConfig<RA, L, E, EF> {
+    return this.rMachine[CONFIG_ACCESSOR]();
   }
 }

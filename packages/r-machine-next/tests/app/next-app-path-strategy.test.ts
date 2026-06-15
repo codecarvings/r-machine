@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { NextAppPathStrategy } from "../../src/app/next-app-path-strategy.js";
+import { NextAppPathStrategyCore } from "#r-machine/next/core/app/path";
+import { NextAppPathStrategy } from "../../src/app/path/next-app-path-strategy.js";
 import { DynamicPathAtlas, TranslatedPathAtlas } from "../_fixtures/_helpers.js";
 import { createMockMachine } from "../_fixtures/mock-machine.js";
 
@@ -7,7 +8,6 @@ import { createMockMachine } from "../_fixtures/mock-machine.js";
 // Mocks — external deps required by dynamically imported modules
 // ---------------------------------------------------------------------------
 
-vi.mock("js-cookie", () => ({ default: { get: vi.fn() } }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("next/server", () => ({
   NextResponse: { rewrite: vi.fn(), next: vi.fn() },
@@ -30,17 +30,6 @@ vi.mock("../../src/core/app/next-app-no-proxy-server-toolset.js", () => ({
   createNextAppNoProxyServerToolset: (...args: unknown[]) => mockCreateNoProxyServerToolset(...args),
 }));
 
-const mockCreatePathClientImpl = vi.fn();
-const mockCreatePathServerImpl = vi.fn();
-
-vi.mock("../../src/core/app/path/next-app-path.client-impl.js", () => ({
-  createNextAppPathClientImpl: (...args: unknown[]) => mockCreatePathClientImpl(...args),
-}));
-
-vi.mock("../../src/core/app/path/next-app-path.server-impl.js", () => ({
-  createNextAppPathServerImpl: (...args: unknown[]) => mockCreatePathServerImpl(...args),
-}));
-
 // ---------------------------------------------------------------------------
 // Setup / Teardown
 // ---------------------------------------------------------------------------
@@ -49,52 +38,66 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+// Structural helper: `config` and `rMachine` are protected — cast for assertions.
+type ReadCfg = {
+  cookie?: unknown;
+  localeLabel?: unknown;
+  autoDetectLocale?: unknown;
+  implicitDefaultLocale?: unknown;
+  localeKey?: unknown;
+  autoLocaleBinding?: unknown;
+  basePath?: unknown;
+  PathAtlas?: unknown;
+};
+const readConfig = (s: unknown): ReadCfg => (s as { config: ReadCfg }).config;
+const readRMachine = (s: unknown): unknown => (s as { rMachine: unknown }).rMachine;
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe("NextAppPathStrategy", () => {
   // -----------------------------------------------------------------------
-  // Constructor — the only logic unique to this class (defaults merging)
+  // create — the factory unique to this class (defaults merging)
   // -----------------------------------------------------------------------
 
-  describe("constructor", () => {
-    it("applies all defaults when called with rMachine only", () => {
+  describe("create", () => {
+    it("applies all defaults when called with rMachine and empty params", () => {
       const rMachine = createMockMachine();
-      const strategy = new NextAppPathStrategy(rMachine);
+      const strategy = NextAppPathStrategy.create(rMachine, {});
 
-      expect(strategy.rMachine).toBe(rMachine);
-      expect(strategy.config.cookie).toBe("off");
-      expect(strategy.config.localeLabel).toBe("lowercase");
-      expect(strategy.config.autoDetectLocale).toBe("on");
-      expect(strategy.config.implicitDefaultLocale).toBe("off");
-      expect(strategy.config.localeKey).toBe("locale");
-      expect(strategy.config.autoLocaleBinding).toBe("off");
-      expect(strategy.config.basePath).toBe("");
-      expect(strategy.config.PathAtlas).toBe(NextAppPathStrategy.defaultConfig.PathAtlas);
+      expect(readRMachine(strategy)).toBe(rMachine);
+      expect(readConfig(strategy).cookie).toBe("off");
+      expect(readConfig(strategy).localeLabel).toBe("lowercase");
+      expect(readConfig(strategy).autoDetectLocale).toBe("on");
+      expect(readConfig(strategy).implicitDefaultLocale).toBe("off");
+      expect(readConfig(strategy).localeKey).toBe("locale");
+      expect(readConfig(strategy).autoLocaleBinding).toBe("off");
+      expect(readConfig(strategy).basePath).toBe("");
+      expect(readConfig(strategy).PathAtlas).toBe(NextAppPathStrategyCore.defaultConfig.PathAtlas);
     });
 
-    it("preserves non-overridden defaults when partial config is provided", () => {
+    it("preserves non-overridden defaults when partial params are provided", () => {
       const rMachine = createMockMachine();
       const customCookie = { name: "lang", path: "/", sameSite: "lax" as const };
-      const strategy = new NextAppPathStrategy(rMachine, {
+      const strategy = NextAppPathStrategy.create(rMachine, {
         cookie: customCookie,
         basePath: "/docs",
       });
 
-      expect(strategy.config.cookie).toBe(customCookie);
-      expect(strategy.config.basePath).toBe("/docs");
-      expect(strategy.config.localeLabel).toBe("lowercase");
-      expect(strategy.config.autoDetectLocale).toBe("on");
-      expect(strategy.config.implicitDefaultLocale).toBe("off");
-      expect(strategy.config.localeKey).toBe("locale");
-      expect(strategy.config.autoLocaleBinding).toBe("off");
+      expect(readConfig(strategy).cookie).toBe(customCookie);
+      expect(readConfig(strategy).basePath).toBe("/docs");
+      expect(readConfig(strategy).localeLabel).toBe("lowercase");
+      expect(readConfig(strategy).autoDetectLocale).toBe("on");
+      expect(readConfig(strategy).implicitDefaultLocale).toBe("off");
+      expect(readConfig(strategy).localeKey).toBe("locale");
+      expect(readConfig(strategy).autoLocaleBinding).toBe("off");
     });
 
-    it("applies all overrides when full config is provided", () => {
+    it("applies all overrides when full params are provided", () => {
       const rMachine = createMockMachine();
       const customCookie = { name: "lang", path: "/", sameSite: "strict" as const };
-      const strategy = new NextAppPathStrategy(rMachine, {
+      const strategy = NextAppPathStrategy.create(rMachine, {
         cookie: customCookie,
         localeLabel: "strict",
         autoDetectLocale: "off",
@@ -105,20 +108,20 @@ describe("NextAppPathStrategy", () => {
         PathAtlas: DynamicPathAtlas,
       });
 
-      expect(strategy.config.cookie).toBe(customCookie);
-      expect(strategy.config.localeLabel).toBe("strict");
-      expect(strategy.config.autoDetectLocale).toBe("off");
-      expect(strategy.config.implicitDefaultLocale).toBe("off");
-      expect(strategy.config.localeKey).toBe("lang");
-      expect(strategy.config.autoLocaleBinding).toBe("on");
-      expect(strategy.config.basePath).toBe("/app");
-      expect(strategy.config.PathAtlas).toBe(DynamicPathAtlas);
+      expect(readConfig(strategy).cookie).toBe(customCookie);
+      expect(readConfig(strategy).localeLabel).toBe("strict");
+      expect(readConfig(strategy).autoDetectLocale).toBe("off");
+      expect(readConfig(strategy).implicitDefaultLocale).toBe("off");
+      expect(readConfig(strategy).localeKey).toBe("lang");
+      expect(readConfig(strategy).autoLocaleBinding).toBe("on");
+      expect(readConfig(strategy).basePath).toBe("/app");
+      expect(readConfig(strategy).PathAtlas).toBe(DynamicPathAtlas);
     });
 
     it("propagates validateConfig error when implicitDefaultLocale is on but cookie is off", () => {
       const rMachine = createMockMachine();
 
-      expect(() => new NextAppPathStrategy(rMachine, { implicitDefaultLocale: "on", cookie: "off" })).toThrow(
+      expect(() => NextAppPathStrategy.create(rMachine, { implicitDefaultLocale: "on", cookie: "off" })).toThrow(
         /implicitDefaultLocale.*cookie/
       );
     });
@@ -126,19 +129,24 @@ describe("NextAppPathStrategy", () => {
     it("propagates validateConfig error when implicitDefaultLocale is custom but cookie is off", () => {
       const rMachine = createMockMachine();
 
-      expect(
-        () =>
-          new NextAppPathStrategy(rMachine, {
-            implicitDefaultLocale: { pathMatcher: null },
-            cookie: "off",
-          })
+      expect(() =>
+        NextAppPathStrategy.create(rMachine, {
+          implicitDefaultLocale: { pathMatcher: null },
+          cookie: "off",
+        })
       ).toThrow(/implicitDefaultLocale.*cookie/);
     });
 
     it("does not throw when implicitDefaultLocale is on and cookie is on", () => {
       const rMachine = createMockMachine();
 
-      expect(() => new NextAppPathStrategy(rMachine, { implicitDefaultLocale: "on", cookie: "on" })).not.toThrow();
+      expect(() => NextAppPathStrategy.create(rMachine, { implicitDefaultLocale: "on", cookie: "on" })).not.toThrow();
+    });
+
+    it("produces a config that is not the same reference as defaultConfig", () => {
+      const rMachine = createMockMachine();
+      const strategy = NextAppPathStrategy.create(rMachine, {});
+      expect(readConfig(strategy)).not.toBe(NextAppPathStrategyCore.defaultConfig);
     });
   });
 
@@ -149,21 +157,18 @@ describe("NextAppPathStrategy", () => {
   describe("createClientToolset", () => {
     it("delegates to createNextAppClientToolset with rMachine and path-specific impl", async () => {
       const rMachine = createMockMachine();
-      const strategy = new NextAppPathStrategy(rMachine);
-      const expectedImpl = { __marker: "path-client-impl" };
-      mockCreatePathClientImpl.mockReturnValue(expectedImpl);
+      const strategy = NextAppPathStrategy.create(rMachine, {});
       mockCreateClientToolset.mockReturnValue({});
 
       await strategy.createClientToolset();
 
       expect(mockCreateClientToolset).toHaveBeenCalledOnce();
       expect(mockCreateClientToolset.mock.calls[0]![0]).toBe(rMachine);
-      expect(mockCreateClientToolset.mock.calls[0]![1]).toBe(expectedImpl);
     });
 
     it("returns the toolset produced by the factory", async () => {
       const rMachine = createMockMachine();
-      const strategy = new NextAppPathStrategy(rMachine);
+      const strategy = NextAppPathStrategy.create(rMachine, {});
       const expectedToolset = { useLocale: vi.fn() };
       mockCreateClientToolset.mockReturnValue(expectedToolset);
 
@@ -178,25 +183,22 @@ describe("NextAppPathStrategy", () => {
   // -----------------------------------------------------------------------
 
   describe("createServerToolset", () => {
-    it("delegates to createNextAppServerToolset with rMachine, path-specific impl, and NextClientRMachine", async () => {
+    it("delegates to createNextAppServerToolset with rMachine, serverKit, impl, and NextClientRMachine", async () => {
       const rMachine = createMockMachine();
-      const strategy = new NextAppPathStrategy(rMachine);
+      const strategy = NextAppPathStrategy.create(rMachine, {});
       const MockClientRMachine = vi.fn();
-      const expectedImpl = { __marker: "path-server-impl" };
-      mockCreatePathServerImpl.mockReturnValue(expectedImpl);
       mockCreateServerToolset.mockReturnValue({});
 
       await strategy.createServerToolset(MockClientRMachine as any);
 
       expect(mockCreateServerToolset).toHaveBeenCalledOnce();
       expect(mockCreateServerToolset.mock.calls[0]![0]).toBe(rMachine);
-      expect(mockCreateServerToolset.mock.calls[0]![1]).toBe(expectedImpl);
-      expect(mockCreateServerToolset.mock.calls[0]![2]).toBe(MockClientRMachine);
+      expect(mockCreateServerToolset.mock.calls[0]![3]).toBe(MockClientRMachine);
     });
 
     it("returns the toolset produced by the factory", async () => {
       const rMachine = createMockMachine();
-      const strategy = new NextAppPathStrategy(rMachine);
+      const strategy = NextAppPathStrategy.create(rMachine, {});
       const MockClientRMachine = vi.fn();
       const expectedToolset = { getLocale: vi.fn() };
       mockCreateServerToolset.mockReturnValue(expectedToolset);
@@ -214,7 +216,7 @@ describe("NextAppPathStrategy", () => {
   describe("createNoProxyServerToolset", () => {
     it("returns the toolset when config is proxy-free", async () => {
       const rMachine = createMockMachine();
-      const strategy = new NextAppPathStrategy(rMachine, { autoDetectLocale: "off" });
+      const strategy = NextAppPathStrategy.create(rMachine, { autoDetectLocale: "off" });
       const MockClientRMachine = vi.fn() as any;
       const expectedToolset = { bindLocale: vi.fn() };
       mockCreateNoProxyServerToolset.mockReturnValue(expectedToolset);
@@ -226,7 +228,7 @@ describe("NextAppPathStrategy", () => {
 
     it("rejects when autoDetectLocale requires proxy (on by default)", async () => {
       const rMachine = createMockMachine();
-      const strategy = new NextAppPathStrategy(rMachine);
+      const strategy = NextAppPathStrategy.create(rMachine, {});
       const MockClientRMachine = vi.fn() as any;
 
       await expect(strategy.createNoProxyServerToolset(MockClientRMachine)).rejects.toThrow(/autoDetectLocale/);
@@ -234,7 +236,7 @@ describe("NextAppPathStrategy", () => {
 
     it("rejects when implicitDefaultLocale requires proxy", async () => {
       const rMachine = createMockMachine();
-      const strategy = new NextAppPathStrategy(rMachine, {
+      const strategy = NextAppPathStrategy.create(rMachine, {
         autoDetectLocale: "off",
         implicitDefaultLocale: "on",
         cookie: "on",
@@ -246,7 +248,7 @@ describe("NextAppPathStrategy", () => {
 
     it("rejects when autoLocaleBinding requires proxy", async () => {
       const rMachine = createMockMachine();
-      const strategy = new NextAppPathStrategy(rMachine, {
+      const strategy = NextAppPathStrategy.create(rMachine, {
         autoDetectLocale: "off",
         autoLocaleBinding: "on",
       });
@@ -257,7 +259,7 @@ describe("NextAppPathStrategy", () => {
 
     it("rejects when PathAtlas contains translations", async () => {
       const rMachine = createMockMachine();
-      const strategy = new NextAppPathStrategy(rMachine, {
+      const strategy = NextAppPathStrategy.create(rMachine, {
         autoDetectLocale: "off",
         PathAtlas: TranslatedPathAtlas,
       });
@@ -273,7 +275,7 @@ describe("NextAppPathStrategy", () => {
 
   describe("integration", () => {
     function createTranslatedStrategy(overrides: Record<string, unknown> = {}) {
-      return new NextAppPathStrategy(createMockMachine(), {
+      return NextAppPathStrategy.create(createMockMachine(), {
         PathAtlas: TranslatedPathAtlas,
         ...overrides,
       });
@@ -281,22 +283,22 @@ describe("NextAppPathStrategy", () => {
 
     it("getPath returns locale-prefixed translated path for non-default locale", () => {
       const strategy = createTranslatedStrategy();
-      expect(strategy.hrefHelper.getPath("it", "/about")).toBe("/it/chi-siamo");
+      expect((strategy as any).hrefHelper.getPath("it", "/about")).toBe("/it/chi-siamo");
     });
 
     it("getPath returns locale-prefixed untranslated path for default locale", () => {
       const strategy = createTranslatedStrategy();
-      expect(strategy.hrefHelper.getPath("en", "/about")).toBe("/en/about");
+      expect((strategy as any).hrefHelper.getPath("en", "/about")).toBe("/en/about");
     });
 
     it("getPath interpolates dynamic params with translation", () => {
       const strategy = createTranslatedStrategy();
-      expect(strategy.hrefHelper.getPath("it", "/products/[id]", { id: "42" })).toBe("/it/prodotti/42");
+      expect((strategy as any).hrefHelper.getPath("it", "/products/[id]", { id: "42" })).toBe("/it/prodotti/42");
     });
 
     it("getPath interpolates dynamic params for default locale", () => {
       const strategy = createTranslatedStrategy();
-      expect(strategy.hrefHelper.getPath("en", "/products/[id]", { id: "42" })).toBe("/en/products/42");
+      expect((strategy as any).hrefHelper.getPath("en", "/products/[id]", { id: "42" })).toBe("/en/products/42");
     });
 
     it("getPath omits locale prefix for default locale when implicitDefaultLocale is on", () => {
@@ -305,33 +307,33 @@ describe("NextAppPathStrategy", () => {
         cookie: "on",
       });
 
-      expect(strategy.hrefHelper.getPath("en", "/about")).toBe("/about");
-      expect(strategy.hrefHelper.getPath("it", "/about")).toBe("/it/chi-siamo");
+      expect((strategy as any).hrefHelper.getPath("en", "/about")).toBe("/about");
+      expect((strategy as any).hrefHelper.getPath("it", "/about")).toBe("/it/chi-siamo");
     });
 
     it("getPath respects localeLabel strict mode", () => {
-      const strategy = new NextAppPathStrategy(
+      const strategy = NextAppPathStrategy.create(
         createMockMachine({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" }),
         { PathAtlas: TranslatedPathAtlas, localeLabel: "strict" }
       );
 
-      expect(strategy.hrefHelper.getPath("en-US" as any, "/about")).toBe("/en-US/about");
+      expect((strategy as any).hrefHelper.getPath("en-US" as any, "/about")).toBe("/en-US/about");
     });
 
     it("getPath lowercases locale in prefix by default", () => {
-      const strategy = new NextAppPathStrategy(
+      const strategy = NextAppPathStrategy.create(
         createMockMachine({ locales: ["en-US", "it-IT"], defaultLocale: "en-US" }),
         { PathAtlas: TranslatedPathAtlas }
       );
 
-      expect(strategy.hrefHelper.getPath("en-US" as any, "/about")).toBe("/en-us/about");
+      expect((strategy as any).hrefHelper.getPath("en-US" as any, "/about")).toBe("/en-us/about");
     });
 
     it("getPath handles root path /", () => {
       const strategy = createTranslatedStrategy();
 
-      expect(strategy.hrefHelper.getPath("en", "/")).toBe("/en/");
-      expect(strategy.hrefHelper.getPath("it", "/")).toBe("/it/");
+      expect((strategy as any).hrefHelper.getPath("en", "/")).toBe("/en");
+      expect((strategy as any).hrefHelper.getPath("it", "/")).toBe("/it");
     });
 
     it("getPath omits locale prefix for root path when implicitDefaultLocale is on", () => {
@@ -340,28 +342,28 @@ describe("NextAppPathStrategy", () => {
         cookie: "on",
       });
 
-      expect(strategy.hrefHelper.getPath("en", "/")).toBe("/");
-      expect(strategy.hrefHelper.getPath("it", "/")).toBe("/it/");
+      expect((strategy as any).hrefHelper.getPath("en", "/")).toBe("/");
+      expect((strategy as any).hrefHelper.getPath("it", "/")).toBe("/it");
     });
 
     it("getPath is unaffected by basePath configuration", () => {
-      const strategy = new NextAppPathStrategy(createMockMachine(), {
+      const strategy = NextAppPathStrategy.create(createMockMachine(), {
         PathAtlas: TranslatedPathAtlas,
         basePath: "/docs",
       });
 
-      expect(strategy.hrefHelper.getPath("it", "/about")).toBe("/it/chi-siamo");
-      expect(strategy.hrefHelper.getPath("en", "/about")).toBe("/en/about");
+      expect((strategy as any).hrefHelper.getPath("it", "/about")).toBe("/it/chi-siamo");
+      expect((strategy as any).hrefHelper.getPath("en", "/about")).toBe("/en/about");
     });
 
     it("getPath falls back to original path for locale without translation", () => {
-      const strategy = new NextAppPathStrategy(
+      const strategy = NextAppPathStrategy.create(
         createMockMachine({ locales: ["en", "it", "fr"], defaultLocale: "en" }),
         { PathAtlas: TranslatedPathAtlas }
       );
 
-      expect(strategy.hrefHelper.getPath("fr" as any, "/about")).toBe("/fr/about");
-      expect(strategy.hrefHelper.getPath("fr" as any, "/products/[id]", { id: "7" })).toBe("/fr/products/7");
+      expect((strategy as any).hrefHelper.getPath("fr" as any, "/about")).toBe("/fr/about");
+      expect((strategy as any).hrefHelper.getPath("fr" as any, "/products/[id]", { id: "7" })).toBe("/fr/products/7");
     });
   });
 });

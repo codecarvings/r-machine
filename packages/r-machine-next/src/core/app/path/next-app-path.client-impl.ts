@@ -11,21 +11,21 @@
  * contact: licensing@codecarvings.com
  */
 
-import Cookies from "js-cookie";
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
-import { defaultCookieDeclaration } from "r-machine/strategy/web";
+import { defaultCookieDeclaration, getCookie, setCookie } from "r-machine/strategy/web";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
-import { setCookie } from "#r-machine/next/internal";
-import type { NextAppClientImpl } from "../next-app-client-toolset.js";
+import type { NextAppClientImpl } from "#r-machine/next/core/app";
 import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";
 
 export async function createNextAppPathClientImpl<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
 >(
-  _rMachine: RMachine<RA, L, FP>,
+  _rMachine: RMachine<RA, L, E, EF>,
   strategyConfig: AnyNextAppPathStrategyConfig,
   pathTranslator: HrefTranslator,
   pathCanonicalizer: HrefCanonicalizer
@@ -37,7 +37,7 @@ export async function createNextAppPathClientImpl<
   let onLoad: NextAppClientImpl<L>["onLoad"];
   if (cookieSw) {
     onLoad = (locale) => {
-      const cookieLocale = Cookies.get(cookieName!);
+      const cookieLocale = getCookie(cookieName!);
       if (locale !== cookieLocale) {
         // 1) Set cookie on load (required when not using the proxy)
         setCookie(cookieName!, locale, cookieConfig);
@@ -70,12 +70,6 @@ export async function createNextAppPathClientImpl<
       router.push(newPath);
     },
 
-    createUsePathComposer: (useLocale) => {
-      return () => {
-        const locale = useLocale();
-
-        return (path, params) => pathTranslator.get(locale, path, params).value;
-      };
-    },
+    createPathComposer: (locale) => (path, params) => pathTranslator.get(locale, path, params).value,
   } as NextAppClientImpl<L>;
 }

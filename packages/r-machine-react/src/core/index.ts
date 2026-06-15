@@ -11,20 +11,17 @@
  * contact: licensing@codecarvings.com
  */
 
-export { ReactBareStrategy } from "./react-bare-strategy.js";
+import type { VertexFrame } from "./vertex-frame.js";
+
+export { type CreateReactBareToolsetOptions, createReactBareToolset } from "./react-bare-toolset.js";
+export type { ReactPlugKitMap } from "./react-plug.js";
 export {
-  createReactBareToolset,
-  type ReactBareRMachine,
-  type ReactBareToolset,
-} from "./react-bare-toolset.js";
-export {
-  type PartialReactStandardStrategyConfig,
+  type AnyReactStandardStrategyConfig,
   type ReactStandardStrategyConfig,
+  type ReactStandardStrategyConfigParams,
   ReactStandardStrategyCore,
 } from "./react-standard-strategy-core.js";
-export { ReactStrategyCore } from "./react-strategy-core.js";
-export {
-  createReactToolset,
-  type ReactImpl,
-  type ReactToolset,
-} from "./react-toolset.js";
+export type { ReactToolset } from "./react-toolset.js";
+export { RequestScopeContext } from "./scope-context.js";
+
+export type VertexFrameType = typeof VertexFrame;

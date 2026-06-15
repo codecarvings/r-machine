@@ -2,202 +2,77 @@ import { describe, expect, it } from "vitest";
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
+  ERR_EXPERIMENTAL_OUTER_GEAR_REQUIRED,
   ERR_NO_LOCALES,
-  RMachineConfigError,
-  RMachineError,
 } from "#r-machine/errors";
-import { cloneRMachineConfig, type RMachineConfig, validateRMachineConfig } from "../../src/lib/r-machine-config.js";
+import { type RMachineConfig, validateRMachineConfig } from "../../src/lib/r-machine-config.js";
 
-const stubResolver: RMachineConfig<string>["rModuleResolver"] = async (namespace, locale) => {
-  return { default: { message: `${namespace} in ${locale}` } };
-};
+// validateRMachineConfig is the gate RMachine's constructor runs before wiring
+// any managers. Each branch returns a domain RMachineConfigError (or null on
+// success). convertRMachineConfigParamsToConfig is covered separately.
 
-function makeConfig(overrides: Partial<RMachineConfig<string>> = {}): RMachineConfig<string> {
+function makeConfig(over: Partial<RMachineConfig<any, any, any, any>> = {}): RMachineConfig<any, any, any, any> {
   return {
+    instanceName: "cfg-test",
     locales: ["en", "it"],
     defaultLocale: "en",
-    rModuleResolver: stubResolver,
-    ...overrides,
+    resourceAtlas: undefined!,
+    load: async () => ({}) as never,
+    layout: { "inner/": "gear:inner" },
+    priority: [] as never,
+    equipment: { bridgeGears: [], gearKit: {}, shellKit: {} } as never,
+    experimental: {} as never,
+    ...over,
   };
 }
 
 describe("validateRMachineConfig", () => {
-  it("should return null for a valid config", () => {
-    const error = validateRMachineConfig(makeConfig());
-    expect(error).toBeNull();
+  it("returns null for a valid config", () => {
+    expect(validateRMachineConfig(makeConfig())).toBeNull();
   });
 
-  it("should return null for valid canonical locale IDs with region subtags", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["en", "en-US", "it", "de-DE"], defaultLocale: "en" }));
-    expect(error).toBeNull();
+  it("rejects an empty locales list (ERR_NO_LOCALES)", () => {
+    const err = validateRMachineConfig(makeConfig({ locales: [] as never }));
+    expect(err?.code).toBe(ERR_NO_LOCALES);
   });
 
-  it("should return a RMachineConfigError with ERR_NO_LOCALES if no locales are provided", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: [], defaultLocale: "en" }));
-    expect(error).toBeInstanceOf(RMachineConfigError);
-    expect(error!.code).toBe(ERR_NO_LOCALES);
-    expect(error?.message).toContain("No locales provided");
+  it("rejects a non-canonical locale id in the list", () => {
+    // validateCanonicalUnicodeLocaleId rejects e.g. a lowercase region subtag.
+    const err = validateRMachineConfig(makeConfig({ locales: ["en", "en-us"] as never }));
+    expect(err).not.toBeNull();
   });
 
-  it("should return a RMachineConfigError with ERR_DUPLICATE_LOCALES if locales contains duplicates", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["en", "it", "en"], defaultLocale: "en" }));
-    expect(error).toBeInstanceOf(RMachineConfigError);
-    expect(error!.code).toBe(ERR_DUPLICATE_LOCALES);
-    expect(error?.message).toContain("Duplicate locales provided");
+  it("rejects duplicate locales (ERR_DUPLICATE_LOCALES)", () => {
+    const err = validateRMachineConfig(makeConfig({ locales: ["en", "en"] as never, defaultLocale: "en" as never }));
+    expect(err?.code).toBe(ERR_DUPLICATE_LOCALES);
   });
 
-  it("should return a RMachineConfigError with ERR_DUPLICATE_LOCALES if all locales are duplicates", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["en", "en"], defaultLocale: "en" }));
-    expect(error).toBeInstanceOf(RMachineConfigError);
-    expect(error!.code).toBe(ERR_DUPLICATE_LOCALES);
-    expect(error?.message).toContain("Duplicate locales provided");
+  it("rejects a non-canonical default locale", () => {
+    const err = validateRMachineConfig(makeConfig({ locales: ["en"] as never, defaultLocale: "en-us" as never }));
+    expect(err).not.toBeNull();
   });
 
-  it("should return a RMachineConfigError with ERR_DEFAULT_LOCALE_NOT_IN_LIST if default locale is missing", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["it"], defaultLocale: "en" }));
-    expect(error).toBeInstanceOf(RMachineConfigError);
-    expect(error!.code).toBe(ERR_DEFAULT_LOCALE_NOT_IN_LIST);
-    expect(error?.message).toContain('Default locale "en" is not in the list of locales');
+  it("rejects a default locale absent from the list (ERR_DEFAULT_LOCALE_NOT_IN_LIST)", () => {
+    const err = validateRMachineConfig(makeConfig({ locales: ["en", "it"] as never, defaultLocale: "fr" as never }));
+    expect(err?.code).toBe(ERR_DEFAULT_LOCALE_NOT_IN_LIST);
   });
 
-  it("should return a RMachineError if a locale in the list is not canonical", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["en_US"], defaultLocale: "en_US" }));
-    expect(error).toBeInstanceOf(RMachineError);
-    expect(error?.message).toContain('Invalid locale identifier: "en_US"');
-    expect(error?.message).toContain('Did you mean: "en-US"?');
-  });
-
-  it("should return a RMachineError if default locale is not canonical even when not in locales", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["en", "it"], defaultLocale: "en_US" }));
-    expect(error).toBeInstanceOf(RMachineError);
-    expect(error?.message).toContain('Invalid locale identifier: "en_US"');
-    expect(error?.message).toContain('Did you mean: "en-US"?');
-  });
-
-  it("should return a RMachineError for a wildcard locale", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["en", "*"], defaultLocale: "en" }));
-    expect(error).toBeInstanceOf(RMachineError);
-    expect(error?.message).toContain("Wildcards are not allowed");
-  });
-
-  it("should report the first non-canonical locale when multiple are invalid", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["en_US", "de_DE"], defaultLocale: "en_US" }));
-    expect(error).toBeInstanceOf(RMachineError);
-    expect(error?.message).toContain('"en_US"');
-  });
-
-  it("should catch an invalid locale in the list even when default locale is valid", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["en", "fr_FR"], defaultLocale: "en" }));
-    expect(error).toBeInstanceOf(RMachineError);
-    expect(error?.message).toContain('Invalid locale identifier: "fr_FR"');
-  });
-
-  it("should return a RMachineError for an uppercase locale", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["EN"], defaultLocale: "EN" }));
-    expect(error).toBeInstanceOf(RMachineError);
-    expect(error?.message).toContain('Invalid locale identifier: "EN"');
-    expect(error?.message).toContain('Did you mean: "en"?');
-  });
-
-  it("should return a RMachineError for a lowercase region subtag", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["en-us"], defaultLocale: "en-us" }));
-    expect(error).toBeInstanceOf(RMachineError);
-    expect(error?.message).toContain('Invalid locale identifier: "en-us"');
-    expect(error?.message).toContain('Did you mean: "en-US"?');
-  });
-
-  it("should return a RMachineError for an empty string locale in the array", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: [""], defaultLocale: "" }));
-    expect(error).toBeInstanceOf(RMachineError);
-    expect(error?.message).toContain('Invalid locale identifier: ""');
-    expect(error?.message).toContain('Did you mean: "und"?');
-  });
-
-  it("should return a RMachineError for an empty string defaultLocale", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["en"], defaultLocale: "" }));
-    expect(error).toBeInstanceOf(RMachineError);
-    expect(error?.message).toContain('Invalid locale identifier: ""');
-    expect(error?.message).toContain('Did you mean: "und"?');
-  });
-
-  it("should return null for valid locales with script subtags", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["zh-Hans", "zh-Hant"], defaultLocale: "zh-Hans" }));
-    expect(error).toBeNull();
-  });
-
-  it("should return null for a valid config with private use extensions", () => {
-    const error = validateRMachineConfig(
-      makeConfig({ locales: ["en-US-x-private", "it"], defaultLocale: "en-US-x-private" })
+  it("rejects gear:outer layout entries when outerGear is not enabled (ERR_EXPERIMENTAL_OUTER_GEAR_REQUIRED)", () => {
+    const err = validateRMachineConfig(
+      makeConfig({ layout: { "inner/": "gear:inner", "outer/": "gear:outer" }, experimental: {} as never })
     );
-    expect(error).toBeNull();
+    expect(err?.code).toBe(ERR_EXPERIMENTAL_OUTER_GEAR_REQUIRED);
+    expect(err?.message).toContain('"outer/"');
   });
 
-  it("should return null for a valid config with Unicode extensions", () => {
-    const error = validateRMachineConfig(
-      makeConfig({ locales: ["en-u-ca-buddhist", "it"], defaultLocale: "en-u-ca-buddhist" })
-    );
-    expect(error).toBeNull();
-  });
-
-  it("should return null for a valid default locale with region subtag", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["en-US", "it"], defaultLocale: "en-US" }));
-    expect(error).toBeNull();
-  });
-
-  it("should return a RMachineError for a wildcard default locale", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["en"], defaultLocale: "*" }));
-    expect(error).toBeInstanceOf(RMachineError);
-    expect(error?.message).toContain("Wildcards are not allowed");
-  });
-
-  it("should validate default locale canonicality independently from the locales list", () => {
-    const error = validateRMachineConfig(makeConfig({ locales: ["en", "it"], defaultLocale: "EN" }));
-    expect(error).toBeInstanceOf(RMachineError);
-    expect(error?.message).toContain('Invalid locale identifier: "EN"');
-    expect(error?.message).toContain('Did you mean: "en"?');
-  });
-});
-
-describe("cloneRMachineConfig", () => {
-  it("should return a new object with the same values", () => {
-    const original = makeConfig();
-    const cloned = cloneRMachineConfig(original);
-
-    expect(cloned).toEqual(original);
-    expect(cloned).not.toBe(original);
-  });
-
-  it("should create a shallow copy of the locales array", () => {
-    const original = makeConfig();
-    const cloned = cloneRMachineConfig(original);
-
-    expect(cloned.locales).toEqual(original.locales);
-    expect(cloned.locales).not.toBe(original.locales);
-  });
-
-  it("should share the same rModuleResolver reference", () => {
-    const original = makeConfig();
-    const cloned = cloneRMachineConfig(original);
-
-    expect(cloned.rModuleResolver).toBe(original.rModuleResolver);
-  });
-
-  it("should preserve the defaultLocale value", () => {
-    const original = makeConfig({ defaultLocale: "it", locales: ["en", "it"] });
-    const cloned = cloneRMachineConfig(original);
-
-    expect(cloned.defaultLocale).toBe("it");
-  });
-
-  it("should create an independent frozen copy of the locales array", () => {
-    const original = makeConfig({ locales: ["en", "it"] });
-    const cloned = cloneRMachineConfig(original);
-
-    expect(Object.isFrozen(cloned.locales)).toBe(true);
-    expect(() => (cloned.locales as string[]).push("fr")).toThrow(TypeError);
-    expect(cloned.locales).toEqual(["en", "it"]);
-
-    (original.locales as string[]).push("de");
-    expect(cloned.locales).toEqual(["en", "it"]);
+  it("accepts gear:outer layout entries when outerGear is enabled", () => {
+    expect(
+      validateRMachineConfig(
+        makeConfig({
+          layout: { "inner/": "gear:inner", "outer/": "gear:outer" },
+          experimental: { outerGear: "on" } as never,
+        })
+      )
+    ).toBeNull();
   });
 });

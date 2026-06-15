@@ -1,29 +1,39 @@
-import { NextAppFlatStrategy } from "@r-machine/next/app";
-import { RMachine, type RMachineLocale, type RMachineRCtx } from "r-machine";
-import { Formatters } from "./formatters";
+import { NextAppFlatStrategy } from "@r-machine/next/app/flat";
+import { createNextDevImport } from "@r-machine/next/dev";
+import { RMachine, type RMachineLocale } from "r-machine";
 import { PathAtlas } from "./path-atlas";
-import type { ResourceAtlas } from "./resource-atlas";
+import { ResourceAtlas } from "./resource-atlas";
 
-// Step 1: create a r-machine builder with config (locales, defaultLocale, rModuleResolver);
-//         export the inferred Locale type for use in the rest of the app
-const rMachineBuilder = RMachine.builder({
+const devImport = await createNextDevImport(import.meta.url);
+
+const rMachine = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
-  rModuleResolver: (namespace, locale) => import(`./resources/${namespace}/${locale}`),
+  ResourceAtlas,
+  // `@vite-ignore` is needed for `verifyResourceAtlas` tests under vitest; Webpack/Turbopack ignore the comment.
+  load: (path) => (devImport ? devImport(`./${path}`) : import(/* @vite-ignore */ `./${path}`)),
+  shellKit: {
+    fmt: "shell/lib/fmt",
+  },
+  experimental: {
+    outerGear: "on",
+  },
 });
-export type Locale = RMachineLocale<typeof rMachineBuilder>;
 
-// Step 2: extend the builder with custom formatters;
-//         export the inferred R$ type (context for the factories in the resource modules)
-const rMachineExtBuilder = rMachineBuilder.with({ Formatters });
-export type R$ = RMachineRCtx<typeof rMachineExtBuilder>;
+export const { InnerGear, BaseGear, OuterGear, Shell, localized } = rMachine.createToolset();
+export type Locale = RMachineLocale<typeof rMachine>;
+export type { BrandedResource as RShape } from "r-machine";
 
-// Step 3: create the r-machine instance mapped to the ResourceAtlas type (the shape of the resources returned by the modules)
-export const rMachine = rMachineExtBuilder.create<ResourceAtlas>();
-
-// Step 4: setup the strategy
-export const strategy = new NextAppFlatStrategy(rMachine, {
+export const strategy = NextAppFlatStrategy.create(rMachine, {
+  serverKit: {
+    fmt: "shell/lib/fmt",
+  },
+  clientKit: {
+    fmt: "shell/lib/fmt",
+  },
   PathAtlas,
   // Exclude non-localized paths
   pathMatcher: /^(?!\/(__|hello-world|set-italian)($|\/)).*/,
 });
+
+export const { localeHelper, hrefHelper } = strategy.getHelpers();

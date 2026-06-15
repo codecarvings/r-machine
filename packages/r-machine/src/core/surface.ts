@@ -1,0 +1,39 @@
+/**
+ * Copyright (c) 2026 Sergio Turolla
+ *
+ * This file is part of r-machine, licensed under the
+ * GNU Affero General Public License v3.0 (AGPL-3.0-only).
+ *
+ * You may use, modify, and distribute this file under the terms
+ * of the AGPL-3.0. See LICENSE in this package for details.
+ *
+ * If you need to use this software in a proprietary project,
+ * contact: licensing@codecarvings.com
+ */
+
+import type { Action, RuntimeAction } from "./action.js";
+import type { Getter } from "./getter.js";
+import type { RelayBrand } from "./relay.js";
+import type { AnyRes } from "./res.js";
+import type { AnyNamespace } from "./res-domain.js";
+import type { ResLayoutEntryType } from "./res-layout.js";
+
+type SurfaceItem<I> =
+  I extends Getter<infer V> ? V : I extends Action<infer F> ? RuntimeAction<F> : I extends RelayBrand ? never : I;
+
+declare const surfaceNamespaceSymbol: unique symbol;
+declare const surfaceLayoutEntryTypeSymbol: unique symbol;
+export type Surface<R extends AnyRes, N extends AnyNamespace, LET extends ResLayoutEntryType> = {
+  readonly [surfaceNamespaceSymbol]: N;
+  readonly [surfaceLayoutEntryTypeSymbol]: LET;
+} & SurfaceBody<R>;
+
+type SurfaceBody<R> = {
+  readonly [K in keyof R as K extends `$${string}` | symbol ? never : K]: SurfaceItem<R[K]>;
+};
+
+// export type AnyClientVertexGearSurface = Surface<AnyRes, AnyNamespace, "gear:outer(vertex)">;
+export type AnyClientGearSurface = Surface<AnyRes, AnyNamespace, "gear:outer(vertex)" | "gear:outer" | "gear:base">;
+
+// Runtime-side untyped surface
+export type AnySurface = AnyRes;

@@ -1,45 +1,43 @@
 import { expect, test } from "@playwright/test";
 
-test.describe("React app — locale", () => {
+test.describe("React showcase — gear-driven views & locale", () => {
   test.beforeEach(async ({ page }) => {
-    // Clear localStorage so each test starts with the default locale
+    // Clear localStorage so each test starts with the default locale + view
     await page.goto("/");
     await page.evaluate(() => localStorage.clear());
     await page.goto("/");
   });
 
-  test("renders English content by default", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "Type-Safe i18n for Modern Applications" })).toBeVisible();
-    await expect(page.getByText("Why R-Machine?")).toBeVisible();
-    await expect(page.getByText("Type-Safe Translations")).toBeVisible();
-    await expect(page.getByText("Minimal Runtime Cost")).toBeVisible();
+  test("renders the intro view in English by default", async ({ page }) => {
+    await expect(page.getByRole("heading", { name: "The router is a gear" })).toBeVisible();
+  });
+
+  test("navigates between views via the gear-driven sidebar", async ({ page }) => {
+    await page.getByRole("button", { name: "OuterGear", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "OuterGear — reactive state" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Vertex", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Vertex + VertexFrame" })).toBeVisible();
   });
 
   test("switches to Italian", async ({ page }) => {
-    // Open the locale switcher dropdown and select Italian
     await page.getByRole("button", { name: /English/i }).click();
     await page.getByRole("menuitem", { name: "Italiano" }).click();
-
-    // Wait for the locale switch (200ms delay + re-render)
-    await expect(page.getByRole("heading", { name: "i18n Type-Safe per Applicazioni Moderne" })).toBeVisible();
-    await expect(page.getByText("Perché R-Machine?")).toBeVisible();
-    await expect(page.getByText("Traduzioni Type-Safe")).toBeVisible();
-    await expect(page.getByText("Minimo Costo Runtime")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Il router è un gear" })).toBeVisible();
   });
 
   test("persists locale on reload", async ({ page }) => {
-    // Switch to Italian
     await page.getByRole("button", { name: /English/i }).click();
     await page.getByRole("menuitem", { name: "Italiano" }).click();
-    await expect(page.getByRole("heading", { name: "i18n Type-Safe per Applicazioni Moderne" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Il router è un gear" })).toBeVisible();
 
-    // Reload and verify it stays in Italian
     await page.reload();
-    await expect(page.getByRole("heading", { name: "i18n Type-Safe per Applicazioni Moderne" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Il router è un gear" })).toBeVisible();
   });
 
-  test("loads async Box3 resource", async ({ page }) => {
-    // Box3 is loaded asynchronously with a 2-second delay
-    await expect(page.getByText("React Integration")).toBeVisible({ timeout: 10_000 });
+  test("loads an async shell with Suspense", async ({ page }) => {
+    await page.getByRole("button", { name: "Async + Suspense", exact: true }).click();
+    // The async shell awaits ~1.5s; the consumer suspends, then resolves.
+    await expect(page.getByText("Loaded asynchronously")).toBeVisible({ timeout: 10_000 });
   });
 });

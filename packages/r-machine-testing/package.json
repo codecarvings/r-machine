@@ -1,0 +1,94 @@
+{
+  "name": "@r-machine/testing",
+  "version": "1.0.0-alpha.11",
+  "description": "Testing utilities for R-Machine — typed resource layer with structural uniformity under change for Typescript.",
+  "author": "Sergio Turolla <hello@codecarvings.com>",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "homepage": "https://rmachine.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codecarvings/r-machine.git"
+  },
+  "bugs": "https://github.com/codecarvings/r-machine/issues",
+  "keywords": [
+    "rmachine",
+    "typescript",
+    "type-safe",
+    "typesafe",
+    "uniformity-under-change",
+    "refactor-safe",
+    "resource-layer",
+    "i18n",
+    "internationalization",
+    "dependency-injection",
+    "state-management",
+    "reactive",
+    "testable",
+    "ai-friendly",
+    "llm-friendly",
+    "react",
+    "nextjs",
+    "no-codegen",
+    "intellisense",
+    "shell",
+    "gear",
+    "plug"
+  ],
+  "sideEffects": false,
+  "files": [
+    "**/*.js",
+    "**/*.mjs",
+    "**/*.cjs",
+    "**/*.d.ts",
+    "**/*.d.mts",
+    "**/*.d.cts"
+  ],
+  "main": "./lib/index.cjs",
+  "types": "./lib/index.d.cts",
+  "module": "./lib/index.js",
+  "zshy": {
+    "exports": {
+      ".": "./src/lib/index.ts"
+    },
+    "conditions": {
+      "@r-machine/source": "src"
+    }
+  },
+  "exports": {
+    ".": {
+      "@r-machine/source": "./src/lib/index.ts",
+      "types": "./lib/index.d.cts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.cjs"
+    }
+  },
+  "imports": {
+    "#r-machine/testing/errors": {
+      "@r-machine/source": "./src/errors/index.ts",
+      "types": "./errors/index.d.cts",
+      "default": "./errors/index.js"
+    },
+    "#r-machine/testing": {
+      "@r-machine/source": "./src/lib/index.ts",
+      "types": "./lib/index.d.cts",
+      "default": "./lib/index.js"
+    }
+  },
+  "scripts": {
+    "clean": "git clean -xdf . -e node_modules",
+    "build": "zshy --project tsconfig.build.json",
+    "postbuild": "pnpm biome check --write .",
+    "test": "pnpm vitest run --typecheck",
+    "test:watch": "pnpm vitest watch --typecheck"
+  },
+  "peerDependencies": {
+    "r-machine": "workspace:*",
+    "typescript": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
+  }
+}

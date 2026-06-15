@@ -18,7 +18,7 @@ import { getCanonicalUnicodeLocaleId } from "./canonical-unicode-locale-id.js";
 export type MatchLocalesAlgorithm = "best-fit" | "lookup";
 
 interface MatchLocalesOptions {
-  algorithm?: MatchLocalesAlgorithm | undefined;
+  readonly algorithm?: MatchLocalesAlgorithm | undefined;
 }
 
 export const defaultAlgorithm: MatchLocalesAlgorithm = "best-fit";
@@ -122,7 +122,9 @@ function lookupMatcher(
     let candidate = canonical;
     while (true) {
       const pos = candidate.lastIndexOf("-");
-      if (pos === -1) break;
+      if (pos === -1) {
+        break;
+      }
 
       if (pos >= 2 && candidate[pos - 2] === "-") {
         candidate = candidate.slice(0, pos - 2);

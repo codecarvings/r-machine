@@ -1,0 +1,65 @@
+{
+  "name": "rforge",
+  "version": "1.0.0-alpha.11",
+  "description": "Command-line interface for R-Machine — scaffolding, diagnostics, and LLM-agent skill generation.",
+  "author": "Sergio Turolla <hello@codecarvings.com>",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "homepage": "https://rmachine.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codecarvings/r-machine.git"
+  },
+  "bugs": "https://github.com/codecarvings/r-machine/issues",
+  "keywords": [
+    "rmachine",
+    "r-machine",
+    "cli",
+    "typescript",
+    "i18n",
+    "llm-friendly",
+    "ai-friendly",
+    "skill",
+    "scaffolding"
+  ],
+  "sideEffects": false,
+  "files": [
+    "**/*.js",
+    "**/*.d.ts",
+    "skill/**/*.md"
+  ],
+  "main": "./cli/index.js",
+  "types": "./cli/index.d.ts",
+  "bin": "./bin.js",
+  "exports": {
+    ".": {
+      "@r-machine/source": "./src/cli/index.ts",
+      "types": "./cli/index.d.ts",
+      "default": "./cli/index.js"
+    }
+  },
+  "imports": {
+    "#rforge": {
+      "@r-machine/source": "./src/cli/index.ts",
+      "types": "./cli/index.d.ts",
+      "default": "./cli/index.js"
+    }
+  },
+  "scripts": {
+    "clean": "git clean -xdf . -e node_modules",
+    "sync-version": "tsx ../../scripts/sync-rforge-version.ts",
+    "prebuild": "pnpm sync-version",
+    "build": "tsc --project tsconfig.build.json",
+    "postbuild": "pnpm biome check --write .",
+    "pretest": "pnpm sync-version",
+    "test": "pnpm vitest run --typecheck",
+    "test:watch": "pnpm vitest watch --typecheck",
+    "predev": "pnpm sync-version",
+    "dev": "tsx --conditions @r-machine/source src/bin.ts"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.5.1",
+    "citty": "^0.2.2",
+    "picocolors": "^1.1.1"
+  }
+}

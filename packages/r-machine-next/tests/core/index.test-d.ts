@@ -1,21 +1,18 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type {
   AnyPathAtlas,
-  AnyPathAtlasProvider,
-  AnyPathAtlasProviderCtor,
+  AnySegment,
   BoundPathComposer,
-  ExtendedPathAtlasProvider,
+  BuiltPathAtlas,
   HrefCanonicalizer,
-  HrefMapper,
   HrefTranslator,
-  NonTranslatableSegmentDecl,
-  PathAtlasProvider,
-  PathAtlasProviderCtor,
+  PathAtlas,
+  PathAtlasClass,
   PathParamMap,
   PathParams,
   PathSelector,
   RMachineProxy,
-  TranslatableSegmentDecl,
+  Segment,
 } from "../../src/core/index.js";
 import { buildPathAtlas } from "../../src/core/index.js";
 
@@ -24,36 +21,30 @@ describe("core barrel exports", () => {
   it("exports all expected symbols", () => {
     expectTypeOf<HrefCanonicalizer>().toBeObject();
 
-    expectTypeOf<HrefMapper<any>>().toBeObject();
-
     expectTypeOf<HrefTranslator>().toBeObject();
 
     expectTypeOf(buildPathAtlas).toBeFunction();
 
+    expectTypeOf<AnySegment>().toBeObject();
+
     expectTypeOf<AnyPathAtlas>().toBeObject();
+    expectTypeOf<AnyPathAtlas>().toHaveProperty("segment");
 
-    expectTypeOf<AnyPathAtlasProvider>().toBeObject();
-    expectTypeOf<AnyPathAtlasProvider>().toHaveProperty("decl");
+    expectTypeOf<BoundPathComposer<AnyPathAtlas>>().toBeFunction();
 
-    expectTypeOf<BoundPathComposer<AnyPathAtlasProvider>>().toBeFunction();
+    expectTypeOf<BuiltPathAtlas<AnyPathAtlas>>().toBeObject();
 
-    expectTypeOf<ExtendedPathAtlasProvider<AnyPathAtlasProvider>>().toBeObject();
+    expectTypeOf<PathAtlas<AnySegment>>().toBeObject();
 
-    expectTypeOf<AnyPathAtlasProviderCtor>().toBeConstructibleWith();
-
-    expectTypeOf<PathAtlasProvider<AnyPathAtlas>>().toBeObject();
-
-    expectTypeOf<PathAtlasProviderCtor<AnyPathAtlasProvider>>().toBeConstructibleWith();
+    expectTypeOf<PathAtlasClass<AnyPathAtlas>>().toBeConstructibleWith();
 
     expectTypeOf<PathParamMap<"/">>().toBeObject();
 
     expectTypeOf<PathParams<"/", PathParamMap<"/">>>().toBeObject();
 
-    expectTypeOf<PathSelector<AnyPathAtlasProvider>>().toExtend<string>();
+    expectTypeOf<PathSelector<AnyPathAtlas>>().toExtend<string>();
 
-    expectTypeOf<NonTranslatableSegmentDecl<{}>>().toBeObject();
-
-    expectTypeOf<TranslatableSegmentDecl<{}>>().toBeObject();
+    expectTypeOf<Segment<{}>>().toBeObject();
 
     expectTypeOf<RMachineProxy>().toBeFunction();
   });

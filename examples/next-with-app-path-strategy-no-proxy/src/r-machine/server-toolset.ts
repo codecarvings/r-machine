@@ -1,15 +1,5 @@
 import { NextClientRMachine } from "./client-toolset";
 import { strategy } from "./setup";
 
-export const {
-  routeHandlers,
-  NextServerRMachine,
-  generateLocaleStaticParams,
-  bindLocale,
-  getLocale,
-  setLocale,
-  pickR,
-  pickRKit,
-  getFmt,
-  getPathComposer,
-} = await strategy.createNoProxyServerToolset(NextClientRMachine);
+export const { routeHandlers, NextServerRMachine, generateLocaleStaticParams, bindLocale, setLocale, ServerPlug } =
+  await strategy.createNoProxyServerToolset(NextClientRMachine);

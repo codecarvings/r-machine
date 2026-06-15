@@ -4,6 +4,7 @@
 **/*.d.ts
 **/*.d.mts
 **/*.d.cts
+/errors
 /core
 /lib
 /utils

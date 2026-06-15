@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "lib": ["es2020", "dom"],
+    "lib": ["es2020", "es2022.object", "esnext.disposable", "dom"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "ignoreDeprecations": "6.0", // Temporary workaround due to ZShy
     "jsx": "react-jsx",
 
     "strict": true,
@@ -28,7 +29,6 @@
     "esModuleInterop": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "downlevelIteration": true,
     "isolatedModules": true,
 
     "pretty": true

@@ -217,11 +217,6 @@ describe("fullParseAcceptLanguageHeader", () => {
       const result = fullParseAcceptLanguageHeader("en;Q=0.8");
       expect(result).toEqual([{ range: "en", quality: 0.8 }]);
     });
-
-    it("should handle mixed case Q parameter", () => {
-      const result = fullParseAcceptLanguageHeader("en;q=0.8");
-      expect(result).toEqual([{ range: "en", quality: 0.8 }]);
-    });
   });
 
   describe("complex language ranges", () => {
@@ -310,6 +305,16 @@ describe("fullParseAcceptLanguageHeader", () => {
     it("should skip empty language range", () => {
       const result = fullParseAcceptLanguageHeader(", fr");
       expect(result).toEqual([{ range: "fr", quality: 1.0 }]);
+    });
+
+    it("should skip a part whose range segment is empty (leading ';')", () => {
+      // The part ";q=0.5" is non-empty, so it is not skipped at the part level —
+      // its range segment trims to "", which isValidLanguageRange must reject.
+      const result = fullParseAcceptLanguageHeader("en,;q=0.5,fr");
+      expect(result).toEqual([
+        { range: "en", quality: 1.0 },
+        { range: "fr", quality: 1.0 },
+      ]);
     });
 
     it("should skip language range with consecutive hyphens", () => {

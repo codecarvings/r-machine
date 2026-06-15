@@ -1,18 +1,12 @@
-import type { AnyFmtProvider, EmptyFmtProvider, RMachine } from "r-machine";
-import type { SwitchableOption } from "r-machine/strategy";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, ExperimentalFlags, ResEquipment, SwitchableOption } from "r-machine/core";
 import { describe, expectTypeOf, it } from "vitest";
-import type {
-  AnyPathAtlasProvider,
-  HrefTranslator,
-  PathAtlasProviderCtor,
-  PathParamMap,
-  PathSelector,
-} from "#r-machine/next/core";
+import type { AnyPathAtlas, HrefTranslator, PathAtlasClass, PathParamMap, PathSelector } from "#r-machine/next/core";
 import type {
   AnyNextAppOriginStrategyConfig,
   LocaleOriginMap,
   NextAppOriginStrategyConfig,
-  PartialNextAppOriginStrategyConfig,
+  NextAppOriginStrategyConfigParams,
 } from "../../../../src/core/app/origin/next-app-origin-strategy-core.js";
 import {
   NextAppOriginStrategyCore,
@@ -20,6 +14,10 @@ import {
 } from "../../../../src/core/app/origin/next-app-origin-strategy-core.js";
 import type { SimplePathAtlas, TestLocale, TranslatedPathAtlas } from "../../../_fixtures/constants.js";
 import type { TestAtlas } from "../../../_fixtures/mock-machine.js";
+
+type CKM = typeof NextAppOriginStrategyCore.defaultConfig.clientKit;
+type SKM = typeof NextAppOriginStrategyCore.defaultConfig.serverKit;
+type EF = ExperimentalFlags;
 
 // ---------------------------------------------------------------------------
 // LocaleOriginMap
@@ -51,17 +49,25 @@ describe("LocaleOriginMap", () => {
 // ---------------------------------------------------------------------------
 
 describe("NextAppOriginStrategyConfig", () => {
-  type Config = NextAppOriginStrategyConfig<SimplePathAtlas, "locale">;
+  type Config = NextAppOriginStrategyConfig<TestAtlas, CKM, SKM, SimplePathAtlas, "locale">;
 
   it("has exactly the expected properties", () => {
     type Keys = keyof Config;
     expectTypeOf<Keys>().toEqualTypeOf<
-      "PathAtlas" | "localeKey" | "autoLocaleBinding" | "basePath" | "localeOriginMap" | "pathMatcher"
+      | "clientKit"
+      | "serverKit"
+      | "PathAtlas"
+      | "localeKey"
+      | "autoLocaleBinding"
+      | "basePath"
+      | "reactCompiler"
+      | "localeOriginMap"
+      | "pathMatcher"
     >();
   });
 
-  it("PathAtlas is PathAtlasProviderCtor<PAP>", () => {
-    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasProviderCtor<SimplePathAtlas>>();
+  it("PathAtlas is PathAtlasClass<PAD>", () => {
+    expectTypeOf<Config["PathAtlas"]>().toEqualTypeOf<PathAtlasClass<SimplePathAtlas>>();
   });
 
   it("localeKey is the literal string type", () => {
@@ -104,21 +110,31 @@ describe("AnyNextAppOriginStrategyConfig", () => {
   });
 
   it("is assignable from a concrete NextAppOriginStrategyConfig", () => {
-    expectTypeOf<NextAppOriginStrategyConfig<SimplePathAtlas, "locale">>().toExtend<AnyNextAppOriginStrategyConfig>();
+    expectTypeOf<
+      NextAppOriginStrategyConfig<TestAtlas, CKM, SKM, SimplePathAtlas, "locale">
+    >().toExtend<AnyNextAppOriginStrategyConfig>();
   });
 });
 
 // ---------------------------------------------------------------------------
-// PartialNextAppOriginStrategyConfig
+// NextAppOriginStrategyConfigParams
 // ---------------------------------------------------------------------------
 
-describe("PartialNextAppOriginStrategyConfig", () => {
-  type Config = PartialNextAppOriginStrategyConfig<SimplePathAtlas, "locale">;
+describe("NextAppOriginStrategyConfigParams", () => {
+  type Config = NextAppOriginStrategyConfigParams<TestAtlas, CKM, SKM, SimplePathAtlas, "locale">;
 
   it("has exactly the expected properties", () => {
     type Keys = keyof Config;
     expectTypeOf<Keys>().toEqualTypeOf<
-      "PathAtlas" | "localeKey" | "autoLocaleBinding" | "basePath" | "localeOriginMap" | "pathMatcher"
+      | "clientKit"
+      | "serverKit"
+      | "PathAtlas"
+      | "localeKey"
+      | "autoLocaleBinding"
+      | "basePath"
+      | "reactCompiler"
+      | "localeOriginMap"
+      | "pathMatcher"
     >();
   });
 
@@ -146,7 +162,7 @@ describe("PartialNextAppOriginStrategyConfig", () => {
 // ---------------------------------------------------------------------------
 
 describe("NextAppOriginStrategyCore", () => {
-  type SimpleConfig = NextAppOriginStrategyConfig<SimplePathAtlas, "locale">;
+  type SimpleConfig = NextAppOriginStrategyConfig<TestAtlas, CKM, SKM, SimplePathAtlas, "locale">;
 
   it("defaultConfig extends the parent defaultConfig with origin-specific properties", () => {
     expectTypeOf(NextAppOriginStrategyCore.defaultConfig).toHaveProperty("localeOriginMap");
@@ -156,13 +172,13 @@ describe("NextAppOriginStrategyCore", () => {
 
   it("rMachine is RMachine<RA>", () => {
     expectTypeOf<
-      NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["rMachine"]
-    >().toEqualTypeOf<RMachine<TestAtlas, TestLocale, AnyFmtProvider>>();
+      NextAppOriginStrategyCore<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF, SimpleConfig>["rMachine"]
+    >().toEqualTypeOf<RMachine<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF>>();
   });
 
   it("config is C", () => {
     expectTypeOf<
-      NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["config"]
+      NextAppOriginStrategyCore<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF, SimpleConfig>["config"]
     >().toEqualTypeOf<SimpleConfig>();
   });
 
@@ -172,7 +188,13 @@ describe("NextAppOriginStrategyCore", () => {
 
   describe("hrefHelper", () => {
     it("has readonly getPath and getUrl properties", () => {
-      type Helper = NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>["hrefHelper"];
+      type Helper = NextAppOriginStrategyCore<
+        TestAtlas,
+        TestLocale,
+        ResEquipment<TestAtlas>,
+        EF,
+        SimpleConfig
+      >["hrefHelper"];
       expectTypeOf<Helper>().toHaveProperty("getPath");
       expectTypeOf<Helper>().toHaveProperty("getUrl");
     });
@@ -181,7 +203,8 @@ describe("NextAppOriginStrategyCore", () => {
       type GetPath = NextAppOriginStrategyCore<
         TestAtlas,
         TestLocale,
-        AnyFmtProvider,
+        ResEquipment<TestAtlas>,
+        EF,
         SimpleConfig
       >["hrefHelper"]["getPath"];
       expectTypeOf<GetPath>().toBeFunction();
@@ -191,7 +214,8 @@ describe("NextAppOriginStrategyCore", () => {
       type GetUrl = NextAppOriginStrategyCore<
         TestAtlas,
         TestLocale,
-        AnyFmtProvider,
+        ResEquipment<TestAtlas>,
+        EF,
         SimpleConfig
       >["hrefHelper"]["getUrl"];
       expectTypeOf<GetUrl>().toBeFunction();
@@ -233,30 +257,37 @@ describe("NextAppOriginStrategyCore", () => {
   });
 
   it("different RA produce different core types", () => {
-    type OtherAtlas = { readonly other: { readonly value: number } };
-    expectTypeOf<NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppOriginStrategyCore<OtherAtlas, TestLocale, AnyFmtProvider, SimpleConfig>
+    interface OtherAtlas extends AnyResAtlas {
+      readonly other: { readonly value: number };
+    }
+    expectTypeOf<
+      NextAppOriginStrategyCore<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF, SimpleConfig>
+    >().not.toEqualTypeOf<
+      NextAppOriginStrategyCore<OtherAtlas, TestLocale, ResEquipment<OtherAtlas>, EF, SimpleConfig>
     >();
   });
 
   it("different L produce different core types", () => {
     type OtherLocale = "fr" | "de";
-    expectTypeOf<NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppOriginStrategyCore<TestAtlas, OtherLocale, AnyFmtProvider, SimpleConfig>
+    expectTypeOf<
+      NextAppOriginStrategyCore<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF, SimpleConfig>
+    >().not.toEqualTypeOf<
+      NextAppOriginStrategyCore<TestAtlas, OtherLocale, ResEquipment<TestAtlas>, EF, SimpleConfig>
     >();
   });
 
   it("different config types produce different core types", () => {
-    type OtherConfig = NextAppOriginStrategyConfig<SimplePathAtlas, "lang">;
-    expectTypeOf<NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, OtherConfig>
-    >();
+    type OtherConfig = NextAppOriginStrategyConfig<TestAtlas, CKM, SKM, SimplePathAtlas, "lang">;
+    expectTypeOf<
+      NextAppOriginStrategyCore<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF, SimpleConfig>
+    >().not.toEqualTypeOf<NextAppOriginStrategyCore<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF, OtherConfig>>();
   });
 
-  it("different FP produce different core types", () => {
-    expectTypeOf<NextAppOriginStrategyCore<TestAtlas, TestLocale, AnyFmtProvider, SimpleConfig>>().not.toEqualTypeOf<
-      NextAppOriginStrategyCore<TestAtlas, TestLocale, EmptyFmtProvider, SimpleConfig>
-    >();
+  it("different KM produce different core types", () => {
+    type OtherE = ResEquipment<TestAtlas> & { readonly __km: "other" };
+    expectTypeOf<
+      NextAppOriginStrategyCore<TestAtlas, TestLocale, ResEquipment<TestAtlas>, EF, SimpleConfig>
+    >().not.toEqualTypeOf<NextAppOriginStrategyCore<TestAtlas, TestLocale, OtherE, EF, SimpleConfig>>();
   });
 });
 
@@ -265,9 +296,9 @@ describe("NextAppOriginStrategyCore", () => {
 // ---------------------------------------------------------------------------
 
 describe("NextAppOriginStrategyUrlTranslator", () => {
-  it("is constructible with (AnyPathAtlasProvider, readonly string[], string, LocaleOriginMap)", () => {
+  it("is constructible with (AnyPathAtlas, readonly string[], string, LocaleOriginMap)", () => {
     expectTypeOf(NextAppOriginStrategyUrlTranslator).toBeConstructibleWith(
-      {} as AnyPathAtlasProvider,
+      {} as AnyPathAtlas,
       ["en", "it"] as const,
       "en",
       { en: "https://en.example.com", it: "https://it.example.com" }

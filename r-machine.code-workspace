@@ -17,6 +17,14 @@
       "path": "packages/r-machine-next"
     },
     {
+      "name": "🟠 packages ― @r-machine/testing",
+      "path": "packages/r-machine-testing"
+    },
+    {
+      "name": "🟩 packages ― rforge",
+      "path": "packages/rforge"
+    },
+    {
       "name": "🟥 examples",
       "path": "examples"
     }
@@ -37,8 +45,12 @@
     ],
     "cSpell.words": [
       "npmjs",
+      "rmachine",
+      "rforge",
       "sccpath",
-      "scpath"
+      "scpath",
+      "unsub",
+      "Unsubs"
     ]
   }
 }

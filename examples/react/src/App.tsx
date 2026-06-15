@@ -1,11 +1,11 @@
 import { ReactRMachine } from "@/r-machine/toolset";
-import ContentLoading from "./components/client/ContentLoading";
-import LandingPage from "./LandingPage";
+import { AppShell } from "./components/showcase/app-shell";
+import ContentLoading from "./components/showcase/content-loading";
 
 export default function App() {
   return (
     <ReactRMachine fallback={<ContentLoading />}>
-      <LandingPage />
+      <AppShell />
     </ReactRMachine>
   );
 }

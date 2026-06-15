@@ -11,28 +11,31 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { AnyFmtProvider, AnyResourceAtlas } from "r-machine";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags, SwitchableOption } from "r-machine/core";
 import { RMachineConfigError } from "r-machine/errors";
 import type { AnyLocale, AnyLocaleList } from "r-machine/locale";
-import type { SwitchableOption } from "r-machine/strategy";
+import type { StrategyHelpers } from "r-machine/strategy";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import {
-  type AnyPathAtlasProvider,
+  type AnyPathAtlas,
   buildPathAtlas,
   HrefCanonicalizer,
   HrefTranslator,
+  type NextClientPlugKitMap,
+  type NextServerPlugKitMap,
   type PathParamMap,
   type PathParams,
   type PathSelector,
 } from "#r-machine/next/core";
-import { ERR_INVALID_STRATEGY_CONFIG } from "#r-machine/next/errors";
-import type { NextAppClientRMachine } from "../next-app-client-toolset.js";
-import type { NextAppNoProxyServerImpl, NextAppNoProxyServerToolset } from "../next-app-no-proxy-server-toolset.js";
 import {
+  type NextAppClientRMachine,
+  type NextAppNoProxyServerImpl,
+  type NextAppNoProxyServerToolset,
   type NextAppStrategyConfig,
+  type NextAppStrategyConfigParams,
   NextAppStrategyCore,
-  type PartialNextAppStrategyConfig,
-} from "../next-app-strategy-core.js";
+} from "#r-machine/next/core/app";
+import { ERR_INVALID_STRATEGY_CONFIG } from "#r-machine/next/errors";
 
 /* NextAppPathStrategy - Cookies
  * If cookies are enabled, cookies can be set in 4 different ways:
@@ -42,11 +45,11 @@ import {
  * 4) In the proxy (in NextAppPathServerImplComplement.createProxy) - required when using the proxy and autoDetectLocale is enabled
  */
 
-interface HrefHelper<L extends AnyLocale, PAP extends AnyPathAtlasProvider> {
-  readonly getPath: PathComposer<L, PAP>;
+interface HrefHelper<L extends AnyLocale, PA extends AnyPathAtlas> {
+  readonly getPath: PathComposer<L, PA>;
 }
-type PathComposer<L extends AnyLocale, PAP extends AnyPathAtlasProvider> = <
-  P extends PathSelector<PAP>,
+type PathComposer<L extends AnyLocale, PA extends AnyPathAtlas> = <
+  P extends PathSelector<PA>,
   O extends PathParamMap<P>,
 >(
   locale: L,
@@ -67,16 +70,26 @@ interface CustomAutoDetectLocale {
 type AutoDetectLocaleOption = SwitchableOption | CustomAutoDetectLocale;
 type CookieOption = SwitchableOption | CookieDeclaration;
 
-export interface NextAppPathStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string>
-  extends NextAppStrategyConfig<PAP, LK> {
+export interface NextAppPathStrategyConfig<
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+> extends NextAppStrategyConfig<RA, CKM, SKM, PA, LK> {
   readonly cookie: CookieOption;
   readonly localeLabel: LocaleLabelOption;
   readonly autoDetectLocale: AutoDetectLocaleOption;
   readonly implicitDefaultLocale: ImplicitDefaultLocaleOption;
 }
-export type AnyNextAppPathStrategyConfig = NextAppPathStrategyConfig<any, any>;
-export interface PartialNextAppPathStrategyConfig<PAP extends AnyPathAtlasProvider, LK extends string>
-  extends PartialNextAppStrategyConfig<PAP, LK> {
+export type AnyNextAppPathStrategyConfig = NextAppPathStrategyConfig<any, any, any, any, any>;
+export interface NextAppPathStrategyConfigParams<
+  RA extends AnyResAtlas,
+  CKM extends NextClientPlugKitMap<RA>,
+  SKM extends NextServerPlugKitMap<RA>,
+  PA extends AnyPathAtlas,
+  LK extends string,
+> extends NextAppStrategyConfigParams<RA, CKM, SKM, PA, LK> {
   readonly cookie?: CookieOption;
   readonly localeLabel?: LocaleLabelOption;
   readonly autoDetectLocale?: AutoDetectLocaleOption;
@@ -84,6 +97,9 @@ export interface PartialNextAppPathStrategyConfig<PAP extends AnyPathAtlasProvid
 }
 
 const defaultConfig: NextAppPathStrategyConfig<
+  AnyResAtlas,
+  typeof NextAppStrategyCore.defaultConfig.clientKit,
+  typeof NextAppStrategyCore.defaultConfig.serverKit,
   InstanceType<typeof NextAppStrategyCore.defaultConfig.PathAtlas>,
   typeof NextAppStrategyCore.defaultConfig.localeKey
 > = {
@@ -94,33 +110,38 @@ const defaultConfig: NextAppPathStrategyConfig<
   implicitDefaultLocale: "off",
 };
 
+export interface NextAppPathStrategyHelpers<L extends AnyLocale, PA extends AnyPathAtlas> extends StrategyHelpers<L> {
+  readonly hrefHelper: HrefHelper<L, PA>;
+}
+
 export abstract class NextAppPathStrategyCore<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
   C extends AnyNextAppPathStrategyConfig,
-> extends NextAppStrategyCore<RA, L, FP, C> {
+> extends NextAppStrategyCore<RA, L, E, EF, C> {
   static override readonly defaultConfig = defaultConfig;
 
   protected readonly pathAtlas = buildPathAtlas(this.config.PathAtlas, true);
   protected readonly pathTranslator = new NextAppPathStrategyPathTranslator(
     this.pathAtlas,
-    this.rMachine.locales,
-    this.rMachine.defaultLocale,
+    this.rMachine.localeHelper.locales,
+    this.rMachine.localeHelper.defaultLocale,
     this.config.localeLabel === "lowercase",
     this.config.implicitDefaultLocale !== "off"
   );
   // Used by proxy to rewrite incoming requests
   protected readonly contentPathCanonicalizer = new HrefCanonicalizer(
     this.pathAtlas,
-    this.rMachine.locales,
-    this.rMachine.defaultLocale
+    this.rMachine.localeHelper.locales,
+    this.rMachine.localeHelper.defaultLocale
   );
   // Used by setLocale to keep the content path when changing locale
   protected readonly pathCanonicalizer = new NextAppPathStrategyPathCanonicalizer(
     this.pathAtlas,
-    this.rMachine.locales,
-    this.rMachine.defaultLocale,
+    this.rMachine.localeHelper.locales,
+    this.rMachine.localeHelper.defaultLocale,
     this.config.implicitDefaultLocale !== "off"
   );
 
@@ -179,21 +200,31 @@ export abstract class NextAppPathStrategyCore<
 
   async createNoProxyServerToolset(
     NextClientRMachine: NextAppClientRMachine<L>
-  ): Promise<NextAppNoProxyServerToolset<RA, L, FP, InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
+  ): Promise<NextAppNoProxyServerToolset<RA, L, C["serverKit"], InstanceType<C["PathAtlas"]>, C["localeKey"]>> {
     this.validateNoProxyConfig();
     const impl = await this.createServerImpl();
     const module = await import("../next-app-no-proxy-server-toolset.js");
-    return module.createNextAppNoProxyServerToolset(this.rMachine, impl, NextClientRMachine);
+    return module.createNextAppNoProxyServerToolset(this.rMachine, this.config.serverKit, impl, NextClientRMachine);
   }
 
-  readonly hrefHelper: HrefHelper<L, InstanceType<C["PathAtlas"]>> = {
+  protected readonly hrefHelper: HrefHelper<L, InstanceType<C["PathAtlas"]>> = {
     getPath: (locale, path, ...args) => this.pathTranslator.get(locale, path, args[0]).value,
   };
+
+  override getHelpers(): NextAppPathStrategyHelpers<L, InstanceType<C["PathAtlas"]>> {
+    if (!this._helpers) {
+      this._helpers = {
+        ...super.getHelpers(),
+        hrefHelper: this.hrefHelper,
+      };
+    }
+    return this._helpers as NextAppPathStrategyHelpers<L, InstanceType<C["PathAtlas"]>>;
+  }
 }
 
 export class NextAppPathStrategyPathTranslator extends HrefTranslator {
   constructor(
-    atlas: AnyPathAtlasProvider,
+    atlas: AnyPathAtlas,
     locales: AnyLocaleList,
     defaultLocale: AnyLocale,
     protected readonly lowercaseLocale: boolean,
@@ -207,7 +238,10 @@ export class NextAppPathStrategyPathTranslator extends HrefTranslator {
       if (this.implicitDefaultLocale && locale === this.defaultLocale) {
         return path;
       }
-      return `/${this.lowercaseLocale ? locale.toLowerCase() : locale}${path}`;
+      const prefix = `/${this.lowercaseLocale ? locale.toLowerCase() : locale}`;
+      // Avoid a trailing slash for the locale root ("/"), which Next
+      // (trailingSlash:false) would re-normalize, causing a redirect hop.
+      return path === "/" ? prefix : `${prefix}${path}`;
     },
     preApply: false,
   };
@@ -215,7 +249,7 @@ export class NextAppPathStrategyPathTranslator extends HrefTranslator {
 
 export class NextAppPathStrategyPathCanonicalizer extends HrefCanonicalizer {
   constructor(
-    atlas: AnyPathAtlasProvider,
+    atlas: AnyPathAtlas,
     locales: AnyLocaleList,
     defaultLocale: AnyLocale,
     protected readonly implicitDefaultLocale: boolean

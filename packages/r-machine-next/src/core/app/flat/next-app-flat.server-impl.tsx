@@ -13,28 +13,29 @@
 
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
-import { type NextProxyResult, validateServerOnlyUsage } from "#r-machine/next/internal";
-import type { NextAppServerImpl } from "../next-app-server-toolset.js";
-import { localeHeaderName } from "../next-app-strategy-core.js";
+import { localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
+import type { NextProxyResult } from "#r-machine/next/internal";
 import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core.js";
 
 const scPathHeaderName = "x-rm-scpath"; // Static Canonical Path
 
 export async function createNextAppFlatServerImpl<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
   C extends AnyNextAppFlatStrategyConfig,
 >(
-  rMachine: RMachine<RA, L, FP>,
+  rMachine: RMachine<RA, L, E, EF>,
   strategyConfig: C,
   pathTranslator: HrefTranslator,
   pathCanonicalizer: HrefCanonicalizer
 ) {
-  const { locales, localeHelper } = rMachine;
+  const { locales, matchLocalesForAcceptLanguageHeader } = rMachine.localeHelper;
   const { autoLocaleBinding, cookie, pathMatcher } = strategyConfig;
   const localeKey = strategyConfig.localeKey as C["localeKey"]; // Type assertion needed to use localeKey in a typed way, since it's not a generic parameter of the strategy core class
   const autoLBSw = autoLocaleBinding === "on";
@@ -98,7 +99,9 @@ export async function createNextAppFlatServerImpl<
         const newUrl = request.nextUrl.clone();
         // Reconstruct canonical URL
         const canonicalPath = pathCanonicalizer.get(locale, path);
-        newUrl.pathname = `/${locale!}${canonicalPath.value}`;
+        // Avoid a trailing slash for the locale root ("/") to keep the rewritten
+        // pathname consistent with the redirect/href forms (no "/en/" vs "/en").
+        newUrl.pathname = canonicalPath.value === "/" ? `/${locale!}` : `/${locale!}${canonicalPath.value}`;
 
         const changeHeaders = autoLBSw || !canonicalPath.dynamic;
         if (!changeHeaders) {
@@ -134,7 +137,7 @@ export async function createNextAppFlatServerImpl<
             locale = cookieLocale;
           } else {
             // First time visiting, auto-detect from Accept-Language header
-            locale = localeHelper.matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
+            locale = matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
           }
 
           return rewriteToCanonicalLocalePath(request, locale, pathname);
@@ -147,13 +150,6 @@ export async function createNextAppFlatServerImpl<
       return proxy;
     },
 
-    createBoundPathComposerSupplier: (getLocale) => {
-      return async () => {
-        validateServerOnlyUsage("getPathComposer");
-        const locale = await getLocale();
-
-        return (path, params) => pathTranslator.get(locale, path, params).value;
-      };
-    },
+    createPathComposer: (locale) => (path, params) => pathTranslator.get(locale, path, params).value,
   } as NextAppServerImpl<L, C["localeKey"]>;
 }

@@ -11,21 +11,22 @@
  * contact: licensing@codecarvings.com
  */
 
-import Cookies from "js-cookie";
-import type { AnyFmtProvider, AnyResourceAtlas, RMachine } from "r-machine";
+import type { RMachine } from "r-machine";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
+import { getCookie, setCookie } from "r-machine/strategy/web";
 import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
-import { setCookie } from "#r-machine/next/internal";
-import type { NextAppClientImpl } from "../next-app-client-toolset.js";
+import type { NextAppClientImpl } from "#r-machine/next/core/app";
 import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core.js";
 
 export async function createNextAppFlatClientImpl<
-  RA extends AnyResourceAtlas,
+  RA extends AnyResAtlas,
   L extends AnyLocale,
-  FP extends AnyFmtProvider,
+  E extends AnyResEquipment<RA>,
+  EF extends ExperimentalFlags,
   C extends AnyNextAppFlatStrategyConfig,
 >(
-  _rMachine: RMachine<RA, L, FP>,
+  _rMachine: RMachine<RA, L, E, EF>,
   strategyConfig: C,
   pathTranslator: HrefTranslator,
   pathCanonicalizer: HrefCanonicalizer
@@ -35,7 +36,7 @@ export async function createNextAppFlatClientImpl<
 
   return {
     onLoad(locale) {
-      const cookieLocale = Cookies.get(cookieName);
+      const cookieLocale = getCookie(cookieName);
       if (locale !== cookieLocale) {
         setCookie(cookieName, locale, cookieConfig);
       }
@@ -64,12 +65,6 @@ export async function createNextAppFlatClientImpl<
       router.refresh();
     },
 
-    createUsePathComposer: (useLocale) => {
-      return () => {
-        const locale = useLocale();
-
-        return (path, params) => pathTranslator.get(locale, path, params).value;
-      };
-    },
+    createPathComposer: (locale) => (path, params) => pathTranslator.get(locale, path, params).value,
   } as NextAppClientImpl<L>;
 }

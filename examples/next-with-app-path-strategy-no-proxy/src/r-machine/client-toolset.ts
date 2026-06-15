@@ -2,5 +2,4 @@
 
 import { strategy } from "./setup";
 
-export const { NextClientRMachine, useLocale, useSetLocale, useR, useRKit, useFmt, usePathComposer } =
-  await strategy.createClientToolset();
+export const { NextClientRMachine, ClientPlug, VertexFrame } = await strategy.createClientToolset();

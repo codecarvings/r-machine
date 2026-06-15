@@ -22,13 +22,13 @@ export interface AcceptLanguageEntry {
    * The language range (e.g., "en-US", "it", "*")
    * Case-insensitive as per RFC 4647
    */
-  range: string;
+  readonly range: string;
 
   /**
    * Quality value (weight) between 0 and 1, defaults to 1.0
    * RFC 9110 allows up to 3 decimal places
    */
-  quality: number;
+  readonly quality: number;
 }
 
 /**
@@ -75,7 +75,7 @@ export interface AcceptLanguageEntry {
  * @see https://www.rfc-editor.org/rfc/rfc9110.html#name-accept-language
  * @see https://www.rfc-editor.org/rfc/rfc4647.html#section-2.1
  */
-export function fullParseAcceptLanguageHeader(header: string): AcceptLanguageEntry[] {
+export function fullParseAcceptLanguageHeader(header: string): readonly AcceptLanguageEntry[] {
   if (!header || typeof header !== "string") {
     return [];
   }
@@ -176,7 +176,7 @@ export function fullParseAcceptLanguageHeader(header: string): AcceptLanguageEnt
  *
  * @see https://www.rfc-editor.org/rfc/rfc9110.html#name-accept-language
  */
-export function parseAcceptLanguageHeader(header: string): string[] {
+export function parseAcceptLanguageHeader(header: string): readonly string[] {
   return fullParseAcceptLanguageHeader(header).map((entry) => entry.range);
 }
 
@@ -196,11 +196,11 @@ export function parseAcceptLanguageHeader(header: string): string[] {
  * @see https://www.rfc-editor.org/rfc/rfc4647.html#section-2.1
  */
 function isValidLanguageRange(range: string): boolean {
-  /* v8 ignore start */
+  // Reachable for a non-empty part that starts with ";" (e.g. ";q=0.5"), whose
+  // range segment trims to "". Covered by the empty-range-segment test.
   if (!range) {
     return false;
   }
-  /* v8 ignore stop */
 
   // Wildcard is always valid
   if (range === "*") {

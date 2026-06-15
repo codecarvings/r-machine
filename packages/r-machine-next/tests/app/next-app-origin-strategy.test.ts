@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { defaultPathMatcher } from "#r-machine/next/internal";
-import { NextAppOriginStrategy } from "../../src/app/next-app-origin-strategy.js";
-import { DynamicPathAtlas } from "../_fixtures/_helpers.js";
+import { NextAppOriginStrategy } from "../../src/app/origin/next-app-origin-strategy.js";
+import { DynamicPathAtlas, TranslatedPathAtlas } from "../_fixtures/_helpers.js";
 import { createMockMachine } from "../_fixtures/mock-machine.js";
 
 // ---------------------------------------------------------------------------
@@ -17,6 +17,18 @@ vi.mock("next/server", () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
+// Structural helper: `config` and `rMachine` are protected — cast for assertions.
+type ReadCfg = {
+  localeOriginMap?: unknown;
+  pathMatcher?: unknown;
+  localeKey?: unknown;
+  autoLocaleBinding?: unknown;
+  basePath?: unknown;
+  PathAtlas?: unknown;
+};
+const readConfig = (s: unknown): ReadCfg => (s as { config: ReadCfg }).config;
+const readRMachine = (s: unknown): unknown => (s as { rMachine: unknown }).rMachine;
+
 const minimalConfig = {
   localeOriginMap: {
     en: "https://en.example.com",
@@ -24,53 +36,46 @@ const minimalConfig = {
   },
 };
 
-class TranslatedPathAtlas {
-  readonly decl = {
-    "/about": { it: "/chi-siamo" },
-    "/products": { it: "/prodotti", "/[id]": {} },
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe("NextAppOriginStrategy", () => {
   // -----------------------------------------------------------------------
-  // Constructor — the only logic unique to this class (defaults merging)
+  // create — the factory unique to this class (defaults merging)
   // -----------------------------------------------------------------------
 
-  describe("constructor", () => {
+  describe("create", () => {
     it("applies all defaults when called with minimal config (localeOriginMap only)", () => {
       const rMachine = createMockMachine();
-      const strategy = new NextAppOriginStrategy(rMachine, minimalConfig);
+      const strategy = NextAppOriginStrategy.create(rMachine, minimalConfig);
 
-      expect(strategy.rMachine).toBe(rMachine);
-      expect(strategy.config.localeOriginMap).toBe(minimalConfig.localeOriginMap);
-      expect(strategy.config.pathMatcher).toBe(defaultPathMatcher);
-      expect(strategy.config.localeKey).toBe("locale");
-      expect(strategy.config.autoLocaleBinding).toBe("off");
-      expect(strategy.config.basePath).toBe("");
+      expect(readRMachine(strategy)).toBe(rMachine);
+      expect(readConfig(strategy).localeOriginMap).toBe(minimalConfig.localeOriginMap);
+      expect(readConfig(strategy).pathMatcher).toBe(defaultPathMatcher);
+      expect(readConfig(strategy).localeKey).toBe("locale");
+      expect(readConfig(strategy).autoLocaleBinding).toBe("off");
+      expect(readConfig(strategy).basePath).toBe("");
     });
 
     it("preserves non-overridden defaults when partial config is provided", () => {
       const rMachine = createMockMachine();
-      const strategy = new NextAppOriginStrategy(rMachine, {
+      const strategy = NextAppOriginStrategy.create(rMachine, {
         ...minimalConfig,
         basePath: "/docs",
       });
 
-      expect(strategy.config.basePath).toBe("/docs");
-      expect(strategy.config.localeOriginMap).toBe(minimalConfig.localeOriginMap);
-      expect(strategy.config.pathMatcher).toBe(defaultPathMatcher);
-      expect(strategy.config.localeKey).toBe("locale");
-      expect(strategy.config.autoLocaleBinding).toBe("off");
+      expect(readConfig(strategy).basePath).toBe("/docs");
+      expect(readConfig(strategy).localeOriginMap).toBe(minimalConfig.localeOriginMap);
+      expect(readConfig(strategy).pathMatcher).toBe(defaultPathMatcher);
+      expect(readConfig(strategy).localeKey).toBe("locale");
+      expect(readConfig(strategy).autoLocaleBinding).toBe("off");
     });
 
-    it("applies all overrides when full config is provided", () => {
+    it("applies all overrides when full params are provided", () => {
       const rMachine = createMockMachine();
       const customMatcher = /^\/app\//;
-      const strategy = new NextAppOriginStrategy(rMachine, {
+      const strategy = NextAppOriginStrategy.create(rMachine, {
         ...minimalConfig,
         pathMatcher: customMatcher,
         localeKey: "lang",
@@ -79,12 +84,12 @@ describe("NextAppOriginStrategy", () => {
         PathAtlas: DynamicPathAtlas,
       });
 
-      expect(strategy.config.localeOriginMap).toBe(minimalConfig.localeOriginMap);
-      expect(strategy.config.pathMatcher).toBe(customMatcher);
-      expect(strategy.config.localeKey).toBe("lang");
-      expect(strategy.config.autoLocaleBinding).toBe("on");
-      expect(strategy.config.basePath).toBe("/app");
-      expect(strategy.config.PathAtlas).toBe(DynamicPathAtlas);
+      expect(readConfig(strategy).localeOriginMap).toBe(minimalConfig.localeOriginMap);
+      expect(readConfig(strategy).pathMatcher).toBe(customMatcher);
+      expect(readConfig(strategy).localeKey).toBe("lang");
+      expect(readConfig(strategy).autoLocaleBinding).toBe("on");
+      expect(readConfig(strategy).basePath).toBe("/app");
+      expect(readConfig(strategy).PathAtlas).toBe(DynamicPathAtlas);
     });
 
     it("supports array values in localeOriginMap", () => {
@@ -93,54 +98,42 @@ describe("NextAppOriginStrategy", () => {
         en: ["https://en.example.com", "https://en-alt.example.com"],
         it: "https://it.example.com",
       };
-      const strategy = new NextAppOriginStrategy(rMachine, {
+      const strategy = NextAppOriginStrategy.create(rMachine, {
         localeOriginMap: arrayOriginMap,
       });
 
-      expect(strategy.config.localeOriginMap).toBe(arrayOriginMap);
+      expect(readConfig(strategy).localeOriginMap).toBe(arrayOriginMap);
     });
 
     it("allows pathMatcher to be set to null", () => {
       const rMachine = createMockMachine();
-      const strategy = new NextAppOriginStrategy(rMachine, {
+      const strategy = NextAppOriginStrategy.create(rMachine, {
         ...minimalConfig,
         pathMatcher: null,
       });
 
-      expect(strategy.config.pathMatcher).toBeNull();
+      expect(readConfig(strategy).pathMatcher).toBeNull();
     });
 
     it("shallow-merges config: localeOriginMap replaces default entirely", () => {
       const rMachine = createMockMachine();
       const singleLocaleMap = { en: "https://en.example.com" };
-      const strategy = new NextAppOriginStrategy(rMachine, {
+      const strategy = NextAppOriginStrategy.create(rMachine, {
         localeOriginMap: singleLocaleMap,
       });
 
-      expect(strategy.config.localeOriginMap).toBe(singleLocaleMap);
-      expect(Object.keys(strategy.config.localeOriginMap)).toEqual(["en"]);
-    });
-
-    it("explicit undefined in config overrides defaults (shallow spread behavior)", () => {
-      const rMachine = createMockMachine();
-      const configWithUndefined = {
-        ...minimalConfig,
-        pathMatcher: undefined as undefined,
-      };
-      // @ts-expect-error — exactOptionalPropertyTypes prevents undefined, but we test runtime spread behavior
-      const strategy = new NextAppOriginStrategy(rMachine, configWithUndefined);
-
-      expect(strategy.config.pathMatcher).toBeUndefined();
+      expect(readConfig(strategy).localeOriginMap).toBe(singleLocaleMap);
+      expect(Object.keys(readConfig(strategy).localeOriginMap as object)).toEqual(["en"]);
     });
 
     it("instantiates the PathAtlas provided in config", () => {
       const rMachine = createMockMachine();
-      const strategy = new NextAppOriginStrategy(rMachine, {
+      const strategy = NextAppOriginStrategy.create(rMachine, {
         ...minimalConfig,
         PathAtlas: TranslatedPathAtlas,
       });
 
-      expect(strategy.hrefHelper.getPath("it", "/about")).toBe("/chi-siamo");
+      expect((strategy as any).hrefHelper.getPath("it", "/about")).toBe("/chi-siamo");
     });
   });
 
@@ -150,35 +143,35 @@ describe("NextAppOriginStrategy", () => {
 
   describe("integration", () => {
     const rMachine = createMockMachine();
-    const strategy = new NextAppOriginStrategy(rMachine, {
+    const strategy = NextAppOriginStrategy.create(rMachine, {
       ...minimalConfig,
       PathAtlas: TranslatedPathAtlas,
     });
 
     it("getPath returns translated path for non-default locale", () => {
-      expect(strategy.hrefHelper.getPath("it", "/about")).toBe("/chi-siamo");
+      expect((strategy as any).hrefHelper.getPath("it", "/about")).toBe("/chi-siamo");
     });
 
     it("getPath returns untranslated path for default locale", () => {
-      expect(strategy.hrefHelper.getPath("en", "/about")).toBe("/about");
+      expect((strategy as any).hrefHelper.getPath("en", "/about")).toBe("/about");
     });
 
     it("getUrl returns origin-prefixed translated path", () => {
-      expect(strategy.hrefHelper.getUrl("it", "/about")).toBe("https://it.example.com/chi-siamo");
+      expect((strategy as any).hrefHelper.getUrl("it", "/about")).toBe("https://it.example.com/chi-siamo");
     });
 
     it("getUrl returns origin-prefixed untranslated path for default locale", () => {
-      expect(strategy.hrefHelper.getUrl("en", "/about")).toBe("https://en.example.com/about");
+      expect((strategy as any).hrefHelper.getUrl("en", "/about")).toBe("https://en.example.com/about");
     });
 
     it("getUrl interpolates dynamic params with origin for default locale", () => {
-      expect(strategy.hrefHelper.getUrl("en", "/products/[id]", { id: "42" })).toBe(
+      expect((strategy as any).hrefHelper.getUrl("en", "/products/[id]", { id: "42" })).toBe(
         "https://en.example.com/products/42"
       );
     });
 
     it("getUrl interpolates dynamic params with origin and translation", () => {
-      expect(strategy.hrefHelper.getUrl("it", "/products/[id]", { id: "42" })).toBe(
+      expect((strategy as any).hrefHelper.getUrl("it", "/products/[id]", { id: "42" })).toBe(
         "https://it.example.com/prodotti/42"
       );
     });
