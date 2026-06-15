@@ -28,6 +28,7 @@ export default defineConfig({
         "r-machine/src/errors/**": FULL,
         "r-machine/src/locale/**": FULL,
         "r-machine/src/strategy/**": FULL,
+        "r-machine/src/core/**": FULL,
         "r-machine-react/src/errors/**": FULL,
         "r-machine-react/src/lib/**": FULL,
         "r-machine-react/src/utils/**": FULL,

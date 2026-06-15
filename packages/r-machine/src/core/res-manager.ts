@@ -764,10 +764,14 @@ export class ResManager {
       }
     }
     // Defensive sweep: dispose any slot whose namespace fell outside the closure
-    // walk (should be none, but never leak a slot).
+    // walk. Unreachable in practice — every slot namespace is a root and
+    // `getReverseClosure` always includes its seed, so the ordered walk above
+    // already disposed every slot — but kept so a slot can never leak.
+    /* v8 ignore start */
     for (const key of [...this.slots.keys()]) {
       this.disposeSlotIn(this.slots, key);
     }
+    /* v8 ignore stop */
 
     this.generationByNs.clear();
     this.subscribersByNs.clear();

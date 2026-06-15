@@ -10,6 +10,11 @@ import { getResCacheKey, ResManager } from "../../src/core/res-manager.js";
 import type { AnyNamespaceMap } from "../../src/core/res-map.js";
 import { createResMatrix } from "../../src/core/res-matrix.js";
 import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-module.js";
+import {
+  createRequestScope,
+  PROCESS_SCOPE_PROVIDER,
+  type RequestScopeProvider,
+} from "../../src/core/scope.js";
 import { ASYNC, COVERED_PENDING } from "../../src/core/sync-resolve.js";
 import { buildVertexKey } from "../../src/core/vertex-gear.js";
 import {
@@ -1617,5 +1622,409 @@ describe("ResManager — getPluginSync (Tier B: sync creation)", () => {
     // A fresh slot + index entry under the NEW genId.
     expect(env.rmInternal.slots.has(env.keyOf("v/V", undefined, env.vKey(2, "0")))).toBe(true);
     expect(env.rmInternal.vertexSlotsByGenId.get(2)).toEqual(new Map([["v/V", new Set(["0"])]]));
+  });
+});
+
+// ─── Coverage completion (Core-6) ────────────────────────────────────────────
+// Targeted tests for the orchestrator's remaining edges: the scope-provider
+// accessor, the synchronous plugin decline/partition paths, the deferred-kit
+// success path, the request-scope vertex routing/teardown, and the defensive
+// error-handling guards. res-manager.ts was not part of any earlier Core
+// sub-task; this section drives it to 100%.
+
+describe("ResManager — scope provider accessor", () => {
+  it("getScopeProvider returns the installed provider (defaults to PROCESS_SCOPE_PROVIDER)", () => {
+    const env = createRmTestEnv({ modules: {} });
+    expect(env.rm.getScopeProvider()).toBe(PROCESS_SCOPE_PROVIDER);
+
+    const provider: RequestScopeProvider = { getActiveScope: () => null };
+    env.rm.setScopeProvider(provider);
+    expect(env.rm.getScopeProvider()).toBe(provider);
+  });
+});
+
+describe("getResCacheKey — vertex key fallback", () => {
+  it("uses an empty vertexKey suffix when none is supplied", () => {
+    expect(getResCacheKey("v/V" as AnyNamespace, undefined, "gear:outer(vertex)")).toBe("V:v/V\x1f");
+  });
+});
+
+describe("ResManager — getPluginSync decline & partition paths", () => {
+  it("installs a deferred (in-chain) kit entry without resolving it eagerly", () => {
+    const env = createRmTestEnv({ modules: { "g/SELF": () => makeRawModule({ s: 1 }) } });
+
+    // g/SELF is in the chain → deferred. No eager kit, no deps → sync succeeds
+    // and the deferred entry is installed lazily (NOT resolved here).
+    const sync = env.rm.getPluginSync({ self: "g/SELF" }, [], undefined, () => {}, ["g/SELF"], 1, undefined);
+
+    expect(sync).not.toBe(ASYNC);
+    const $ = (sync as unknown[])[0] as { kit: Record<string, unknown> };
+    expect($).toHaveProperty("kit");
+    expect(env.loadCalls).toHaveLength(0);
+  });
+
+  it("declines (ASYNC) when an eager kit entry is cold", () => {
+    const env = createRmTestEnv({ modules: { "g/A": () => makeRawModule({ a: 1 }) } });
+
+    expect(env.rm.getPluginSync({ a: "g/A" }, [], undefined, () => {}, [], 1, undefined)).toBe(ASYNC);
+  });
+
+  it("declines (ASYNC) when a map dep is cold", () => {
+    const env = createRmTestEnv({ modules: { "g/A": () => makeRawModule({ a: 1 }) } });
+
+    expect(env.rm.getPluginSync({}, { a: "g/A" }, undefined, () => {}, [], 1, undefined)).toBe(ASYNC);
+  });
+
+  it("returns COVERED_PENDING when a MAP dep is a covered vertex with a missing parent", () => {
+    const env = createRmTestEnv({ modules: { "v/V": (rm) => makeVertexModule(rm, {}, { v: 1 }) } });
+    const missingVKey = env.vKey(7, "0"); // never created
+
+    expect(env.rm.getPluginSync({}, { v: "v/V" }, undefined, () => {}, [], 99, { "v/V": missingVKey })).toBe(
+      COVERED_PENDING
+    );
+  });
+
+  it("emits kitPartitioned (eager + deferred) once the whole graph resolves synchronously", async () => {
+    const bridge = makeTestBridge();
+    const env = createRmTestEnv({
+      modules: {
+        "g/A": () => makeRawModule({ a: 1 }),
+        "g/SELF": () => makeRawModule({ s: 1 }),
+      },
+      busHost: bridge,
+    });
+    // Warm the eager kit member so the sync path can read it from a warm slot.
+    await env.rm.getPlugin({ a: "g/A" }, [], undefined, () => {}, [], 1, undefined);
+
+    const collector = collectEvents(bridge);
+    // g/A eager (warm); g/SELF in chain → deferred. Sync succeeds → emits.
+    const sync = env.rm.getPluginSync({ a: "g/A", self: "g/SELF" }, [], undefined, () => {}, ["g/SELF"], 1, undefined);
+    expect(sync).not.toBe(ASYNC);
+
+    const partition = collector.events.find((e) => e.type === "res:kitPartitioned");
+    expect(partition).toMatchObject({ eager: ["g/A"], deferred: ["g/SELF"] });
+
+    collector.dispose();
+  });
+});
+
+describe("ResManager — deferred kit getter (success path)", () => {
+  it("resolves a deferred self-kit entry once its ancestor slot has committed", async () => {
+    const bridge = makeTestBridge();
+    let captured: { kit: Record<string, unknown> } | undefined;
+    const env = createRmTestEnv({
+      gearKit: { self: "b/A" },
+      modules: {
+        "b/A": (rm) =>
+          makeGearModule(rm, { self: "b/A" }, "base", [], (plugin) => {
+            captured = plugin[plugin.length - 1] as { kit: Record<string, unknown> };
+            return { name: "A" };
+          }),
+      },
+      busHost: bridge,
+    });
+
+    await env.rmInternal.getPod("b/A", "en", 0, undefined, []);
+    const collector = collectEvents(bridge);
+
+    // The slot is now committed → the deferred accessor returns b/A's surface.
+    const selfSurface = captured?.kit.self as { name: string };
+    expect(selfSurface.name).toBe("A");
+
+    expect(collector.events).toContainEqual(
+      expect.objectContaining({ type: "res:deferredKitAccessed", namespace: "b/A", ready: true })
+    );
+    collector.dispose();
+  });
+});
+
+describe("ResManager — invalidate edges", () => {
+  it("skips slots whose namespace is outside the invalidation closure", async () => {
+    const env = createRmTestEnv({
+      modules: {
+        "g/A": () => makeRawModule({ a: 1 }),
+        "g/B": () => makeRawModule({ b: 2 }),
+      },
+    });
+    await env.rmInternal.getPod("g/A", "en", 0, undefined, []);
+    await env.rmInternal.getPod("g/B", "en", 0, undefined, []);
+
+    // No dep edges → closure of g/A is {g/A}. g/B's slot must survive the walk.
+    env.rm.invalidate("g/A");
+
+    expect(env.rmInternal.slots.has(env.keyOf("g/A", "en"))).toBe(false);
+    expect(env.rmInternal.slots.has(env.keyOf("g/B", "en"))).toBe(true);
+  });
+
+  it("swallows a throwing subscriber callback and still notifies the rest", async () => {
+    const env = createRmTestEnv({ modules: { "g/A": () => makeRawModule({ a: 1 }) } });
+    await env.rmInternal.getPod("g/A", "en", 0, undefined, []);
+
+    const good = vi.fn();
+    env.rm.subscribe(["g/A"], () => {
+      throw new Error("subscriber boom");
+    });
+    env.rm.subscribe(["g/A"], good);
+
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect(() => env.rm.invalidate("g/A")).not.toThrow();
+      expect(good).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it("swallows a throwing teardown on a discarded (stale) pod", async () => {
+    const teardown = vi.fn(() => {
+      throw new Error("teardown boom");
+    });
+    let releaseGate!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseGate = resolve;
+    });
+    const env = createRmTestEnv({
+      modules: {
+        "g/X": async () => {
+          await gate;
+          return makeRawModule({ x: 1, [Symbol.dispose]: teardown });
+        },
+      },
+    });
+
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const inflight = env.rmInternal.getPod("g/X", undefined, 0, undefined, []);
+      env.rm.invalidate("g/X"); // bump generation → the resolved pod is stale
+      releaseGate();
+      await inflight;
+
+      expect(teardown).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalled(); // the teardown throw was caught + logged
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+});
+
+describe("ResManager — vertex dispose guards", () => {
+  it("disposeSlot is a no-op for a non-existent key", () => {
+    const env = createRmTestEnv({ modules: {} });
+    const disposeSlot = (env.rm as unknown as { disposeSlot(k: string): void }).disposeSlot.bind(env.rm);
+    expect(() => disposeSlot("nonexistent-key")).not.toThrow();
+  });
+
+  it("disposeVertexSlotsForNamespace is a no-op for an unknown genId (no index entry)", () => {
+    const env = createRmTestEnv({ modules: {} });
+    expect(() => env.rm.disposeVertexSlotsForNamespace("v/Nope" as AnyNamespace, 999)).not.toThrow();
+  });
+
+  it("disposeVertexSlotsForNamespace is a no-op for a known genId but unknown namespace", async () => {
+    const env = createRmTestEnv({ modules: { "v/V": (rm) => makeVertexModule(rm, {}, { v: 1 }) } });
+    await env.rmInternal.getPod("v/V", undefined, 42, undefined, [], "0");
+
+    // genId 42 exists in the index (byNs present) but "v/Other" has no tag set.
+    expect(() => env.rm.disposeVertexSlotsForNamespace("v/Other" as AnyNamespace, 42)).not.toThrow();
+    // The real slot is untouched.
+    expect(env.rmInternal.vertexSlotsByGenId.get(42)).toEqual(new Map([["v/V", new Set(["0"])]]));
+  });
+
+  it("disposeVertexSlotsByOwnershipChange is a no-op for an unknown genId", () => {
+    const env = createRmTestEnv({ modules: {} });
+    expect(() =>
+      env.rm.disposeVertexSlotsByOwnershipChange(999, { "v/X": "key" } as Record<AnyNamespace, string>)
+    ).not.toThrow();
+  });
+});
+
+describe("ResManager — request-scope vertex routing & teardown", () => {
+  it("routes vertex slots + index into the active scope, then disposeRequestScope tears them down", async () => {
+    const env = createRmTestEnv({ modules: { "v/V": (rm) => makeVertexModule(rm, {}, { v: 1 }) } });
+    const scope = createRequestScope();
+    env.rm.setScopeProvider({ getActiveScope: () => scope });
+
+    await env.rmInternal.getPod("v/V", undefined, 42, undefined, [], "0");
+
+    // Routed to the scope's vertex tier — NOT the process-tier maps.
+    expect(scope.vertexSlots.size).toBe(1);
+    expect(scope.vertexSlotsByGenId.get(42)).toEqual(new Map([["v/V", new Set(["0"])]]));
+    expect(env.rmInternal.slots.size).toBe(0);
+    expect(env.rmInternal.vertexSlotsByGenId.size).toBe(0);
+
+    env.rm.disposeRequestScope(scope);
+
+    expect(scope.vertexSlots.size).toBe(0);
+    expect(scope.vertexSlotsByGenId.size).toBe(0);
+  });
+
+  it("disposeRequestScope skips a closure namespace that has no slot in the scope", async () => {
+    const env = createRmTestEnv({ modules: { "v/B": (rm) => makeVertexModule(rm, {}, { b: 1 }) } });
+    const scope = createRequestScope();
+    env.rm.setScopeProvider({ getActiveScope: () => scope });
+
+    await env.rmInternal.getPod("v/B", undefined, 42, undefined, [], "0");
+
+    // v/A depends on v/B → reverseClosure(v/B) includes v/A, but v/A was never
+    // resolved in this scope (no slot) → the dispose walk skips it.
+    env.addDepEdge("v/A", "v/B");
+
+    expect(() => env.rm.disposeRequestScope(scope)).not.toThrow();
+    expect(scope.vertexSlots.size).toBe(0);
+  });
+
+  it("logs and continues when disposing a scope slot whose resource uses async dispose", async () => {
+    // A resource with [Symbol.asyncDispose] makes tryGetDispose throw inside
+    // disposeSlotIn (async dispose is unsupported) — disposeRequestScope must
+    // catch + log per slot rather than abort.
+    const env = createRmTestEnv({
+      modules: {
+        "v/V": (rm) => makeVertexModule(rm, {}, { v: 1, [Symbol.asyncDispose]: () => Promise.resolve() } as never),
+      },
+    });
+    const scope = createRequestScope();
+    env.rm.setScopeProvider({ getActiveScope: () => scope });
+
+    await env.rmInternal.getPod("v/V", undefined, 42, undefined, [], "0");
+
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect(() => env.rm.disposeRequestScope(scope)).not.toThrow();
+      expect(errorSpy).toHaveBeenCalledWith(
+        "[r-machine] disposeRequestScope error for",
+        "v/V",
+        expect.anything()
+      );
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it("buckets multiple slots of one namespace (duplicate vertex occurrences) in a scope", async () => {
+    const env = createRmTestEnv({ modules: { "v/V": (rm) => makeVertexModule(rm, {}, { v: 1 }) } });
+    const scope = createRequestScope();
+    env.rm.setScopeProvider({ getActiveScope: () => scope });
+
+    // Two occurrence tags → two slots under the SAME namespace in the scope.
+    await env.rmInternal.getPod("v/V", undefined, 42, undefined, [], "0");
+    await env.rmInternal.getPod("v/V", undefined, 42, undefined, [], "1");
+    expect(scope.vertexSlots.size).toBe(2);
+
+    env.rm.disposeRequestScope(scope);
+    expect(scope.vertexSlots.size).toBe(0);
+  });
+});
+
+describe("ResManager — guard branch completion", () => {
+  it("a stale pod with no Symbol.dispose reports teardownInvoked=false", async () => {
+    const bridge = makeTestBridge();
+    let releaseGate!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseGate = resolve;
+    });
+    const env = createRmTestEnv({
+      modules: {
+        "g/X": async () => {
+          await gate;
+          return makeRawModule({ x: 1 }); // NO Symbol.dispose
+        },
+      },
+      busHost: bridge,
+    });
+    const collector = collectEvents(bridge);
+
+    const inflight = env.rmInternal.getPod("g/X", undefined, 0, undefined, []);
+    env.rm.invalidate("g/X"); // bump generation → pod is stale on completion
+    releaseGate();
+    await inflight;
+
+    expect(collector.events).toContainEqual(
+      expect.objectContaining({ type: "res:resolveStale", namespace: "g/X", teardownInvoked: false })
+    );
+    collector.dispose();
+  });
+
+  it("error cleanup leaves the slot map alone when the slot was already replaced", async () => {
+    let releaseGate!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseGate = resolve;
+    });
+    const env = createRmTestEnv({
+      modules: {
+        "g/X": async () => {
+          await gate;
+          throw new Error("factory boom");
+        },
+      },
+    });
+
+    const inflight = env.rmInternal.getPod("g/X", undefined, 0, undefined, []);
+    // Drop the in-flight slot before the factory errors → on the error path the
+    // identity check `slotsMap.get(key) === slot` is false, so no delete runs.
+    env.rmInternal.slots.delete(env.keyOf("g/X"));
+    releaseGate();
+
+    await expect(inflight).rejects.toThrow("factory boom");
+  });
+
+  it("a deferred kit key shadowed by a same-named dep is not hoisted to the plugin top level", async () => {
+    const env = createRmTestEnv({
+      gearKit: { x: "g/SELF" },
+      modules: {
+        "g/X": () => makeRawModule({ from: "dep" }),
+        "g/SELF": () => makeRawModule({ from: "kit" }),
+      },
+    });
+
+    // kit x→g/SELF is in the chain (deferred); dep x→g/X is eager. The dep
+    // shadows the kit key at top level, so the deferred getter is installed on
+    // `$.kit` only (the `!(k in deps)` guard is false).
+    const plugin = (await env.rm.getPlugin(
+      { x: "g/SELF" },
+      { x: "g/X" },
+      "en",
+      () => {},
+      ["g/SELF"],
+      0,
+      undefined
+    )) as { x: { from: string } };
+
+    expect(plugin.x.from).toBe("dep");
+  });
+
+  it("Tier-B sync re-create reuses an existing vertex index entry (byNs/tags present)", async () => {
+    const env = createRmTestEnv({
+      modules: { "v/V": (rm) => makeSyncVertexModule(rm, {}, () => ({ v: 1 })) },
+    });
+    // Async resolve registers the index {42:{v/V:{"0"}}} and proves sync-eligible.
+    await env.rm.getPlugin({}, ["v/V"], undefined, () => {}, [], 42, undefined);
+    // Drop ONLY the slot, keeping the index entry alive.
+    env.rmInternal.slots.delete(env.keyOf("v/V", undefined, env.vKey(42, "0")));
+
+    // Tier-B sync re-create: the index byNs map AND its tag set already exist.
+    const sync = env.rm.getPluginSync({}, ["v/V"], undefined, () => {}, [], 42, undefined);
+
+    expect(sync).not.toBe(ASYNC);
+    expect(env.rmInternal.vertexSlotsByGenId.get(42)).toEqual(new Map([["v/V", new Set(["0"])]]));
+  });
+
+  it("disposeResources groups multiple slots of one namespace (shell at two locales)", async () => {
+    const env = createRmTestEnv({ modules: { "s/Z": () => makeRawModule({ z: 1 }) } });
+    await env.rmInternal.getPod("s/Z", "en", 0, undefined, []);
+    await env.rmInternal.getPod("s/Z", "it", 0, undefined, []);
+    expect(env.rmInternal.slots.size).toBe(2);
+
+    env.rm.disposeResources();
+    expect(env.rmInternal.slots.size).toBe(0);
+  });
+
+  it("invalidate groups multiple slots of one namespace in the closure (shell at two locales)", async () => {
+    const env = createRmTestEnv({ modules: { "s/Z": () => makeRawModule({ z: 1 }) } });
+    await env.rmInternal.getPod("s/Z", "en", 0, undefined, []);
+    await env.rmInternal.getPod("s/Z", "it", 0, undefined, []);
+
+    // No locale → both shell slots are in the closure and grouped together.
+    env.rm.invalidate("s/Z");
+    expect(env.rmInternal.slots.size).toBe(0);
   });
 });
