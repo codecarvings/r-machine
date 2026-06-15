@@ -108,7 +108,7 @@ const rMachine = RMachine.create({
   experimental: { outerGear: "on" },
 });
 
-export const { InnerGear, BaseGear, OuterGear, Shell, localized } =
+export const { BaseGear, OuterGear, Shell, localized } =
   rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
@@ -268,6 +268,13 @@ import type { AnyResModule } from "r-machine/core";
 
 const moduleLoaders = import.meta.glob<AnyResModule>("./**/*.{tsx,ts}", {});
 
+const useHMR = import.meta.hot && !import.meta.env.TEST;
+if (useHMR) {
+  import.meta.hot!.on("r-machine:update", ({ file }) => {
+    rMachine.reloadModule(file);
+  });
+}
+
 const rMachine = RMachine.create({
   ...
   load: async (path) => {
@@ -283,7 +290,7 @@ const rMachine = RMachine.create({
       throw new Error(`Module not found: ${path}`);
     }
 
-    if (import.meta.hot) {
+    if (useHMR) {
       // In dev, ALWAYS import with a cache-busting query so an HMR-invalidated
       // module (and its freshly-bumped transitive deps) is re-fetched.
       const freshUrl = new URL(`${resolvedPath}?t=${Date.now()}`, import.meta.url).href;
@@ -294,12 +301,6 @@ const rMachine = RMachine.create({
   },
   ...
 });
-
-if (import.meta.hot) {
-  import.meta.hot.on("r-machine:update", ({ file }) => {
-    rMachine.reloadModule(file);
-  });
-}
 ```
 
 Register the plugin in `vite.config.ts`, and in dev have the `load` function

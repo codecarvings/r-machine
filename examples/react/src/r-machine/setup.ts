@@ -6,10 +6,11 @@ import { ResourceAtlas } from "./resource-atlas";
 // Vite statically analyzes this at build time and creates chunk files for all matching modules
 const moduleLoaders = import.meta.glob<AnyResModule>("./**/*.{tsx,ts}", {});
 
-if (import.meta.hot) {
+const useHMR = import.meta.hot && !import.meta.env.TEST;
+if (useHMR) {
   // HMR: Noop on production, but in dev we listen for a custom
   // "r-machine:update" event from `vite-plugin-r-machine-hmr.ts`
-  import.meta.hot.on("r-machine:update", ({ file }) => {
+  import.meta.hot!.on("r-machine:update", ({ file }) => {
     rMachine.reloadModule(file);
   });
 }
@@ -31,9 +32,12 @@ const rMachine = RMachine.create({
       throw new Error(`Module not found: ${path}`);
     }
 
-    if (import.meta.hot) {
+    if (useHMR) {
       // In dev, ALWAYS import with a cache-busting query so an HMR-invalidated
       // module (and its freshly-bumped transitive deps) is re-fetched.
+      // Skipped under vitest: it also defines `import.meta.hot`, but resolving
+      // the cache-busting URL against `import.meta.url` yields an `http:` URL
+      // (vitest's module server) that Node's ESM loader can't import.
       const freshUrl = new URL(`${resolvedPath}?t=${Date.now()}`, import.meta.url).href;
       return import(/* @vite-ignore */ freshUrl) as Promise<AnyResModule>;
     }
@@ -48,7 +52,7 @@ const rMachine = RMachine.create({
   },
 });
 
-export const { InnerGear, BaseGear, OuterGear, Shell, localized } = rMachine.createToolset();
+export const { BaseGear, OuterGear, Shell, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 

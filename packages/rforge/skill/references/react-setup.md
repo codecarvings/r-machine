@@ -1,7 +1,8 @@
-# R-Machine — React (Vite / CRA) Setup
+# R-Machine — React (Vite) Setup
 
-Use this guide when scaffolding R-Machine from scratch into a React project
-(Vite, Create React App, or similar bundler — no Next.js).
+Use this guide when scaffolding R-Machine from scratch into a Vite + React
+project (no Next.js). The setup relies on Vite-specific APIs (`import.meta.glob`,
+`import.meta.hot`), so it does not apply to non-Vite bundlers.
 
 ---
 
@@ -309,13 +310,16 @@ export default defineConfig({
 
 ### 4.3 Add the client-side handler in `setup.ts`
 
-Add this block after `rMachine` is created — it just invalidates the changed
-resource; the next resolve re-imports it via the always-cache-busting `load`:
+Add this block before `RMachine.create(...)` — `load` references `useHMR`, so
+the constant must be in scope when the config is built. It just invalidates the
+changed resource; the next resolve re-imports it via the cache-busting `load`:
 
 ```ts
-// After RMachine.create(...):
-if (import.meta.hot) {
-  import.meta.hot.on("r-machine:update", ({ file }) => {
+// Before RMachine.create(...):
+
+const useHMR = import.meta.hot && !import.meta.env.TEST;
+if (useHMR) {
+  import.meta.hot!.on("r-machine:update", ({ file }) => {
     rMachine.reloadModule(file);
   });
 }
@@ -333,7 +337,7 @@ load: async (path) => {
   const resolved = moduleLoaders[tsx] ? tsx : moduleLoaders[ts] ? ts : null;
   if (!resolved) throw new Error(`R-Machine: module not found: ${path}`);
 
-  if (import.meta.hot) {
+  if (useHMR) {
     // In dev, ALWAYS import with a cache-busting query so an HMR-invalidated
     // module (and its freshly-bumped transitive deps) is re-fetched.
     const freshUrl = new URL(`${resolved}?t=${Date.now()}`, import.meta.url).href;

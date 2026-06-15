@@ -47,7 +47,7 @@ Look at the project (or ask the user) to determine which mode applies:
 ## Section A — Initial Project Setup
 
 Read `references/next-setup.md` for Next.js App Router projects.
-Read `references/react-setup.md` for React (Vite/CRA) projects.
+Read `references/react-setup.md` for React (Vite) projects.
 
 ### A.1 — Identify the framework
 
