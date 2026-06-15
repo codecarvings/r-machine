@@ -11,7 +11,12 @@
  * contact: licensing@codecarvings.com
  */
 
-import { ERR_CIRCULAR_DEPENDENCY, ERR_VERTEX_INSTANCE_NOT_FOUND, RMachineResolveError } from "#r-machine/errors";
+import {
+  ERR_CIRCULAR_DEPENDENCY,
+  ERR_VERTEX_AT_PROCESS_SCOPE,
+  ERR_VERTEX_INSTANCE_NOT_FOUND,
+  RMachineResolveError,
+} from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { Blueprint } from "./blueprint.js";
 import { type BlueprintManager, getBlueprintResCacheKey } from "./blueprint-manager.js";
@@ -238,6 +243,21 @@ export class ResManager {
     const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
     const slotsMap = this.slotsForLayout(layoutType);
     if (layoutType === "gear:outer(vertex)") {
+      // Invariant guard: vertex slots are per-consumer and keyed in the genId
+      // index for disposal at wire teardown (`disposeAllVertexSlotsByGenId`).
+      // genId 0 is the reserved process/kit sentinel (wires start at 1 via
+      // `++nextGenId`) and is never torn down per-consumer, so a vertex slot
+      // minted under it would leak silently. The two genId-0 callers — kit
+      // resolution (`loadKit`) and gear→gear deps (`createResComposerConnector`)
+      // — are both type-constrained to exclude vertex namespaces, so this can
+      // only fire if an untyped/`as any` caller or a future loosening breaches
+      // that contract. Fail loud here rather than leak.
+      if (genId === 0) {
+        throw new RMachineResolveError(
+          ERR_VERTEX_AT_PROCESS_SCOPE,
+          `Vertex gear "${namespace}" cannot be resolved at process/kit scope (genId 0). Vertex gears are per-consumer and may only appear in a consumer Plug's deps — not in a kit or as a gear→gear dependency.`
+        );
+      }
       const parentVertexKey = vertexGearMap?.[namespace];
       if (parentVertexKey !== undefined) {
         const consumerKey = getResCacheKey(namespace, locale, layoutType, parentVertexKey);
@@ -318,6 +338,15 @@ export class ResManager {
     const layoutType = this.resLayoutResolver.resolveLayoutEntryType(namespace);
     const slotsMap = this.slotsForLayout(layoutType);
     if (layoutType === "gear:outer(vertex)") {
+      // Same genId-0 invariant as the async `getPod` (see its comment): a vertex
+      // slot must never be minted at process/kit scope, where it would never be
+      // disposed. Reachable here via the sync gear→gear deps path (`getWireSync`).
+      if (genId === 0) {
+        throw new RMachineResolveError(
+          ERR_VERTEX_AT_PROCESS_SCOPE,
+          `Vertex gear "${namespace}" cannot be resolved at process/kit scope (genId 0). Vertex gears are per-consumer and may only appear in a consumer Plug's deps — not in a kit or as a gear→gear dependency.`
+        );
+      }
       const parentVertexKey = vertexGearMap?.[namespace];
       if (parentVertexKey !== undefined) {
         // Covered path: a parent VertexFrame owns this instance. We never

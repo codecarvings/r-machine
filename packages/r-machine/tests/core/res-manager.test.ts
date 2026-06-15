@@ -15,6 +15,7 @@ import { ASYNC, COVERED_PENDING } from "../../src/core/sync-resolve.js";
 import { buildVertexKey } from "../../src/core/vertex-gear.js";
 import {
   ERR_CIRCULAR_DEPENDENCY,
+  ERR_VERTEX_AT_PROCESS_SCOPE,
   ERR_VERTEX_INSTANCE_NOT_FOUND,
   RMachineResolveError,
 } from "../../src/errors/index.js";
@@ -445,6 +446,51 @@ describe("ResManager — vertex slot tracking", () => {
       expect(error).toBeInstanceOf(RMachineResolveError);
       expect((error as RMachineResolveError).code).toBe(ERR_VERTEX_INSTANCE_NOT_FOUND);
     }
+  });
+
+  // genId 0 is the reserved process/kit sentinel (wires start at 1). A vertex
+  // slot minted under it would never be disposed (disposal is per-genId at wire
+  // teardown). The typed API forbids vertex namespaces in a kit / gear→gear
+  // deps, so these guards only fire on an untyped breach — but they must fail
+  // loud rather than leak a phantom slot.
+  it("throws ERR_VERTEX_AT_PROCESS_SCOPE when a vertex is resolved at genId 0 (async getPod)", async () => {
+    const env = createRmTestEnv({
+      modules: {
+        "v/V": (rm) => makeVertexModule(rm, {}, { v: 1 }),
+      },
+    });
+
+    try {
+      await env.rmInternal.getPod("v/V", undefined, 0, undefined, [], "0");
+      expect.unreachable("expected getPod to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RMachineResolveError);
+      expect((error as RMachineResolveError).code).toBe(ERR_VERTEX_AT_PROCESS_SCOPE);
+    }
+
+    // No phantom slot or index entry left behind under the sentinel genId.
+    expect(env.rmInternal.vertexSlotsByGenId.has(0)).toBe(false);
+    expect(env.rmInternal.slots.has(env.keyOf("v/V", undefined, env.vKey(0, "0")))).toBe(false);
+    expect(env.loadCalls.filter((n) => n === "v/V").length).toBe(0);
+  });
+
+  it("throws ERR_VERTEX_AT_PROCESS_SCOPE when a vertex is resolved at genId 0 (sync getPodSync)", () => {
+    const env = createRmTestEnv({
+      modules: {
+        "v/V": (rm) => makeSyncVertexModule(rm, {}, () => ({ v: 1 })),
+      },
+    });
+
+    try {
+      env.rmInternal.getPodSync("v/V", undefined, 0, undefined, [], "0");
+      expect.unreachable("expected getPodSync to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RMachineResolveError);
+      expect((error as RMachineResolveError).code).toBe(ERR_VERTEX_AT_PROCESS_SCOPE);
+    }
+
+    expect(env.rmInternal.vertexSlotsByGenId.has(0)).toBe(false);
+    expect(env.rmInternal.slots.has(env.keyOf("v/V", undefined, env.vKey(0, "0")))).toBe(false);
   });
 });
 

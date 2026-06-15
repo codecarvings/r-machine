@@ -10,6 +10,7 @@ import type {
   ERR_NO_LOCALES,
   ERR_RESOLVE_FAILED,
   ERR_UNKNOWN_LOCALE,
+  ERR_VERTEX_AT_PROCESS_SCOPE,
   ERR_VERTEX_INSTANCE_NOT_FOUND,
   RMachineConfigError,
   RMachineError,
@@ -44,5 +45,6 @@ describe("errors barrel exports", () => {
     expectTypeOf<typeof ERR_RESOLVE_FAILED>().toEqualTypeOf<"ERR_RESOLVE_FAILED">();
     expectTypeOf<typeof ERR_CIRCULAR_DEPENDENCY>().toEqualTypeOf<"ERR_CIRCULAR_DEPENDENCY">();
     expectTypeOf<typeof ERR_VERTEX_INSTANCE_NOT_FOUND>().toEqualTypeOf<"ERR_VERTEX_INSTANCE_NOT_FOUND">();
+    expectTypeOf<typeof ERR_VERTEX_AT_PROCESS_SCOPE>().toEqualTypeOf<"ERR_VERTEX_AT_PROCESS_SCOPE">();
   });
 });

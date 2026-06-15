@@ -22,6 +22,7 @@ export {
   ERR_NO_LOCALES,
   ERR_RESOLVE_FAILED,
   ERR_UNKNOWN_LOCALE,
+  ERR_VERTEX_AT_PROCESS_SCOPE,
   ERR_VERTEX_INSTANCE_NOT_FOUND,
 } from "./error-codes.js";
 export { RMachineConfigError } from "./r-machine-config-error.js";
