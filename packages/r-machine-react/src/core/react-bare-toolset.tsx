@@ -532,15 +532,21 @@ export async function createReactBareToolset<
       // (which itself runs the RM resolution sync until first await,
       // capturing slotsMap into the promise closure) is uninterruptable —
       // JS is single-threaded, so concurrent requests on the same Node
-      // process can't interleave here. Reset to null afterwards so we
-      // don't leak the override into other components' resolutions.
+      // process can't interleave here. Save/restore (rather than reset-to-null)
+      // afterwards: a plain `setOverride(null)` assumes no scope was active on
+      // entry — an invariant the call graph doesn't enforce. Capturing `prev`
+      // and restoring it keeps an outer scope intact should this window ever be
+      // re-entered (defense-in-depth at zero cost), while still clearing back to
+      // null in the common non-nested case.
       const wireSnapshot = (): Promise<unknown> => {
         if (requestScope) {
-          rMachine.requestScope.getProvider().setOverride?.(requestScope);
+          const provider = rMachine.requestScope.getProvider();
+          const prev = provider.getActiveScope();
+          provider.setOverride?.(requestScope);
           try {
             return wire.getPluginPromise();
           } finally {
-            rMachine.requestScope.getProvider().setOverride?.(null);
+            provider.setOverride?.(prev);
           }
         }
         return wire.getPluginPromise();
