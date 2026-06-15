@@ -9,7 +9,8 @@ import {
   type ShellMatrixMeta,
 } from "../../src/core/res-matrix.js";
 import type { AnyResModule } from "../../src/core/res-module.js";
-import { ERR_RESOLVE_FAILED, RMachineResolveError } from "../../src/errors/index.js";
+import { ERR_RESOLVE_FAILED } from "../../src/errors/index.js";
+import { captureResolveError } from "../_fixtures/capture-resolve-error.js";
 
 // --- helpers -----------------------------------------------------------------
 
@@ -34,22 +35,6 @@ function makeMatrixModule(meta: AnyMeta, resource?: AnyRes): AnyResModule {
 
 function makeRawModule(resource: AnyRes = { greeting: "hi" }): AnyResModule {
   return { r: resource };
-}
-
-// Assert that a call produced an RMachineResolveError and surface the error
-// for additional inspection. Using try/catch + expect.unreachable (preferred
-// over `.toThrow` because it lets us make rich assertions on the thrown value
-// while still failing the test if nothing is thrown).
-function captureResolveError(fn: () => unknown): RMachineResolveError {
-  try {
-    fn();
-    expect.unreachable("expected createBlueprint to throw an RMachineResolveError");
-  } catch (error) {
-    expect(error).toBeInstanceOf(RMachineResolveError);
-    return error as RMachineResolveError;
-  }
-  // expect.unreachable throws, so this is unreachable — satisfies TS return.
-  throw new Error("unreachable");
 }
 
 // --- tests -------------------------------------------------------------------

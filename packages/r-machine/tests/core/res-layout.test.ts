@@ -8,21 +8,7 @@ import {
   ResLayoutResolver,
 } from "../../src/core/res-layout.js";
 import { ERR_RESOLVE_FAILED } from "../../src/errors/error-codes.js";
-import { RMachineResolveError } from "../../src/errors/r-machine-resolve-error.js";
-
-// --- helpers -----------------------------------------------------------------
-
-function captureResolveError(fn: () => void): RMachineResolveError {
-  try {
-    fn();
-    expect.unreachable("expected RMachineResolveError to be thrown");
-  } catch (error) {
-    expect(error).toBeInstanceOf(RMachineResolveError);
-    return error as RMachineResolveError;
-  }
-  // unreachable per the assertion above; keeps TS happy.
-  throw new Error("unreachable");
-}
+import { captureResolveError } from "../_fixtures/capture-resolve-error.js";
 
 // --- ResLayoutResolver — resolveLayoutEntryType ------------------------------
 
