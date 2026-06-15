@@ -28,21 +28,21 @@
     "**/*.d.ts",
     "skill/**/*.md"
   ],
-  "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "main": "./cli/index.js",
+  "types": "./cli/index.d.ts",
   "bin": "./bin.js",
   "exports": {
     ".": {
-      "@r-machine/source": "./src/lib/index.ts",
-      "types": "./lib/index.d.ts",
-      "default": "./lib/index.js"
+      "@r-machine/source": "./src/cli/index.ts",
+      "types": "./cli/index.d.ts",
+      "default": "./cli/index.js"
     }
   },
   "imports": {
     "#rforge": {
-      "@r-machine/source": "./src/lib/index.ts",
-      "types": "./lib/index.d.ts",
-      "default": "./lib/index.js"
+      "@r-machine/source": "./src/cli/index.ts",
+      "types": "./cli/index.d.ts",
+      "default": "./cli/index.js"
     }
   },
   "scripts": {
