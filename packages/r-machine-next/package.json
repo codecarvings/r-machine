@@ -1,6 +1,6 @@
 {
   "name": "@r-machine/next",
-  "version": "1.0.0-alpha.11",
+  "version": "1.0.0-alpha.12",
   "description": "Next.js App Router integration for R-Machine — typed resource layer with structural uniformity under change for Typescript.",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "AGPL-3.0-only",
