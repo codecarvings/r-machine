@@ -462,6 +462,94 @@ describe("createReactBareToolset › resource resolution via Plug", () => {
   });
 });
 
+describe("createReactBareToolset › React Compiler support (reactCompiler: true)", () => {
+  // outer/* namespaces classify as gear:outer (reactive); everything else is a
+  // static shell. A reactive entry in the kit AND in the deps exercises every
+  // reachability path of the fresh-identity wrapper.
+  function makeRC() {
+    const mock = createMockMachine({
+      resolveLayoutEntryType: (ns) => (ns.startsWith("outer/") ? "gear:outer" : "shell"),
+      resolve: (ns) => ({ ns }),
+    });
+    return {
+      mock,
+      toolset: createReactBareToolset(mock as never, { cart: "outer/cart" } as never, { reactCompiler: true }),
+    };
+  }
+
+  it("wraps a reactive (outer) list dep in a fresh identity that reads through, stable across non-commit re-renders", async () => {
+    const t = await makeRC().toolset;
+    // Reuse the SAME plug instance across renders so the wire (and resolved
+    // result) keep their identity — only then does the wrapper cache get a hit.
+    const plug = (t.Plug as unknown as (...a: unknown[]) => { useR: () => [{ ns: string }] })("outer/dep");
+    const seen: Array<{ ns: string }> = [];
+    function Consumer() {
+      const [dep] = plug.useR();
+      seen.push(dep);
+      return <span data-testid="ns">{dep.ns}</span>;
+    }
+
+    const { rerender } = render(
+      <t.ReactRMachine locale="en">
+        <Consumer />
+      </t.ReactRMachine>
+    );
+    // Reads forward through the passthrough Proxy.
+    expect(screen.getByTestId("ns").textContent).toBe("outer/dep");
+
+    rerender(
+      <t.ReactRMachine locale="en">
+        <Consumer />
+      </t.ReactRMachine>
+    );
+    // No tracked commit between renders → the wrapper cache returns the SAME
+    // wrapped identity (the React Compiler memoization contract).
+    expect(seen.length).toBeGreaterThanOrEqual(2);
+    expect(seen[seen.length - 1]).toBe(seen[0]);
+  });
+
+  it("wraps a reactive $.kit entry even when the plug declares no reactive deps", async () => {
+    // No deps → hasAnyReactiveDep is false, so the wrap path is reached only via
+    // hasAnyReactiveKit (the right side of the `||`).
+    const t = await makeRC().toolset;
+    let captured: { $: { kit: { cart: { ns: string } } } } | undefined;
+    function Consumer() {
+      captured = (
+        t.Plug as unknown as () => { useR: () => { $: { kit: { cart: { ns: string } } } } }
+      )().useR();
+      return null;
+    }
+    render(
+      <t.ReactRMachine locale="en">
+        <Consumer />
+      </t.ReactRMachine>
+    );
+    expect(captured?.$.kit.cart.ns).toBe("outer/cart");
+  });
+
+  it("wraps reactive map-mode deps and reactive $.kit entries, forwarding reads", async () => {
+    const t = await makeRC().toolset;
+    let captured: { d: { ns: string }; $: { kit: { cart: { ns: string } } } } | undefined;
+    function Consumer() {
+      captured = (
+        t.Plug as unknown as (...a: unknown[]) => {
+          useR: () => { d: { ns: string }; $: { kit: { cart: { ns: string } } } };
+        }
+      )({ d: "outer/dep" }).useR();
+      return null;
+    }
+    render(
+      <t.ReactRMachine locale="en">
+        <Consumer />
+      </t.ReactRMachine>
+    );
+
+    // Map-mode reactive dep key and the reactive kit entry both read through.
+    expect(captured?.d.ns).toBe("outer/dep");
+    expect(captured?.$.kit.cart.ns).toBe("outer/cart");
+  });
+});
+
 describe("createReactBareToolset › multiple deps via Plug (list form)", () => {
   it("resolves several namespaces as a positional tuple and forwards the list to getWire", async () => {
     const { mock, toolset } = make({

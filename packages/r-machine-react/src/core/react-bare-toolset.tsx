@@ -626,6 +626,10 @@ export async function createReactBareToolset<
             if (mountedRef.current) {
               return;
             }
+            // `consumerKeyRef.current` is set to a token on the first render
+            // (before any effect), so `key` is never null here; the guard is
+            // defensive against the ref's nullable type.
+            /* v8 ignore next */
             if (key !== null) {
               wire.disposeConsumer(key);
             }

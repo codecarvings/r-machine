@@ -31,6 +31,54 @@ describe("wrapReactiveResult — list mode", () => {
     expect(wrapped[2]).toBe($); // no reactive kit → $ untouched
   });
 
+  it("leaves a non-object reactive dep position untouched (wrapSurface passthrough)", () => {
+    // A reactive dep position holding a primitive must forward verbatim — there
+    // is no object identity to refresh.
+    const $ = { kit: {}, locale: "en" };
+    const result = [42, $];
+
+    const wrapped = wrapReactiveResult(result, {
+      isList: true,
+      nsDepList: ["outer/x"],
+      reactiveDepsSet: new Set(["outer/x"]),
+      reactiveMapKeys: EMPTY,
+      reactiveKitKeys: EMPTY,
+    }) as unknown[];
+
+    expect(wrapped[0]).toBe(42);
+  });
+
+  it("leaves $.kit alone when it is absent despite declared reactive kit keys (wrapKit passthrough)", () => {
+    // reactiveKitKeys is non-empty (so the `$` proxy is built), but `$` carries
+    // no `kit` — wrapKit's non-object guard returns it verbatim.
+    const $ = { locale: "en" } as { locale: string; kit?: unknown };
+    const result = [surface("dep"), $];
+
+    const wrapped = wrapReactiveResult(result, {
+      isList: true,
+      nsDepList: ["shell/x"],
+      reactiveDepsSet: EMPTY,
+      reactiveMapKeys: EMPTY,
+      reactiveKitKeys: new Set(["cart"]),
+    }) as unknown[];
+
+    const w$ = wrapped[1] as { locale: string; kit?: unknown };
+    expect(w$.locale).toBe("en");
+    expect(w$.kit).toBeUndefined();
+  });
+
+  it("returns an empty list verbatim (no trailing $ to wrap)", () => {
+    const wrapped = wrapReactiveResult([], {
+      isList: true,
+      nsDepList: [],
+      reactiveDepsSet: EMPTY,
+      reactiveMapKeys: EMPTY,
+      reactiveKitKeys: EMPTY,
+    }) as unknown[];
+
+    expect(wrapped).toEqual([]);
+  });
+
   it("wraps reactive $.kit entries and gives $ a fresh identity, forwarding non-kit fields", () => {
     const cartKit = surface("cartKit");
     const fmt = surface("fmt");
