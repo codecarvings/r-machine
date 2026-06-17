@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import nodePath from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { verifyResourceAtlas } from "../../src/lib/verify-resource-atlas.js";
 
@@ -33,6 +34,20 @@ describe("verifyResourceAtlas", () => {
     it("returns an absolute setupFile path", async () => {
       const report = await verifyResourceAtlas(fixture("ok-setup.ts"));
       expect(nodePath.isAbsolute(report.setupFile)).toBe(true);
+      expect(report.setupFile).toBe(fixture("ok-setup.ts"));
+    });
+
+    it("accepts a file: URL string (anchored to the test file via import.meta.resolve)", async () => {
+      const report = await verifyResourceAtlas(pathToFileURL(fixture("ok-setup.ts")).href);
+
+      expect(report.ok).toBe(true);
+      expect(report.setupFile).toBe(fixture("ok-setup.ts"));
+    });
+
+    it("accepts a URL object", async () => {
+      const report = await verifyResourceAtlas(pathToFileURL(fixture("ok-setup.ts")));
+
+      expect(report.ok).toBe(true);
       expect(report.setupFile).toBe(fixture("ok-setup.ts"));
     });
   });

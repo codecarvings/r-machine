@@ -12,7 +12,7 @@
  */
 
 import nodePath from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { CONFIG_ACCESSOR, type RMachineConfig } from "r-machine";
 import {
   type AnyNamespace,
@@ -145,10 +145,18 @@ function hasLoaderRelatedIssue(issues: VerifyIssue[]): boolean {
 }
 
 export async function verifyResourceAtlas(
-  setupFile: string,
+  setupFile: string | URL,
   options?: VerifyResourceAtlasOptions
 ): Promise<VerifyReport> {
-  const absoluteSetupFile = nodePath.resolve(setupFile);
+  // Accept a `file:` URL (or URL object) so callers can anchor the path to the
+  // test file itself via `import.meta.resolve("../../src/r-machine/setup.ts")`,
+  // instead of a `process.cwd()`-relative path that reads wrong in a nested
+  // test file. A plain relative/absolute string keeps resolving against the cwd
+  // (backward compatible).
+  const absoluteSetupFile =
+    typeof setupFile === "string" && !setupFile.startsWith("file:")
+      ? nodePath.resolve(setupFile)
+      : fileURLToPath(setupFile);
   const strategyExportName = options?.strategyExportName ?? "strategy";
 
   // ─── Static phase: extract atlas keys via TS Compiler API ──────────────
@@ -174,6 +182,11 @@ export async function verifyResourceAtlas(
   acquireForceDevLoaderFlag();
   try {
     // ─── Runtime phase: import setup, reach the config via CONFIG_ACCESSOR ─
+    // The setup file is loaded with the host's own loader. Under a bundler-based
+    // test runner (e.g. vitest), `@r-machine/testing` must be INLINED
+    // (`server.deps.inline`) so this import runs through the bundler graph: a
+    // setup file routinely uses bundler-only features — extensionless TS imports,
+    // `import.meta.glob` (Vite), etc. — that Node's raw ESM loader can't resolve.
     let config: AnyConfig;
     try {
       const module = (await import(pathToFileURL(absoluteSetupFile).href)) as Record<string, unknown>;
