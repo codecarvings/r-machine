@@ -1,5 +1,6 @@
 # R-Machine
 
+> Uniformity Under Change
 > A stable namespace is the contract; the implementation behind it is free to change.
 
 https://rmachine.dev
@@ -94,6 +95,6 @@ https://rmachine.dev/llms-full.txt
 
 ---
 
-rev 2026-06-15.017
+rev 2026-06-16.018
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com
