@@ -38,7 +38,7 @@ type AnyMachine = RMachine<any, string, any, any>;
 let seq = 0;
 // Each machine gets a unique instanceName: RMachine.create caches on globalThis
 // by name, so distinct names keep tests isolated within the worker.
-function makeMachine(suffix = "") {
+function makeMachine(suffix = "", directKit: Record<string, string> = {}) {
   seq += 1;
   const instanceName = `block-c-${seq}-${suffix}`;
   let toolset: Record<string, any>;
@@ -47,8 +47,18 @@ function makeMachine(suffix = "") {
     locales: ["en", "it"],
     defaultLocale: "en",
     ResourceAtlas,
+    // Test helper: the kit values are real atlas namespaces, but the param is
+    // loosely typed for call-site convenience — cast to satisfy the kit map.
+    directKit: directKit as never,
     load: async (path): Promise<AnyResModule> => {
       const { InnerGear, BaseGear, OuterGear, Shell } = toolset;
+      // Shells load from a locale-suffixed module path (e.g. "shell/greeting/it"),
+      // so match by prefix rather than exact path.
+      if (path.startsWith("shell/greeting")) {
+        return {
+          r: Shell.define(({ $ }: any) => ({ text: `hello (${$.locale})` })),
+        } as unknown as AnyResModule;
+      }
       switch (path) {
         case "inner/double":
           return { r: InnerGear.define(() => ({ double: (n: number) => n * 2 })) } as unknown as AnyResModule;
@@ -60,10 +70,6 @@ function makeMachine(suffix = "") {
               value: _.getter(() => plugin.$.state.n),
               inc: _.action(() => ({ n: plugin.$.state.n + 1 })),
             })),
-          } as unknown as AnyResModule;
-        case "shell/greeting":
-          return {
-            r: Shell.define(({ $ }: any) => ({ text: `hello (${$.locale})` })),
           } as unknown as AnyResModule;
         default:
           throw new Error(`block-c fixture: unknown resource "${path}"`);
@@ -157,6 +163,57 @@ describe("RMachine — wire & gate resolution", () => {
     const { rm } = makeMachine("gate-plain");
     const out = (await rm.getGatePlugin({}, ["base/cfg"], "en", ($) => $)) as [{ url: string }, unknown];
     expect(out[0].url).toBe("https://api");
+  });
+});
+
+describe("RMachine — DirectPlug (container-free consumer plug)", () => {
+  it("resolves a shell for an explicitly passed locale, async, with no container", async () => {
+    const { toolset } = makeMachine("direct-basic");
+    const plug = toolset.DirectPlug("shell/greeting");
+    // No React context, no Next request scope present in this plain async call.
+    const [s, $] = (await plug.useR("it")) as [{ text: string }, { locale: string }];
+    expect(s.text).toBe("hello (it)");
+    expect($.locale).toBe("it");
+  });
+
+  it("is a pure function of locale (different output per locale)", async () => {
+    const { toolset } = makeMachine("direct-locales");
+    const plug = toolset.DirectPlug("shell/greeting");
+    const [en] = (await plug.useR("en")) as [{ text: string }, unknown];
+    const [it] = (await plug.useR("it")) as [{ text: string }, unknown];
+    expect(en.text).toBe("hello (en)");
+    expect(it.text).toBe("hello (it)");
+  });
+
+  it("supports map-mode deps (object form)", async () => {
+    const { toolset } = makeMachine("direct-map");
+    const plug = toolset.DirectPlug({ greeting: "shell/greeting" });
+    // Map mode spreads deps at the top level alongside `$`.
+    const r = (await plug.useR("it")) as { greeting: { text: string }; $: { locale: string } };
+    expect(r.greeting.text).toBe("hello (it)");
+    expect(r.$.locale).toBe("it");
+  });
+
+  it("exposes directKit resources via $.kit", async () => {
+    const { toolset } = makeMachine("direct-kit", { cfg: "base/cfg" });
+    const plug = toolset.DirectPlug("shell/greeting");
+    const [, $] = (await plug.useR("en")) as [unknown, { kit: { cfg: { url: string } } }];
+    expect($.kit.cfg.url).toBe("https://api");
+  });
+
+  it("throws for a locale not in the configured list", async () => {
+    const { toolset } = makeMachine("direct-bad-locale");
+    const plug = toolset.DirectPlug("shell/greeting");
+    await expect(plug.useR("fr")).rejects.toThrow(/invalid locale/i);
+  });
+
+  it("honors a mockPlug-style locale override (pins resolution locale)", async () => {
+    const { toolset } = makeMachine("direct-override");
+    const plug = toolset.DirectPlug("shell/greeting");
+    // Mirrors what @r-machine/testing's mockPlug does: pin $.locale on the plug.
+    setPlugOverride(plug, { locale: "it" });
+    const [s] = (await plug.useR("en")) as [{ text: string }, unknown];
+    expect(s.text).toBe("hello (it)"); // the override wins over the passed locale
   });
 });
 

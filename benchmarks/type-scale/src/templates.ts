@@ -319,9 +319,10 @@ export function renderSetup(): string {
     `    throw new Error(\`bench: load is never invoked (\${path})\`);\n` +
     `  },\n` +
     `  shellKit: { fmt: "shell/lib/fmt" },\n` +
+    `  directKit: { fmt: "shell/lib/fmt" },\n` +    
     `  experimental: { outerGear: "on" },\n` +
     `});\n\n` +
-    `export const { InnerGear, BaseGear, OuterGear, Shell, localized } = rMachine.createToolset();\n` +
+    `export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized } = rMachine.createToolset();\n` +
     `export type Locale = RMachineLocale<typeof rMachine>;\n` +
     `export type { BrandedResource as RShape } from "r-machine";\n\n` +
     `export const strategy = ReactStandardStrategy.create(rMachine, {\n` +

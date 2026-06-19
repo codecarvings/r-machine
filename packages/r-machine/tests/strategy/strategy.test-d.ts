@@ -23,6 +23,7 @@ interface TestResEquipment {
   readonly bridgeGears: readonly [];
   readonly gearKit: {};
   readonly shellKit: {};
+  readonly directKit: {};
 }
 
 // Concrete implementation for type testing. Strategy has a protected ctor and
@@ -141,6 +142,7 @@ describe("Strategy type constraints", () => {
       readonly bridgeGears: readonly [];
       readonly gearKit: { readonly c: "common" };
       readonly shellKit: { readonly c: "common" };
+      readonly directKit: {};
     };
     class KitStrategy extends Strategy<TestAtlas, string, TestK, {}, TestConfig> {}
     expectTypeOf<KitStrategy["rMachine"]>().toEqualTypeOf<RMachine<TestAtlas, string, TestK, {}>>();

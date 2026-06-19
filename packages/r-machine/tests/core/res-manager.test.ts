@@ -185,6 +185,7 @@ function createRmTestEnv(options: RmTestEnvOptions) {
     gearKit: options.gearKit ?? {},
     shellKit: options.shellKit ?? {},
     bridgeGears: options.bridgeGears ?? [],
+    directKit: {},
   };
   const busHost: BusHost = options.busHost ?? { bus: undefined };
   const bm = new BlueprintManager(

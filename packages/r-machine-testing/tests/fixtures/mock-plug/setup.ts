@@ -38,4 +38,4 @@ const rMachine = RMachine.create({
   experimental: { outerGear: "on" },
 });
 
-export const { InnerGear, BaseGear, OuterGear, Shell } = rMachine.createToolset();
+export const { InnerGear, BaseGear, OuterGear, DirectPlug, Shell } = rMachine.createToolset();

@@ -18,6 +18,7 @@ import type {
   AnyResDomain,
   AnyResEquipment,
   BaseGearComposer,
+  DirectPlugDefiner,
   ExperimentalFlags,
   InnerGearComposer,
   Namespace,
@@ -35,6 +36,7 @@ export type RMachineToolset<
   readonly InnerGear: InnerGearComposer<RA, E["gearKit"]>;
   readonly BaseGear: BaseGearComposer<RA, E["gearKit"]>;
   readonly Shell: ShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>;
+  readonly DirectPlug: DirectPlugDefiner<RA, L, E["directKit"]>;
   readonly localized: LocalizerHelper<RA["shape@shell"]>;
 } & (EF["outerGear"] extends "on"
   ? {

@@ -100,6 +100,7 @@ function createEnv(options: EnvOptions) {
     gearKit: {},
     shellKit: {},
     bridgeGears: [],
+    directKit: {},
   };
   const busHost: BusHost = { bus: undefined };
   const bm = new BlueprintManager(resolver, loader, { gear: [], shell: [] }, options.priority ?? [], busHost);

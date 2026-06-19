@@ -14,15 +14,19 @@
 The **core** of [R-Machine](https://rmachine.dev) — the engine that turns a set of
 resource declarations into a single typed access layer. It unifies **i18n,
 dependency injection and state management** around one declaration syntax, one
-consumer primitive (`Plug`), and one testing primitive (`mockPlug`).
+consumer primitive (the `Plug` family), and one testing primitive (`mockPlug`).
 
 You configure the machine once with `RMachine.create(...)` and derive a typed
-toolset (`InnerGear`, `BaseGear`, `OuterGear`, `Shell`, `localized`) from it.
+toolset (`InnerGear`, `BaseGear`, `OuterGear`, `Shell`, `DirectPlug`, `localized`)
+from it. `DirectPlug` is the core's built-in, container-free consumer: it resolves
+shells and base gears for an explicit locale and runs anywhere — a worker, a CLI, a
+cron job — so the core is usable standalone.
 
-> **You also need a framework strategy.** The core is framework-agnostic; pair it
-> with [`@r-machine/react`](https://www.npmjs.com/package/@r-machine/react) or
-> [`@r-machine/next`](https://www.npmjs.com/package/@r-machine/next) to consume
-> resources from components.
+> **For reactive consumption from components, pick a framework strategy.** To read
+> resources inside React/Next components (Suspense, `$.setLocale`, locale routing),
+> pair the core with [`@r-machine/react`](https://www.npmjs.com/package/@r-machine/react)
+> or [`@r-machine/next`](https://www.npmjs.com/package/@r-machine/next). A strategy is
+> required for that — not to use R-Machine at all.
 
 ## Documentation
 
@@ -134,6 +138,11 @@ export default function MyComponent() {
 }
 ```
 
+> `Plug` above comes from a framework strategy. The core itself also ships
+> **`DirectPlug`** — the same `[value, $]` shape, but container-free and `async`
+> (`await plug.useR(locale)`). Use it to consume shells and base gears **outside a
+> component tree** (workers, CLIs, cron jobs, email templates), with no strategy.
+
 ## Setup
 
 How you wire R-Machine into an app depends on the framework. Most of the structure
@@ -145,6 +154,11 @@ strategy you pick. Follow the package guide for your stack:
 
 In both cases an R-Machine project lives in **one folder** (conventionally
 `src/r-machine/`): a few wiring files, plus one subfolder per resource family.
+
+For **standalone, strategy-free** use — consuming resources only through
+`DirectPlug` — you need just the `r-machine` core: `RMachine.create(...)` +
+`createToolset()` gives you the producer composers and `DirectPlug`, enough to
+declare resources and resolve them by locale anywhere (no framework, no provider).
 
 The common pieces:
 

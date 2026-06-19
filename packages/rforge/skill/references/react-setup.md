@@ -102,13 +102,15 @@ const rMachine = RMachine.create({
   },
 });
 
-export const { BaseGear, OuterGear, Shell, localized } =
+export const { BaseGear, OuterGear, Shell, DirectPlug, localized } =
   rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 
 export const strategy = ReactStandardStrategy.create(rMachine, {
-  kit: { fmt: "shell/lib/fmt" }, // remove if not using a formatter shell
+  kit: {
+    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+  },
   localeDetector: () => rMachine.localeHelper.matchLocales(navigator.languages),
   localeStore: {
     get: () => localStorage.getItem("locale") ?? undefined,

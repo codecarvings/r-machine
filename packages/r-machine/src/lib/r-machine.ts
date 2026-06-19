@@ -29,12 +29,22 @@ import {
   createEventBus,
   createInnerGearComposer,
   createOuterGearComposer,
+  createPlug,
   createShellComposer,
+  type DirectPlugDefiner,
+  type DirectPlugKitMap,
   type ExperimentalFlags,
   type GearPlugKitMap,
+  getNamespaceList,
+  getNamespaceMap,
+  getPlugOutline,
   getPlugOverride,
+  getResFamilyFromLayoutType,
+  type HandleList,
+  type HandleMap,
   type InternalEventBus,
   isDevEnv,
+  type NamespaceList,
   type NamespaceMap,
   PLUG_MACHINE_ACCESSOR,
   type PlugBody,
@@ -48,12 +58,14 @@ import {
   ResLayoutResolver,
   ResManager,
   type ShellPlugKitMap,
+  setPlugMachine,
   TestMode,
   type VertexGearMap,
   type Wire,
   WireManager,
 } from "#r-machine/core";
-import { type AnyLocale, type AnyLocaleList, LocaleHelper } from "#r-machine/locale";
+import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "#r-machine/errors";
+import { type AnyLocale, type AnyLocaleList, getCanonicalUnicodeLocaleId, LocaleHelper } from "#r-machine/locale";
 import { createBlueprintRelayOrderingProvider } from "../core/relay-ordering.js";
 import type { AnyNamespace, NamespaceCollection } from "../core/res-domain.js";
 import {
@@ -80,12 +92,21 @@ export class RMachine<
 
     this.resLayoutResolver = new ResLayoutResolver(this.config.layout);
     const resLayoutResolver = this.resLayoutResolver;
+    // The directKit (DirectPlug consumer kit) holds base gears + shells. Split
+    // its entries by family and fold them into the per-family kit-dep lists so
+    // they preload deterministically as kit-mates, exactly like gearKit/shellKit.
+    // BlueprintManager dedupes, so an entry shared with gearKit/shellKit is safe.
+    const gearKitNs = Object.values(this.config.equipment.gearKit) as AnyNamespace[];
+    const shellKitNs = Object.values(this.config.equipment.shellKit) as AnyNamespace[];
+    const directKitNs = Object.values(this.config.equipment.directKit) as AnyNamespace[];
+    const directKitByFamily = (family: "gear" | "shell"): AnyNamespace[] =>
+      directKitNs.filter((ns) => getResFamilyFromLayoutType(resLayoutResolver.resolveLayoutEntryType(ns)) === family);
     this.blueprintManager = new BlueprintManager(
       resLayoutResolver,
       this.config.load,
       {
-        gear: Object.values(this.config.equipment.gearKit),
-        shell: Object.values(this.config.equipment.shellKit),
+        gear: [...gearKitNs, ...directKitByFamily("gear")],
+        shell: [...shellKitNs, ...directKitByFamily("shell")],
       },
       this.config.priority,
       this.busHost,
@@ -184,7 +205,70 @@ export class RMachine<
     const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(
       this.createResComposerConnector(this.config.equipment.shellKit)
     );
-    return { InnerGear, BaseGear, OuterGear, Shell, localized };
+    const DirectPlug = this.createDirectPlug();
+    return { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized };
+  }
+
+  // The container-free, framework-neutral consumer plug. Unlike ClientPlug
+  // (bound to React context) or ServerPlug (bound to the Next request scope /
+  // headers), it carries no locale container: the locale is passed explicitly
+  // to `useR`, resolution is async, and it works anywhere — server components,
+  // client handlers, queue workers, cron jobs, React Email template renders.
+  // Deps are restricted to `valid@direct` (base gears + shells), exactly the
+  // resources whose resolution is a pure function of locale.
+  protected createDirectPlug(): DirectPlugDefiner<RA, L, E["directKit"]> {
+    const directKit = this.config.equipment.directKit as NamespaceMap<RA>;
+    const plugMachine = this[PLUG_MACHINE_ACCESSOR];
+
+    const getValidLocale = (localeOption: AnyLocale): L => {
+      const locale = getCanonicalUnicodeLocaleId(localeOption) as L;
+      const error = this.localeHelper.validateLocale(locale);
+      if (error) {
+        throw new RMachineUsageError(
+          ERR_UNKNOWN_LOCALE,
+          `Cannot resolve DirectPlug for invalid locale: "${localeOption}".`,
+          error
+        );
+      }
+      return locale;
+    };
+
+    const DirectPlug = ((...args: unknown[]) => {
+      const outline = getPlugOutline<AnyResAtlas>(...args);
+
+      const isList = outline.mode === "list";
+      const nsDeps = isList
+        ? getNamespaceList(outline.deps as HandleList<AnyResAtlas>)
+        : getNamespaceMap(outline.deps as HandleMap<AnyResAtlas>);
+
+      const head = {
+        realm: "gate",
+        mode: outline.mode,
+        deps: outline.deps,
+        nsDeps,
+        nsDepList: isList ? [...(nsDeps as NamespaceList<AnyResAtlas>)] : Object.values(nsDeps),
+      };
+
+      const body = createPlug(head as unknown as AnyPlugHead);
+      // Stamp the owning RMachine so test helpers can reach it from the plug
+      // alone (`mockPlug(plug)`), mirroring ServerPlug/createResMatrix.
+      setPlugMachine(body, plugMachine);
+
+      const useR = async (localeArg: AnyLocale): Promise<unknown> => {
+        // A consumer-plug mock can pin the resolution locale (mockPlug `$.locale`);
+        // undefined in production → use the explicitly passed locale.
+        const effLocale = (getPlugOverride(body)?.locale as L | undefined) ?? getValidLocale(localeArg);
+        const augmentCtx: PluginCtxAugmenter = ($) => {
+          $.locale = effLocale;
+        };
+        return this.getGatePlugin(directKit, nsDeps as NamespaceCollection<RA>, effLocale, augmentCtx, body);
+      };
+
+      (body as unknown as { useR: typeof useR }).useR = useR;
+      return body;
+    }) as DirectPlugDefiner<RA, L, E["directKit"]>;
+
+    return DirectPlug;
   }
 
   getWire(
@@ -302,11 +386,12 @@ export class RMachine<
     const BGL extends BaseGearNamespaceList<InstanceType<RAC>> = [],
     GK extends GearPlugKitMap<InstanceType<RAC>> = {},
     SK extends ShellPlugKitMap<InstanceType<RAC>, BGL> = {},
+    DK extends DirectPlugKitMap<InstanceType<RAC>> = {},
     EF extends ExperimentalFlags = {},
   >(
-    config: RMachineConfigParams<RAC, LL, BGL, GK, SK, EF>
-  ): RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF> {
-    type Out = RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF>;
+    config: RMachineConfigParams<RAC, LL, BGL, GK, SK, DK, EF>
+  ): RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, DK>, EF> {
+    type Out = RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, DK>, EF>;
     const key = Symbol.for(`@r-machine/instance:${config.instanceName}`);
     const slot = globalThis as unknown as Record<symbol, Out | undefined>;
     const existing = slot[key];
@@ -318,7 +403,7 @@ export class RMachine<
 
       return existing;
     }
-    const created = new RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF>(
+    const created = new RMachine<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, DK>, EF>(
       convertRMachineConfigParamsToConfig(config)
     );
     slot[key] = created;

@@ -56,7 +56,7 @@ The same flow scaffolds gears and shells.
 `InnerGear`, `BaseGear`, `OuterGear`, `Shell`, `localized`
 
 **Plug** (consumer primitive)
-`Plug`, `ClientPlug`, `ServerPlug`
+`Plug`, `ClientPlug`, `ServerPlug`, `DirectPlug` (container-free, runs anywhere)
 
 **Testing**
 `mockPlug`, `verifyResourceAtlas`, `createEventCollector` (from `@r-machine/testing`)
@@ -163,7 +163,7 @@ export const tasks = token("outer/tasks");
 
 #### Internal namespaces (`#` prefix)
 
-Prefix an atlas key with `#` to mark its namespace as **internal**. An internal namespace is visible only inside the resource network — usable as a `withDeps(...)` target by other gears/shells, and referenceable from `gearKit` / `shellKit` — but it is **filtered out of every consumer-facing surface** (`Plug`, `ClientPlug`, `ServerPlug`).
+Prefix an atlas key with `#` to mark its namespace as **internal**. An internal namespace is visible only inside the resource network — usable as a `withDeps(...)` target by other gears/shells, and referenceable from `gearKit` / `shellKit` — but it is **filtered out of every consumer-facing surface** (`Plug`, `ClientPlug`, `ServerPlug`, `DirectPlug`).
 
 ```ts
 type ResourceMap = {
@@ -203,7 +203,7 @@ RMachine.create({
 ### 3.4. Toolset
 
 ```ts
-export const { InnerGear, BaseGear, OuterGear, Shell, localized } = rMachine.createToolset();
+export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 ```
@@ -798,9 +798,36 @@ const { tasks, common, config } = Plug({ tasks: "outer/tasks", common: "shell/co
 | `Plug` | React standard strategy (client-side) | sync (suspends if unresolved) | `shell`, `shell(mono)`, `gear:base`, `gear:outer`, `gear:outer(vertex)` |
 | `ClientPlug` | Next.js Client Component | sync (suspends if unresolved) | same as `Plug` |
 | `ServerPlug` | Next.js RSC | returns `Promise` (await it) | `shell`, `shell(mono)`, `gear:base`, `gear:inner` |
+| `DirectPlug` | **anywhere** (core toolset — React, Next, worker, cron, email render) | returns `Promise` (await it); locale passed to `useR(locale)` | `shell`, `shell(mono)`, `gear:base` |
 
 `ServerPlug` cannot consume `gear:outer` or `gear:outer(vertex)`.
 `Plug`/`ClientPlug` cannot consume `gear:inner`.
+
+**`DirectPlug` — the container-free base case.** Every other variant is *resolution + a container that holds the current locale* (React context for
+`Plug`/`ClientPlug`, the Next request scope/headers for `ServerPlug`). `DirectPlug`
+has no container: you pass the locale to `useR(locale)` yourself, resolution is
+async, and it carries no `setLocale`/`getPath`/`params`. Its deps are restricted to
+**shells + base gears** — exactly the resources whose resolution is a pure function
+of locale (no `gear:inner`/`gear:outer`/`gear:outer(vertex)`, which need a container).
+Because it depends on nothing framework-specific it comes from the **core toolset**
+(`rMachine.createToolset()`) and runs **anywhere**.
+Configure ambient shared resources via `directKit: { … }` on `RMachine.create(...)`
+(shell + base-gear namespaces only); they surface as `$.kit`.
+
+```tsx
+// Same import in React and Next — it's on the core toolset.
+export const plug = DirectPlug("shell/email/welcome");
+export async function WelcomeEmail({ locale, name }) {
+  const [s, $] = await plug.useR(locale);   // async; $.locale echoes `locale`, $.kit = directKit
+
+  return <Html lang={$.locale}><Text>{s.greeting(name)}</Text></Html>;
+}
+```
+
+On the client, call `useR` in an async handler/effect — never directly in render
+(it is async, unlike the sync/Suspense `ClientPlug`). Prefer `ServerPlug` inside RSCs
+(it also auto-binds the request locale and adds `getPath`/`params`); reach for
+`DirectPlug` when there is **no** request/React context to bind to.
 
 ### 10.3. Surface type
 
@@ -855,15 +882,15 @@ A component reading only `cart.count` re-renders when `items.length` changes but
 
 | Field | Present when | What it is |
 |---|---|---|
-| `$.locale` | **always**, on every consumer plug (`Plug`, `ClientPlug`, `ServerPlug`) | the active locale as a **canonical** `Locale` — always one of the codes declared in `setup.ts`, narrowed to the project's locale union |
-| `$.setLocale` | **always**, on every consumer plug | `(newLocale: Locale) => Promise<void>` — switches the active locale and persists it (see §11.4) |
-| `$.kit` | the consumer kit map for this runtime is non-empty (`kit` / `clientKit` / `serverKit`) | the resolved consumer kit (see §11.4) |
+| `$.locale` | **always**, on every consumer plug (`Plug`, `ClientPlug`, `ServerPlug`, `DirectPlug`) | the active locale as a **canonical** `Locale` — always one of the codes declared in `setup.ts`, narrowed to the project's locale union. On `DirectPlug` it is a read-only echo of the locale you passed to `useR(locale)` |
+| `$.setLocale` | strategy plugs only (`Plug`, `ClientPlug`, `ServerPlug`) — **not** `DirectPlug` (it has no bound container to switch) | `(newLocale: Locale) => Promise<void>` — switches the active locale and persists it (see §11.4) |
+| `$.kit` | the consumer kit map for this runtime is non-empty (`kit` / `clientKit` / `serverKit` / `directKit`) | the resolved consumer kit (see §11.4) |
 | `$.getPath` | **Next.js** plugs (`ClientPlug` / `ServerPlug`) with a `PathAtlas` declared | `BoundPathComposer<PA>` — type-checked path composer (see §11.5) |
 | `$.params` | **`ServerPlug` only**, resolved via the params overload `useR(params)` / `useUnboundR(params)` | the awaited route `params` record (locale key + dynamic segments); see §11.5 |
 
 Fields not present for a given plug are absent from the type — destructuring them is a compile error, not `undefined` at runtime (same contract as the factory `$`).
 
-Notes on variants: React `Plug` has `$.locale`, `$.setLocale`, `$.kit` (when declared) but **no** `$.getPath` / `$.params`; `ClientPlug` adds `$.getPath` but **never** `$.params` (client components get no route params); `ServerPlug` adds `$.getPath`, plus `$.params` only when resolved through the params overload. For the active locale prefer canonical `$.locale` over the raw `$.params.locale` (see §11.5).
+Notes on variants: React `Plug` has `$.locale`, `$.setLocale`, `$.kit` (when declared) but **no** `$.getPath` / `$.params`; `ClientPlug` adds `$.getPath` but **never** `$.params` (client components get no route params); `ServerPlug` adds `$.getPath`, plus `$.params` only when resolved through the params overload. `DirectPlug` has **only** `$.locale` (a readonly echo of the locale passed to `useR`) and `$.kit` (when `directKit` is declared) — **no** `$.setLocale` (nothing to mutate — there is no bound container), `$.getPath`, or `$.params`. For the active locale prefer canonical `$.locale` over the raw `$.params.locale` (see §11.5).
 
 ### 10.6. Error handling: when a factory throws
 
@@ -1558,6 +1585,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-06-16.018
+rev 2026-06-19.019
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com

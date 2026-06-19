@@ -41,6 +41,7 @@ export interface ResAtlas<RL extends AnyResLayout, RD extends AnyResDomain> {
   readonly "shape@shell": ShapeMap<RL, RD, "shell" | "shell(mono)">;
   readonly "valid@gear:inner": ShapeMap<RL, RD, "gear:inner" | "gear:base">;
   readonly "valid@gear:outer": ShapeMap<RL, RD, "gear:base" | "gear:outer">;
+  readonly "valid@direct": PublicShapeMap<RL, RD, "gear:base" | "shell" | "shell(mono)">;
   readonly "valid@server": PublicShapeMap<RL, RD, "gear:inner" | "gear:base" | "shell" | "shell(mono)">;
   readonly "valid@client": PublicShapeMap<
     RL,
@@ -60,6 +61,7 @@ export interface AnyResAtlas {
   readonly "shape@shell": AnyResDomain;
   readonly "valid@gear:inner": AnyResDomain;
   readonly "valid@gear:outer": AnyResDomain;
+  readonly "valid@direct": AnyResDomain;
   readonly "valid@server": AnyResDomain;
   readonly "valid@client": AnyResDomain;
   readonly "valid@client:kit": AnyResDomain;
@@ -74,6 +76,7 @@ export type ResAtlasCatalog =
   | "shape@shell"
   | "valid@gear:inner"
   | "valid@gear:outer"
+  | "valid@direct"
   | "valid@server"
   | "valid@client"
   | "valid@client:kit";

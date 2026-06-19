@@ -108,7 +108,7 @@ const rMachine = RMachine.create({
   experimental: { outerGear: "on" },
 });
 
-export const { BaseGear, OuterGear, Shell, localized } =
+export const { BaseGear, OuterGear, Shell, DirectPlug, localized } =
   rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";

@@ -251,14 +251,18 @@ const rMachine = RMachine.create({
   },
 });
 
-export const { InnerGear, BaseGear, OuterGear, Shell, localized } =
+export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized } =
   rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 
 export const strategy = NextAppPathStrategy.create(rMachine, {
-  clientKit: { fmt: "shell/lib/fmt" },
-  serverKit: { fmt: "shell/lib/fmt" },
+  clientKit: {
+    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+  },
+  serverKit: {
+    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+  },
   // PathAtlas,                       // uncomment if using PathAtlas
   cookie: "on",
   // implicitDefaultLocale: "on",     // hides default locale prefix from URLs
@@ -289,7 +293,7 @@ const rMachine = RMachine.create({
   experimental: { outerGear: "on" },
 });
 
-export const { InnerGear, BaseGear, OuterGear, Shell, localized } =
+export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized } =
   rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
@@ -326,7 +330,7 @@ const rMachine = RMachine.create({
   experimental: { outerGear: "on" },
 });
 
-export const { InnerGear, BaseGear, OuterGear, Shell, localized } =
+export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized } =
   rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";

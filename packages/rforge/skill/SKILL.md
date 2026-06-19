@@ -151,7 +151,9 @@ Read it to learn:
   by a shell.
 - The framework (`ReactStandardStrategy` → React; any `NextApp*Strategy` →
   Next.js). This affects whether you mention `Plug`/`ClientPlug`/`ServerPlug`
-  in the output.
+  in the output. For consuming a shell outside any request/React context
+  (e.g. a React Email template, a queue worker, a cron job), mention the
+  framework-neutral `DirectPlug` instead — see `references/patterns.md`.
 
 ---
 

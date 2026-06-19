@@ -21,7 +21,7 @@ const rMachine = RMachine.create({
   },
 });
 
-export const { InnerGear, BaseGear, OuterGear, Shell, localized } = rMachine.createToolset();
+export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 
