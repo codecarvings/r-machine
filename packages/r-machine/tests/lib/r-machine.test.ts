@@ -207,13 +207,16 @@ describe("RMachine — DirectPlug (container-free consumer plug)", () => {
     await expect(plug.useR("fr")).rejects.toThrow(/invalid locale/i);
   });
 
-  it("honors a mockPlug-style locale override (pins resolution locale)", async () => {
+  it("ignores a stored ambientLocale override — the explicit useR(locale) wins", async () => {
     const { toolset } = makeMachine("direct-override");
     const plug = toolset.DirectPlug("shell/greeting");
-    // Mirrors what @r-machine/testing's mockPlug does: pin $.locale on the plug.
-    setPlugOverride(plug, { locale: "it" });
+    // DirectPlug's locale is always explicit, so it exposes no locale key on its
+    // mock at all (see MockCtxContent). Even a directly-stored override locale is a
+    // no-op here — mock a dependency instead. The override's `transform` still
+    // applies (covered by the getGatePlugin transform test above).
+    setPlugOverride(plug, { ambientLocale: "it" });
     const [s] = (await plug.useR("en")) as [{ text: string }, unknown];
-    expect(s.text).toBe("hello (it)"); // the override wins over the passed locale
+    expect(s.text).toBe("hello (en)"); // explicit "en" wins; the stored override is ignored
   });
 });
 

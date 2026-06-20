@@ -70,7 +70,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { CartView, plug } from "@/components/client/cart-view";
 
 test("removing a line updates the real cart state", async () => {
-  using ctrl = mockPlug(plug).with({ $: { locale: "it" } });
+  using ctrl = mockPlug(plug).with({ $: { ambientLocale: "it" } });
 
   // 1. SEED the dependency's real state before render.
   ctrl.deps[0].state = {

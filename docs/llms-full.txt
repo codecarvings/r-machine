@@ -1290,14 +1290,14 @@ Single primitive, uniform across families (gears, shells, a component's exported
 
 | Channel | How | What it touches | Nature |
 | --- | --- | --- | --- |
-| **`.with({ … })`** | argument object, checked against the resolved shape | **resolution inputs**: `$.locale`, `$.ports`, `$.kit`, dep-surface members | **static** — substituted once, at resolution |
+| **`.with({ … })`** | argument object, checked against the resolved shape | **resolution inputs**: the locale key (`$.locale` / `$.ambientLocale`, §14.7), `$.ports`, `$.kit`, dep-surface members | **static** — substituted once, at resolution |
 | **the controller** | `ctrl.state`, `ctrl.deps.X.state`, `ctrl.kit.X.state` | the **live state** of stateful outer/vertex gears | **reactive** — drives the *real* shared cell; real getters/actions stay coherent and re-render |
 
 State is deliberately **not** a `.with(...)` override — it's a live cell, so it lives on the controller (§14.3); `.with(...)` covers only resolution-time inputs and is structurally type-checked against the resolved shape.
 
 ### 14.2. Channel A — resolution overrides (`.with`)
 
-Overridable: the plug's direct dependencies (by name / position), kit entries (`$.kit`), and — conditional on the resource — `$.locale` (shells and plugs of components consuming shells; gears have no locale) and `$.ports` (only resources declared with `withPorts({...})`). Anything not overridden runs through the production factory as a deep partial on top of the resulting Surface, so unsubstituted paths (including `[Symbol.dispose]` teardown) still run; `mockPlug` also reaches `$`-prefixed members (relays, internal actions).
+Overridable: the plug's direct dependencies (by name / position), kit entries (`$.kit`), and — conditional on the resource — the locale key (named by plug kind, §14.7; gears have no locale) and `$.ports` (only resources declared with `withPorts({...})`). Anything not overridden runs through the production factory as a deep partial on top of the resulting Surface, so unsubstituted paths (including `[Symbol.dispose]` teardown) still run; `mockPlug` also reaches `$`-prefixed members (relays, internal actions).
 
 Resource-level test — override a port (`r.plug`), drive the rest of the real factory:
 
@@ -1389,9 +1389,17 @@ expect(screen.getByText("Ciao")).toBeInTheDocument();
 
 ### 14.7. Server Page test
 
-For Server Pages (route handlers in `app/.../page.tsx`), locale is bound from URL `params` via `plug.useR(params)`. Overriding `$.locale` via `mockPlug` is a no-op — the page's own `plug.useR(params)` call wins.
+`mockPlug`'s locale-override key is **named by plug kind**, because the override means three different things — the name follows the meaning, and the type exposes only the key that is true for the plug you mocked:
 
-Substitute instead a resource the page consumes via its exported plug:
+| You mock… | Key | Meaning | Precedence |
+| --- | --- | --- | --- |
+| a **resource** `Shell` / `shell(mono)` (`r.plug`) | `$.locale` | "resolve this resource **at** this locale" | **wins** (there is nothing else to resolve from) |
+| an **ambient consumer** — `Plug` / `ClientPlug` (React context) or the zero-arg `ServerPlug.useR()` (request header) | `$.ambientLocale` | the locale the *absent* ambient container would have supplied | **fallback** — an explicit locale wins |
+| a **`DirectPlug`**, or `ServerPlug.useR(params)` / `useR(locale)` / `useUnboundR` | *(none)* | the locale is **always explicit**, so there is no key | the explicit `useR(locale)` always wins |
+
+So `$.ambientLocale` fills the locale only on the ambient forms; when the consumer passes an explicit locale that locale wins and there is no override key to set (mocking it is a compile error on `DirectPlug`). For Server Pages the locale is bound from URL `params` via `plug.useR(params)` — an explicit form — so there is no `ambientLocale` to set.
+
+To vary resolution in those explicit-locale cases, pass the locale you want (you control it) and use `mockPlug` to substitute a **dependency** instead:
 
 ```tsx
 // app/[locale]/stats/page.tsx
@@ -1585,6 +1593,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-06-19.019
+rev 2026-06-20.020
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com

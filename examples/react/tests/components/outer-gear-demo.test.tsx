@@ -13,7 +13,7 @@ afterEach(() => {
 // getters/cell/action run and a click re-renders through real reactivity.
 describe("OuterGearDemo (component, no provider)", () => {
   it("renders the seeded timer state and reacts to the real add() action", async () => {
-    using ctrl = mockPlug(plug).with({ $: { locale: "it" } });
+    using ctrl = mockPlug(plug).with({ $: { ambientLocale: "it" } });
     ctrl.deps[0].state = { value: 4, isOdd: false };
 
     await act(async () => {

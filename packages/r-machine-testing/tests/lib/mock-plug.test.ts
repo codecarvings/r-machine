@@ -117,14 +117,14 @@ describe("mockPlug", () => {
       return plug;
     };
 
-    it("registers an override (locale + transform) and enters test mode; reset clears both", () => {
+    it("registers an override (ambientLocale + transform) and enters test mode; reset clears both", () => {
       const gate = makeGatePlug();
       expect(getPlugOverride(gate)).toBeUndefined();
 
-      const { reset } = mockPlug(gate).with({ "outer/shared": { value: 42 }, $: { locale: "it" } } as never);
+      const { reset } = mockPlug(gate).with({ "outer/shared": { value: 42 }, $: { ambientLocale: "it" } } as never);
 
       const override = getPlugOverride(gate);
-      expect(override?.locale).toBe("it");
+      expect(override?.ambientLocale).toBe("it");
       expect(typeof override?.transform).toBe("function");
       expect(machine().testMode.isEnabled).toBe(true);
 
@@ -141,7 +141,7 @@ describe("mockPlug", () => {
 
     it("does NOT touch the consumer plug's resolve (the no-op path it replaces)", () => {
       const gate = makeGatePlug();
-      using _ctrl = mockPlug(gate).with({ $: { locale: "en" } } as never);
+      using _ctrl = mockPlug(gate).with({ $: { ambientLocale: "en" } } as never);
       // The override seam is used, not setPlugResolve: a registered override
       // exists and is what core consults.
       expect(getPlugOverride(gate)).toBeDefined();
@@ -149,9 +149,9 @@ describe("mockPlug", () => {
 
     it("throws ERR_PLUG_ALREADY_MOCKED on a double mock of the same gate plug", () => {
       const gate = makeGatePlug();
-      const { reset } = mockPlug(gate).with({ $: { locale: "it" } } as never);
+      const { reset } = mockPlug(gate).with({ $: { ambientLocale: "it" } } as never);
       try {
-        mockPlug(gate).with({ $: { locale: "en" } } as never);
+        mockPlug(gate).with({ $: { ambientLocale: "en" } } as never);
         expect.unreachable("second mock on the same gate plug should throw");
       } catch (err) {
         expect((err as RMachineUsageError).code).toBe(ERR_PLUG_ALREADY_MOCKED);

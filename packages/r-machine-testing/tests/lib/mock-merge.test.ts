@@ -24,8 +24,10 @@ describe("mock-merge", () => {
     it("is false for an empty override and for a `$`-only override with no ports/kit", () => {
       expect(hasOverrides({})).toBe(false);
       expect(hasOverrides({ $: {} })).toBe(false);
-      // `$.locale`-only is applied upstream by re-resolving — not an override here.
+      // A locale-only override (`$.locale` on a resource plug / `$.ambientLocale`
+      // on a consumer) is applied upstream by re-resolving — not an override here.
       expect(hasOverrides({ $: { locale: "it" } })).toBe(false);
+      expect(hasOverrides({ $: { ambientLocale: "it" } })).toBe(false);
     });
 
     it("is true when `$.ports` or `$.kit` is present", () => {

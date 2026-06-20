@@ -31,7 +31,7 @@ afterEach(() => {
 // UI interaction re-renders through the real reactivity (no manual rerender).
 describe("CartView (component, it)", () => {
   it("drives the cart dependency's real state and reacts to the real removeItem", async () => {
-    using ctrl = mockPlug(plug).with({ $: { locale: "it" } });
+    using ctrl = mockPlug(plug).with({ $: { ambientLocale: "it" } });
     // Seed the dependency's state BEFORE render → applied when the cart resolves.
     ctrl.deps[0].state = {
       lines: [

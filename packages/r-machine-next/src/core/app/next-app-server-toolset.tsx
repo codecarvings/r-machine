@@ -351,10 +351,13 @@ export async function createNextAppServerToolset<
     // mirroring `createResMatrix` for resource plugs (res-matrix.ts).
     setPlugMachine(body, plugMachine);
 
-    const resolvePlugin = async (locale: L, resolvedParams?: Record<string, unknown>) => {
-      // A consumer-plug mock can pin the resolution locale (mockPlug `$.locale`).
-      // Undefined in production → no change.
-      const effLocale = (getPlugOverride(body)?.locale as L | undefined) ?? locale;
+    const resolvePlugin = async (locale: L, resolvedParams: Record<string, unknown> | undefined, explicit: boolean) => {
+      // mockPlug `$.ambientLocale` is a *fallback*: it fills the locale only when
+      // the caller supplied none — i.e. the ambient, header-derived `useR()`. When
+      // the caller passes an explicit locale (`useR(params)` / `useR(locale)` /
+      // `useUnboundR`), that wins and the `$.ambientLocale` override is a no-op
+      // (mock a dependency instead). The mock's `transform` still applies regardless.
+      const effLocale = explicit ? locale : ((getPlugOverride(body)?.ambientLocale as L | undefined) ?? locale);
       const augmentCtx: PluginCtxAugmenter = ($) => {
         $.locale = effLocale;
         $.getPath = impl.createPathComposer(effLocale);
@@ -379,6 +382,10 @@ export async function createNextAppServerToolset<
       let locale: L;
       let resolvedParams: Record<string, unknown> | undefined;
 
+      // `useR()` is the only ambient form (locale derived from the request
+      // header) — there the mock `$.locale` may fill in. `useR(params|locale)`
+      // pass an explicit locale, which wins.
+      const explicit = firstArg !== undefined;
       if (firstArg === undefined) {
         // Overload 1: useR() — locale auto from getLocale
         locale = await getLocale();
@@ -391,7 +398,7 @@ export async function createNextAppServerToolset<
         locale = bindLocale(firstArg as AnyLocale) as L;
       }
 
-      return resolvePlugin(locale, resolvedParams);
+      return resolvePlugin(locale, resolvedParams, explicit);
     };
 
     const useUnboundR = async (firstArg: unknown): Promise<unknown> => {
@@ -409,7 +416,8 @@ export async function createNextAppServerToolset<
         locale = getValidLocale(firstArg as AnyLocale) as L;
       }
 
-      return resolvePlugin(locale, resolvedParams);
+      // useUnboundR always takes an explicit locale → mock `$.locale` is a no-op.
+      return resolvePlugin(locale, resolvedParams, true);
     };
 
     (body as unknown as { useR: typeof useR; useUnboundR: typeof useUnboundR }).useR = useR;

@@ -255,9 +255,12 @@ export class RMachine<
       setPlugMachine(body, plugMachine);
 
       const useR = async (localeArg: AnyLocale): Promise<unknown> => {
-        // A consumer-plug mock can pin the resolution locale (mockPlug `$.locale`);
-        // undefined in production → use the explicitly passed locale.
-        const effLocale = (getPlugOverride(body)?.locale as L | undefined) ?? getValidLocale(localeArg);
+        // DirectPlug's locale is ALWAYS explicit (it has no ambient container),
+        // so the caller's `useR(locale)` wins. A DirectPlug mock therefore
+        // exposes NO locale key at all (neither `$.locale` nor `$.ambientLocale`
+        // — see `MockCtxContent`); mock a dependency instead. The mock's
+        // `transform` still applies (via getGatePlugin).
+        const effLocale = getValidLocale(localeArg);
         const augmentCtx: PluginCtxAugmenter = ($) => {
           $.locale = effLocale;
         };
