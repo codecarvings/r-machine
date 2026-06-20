@@ -3,6 +3,7 @@ import type { AnyLocale } from "r-machine/locale";
 import { describe, expectTypeOf, it } from "vitest";
 import {
   type AnyReactStandardStrategyConfig,
+  type CreateReactBareToolsetOptions,
   createReactBareToolset,
   type ReactPlugKitMap,
   type ReactStandardStrategyConfig,
@@ -12,7 +13,10 @@ import {
   RequestScopeContext,
   type VertexFrameType,
 } from "../../src/core/index.js";
-import { createReactBareToolset as originalCreateReactBareToolset } from "../../src/core/react-bare-toolset.js";
+import {
+  type CreateReactBareToolsetOptions as OriginalCreateReactBareToolsetOptions,
+  createReactBareToolset as originalCreateReactBareToolset,
+} from "../../src/core/react-bare-toolset.js";
 import type { ReactPlugKitMap as OriginalReactPlugKitMap } from "../../src/core/react-plug.js";
 import type {
   AnyReactStandardStrategyConfig as OriginalAnyStandardConfig,
@@ -52,5 +56,6 @@ describe("core barrel exports", () => {
   it("re-exports the plug/vertex helper types", () => {
     expectTypeOf<ReactPlugKitMap<RA>>().toEqualTypeOf<OriginalReactPlugKitMap<RA>>();
     expectTypeOf<VertexFrameType>().toEqualTypeOf<typeof OriginalVertexFrame>();
+    expectTypeOf<CreateReactBareToolsetOptions>().toEqualTypeOf<OriginalCreateReactBareToolsetOptions>();
   });
 });

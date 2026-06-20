@@ -1,6 +1,7 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type {
   AnyNextAppFlatStrategyConfig,
+  NextAppFlatStrategyConfig,
   NextAppFlatStrategyConfigParams,
   NextAppFlatStrategyCore,
 } from "../../../../src/core/app/flat/index.js";
@@ -11,6 +12,8 @@ describe("core/app/flat barrel exports", () => {
     expectTypeOf<NextAppFlatStrategyCore<any, any, any, any, any>>().toBeObject();
 
     expectTypeOf<AnyNextAppFlatStrategyConfig>().toBeObject();
+
+    expectTypeOf<NextAppFlatStrategyConfig<any, any, any, any, any>>().toBeObject();
 
     expectTypeOf<NextAppFlatStrategyConfigParams<any, any, any, any, any>>().toBeObject();
   });

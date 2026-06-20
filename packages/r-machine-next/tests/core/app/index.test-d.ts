@@ -7,6 +7,7 @@ import type {
   NextAppNoProxyServerToolset,
   NextAppServerImpl,
   NextAppServerToolset,
+  NextAppStrategyConfig,
   NextAppStrategyConfigParams,
   NextAppStrategyCore,
 } from "../../../src/core/app/index.js";
@@ -18,6 +19,8 @@ describe("core/app barrel exports", () => {
     expectTypeOf(localeHeaderName).toBeString();
 
     expectTypeOf<NextAppStrategyCore<any, any, any, any, any>>().toBeObject();
+
+    expectTypeOf<NextAppStrategyConfig<any, any, any, any, any>>().toBeObject();
 
     expectTypeOf<NextAppStrategyConfigParams<any, any, any, any, any>>().toBeObject();
 

@@ -1,6 +1,7 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type {
   AnyNextAppOriginStrategyConfig,
+  NextAppOriginStrategyConfig,
   NextAppOriginStrategyConfigParams,
   NextAppOriginStrategyCore,
 } from "../../../../src/core/app/origin/index.js";
@@ -11,6 +12,8 @@ describe("core/app/origin barrel exports", () => {
     expectTypeOf<NextAppOriginStrategyCore<any, any, any, any, any>>().toBeObject();
 
     expectTypeOf<AnyNextAppOriginStrategyConfig>().toBeObject();
+
+    expectTypeOf<NextAppOriginStrategyConfig<any, any, any, any, any>>().toBeObject();
 
     expectTypeOf<NextAppOriginStrategyConfigParams<any, any, any, any, any>>().toBeObject();
   });
