@@ -587,6 +587,28 @@ importers:
         specifier: ^4.1.8
         version: 4.1.8(@types/node@24.13.1)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@29.1.1)(vite@8.0.16(@types/node@24.13.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
+  examples/standalone:
+    dependencies:
+      r-machine:
+        specifier: ^1.0.0-alpha.12
+        version: link:../../packages/r-machine
+    devDependencies:
+      '@r-machine/testing':
+        specifier: ^1.0.0-alpha.12
+        version: link:../../packages/r-machine-testing
+      '@types/node':
+        specifier: ^24.13.1
+        version: 24.13.1
+      tsx:
+        specifier: ^4.22.4
+        version: 4.22.4
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.8
+        version: 4.1.8(@types/node@24.13.1)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(jsdom@29.1.1)(vite@8.0.16(@types/node@24.13.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+
   packages/r-machine: {}
 
   packages/r-machine-next:
