@@ -9,11 +9,7 @@ import { CartView, plug } from "@/components/client/cart-view";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
-    replace: vi.fn(),
     refresh: vi.fn(),
-    back: vi.fn(),
-    forward: vi.fn(),
-    prefetch: vi.fn(),
   }),
   usePathname: () => "/cart",
 }));
@@ -31,7 +27,7 @@ afterEach(() => {
 // UI interaction re-renders through the real reactivity (no manual rerender).
 describe("CartView (component, it)", () => {
   it("drives the cart dependency's real state and reacts to the real removeItem", async () => {
-    using ctrl = mockPlug(plug).with({ $: { ambientLocale: "it" } });
+    using ctrl = mockPlug(plug).with({ $: { locale: "it" } });
     // Seed the dependency's state BEFORE render → applied when the cart resolves.
     ctrl.deps[0].state = {
       lines: [
