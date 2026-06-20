@@ -86,6 +86,7 @@ Two configuration files by convention:
 - `@r-machine/react` — `ReactStandardStrategy`
 - `@r-machine/next` — `NextAppPathStrategy`, `NextAppFlatStrategy`, `NextAppOriginStrategy`
 - `@r-machine/testing` — `mockPlug`, `verifyResourceAtlas`
+- `rforge` — Command-line interface for R-Machine
 
 ---
 

@@ -15,7 +15,7 @@ Monorepo containing the R-Machine packages.
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| [`r-machine`](./packages/r-machine) | [![npm](https://img.shields.io/npm/v/r-machine)](https://www.npmjs.com/package/r-machine) | Core library |
+| [`r-machine`](./packages/r-machine) | [![npm](https://img.shields.io/npm/v/r-machine)](https://www.npmjs.com/package/r-machine) | Core library — composers + framework-free `DirectPlug` |
 | [`@r-machine/react`](./packages/r-machine-react) | [![npm](https://img.shields.io/npm/v/@r-machine/react)](https://www.npmjs.com/package/@r-machine/react) | React integration |
 | [`@r-machine/next`](./packages/r-machine-next) | [![npm](https://img.shields.io/npm/v/@r-machine/next)](https://www.npmjs.com/package/@r-machine/next) | Next.js App Router integration |
 | [`@r-machine/testing`](./packages/r-machine-testing) | [![npm](https://img.shields.io/npm/v/@r-machine/testing)](https://www.npmjs.com/package/@r-machine/testing) | Testing utilities |
@@ -34,6 +34,7 @@ example [`examples/`](./examples).
 | [`next-with-app-path-strategy`](./examples/next-with-app-path-strategy) | Next.js App Router with path segment routing |
 | [`next-with-app-path-strategy-no-proxy`](./examples/next-with-app-path-strategy-no-proxy) | Path strategy without proxy |
 | [`react`](./examples/react) | React + Vite |
+| [`standalone`](./examples/standalone) | Framework-free Node CLI — `r-machine` core via `DirectPlug`, no strategy |
 
 ## Conceptual model: the namespace as a stable contract
 
@@ -111,7 +112,7 @@ export type Outer_Counter = RShape<typeof r>;
 
 ### Plug — the one consumer primitive
 
-Components reach any resource through `Plug` (or `ClientPlug` / `ServerPlug` for SSR). Same call shape for gears, shells, single or many:
+Components reach any resource through `Plug` (or `ClientPlug` / `ServerPlug` for SSR; `DirectPlug` for container-free use outside any framework — workers, cron, scripts, ...). Same call shape for gears, shells, single or many:
 
 ```tsx
 // components/my-component.tsx
@@ -156,6 +157,13 @@ The common pieces:
 | `base/` `outer/` `vertex/` `shell/` … | Your resources, one subfolder per family. `inner/` (server-only gears) applies to Next server components only |
 
 → Full, copy-pasteable setup lives in the package READMEs linked above.
+
+**Without a framework** you don't need a strategy at all: just `r-machine` (no
+`@r-machine/react` / `@r-machine/next`). Call `RMachine.create(...)` and consume
+resources through `DirectPlug`, passing the locale explicitly to `useR(locale)` —
+ideal for workers, cron jobs, scripts, etc... . Setup collapses to
+`setup.ts` + `resource-atlas.ts` (no provider, `toolset.ts`, or `path-atlas.ts`).
+See [`examples/standalone`](./examples/standalone).
 
 ## Monorepo Structure
 

@@ -155,11 +155,6 @@ strategy you pick. Follow the package guide for your stack:
 In both cases an R-Machine project lives in **one folder** (conventionally
 `src/r-machine/`): a few wiring files, plus one subfolder per resource family.
 
-For **standalone, strategy-free** use — consuming resources only through
-`DirectPlug` — you need just the `r-machine` core: `RMachine.create(...)` +
-`createToolset()` gives you the producer composers and `DirectPlug`, enough to
-declare resources and resolve them by locale anywhere (no framework, no provider).
-
 The common pieces:
 
 | File / folder                         | Role                                                                                                                                                                    |
@@ -171,6 +166,13 @@ The common pieces:
 | `base/` `outer/` `vertex/` `shell/` … | Your resources, one subfolder per family. `inner/` (server-only gears) applies to Next server components only                                                           |
 
 → Full, copy-pasteable setup lives in the package READMEs linked above.
+
+**Without a framework** you don't need a strategy at all — the `r-machine` core
+alone (no `@r-machine/react` / `@r-machine/next`). Call `RMachine.create(...)` and
+consume resources through `DirectPlug`, passing the locale explicitly to
+`useR(locale)` — ideal for workers, cron jobs, scripts, or React Email. Setup
+collapses to `setup.ts` + `resource-atlas.ts` (no provider, `toolset.ts`, or
+`path-atlas.ts`). See the [`standalone` example](https://github.com/codecarvings/r-machine/tree/main/examples/standalone).
 
 ---
 
