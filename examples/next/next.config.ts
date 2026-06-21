@@ -10,6 +10,13 @@ const nextConfig: NextConfig = {
   // `reactCompiler: "on"` in the R-Machine strategy config so reactive surfaces
   // get fresh-identity wrapping (otherwise reads from `useR()` render stale).
   reactCompiler: false,
+
+  // When using Webpack, do not warn about Top-Level Await (TLA) usage.
+  webpack: (config, { isServer }) => {
+    config.target = isServer ? "node18" : "web";
+    return config;
+  },
+  turbopack: {},
 };
 
 export default nextConfig;

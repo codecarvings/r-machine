@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
   reactCompiler: false,
 
   // basePath: "/subdir",
+
+  // When using Webpack, do not warn about Top-Level Await (TLA) usage.
+  webpack: (config, { isServer }) => {
+    config.target = isServer ? "node18" : "web";
+    return config;
+  },
+  turbopack: {},
 };
 
 export default nextConfig;
