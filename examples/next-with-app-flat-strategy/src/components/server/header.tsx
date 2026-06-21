@@ -5,7 +5,7 @@ import { MainNav } from "@/components/client/main-nav";
 import RMachineLogo from "@/gfx/r-machine.logo.svg";
 import { ServerPlug } from "@/r-machine/server-toolset";
 
-export const plug = ServerPlug();
+const plug = ServerPlug();
 export default async function Header() {
   const { $ } = await plug.useR();
 
@@ -28,3 +28,4 @@ export default async function Header() {
     </header>
   );
 }
+Header.plug = plug;

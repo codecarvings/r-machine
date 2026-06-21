@@ -64,7 +64,7 @@ A `shell` resource has one canonical file per locale. The canonical file (`en.ts
 Single primitive, uniform across all families:
 
 ```ts
-mockPlug(plug).with({ /* type-checked override */ });
+mockPlug(r).with({ /* type-checked override */ }); // pass the carrier: a resource `r`, or a consumer (its plug is attached as `Comp.plug`)
 ```
 
 Overrides are structurally checked against the plug's resolved shape. `verifyResourceAtlas` catches missing locale variants and loader misconfigurations at CI time.
@@ -97,6 +97,6 @@ https://rmachine.dev/llms-full.txt
 
 ---
 
-rev 2026-06-20.020
+rev 2026-06-21.021
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com

@@ -17,7 +17,7 @@ const localeItems = {
   it: { name: "Italiano" },
 } as const;
 
-export const plug = ClientPlug();
+const plug = ClientPlug();
 export function LocaleSwitcher() {
   const { $ } = plug.useR();
 
@@ -54,3 +54,4 @@ export function LocaleSwitcher() {
     </DropdownMenu>
   );
 }
+LocaleSwitcher.plug = plug;

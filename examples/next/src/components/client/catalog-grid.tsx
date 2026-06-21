@@ -9,7 +9,7 @@ import type { Product } from "@/r-machine/inner/catalog";
 // <VertexFrame>) plus `shell/catalog`. Sorting/filtering happens client-side and
 // reactively: when the filter bar mutates the vertex state, this grid re-renders
 // instantly — no navigation, no server round-trip.
-export const plug = ClientPlug("vertex/catalog-filter", "shell/catalog");
+const plug = ClientPlug("vertex/catalog-filter", "shell/catalog");
 export function CatalogGrid({ products }: { products: Product[] }) {
   const [filter, s, $] = plug.useR();
 
@@ -42,3 +42,4 @@ export function CatalogGrid({ products }: { products: Product[] }) {
     </div>
   );
 }
+CatalogGrid.plug = plug;

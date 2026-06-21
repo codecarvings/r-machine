@@ -187,7 +187,7 @@ it from any component with `Plug` — locale resolution is automatic:
 // src/components/greeting.tsx
 import { Plug } from "@/r-machine/toolset";
 
-export const plug = Plug("shell/greeting");
+const plug = Plug("shell/greeting");
 export function Greeting() {
   const [s] = plug.useR();
 
@@ -197,6 +197,7 @@ export function Greeting() {
     </button>
   );
 }
+Greeting.plug = plug; // attached to the consumer for testing purposes with mockPlug
 ```
 
 ## Conceptual model: the namespace as a stable contract

@@ -5,7 +5,7 @@ import GitHubMark from "@/gfx/github-mark.svg";
 import RMachineLogo from "@/gfx/r-machine.logo.svg";
 import { ServerPlug } from "@/r-machine/server-toolset";
 
-export const plug = ServerPlug("base/config", "shell/landing-page");
+const plug = ServerPlug("base/config", "shell/landing-page");
 export default async function Hero() {
   const [config, s] = await plug.useR();
 
@@ -55,3 +55,4 @@ export default async function Hero() {
     </section>
   );
 }
+Hero.plug = plug;

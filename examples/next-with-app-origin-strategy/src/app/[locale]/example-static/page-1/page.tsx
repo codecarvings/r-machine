@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ServerPlug } from "@/r-machine/server-toolset";
 
-export const plug = ServerPlug("shell/example-static", "shell/navigation");
+const plug = ServerPlug("shell/example-static", "shell/navigation");
 export default async function Page1({ params }: PageProps<"/[locale]/example-static/page-1">) {
   const [se, sn, $] = await plug.useR(params);
 
@@ -31,3 +31,4 @@ export default async function Page1({ params }: PageProps<"/[locale]/example-sta
     </section>
   );
 }
+Page1.plug = plug;

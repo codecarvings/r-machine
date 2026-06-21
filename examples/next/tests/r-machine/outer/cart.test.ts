@@ -3,7 +3,7 @@ import { describe, expect, it, vitest } from "vitest";
 import { r } from "@/r-machine/outer/cart";
 
 // Seed the SSR snapshot port to an empty cart so each test starts clean.
-const seedEmpty = () => mockPlug(r.plug).with({ $: { ports: { loadCartSnapshot: async () => ({ lines: [] }) } } });
+const seedEmpty = () => mockPlug(r).with({ $: { ports: { loadCartSnapshot: async () => ({ lines: [] }) } } });
 
 describe("Outer_Cart", () => {
   it("adds distinct items and computes itemCount + subtotal", async () => {
@@ -59,7 +59,7 @@ describe("Outer_Cart", () => {
   });
 
   it("seeds initial state from the loadCartSnapshot port", async () => {
-    using _ctrl = mockPlug(r.plug).with({
+    using _ctrl = mockPlug(r).with({
       $: {
         ports: {
           loadCartSnapshot: async () => ({ lines: [{ productId: "x", name: "X", unitPrice: 7, qty: 3 }] }),

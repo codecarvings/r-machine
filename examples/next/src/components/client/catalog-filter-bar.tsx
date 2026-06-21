@@ -8,7 +8,7 @@ import type { CatalogSort } from "@/r-machine/vertex/catalog-filter";
 // writes (setSort/setCategory) drive the grid's re-render — the two siblings
 // share one reactive vertex instance because the parent wraps them in a
 // <VertexFrame>.
-export const plug = ClientPlug("vertex/catalog-filter", "shell/catalog");
+const plug = ClientPlug("vertex/catalog-filter", "shell/catalog");
 export function CatalogFilterBar({ categories }: { categories: readonly string[] }) {
   const [filter, s] = plug.useR();
 
@@ -48,3 +48,4 @@ export function CatalogFilterBar({ categories }: { categories: readonly string[]
     </div>
   );
 }
+CatalogFilterBar.plug = plug;

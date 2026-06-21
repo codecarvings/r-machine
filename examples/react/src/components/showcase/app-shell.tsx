@@ -5,7 +5,7 @@ import { Plug } from "@/r-machine/toolset";
 import { FeatureView } from "./feature-view";
 import { Sidebar } from "./sidebar";
 
-export const plug = Plug("outer/nav", "shell/showcase");
+const plug = Plug("outer/nav", "shell/showcase");
 export function AppShell() {
   const [nav, s] = plug.useR();
 
@@ -37,3 +37,4 @@ export function AppShell() {
     </div>
   );
 }
+AppShell.plug = plug;

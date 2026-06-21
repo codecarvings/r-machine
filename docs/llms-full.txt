@@ -816,12 +816,12 @@ Configure ambient shared resources via `directKit: { … }` on `RMachine.create(
 
 ```tsx
 // Same import in React and Next — it's on the core toolset.
-export const plug = DirectPlug("shell/email/welcome");
+const plug = DirectPlug("shell/email/welcome");
 export async function WelcomeEmail({ locale, name }) {
   const [s, $] = await plug.useR(locale);   // async; $.locale echoes `locale`, $.kit = directKit
-
   return <Html lang={$.locale}><Text>{s.greeting(name)}</Text></Html>;
 }
+WelcomeEmail.plug = plug; // attached to the consumer for testing purposes with mockPlug
 ```
 
 On the client, call `useR` in an async handler/effect — never directly in render
@@ -1143,12 +1143,13 @@ Pre-renders the `[locale]` segment at build time for every locale in `RMachine.c
 // app/[locale]/layout.tsx
 export const generateStaticParams = generateLocaleStaticParams;   // the function itself, Next.js invokes it
 export const dynamicParams = false;                               // 404 any non-declared locale
-export const plug = ServerPlug("shell/common");
 
+const plug = ServerPlug("shell/common");
 export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
   const [common, $] = await plug.useR(params);
   return <html lang={$.locale}><body><NextServerRMachine>{children}</NextServerRMachine></body></html>;
 }
+LocaleLayout.plug = plug;
 ```
 
 It returns one entry per declared locale (`[{ locale: "en" }, …]`), enabling SSG. Available on **all three strategies** (path carries the locale in `params` natively; flat/origin carry it outside `params` and `rMachineProxy` rewrites requests so the pipeline sees a synthetic `[locale]` uniformly), and composes with nested static-param generators (e.g. `[locale]/[slug]`).
@@ -1231,11 +1232,12 @@ export const r = OuterGear
   });
 
 // components/Cart.tsx — consumed via ClientPlug; useR() suspends until seeded. Mount from a page.
-export const plug = ClientPlug("outer/cart");
+const plug = ClientPlug("outer/cart");
 export function Cart() {
   const [cart] = plug.useR();
   return <ul>{cart.items.map((i) => <li key={i}>{i}</li>)}</ul>;
 }
+Cart.plug = plug;
 ```
 
 **How it avoids a hydration mismatch.** The factory runs on **both** sides — server (request scope, snapshot read in-process) and client during hydration (same read re-run). Being `async`, the client plug suspends while the snapshot resolves; the server streams the resolved HTML and hydration reuses it, so there is no mismatch **provided the snapshot is deterministic for the request**. No extra Suspense boundary needed: `@r-machine/next` builds on `@r-machine/react`, which already provides one.
@@ -1254,12 +1256,13 @@ Caveats:
 Each call to `Plug("vertex/...").useR()` in a component creates a new instance. To share that instance with descendants, the parent wraps the subtree in `<VertexFrame gear={instance}>`:
 
 ```tsx
-export const plug = Plug("vertex/shopping-cart");
+const plug = Plug("vertex/shopping-cart");
 
 export function CartPanel() {
   const [cart] = plug.useR();                          // creates the instance
   return <VertexFrame gear={cart}><CartHeader /><CartTotals /></VertexFrame>;
 }
+CartPanel.plug = plug;
 
 // Descendant — same call shape receives the parent's instance via the frame:
 export function CartTotals() {
@@ -1274,15 +1277,23 @@ A `Plug` may declare the same vertex namespace more than once — each occurrenc
 
 ---
 
-## 13. Component plug-export convention
+## 13. Component plug-attach convention
 
-Every component or page that consumes resources hoists its plug to module scope and exports it (`export const plug = Plug("shell/common")`, then `const [common] = plug.useR()` in the body). The exported `plug` is the test-time mock target.
+Every component or page that consumes resources hoists its plug to module scope as a plain `const plug = Plug("shell/common")` (used via `const [common] = plug.useR()` in the body), then **attaches** it to the consumer as a static property (`Comp.plug = plug`) — the plug is *not* exported. The consumer itself (the component/page/render fn carrying `.plug`) is the test-time mock target: you pass it to `mockPlug`.
+
+### 13.1. Why attach instead of `export const plug`
+
+1. **An unambiguous mock target.** If every consumer did `export const plug`, a test importing several of them would hit a wall of identically-named `plug` symbols — name collisions, and easy mis-imports that the types won't catch (every plug has a plausibly-similar shape). Attaching ties the plug to its consumer's *unique* name, so the mock target reads `mockPlug(CartView)` / `mockPlug(ProductPage)` — self-documenting, exactly one obvious symbol per file.
+
+2. **HMR / Fast Refresh.** React Fast Refresh only preserves component state across edits when *every* export of a module is a component. A non-component `export const plug` makes the module ineligible and forces a full reload (losing state). Attaching leaves the module exporting only its component, so Fast Refresh keeps working.
+
+3. **Next.js page/layout export validation.** Under the Webpack bundler, Next type-checks the *exports* of `page.tsx` / `layout.tsx` against a fixed allow-list (`default`, `metadata`, `generateMetadata`, `generateStaticParams`, route-segment config such as `dynamic` / `revalidate`, …). An extra `export const plug` is not on that list and fails the build with an invalid-export type error. Attaching the plug to the page/layout function (and leaving it unexported) sidesteps the check entirely. This makes the convention not merely preferable but **required** for pages and layouts.
 
 ---
 
 ## 14. Testing: `mockPlug`
 
-Single primitive, uniform across families (gears, shells, a component's exported plug, even a vertex). You always mock **the plug of the thing under test** — for a component, *its own* plug, not a dependency's. `mockPlug(plug)` returns `{ with, default }`; both enter the plug's machine into **test mode** (a consumer renders without a `<…RMachine>` provider) and return a **controller** that is `Disposable` (`[Symbol.dispose]` = `reset`), so `using ctrl = mockPlug(plug).with({ … })` auto-resets at block exit (§14.4).
+Single primitive, uniform across families (gears, shells, a component carrying its attached plug, even a vertex). You always mock **the thing under test** — for a component, pass the component itself (its plug is attached as `Comp.plug`), not a dependency's. For a bare resource pass the resource `r`. `mockPlug(carrier)` returns `{ with, default }`; both enter the plug's machine into **test mode** (a consumer renders without a `<…RMachine>` provider) and return a **controller** that is `Disposable` (`[Symbol.dispose]` = `reset`), so `using ctrl = mockPlug(carrier).with({ … })` auto-resets at block exit (§14.4).
 
 ### 14.1. Two channels — the mental model
 
@@ -1299,11 +1310,11 @@ State is deliberately **not** a `.with(...)` override — it's a live cell, so i
 
 Overridable: the plug's direct dependencies (by name / position), kit entries (`$.kit`), and — conditional on the resource — the locale key (named by plug kind, §14.7; gears have no locale) and `$.ports` (only resources declared with `withPorts({...})`). Anything not overridden runs through the production factory as a deep partial on top of the resulting Surface, so unsubstituted paths (including `[Symbol.dispose]` teardown) still run; `mockPlug` also reaches `$`-prefixed members (relays, internal actions).
 
-Resource-level test — override a port (`r.plug`), drive the rest of the real factory:
+Resource-level test — override a port (pass the resource `r`), drive the rest of the real factory:
 
 ```ts
 const calls: [string, string][] = [];
-using _ctrl = mockPlug(r.plug).with({                  // `using` resets at block exit
+using _ctrl = mockPlug(r).with({                  // `using` resets at block exit
   $: { ports: { createPost: async (t, b) => { calls.push([t, b]); } } },
 });
 const instance = await r.create();
@@ -1328,7 +1339,7 @@ Only stateful outer/vertex gears appear; everything else is absent from the type
 **Seed before, drive after.** A write *before* resolution is queued and applied once the cell comes to life; writes *after* publish straight to the live cell. Order in a test: seed → render/`create` → drive and read.
 
 ```ts
-using ctrl = mockPlug(counter.plug).default();
+using ctrl = mockPlug(counter).default();
 
 ctrl.state = { count: 10, label: "x" }; // seed: queued until resolve
 
@@ -1352,7 +1363,7 @@ Driving a **dependency's** state is identical through `ctrl.deps[<key>].state` (
 `.default()` is exactly `.with({})`: resolve against the real defaults — no resolution override — while still returning the controller. Use it when you want real production output (a server component at its default locale, a client component without a provider) and only need to seed/observe state, or when you need nothing but test mode:
 
 ```ts
-using ctrl = mockPlug(plug).default(); // just enter test mode; auto-reset at scope exit
+using ctrl = mockPlug(r).default(); // just enter test mode; auto-reset at scope exit
 ```
 
 Every `mockPlug` call bumps the machine's test-mode refcount; the controller's **`reset()`** undoes that one mock (removes its override, clears its state binding) and, on the last exit for that machine, wipes the resolved resource state so the next test starts clean.
@@ -1361,10 +1372,10 @@ Three composable ways to make sure `reset()` runs:
 
 ```ts
 // 1 — using (recommended): controller is Disposable (= reset), runs even if an assertion throws
-using ctrl = mockPlug(r.plug).with({ /* … */ });
+using ctrl = mockPlug(r).with({ /* … */ });
 
 // 2 — explicit reset(): when the test asserts *on* reset behavior (production restored, test mode exits)
-const { reset } = mockPlug(plug).default(); /* … */ reset();
+const { reset } = mockPlug(r).default(); /* … */ reset();
 
 // 3 — global safety net: drains any mock a test forgot to reset
 afterEach(resetMockPlugs);   // from @r-machine/testing
@@ -1379,9 +1390,9 @@ Same shape for a Client Component and a non-page Server Component — the only d
 ```tsx
 import { render, screen } from "@testing-library/react";
 import { mockPlug } from "@r-machine/testing";
-import { Greeting, plug } from "./Greeting";
+import { Greeting } from "./Greeting";
 
-mockPlug(plug).with({ $: { locale: "it" } });
+mockPlug(Greeting).with({ $: { ambientLocale: "it" } });
 
 render(<Greeting />);                  // Server Component: render(await Greeting())
 expect(screen.getByText("Ciao")).toBeInTheDocument();
@@ -1393,7 +1404,7 @@ expect(screen.getByText("Ciao")).toBeInTheDocument();
 
 | You mock… | Key | Meaning | Precedence |
 | --- | --- | --- | --- |
-| a **resource** `Shell` / `shell(mono)` (`r.plug`) | `$.locale` | "resolve this resource **at** this locale" | **wins** (there is nothing else to resolve from) |
+| a **resource** `Shell` / `shell(mono)` (pass `r`) | `$.locale` | "resolve this resource **at** this locale" | **wins** (there is nothing else to resolve from) |
 | an **ambient consumer** — `Plug` / `ClientPlug` (React context) or the zero-arg `ServerPlug.useR()` (request header) | `$.ambientLocale` | the locale the *absent* ambient container would have supplied | **fallback** — an explicit locale wins |
 | a **`DirectPlug`**, or `ServerPlug.useR(params)` / `useR(locale)` / `useUnboundR` | *(none)* | the locale is **always explicit**, so there is no key | the explicit `useR(locale)` always wins |
 
@@ -1403,15 +1414,16 @@ To vary resolution in those explicit-locale cases, pass the locale you want (you
 
 ```tsx
 // app/[locale]/stats/page.tsx
-export const plug = ServerPlug("inner/visit-counter");
+const plug = ServerPlug("inner/visit-counter");
 
 export default async function StatsPage({ params }: PageProps<"/[locale]/stats">) {
   const [counter] = await plug.useR(params);
   return <p>Visits: {await counter.total()}</p>;
 }
+StatsPage.plug = plug;
 
 // StatsPage.test.tsx
-mockPlug(plug).with({
+mockPlug(StatsPage).with({
   0: { total: async () => 42 },
 });
 
@@ -1425,11 +1437,11 @@ Override-key convention mirrors the dep declaration form:
 
 ### 14.8. End-to-end: a component test driven by real state
 
-The payoff of the two channels together. We test `CartView` by mocking **its own** plug — not the cart gear's. `.with` sets the locale; the controller seeds the `outer/cart` dependency's real state. No fake surface: the real getters compute, the real `removeItem` action publishes, and a click re-renders through the real reactivity — no manual `rerender`. (A Next.js client test also stubs `next/navigation` hooks via `vi.mock`, omitted here.)
+The payoff of the two channels together. We test `CartView` by passing **the component itself** to `mockPlug` (its plug is attached as `CartView.plug`) — not the cart gear's. `.with` sets the locale; the controller seeds the `outer/cart` dependency's real state. No fake surface: the real getters compute, the real `removeItem` action publishes, and a click re-renders through the real reactivity — no manual `rerender`. (A Next.js client test also stubs `next/navigation` hooks via `vi.mock`, omitted here.)
 
 ```tsx
 it("drives the cart dependency's real state and reacts to the real removeItem", async () => {
-  using ctrl = mockPlug(plug).with({ $: { locale: "it" } });
+  using ctrl = mockPlug(CartView).with({ $: { ambientLocale: "it" } });
 
   // Seed the dependency's state BEFORE render → applied when the cart resolves.
   ctrl.deps[0].state = {
@@ -1593,6 +1605,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-06-20.020
+rev 2026-06-21.021
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com

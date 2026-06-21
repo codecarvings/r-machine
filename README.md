@@ -119,7 +119,7 @@ Components reach any resource through `Plug` (or `ClientPlug` / `ServerPlug` for
 import { Plug } from "@/r-machine/toolset";
 import { Button } from "@/components/ui/button";
 
-export const plug = Plug("outer/counter", "shell/common");
+const plug = Plug("outer/counter", "shell/common");
 export default function MyComponent() {
   const [counter, shell] = plug.useR();
 
@@ -130,9 +130,10 @@ export default function MyComponent() {
     </div>
   );
 }
+MyComponent.plug = plug; // attached to the consumer for testing purposes with mockPlug
 ```
 
-For tests, `mockPlug(r.plug).with({ ... })` is the **single** override primitive — uniform across gears, shells and vertex resources.
+For tests, `mockPlug( ... ).with({ ... })` is the **single** override primitive — uniform across gears, shells and consumers.
 
 ## Setup
 

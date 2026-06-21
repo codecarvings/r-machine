@@ -19,6 +19,15 @@ describe("mockPlug locale-override key — named by realm (type-level)", () => {
     mockPlug(greet.plug).with({ $: { ambientLocale: "it" } });
   });
 
+  it("carrier input infers the same head as the bare plug (`mockPlug(r)` ≡ `mockPlug(r.plug)`)", () => {
+    // Passing the ResMatrix carrier resolves the SAME map head as its `.plug`, so
+    // the resource-plug locale key (`$.locale`) is accepted and `ambientLocale` is
+    // rejected — identical to the `mockPlug(greet.plug)` case above.
+    mockPlug(greet).with({ $: { locale: "it" } });
+    // @ts-expect-error — carrier inference is identical: no `ambientLocale` key.
+    mockPlug(greet).with({ $: { ambientLocale: "it" } });
+  });
+
   it("DirectPlug: neither `$.locale` nor `$.ambientLocale` — the locale is always explicit", () => {
     const dplug = DirectPlug("base/helper");
     // DirectPlug has no ambient container, and its `useR(locale)` is always

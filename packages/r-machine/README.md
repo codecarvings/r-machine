@@ -126,7 +126,7 @@ one or many:
 // components/my-component.tsx
 import { Plug } from "@/r-machine/toolset";
 
-export const plug = Plug("outer/counter", "shell/common");
+const plug = Plug("outer/counter", "shell/common");
 export default function MyComponent() {
   const [counter, shell] = plug.useR();
 
@@ -136,6 +136,7 @@ export default function MyComponent() {
     </button>
   );
 }
+MyComponent.plug = plug; // attached to the consumer for testing purposes with mockPlug
 ```
 
 > `Plug` above comes from a framework strategy. The core itself also ships

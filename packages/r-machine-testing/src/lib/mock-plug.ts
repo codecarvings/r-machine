@@ -31,7 +31,7 @@ import {
 } from "r-machine/core";
 import { RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
-import { ERR_PLUG_ALREADY_MOCKED } from "#r-machine/testing/errors";
+import { ERR_MOCK_TARGET_INVALID, ERR_PLUG_ALREADY_MOCKED } from "#r-machine/testing/errors";
 import { createStateBinding, type MockListController, type MockMapController } from "./mock-controller.js";
 import { cloneListPlugin, cloneMapPlugin, hasOverrides } from "./mock-merge.js";
 import type { MockSurfaceMap } from "./mock-surface.js";
@@ -97,12 +97,36 @@ interface ListMockPlug<PH extends AnyListPlugHead> {
   readonly default: () => MockListController<PH>;
 }
 
+// A plug is exposed either bare, or attached to a CARRIER: the consumer function
+// it powers (`Comp.plug`, the function that calls `plug.useR()`) or a `ResMatrix`
+// (`r.plug`). `mockPlug` accepts both — the carrier is the symbol a test naturally
+// reaches for, and avoids a wall of identically-named `plug` exports.
+type PlugCarrier<PH extends AnyPlugHead> = { readonly plug: PlugBody<PH> };
+type MockPlugTarget<PH extends AnyPlugHead> = PlugBody<PH> | PlugCarrier<PH>;
+
 interface MockPlug {
-  <PH extends AnyMapPlugHead>(plug: PlugBody<PH>): MapMockPlug<PH>;
-  <PH extends AnyListPlugHead>(plug: PlugBody<PH>): ListMockPlug<PH>;
+  <PH extends AnyMapPlugHead>(target: MockPlugTarget<PH>): MapMockPlug<PH>;
+  <PH extends AnyListPlugHead>(target: MockPlugTarget<PH>): ListMockPlug<PH>;
 }
 
-export const mockPlug: MockPlug = (plug: PlugBody<AnyPlugHead>) => {
+export const mockPlug: MockPlug = (target: MockPlugTarget<AnyPlugHead>) => {
+  // Normalize carrier → plug: `getPlugHead` reads the head symbol, defined only on
+  // a real plug (undefined on a consumer function or a `ResMatrix`), so it both
+  // discriminates the two inputs and validates the `.plug` we unwrap.
+  const headSym = (t: unknown): AnyPlugHead | undefined =>
+    t == null ? undefined : getPlugHead(t as PlugBody<AnyPlugHead>);
+  const resolved =
+    headSym(target) !== undefined
+      ? (target as PlugBody<AnyPlugHead>)
+      : (target as PlugCarrier<AnyPlugHead> | null)?.plug;
+  if (resolved == null || headSym(resolved) === undefined) {
+    throw new RMachineUsageError(
+      ERR_MOCK_TARGET_INVALID,
+      "mockPlug() expects a plug or a carrier exposing `.plug` (a consumer function or a resource)."
+    );
+  }
+  const plug: PlugBody<AnyPlugHead> = resolved;
+
   const withData = (data: MockPlugMapData<AnyMapPlugHead> | MockPlugListData<AnyListPlugHead>) => {
     const overrides = data as Record<string, unknown>;
     // The locale override re-resolves in the effective locale: shells (and

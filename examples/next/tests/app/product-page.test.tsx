@@ -3,7 +3,7 @@
 import { mockPlug } from "@r-machine/testing";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
-import ProductPage, { plug } from "@/app/[locale]/product/[id]/page";
+import ProductPage from "@/app/[locale]/product/[id]/page";
 import type { Product } from "@/r-machine/inner/catalog";
 
 vi.mock("next/navigation", () => ({
@@ -42,7 +42,7 @@ const PRODUCT: Product = {
 // the locale from the route params and `validateServerOnlyUsage` is relaxed.
 describe("ProductPage (server page, en)", () => {
   it("resolves via useR(params) and renders the seeded product, price formatted server-side", async () => {
-    using _ctrl = mockPlug(plug).with({
+    using _ctrl = mockPlug(ProductPage).with({
       0: { byId: (id: string) => (id === PRODUCT.id ? PRODUCT : undefined) },
     });
 

@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plug } from "@/r-machine/toolset";
 
-export const plug = Plug("outer/nav", "shell/showcase");
+const plug = Plug("outer/nav", "shell/showcase");
 export function IntroDemo() {
   const [nav, s] = plug.useR();
   const t = s.views.intro;
@@ -24,3 +24,4 @@ export function IntroDemo() {
     </Card>
   );
 }
+IntroDemo.plug = plug;

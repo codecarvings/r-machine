@@ -1,5 +1,5 @@
 import { mockPlug } from "@r-machine/testing";
-import { plug, render } from "../src/render.ts";
+import { render } from "../src/render.ts";
 
 // Black-box test of the example's actual output: what `render(locale)` returns.
 // (Currency uses a non-breaking space before the symbol, so we assert the number
@@ -30,7 +30,7 @@ describe("render(locale) — the standalone CLI output", () => {
 });
 
 // `mockPlug` is the single, uniform testing primitive. Here it mocks the REAL
-// plug the renderer uses (exported from render.ts) and the REAL `render` runs
+// plug the renderer uses (carried as `render.plug`) and the REAL `render` runs
 // against it — no application code is re-declared in the test.
 //
 // We substitute a DEPENDENCY (not the locale: DirectPlug's locale is explicit,
@@ -38,7 +38,7 @@ describe("render(locale) — the standalone CLI output", () => {
 // `DirectPlug("shell/greeting", "base/config")`, so key `0` is the greeting shell.
 describe("render(locale) — with a mocked dependency", () => {
   it("mockPlug substitutes the greeting shell; render reflects it (other deps stay real)", async () => {
-    using _ctrl = mockPlug(plug).with({
+    using _ctrl = mockPlug(render).with({
       0: { title: "Mock", greet: (name: string) => `MOCK ${name}` },
     });
 

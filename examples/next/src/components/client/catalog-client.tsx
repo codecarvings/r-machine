@@ -9,7 +9,7 @@ import { CatalogGrid } from "./catalog-grid";
 // — with the filter bar and the grid below. Without the frame each consumer would
 // get its own independent vertex instance; with it, both read and write the same
 // reactive filter state.
-export const plug = ClientPlug({ filter: "vertex/catalog-filter" });
+const plug = ClientPlug({ filter: "vertex/catalog-filter" });
 export function CatalogClient({ products, categories }: { products: Product[]; categories: readonly string[] }) {
   const { filter } = plug.useR();
 
@@ -20,3 +20,4 @@ export function CatalogClient({ products, categories }: { products: Product[]; c
     </VertexFrame>
   );
 }
+CatalogClient.plug = plug;

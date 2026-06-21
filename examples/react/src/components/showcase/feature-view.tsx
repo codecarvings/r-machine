@@ -4,7 +4,7 @@ import { Plug } from "@/r-machine/toolset";
 import { CodeBlock } from "./code-block";
 import { VIEWS } from "./views/registry";
 
-export const plug = Plug("shell/showcase");
+const plug = Plug("shell/showcase");
 export function FeatureView({ view }: { view: ViewId }) {
   const [s] = plug.useR();
   const meta = s.views[view];
@@ -39,3 +39,4 @@ export function FeatureView({ view }: { view: ViewId }) {
     </div>
   );
 }
+FeatureView.plug = plug;

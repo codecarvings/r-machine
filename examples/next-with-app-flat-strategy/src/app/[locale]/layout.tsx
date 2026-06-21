@@ -11,7 +11,7 @@ export const generateStaticParams = generateLocaleStaticParams;
 export const dynamicParams = false;
 
 // Generate dynamic metadata based on the locale
-export const metaPlug = ServerPlug("shell/common");
+const metaPlug = ServerPlug("shell/common");
 export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Promise<Metadata> {
   // biome-ignore lint/correctness/useHookAtTopLevel: This is not a Hook
   const [common] = await metaPlug.useUnboundR(params);
@@ -20,8 +20,9 @@ export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Pr
     title: common.title,
   };
 }
+generateMetadata.plug = metaPlug;
 
-export const pagePlug = ServerPlug();
+const pagePlug = ServerPlug();
 export default async function LocaleLayout({ params, children }: LayoutProps<"/[locale]">) {
   const { $ } = await pagePlug.useR(params);
 
@@ -41,3 +42,4 @@ export default async function LocaleLayout({ params, children }: LayoutProps<"/[
     </html>
   );
 }
+LocaleLayout.plug = pagePlug;

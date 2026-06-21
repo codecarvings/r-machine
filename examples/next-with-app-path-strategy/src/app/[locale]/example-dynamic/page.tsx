@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ServerPlug } from "@/r-machine/server-toolset";
 
-export const plug = ServerPlug("shell/example-dynamic", "shell/navigation");
+const plug = ServerPlug("shell/example-dynamic", "shell/navigation");
 export default async function ExampleDynamicPage({ params }: PageProps<"/[locale]/example-dynamic">) {
   const [se, sn, $] = await plug.useR(params);
 
@@ -35,3 +35,4 @@ export default async function ExampleDynamicPage({ params }: PageProps<"/[locale
     </section>
   );
 }
+ExampleDynamicPage.plug = plug;
