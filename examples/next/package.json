@@ -10,8 +10,8 @@
     "test": "tsc --noEmit && vitest run"
   },
   "dependencies": {
-    "@r-machine/next": "^1.0.0-alpha.12",
-    "@r-machine/react": "^1.0.0-alpha.12",
+    "@r-machine/next": "^1.0.0-alpha.13",
+    "@r-machine/react": "^1.0.0-alpha.13",
     "@radix-ui/react-dropdown-menu": "^2.1.17",
     "@radix-ui/react-navigation-menu": "^1.2.15",
     "@radix-ui/react-slot": "^1.2.5",
@@ -19,13 +19,13 @@
     "clsx": "^2.1.1",
     "lucide-react": "^1.17.0",
     "next": "^16.2.7",
-    "r-machine": "^1.0.0-alpha.12",
+    "r-machine": "^1.0.0-alpha.13",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
-    "@r-machine/testing": "^1.0.0-alpha.12",
+    "@r-machine/testing": "^1.0.0-alpha.13",
     "@tailwindcss/postcss": "^4.3.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

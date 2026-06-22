@@ -1,5 +1,13 @@
 # @r-machine/react
 
+## 1.0.0-alpha.13
+
+### Patch Changes
+
+- Updated dependencies [be0872d]
+- Updated dependencies [be0872d]
+  - r-machine@1.0.0-alpha.13
+
 ## 1.0.0-alpha.12
 
 ### Patch Changes
