@@ -7,31 +7,34 @@ Router project. Covers all three routing strategies.
 
 ## 0. Packages
 
-All three production packages are required, plus one devDependency. Use
+All three production packages are required, plus dev dependencies. Use
 whichever package manager the project already uses:
 
 ```bash
 # pnpm
 pnpm add r-machine @r-machine/react @r-machine/next
-pnpm add -D @r-machine/testing
+pnpm add -D @r-machine/testing jiti
 
 # npm
 npm install r-machine @r-machine/react @r-machine/next
-npm install --save-dev @r-machine/testing
+npm install --save-dev @r-machine/testing jiti
 
 # yarn
 yarn add r-machine @r-machine/react @r-machine/next
-yarn add --dev @r-machine/testing
+yarn add --dev @r-machine/testing jiti
 
 # bun
 bun add r-machine @r-machine/react @r-machine/next
-bun add --dev @r-machine/testing
+bun add --dev @r-machine/testing jiti
 ```
 
 `r-machine` is the core, `@r-machine/react` is used internally by the Next.js
 package for React components (`NextServerRMachine`, `NextClientRMachine`,
 `VertexFrame`, etc.), `@r-machine/next` provides the strategy and
 server/client toolsets, and `@r-machine/testing` provides testing utilities.
+`jiti` (^2) is a **dev-only** dependency that `createNextDevImport` uses for
+resource HMR under `next dev` — **Next.js only** (not needed for React/standalone).
+If `jiti` isn't already present, install it.
 
 ---
 
@@ -53,8 +56,11 @@ Also ask:
   - **Proxy** (default, recommended): creates `src/proxy.ts`
   - **No-proxy**: creates `app/route.ts` instead; simpler but no middleware
 - **Origin strategy only**: the origin map — `{ en: "https://example.com", it: "https://example.it" }`
-- **Optional for Path/Origin**: localised URL paths via `PathAtlas`? (creates `path-atlas.ts`)
 - **Kit**: does the project need a formatter shell (`shell/lib/fmt`)? Almost always yes.
+
+A **`path-atlas.ts` is created by default for every Next strategy** (all of them
+accept a `PathAtlas`) — start it empty and add localized routes later. No need to
+ask.
 
 ---
 
@@ -64,11 +70,13 @@ All files live under `src/r-machine/` (or wherever the `@/r-machine/` alias poin
 
 ### 2.1 `resource-atlas.ts` (identical for all strategies)
 
-Start with the full layout and an empty `ResourceMap`. Resources are added later.
+Wire the full layout, the formatter the kits reference, and `getTokenBuilder()`.
+Add other resources as you scaffold them.
 
 ```ts
 // src/r-machine/resource-atlas.ts
 import { defineLayout } from "r-machine";
+import type { Shell_Lib_Fmt } from "./shell/lib/fmt"; // scaffold this file first (A.4 step 3)
 
 const folders = defineLayout({
   "inner/": "gear:inner",
@@ -80,12 +88,20 @@ const folders = defineLayout({
 });
 
 type ResourceMap = {
-  // Resources will be added here as they are scaffolded
-  // e.g. "outer/cart": Outer_Cart;
+  "shell/lib/fmt": Shell_Lib_Fmt;
+  // add more here as you scaffold them, e.g. "outer/cart": Outer_Cart;
 };
 
 export class ResourceAtlas extends folders<ResourceMap>() {}
+
+const token = ResourceAtlas.getTokenBuilder();
+
+export const fmt = token("shell/lib/fmt");
 ```
+
+No formatter? Drop the `fmt` import/entry/token and keep the self-check by
+exporting the builder instead:
+`export const token = ResourceAtlas.getTokenBuilder();`.
 
 Omit families the project won't use (e.g. omit `gear:inner` for client-only apps).
 If using `gear:inner`, keep it — removing it later is trivial.
@@ -167,9 +183,11 @@ import { routeHandlers } from "@/r-machine/server-toolset";
 export const { GET } = routeHandlers.entrance;
 ```
 
-### 2.7 `path-atlas.ts` (optional — Path and Origin strategies only)
+### 2.7 `path-atlas.ts` (default — every Next strategy)
 
-Only create this if the user wants localised URL paths:
+Create this by default, starting **empty**. All Next strategies accept a
+`PathAtlas`; it gives type-safe `$.getPath(...)` URL composition and is where
+localized routes go later (see `next-features.md`).
 
 ```ts
 // src/r-machine/path-atlas.ts
@@ -177,14 +195,28 @@ import { declarePathAtlas } from "@r-machine/next";
 import type { Locale } from "./setup";
 
 export class PathAtlas extends declarePathAtlas<Locale>().as({
-  // Add routes as needed, e.g.:
+  // Add localized routes as needed, e.g.:
   // "/about": { it: "/chi-siamo" },
 }) {}
 ```
 
-If skipping PathAtlas, remove `PathAtlas` from the strategy options in `setup.ts`.
+It is wired into `setup.ts` by default (see §3). To localize URLs later, add
+entries here — no other change needed.
 
 ### 2.8 `app/[locale]/layout.tsx`
+
+> **Migrating an existing app (the create-next-app default).** A fresh Next app
+> ships with a root `app/layout.tsx` (fonts, the `globals.css` import, `metadata`)
+> and `app/page.tsx`. The locale segment routes everything under `app/[locale]/`,
+> so you must relocate them — don't leave a second root:
+>
+> - **move** `app/page.tsx` → `app/[locale]/page.tsx`;
+> - **merge** the root `app/layout.tsx` (fonts, the `globals.css` import,
+>   `metadata`) into `app/[locale]/layout.tsx` — it becomes the real root layout,
+>   the one that renders `<html>`/`<body>`;
+> - **delete** the old root `app/layout.tsx`.
+>
+> Keep `globals.css` where it is; just move its import into the new layout.
 
 Minimal locale layout — adapt the inner HTML to the project's real layout:
 
@@ -199,8 +231,7 @@ import {
 export const generateStaticParams = generateLocaleStaticParams;
 export const dynamicParams = false;
 
-export const plug = ServerPlug(); // no resources yet — just binds locale
-
+const plug = ServerPlug(); // no resources yet — just binds locale
 export default async function LocaleLayout({
   params,
   children,
@@ -217,6 +248,7 @@ export default async function LocaleLayout({
     </html>
   );
 }
+LocaleLayout.plug = plug;
 ```
 
 Once a shell is added (e.g. `shell/common`), replace `ServerPlug()` with
@@ -234,7 +266,7 @@ import { NextAppPathStrategy } from "@r-machine/next/app/path";
 import { createNextDevImport } from "@r-machine/next/dev";
 import { RMachine, type RMachineLocale } from "r-machine";
 import { ResourceAtlas } from "./resource-atlas";
-// import { PathAtlas } from "./path-atlas"; // uncomment if using PathAtlas
+import { PathAtlas } from "./path-atlas";
 
 const devImport = await createNextDevImport(import.meta.url);
 
@@ -263,7 +295,7 @@ export const strategy = NextAppPathStrategy.create(rMachine, {
   serverKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
-  // PathAtlas,                       // uncomment if using PathAtlas
+  PathAtlas,
   cookie: "on",
   // implicitDefaultLocale: "on",     // hides default locale prefix from URLs
 });
@@ -281,6 +313,7 @@ import { NextAppFlatStrategy } from "@r-machine/next/app/flat";
 import { createNextDevImport } from "@r-machine/next/dev";
 import { RMachine, type RMachineLocale } from "r-machine";
 import { ResourceAtlas } from "./resource-atlas";
+import { PathAtlas } from "./path-atlas";
 
 const devImport = await createNextDevImport(import.meta.url);
 
@@ -289,7 +322,9 @@ const rMachine = RMachine.create({
   defaultLocale: "en",
   ResourceAtlas,
   load: (path) => (devImport ? devImport(`./${path}`) : import(`./${path}`)),
-  shellKit: { fmt: "shell/lib/fmt" },
+  shellKit: {
+    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+  },
   experimental: { outerGear: "on" },
 });
 
@@ -299,10 +334,13 @@ export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 
 export const strategy = NextAppFlatStrategy.create(rMachine, {
-  clientKit: { fmt: "shell/lib/fmt" },
-  serverKit: { fmt: "shell/lib/fmt" },
-  // Flat strategy requires cookie — locale has nowhere else to live
-  // cookie: "on",   // uncomment if you want an explicit cookie
+  clientKit: {
+    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+  },
+  serverKit: {
+    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+  },
+  PathAtlas,
 });
 
 export const { localeHelper, hrefHelper } = strategy.getHelpers();
@@ -318,6 +356,7 @@ import { NextAppOriginStrategy } from "@r-machine/next/app/origin";
 import { createNextDevImport } from "@r-machine/next/dev";
 import { RMachine, type RMachineLocale } from "r-machine";
 import { ResourceAtlas } from "./resource-atlas";
+import { PathAtlas } from "./path-atlas";
 
 const devImport = await createNextDevImport(import.meta.url);
 
@@ -326,7 +365,9 @@ const rMachine = RMachine.create({
   defaultLocale: "en",
   ResourceAtlas,
   load: (path) => (devImport ? devImport(`./${path}`) : import(`./${path}`)),
-  shellKit: { fmt: "shell/lib/fmt" },
+  shellKit: {
+    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+  },
   experimental: { outerGear: "on" },
 });
 
@@ -336,8 +377,13 @@ export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 
 export const strategy = NextAppOriginStrategy.create(rMachine, {
-  clientKit: { fmt: "shell/lib/fmt" },
-  serverKit: { fmt: "shell/lib/fmt" },
+  clientKit: {
+    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+  },
+  serverKit: {
+    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+  },
+  PathAtlas,
   localeOriginMap: {
     en: "https://example.com", // ← replace with real origins
     it: "https://example.it",
@@ -363,7 +409,7 @@ After generating all files, confirm with the user:
 | `server-toolset.ts`       | `src/r-machine/`      | ✅ always                      |
 | `proxy.ts`                | `src/` (project root) | ✅ Path/Flat/Origin with proxy |
 | `app/route.ts`            | `app/`                | Path no-proxy only             |
-| `path-atlas.ts`           | `src/r-machine/`      | Optional                       |
+| `path-atlas.ts`           | `src/r-machine/`      | ✅ always (empty by default)   |
 | `app/[locale]/layout.tsx` | `app/[locale]/`       | ✅ always                      |
 
 Then remind the user: once the config files exist, use the scaffold skill
@@ -372,13 +418,20 @@ normally to add `gear:base`, `gear:outer`, `shell`, etc.
 **Install command** (use the package manager already in the project):
 
 ```bash
-pnpm add r-machine @r-machine/react @r-machine/next && pnpm add -D @r-machine/testing          # pnpm
-npm install r-machine @r-machine/react @r-machine/next && npm install --save-dev @r-machine/testing # npm
-yarn add r-machine @r-machine/react @r-machine/next && yarn add --dev @r-machine/testing        # yarn
-bun add r-machine @r-machine/react @r-machine/next && bun add --dev @r-machine/testing          # bun
+pnpm add r-machine @r-machine/react @r-machine/next && pnpm add -D @r-machine/testing jiti          # pnpm
+npm install r-machine @r-machine/react @r-machine/next && npm install --save-dev @r-machine/testing jiti # npm
+yarn add r-machine @r-machine/react @r-machine/next && yarn add --dev @r-machine/testing jiti        # yarn
+bun add r-machine @r-machine/react @r-machine/next && bun add --dev @r-machine/testing jiti          # bun
 ```
 
-Also remind them that `shell/lib/fmt` is referenced in `shellKit` /
-`clientKit` / `serverKit` but does **not** exist yet in `resource-atlas.ts`.
-They should scaffold it as the first resource (`shell(mono)` family) or
-remove the kit references if they don't need a formatter.
+**Required before the setup is type-clean.** `shell/lib/fmt` is referenced in
+`shellKit` / `clientKit` / `serverKit` but does **not** exist yet in
+`resource-atlas.ts` — leaving it points a kit at an unregistered namespace and
+the first `tsc` fails with a `never` type. Do ONE of:
+
+- **(recommended)** scaffold `shell/lib/fmt` as the first resource (`shell(mono)`
+  family, see `patterns/shell.md`) and register it in `resource-atlas.ts`; or
+- remove the `fmt` entries from `shellKit` / `clientKit` / `serverKit`.
+
+Then run the typecheck gate — `tsc --noEmit` must be clean before declaring the
+setup done.
