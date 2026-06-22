@@ -1,5 +1,13 @@
 # rforge
 
+## 1.0.0-alpha.13
+
+### Patch Changes
+
+- be0872d: Update the bundled R-Machine LLM Skill installed by `rforge skill`.
+
+  Ships the comprehensive Skill revision so freshly installed projects get the up-to-date authoring guidance (DirectPlug, plug-attach convention, current OuterGear/BaseGear/InnerGear surface).
+
 ## 1.0.0-alpha.12
 
 ### Patch Changes

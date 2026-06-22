@@ -17,6 +17,7 @@
     "type-scale-bench": "0.0.0"
   },
   "changesets": [
+    "add-direct-plug",
     "bold-lions-march",
     "bright-errors-shine",
     "chilly-bottles-show",
@@ -29,6 +30,9 @@
     "hot-pears-melt",
     "lovely-turkeys-poke",
     "mighty-memes-help",
+    "mock-plug-ambient-locale-key",
+    "rforge-skill-revision",
+    "server-plug-explicit-locale-wins",
     "some-candles-happen2",
     "sour-bees-change",
     "spicy-dragons-report",
@@ -38,6 +42,7 @@
     "thirty-friends-wave",
     "upset-plants-jog",
     "vast-spoons-win2",
+    "verify-resource-atlas-url",
     "warm-errors-glow",
     "young-breads-give"
   ]

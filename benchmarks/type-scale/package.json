@@ -1,6 +1,6 @@
 {
   "name": "type-scale-bench",
-  "version": "0.0.1-alpha.0",
+  "version": "0.0.1-alpha.1",
   "private": true,
   "type": "module",
   "description": "Type-system scalability benchmark harness for R-Machine: generates realistic projects of growing size and measures tsc compile cost, type-trace hotspots and live tsserver IntelliSense latency.",
