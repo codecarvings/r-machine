@@ -17,6 +17,7 @@ import {
   type AnyResEquipment,
   type AnyResLayout,
   type BaseGearNamespaceList,
+  type DirectPlugKitMap,
   type ExperimentalFlags,
   type GearPlugKitMap,
   getNamespaceList,
@@ -63,6 +64,7 @@ export interface RMachineConfigParams<
   BGL extends BaseGearNamespaceList<InstanceType<RAC>>,
   GK extends GearPlugKitMap<InstanceType<RAC>>,
   SK extends ShellPlugKitMap<InstanceType<RAC>, BGL>,
+  DK extends DirectPlugKitMap<InstanceType<RAC>>,
   EF extends ExperimentalFlags,
 > {
   readonly instanceName?: string;
@@ -73,6 +75,7 @@ export interface RMachineConfigParams<
   readonly bridgeGears?: BGL;
   readonly gearKit?: GK;
   readonly shellKit?: SK;
+  readonly directKit?: DK;
   readonly experimental?: EF & ExperimentalFlags;
 }
 
@@ -101,10 +104,11 @@ export function convertRMachineConfigParamsToConfig<
   BGL extends BaseGearNamespaceList<InstanceType<RAC>>,
   GK extends GearPlugKitMap<InstanceType<RAC>>,
   SK extends ShellPlugKitMap<InstanceType<RAC>, BGL>,
+  DK extends DirectPlugKitMap<InstanceType<RAC>>,
   EF extends ExperimentalFlags,
 >(
-  params: RMachineConfigParams<RAC, LL, BGL, GK, SK, EF>
-): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK>, EF> {
+  params: RMachineConfigParams<RAC, LL, BGL, GK, SK, DK, EF>
+): RMachineConfig<InstanceType<RAC>, LL[number], ResEquipment<InstanceType<RAC>, BGL, GK, SK, DK>, EF> {
   // Normalize all user-supplied namespace collections through getNamespaceList /
   // getNamespaceMap — these route every entry through getNamespace(), which
   // strips a leading `#` (internal-namespace marker). After this single
@@ -116,6 +120,7 @@ export function convertRMachineConfigParamsToConfig<
   const bridgeGears = Object.freeze(getNamespaceList((params.bridgeGears ?? []) as never)) as BGL;
   const gearKit = Object.freeze(getNamespaceMap((params.gearKit ?? {}) as never)) as GK;
   const shellKit = Object.freeze(getNamespaceMap((params.shellKit ?? {}) as never)) as SK;
+  const directKit = Object.freeze(getNamespaceMap((params.directKit ?? {}) as never)) as DK;
 
   return {
     instanceName: params.instanceName ?? "default",
@@ -129,6 +134,7 @@ export function convertRMachineConfigParamsToConfig<
       bridgeGears,
       gearKit,
       shellKit,
+      directKit,
     },
     experimental: Object.freeze({ ...(params.experimental ?? ({} as EF)) }),
   };

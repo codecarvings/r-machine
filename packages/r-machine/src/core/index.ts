@@ -20,6 +20,10 @@ export { createCassetteRecorder } from "./cassette-recorder.js";
 export type { SwitchableOption } from "./config-options.js";
 export { type DeepPartial, deepPartialMerge } from "./deep-partial.js";
 export { isDevEnv } from "./dev-env.js";
+export type {
+  DirectPlugDefiner,
+  DirectPlugKitMap,
+} from "./direct-plug.js";
 export {
   BUS_ACCESSOR,
   type BusBridge,
@@ -77,6 +81,7 @@ export {
 export type { AnyResEquipment, ResEquipment } from "./res-equipment.js";
 export {
   type AnyResLayout,
+  getResFamilyFromLayoutType,
   isOuterGearLayoutType,
   isVertexGearLayoutType,
   type ResLayoutEntryType,

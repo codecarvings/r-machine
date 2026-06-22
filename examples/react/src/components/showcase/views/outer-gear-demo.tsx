@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plug } from "@/r-machine/toolset";
 
-export const plug = Plug("outer/timer", "shell/showcase");
+const plug = Plug("outer/timer", "shell/showcase");
 export function OuterGearDemo() {
   const [timer, s] = plug.useR();
   const labels = s.views["outer-gear"];
@@ -31,3 +31,4 @@ export function OuterGearDemo() {
     </Card>
   );
 }
+OuterGearDemo.plug = plug;

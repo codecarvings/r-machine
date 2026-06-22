@@ -1,4 +1,4 @@
-import { PLUG_MACHINE_ACCESSOR } from "r-machine/core";
+import { PLUG_MACHINE_ACCESSOR, setPlugOverride } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineConfigError, RMachineUsageError } from "r-machine/errors";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -427,6 +427,55 @@ describe("createNextAppServerToolset", () => {
 
         const plug = toolset.ServerPlug("common");
         await plug.useR(Promise.resolve({ locale: "it" }));
+
+        expect(spies(machine).getGatePlugin).toHaveBeenCalledWith(
+          TEST_SERVER_KIT,
+          expect.anything(),
+          "it",
+          expect.any(Function),
+          expect.any(Function)
+        );
+      });
+
+      it("ignores a mockPlug $.ambientLocale override when an explicit locale is passed (no-op)", async () => {
+        const machine = createMockMachine();
+        const toolset = await createNextAppServerToolset(
+          machine,
+          TEST_SERVER_KIT,
+          createMockImpl(),
+          MockNextClientRMachine
+        );
+
+        const plug = toolset.ServerPlug("common");
+        // mockPlug fills $.ambientLocale via setPlugOverride; with an explicit locale
+        // the override is a no-op — the caller's `useR("en")` wins.
+        setPlugOverride(plug, { ambientLocale: "it" });
+        await plug.useR("en");
+
+        expect(spies(machine).getGatePlugin).toHaveBeenCalledWith(
+          TEST_SERVER_KIT,
+          expect.anything(),
+          "en",
+          expect.any(Function),
+          expect.any(Function)
+        );
+      });
+
+      it("applies a mockPlug $.ambientLocale override on the ambient zero-arg useR()", async () => {
+        const machine = createMockMachine();
+        const toolset = await createNextAppServerToolset(
+          machine,
+          TEST_SERVER_KIT,
+          createMockImpl(),
+          MockNextClientRMachine
+        );
+
+        toolset.bindLocale("en");
+        const plug = toolset.ServerPlug("common");
+        // No explicit locale → the ambient (header-derived) form, where the mock
+        // $.ambientLocale override fills the locale: "it" wins over the bound "en".
+        setPlugOverride(plug, { ambientLocale: "it" });
+        await plug.useR();
 
         expect(spies(machine).getGatePlugin).toHaveBeenCalledWith(
           TEST_SERVER_KIT,

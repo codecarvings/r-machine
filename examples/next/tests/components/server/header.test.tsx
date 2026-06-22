@@ -4,7 +4,6 @@ import { mockPlug } from "@r-machine/testing";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import Header from "@/components/server/header";
-import { r as catalogR } from "@/r-machine/inner/catalog";
 
 vi.mock("next/navigation", () => ({
   notFound: () => {
@@ -32,7 +31,7 @@ function treeText(node: ReactNode): string {
 // instead of throwing ERR_LOCALE_UNDETERMINED. The real (en) nav labels render.
 describe("Header (server component, default locale)", () => {
   it("renders against the default locale under test mode (useR() with no params)", async () => {
-    using _ctrl = mockPlug(catalogR.plug).default();
+    using _ctrl = mockPlug(Header).default();
 
     const el = await Header();
     const text = treeText(el as ReactNode);

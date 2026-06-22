@@ -1,6 +1,7 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type {
   AnyNextAppPathStrategyConfig,
+  NextAppPathStrategyConfig,
   NextAppPathStrategyConfigParams,
   NextAppPathStrategyCore,
 } from "../../../../src/core/app/path/index.js";
@@ -11,6 +12,8 @@ describe("core/app/path barrel exports", () => {
     expectTypeOf<NextAppPathStrategyCore<any, any, any, any, any>>().toBeObject();
 
     expectTypeOf<AnyNextAppPathStrategyConfig>().toBeObject();
+
+    expectTypeOf<NextAppPathStrategyConfig<any, any, any, any, any>>().toBeObject();
 
     expectTypeOf<NextAppPathStrategyConfigParams<any, any, any, any, any>>().toBeObject();
   });

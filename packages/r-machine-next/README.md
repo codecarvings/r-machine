@@ -126,7 +126,7 @@ const rMachine = RMachine.create({
   experimental: { outerGear: "on" },
 });
 
-export const { InnerGear, BaseGear, OuterGear, Shell, localized } =
+export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized } =
   rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
@@ -207,12 +207,12 @@ import {
 export const generateStaticParams = generateLocaleStaticParams;
 export const dynamicParams = false;
 
-const pagePlug = ServerPlug();
+const plug = ServerPlug();
 export default async function LocaleLayout({
   params,
   children,
 }: LayoutProps<"/[locale]">) {
-  const { $ } = await pagePlug.useR(params);
+  const { $ } = await plug.useR(params);
 
   return (
     <html lang={$.locale}>
@@ -226,6 +226,7 @@ export default async function LocaleLayout({
     </html>
   );
 }
+LocaleLayout.plug = plug; // attached to the consumer for testing purposes with mockPlug
 ```
 
 ## Usage
@@ -256,12 +257,13 @@ it. A **`ServerPlug`** is async and binds the locale from the route `params`; a
 // a Server Component
 import { ServerPlug } from "@/r-machine/server-toolset";
 
-export const plug = ServerPlug("shell/greeting");
+const plug = ServerPlug("shell/greeting");
 export default async function Greeting({ params }: PageProps<"/[locale]">) {
   const [s] = await plug.useR(params);
 
   return <h1>{s.hello}</h1>;
 }
+Greeting.plug = plug; // attached to the consumer for testing purposes with mockPlug
 ```
 
 ```tsx
@@ -269,12 +271,13 @@ export default async function Greeting({ params }: PageProps<"/[locale]">) {
 "use client";
 import { ClientPlug } from "@/r-machine/client-toolset";
 
-export const plug = ClientPlug("shell/greeting");
+const plug = ClientPlug("shell/greeting");
 export function GreetingButton() {
   const [s] = plug.useR();
 
   return <button>{s.cta}</button>;
 }
+GreetingButton.plug = plug; // attached to the consumer for testing purposes with mockPlug
 ```
 
 ## Conceptual model: the namespace as a stable contract

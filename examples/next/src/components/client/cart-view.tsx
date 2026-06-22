@@ -9,7 +9,7 @@ import { ClientPlug } from "@/r-machine/client-toolset";
 // reactive `outer/cart`; every money value flows through `$.kit.fmt.currency` and
 // the count through `$.kit.fmt.plural`, so switching locale re-resolves the whole
 // thing — language AND currency AND number grouping change at once.
-export const plug = ClientPlug("outer/cart", "shell/cart");
+const plug = ClientPlug("outer/cart", "shell/cart");
 export function CartView() {
   const [cart, s, $] = plug.useR();
 
@@ -64,3 +64,4 @@ export function CartView() {
     </div>
   );
 }
+CartView.plug = plug;

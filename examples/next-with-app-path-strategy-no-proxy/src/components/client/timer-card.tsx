@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClientPlug } from "@/r-machine/client-toolset";
 
-export const plug = ClientPlug("outer/timer", "shell/landing-page");
+const plug = ClientPlug("outer/timer", "shell/landing-page");
 export function TimerCard() {
   const [timer, s, $] = plug.useR();
 
@@ -22,3 +22,4 @@ export function TimerCard() {
     </Card>
   );
 }
+TimerCard.plug = plug;

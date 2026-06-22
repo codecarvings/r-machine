@@ -163,15 +163,18 @@ const plugOverrideSymbol = Symbol("plugOverride");
  * A post-resolution override registered on a CONSUMER plug by `@r-machine/testing`
  * (`mockPlug`). Unlike resource plugs, a consumer plug's own `resolve` is never
  * invoked at consume time (deps resolve by namespace via getWire/getGatePlugin),
- * so its mock takes effect here instead: `locale` is applied BEFORE resolution
- * (it picks the resolution locale / wire-cache key, handled by the toolset) and
+ * so its mock takes effect here instead: `ambientLocale` is applied BEFORE
+ * resolution as a FALLBACK — it fills the resolution locale / wire-cache key
+ * (handled by the toolset) only when the consumer takes its locale from an
+ * absent ambient container (React context / request header); an explicitly
+ * passed locale wins, so it is a no-op for DirectPlug and `useR(locale|params)`.
  * `transform` rewrites the resolved plugin AFTER resolution (applied by core in
  * getWire/getGatePlugin). Core only invokes `transform` — it carries no testing
  * logic. Absent in production (testing is never imported), so the read is a
  * no-op fast path.
  */
 export interface PlugOverride {
-  readonly locale?: AnyLocale | undefined;
+  readonly ambientLocale?: AnyLocale | undefined;
   readonly transform?: ((plugin: unknown) => unknown) | undefined;
 }
 export interface PlugBody<PH extends AnyPlugHead> {

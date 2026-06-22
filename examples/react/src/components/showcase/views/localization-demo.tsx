@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plug } from "@/r-machine/toolset";
 
-export const plug = Plug("shell/showcase");
+const plug = Plug("shell/showcase");
 export function LocalizationDemo() {
   const [s, $] = plug.useR();
 
@@ -18,3 +18,4 @@ export function LocalizationDemo() {
     </Card>
   );
 }
+LocalizationDemo.plug = plug;

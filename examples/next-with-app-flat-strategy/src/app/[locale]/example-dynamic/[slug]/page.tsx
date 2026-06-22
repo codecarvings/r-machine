@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ServerPlug } from "@/r-machine/server-toolset";
 
 // Generate static params for dynamic routes
-export const paramsPlug = ServerPlug("shell/example-dynamic");
+const paramsPlug = ServerPlug("shell/example-dynamic");
 export async function generateStaticParams({
   params: { locale },
 }: {
@@ -15,8 +15,9 @@ export async function generateStaticParams({
   const [dynamic] = await paramsPlug.useUnboundR(locale); // No need to bind locale
   return dynamic.items.map((item: any) => ({ slug: item.slug }));
 }
+generateStaticParams.plug = paramsPlug;
 
-export const pagePlug = ServerPlug("shell/example-dynamic");
+const pagePlug = ServerPlug("shell/example-dynamic");
 export default async function DynamicSlugPage({ params }: PageProps<"/[locale]/example-dynamic/[slug]">) {
   const [s, $] = await pagePlug.useR(params);
 
@@ -46,3 +47,4 @@ export default async function DynamicSlugPage({ params }: PageProps<"/[locale]/e
     </section>
   );
 }
+DynamicSlugPage.plug = pagePlug;

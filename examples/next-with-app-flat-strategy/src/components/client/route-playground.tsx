@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClientPlug } from "@/r-machine/client-toolset";
 
-export const plug = ClientPlug("shell/navigation", "shell/landing-page");
+const plug = ClientPlug("shell/navigation", "shell/landing-page");
 export function RoutePlayground() {
   const [sn, sp, $] = plug.useR();
 
@@ -34,6 +34,7 @@ export function RoutePlayground() {
     </Card>
   );
 }
+RoutePlayground.plug = plug;
 
 function PlaygroundLink({ href, label, children }: { href: string; label: string; children: ReactNode }) {
   return (

@@ -47,14 +47,10 @@
   },
   "scripts": {
     "clean": "git clean -xdf . -e node_modules",
-    "sync-version": "tsx ../../scripts/sync-rforge-version.ts",
-    "prebuild": "pnpm sync-version",
     "build": "tsc --project tsconfig.build.json",
     "postbuild": "pnpm biome check --write .",
-    "pretest": "pnpm sync-version",
     "test": "pnpm vitest run --typecheck",
     "test:watch": "pnpm vitest watch --typecheck",
-    "predev": "pnpm sync-version",
     "dev": "tsx --conditions @r-machine/source src/bin.ts"
   },
   "dependencies": {

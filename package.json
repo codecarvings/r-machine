@@ -32,7 +32,7 @@
     "changeset": "changeset",
     "__changeset:pre-enter-alpha": "changeset pre enter alpha",
     "__changeset:pre-exit": "changeset pre exit",
-    "version-packages": "changeset version && pnpm check",
+    "version-packages": "changeset version && tsx scripts/sync-example-deps.ts && pnpm install --lockfile-only && pnpm check",
     "release": "pnpm build:packages && changeset publish"
   },
   "lint-staged": {

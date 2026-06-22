@@ -8,7 +8,7 @@ import {
 } from "r-machine/core";
 import type { RMachineUsageError } from "r-machine/errors";
 import { describe, expect, it, vi } from "vitest";
-import { ERR_PLUG_ALREADY_MOCKED, ERR_STATE_NOT_RESOLVED } from "../../src/errors/index.js";
+import { ERR_MOCK_TARGET_INVALID, ERR_PLUG_ALREADY_MOCKED, ERR_STATE_NOT_RESOLVED } from "../../src/errors/index.js";
 import { mockPlug, resetMockPlugs } from "../../src/lib/mock-plug.js";
 import { r as kitConsumer } from "../fixtures/mock-plug/kit-consumer.js";
 import { r as listForm } from "../fixtures/mock-plug/list-form.js";
@@ -86,6 +86,42 @@ describe("mockPlug", () => {
     });
   });
 
+  describe("carrier input: bare plug, `r`, `Comp.plug`, or invalid", () => {
+    // `mockPlug` normalizes its argument: a bare `PlugBody`, or any carrier
+    // exposing `.plug` (a `ResMatrix` like `counter`, or a consumer function the
+    // plug is attached to). The head symbol — present only on a real plug —
+    // discriminates the two and validates the unwrapped `.plug`.
+    it("accepts a ResMatrix carrier (`mockPlug(r)`) and drives its plug", async () => {
+      using ctrl = mockPlug(counter).with({}); // pass `counter`, not `counter.plug`
+      ctrl.state = { count: 7 };
+      const inst = await counter.create();
+      expect(inst.count()).toBe(7);
+    });
+
+    it("accepts a consumer-function carrier (`mockPlug(Comp)` where `Comp.plug` is attached)", () => {
+      const plug = createPlug({ realm: "gate", mode: "map", nsDepList: [] } as unknown as AnyMapPlugHead);
+      setPlugMachine(plug, getPlugMachine(counter.plug)!);
+      function Comp() {}
+      Comp.plug = plug;
+
+      const { reset } = mockPlug(Comp).with({ $: { ambientLocale: "it" } } as never);
+      expect(getPlugOverride(plug)?.ambientLocale).toBe("it");
+      reset();
+      expect(getPlugOverride(plug)).toBeUndefined();
+    });
+
+    it("throws ERR_MOCK_TARGET_INVALID for a non-plug, a carrier missing `.plug`, or nullish", () => {
+      for (const bad of [{}, () => {}, { plug: {} }, null, undefined]) {
+        try {
+          mockPlug(bad as never).with({});
+          expect.unreachable("a non-plug / carrier-less target should throw");
+        } catch (err) {
+          expect((err as RMachineUsageError).code).toBe(ERR_MOCK_TARGET_INVALID);
+        }
+      }
+    });
+  });
+
   describe("isolation: no leak after reset", () => {
     it("leaves a later unmocked resolve with fresh state and the production port", async () => {
       const ctrl = mockPlug(counter.plug).with({
@@ -117,14 +153,14 @@ describe("mockPlug", () => {
       return plug;
     };
 
-    it("registers an override (locale + transform) and enters test mode; reset clears both", () => {
+    it("registers an override (ambientLocale + transform) and enters test mode; reset clears both", () => {
       const gate = makeGatePlug();
       expect(getPlugOverride(gate)).toBeUndefined();
 
-      const { reset } = mockPlug(gate).with({ "outer/shared": { value: 42 }, $: { locale: "it" } } as never);
+      const { reset } = mockPlug(gate).with({ "outer/shared": { value: 42 }, $: { ambientLocale: "it" } } as never);
 
       const override = getPlugOverride(gate);
-      expect(override?.locale).toBe("it");
+      expect(override?.ambientLocale).toBe("it");
       expect(typeof override?.transform).toBe("function");
       expect(machine().testMode.isEnabled).toBe(true);
 
@@ -141,7 +177,7 @@ describe("mockPlug", () => {
 
     it("does NOT touch the consumer plug's resolve (the no-op path it replaces)", () => {
       const gate = makeGatePlug();
-      using _ctrl = mockPlug(gate).with({ $: { locale: "en" } } as never);
+      using _ctrl = mockPlug(gate).with({ $: { ambientLocale: "en" } } as never);
       // The override seam is used, not setPlugResolve: a registered override
       // exists and is what core consults.
       expect(getPlugOverride(gate)).toBeDefined();
@@ -149,9 +185,9 @@ describe("mockPlug", () => {
 
     it("throws ERR_PLUG_ALREADY_MOCKED on a double mock of the same gate plug", () => {
       const gate = makeGatePlug();
-      const { reset } = mockPlug(gate).with({ $: { locale: "it" } } as never);
+      const { reset } = mockPlug(gate).with({ $: { ambientLocale: "it" } } as never);
       try {
-        mockPlug(gate).with({ $: { locale: "en" } } as never);
+        mockPlug(gate).with({ $: { ambientLocale: "en" } } as never);
         expect.unreachable("second mock on the same gate plug should throw");
       } catch (err) {
         expect((err as RMachineUsageError).code).toBe(ERR_PLUG_ALREADY_MOCKED);

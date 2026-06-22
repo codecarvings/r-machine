@@ -1,12 +1,13 @@
 ---
 name: r-machine
 description: >
-  Scaffolds R-Machine into a Next.js or React project from scratch, OR adds a
-  single resource (OuterGear, BaseGear, InnerGear, Shell, Vertex) to an existing
-  R-Machine project and updates resource-atlas.ts automatically. Trigger when the
-  user asks to set up / install / add r-machine, create the initial config, or
-  scaffold a gear, shell, or locale-aware resource — including namespace patterns
-  like "outer/name" or "shell/name".
+  Scaffolds R-Machine into a Next.js, React (Vite), or plain Node project (CLI,
+  queue worker, cron, React Email — consumed container-free via DirectPlug) from
+  scratch, OR adds a single resource (OuterGear, BaseGear, InnerGear, Shell,
+  Vertex) to an existing R-Machine project and updates resource-atlas.ts
+  automatically. Trigger when the user asks to set up / install / add r-machine,
+  create the initial config, or scaffold a gear, shell, or locale-aware resource — including
+  namespace patterns like "outer/name" or "shell/name".
 ---
 
 # R-Machine Skill
@@ -14,11 +15,26 @@ description: >
 You help developers with two distinct workflows:
 
 1. **Initial project setup** — installing R-Machine and creating all config
-   files from scratch in a Next.js or React project.
+   files from scratch in a Next.js, React (Vite), or plain Node / standalone
+   project (the latter consumes R-Machine container-free via `DirectPlug`).
 2. **Adding a resource** — creating a new gear/shell file and updating
    `resource-atlas.ts` in an existing R-Machine project.
 
 **Always detect the mode first (Step 0) before doing anything else.**
+
+---
+
+## Reference files (load only what the task needs)
+
+This skill is partitioned so each task reads a small slice, never the whole doc:
+
+- **Setup** (one per mode): `references/{next-setup,react-setup,standalone-setup}.md`.
+- **Patterns** (per resource family): `references/patterns/{outer,vertex,base,inner,shell}.md`.
+- **Consume** (per plug): `references/patterns/consume/{plug,client-plug,server-plug,direct-plug}.md`.
+- **Cross-cutting**: `references/patterns/{plugin-context,atlas-update,clone}.md`.
+- **Testing & diagnostics**: `references/testing.md` (mockPlug, event bus).
+- **Next advanced**: `references/next-features.md` (PathAtlas, locale switching, proxy, SSR, dev HMR).
+- **Concepts** (the "why" — load only when a choice needs it): `references/concepts/*.md`.
 
 ---
 
@@ -48,13 +64,18 @@ Look at the project (or ask the user) to determine which mode applies:
 
 Read `references/next-setup.md` for Next.js App Router projects.
 Read `references/react-setup.md` for React (Vite) projects.
+Read `references/standalone-setup.md` for plain Node projects (CLI, queue worker,
+cron, React Email) that consume R-Machine container-free via `DirectPlug`.
 
-### A.1 — Identify the framework
+### A.1 — Identify the framework / mode
 
-Check if the project has:
+Check what the project has:
 
-- `next.config.*` → **Next.js App Router**
-- `vite.config.*` / `react-scripts` / no server framework → **React**
+- `next.config.*` → **Next.js App Router** → `references/next-setup.md`
+- `vite.config.*` / `react-scripts` → **React (Vite)** → `references/react-setup.md`
+- Neither, and it's a plain Node project (CLI, queue worker, cron, React Email) —
+  or the user explicitly wants container-free usage → **Standalone / DirectPlug**
+  → `references/standalone-setup.md`
 
 If unclear, ask the user.
 
@@ -66,13 +87,24 @@ For **Next.js**, ask (or infer from context):
 2. Locales (e.g. `["en", "it"]`) and default locale
 3. Path strategy only: proxy or no-proxy?
 4. Origin strategy only: the origin map (`{ en: "https://…", it: "https://…" }`)
-5. Use `PathAtlas` for localised URLs? (optional, safe to skip for now)
-6. Use a formatter shell (`shell/lib/fmt`)? Recommended — default yes.
+5. Use a formatter shell (`shell/lib/fmt`)? Recommended — default yes.
+
+(An empty `path-atlas.ts` is created by default for every Next strategy — don't
+ask about it.)
 
 For **React**, ask (or infer):
 
 1. Locales and default locale
 2. Locale persistence: `localStorage` (default), cookie, or none
+
+For **Standalone / Node**, ask (or infer):
+
+1. Locales and default locale
+2. Which shared resources to expose as `directKit` (e.g. a `shell/lib/fmt`
+   formatter)? Optional.
+
+(No strategy, proxy, or origin questions — standalone has no framework. Full
+details in `references/standalone-setup.md`.)
 
 Don't ask for everything at once if the intent is already clear from the
 message.
@@ -88,11 +120,22 @@ customisation (real domain names, locale lists, etc.).
 After generating the config files, tell the user:
 
 1. **Install the packages** using the package manager already in the project — see the reference file for the exact command per package manager.
-   - **Next.js**: `r-machine`, `@r-machine/react`, `@r-machine/next` (prod) + `@r-machine/testing` (dev)
+   - **Next.js**: `r-machine`, `@r-machine/react`, `@r-machine/next` (prod) + `@r-machine/testing`, `jiti` (dev — `jiti` powers `createNextDevImport` HMR)
    - **React**: `r-machine`, `@r-machine/react` (prod) + `@r-machine/testing` (dev)
-2. **`shell/lib/fmt` is not yet created** — if the kit references it, scaffold
-   it as the first resource. Use the `shell(mono)` pattern from `patterns.md`.
-3. From now on, use this skill normally to add gears and shells (Section B).
+   - **Standalone / Node**: `r-machine` (prod) + `@r-machine/testing` (dev) — no framework packages
+2. **Set up tests (default).** Check for an existing test framework
+   (`vitest.config.*`, a `vitest` devDependency). If none, propose configuring
+   vitest and, if accepted, generate `vitest.config.ts` for the mode + a baseline
+   `verifyResourceAtlas` test. R-Machine treats tests as a default, not an extra —
+   see `references/testing.md`.
+3. **Make the kit type-clean (required).** The kit points at `shell/lib/fmt`,
+   which doesn't exist yet → the first `tsc` fails with a `never`. Either scaffold
+   it as the first resource (`shell(mono)`, `references/patterns/shell.md`) and
+   register it in the atlas, or remove the `fmt` kit entries. (Per-mode details in
+   the setup reference.)
+4. **Run the typecheck gate** (`tsc --noEmit`, or the project's `typecheck` /
+   `build` script) — must be clean before declaring setup done.
+5. From now on, use this skill normally to add gears and shells (Section B).
 
 ---
 
@@ -121,7 +164,8 @@ Gather (from the message or by asking) these four things:
 
    **Shells (`shell`, `shell(mono)`) can never be deps of any gear.**
    Never suggest a `shell/…` namespace as a dep when the resource being
-   created is a gear.
+   created is a gear. (Why this asymmetry — and `bridgeGears` — in
+   `references/concepts/dep-asymmetry.md`.)
 
 Don't ask for all four upfront if some are already obvious from the request.
 Clarify only what's missing.
@@ -149,9 +193,16 @@ Read it to learn:
   multi-locale shells.
 - The `bridgeGears` list — determines whether a base gear can be depended on
   by a shell.
-- The framework (`ReactStandardStrategy` → React; any `NextApp*Strategy` →
-  Next.js). This affects whether you mention `Plug`/`ClientPlug`/`ServerPlug`
-  in the output.
+- The framework / mode, from the `setup.ts` export shape:
+  - `ReactStandardStrategy` → **React** → mention `Plug`.
+  - any `NextApp*Strategy` → **Next.js** → mention `Plug`/`ClientPlug`/`ServerPlug`.
+  - **no strategy** (just `rMachine.createToolset()`, a `directKit`, only
+    `base/`+`shell/` families) → **Standalone / Node** → the only consumer is
+    `DirectPlug`.
+    Also, for consuming a shell outside any request/React context (e.g. a React
+    Email template, a queue worker, a cron job) in a Next/React project, mention
+    the framework-neutral `DirectPlug` — see
+    `references/patterns/consume/direct-plug.md`.
 
 ---
 
@@ -173,13 +224,13 @@ The namespace maps directly to a file path relative to `resource-atlas.ts`:
 For multi-locale shells, the canonical file is `en.tsx` (or the project's
 `defaultLocale`). Additional locale files live as siblings.
 
-**Shell file extension — default to `.tsx`.** Multi-locale content shells
-routinely embed JSX (rich text, `<strong>`, components inside members), so the
-established convention is `.tsx`. Use `.ts` only when the shell is provably
-plain (strings/objects, no JSX) — e.g. a `shell(mono)` helper like
-`shell/lib/fmt.ts`. The `load` resolver tries both extensions, but a `.ts`
-file breaks the moment a member returns JSX, so prefer `.tsx` for content
-shells. Gears (`outer/`, `base/`, `inner/`, `vertex/`) are always `.ts`.
+**Shell extension follows the project's UI.** In **React / Next** projects, content
+shells are **always `.tsx`** — these render JSX, and `.tsx` is correct for plain
+strings too and stays correct when you add formatted text/JSX, so there's no
+per-shell decision. In a **standalone / plain Node** project (no JSX), content
+shells are `.ts` — use `.tsx` there only for a shell that actually renders JSX
+(e.g. a React Email template). A `shell(mono)` code helper (`shell/lib/fmt`) is
+`.ts` either way; gears (`outer/`, `base/`, `inner/`, `vertex/`) are always `.ts`.
 
 ### Type name convention
 
@@ -217,7 +268,20 @@ of the relative path. Mirror exactly what the existing resource files do.
 
 ## Step 4 — Write the resource file(s)
 
-Consult `references/patterns.md` for the code template for the chosen family.
+Consult the matching pattern file for the chosen family — load only that one:
+
+| Family                  | Pattern file                    |
+| ----------------------- | ------------------------------- |
+| `gear:outer`            | `references/patterns/outer.md`  |
+| `gear:outer(vertex)`    | `references/patterns/vertex.md` |
+| `gear:base`             | `references/patterns/base.md`   |
+| `gear:inner`            | `references/patterns/inner.md`  |
+| `shell` / `shell(mono)` | `references/patterns/shell.md`  |
+
+Cross-cutting: `references/patterns/plugin-context.md` (map vs list form) and
+`references/patterns/atlas-update.md` (atlas edit). To consume the resource, see
+`references/patterns/consume/<plug>.md`; to test it, `references/testing.md`.
+
 Fill in the namespace-derived type name, member names, and any deps or state
 the user described.
 
@@ -239,41 +303,45 @@ locale) file exports the type. All other locale files use `localized(...)`.
 
 ## Step 5 — Update `resource-atlas.ts`
 
-Two edits:
+Two edits (exact snippet, incl. `#`-prefixed internal namespaces, in
+`references/patterns/atlas-update.md`):
 
-1. **Add the type import** — after the last existing `import type` line, or in
-   alphabetical order. The import path is relative to `resource-atlas.ts`.
+1. **Add the type import** — with the other `import type` lines (alphabetical),
+   path relative to `resource-atlas.ts`. For multi-locale shells, point at the
+   canonical (default-locale) file.
 2. **Add the `ResourceMap` entry** — inside `type ResourceMap = { ... }`.
-
-For multi-locale shells, the atlas entry points to the canonical (default
-locale) file.
-
-Example additions for `outer/cart`:
-
-```ts
-// New import:
-import type { Outer_Cart } from "./outer/cart";
-
-// New ResourceMap entry:
-"outer/cart": Outer_Cart;
-```
 
 Apply both edits with surgical precision — do not reformat unrelated lines.
 
 ---
 
-## Step 6 — Confirm and summarise
+## Step 6 — Test the new resource
+
+Add (or update) the resource's test under `tests/`, **mirroring the source path**
+(`src/r-machine/shell/home/…` → `tests/r-machine/shell/home.test.ts`) — a default,
+not an option. Pass the resource to `mockPlug` and run its **real** members; see
+the **Test it** section of the family's pattern file and the full set in
+`references/testing.md`.
+For a component, `mockPlug` the component (plug attached as `Comp.plug`) and seed
+`ctrl.deps[…].state`.
+
+**Exception — plain-object shells** (`export const r = { … }`, no `.define`) have
+**no plug** — don't `mockPlug` or auto-test them (shape guarded by `localized(...)`).
+
+Then run the test suite: the `test` script type-checks first, so a green run is
+also the **gate** that the new resource, its atlas entry, and the mock compile.
+
+---
+
+## Step 7 — Confirm and summarise
 
 After creating the files and updating the atlas, tell the user:
 
-- Which files were created and where.
-- What was added to `resource-atlas.ts`.
-- The namespace the resource is reachable at.
-- If relevant: remind them to add a `Plug("namespace")` in a component, or
-  `withDeps("namespace")` in another resource, to consume the new resource.
-
-If the user asked for `gear:outer(vertex)`, also mention the `<VertexFrame>`
-pattern for sharing the instance across descendants.
-
-If the user asked for a shell with deps on a base gear, remind them to check
-that the base namespace is in `bridgeGears` in `setup.ts`.
+- Which files were created and where (including the test).
+- What was added to `resource-atlas.ts`, and the namespace it's reachable at.
+- To consume it: a `Plug("namespace")` in a component, or `withDeps("namespace")`
+  in another resource.
+- `gear:outer(vertex)` → also mention `<VertexFrame>` (share one instance across descendants).
+- A shell with a base-gear dep → that base must be in `bridgeGears` (`setup.ts`).
+- A new **Next page** (`app/[locale]/…/page.tsx`) → register its route in
+  `path-atlas.ts` (per-locale translations unless Flat) — see `references/next-features.md`.

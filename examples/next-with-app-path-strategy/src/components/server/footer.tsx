@@ -1,6 +1,6 @@
 import { ServerPlug } from "@/r-machine/server-toolset";
 
-export const plug = ServerPlug("shell/common");
+const plug = ServerPlug("shell/common");
 export default async function Footer() {
   const [s] = await plug.useR();
 
@@ -14,3 +14,4 @@ export default async function Footer() {
     </section>
   );
 }
+Footer.plug = plug;

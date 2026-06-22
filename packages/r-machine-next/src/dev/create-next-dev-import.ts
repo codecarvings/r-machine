@@ -21,7 +21,6 @@
 declare const process: { env: Record<string, string | undefined> } | undefined;
 
 const ENV_NO_JITI_WARNED = "__R_MACHINE_NEXT_JITI_NOT_INSTALLED_WARNED";
-const ENV_JITI_ACTIVE_LOGGED = "__R_MACHINE_NEXT_JITI_ACTIVE_LOGGED";
 
 // Marker for Vercel's Edge runtime — see https://nextjs.org/docs/app/api-reference/edge.
 declare const EdgeRuntime: unknown;
@@ -227,10 +226,5 @@ async function buildDevImport(importMetaUrl: string): Promise<DevImport> {
   // "loader errors with jiti unavailable" (install hint).
   markDevLoaderEnabled();
 
-  if (shouldFireOnceLog(ENV_JITI_ACTIVE_LOGGED)) {
-    console.info(
-      "[@r-machine/next] jiti dev importer enabled — edits to resource modules will propagate without restarting the dev server"
-    );
-  }
   return (path: string) => jiti.import(path);
 }

@@ -41,9 +41,10 @@ function hasOwn(obj: object, key: PropertyKey): boolean {
 
 /**
  * True when `data` carries an override that requires post-processing the
- * resolved plugin. A `$.locale`-only override is a no-op here: it is already
- * applied by re-resolving the plug in the effective locale (see mock-plug.ts).
- * State is NOT a resolution override — it is driven by the mockPlug controller.
+ * resolved plugin. A locale-only override (`$.locale` on a resource plug /
+ * `$.ambientLocale` on a consumer) is a no-op here: it is already applied by
+ * re-resolving the plug in the effective locale (see mock-plug.ts). State is NOT
+ * a resolution override — it is driven by the mockPlug controller.
  */
 export function hasOverrides(data: AnyRecord): boolean {
   for (const key of Object.keys(data)) {

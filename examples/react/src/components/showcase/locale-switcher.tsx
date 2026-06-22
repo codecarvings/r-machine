@@ -15,7 +15,7 @@ const localeItems = {
   it: { name: "Italiano" },
 } as const;
 
-export const plug = Plug();
+const plug = Plug();
 export function LocaleSwitcher() {
   // Get the current locale and the function to change it
   const { $ } = plug.useR();
@@ -53,3 +53,4 @@ export function LocaleSwitcher() {
     </DropdownMenu>
   );
 }
+LocaleSwitcher.plug = plug;

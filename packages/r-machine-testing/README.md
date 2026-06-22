@@ -16,7 +16,7 @@
 
 Testing utilities for R-Machine. The centerpiece is **`mockPlug`** — the _single_
 override primitive. It works uniformly across every resource family (gears, shells,
-vertex) and every consumer (plain `create()` calls or React components), inheriting
+vertex) and every consumer (functions or React components), inheriting
 the same boundary behaviour as a real `Plug`. Calling it also enters test mode,
 relaxing the client/server usage guards so resources resolve without a provider.
 
@@ -37,7 +37,7 @@ npm install -D @r-machine/testing
 
 ## Usage
 
-`mockPlug(r.plug)` returns a disposable controller. Use `.default()` to run the
+`mockPlug(r)` returns a disposable controller. Use `.default()` to run the
 real resource, or `.with({ ... })` to override its plugin context (`$.state`,
 `$.ports`, `$.locale`, …) and dependencies:
 
@@ -48,7 +48,7 @@ import { r as timerR } from "../src/r-machine/outer/timer";
 
 test("timer starts at zero", async () => {
   // `using` auto-disposes the mock at end of scope; `.default()` runs the real gear.
-  using _ctrl = mockPlug(timerR.plug).default();
+  using _ctrl = mockPlug(timerR).default();
   using timer = await timerR.create();
 
   expect(timer.value()).toBe(0);
@@ -67,10 +67,10 @@ read the state back through the same controller to assert what changed.
 ```tsx
 import { mockPlug } from "@r-machine/testing";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { CartView, plug } from "@/components/client/cart-view";
+import { CartView } from "@/components/client/cart-view";
 
 test("removing a line updates the real cart state", async () => {
-  using ctrl = mockPlug(plug).with({ $: { locale: "it" } });
+  using ctrl = mockPlug(CartView).with({ $: { ambientLocale: "it" } });
 
   // 1. SEED the dependency's real state before render.
   ctrl.deps[0].state = {

@@ -330,10 +330,12 @@ export async function createReactBareToolset<
             .map(([k, v]) => `${k}=${v}`)
             .join(",")
         : "";
-      // A consumer-plug mock can pin the resolution locale (mockPlug `$.locale`).
-      // Resolve it before the cache key so the wire entry + getWire resolve in
-      // the chosen locale. Undefined in production → no change.
-      const effLocale = (getPlugOverride(body)?.locale as L | undefined) ?? locale;
+      // A consumer-plug mock can fill the ambient resolution locale (mockPlug
+      // `$.ambientLocale`) — for a client Plug the ambient source is the React
+      // context, so the override fills it. Resolve it before the cache key so the
+      // wire entry + getWire resolve in the chosen locale. Undefined in
+      // production → no change.
+      const effLocale = (getPlugOverride(body)?.ambientLocale as L | undefined) ?? locale;
       const key = `${effLocale}|${vgmSig}`;
       // Pick the cache: per-consumer when this consumer owns any uncovered
       // vertex dep (each consumer = its own vertex instance, see [[project-

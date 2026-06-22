@@ -14,15 +14,19 @@
 The **core** of [R-Machine](https://rmachine.dev) — the engine that turns a set of
 resource declarations into a single typed access layer. It unifies **i18n,
 dependency injection and state management** around one declaration syntax, one
-consumer primitive (`Plug`), and one testing primitive (`mockPlug`).
+consumer primitive (the `Plug` family), and one testing primitive (`mockPlug`).
 
 You configure the machine once with `RMachine.create(...)` and derive a typed
-toolset (`InnerGear`, `BaseGear`, `OuterGear`, `Shell`, `localized`) from it.
+toolset (`InnerGear`, `BaseGear`, `OuterGear`, `Shell`, `DirectPlug`, `localized`)
+from it. `DirectPlug` is the core's built-in, container-free consumer: it resolves
+shells and base gears for an explicit locale and runs anywhere — a worker, a CLI, a
+cron job — so the core is usable standalone.
 
-> **You also need a framework strategy.** The core is framework-agnostic; pair it
-> with [`@r-machine/react`](https://www.npmjs.com/package/@r-machine/react) or
-> [`@r-machine/next`](https://www.npmjs.com/package/@r-machine/next) to consume
-> resources from components.
+> **For reactive consumption from components, pick a framework strategy.** To read
+> resources inside React/Next components (Suspense, `$.setLocale`, locale routing),
+> pair the core with [`@r-machine/react`](https://www.npmjs.com/package/@r-machine/react)
+> or [`@r-machine/next`](https://www.npmjs.com/package/@r-machine/next). A strategy is
+> required for that — not to use R-Machine at all.
 
 ## Documentation
 
@@ -122,7 +126,7 @@ one or many:
 // components/my-component.tsx
 import { Plug } from "@/r-machine/toolset";
 
-export const plug = Plug("outer/counter", "shell/common");
+const plug = Plug("outer/counter", "shell/common");
 export default function MyComponent() {
   const [counter, shell] = plug.useR();
 
@@ -132,7 +136,13 @@ export default function MyComponent() {
     </button>
   );
 }
+MyComponent.plug = plug; // attached to the consumer for testing purposes with mockPlug
 ```
+
+> `Plug` above comes from a framework strategy. The core itself also ships
+> **`DirectPlug`** — the same `[value, $]` shape, but container-free and `async`
+> (`await plug.useR(locale)`). Use it to consume shells and base gears **outside a
+> component tree** (workers, CLIs, cron jobs, email templates), with no strategy.
 
 ## Setup
 
@@ -157,6 +167,13 @@ The common pieces:
 | `base/` `outer/` `vertex/` `shell/` … | Your resources, one subfolder per family. `inner/` (server-only gears) applies to Next server components only                                                           |
 
 → Full, copy-pasteable setup lives in the package READMEs linked above.
+
+**Without a framework** you don't need a strategy at all — the `r-machine` core
+alone (no `@r-machine/react` / `@r-machine/next`). Call `RMachine.create(...)` and
+consume resources through `DirectPlug`, passing the locale explicitly to
+`useR(locale)` — ideal for workers, cron jobs, scripts, or React Email. Setup
+collapses to `setup.ts` + `resource-atlas.ts` (no provider, `toolset.ts`, or
+`path-atlas.ts`). See the [`standalone` example](https://github.com/codecarvings/r-machine/tree/main/examples/standalone).
 
 ---
 

@@ -3,7 +3,7 @@ import { VIEW_IDS } from "@/r-machine/outer/nav";
 import { Plug } from "@/r-machine/toolset";
 
 // The sidebar reads and writes a single OuterGear — this navigation IS a gear.
-export const plug = Plug("outer/nav", "shell/showcase");
+const plug = Plug("outer/nav", "shell/showcase");
 export function Sidebar() {
   const [nav, s] = plug.useR();
 
@@ -22,3 +22,4 @@ export function Sidebar() {
     </nav>
   );
 }
+Sidebar.plug = plug;

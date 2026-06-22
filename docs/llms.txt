@@ -1,5 +1,6 @@
 # R-Machine
 
+> Uniformity Under Change
 > A stable namespace is the contract; the implementation behind it is free to change.
 
 https://rmachine.dev
@@ -24,11 +25,11 @@ Every resource belongs to one of six families, declared via folder prefix in `de
 | Family | Composer | Stateful? | Locale-aware? | Consumed by |
 |---|---|---|---|---|
 | `gear:inner` | `InnerGear` | no | no | `ServerPlug` (RSC only) |
-| `gear:base` | `BaseGear` | no | no | other gears and shells (via `bridgeGears`) |
+| `gear:base` | `BaseGear` | no | no | other gears and shells (via `bridgeGears`); `DirectPlug` |
 | `gear:outer` | `OuterGear` | optional | no | `Plug` / `ClientPlug` |
 | `gear:outer(vertex)` | `OuterGear` | optional | no | `Plug` / `ClientPlug`, instance-per-component |
-| `shell` | `Shell` | no | yes | `Plug` / `ClientPlug` / `ServerPlug` |
-| `shell(mono)` | `Shell` | no | yes | `Plug` / `ClientPlug` / `ServerPlug` |
+| `shell` | `Shell` | no | yes | `Plug` / `ClientPlug` / `ServerPlug` / `DirectPlug` |
+| `shell(mono)` | `Shell` | no | yes | `Plug` / `ClientPlug` / `ServerPlug` / `DirectPlug` |
 
 The dep-graph is asymmetric by design: no path connects `gear:inner` to `gear:outer` or `Shell`. Enforced at compile time.
 
@@ -45,13 +46,14 @@ OuterGear                     →  withDeps → withPorts → withState → defi
 
 ### Consumer primitive: Plug
 
-One primitive, three runtime variants:
+One primitive, four runtime variants:
 
 - `Plug` — React standard strategy, client-side, sync (suspends if unresolved)
 - `ClientPlug` — Next.js Client Component, sync
 - `ServerPlug` — Next.js RSC, async (`await plug.useR(params)`)
+- `DirectPlug` — container-free, runs anywhere (React, Next, worker, cron...); consumes shells + base gears only
 
-All three support single-resource, list, and map call forms.
+All support single-resource, list, and map call forms.
 
 ### Shell: locale-aware resources
 
@@ -62,7 +64,7 @@ A `shell` resource has one canonical file per locale. The canonical file (`en.ts
 Single primitive, uniform across all families:
 
 ```ts
-mockPlug(plug).with({ /* type-checked override */ });
+mockPlug(r).with({ /* type-checked override */ }); // pass the carrier: a resource `r`, or a consumer (its plug is attached as `Comp.plug`)
 ```
 
 Overrides are structurally checked against the plug's resolved shape. `verifyResourceAtlas` catches missing locale variants and loader misconfigurations at CI time.
@@ -74,16 +76,17 @@ Overrides are structurally checked against the plug's resolved shape. `verifyRes
 Two configuration files by convention:
 
 - `resource-atlas.ts` — declares the layout (folder → family mapping) and the resource type map
-- `setup.ts` — calls `RMachine.create(...)`, exports composers, locale type, and framework strategy
+- `setup.ts` — calls `RMachine.create(...)`, exports composers, locale type, and — for framework (React/Next) consumption — a strategy (optional: standalone use via `DirectPlug` needs no strategy)
 
 ---
 
 ## Packages
 
-- `r-machine` — core (composers, `Plug`, `mockPlug`)
+- `r-machine` — core (composers, `DirectPlug`)
 - `@r-machine/react` — `ReactStandardStrategy`
 - `@r-machine/next` — `NextAppPathStrategy`, `NextAppFlatStrategy`, `NextAppOriginStrategy`
 - `@r-machine/testing` — `mockPlug`, `verifyResourceAtlas`
+- `rforge` — Command-line interface for R-Machine
 
 ---
 
@@ -94,6 +97,6 @@ https://rmachine.dev/llms-full.txt
 
 ---
 
-rev 2026-06-15.017
+rev 2026-06-21.021
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com

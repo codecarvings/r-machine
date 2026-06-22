@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plug } from "@/r-machine/toolset";
 
-export const plug = Plug("outer/operator", "outer/timer", "shell/showcase");
+const plug = Plug("outer/operator", "outer/timer", "shell/showcase");
 export function GearDepsDemo() {
   const [operator, timer, s] = plug.useR();
 
@@ -23,3 +23,4 @@ export function GearDepsDemo() {
     </Card>
   );
 }
+GearDepsDemo.plug = plug;

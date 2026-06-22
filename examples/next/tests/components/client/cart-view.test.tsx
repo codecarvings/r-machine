@@ -3,17 +3,13 @@
 import { mockPlug } from "@r-machine/testing";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CartView, plug } from "@/components/client/cart-view";
+import { CartView } from "@/components/client/cart-view";
 
 // The Next client toolset reads next/navigation hooks during render; stub them.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
-    replace: vi.fn(),
     refresh: vi.fn(),
-    back: vi.fn(),
-    forward: vi.fn(),
-    prefetch: vi.fn(),
   }),
   usePathname: () => "/cart",
 }));
@@ -24,14 +20,14 @@ afterEach(() => {
 
 // A component test for a real plug consumer, rendered WITHOUT a
 // `<NextClientRMachine>` provider. We mock the COMPONENT's own plug:
-// `mockPlug(plug)` enters test mode (relaxing the provider guard + locale) and
+// `mockPlug(CartView)` enters test mode (relaxing the provider guard + locale) and
 // returns a controller. `ctrl.deps[0].state` drives the REAL state of the
 // `outer/cart` dependency's shared cell — no fake surface: the real getters
 // (`lines`/`itemCount`/`subtotal`) and the real `removeItem` action run, so a
 // UI interaction re-renders through the real reactivity (no manual rerender).
 describe("CartView (component, it)", () => {
   it("drives the cart dependency's real state and reacts to the real removeItem", async () => {
-    using ctrl = mockPlug(plug).with({ $: { locale: "it" } });
+    using ctrl = mockPlug(CartView).with({ $: { ambientLocale: "it" } });
     // Seed the dependency's state BEFORE render → applied when the cart resolves.
     ctrl.deps[0].state = {
       lines: [

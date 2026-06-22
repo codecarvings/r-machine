@@ -31,7 +31,7 @@ import {
 } from "r-machine/core";
 import { RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
-import { ERR_PLUG_ALREADY_MOCKED } from "#r-machine/testing/errors";
+import { ERR_MOCK_TARGET_INVALID, ERR_PLUG_ALREADY_MOCKED } from "#r-machine/testing/errors";
 import { createStateBinding, type MockListController, type MockMapController } from "./mock-controller.js";
 import { cloneListPlugin, cloneMapPlugin, hasOverrides } from "./mock-merge.js";
 import type { MockSurfaceMap } from "./mock-surface.js";
@@ -81,7 +81,7 @@ export function resetMockPlugs(): void {
 }
 
 interface MapMockPlug<PH extends AnyMapPlugHead> {
-  // Resolve WITH overrides (locale / ports / kit / dep-surface members) + the
+  // Resolve WITH overrides (locale key / ports / kit / dep-surface members) + the
   // controller to drive state.
   readonly with: (data: MockPlugMapData<PH>) => MockMapController<PH>;
   // Resolve against the real DEFAULTS (no override) + the controller. Exactly
@@ -97,18 +97,46 @@ interface ListMockPlug<PH extends AnyListPlugHead> {
   readonly default: () => MockListController<PH>;
 }
 
+// A plug is exposed either bare, or attached to a CARRIER: the consumer function
+// it powers (`Comp.plug`, the function that calls `plug.useR()`) or a `ResMatrix`
+// (`r.plug`). `mockPlug` accepts both — the carrier is the symbol a test naturally
+// reaches for, and avoids a wall of identically-named `plug` exports.
+type PlugCarrier<PH extends AnyPlugHead> = { readonly plug: PlugBody<PH> };
+type MockPlugTarget<PH extends AnyPlugHead> = PlugBody<PH> | PlugCarrier<PH>;
+
 interface MockPlug {
-  <PH extends AnyMapPlugHead>(plug: PlugBody<PH>): MapMockPlug<PH>;
-  <PH extends AnyListPlugHead>(plug: PlugBody<PH>): ListMockPlug<PH>;
+  <PH extends AnyMapPlugHead>(target: MockPlugTarget<PH>): MapMockPlug<PH>;
+  <PH extends AnyListPlugHead>(target: MockPlugTarget<PH>): ListMockPlug<PH>;
 }
 
-export const mockPlug: MockPlug = (plug: PlugBody<AnyPlugHead>) => {
+export const mockPlug: MockPlug = (target: MockPlugTarget<AnyPlugHead>) => {
+  // Normalize carrier → plug: `getPlugHead` reads the head symbol, defined only on
+  // a real plug (undefined on a consumer function or a `ResMatrix`), so it both
+  // discriminates the two inputs and validates the `.plug` we unwrap.
+  const headSym = (t: unknown): AnyPlugHead | undefined =>
+    t == null ? undefined : getPlugHead(t as PlugBody<AnyPlugHead>);
+  const resolved =
+    headSym(target) !== undefined
+      ? (target as PlugBody<AnyPlugHead>)
+      : (target as PlugCarrier<AnyPlugHead> | null)?.plug;
+  if (resolved == null || headSym(resolved) === undefined) {
+    throw new RMachineUsageError(
+      ERR_MOCK_TARGET_INVALID,
+      "mockPlug() expects a plug or a carrier exposing `.plug` (a consumer function or a resource)."
+    );
+  }
+  const plug: PlugBody<AnyPlugHead> = resolved;
+
   const withData = (data: MockPlugMapData<AnyMapPlugHead> | MockPlugListData<AnyListPlugHead>) => {
     const overrides = data as Record<string, unknown>;
-    // A `$.locale` override re-resolves in the effective locale: shells (and
-    // locale-aware deps) resolve their content BY locale, so patching
-    // `$.locale` on the result alone would not change resolved content.
-    const localeOverride = (overrides.$ as { locale?: AnyLocale } | undefined)?.locale;
+    // The locale override re-resolves in the effective locale: shells (and
+    // locale-aware deps) resolve their content BY locale, so patching the
+    // locale on the result alone would not change resolved content. The key is
+    // named by plug kind (`$.locale` on a resource plug, `$.ambientLocale` on an
+    // ambient consumer — see `MockCtxContent`); at runtime only one is ever set,
+    // so read both.
+    const ctxOverride = overrides.$ as { locale?: AnyLocale; ambientLocale?: AnyLocale } | undefined;
+    const localeOverride = ctxOverride?.ambientLocale ?? ctxOverride?.locale;
     // Per-call state binding: the transform binds the controller's cells from
     // each resolved plugin; the controller's handles read/write through it.
     const binding = createStateBinding(plug);
@@ -130,7 +158,7 @@ export const mockPlug: MockPlug = (plug: PlugBody<AnyPlugHead>) => {
       if (getPlugOverride(plug) !== undefined) {
         throw new RMachineUsageError(ERR_PLUG_ALREADY_MOCKED, "Plug is already mocked.");
       }
-      setPlugOverride(plug, { locale: localeOverride, transform });
+      setPlugOverride(plug, { ambientLocale: localeOverride, transform });
       // enter() AFTER the double-mock guard so a rejected mock never bumps
       // the machine's test-mode refcount.
       const reset = enterAndBuildReset(plug, () => {
@@ -179,18 +207,43 @@ type MockPlugListDeps<PH extends AnyListPlugHead> = MockSurfaceMap<
 // `$.state` and `$.defaultState` are intentionally NOT overridable here: live
 // state is driven by the returned controller (`ctrl.state` / `ctrl.deps.X.state`),
 // the single, typed, reactive way to set it. `.with(...)` covers RESOLUTION
-// inputs only (`$.locale`, `$.ports`, `$.kit`). (`$.defaultState` was already a
-// runtime no-op.)
+// inputs only (the locale key, `$.ports`, `$.kit`). (`$.defaultState` was already
+// a runtime no-op.)
+//
+// The locale key is named by plug kind, because the override means three
+// different things (and the name must not lie):
+//   - RESOURCE plug (`realm: "res"`, e.g. a shell): `$.locale` — "resolve this
+//     resource AT this locale"; the override WINS. Kept as `locale`.
+//   - AMBIENT CONSUMER (`realm: "gate"` WITH `setLocale` — Plug / ClientPlug /
+//     ServerPlug): `$.ambientLocale` — the locale the absent ambient container
+//     (React context / request header) would have supplied; a FALLBACK that
+//     loses to an explicitly-passed locale.
+//   - DirectPlug (`realm: "gate"`, NO `setLocale`): no ambient container at all,
+//     so the key is DROPPED — overriding it is a compile error (a shell resource
+//     plug and a DirectPlug share the same ctx, so `realm` is the discriminant).
 type MockCtxContent<PH extends AnyPlugHead, C> = {
-  [K in keyof C as K extends "state" | "defaultState" ? never : K]?: K extends "kit"
+  [K in keyof C as K extends "state" | "defaultState"
+    ? never
+    : K extends "locale"
+      ? PH["realm"] extends "gate"
+        ? "setLocale" extends keyof C
+          ? "ambientLocale" // ambient consumer → rename
+          : never // DirectPlug → drop
+        : K // resource plug → keep `locale`
+      : K]?: K extends "kit"
     ? MockSurfaceMap<ExtractResAtlas<PH>, ExtractKit<PH>>
     : K extends "ports"
       ? Partial<C[K]>
-      : // e.g. `$.locale` (a string) — DeepPartial is the identity.
+      : // e.g. the locale key (a string) — DeepPartial is the identity.
         DeepPartial<C[K]>;
 };
 
-type MockCtx<PH extends AnyPlugHead> = keyof ExtractCtx<PH> extends never
+// Guard on the REMAPPED content, not the raw ctx: when nothing remains
+// overridable (e.g. a non-kitted DirectPlug, whose only ctx member `locale` is
+// dropped), fall back to `Record<string, never>` so `$` REJECTS every property.
+// An empty `{}` would instead be permissive (TS does not excess-check against
+// `{}`), silently re-allowing the forbidden locale keys.
+type MockCtx<PH extends AnyPlugHead> = keyof MockCtxContent<PH, ExtractCtx<PH>> extends never
   ? Record<string, never>
   : MockCtxContent<PH, ExtractCtx<PH>>;
 

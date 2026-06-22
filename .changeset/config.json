@@ -13,6 +13,7 @@
     "@r-machine/examples-next-with-app-origin-strategy",
     "@r-machine/examples-next-with-app-path-strategy",
     "@r-machine/examples-next-with-app-path-strategy-no-proxy",
-    "@r-machine/examples-react"
+    "@r-machine/examples-react",
+    "@r-machine/examples-standalone"
   ]
 }

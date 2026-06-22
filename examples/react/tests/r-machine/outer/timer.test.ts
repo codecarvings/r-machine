@@ -9,7 +9,7 @@ describe("Outer_Timer", () => {
   afterEach(() => vi.useRealTimers());
 
   it("add() updates value; the cell doubles it; the relay derives odd/even", async () => {
-    using _ctrl = mockPlug(r.plug).default();
+    using _ctrl = mockPlug(r).default();
     using timer = await r.create();
 
     expect(timer.value()).toBe(0);
@@ -28,7 +28,7 @@ describe("Outer_Timer", () => {
   });
 
   it("auto-increments on its gear-owned interval", async () => {
-    using _ctrl = mockPlug(r.plug).default();
+    using _ctrl = mockPlug(r).default();
     using timer = await r.create();
 
     expect(timer.value()).toBe(0);

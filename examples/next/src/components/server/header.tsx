@@ -7,7 +7,7 @@ import { ServerPlug } from "@/r-machine/server-toolset";
 
 // Nav labels come from `shell/common`; links are built with the locale-bound
 // `$.getPath`, so navigation always stays inside the current locale.
-export const plug = ServerPlug("base/store-config", "shell/common");
+const plug = ServerPlug("base/store-config", "shell/common");
 export default async function Header() {
   const [config, s, $] = await plug.useR();
 
@@ -36,3 +36,4 @@ export default async function Header() {
     </header>
   );
 }
+Header.plug = plug;

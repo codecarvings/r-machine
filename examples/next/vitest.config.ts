@@ -5,9 +5,6 @@ import { defineConfig, type ViteUserConfig } from "vitest/config";
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    // Resolve R-Machine packages to their source files in the monorepo
-    // (no rebuild needed after editing r-machine packages).
-    conditions: ["@r-machine/source"],
     // Mirror the tsconfig "@/*" -> "./src/*" path mapping (Vitest does not
     // read tsconfig paths by default).
     alias: {
@@ -20,5 +17,11 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     include: ["tests/**/*.test.{ts,tsx}"],
+    // R-Machine packages must be inlined so Vite — not Node's raw ESM loader —
+    // resolves their imports. `@r-machine/next` imports Next internals like
+    // `next/navigation`; and `verifyResourceAtlas` loads setup.ts through the
+    // bundler graph, which a setup file relies on (extensionless TS imports,
+    // `import.meta.glob`, etc.). Loading natively would break all of these.
+    server: { deps: { inline: ["@r-machine/next", "@r-machine/testing"] } },
   },
 }) as ViteUserConfig;

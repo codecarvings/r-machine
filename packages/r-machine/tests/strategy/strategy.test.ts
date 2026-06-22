@@ -14,6 +14,7 @@ interface TestResEquipment {
   readonly bridgeGears: readonly [];
   readonly gearKit: {};
   readonly shellKit: {};
+  readonly directKit: {};
 }
 
 // Strategy has a protected constructor and protected rMachine/config; each test
@@ -83,7 +84,7 @@ const testConfig: RMachineConfig<TestAtlas, string, TestResEquipment, {}> = {
   load: async () => ({ r: {} }),
   layout: {},
   priority: [],
-  equipment: { bridgeGears: [], gearKit: {}, shellKit: {} },
+  equipment: { bridgeGears: [], gearKit: {}, shellKit: {}, directKit: {} },
   experimental: {},
 };
 

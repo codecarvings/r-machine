@@ -108,7 +108,7 @@ const rMachine = RMachine.create({
   experimental: { outerGear: "on" },
 });
 
-export const { BaseGear, OuterGear, Shell, localized } =
+export const { BaseGear, OuterGear, Shell, DirectPlug, localized } =
   rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
@@ -187,7 +187,7 @@ it from any component with `Plug` — locale resolution is automatic:
 // src/components/greeting.tsx
 import { Plug } from "@/r-machine/toolset";
 
-export const plug = Plug("shell/greeting");
+const plug = Plug("shell/greeting");
 export function Greeting() {
   const [s] = plug.useR();
 
@@ -197,6 +197,7 @@ export function Greeting() {
     </button>
   );
 }
+Greeting.plug = plug; // attached to the consumer for testing purposes with mockPlug
 ```
 
 ## Conceptual model: the namespace as a stable contract

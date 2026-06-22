@@ -43,7 +43,8 @@ describe("locateBundledSkill", () => {
   it("finds the bundled Skill containing SKILL.md", async () => {
     const dir = await locateBundledSkill();
     expect(await exists(join(dir, "SKILL.md"))).toBe(true);
-    expect(await exists(join(dir, "references", "patterns.md"))).toBe(true);
+    expect(await exists(join(dir, "references", "next-setup.md"))).toBe(true);
+    expect(await exists(join(dir, "references", "patterns", "outer.md"))).toBe(true);
   });
 
   it("throws once the walk reaches the filesystem root without finding a Skill", async () => {
@@ -62,13 +63,15 @@ describe("installSkill", () => {
     expect(result.dest.startsWith(join(cwd, ...DEFAULT_OUT.split("/")))).toBe(true);
   });
 
-  it("copies SKILL.md and the references folder", async () => {
+  it("copies SKILL.md and the references folder (incl. nested patterns)", async () => {
     const { dest, files } = await installSkill({ cwd });
 
     expect(files).toContain("SKILL.md");
-    expect(files).toContain(join("references", "patterns.md"));
     expect(files).toContain(join("references", "next-setup.md"));
     expect(files).toContain(join("references", "react-setup.md"));
+    // the split is copied recursively — nested family + consume files land too:
+    expect(files).toContain(join("references", "patterns", "outer.md"));
+    expect(files).toContain(join("references", "patterns", "consume", "plug.md"));
     expect(await exists(join(dest, "SKILL.md"))).toBe(true);
   });
 

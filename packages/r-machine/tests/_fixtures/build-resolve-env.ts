@@ -78,6 +78,7 @@ export function buildResolveEnv(
     gearKit: {},
     shellKit: {},
     bridgeGears: [],
+    directKit: {},
     ...options.equipment,
   };
   const busHost: BusHost = { bus: undefined };

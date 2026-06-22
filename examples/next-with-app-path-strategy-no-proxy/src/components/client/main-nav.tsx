@@ -14,7 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ClientPlug } from "@/r-machine/client-toolset";
 
-export const plug = ClientPlug("shell/navigation");
+const plug = ClientPlug("shell/navigation");
 export function MainNav() {
   const [s, $] = plug.useR();
 
@@ -50,6 +50,7 @@ export function MainNav() {
     </NavigationMenu>
   );
 }
+MainNav.plug = plug;
 
 function ListItem({
   className,

@@ -51,6 +51,7 @@ All files live under `src/r-machine/`.
 ```ts
 // src/r-machine/resource-atlas.ts
 import { defineLayout } from "r-machine";
+import type { Shell_Lib_Fmt } from "./shell/lib/fmt"; // scaffold this file first
 
 const folders = defineLayout({
   "base/": "gear:base",
@@ -64,12 +65,22 @@ const folders = defineLayout({
 // Add gear:inner only if the project is used in a server context.
 
 type ResourceMap = {
-  // Resources will be added here as they are scaffolded
-  // e.g. "outer/counter": Outer_Counter;
+  "shell/lib/fmt": Shell_Lib_Fmt;
+  // add more here as you scaffold them, e.g. "outer/counter": Outer_Counter;
 };
 
 export class ResourceAtlas extends folders<ResourceMap>() {}
+
+// REQUIRED: getTokenBuilder() runs the atlas's compile-time self-check (every
+// ResourceMap key must match a layout prefix) and returns the token factory.
+const token = ResourceAtlas.getTokenBuilder();
+
+export const fmt = token("shell/lib/fmt");
 ```
+
+Scaffold `shell/lib/fmt` first (A.4 step 3). No formatter? Drop the `fmt`
+import/entry/token and keep the self-check via
+`export const token = ResourceAtlas.getTokenBuilder();`.
 
 ### 2.2 `setup.ts`
 
@@ -102,13 +113,15 @@ const rMachine = RMachine.create({
   },
 });
 
-export const { BaseGear, OuterGear, Shell, localized } =
+export const { BaseGear, OuterGear, Shell, DirectPlug, localized } =
   rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 
 export const strategy = ReactStandardStrategy.create(rMachine, {
-  kit: { fmt: "shell/lib/fmt" }, // remove if not using a formatter shell
+  kit: {
+    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+  },
   localeDetector: () => rMachine.localeHelper.matchLocales(navigator.languages),
   localeStore: {
     get: () => localStorage.getItem("locale") ?? undefined,
@@ -191,9 +204,17 @@ import { localeHelper } from "@/r-machine/setup";
 Then remind the user: once the config files exist, use the scaffold skill
 normally to add `gear:base`, `gear:outer`, `shell`, etc.
 
-Also remind them: `shell/lib/fmt` is referenced in `shellKit` and `kit` but
-does not yet exist in `resource-atlas.ts`. Scaffold it first as a
-`shell(mono)` resource, or remove the kit references if no formatter is needed.
+**Required before the setup is type-clean.** `shell/lib/fmt` is referenced in
+`shellKit` and `kit` but does not exist yet in `resource-atlas.ts` — leaving it
+points a kit at an unregistered namespace and the first `tsc` fails with a `never`
+type. Do ONE of:
+
+- **(recommended)** scaffold `shell/lib/fmt` first as a `shell(mono)` resource
+  (see `patterns/shell.md`) and register it in `resource-atlas.ts`; or
+- remove the `fmt` entries from `shellKit` and `kit`.
+
+Then run the typecheck gate — `tsc -b --noEmit` must be clean before declaring the
+setup done.
 
 ---
 
