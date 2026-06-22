@@ -18,3 +18,6 @@ type ResourceMap = {
 };
 
 export class ResourceAtlas extends folders<ResourceMap>() {}
+const token = ResourceAtlas.getTokenBuilder();
+
+export const fmt = token("shell/lib/fmt");
