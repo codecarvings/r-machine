@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ClientPlug } from "@/r-machine/client-toolset";
-import type { CatalogSort } from "@/r-machine/vertex/catalog-filter";
+import type { CatalogSort } from "@/r-machine/pub/vertex/catalog-filter";
 
 // Reads the same shared `vertex/catalog-filter` instance as <CatalogGrid>. Its
 // writes (setSort/setCategory) drive the grid's re-render — the two siblings

@@ -1,17 +1,13 @@
 import { NextAppOriginStrategy } from "@r-machine/next/app/origin";
-import { createNextDevImport } from "@r-machine/next/dev";
 import { RMachine, type RMachineLocale } from "r-machine";
 import { PathAtlas } from "./path-atlas";
 import { ResourceAtlas } from "./resource-atlas";
-
-const devImport = await createNextDevImport(import.meta.url);
+import "./pub/loader";
 
 const rMachine = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
   ResourceAtlas,
-  // `@vite-ignore` is needed for `verifyResourceAtlas` tests under vitest; Webpack/Turbopack ignore the comment.
-  load: (path) => (devImport ? devImport(`./${path}`) : import(/* @vite-ignore */ `./${path}`)),
   shellKit: {
     fmt: "shell/lib/fmt",
   },

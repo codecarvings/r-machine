@@ -1,12 +1,12 @@
 import { defineLayout } from "r-machine";
-import type { Base_Config } from "./base/config";
-import type { Outer_Timer } from "./outer/timer";
-import type { Shell_Common } from "./shell/common/en";
-import type { Shell_ExampleDynamic } from "./shell/example-dynamic/en";
-import type { Shell_ExampleStatic } from "./shell/example-static/en";
-import type { Shell_LandingPage } from "./shell/landing-page/en";
-import type { Shell_Lib_Fmt } from "./shell/lib/fmt";
-import type { Shell_Navigation } from "./shell/navigation/en";
+import type { Base_Config } from "./pub/base/config";
+import type { Outer_Timer } from "./pub/outer/timer";
+import type { Shell_Common } from "./pub/shell/common/en";
+import type { Shell_ExampleDynamic } from "./pub/shell/example-dynamic/en";
+import type { Shell_ExampleStatic } from "./pub/shell/example-static/en";
+import type { Shell_LandingPage } from "./pub/shell/landing-page/en";
+import type { Shell_Lib_Fmt } from "./pub/shell/lib/fmt";
+import type { Shell_Navigation } from "./pub/shell/navigation/en";
 
 const folders = defineLayout({
   "inner/": "gear:inner",

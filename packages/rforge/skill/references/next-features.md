@@ -129,9 +129,11 @@ Edits to gears/shells propagate without a dev-server restart (jiti loader).
 Returns `null` in production, so the loader falls back to a normal `import`:
 
 ```ts
+// src/r-machine/pub/loader.ts (and the same in prv/loader.ts for the server-only inner/ loader)
 import { createNextDevImport } from "@r-machine/next/dev";
 const devImport = await createNextDevImport(import.meta.url);
-// load: (path) => (devImport ? devImport(`./${path}`) : import(`./${path}`))
+// ResourceAtlas.loader.register(["base/", "shell/", "shell/lib/", "outer/", "vertex/"], (path) =>
+//   devImport ? devImport(`./${path}`) : import(/* @vite-ignore */ `./${path}`))
 ```
 
 ---

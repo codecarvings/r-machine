@@ -28,10 +28,10 @@ It is one of four sibling examples, identical except for the routing strategy:
 | **Localized + non-localized routes** | [`app/[locale]`](src/app/[locale]) + [`app/(non-localized)`](<src/app/(non-localized)>) | Locale-prefixed pages alongside routes that never get a prefix (`/hello-world`, `/set-italian`). |
 | **Locale binding** | [`app/[locale]/page.tsx`](src/app/[locale]/page.tsx), [`layout.tsx`](src/app/[locale]/layout.tsx) | `bindLocale(params)` / `ServerPlug.useR(params)` bind the request locale before server components read resources. |
 | **Locale switch (UI)** | [`locale-switcher.tsx`](src/components/client/locale-switcher.tsx) | `$.setLocale("it-IT")` navigates to `/it-it`. |
-| **OuterGear (the one gear)** | [`outer/timer`](src/r-machine/outer/timer.ts) | The interval and its `Symbol.dispose` cleanup live in the gear, not the component. |
-| **BaseGear** | [`base/config`](src/r-machine/base/config.ts) | App config the timer depends on; also carries the `strategyName` shown in the hero badge. |
-| **Mono shell (formatters)** | [`shell/lib/fmt`](src/r-machine/shell/lib/fmt.ts) | Per-locale `Intl` formatters (`en`, `it-IT`); the timer card renders a locale-aware plural ("5 seconds" / "5 secondi"). |
-| **Localized shells** | [`shell/*`](src/r-machine/shell) | UI content in `en` + `it-IT`, authored as typed objects with `localized(...)` for the non-default locale. |
+| **OuterGear (the one gear)** | [`outer/timer`](src/r-machine/pub/outer/timer.ts) | The interval and its `Symbol.dispose` cleanup live in the gear, not the component. |
+| **BaseGear** | [`base/config`](src/r-machine/pub/base/config.ts) | App config the timer depends on; also carries the `strategyName` shown in the hero badge. |
+| **Mono shell (formatters)** | [`shell/lib/fmt`](src/r-machine/pub/shell/lib/fmt.ts) | Per-locale `Intl` formatters (`en`, `it-IT`); the timer card renders a locale-aware plural ("5 seconds" / "5 secondi"). |
+| **Localized shells** | [`shell/*`](src/r-machine/pub/shell) | UI content in `en` + `it-IT`, authored as typed objects with `localized(...)` for the non-default locale. |
 
 ## Run it
 

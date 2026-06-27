@@ -1,12 +1,12 @@
 import { defineLayout } from "r-machine";
-import type { Base_Config } from "./base/config";
-import type { Outer_Nav } from "./outer/nav";
-import type { Outer_Operator } from "./outer/operator";
-import type { Outer_Timer } from "./outer/timer";
-import type { Shell_AsyncDemo } from "./shell/async-demo/en";
-import type { Shell_Lib_Fmt } from "./shell/lib/fmt";
-import type { Shell_Showcase } from "./shell/showcase/en";
-import type { Vertex_Counter } from "./vertex/counter";
+import type { Base_Config } from "./pub/base/config";
+import type { Outer_Nav } from "./pub/outer/nav";
+import type { Outer_Operator } from "./pub/outer/operator";
+import type { Outer_Timer } from "./pub/outer/timer";
+import type { Shell_AsyncDemo } from "./pub/shell/async-demo/en";
+import type { Shell_Lib_Fmt } from "./pub/shell/lib/fmt";
+import type { Shell_Showcase } from "./pub/shell/showcase/en";
+import type { Vertex_Counter } from "./pub/vertex/counter";
 
 const folders = defineLayout({
   "base/": "gear:base",

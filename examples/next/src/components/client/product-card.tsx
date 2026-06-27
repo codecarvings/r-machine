@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Product } from "@/r-machine/inner/catalog";
+import type { Product } from "@/r-machine/prv/inner/catalog";
 
 // Presentational card. It receives an already-formatted `priceLabel` and the
 // localized labels as props, so it has no resource dependencies of its own —

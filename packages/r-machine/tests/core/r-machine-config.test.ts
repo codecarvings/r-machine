@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createResourceLoader } from "#r-machine/core";
 import { convertRMachineConfigParamsToConfig } from "../../src/lib/r-machine-config.js";
 
 // `convertRMachineConfigParamsToConfig` is the canonical user-input materialization point.
@@ -10,13 +11,13 @@ function fakeResourceAtlas(priority: readonly string[]) {
   return {
     layout: { "base/": "gear:base", "outer/": "gear:outer", "shell/": "shell" } as never,
     priority,
+    loader: createResourceLoader(),
   } as never;
 }
 
 const baseParams = {
   locales: ["en"] as const,
   defaultLocale: "en",
-  load: async () => ({}) as never,
 };
 
 describe("convertRMachineConfigParamsToConfig — internal-marker normalization", () => {

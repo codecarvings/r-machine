@@ -76,7 +76,7 @@ Add other resources as you scaffold them.
 ```ts
 // src/r-machine/resource-atlas.ts
 import { defineLayout } from "r-machine";
-import type { Shell_Lib_Fmt } from "./shell/lib/fmt"; // scaffold this file first (A.4 step 3)
+import type { Shell_Lib_Fmt } from "./pub/shell/lib/fmt"; // scaffold this file first (A.4 step 3)
 
 const folders = defineLayout({
   "inner/": "gear:inner",
@@ -106,9 +106,77 @@ exporting the builder instead:
 Omit families the project won't use (e.g. omit `gear:inner` for client-only apps).
 If using `gear:inner`, keep it — removing it later is trivial.
 
-### 2.2 `setup.ts` — strategy-specific
+### 2.2 `pub/loader.ts` + `prv/loader.ts` — the loader split
 
-See §3 below for each strategy's variant.
+R-Machine loads resource modules through a per-prefix loader registered on the
+atlas (`ResourceAtlas.loader`). Resource modules live under two folders that
+mirror their bundle visibility:
+
+- **`pub/`** ("public") holds the **client-safe** families (`base/`, `outer/`,
+  `vertex/`, `shell/`, `shell/lib/`) — these may legitimately appear in the
+  client bundle.
+- **`prv/`** ("private") holds the **server-only** family (`inner/`) — these
+  must never reach the client bundle.
+
+The `pub/`/`prv/` segment is **filesystem-only**: atlas namespaces are
+unchanged (still `base/config`, `inner/catalog`, etc.) — the segment is absorbed
+by where each `loader.ts` sits. Split the loader registration across two files so
+server-only code never reaches the client bundle:
+
+- **`pub/loader.ts`** registers the **client-safe** prefixes (`base/`, `shell/`,
+  `shell/lib/`, `outer/`, `vertex/`). Its `import()` glob is rooted at `pub/`.
+  `setup.ts` imports it via `import "./pub/loader";`.
+- **`prv/loader.ts`** registers the **server-only** `inner/` prefix behind
+  `import "server-only"`, so its `import()` glob lives in a server-fenced module
+  rooted at `prv/` and Webpack/Turbopack never emit `./inner/*` chunks into the
+  client build.
+
+Each loader file creates its own `devImport` via
+`createNextDevImport(import.meta.url)`.
+
+```ts
+// src/r-machine/pub/loader.ts
+import { createNextDevImport } from "@r-machine/next/dev";
+import { ResourceAtlas } from "@/r-machine/resource-atlas";
+
+const devImport = await createNextDevImport(import.meta.url);
+
+// Client-safe loaders: every family except `inner/`. The glob is rooted at this
+// folder (`pub/`), which always contains this file → the bundler context is
+// never empty, even before any resource exists.
+ResourceAtlas.loader.register(
+  ["base/", "shell/", "shell/lib/", "outer/", "vertex/"],
+  (path) =>
+    devImport ? devImport(`./${path}`) : import(/* @vite-ignore */ `./${path}`),
+);
+```
+
+```ts
+// src/r-machine/prv/loader.ts
+import "server-only";
+import { createNextDevImport } from "@r-machine/next/dev";
+import { ResourceAtlas } from "@/r-machine/resource-atlas";
+
+const devImport = await createNextDevImport(import.meta.url);
+
+// Server-only loaders. Behind `import "server-only"` and rooted at this folder
+// (`prv/`), so the `import()` glob over server-only resources never reaches the
+// client bundle. Imported for its side effect by server-toolset.ts.
+ResourceAtlas.loader.register(["inner/"], (path) =>
+  devImport ? devImport(`./${path}`) : import(/* @vite-ignore */ `./${path}`),
+);
+```
+
+`prv/loader.ts` is imported for its side effect from `server-toolset.ts`
+(§2.4) — never from client code. Skip this file (and the `prv/` folder) entirely
+if the project has no `inner/` gears; then `pub/loader.ts` can register `["*"]`
+as a single catch-all instead.
+
+**Testing note:** because `setup.ts` imports only `pub/loader`, the `inner/`
+prefix is unregistered when `verifyResourceAtlas` runs. Pass `prv/loader.ts`
+through its `loaders` option, and alias `server-only` to a no-op in the vitest
+config (its top-level `import "server-only"` throws outside an RSC bundle). See
+[testing.md](./testing.md) for both snippets.
 
 ### 2.3 `client-toolset.ts` (identical for all strategies)
 
@@ -130,6 +198,7 @@ export const { NextClientRMachine, ClientPlug, VertexFrame } =
 // src/r-machine/server-toolset.ts
 import { NextClientRMachine } from "./client-toolset";
 import { strategy } from "./setup";
+import "./prv/loader"; // registers the server-only loaders
 
 export const {
   rMachineProxy,
@@ -147,6 +216,7 @@ export const {
 // src/r-machine/server-toolset.ts
 import { NextClientRMachine } from "./client-toolset";
 import { strategy } from "./setup";
+import "./prv/loader"; // registers the server-only loaders
 
 export const {
   routeHandlers,
@@ -263,18 +333,15 @@ Once a shell is added (e.g. `shell/common`), replace `ServerPlug()` with
 ```ts
 // src/r-machine/setup.ts
 import { NextAppPathStrategy } from "@r-machine/next/app/path";
-import { createNextDevImport } from "@r-machine/next/dev";
 import { RMachine, type RMachineLocale } from "r-machine";
-import { ResourceAtlas } from "./resource-atlas";
 import { PathAtlas } from "./path-atlas";
-
-const devImport = await createNextDevImport(import.meta.url);
+import { ResourceAtlas } from "./resource-atlas";
+import "./pub/loader"; // registers the client-safe loaders (§2.2)
 
 const rMachine = RMachine.create({
   locales: ["en", "it"] as const, // ← replace with real locales
   defaultLocale: "en", // ← replace with real default
   ResourceAtlas,
-  load: (path) => (devImport ? devImport(`./${path}`) : import(`./${path}`)),
   shellKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
@@ -310,18 +377,15 @@ export const { localeHelper, hrefHelper } = strategy.getHelpers();
 ```ts
 // src/r-machine/setup.ts
 import { NextAppFlatStrategy } from "@r-machine/next/app/flat";
-import { createNextDevImport } from "@r-machine/next/dev";
 import { RMachine, type RMachineLocale } from "r-machine";
-import { ResourceAtlas } from "./resource-atlas";
 import { PathAtlas } from "./path-atlas";
-
-const devImport = await createNextDevImport(import.meta.url);
+import { ResourceAtlas } from "./resource-atlas";
+import "./pub/loader"; // registers the client-safe loaders (§2.2)
 
 const rMachine = RMachine.create({
   locales: ["en", "it"] as const,
   defaultLocale: "en",
   ResourceAtlas,
-  load: (path) => (devImport ? devImport(`./${path}`) : import(`./${path}`)),
   shellKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
@@ -353,18 +417,15 @@ Note: `NextAppFlatStrategy` **requires** `proxy.ts` — no no-proxy alternative.
 ```ts
 // src/r-machine/setup.ts
 import { NextAppOriginStrategy } from "@r-machine/next/app/origin";
-import { createNextDevImport } from "@r-machine/next/dev";
 import { RMachine, type RMachineLocale } from "r-machine";
-import { ResourceAtlas } from "./resource-atlas";
 import { PathAtlas } from "./path-atlas";
-
-const devImport = await createNextDevImport(import.meta.url);
+import { ResourceAtlas } from "./resource-atlas";
+import "./pub/loader"; // registers the client-safe loaders (§2.2)
 
 const rMachine = RMachine.create({
   locales: ["en", "it"] as const,
   defaultLocale: "en",
   ResourceAtlas,
-  load: (path) => (devImport ? devImport(`./${path}`) : import(`./${path}`)),
   shellKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
@@ -405,6 +466,8 @@ After generating all files, confirm with the user:
 | ------------------------- | --------------------- | ------------------------------ |
 | `resource-atlas.ts`       | `src/r-machine/`      | ✅ always                      |
 | `setup.ts`                | `src/r-machine/`      | ✅ always                      |
+| `pub/loader.ts`           | `src/r-machine/pub/`  | ✅ always                      |
+| `prv/loader.ts`           | `src/r-machine/prv/`  | ✅ always                      |
 | `client-toolset.ts`       | `src/r-machine/`      | ✅ always                      |
 | `server-toolset.ts`       | `src/r-machine/`      | ✅ always                      |
 | `proxy.ts`                | `src/` (project root) | ✅ Path/Flat/Origin with proxy |

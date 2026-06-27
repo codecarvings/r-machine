@@ -123,13 +123,13 @@ function markDevLoaderEnabled(): void {
  * does the jiti probe and emits any warn/info log; subsequent calls in the
  * same Node process return the cached promise silently.
  *
- * Typical usage in `setup.ts`:
+ * Typical usage in a loader file (`pub/loader.ts` / `prv/loader.ts`):
  *
  *     const devImport = await createNextDevImport(import.meta.url);
- *     const rMachine = RMachine.create({
- *       load: (path) => (devImport ? devImport(`./${path}`) : import(`./${path}`)),
- *       // ...
- *     });
+ *
+ *     ResourceAtlas.loader.register(["base/", "shell/", "shell/lib/", "outer/", "vertex/"], (path) =>
+ *       devImport ? devImport(`./${path}`) : import(`./${path}`)
+ *     );
  */
 export function createNextDevImport(importMetaUrl: string): Promise<DevImport> {
   // Diagnostic signal: every call marks the project as "Next setup that

@@ -11,7 +11,13 @@
  * contact: licensing@codecarvings.com
  */
 
-import { type AnyResDomain, type AnyResLayout, createToken, type ResAtlasClass } from "#r-machine/core";
+import {
+  type AnyResDomain,
+  type AnyResLayout,
+  createResourceLoader,
+  createToken,
+  type ResAtlasClass,
+} from "#r-machine/core";
 import type { RMachineTypeError } from "#r-machine/errors";
 
 // Drops atlas keys whose namespace does not match any prefix declared in the
@@ -65,11 +71,16 @@ type ResAtlasBuilder<RL extends AnyResLayout> = <const RD>() => ResAtlasClass<RL
 
 export function defineLayout<RL extends AnyResLayout>(layout: RL & ValidLayoutKeys<RL>): ResAtlasBuilder<RL> {
   function builder<const RD>(): ResAtlasClass<RL, FilterResAtlasKeys<RL, RD>, RD> {
+    // One loader per atlas, created here so the sibling classes produced by
+    // `withPriority` share it (they are the same atlas with a different
+    // priority), while distinct `defineLayout(...)` atlases stay isolated.
+    const loader = createResourceLoader<RL>();
     function makeClass(priority: readonly string[] = []) {
       // biome-ignore lint/complexity/noStaticOnlyClass: As per design
       abstract class ResourceAtlas {
         static readonly layout = layout;
         static readonly priority = priority;
+        static readonly loader = loader;
         static getTokenBuilder() {
           return createToken;
         }

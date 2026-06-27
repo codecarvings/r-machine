@@ -44,7 +44,7 @@ real resource, or `.with({ ... })` to override its plugin context (`$.state`,
 ```ts
 import { mockPlug } from "@r-machine/testing";
 import { expect, test } from "vitest";
-import { r as timerR } from "../src/r-machine/outer/timer";
+import { r as timerR } from "../src/r-machine/pub/outer/timer";
 
 test("timer starts at zero", async () => {
   // `using` auto-disposes the mock at end of scope; `.default()` runs the real gear.

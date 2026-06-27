@@ -48,9 +48,16 @@ is already a devDependency in every setup.
 **Standalone / Node:**
 
 ```ts
+import { fileURLToPath } from "node:url";
 import { defineConfig, type ViteUserConfig } from "vitest/config";
 
 export default defineConfig({
+  resolve: {
+    // Mirror the tsconfig "@/*" -> "./src/*" path mapping (Vitest does not read
+    // tsconfig paths). Resource modules import setup/atlas via this alias, so
+    // without it `verifyResourceAtlas` cannot load them.
+    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+  },
   test: {
     environment: "node",
     globals: true,
@@ -93,6 +100,21 @@ export default defineConfig({
 
 ```ts
     server: { deps: { inline: ["@r-machine/next", "@r-machine/testing"] } },
+```
+
+Also alias `server-only` to a no-op in `resolve.alias`. `verifyResourceAtlas`
+imports the server-only `prv/loader.ts` (to pick up the `inner/` loader), and
+that file starts with `import "server-only"`, whose default resolution throws
+outside an RSC bundle:
+
+```ts
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "server-only": "@r-machine/next/dev/no-op",
+    },
+    dedupe: ["react", "react-dom"],
+  },
 ```
 
 ### `vitest.setup.ts` (React / Next only)
@@ -153,6 +175,18 @@ describe("setup.ts ResourceAtlas", () => {
 });
 ```
 
+**Next.js (split `pub/` + `prv/`)**: `setup.ts` only imports `pub/loader`, so the
+server-only `inner/` prefix is unregistered during verify. Pass the
+`prv/loader.ts` via the `loaders` option so its `inner/` resources are checked
+too (requires the `server-only` no-op alias in the vitest config, above):
+
+```ts
+const report = await verifyResourceAtlas(
+  import.meta.resolve("../../src/r-machine/setup.ts"),
+  { loaders: [import.meta.resolve("../../src/r-machine/prv/loader.ts")] },
+);
+```
+
 **Standalone has no strategy**, so point it at the exported `RMachine` instance:
 
 ```ts
@@ -168,13 +202,13 @@ Tests live in a top-level `tests/` directory that **mirrors `src/`** — a sourc
 file `src/<path>.ext` gets its test at `tests/<path>.test.ts(x)`. Do **not**
 flatten into one folder.
 
-- `src/r-machine/outer/cart.ts` → `tests/r-machine/outer/cart.test.ts`
+- `src/r-machine/pub/outer/cart.ts` → `tests/r-machine/pub/outer/cart.test.ts`
 - `src/components/client/cart-view.tsx` → `tests/components/client/cart-view.test.tsx`
 
 For a **multi-locale shell** (a folder of per-locale files), name the test after
 the shell, at the folder's level — not per-locale:
 
-- `src/r-machine/shell/home/{en,it}.tsx` → `tests/r-machine/shell/home.test.ts`
+- `src/r-machine/pub/shell/home/{en,it}.tsx` → `tests/r-machine/pub/shell/home.test.ts`
 
 ---
 
@@ -209,7 +243,7 @@ mock as a safety net (e.g. in an `afterEach`).
 
 ```ts
 import { mockPlug } from "@r-machine/testing";
-import { type Product, r } from "@/r-machine/inner/catalog";
+import { type Product, r } from "@/r-machine/prv/inner/catalog";
 
 it("resolves products through the async port and looks them up", async () => {
   // Mock only the async port; the real `base/store-config` dep still resolves.
@@ -229,7 +263,7 @@ it("resolves products through the async port and looks them up", async () => {
 
 ```ts
 import { mockPlug } from "@r-machine/testing";
-import { r } from "@/r-machine/outer/cart";
+import { r } from "@/r-machine/pub/outer/cart";
 
 // Seed the SSR-snapshot port to an empty cart so each test starts clean.
 const seedEmpty = () =>
@@ -285,7 +319,7 @@ one, import each locale module and assert `r` directly. A **factory** shell
 
 ```ts
 import { mockPlug } from "@r-machine/testing";
-import { r as greet } from "@/r-machine/shell/greeting/en";
+import { r as greet } from "@/r-machine/pub/shell/greeting/en";
 
 it("resolves the shell in the requested locale", async () => {
   const def = await greet.create();
@@ -374,7 +408,7 @@ dependency's surface _through this plug_ by position/name.
 import { mockPlug } from "@r-machine/testing";
 // Import just the page — its plug rides along as `ProductPage.plug`:
 import ProductPage from "@/app/[locale]/product/[id]/page";
-import type { Product } from "@/r-machine/inner/catalog";
+import type { Product } from "@/r-machine/prv/inner/catalog";
 
 vi.mock("next/navigation", () => ({
   notFound: () => {

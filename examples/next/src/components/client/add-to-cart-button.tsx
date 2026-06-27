@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ClientPlug } from "@/r-machine/client-toolset";
-import type { Product } from "@/r-machine/inner/catalog";
+import type { Product } from "@/r-machine/prv/inner/catalog";
 
 // Client island on the (server-rendered) product page. The product data arrives
 // as plain props from the server component that read `inner/catalog`; this button

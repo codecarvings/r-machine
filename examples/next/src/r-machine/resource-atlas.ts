@@ -1,13 +1,13 @@
 import { defineLayout } from "r-machine";
-import type { Base_StoreConfig } from "./base/store-config";
-import type { Inner_Catalog } from "./inner/catalog";
-import type { Outer_Cart } from "./outer/cart";
-import type { Shell_Cart } from "./shell/cart/en";
-import type { Shell_Catalog } from "./shell/catalog/en";
-import type { Shell_Common } from "./shell/common/en";
-import type { Shell_Lib_Fmt } from "./shell/lib/fmt";
-import type { Shell_Product } from "./shell/product/en";
-import type { Vertex_CatalogFilter } from "./vertex/catalog-filter";
+import type { Inner_Catalog } from "./prv/inner/catalog";
+import type { Base_StoreConfig } from "./pub/base/store-config";
+import type { Outer_Cart } from "./pub/outer/cart";
+import type { Shell_Cart } from "./pub/shell/cart/en";
+import type { Shell_Catalog } from "./pub/shell/catalog/en";
+import type { Shell_Common } from "./pub/shell/common/en";
+import type { Shell_Lib_Fmt } from "./pub/shell/lib/fmt";
+import type { Shell_Product } from "./pub/shell/product/en";
+import type { Vertex_CatalogFilter } from "./pub/vertex/catalog-filter";
 
 const folders = defineLayout({
   "inner/": "gear:inner",

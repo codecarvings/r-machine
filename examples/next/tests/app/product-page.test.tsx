@@ -4,7 +4,7 @@ import { mockPlug } from "@r-machine/testing";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import ProductPage from "@/app/[locale]/product/[id]/page";
-import type { Product } from "@/r-machine/inner/catalog";
+import type { Product } from "@/r-machine/prv/inner/catalog";
 
 vi.mock("next/navigation", () => ({
   notFound: () => {

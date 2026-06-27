@@ -262,6 +262,57 @@ describe("verifyResourceAtlas", () => {
     });
   });
 
+  describe("loaders option", () => {
+    // split-setup registers only `shell/`; the `gear/` prefix is supplied by
+    // split-extra-loader, passed via `loaders` (stand-in for a server-only
+    // prv/loader.ts). Without it this would be a loader-error. The three happy
+    // cases also exercise each accepted spec form (file: URL string, URL object,
+    // plain path string), mirroring how `setupFile` itself is resolved.
+    const EXTRA = "split-extra-loader.ts";
+
+    it("imports an extra loader given a file: URL string", async () => {
+      const report = await verifyResourceAtlas(fixture("split-setup.ts"), {
+        loaders: [pathToFileURL(fixture(EXTRA)).href],
+      });
+
+      expect(report.ok).toBe(true);
+      expect(report.issues).toEqual([]);
+      // gear (1) + shell × 2 locales (2) = 3
+      expect(report.totalChecks).toBe(3);
+    });
+
+    it("accepts a URL object", async () => {
+      const report = await verifyResourceAtlas(fixture("split-setup.ts"), {
+        loaders: [pathToFileURL(fixture(EXTRA))],
+      });
+
+      expect(report.ok).toBe(true);
+      expect(report.issues).toEqual([]);
+    });
+
+    it("accepts a plain (cwd-relative/absolute) path string", async () => {
+      const report = await verifyResourceAtlas(fixture("split-setup.ts"), {
+        loaders: [fixture(EXTRA)],
+      });
+
+      expect(report.ok).toBe(true);
+      expect(report.issues).toEqual([]);
+    });
+
+    it("reports loader-module-failed when an extra loader module throws on import", async () => {
+      const report = await verifyResourceAtlas(fixture("split-setup.ts"), {
+        loaders: [fixture("throws-on-import-loader.ts")],
+      });
+
+      expect(report.ok).toBe(false);
+      expect(report.issues).toHaveLength(1);
+      expect(report.issues[0]).toMatchObject({ kind: "loader-module-failed" });
+      expect(report.issues[0].kind === "loader-module-failed" && report.issues[0].reason).toBe("loader import boom");
+      // Fatal: we bail before the verification loop runs.
+      expect(report.totalChecks).toBe(0);
+    });
+  });
+
   describe("serializeError variants", () => {
     it("serializes a non-Error loader throw and a degenerate (no-name/no-stack) Error", async () => {
       const report = await verifyResourceAtlas(fixture("serialize-variants-setup.ts"));

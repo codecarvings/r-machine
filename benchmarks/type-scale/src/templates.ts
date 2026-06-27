@@ -315,9 +315,6 @@ export function renderSetup(): string {
     `  locales: ["en", "it"],\n` +
     `  defaultLocale: "en",\n` +
     `  ResourceAtlas,\n` +
-    `  load: async (path: string): Promise<AnyResModule> => {\n` +
-    `    throw new Error(\`bench: load is never invoked (\${path})\`);\n` +
-    `  },\n` +
     `  shellKit: { fmt: "shell/lib/fmt" },\n` +
     `  directKit: { fmt: "shell/lib/fmt" },\n` +
     `  experimental: { outerGear: "on" },\n` +

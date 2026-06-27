@@ -11,7 +11,7 @@ deps to the user's request. Replace `<Ns_Name>` with the derived type name (e.g.
 ## OuterGear — stateless, no deps
 
 ```ts
-import { OuterGear, type RShape } from "../setup"; // adjust path depth
+import { OuterGear, type RShape } from "@/r-machine/setup"; // adjust path depth
 
 export const r = OuterGear.define(() => ({
   greet: (name: string) => `Hello ${name}`,
@@ -23,7 +23,7 @@ export type Outer_Foo = RShape<typeof r>;
 ## OuterGear — stateless, with deps (list form)
 
 ```ts
-import { OuterGear, type RShape } from "../setup";
+import { OuterGear, type RShape } from "@/r-machine/setup";
 
 export const r = OuterGear.withDeps("outer/other", "base/config").define(
   (plugin) => {
@@ -54,7 +54,7 @@ export const r = OuterGear.withDeps({
 ## OuterGear — stateful (full cursor form)
 
 ```ts
-import { OuterGear, type RShape } from "../setup";
+import { OuterGear, type RShape } from "@/r-machine/setup";
 
 export const r = OuterGear.withState({ count: 0 }).define((plugin, _) => {
   const { $ } = plugin;
@@ -76,7 +76,7 @@ a scalar, `$.state` **is** that scalar and an action returns the **new scalar
 value** (there is no partial to merge):
 
 ```ts
-import { OuterGear, type RShape } from "../setup";
+import { OuterGear, type RShape } from "@/r-machine/setup";
 
 export const r = OuterGear.withState(0).define((plugin, _) => {
   const { $ } = plugin;
@@ -117,7 +117,7 @@ export type Outer_Counter = RShape<typeof r>;
 ## OuterGear — stateful with relay (side effect on state change)
 
 ```ts
-import { OuterGear, type RShape } from "../setup";
+import { OuterGear, type RShape } from "@/r-machine/setup";
 
 export const r = OuterGear.withState({ count: 0, isOdd: false }).define(
   (plugin, _) => {
@@ -173,7 +173,7 @@ subscriptions, connections), return a `[Symbol.dispose]` member in the surface.
 R-Machine calls it when the gear instance is torn down — no separate helper:
 
 ```ts
-import { OuterGear, type RShape } from "../setup";
+import { OuterGear, type RShape } from "@/r-machine/setup";
 
 export const r = OuterGear.withState({ tick: 0 }).define((plugin, _) => {
   const { $ } = plugin;
@@ -202,8 +202,8 @@ Use `withPorts` for server actions, SDK clients, fetch wrappers — anything
 external to the gear that should be substitutable in tests:
 
 ```ts
-import { OuterGear, type RShape } from "../setup";
-import { submitForm } from "../lib/actions";
+import { OuterGear, type RShape } from "@/r-machine/setup";
+import { submitForm } from "@/lib/actions";
 
 export const r = OuterGear.withPorts({ submitForm })
   .withState({ pending: false, error: null as string | null })
@@ -256,8 +256,8 @@ for the request so the server render and the client hydration match (see
 [../next-features.md](../next-features.md)).
 
 ```ts
-import { OuterGear, type RShape } from "../setup";
-import { loadCartSnapshot } from "../lib/actions"; // "use server"
+import { OuterGear, type RShape } from "@/r-machine/setup";
+import { loadCartSnapshot } from "@/lib/actions"; // "use server"
 
 export const r = OuterGear.withPorts({ loadCartSnapshot })
   .withState({ items: [] as string[] })
@@ -296,7 +296,7 @@ In a test, the controller/surface still sees it: `(await r.create()).$bump()`. S
 
 ```ts
 import { mockPlug } from "@r-machine/testing";
-import { r } from "@/r-machine/outer/counter";
+import { r } from "@/r-machine/pub/outer/counter";
 
 it("runs the real action against seeded state", async () => {
   using ctrl = mockPlug(r).default();

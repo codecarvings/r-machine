@@ -9,6 +9,8 @@ export default defineConfig({
     // read tsconfig paths by default).
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      // disable `server-only` module in Vitest
+      "server-only": "@r-machine/next/dev/no-op",
     },
     dedupe: ["react", "react-dom"],
   },

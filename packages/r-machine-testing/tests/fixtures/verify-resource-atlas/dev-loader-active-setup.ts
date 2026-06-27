@@ -8,14 +8,15 @@ import { ResourceAtlas } from "./resource-atlas.js";
 (globalThis as Record<symbol, unknown>)[Symbol.for("@r-machine:dev-loader-attempted")] = true;
 (globalThis as Record<symbol, unknown>)[Symbol.for("@r-machine:dev-loader-enabled")] = true;
 
+ResourceAtlas.loader.register(["*"], async () => {
+  throw new Error("genuine loader bug — jiti is fine");
+});
+
 const rMachine = RMachine.create({
   instanceName: "verify-test-dev-loader-active",
   locales: ["en", "it"],
   defaultLocale: "en",
   ResourceAtlas,
-  load: (async () => {
-    throw new Error("genuine loader bug — jiti is fine");
-  }) as unknown as Parameters<typeof RMachine.create>[0]["load"],
 });
 
 export const strategy = rMachine;

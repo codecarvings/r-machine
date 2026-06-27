@@ -57,6 +57,7 @@ export type VerifyIssue =
     }
   | { kind: "atlas-extraction-failed"; reason: string }
   | { kind: "config-access-failed"; reason: string }
+  | { kind: "loader-module-failed"; reason: string }
   | { kind: "dev-loader-not-active"; reason: string };
 
 export type VerifyReport = {
@@ -71,6 +72,18 @@ export type VerifyResourceAtlasOptions = {
   strategyExportName?: string;
   /** Path to a tsconfig.json used for the static analysis pass. Defaults to the nearest one to setupFile. */
   tsconfig?: string;
+  /**
+   * Additional loader modules to import (for their registration side-effect)
+   * before verification — e.g. a server-only `prv/loader.ts` that registers the
+   * `inner/` prefix, which `setup.ts` does not pull in. Each entry is a path or
+   * `file:` URL, resolved like `setupFile`.
+   *
+   * NOTE: a server-only loader file starts with `import "server-only"`, which
+   * throws under vitest/Vite unless aliased to a no-op — add
+   * `resolve.alias["server-only"] = "@r-machine/next/dev/no-op"` to the
+   * project's vitest config.
+   */
+  loaders?: (string | URL)[];
 };
 
 type ExtractedKey = {
@@ -211,6 +224,28 @@ export async function verifyResourceAtlas(
       };
     }
 
+    // ─── Loader pickup phase: import extra loader modules ────────────────
+    // A split Next setup keeps its server-only loaders (e.g. the `inner/`
+    // prefix) in a `prv/loader.ts` fenced behind `import "server-only"`, which
+    // `setup.ts` never imports. Pull them in here so their `register()` side-
+    // effects land on the SAME ResourceAtlas.loader the config holds (`load`
+    // reads the registry lazily, so order only needs to precede the loop).
+    // This runs inside the force-dev-loader window so `createNextDevImport`
+    // inside the loader file activates jiti (which aliases `server-only` for
+    // the resource modules it loads).
+    try {
+      for (const spec of options?.loaders ?? []) {
+        await import(toImportHref(spec));
+      }
+    } catch (err) {
+      return {
+        ok: false,
+        setupFile: absoluteSetupFile,
+        totalChecks: 0,
+        issues: [{ kind: "loader-module-failed", reason: errorMessage(err) }],
+      };
+    }
+
     // ─── Verification phase: enumerate keys × locales ────────────────────
     const resolver = new ResLayoutResolver(config.layout);
     const issues: VerifyIssue[] = [];
@@ -323,7 +358,7 @@ async function runCheck(
 
   let result: unknown;
   try {
-    result = await config.load(modulePath, loaderOptions);
+    result = await config.loader.load(modulePath, loaderOptions);
   } catch (err) {
     issues.push({
       kind: "loader-error",
@@ -495,6 +530,16 @@ async function loadTypeScript(): Promise<typeof ts> {
 
 function stripInternalMarker(name: string): string {
   return name.charCodeAt(0) === 0x23 /* '#' */ ? name.slice(1) : name;
+}
+
+// Resolve a loader spec to an importable `file:` URL href, mirroring how
+// `setupFile` is resolved: a URL object → its href; a `file:` string → as-is;
+// a relative/absolute path string → resolved against the cwd.
+function toImportHref(spec: string | URL): string {
+  if (typeof spec !== "string") {
+    return spec.href;
+  }
+  return spec.startsWith("file:") ? spec : pathToFileURL(nodePath.resolve(spec)).href;
 }
 
 // ─── Error utilities ────────────────────────────────────────────────────

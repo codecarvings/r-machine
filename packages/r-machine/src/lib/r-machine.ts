@@ -103,7 +103,7 @@ export class RMachine<
       directKitNs.filter((ns) => getResFamilyFromLayoutType(resLayoutResolver.resolveLayoutEntryType(ns)) === family);
     this.blueprintManager = new BlueprintManager(
       resLayoutResolver,
-      this.config.load,
+      this.config.loader.load,
       {
         gear: [...gearKitNs, ...directKitByFamily("gear")],
         shell: [...shellKitNs, ...directKitByFamily("shell")],

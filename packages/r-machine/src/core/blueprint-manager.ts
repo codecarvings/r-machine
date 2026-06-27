@@ -18,12 +18,8 @@ import type { BusHost } from "./event-bus.js";
 import type { AnyNamespace } from "./res-domain.js";
 import type { ResLayoutEntryType, ResLayoutResolver } from "./res-layout.js";
 import type { AnyNamespaceList } from "./res-list.js";
-import {
-  type AnyResModule,
-  type ResModuleLoaderFn,
-  type ResModuleLoaderFnOptions,
-  validateResModule,
-} from "./res-module.js";
+import type { ResModuleLoaderFn, ResModuleLoaderFnOptions } from "./res-loader.js";
+import { type AnyResModule, validateResModule } from "./res-module.js";
 import type { ResFamily } from "./res-plug.js";
 import { ASYNC } from "./sync-resolve.js";
 

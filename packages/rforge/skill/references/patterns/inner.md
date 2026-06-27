@@ -1,12 +1,15 @@
 # R-Machine Patterns — InnerGear (Next.js server-only)
 
 Same chain as `BaseGear`. Only `ServerPlug` can consume it.
-Cannot be consumed by `Plug` or `ClientPlug`. For the map-form vs list-form
-plugin rule see [plugin-context.md](./plugin-context.md); to test an InnerGear
-see [../testing.md](../testing.md).
+Cannot be consumed by `Plug` or `ClientPlug`. As a server-only family, `inner/`
+gears live under `src/r-machine/prv/inner/` (the `prv/` folder is server-fenced
+and never reaches the client bundle). For the map-form vs list-form plugin rule
+see [plugin-context.md](./plugin-context.md); to test an InnerGear see
+[../testing.md](../testing.md).
 
 ```ts
-import { InnerGear, type RShape } from "../setup";
+// src/r-machine/prv/inner/secrets.ts
+import { InnerGear, type RShape } from "@/r-machine/setup";
 
 export const r = InnerGear.define(() => ({
   getSecret: () => process.env.SECRET_KEY!,
@@ -21,8 +24,9 @@ The factory may be `async` — e.g. await a server-only port. A `ServerPlug`
 consumer suspends until it resolves.
 
 ```ts
-import { InnerGear, type RShape } from "../setup";
-import { fetchProducts } from "../lib/products"; // server-only
+// src/r-machine/prv/inner/catalog.ts
+import { InnerGear, type RShape } from "@/r-machine/setup";
+import { fetchProducts } from "@/lib/products"; // server-only
 
 export const r = InnerGear.withPorts({ fetchProducts }).define(
   async (plugin) => {
@@ -44,7 +48,7 @@ export type Inner_Catalog = RShape<typeof r>;
 
 ```ts
 import { mockPlug } from "@r-machine/testing";
-import { r } from "@/r-machine/inner/catalog";
+import { r } from "@/r-machine/prv/inner/catalog";
 
 it("resolves through the mocked port; real deps stay real", async () => {
   using _ctrl = mockPlug(r).with({

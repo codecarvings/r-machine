@@ -183,7 +183,7 @@ Read it to learn:
 - The `defineLayout` prefix → family map (which folders exist).
 - Existing `ResourceMap` entries (to avoid collisions).
 - The import style used for existing entries — relative (`"../setup"`) or
-  alias (`"@/r-machine/setup"`) — you will mirror it.
+  alias (`"@/r-machine/setup"` - preferred) — you will mirror it.
 
 ### `setup.ts`
 
@@ -210,16 +210,19 @@ Read it to learn:
 
 ### File path
 
-The namespace maps directly to a file path relative to `resource-atlas.ts`:
+The namespace maps directly to a file path relative to `resource-atlas.ts`. The path
+includes the `pub/` (client-safe) or `prv/` (server-only `inner/`) segment; the
+**namespace itself omits it** (atlas key stays `outer/cart`, not `pub/outer/cart`) — see
+Step 4, "Where the file lives":
 
-| Namespace       | File                                                 |
-| --------------- | ---------------------------------------------------- |
-| `outer/cart`    | `outer/cart.ts`                                      |
-| `base/logger`   | `base/logger.ts`                                     |
-| `inner/session` | `inner/session.ts`                                   |
-| `vertex/search` | `vertex/search.ts` (same composer as `gear:outer`)   |
-| `shell/product` | `shell/product/en.tsx` (+ one file per extra locale) |
-| `shell/lib/fmt` | `shell/lib/fmt.ts` (mono — single file)              |
+| Namespace       | File                                                     |
+| --------------- | -------------------------------------------------------- |
+| `outer/cart`    | `pub/outer/cart.ts`                                      |
+| `base/logger`   | `pub/base/logger.ts`                                     |
+| `inner/session` | `prv/inner/session.ts` (server-only family → `prv/`)     |
+| `vertex/search` | `pub/vertex/search.ts` (same composer as `gear:outer`)   |
+| `shell/product` | `pub/shell/product/en.tsx` (+ one file per extra locale) |
+| `shell/lib/fmt` | `pub/shell/lib/fmt.ts` (mono — single file)              |
 
 For multi-locale shells, the canonical file is `en.tsx` (or the project's
 `defaultLocale`). Additional locale files live as siblings.
@@ -251,15 +254,18 @@ Segments that already contain underscores or numbers keep them: `box_1_2` →
 
 ### Import path from the new file to `setup.ts`
 
-The resource file imports from `setup.ts`. Count the directory depth of the
-new file relative to the `r-machine/` folder and compute the relative path,
-or mirror the alias style (`@/r-machine/setup`) if the project uses it.
+The resource file imports from `setup.ts`. Resources live under `pub/`
+(client-safe) or `prv/` (server-only `inner/`); `setup.ts` sits one level above
+both. Count the directory depth of the new file relative to the `r-machine/`
+folder and compute the relative path, or mirror the alias style
+(`@/r-machine/setup`) if the project uses it (preferred).
 
-Examples (file is inside `r-machine/`):
+Examples (file is inside `r-machine/pub/` or `r-machine/prv/`):
 
-- `outer/cart.ts` → `import { OuterGear, type RShape } from "../setup";`
-- `shell/product/en.tsx` → `import { Shell, type RShape } from "../../setup";`
-- `shell/lib/fmt.ts` → `import { Shell, type RShape } from "../../setup";`
+- `pub/outer/cart.ts` → `import { OuterGear, type RShape } from "../../setup";`
+- `prv/inner/catalog.ts` → `import { InnerGear, type RShape } from "../../setup";`
+- `pub/shell/product/en.tsx` → `import { Shell, type RShape } from "../../../setup";`
+- `pub/shell/lib/fmt.ts` → `import { Shell, type RShape } from "../../../setup";`
 
 If the project uses a path alias (e.g. `@/r-machine/setup`), use that instead
 of the relative path. Mirror exactly what the existing resource files do.
@@ -281,6 +287,15 @@ Consult the matching pattern file for the chosen family — load only that one:
 Cross-cutting: `references/patterns/plugin-context.md` (map vs list form) and
 `references/patterns/atlas-update.md` (atlas edit). To consume the resource, see
 `references/patterns/consume/<plug>.md`; to test it, `references/testing.md`.
+
+**Where the file lives.** Resource files go under `src/r-machine/pub/<family>/…`
+(client-safe: `base/`, `outer/`, `vertex/`, `shell/`, `shell/lib/`) or
+`src/r-machine/prv/<family>/…` (server-only: `inner/`). The `pub/`/`prv/` segment
+is filesystem-only — the atlas namespace is unchanged (still `outer/cart`,
+`inner/catalog`, etc.). Place the file under the folder the existing loader
+registration covers (`pub/loader.ts` for client-safe families, `prv/loader.ts`
+for `inner/`). If a project predates the `pub/`/`prv/` split, mirror whatever
+folder layout its existing resources use.
 
 Fill in the namespace-derived type name, member names, and any deps or state
 the user described.
@@ -318,7 +333,7 @@ Apply both edits with surgical precision — do not reformat unrelated lines.
 ## Step 6 — Test the new resource
 
 Add (or update) the resource's test under `tests/`, **mirroring the source path**
-(`src/r-machine/shell/home/…` → `tests/r-machine/shell/home.test.ts`) — a default,
+(`src/r-machine/pub/shell/home/…` → `tests/r-machine/pub/shell/home.test.ts`) — a default,
 not an option. Pass the resource to `mockPlug` and run its **real** members; see
 the **Test it** section of the family's pattern file and the full set in
 `references/testing.md`.

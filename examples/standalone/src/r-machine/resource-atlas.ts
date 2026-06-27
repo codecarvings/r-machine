@@ -1,7 +1,7 @@
 import { defineLayout } from "r-machine";
-import type { Base_Config } from "./base/config.ts";
-import type { Shell_Greeting } from "./shell/greeting/en.ts";
-import type { Shell_Lib_Fmt } from "./shell/lib/fmt.ts";
+import type { Base_Config } from "./pub/base/config.ts";
+import type { Shell_Greeting } from "./pub/shell/greeting/en.ts";
+import type { Shell_Lib_Fmt } from "./pub/shell/lib/fmt.ts";
 
 // Only the resource families DirectPlug can consume: base gears + shells.
 // No outer/vertex gears (those need a stateful container, i.e. a strategy).

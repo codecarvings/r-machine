@@ -50,9 +50,9 @@ Only the families DirectPlug can consume: base gears + shells.
 ```ts
 // src/r-machine/resource-atlas.ts
 import { defineLayout } from "r-machine";
-import type { Base_Config } from "./base/config.ts";
-import type { Shell_Greeting } from "./shell/greeting/en.ts";
-import type { Shell_Lib_Fmt } from "./shell/lib/fmt.ts";
+import type { Base_Config } from "./pub/base/config.ts";
+import type { Shell_Greeting } from "./pub/shell/greeting/en.ts";
+import type { Shell_Lib_Fmt } from "./pub/shell/lib/fmt.ts";
 
 const folders = defineLayout({
   "base/": "gear:base",
@@ -75,22 +75,22 @@ const token = ResourceAtlas.getTokenBuilder();
 export const fmt = token("shell/lib/fmt");
 ```
 
-### 2.2 `setup.ts` — `RMachine.create` directly, **no strategy**
+### 2.2 `pub/loader.ts` — the explicit module map
 
-The loader is an explicit module map (no bundler glob), so it resolves
-identically everywhere: plain `tsx` (the CLI), Vite (vitest), and
-`verifyResourceAtlas`. The machine is **exported** — there is no strategy to hold
-it, so consumers and `verifyResourceAtlas` reach it directly.
+Resource modules live under `src/r-machine/pub/` ("public" — client-safe), and
+the loader lives alongside them in `pub/loader.ts`. The loader is an explicit
+module map (no bundler glob), so it resolves identically everywhere: plain `tsx`
+(the CLI), Vite (vitest), and `verifyResourceAtlas`. Standalone has no bundle
+boundary, so a single catch-all (`["*"]`) loader covers everything.
 
 ```ts
-// src/r-machine/setup.ts
-import { RMachine, type RMachineLocale } from "r-machine";
+// src/r-machine/pub/loader.ts
 import type { AnyResModule } from "r-machine/core";
-import { ResourceAtlas } from "./resource-atlas.ts";
+import { ResourceAtlas } from "../resource-atlas.ts";
 
 // Explicit module map — the bundler-free loader. Each entry is a LITERAL
-// `import(...)`. The map key is the resolved path the loader receives — already
-// locale-suffixed for shells.
+// `import(...)` resolved relative to this folder (pub/). The map key is the
+// resolved path the loader receives — already locale-suffixed for shells.
 const modules: Record<string, () => Promise<AnyResModule>> = {
   "base/config": () => import("./base/config.ts"),
   "shell/greeting/en": () => import("./shell/greeting/en.ts"),
@@ -98,17 +98,36 @@ const modules: Record<string, () => Promise<AnyResModule>> = {
   "shell/lib/fmt": () => import("./shell/lib/fmt.ts"),
 };
 
+// A single loader. The fn receives the full resolved path; look it up
+// in the explicit module map.
+ResourceAtlas.loader.register(["*"], (path) => {
+  const loader = modules[path];
+  if (!loader) {
+    throw new Error(`Resource module not registered: "${path}"`);
+  }
+  return loader();
+});
+```
+
+Note: every new resource must be added **both** to the `modules` map in
+`pub/loader.ts` (so the loader can find it) and to `resource-atlas.ts` (so it is
+typed).
+
+### 2.3 `setup.ts` — `RMachine.create` directly, **no strategy**
+
+The machine is **exported** — there is no strategy to hold it, so consumers and
+`verifyResourceAtlas` reach it directly.
+
+```ts
+// src/r-machine/setup.ts
+import { RMachine, type RMachineLocale } from "r-machine";
+import { ResourceAtlas } from "./resource-atlas.ts";
+import "./pub/loader.ts"; // registers the loader (§2.2)
+
 export const rMachine = RMachine.create({
   locales: ["en", "it"], // ← replace with real locales
   defaultLocale: "en", // ← replace with real default
   ResourceAtlas,
-  load: (path) => {
-    const loader = modules[path];
-    if (!loader) {
-      throw new Error(`Resource module not registered: "${path}"`);
-    }
-    return loader();
-  },
   // Ambient shared resources surfaced as `$.kit` on direct plugs.
   directKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
@@ -123,26 +142,23 @@ export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 ```
 
-Note: every new resource must be added **both** to the `modules` map (so the
-loader can find it) and to `resource-atlas.ts` (so it is typed).
-
-### 2.3 First resources
+### 2.4 First resources
 
 A `gear:base` and a `shell` (canonical + one file per extra locale). For the
 formatter referenced by `directKit`, scaffold a `shell(mono)` — see Step "First
 resource" below and [patterns/shell.md](./patterns/shell.md).
 
 ```ts
-// src/r-machine/base/config.ts
-import { BaseGear, type RShape } from "../setup.ts";
+// src/r-machine/pub/base/config.ts
+import { BaseGear, type RShape } from "@/r-machine/setup.ts";
 
 export const r = BaseGear.define(() => ({ appName: "R-Machine Standalone" }));
 export type Base_Config = RShape<typeof r>;
 ```
 
 ```ts
-// src/r-machine/shell/greeting/en.ts — canonical locale file (defines the shape)
-import type { RShape } from "../../setup.ts";
+// src/r-machine/pub/shell/greeting/en.ts — canonical locale file (defines the shape)
+import type { RShape } from "@/r-machine/setup.ts";
 
 export const r = {
   title: "Welcome",
@@ -152,8 +168,8 @@ export type Shell_Greeting = RShape<typeof r>;
 ```
 
 ```ts
-// src/r-machine/shell/greeting/it.ts — variant: exact-key checked against `en`
-import { localized } from "../../setup.ts";
+// src/r-machine/pub/shell/greeting/it.ts — variant: exact-key checked against `en`
+import { localized } from "@/r-machine/setup.ts";
 
 export const r = localized("shell/greeting", {
   title: "Benvenuto",

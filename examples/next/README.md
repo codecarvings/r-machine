@@ -15,12 +15,12 @@ resource the container resolves for the active locale.
 
 | R-Machine primitive | Where | What it shows |
 | --- | --- | --- |
-| **InnerGear** | [`inner/catalog`](src/r-machine/inner/catalog.ts) | Stateless, app-global resource. Loads products through an async **port** (`fetchProducts`) → the server component suspends while it resolves. |
-| **BaseGear** | [`base/store-config`](src/r-machine/base/store-config.ts) | Stateless store configuration that other gears depend on. |
-| **OuterGear** | [`outer/cart`](src/r-machine/outer/cart.ts) | The reactive cart: actions, a memoized `subtotal` cell, an item-count getter, a persistence relay, and SSR-hydration seeding. Browser-session state that survives navigation. |
-| **Vertex** (request-scoped outer) | [`vertex/catalog-filter`](src/r-machine/vertex/catalog-filter.ts) | Per-page sort/category state, **shared** between the filter bar and the grid via `<VertexFrame>`. |
-| **Shells** (multilingual) | [`shell/{common,catalog,product,cart}`](src/r-machine/shell) | Localized UI content (en + it), authored as plain typed objects with `localized(...)` for non-default locales. |
-| **Mono shell** | [`shell/lib/fmt`](src/r-machine/shell/lib/fmt.ts) | Per-locale `Intl` formatters — USD vs EUR currency, number grouping, pluralization. The engine behind the "wow" moment. |
+| **InnerGear** | [`inner/catalog`](src/r-machine/prv/inner/catalog.ts) | Stateless, app-global resource. Loads products through an async **port** (`fetchProducts`) → the server component suspends while it resolves. |
+| **BaseGear** | [`base/store-config`](src/r-machine/pub/base/store-config.ts) | Stateless store configuration that other gears depend on. |
+| **OuterGear** | [`outer/cart`](src/r-machine/pub/outer/cart.ts) | The reactive cart: actions, a memoized `subtotal` cell, an item-count getter, a persistence relay, and SSR-hydration seeding. Browser-session state that survives navigation. |
+| **Vertex** (request-scoped outer) | [`vertex/catalog-filter`](src/r-machine/pub/vertex/catalog-filter.ts) | Per-page sort/category state, **shared** between the filter bar and the grid via `<VertexFrame>`. |
+| **Shells** (multilingual) | [`shell/{common,catalog,product,cart}`](src/r-machine/pub/shell) | Localized UI content (en + it), authored as plain typed objects with `localized(...)` for non-default locales. |
+| **Mono shell** | [`shell/lib/fmt`](src/r-machine/pub/shell/lib/fmt.ts) | Per-locale `Intl` formatters — USD vs EUR currency, number grouping, pluralization. The engine behind the "wow" moment. |
 | **Typed dependency scoping** | everywhere | `outer/cart` *cannot* import `inner/catalog` (the validity matrix forbids `outer → inner`), so cart lines carry a denormalized price snapshot — the compiler steers you to the correct design. |
 | **Server / client split** | [`app/[locale]`](src/app/[locale]) + [`components`](src/components) | Pages and server components read inner/shell via `ServerPlug`; client islands read outer/vertex via `ClientPlug`. Product data crosses the boundary as plain props. |
 | **Unit testing with `mockPlug`** | [`tests/`](tests) | One primitive for every surface. `mockPlug(r).with(...)` seeds gears in [resource tests](tests/r-machine), a **client component with no provider** ([`cart-view`](tests/components/client/cart-view.test.tsx)), a **server component** ([`header`](tests/components/server/header.test.tsx)), and a **server page** via `useR(params)` ([`product-page`](tests/app/product-page.test.tsx)) — invoking it flips a test mode that relaxes the framework guards (server-only, provider, locale binding). `verifyResourceAtlas` checks every shell resolves for every locale. |

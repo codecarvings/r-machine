@@ -32,5 +32,6 @@ describe("@r-machine/testing lib barrel exports", () => {
     expectTypeOf<VerifyReport>().toHaveProperty("issues");
     expectTypeOf<VerifyIssue>().toHaveProperty("kind");
     expectTypeOf<VerifyResourceAtlasOptions>().toExtend<{ tsconfig?: string }>();
+    expectTypeOf<VerifyResourceAtlasOptions>().toExtend<{ loaders?: (string | URL)[] }>();
   });
 });

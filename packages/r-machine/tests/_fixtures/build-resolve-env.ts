@@ -21,8 +21,9 @@ import type { ResComposerConnector } from "../../src/core/res-composer-connector
 import type { AnyNamespace } from "../../src/core/res-domain.js";
 import type { AnyResEquipment } from "../../src/core/res-equipment.js";
 import { type AnyResLayout, ResLayoutResolver } from "../../src/core/res-layout.js";
+import type { ResModuleLoaderFnOptions } from "../../src/core/res-loader.js";
 import { ResManager } from "../../src/core/res-manager.js";
-import type { AnyResModule, ResModuleLoaderFnOptions } from "../../src/core/res-module.js";
+import type { AnyResModule } from "../../src/core/res-module.js";
 import type { ResPod } from "../../src/core/res-pod.js";
 import { createShellComposer } from "../../src/core/shell-composer.js";
 import { WireManager } from "../../src/core/wire-manager.js";

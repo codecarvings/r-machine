@@ -51,7 +51,7 @@ All files live under `src/r-machine/`.
 ```ts
 // src/r-machine/resource-atlas.ts
 import { defineLayout } from "r-machine";
-import type { Shell_Lib_Fmt } from "./shell/lib/fmt"; // scaffold this file first
+import type { Shell_Lib_Fmt } from "./pub/shell/lib/fmt"; // scaffold this file first
 
 const folders = defineLayout({
   "base/": "gear:base",
@@ -82,29 +82,44 @@ Scaffold `shell/lib/fmt` first (A.4 step 3). No formatter? Drop the `fmt`
 import/entry/token and keep the self-check via
 `export const token = ResourceAtlas.getTokenBuilder();`.
 
-### 2.2 `setup.ts`
+### 2.2 `pub/loader.ts`
+
+Resource modules live under `src/r-machine/pub/` ("public" — client-safe). The
+loader lives alongside them in `pub/loader.ts` so its `import.meta.glob` is rooted
+at that folder. A React (Vite) SPA has no server bundle boundary, so a single
+catch-all (`["*"]`) loader covers every prefix.
+
+```ts
+// src/r-machine/pub/loader.ts
+import type { AnyResModule } from "r-machine/core";
+import { ResourceAtlas } from "@/r-machine/resource-atlas";
+
+// Vite: statically analysed at build time for code splitting (rooted at pub/).
+const moduleLoaders = import.meta.glob<AnyResModule>("./**/*.{tsx,ts}", {});
+
+// A single loader. The fn receives the full resolved path.
+ResourceAtlas.loader.register(["*"], async (path) => {
+  const tsx = `./${path}.tsx`;
+  const ts = `./${path}.ts`;
+  const resolved = moduleLoaders[tsx] ? tsx : moduleLoaders[ts] ? ts : null;
+  if (!resolved) throw new Error(`R-Machine: module not found: ${path}`);
+  return moduleLoaders[resolved]!();
+});
+```
+
+### 2.3 `setup.ts`
 
 ```ts
 // src/r-machine/setup.ts
 import { ReactStandardStrategy } from "@r-machine/react";
 import { RMachine, type RMachineLocale } from "r-machine";
-import type { AnyResModule } from "r-machine/core";
 import { ResourceAtlas } from "./resource-atlas";
-
-// Vite: statically analysed at build time for code splitting
-const moduleLoaders = import.meta.glob<AnyResModule>("./**/*.{tsx,ts}", {});
+import "./pub/loader"; // registers the loader (§2.2)
 
 const rMachine = RMachine.create({
   locales: ["en", "it"] as const, // ← replace with real locales
   defaultLocale: "en", // ← replace with real default
   ResourceAtlas,
-  load: async (path) => {
-    const tsx = `./${path}.tsx`;
-    const ts = `./${path}.ts`;
-    const resolved = moduleLoaders[tsx] ? tsx : moduleLoaders[ts] ? ts : null;
-    if (!resolved) throw new Error(`R-Machine: module not found: ${path}`);
-    return moduleLoaders[resolved]!();
-  },
   shellKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
@@ -149,7 +164,7 @@ No persistence (always detect from browser):
 // Omit localeStore entirely — locale is detected fresh every page load
 ```
 
-### 2.3 `toolset.ts`
+### 2.4 `toolset.ts`
 
 ```ts
 // src/r-machine/toolset.ts
@@ -159,7 +174,7 @@ export const { ReactRMachine, Plug, VertexFrame } =
   await strategy.createToolset();
 ```
 
-### 2.4 Update `App.tsx` (or `main.tsx`)
+### 2.5 Update `App.tsx` (or `main.tsx`)
 
 Wrap the root with `ReactRMachine`. It handles locale resolution and
 suspense-based resource loading.
@@ -197,6 +212,7 @@ import { localeHelper } from "@/r-machine/setup";
 | File                              | Notes                                   |
 | --------------------------------- | --------------------------------------- |
 | `src/r-machine/resource-atlas.ts` | Layout + empty ResourceMap              |
+| `src/r-machine/pub/loader.ts`     | catch-all loader (`register(["*"])`)    |
 | `src/r-machine/setup.ts`          | RMachine.create + ReactStandardStrategy |
 | `src/r-machine/toolset.ts`        | strategy.createToolset()                |
 | `src/App.tsx`                     | Wrap root with `<ReactRMachine>`        |
@@ -331,40 +347,48 @@ export default defineConfig({
 
 ### 4.3 Add the client-side handler in `setup.ts`
 
-Add this block before `RMachine.create(...)` — `load` references `useHMR`, so
-the constant must be in scope when the config is built. It just invalidates the
-changed resource; the next resolve re-imports it via the cache-busting `load`:
+Add this block after `RMachine.create(...)` in `setup.ts` — it needs the
+`rMachine` instance. It just invalidates the changed resource; the next resolve
+re-imports it via the cache-busting loader:
 
 ```ts
-// Before RMachine.create(...):
+// After RMachine.create(...):
 
-const useHMR = import.meta.hot && !import.meta.env.TEST;
-if (useHMR) {
-  import.meta.hot!.on("r-machine:update", ({ file }) => {
+if (import.meta.hot && !import.meta.env.TEST) {
+  import.meta.hot.on("r-machine:update", ({ file }) => {
     rMachine.reloadModule(file);
   });
 }
 ```
 
-Then make `load` cache-bust in dev. `load` only runs on a blueprint cache miss
-(initial load + after `reloadModule`), so the always-fresh import is not
-per-render overhead — and there's no module-scoped reload set to desync with the
-globalThis RMachine singleton's captured `load` closure:
+Then make the loader in `pub/loader.ts` cache-bust in dev. The loader only runs
+on a blueprint cache miss (initial load + after `reloadModule`), so the
+always-fresh import is not per-render overhead — and there's no module-scoped
+reload set to desync with the globalThis RMachine singleton's captured loader
+closure:
 
 ```ts
-load: async (path) => {
+// src/r-machine/pub/loader.ts
+import type { AnyResModule } from "r-machine/core";
+import { ResourceAtlas } from "../resource-atlas";
+
+const moduleLoaders = import.meta.glob<AnyResModule>("./**/*.{tsx,ts}", {});
+const useHMR = import.meta.hot && !import.meta.env.TEST;
+
+ResourceAtlas.loader.register(["*"], async (path) => {
   const tsx = `./${path}.tsx`;
-  const ts  = `./${path}.ts`;
+  const ts = `./${path}.ts`;
   const resolved = moduleLoaders[tsx] ? tsx : moduleLoaders[ts] ? ts : null;
   if (!resolved) throw new Error(`R-Machine: module not found: ${path}`);
 
   if (useHMR) {
     // In dev, ALWAYS import with a cache-busting query so an HMR-invalidated
     // module (and its freshly-bumped transitive deps) is re-fetched.
-    const freshUrl = new URL(`${resolved}?t=${Date.now()}`, import.meta.url).href;
+    const freshUrl = new URL(`${resolved}?t=${Date.now()}`, import.meta.url)
+      .href;
     return import(/* @vite-ignore */ freshUrl) as Promise<AnyResModule>;
   }
 
   return moduleLoaders[resolved]!();
-},
+});
 ```
