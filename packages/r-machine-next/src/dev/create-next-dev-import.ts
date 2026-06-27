@@ -219,6 +219,12 @@ async function buildDevImport(importMetaUrl: string): Promise<DevImport> {
     // Modern JSX transform: no need for an explicit `import React` in TSX
     // resource modules.
     jsx: { runtime: "automatic" },
+    alias: {
+      // `server-only` throws on import to fence server code out of client
+      // bundles. jiti has no bundle boundary, so let it resolve to an empty
+      // no-op barrel instead of crashing the resource-module load.
+      "server-only": "@r-machine/next/dev/no-op",
+    },
   });
 
   // Diagnostic signal: jiti loaded successfully. Read by `verifyResourceAtlas`
