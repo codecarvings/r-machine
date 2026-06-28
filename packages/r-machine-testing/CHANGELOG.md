@@ -1,5 +1,37 @@
 # @r-machine/testing
 
+## 1.0.0-alpha.14
+
+### Patch Changes
+
+- 7c87299: Fix `mockPlug` throwing `ERR_CIRCULAR_DEPENDENCY` when mocking a kit-resident resource (e.g. a shell registered in a machine-wide `shellKit`).
+
+  A kit can carry deferred cycle-breaker getters for self/recursive references (`$.kit.<self>`). Those getters throw by design while their own slot is still mid-resolution — a cycle that is broken and invisible at runtime, since nothing ever reads them. But `mockPlug`'s state-binding scan walked every kit entry eagerly during the mocked plug's own resolve, tripping the getter at exactly the moment it must throw. Mocking any kit-resident shell (such as a `fmt` formatter shell) blew up even though the same resolve succeeds in production.
+
+  The scan now tolerates a kit entry that throws on access and skips it: a still-resolving deferred entry can't be a resolved stateful surface, so it contributes nothing to bind. Ready kit entries still bind normally. Testing-layer only — no runtime/core behavior change.
+
+- 7c87299: `verifyResourceAtlas` now accepts a `loaders` option — an array of extra loader modules (path or `URL`) to import for their registration side-effect before verification runs.
+
+  This is needed for a split Next.js setup, where `setup.ts` imports only `pub/loader` and the server-only `inner/` loader lives in `prv/loader.ts` (imported only by `server-toolset.ts`). Without it, `inner/` keys fail with `ERR_NO_LOADER_REGISTERED`. Pass the server-only loader so its resources are checked too:
+
+  ```ts
+  const report = await verifyResourceAtlas(
+    import.meta.resolve("../../src/r-machine/setup.ts"),
+    { loaders: [import.meta.resolve("../../src/r-machine/prv/loader.ts")] },
+  );
+  ```
+
+  Because `prv/loader.ts` starts with `import "server-only"` (which throws outside an RSC bundle), alias `server-only` to a no-op in the vitest config: `resolve.alias["server-only"] = "@r-machine/next/dev/no-op"`. A loader module that throws while importing is reported as a new `loader-module-failed` issue.
+
+- 7c87299: Speed up `verifyResourceAtlas` by caching parsed TypeScript `SourceFile`s across calls.
+
+  The static analysis pass created a fresh `ts.Program` per call, re-parsing and re-binding the entire type graph reachable from the setup file (`lib.d.ts` plus the whole r-machine `.d.ts` surface) every time. A process-scoped cache, installed via a custom `CompilerHost`, now reuses already-parsed `SourceFile`s across sequential programs (TS's binder skips a file whose `locals` are already set, and each program's checker keeps its own per-node links, so sharing immutable bound source files is safe). The cache is keyed by path and invalidated by mtime, so a file edited between calls is re-parsed.
+
+  Production usage calls `verifyResourceAtlas` once per process and is unaffected; repeated callers (the test suite, or a future watch mode) get the win. In this repo the full coverage run dropped from ~28s to ~8s — the suite's single slowest file was driving the TS compiler 28 times, and under v8 coverage the compiler's execution was being instrumented on each one.
+
+- Updated dependencies [7c87299]
+  - r-machine@1.0.0-alpha.14
+
 ## 1.0.0-alpha.13
 
 ### Patch Changes

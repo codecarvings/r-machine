@@ -1,5 +1,13 @@
 # type-scale-bench
 
+## 0.0.1-alpha.2
+
+### Patch Changes
+
+- Updated dependencies [7c87299]
+  - r-machine@1.0.0-alpha.14
+  - @r-machine/react@1.0.0-alpha.14
+
 ## 0.0.1-alpha.1
 
 ### Patch Changes
