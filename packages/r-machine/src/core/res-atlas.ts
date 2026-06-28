@@ -2,6 +2,7 @@ import type { RMachineTypeError } from "#r-machine/errors";
 import type { AnyResDomain, AnyResDomainLayout, Namespace, TokenBuilder } from "./res-domain.js";
 import type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "./res-layout.js";
 import type { AnyNamespaceList } from "./res-list.js";
+import type { AnyResourceLoader, ResourceLoader } from "./res-loader.js";
 
 type ShapeMap<RL extends AnyResLayout, RD extends AnyResDomain, T extends ResLayoutEntryType> = {
   readonly [K in keyof RD as K extends string ? (ResolveLayoutType<RL, K> extends T ? K : never) : never]: RD[K];
@@ -137,6 +138,8 @@ export type ResAtlasClass<RL extends AnyResLayout, RD extends AnyResDomain, RA =
   readonly withPriority: <P extends readonly Namespace<RD>[]>(priority: P) => ResAtlasClass<RL, RD, RA>;
 
   readonly getTokenBuilder: GetTokenBuilderProperty<RA, RD>;
+
+  readonly loader: ResourceLoader<RL>;
 };
 
 export type AnyResAtlasClass = (abstract new () => AnyResAtlas) & {
@@ -145,4 +148,5 @@ export type AnyResAtlasClass = (abstract new () => AnyResAtlas) & {
   readonly priority: AnyNamespaceList;
   readonly withPriority: (...args: never[]) => AnyResAtlasClass;
   readonly getTokenBuilder: ((...args: never[]) => TokenBuilder<AnyResDomain>) | RMachineTypeError<string>;
+  readonly loader: AnyResourceLoader;
 };

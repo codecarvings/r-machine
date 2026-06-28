@@ -1,49 +1,12 @@
 import { ReactStandardStrategy } from "@r-machine/react";
 import { RMachine, type RMachineLocale } from "r-machine";
-import type { AnyResModule } from "r-machine/core";
+import "./pub/loader";
 import { ResourceAtlas } from "./resource-atlas";
-
-// Vite statically analyzes this at build time and creates chunk files for all matching modules
-const moduleLoaders = import.meta.glob<AnyResModule>("./**/*.{tsx,ts}", {});
-
-const useHMR = import.meta.hot && !import.meta.env.TEST;
-if (useHMR) {
-  // HMR: Noop on production, but in dev we listen for a custom
-  // "r-machine:update" event from `vite-plugin-r-machine-hmr.ts`
-  import.meta.hot!.on("r-machine:update", ({ file }) => {
-    rMachine.reloadModule(file);
-  });
-}
 
 const rMachine = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
   ResourceAtlas,
-  load: async (path) => {
-    const modulePathTsx = `./${path}.tsx`;
-    const modulePathTs = `./${path}.ts`;
-    const resolvedPath = moduleLoaders[modulePathTsx]
-      ? modulePathTsx
-      : moduleLoaders[modulePathTs]
-        ? modulePathTs
-        : null;
-
-    if (!resolvedPath) {
-      throw new Error(`Module not found: ${path}`);
-    }
-
-    if (useHMR) {
-      // In dev, ALWAYS import with a cache-busting query so an HMR-invalidated
-      // module (and its freshly-bumped transitive deps) is re-fetched.
-      // Skipped under vitest: it also defines `import.meta.hot`, but resolving
-      // the cache-busting URL against `import.meta.url` yields an `http:` URL
-      // (vitest's module server) that Node's ESM loader can't import.
-      const freshUrl = new URL(`${resolvedPath}?t=${Date.now()}`, import.meta.url).href;
-      return import(/* @vite-ignore */ freshUrl) as Promise<AnyResModule>;
-    }
-
-    return moduleLoaders[resolvedPath]!();
-  },
   shellKit: {
     fmt: "shell/lib/fmt",
   },
@@ -51,6 +14,14 @@ const rMachine = RMachine.create({
     outerGear: "on",
   },
 });
+
+// HMR: noop in production, but in dev we listen for a custom "r-machine:update"
+// event from `vite-plugin-r-machine-hmr.ts` and reload the changed resource.
+if (import.meta.hot && !import.meta.env.TEST) {
+  import.meta.hot.on("r-machine:update", ({ file }) => {
+    rMachine.reloadModule(file);
+  });
+}
 
 export const { BaseGear, OuterGear, Shell, DirectPlug, localized } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;

@@ -31,7 +31,15 @@ declare const EdgeRuntime: unknown;
 // import specifier remains a plain string literal so Turbopack/Webpack can
 // statically resolve and bundle it at build time (a `"jiti" as string` cast
 // would be refused as "too dynamic" by Turbopack).
-type JitiInstance = { import(path: string): Promise<unknown> };
+// `transform` mirrors jiti's instance method: it receives the source (plus
+// internal fields we don't model) and returns the transpiled code string. We
+// borrow it from a "base" instance to delegate default transpilation — see
+// the `"use client"` stub note in `buildDevImport`.
+type JitiTransformOptions = { source: string };
+type JitiInstance = {
+  import(path: string): Promise<unknown>;
+  transform(opts: JitiTransformOptions): string;
+};
 type JitiModule = {
   createJiti(url: string, opts: Record<string, unknown>): JitiInstance;
 };
@@ -102,6 +110,41 @@ function markDevLoaderEnabled(): void {
   (globalThis as unknown as ObservationSlot)[DEV_LOADER_ENABLED_FLAG] = true;
 }
 
+// ─── "use client" boundary awareness ───────────────────────────────────
+// Next replaces a `"use client"` module imported from server code with a
+// *client reference* (a proxy): its body never executes on the server, so its
+// browser-only imports (e.g. `next/navigation`) are never resolved there. jiti
+// has no such boundary — it follows the static import graph straight through a
+// `"use client"` module and into `next/navigation`, which it can't resolve as
+// a bare ESM specifier, crashing the resource-module load in dev. We restore
+// the boundary by detecting the directive and swapping the module body for a
+// stub that mirrors Next's client reference (see `buildDevImport`).
+
+// Matches a `"use client"` directive as the first statement, tolerating a
+// leading license banner (block comment), line comments, and whitespace.
+const USE_CLIENT_RE = /^\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)*\s*(['"])use client\1/;
+
+/**
+ * True when `source` begins with a `"use client"` directive — i.e. the module
+ * is client code that the dev loader must stub rather than execute server-side.
+ * Exported for unit testing the detection in isolation.
+ */
+export function isClientModuleSource(source: string): boolean {
+  return USE_CLIENT_RE.test(source);
+}
+
+// Replacement body for a `"use client"` module under jiti. jiti transpiles
+// ESM to CJS internally and builds the import namespace by copying the
+// *enumerable own keys* of `module.exports` (a Proxy can't fake names it can't
+// enumerate), so we can only meaningfully provide `default`. That is enough:
+// the server resource graph passes client modules around as references and
+// never reads their named exports at load time — a named import of a stubbed
+// module resolves to `undefined`, exactly like Next's client reference where
+// the value is opaque server-side. `default` is a harmless no-op callable in
+// case something renders it. `__esModule` keeps jiti's interop on the ESM path.
+const CLIENT_MODULE_STUB =
+  'Object.defineProperty(exports, "__esModule", { value: true });' + "exports.default = function ClientReference() {};";
+
 /**
  * Attempts to build a development-mode module importer backed by `jiti`,
  * bypassing Next/Turbopack's server-side module cache so that file edits on
@@ -123,13 +166,13 @@ function markDevLoaderEnabled(): void {
  * does the jiti probe and emits any warn/info log; subsequent calls in the
  * same Node process return the cached promise silently.
  *
- * Typical usage in `setup.ts`:
+ * Typical usage in a loader file (`pub/loader.ts` / `prv/loader.ts`):
  *
  *     const devImport = await createNextDevImport(import.meta.url);
- *     const rMachine = RMachine.create({
- *       load: (path) => (devImport ? devImport(`./${path}`) : import(`./${path}`)),
- *       // ...
- *     });
+ *
+ *     ResourceAtlas.loader.register(["base/", "shell/", "shell/lib/", "outer/", "vertex/"], (path) =>
+ *       devImport ? devImport(`./${path}`) : import(`./${path}`)
+ *     );
  */
 export function createNextDevImport(importMetaUrl: string): Promise<DevImport> {
   // Diagnostic signal: every call marks the project as "Next setup that
@@ -160,12 +203,15 @@ export function createNextDevImport(importMetaUrl: string): Promise<DevImport> {
 // across these resets. Returns true if we should fire the log, false if it
 // was already emitted earlier.
 function shouldFireOnceLog(envKey: string): boolean {
+  /* v8 ignore start -- defensive: this helper is only ever called from the
+     jiti-missing catch in `buildDevImport`, which is reachable only after the
+     gate has confirmed a server runtime with `process` present, so the
+     no-`process` / no-`process.env` branch never runs from the dev flow. */
   if (typeof process === "undefined" || !process.env) {
-    // Browser/Edge: no shared storage available. Best-effort = always fire,
-    // but in practice this code path is gated on `isServer && !isEdge`, so
-    // we never reach here from the dev flow.
+    // Browser/Edge: no shared storage available. Best-effort = always fire.
     return true;
   }
+  /* v8 ignore stop */
   if (process.env[envKey] === "1") {
     return false;
   }
@@ -206,7 +252,7 @@ async function buildDevImport(importMetaUrl: string): Promise<DevImport> {
     return null;
   }
 
-  const jiti = jitiModule.createJiti(importMetaUrl, {
+  const jitiOpts = {
     // Disable both caches so every import re-reads + re-transpiles from disk.
     // That is what makes resource-module edits propagate across SSR requests
     // without a dev-server restart.
@@ -219,6 +265,36 @@ async function buildDevImport(importMetaUrl: string): Promise<DevImport> {
     // Modern JSX transform: no need for an explicit `import React` in TSX
     // resource modules.
     jsx: { runtime: "automatic" },
+    alias: {
+      // `server-only` throws on import to fence server code out of client
+      // bundles. jiti has no bundle boundary, so let it resolve to an empty
+      // no-op barrel instead of crashing the resource-module load. (Orthogonal
+      // to the `"use client"` stub below: this handles a bare specifier, that
+      // handles whole modules carrying the directive.)
+      "server-only": "@r-machine/next/dev/no-op",
+    },
+  };
+
+  // A "base" instance with the default (babel) transform. We don't import with
+  // it — we only borrow its `transform` to delegate transpilation of ordinary
+  // (non-`"use client"`) modules, so the real instance below can intercept the
+  // directive without reimplementing jiti's TS/JSX pipeline.
+  const base = jitiModule.createJiti(importMetaUrl, jitiOpts);
+
+  const jiti = jitiModule.createJiti(importMetaUrl, {
+    ...jitiOpts,
+    // Restore the server/client boundary jiti would otherwise flatten: stub
+    // `"use client"` modules with a client reference, mirroring what Next does
+    // in a real build. Only `"use client"` is stubbed — `"use server"` modules
+    // are server code and must run. This is always safe here: the dev loader
+    // walks the *server* resource graph, which never needs to execute client
+    // code (Next would replace it with a reference too).
+    transform(opts: JitiTransformOptions) {
+      if (isClientModuleSource(opts.source)) {
+        return { code: CLIENT_MODULE_STUB };
+      }
+      return { code: base.transform(opts) };
+    },
   });
 
   // Diagnostic signal: jiti loaded successfully. Read by `verifyResourceAtlas`

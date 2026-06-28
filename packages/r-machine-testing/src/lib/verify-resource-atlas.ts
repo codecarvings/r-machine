@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import { statSync } from "node:fs";
 import nodePath from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { CONFIG_ACCESSOR, type RMachineConfig } from "r-machine";
@@ -57,6 +58,7 @@ export type VerifyIssue =
     }
   | { kind: "atlas-extraction-failed"; reason: string }
   | { kind: "config-access-failed"; reason: string }
+  | { kind: "loader-module-failed"; reason: string }
   | { kind: "dev-loader-not-active"; reason: string };
 
 export type VerifyReport = {
@@ -71,6 +73,18 @@ export type VerifyResourceAtlasOptions = {
   strategyExportName?: string;
   /** Path to a tsconfig.json used for the static analysis pass. Defaults to the nearest one to setupFile. */
   tsconfig?: string;
+  /**
+   * Additional loader modules to import (for their registration side-effect)
+   * before verification — e.g. a server-only `prv/loader.ts` that registers the
+   * `inner/` prefix, which `setup.ts` does not pull in. Each entry is a path or
+   * `file:` URL, resolved like `setupFile`.
+   *
+   * NOTE: a server-only loader file starts with `import "server-only"`, which
+   * throws under vitest/Vite unless aliased to a no-op — add
+   * `resolve.alias["server-only"] = "@r-machine/next/dev/no-op"` to the
+   * project's vitest config.
+   */
+  loaders?: (string | URL)[];
 };
 
 type ExtractedKey = {
@@ -211,6 +225,28 @@ export async function verifyResourceAtlas(
       };
     }
 
+    // ─── Loader pickup phase: import extra loader modules ────────────────
+    // A split Next setup keeps its server-only loaders (e.g. the `inner/`
+    // prefix) in a `prv/loader.ts` fenced behind `import "server-only"`, which
+    // `setup.ts` never imports. Pull them in here so their `register()` side-
+    // effects land on the SAME ResourceAtlas.loader the config holds (`load`
+    // reads the registry lazily, so order only needs to precede the loop).
+    // This runs inside the force-dev-loader window so `createNextDevImport`
+    // inside the loader file activates jiti (which aliases `server-only` for
+    // the resource modules it loads).
+    try {
+      for (const spec of options?.loaders ?? []) {
+        await import(toImportHref(spec));
+      }
+    } catch (err) {
+      return {
+        ok: false,
+        setupFile: absoluteSetupFile,
+        totalChecks: 0,
+        issues: [{ kind: "loader-module-failed", reason: errorMessage(err) }],
+      };
+    }
+
     // ─── Verification phase: enumerate keys × locales ────────────────────
     const resolver = new ResLayoutResolver(config.layout);
     const issues: VerifyIssue[] = [];
@@ -323,7 +359,7 @@ async function runCheck(
 
   let result: unknown;
   try {
-    result = await config.load(modulePath, loaderOptions);
+    result = await config.loader.load(modulePath, loaderOptions);
   } catch (err) {
     issues.push({
       kind: "loader-error",
@@ -359,10 +395,61 @@ async function runCheck(
 
 // ─── Static extraction via TS Compiler API ──────────────────────────────
 
+// `createProgram` re-parses and re-binds the entire type graph reachable from
+// the setup file — `lib.d.ts` plus the whole r-machine `.d.ts` surface — on
+// EVERY call. Production usage calls `verifyResourceAtlas` once per process, but
+// the test suite (and any future watch-style caller) invokes it many times over
+// the same shared sources. Caching parsed SourceFiles by path lets repeated
+// programs reuse them: TS's binder skips a file whose `locals` are already set,
+// and each program's checker keeps its own per-node links, so sharing immutable,
+// already-bound SourceFiles across sequential programs is safe. The cache is
+// process-scoped and keyed by path, invalidated by mtime so a file edited
+// between calls is re-parsed.
+interface CachedSourceFile {
+  readonly mtimeMs: number;
+  readonly sourceFile: ts.SourceFile;
+}
+const sourceFileCache = new Map<string, CachedSourceFile>();
+
+function createCachingCompilerHost(tsModule: typeof ts, options: ts.CompilerOptions): ts.CompilerHost {
+  const host = tsModule.createCompilerHost(options, /* setParentNodes */ true);
+  const delegate = host.getSourceFile.bind(host);
+  // Keyed by path alone: the extracted atlas keys are a function of the source
+  // text, not of the language version, so a SourceFile parsed under one program's
+  // target is safe to reuse under another's. Invalidated by mtime.
+  host.getSourceFile = (fileName, languageVersionOrOptions, onError) => {
+    let mtimeMs: number;
+    try {
+      mtimeMs = statSync(fileName).mtimeMs;
+    } catch {
+      /* v8 ignore next -- defensive: TS only requests files it has already
+         resolved to exist, so the stat never fails in practice; fall back to a
+         plain (uncached) read if it ever does. */
+      return delegate(fileName, languageVersionOrOptions, onError);
+    }
+    const cached = sourceFileCache.get(fileName);
+    if (cached !== undefined && cached.mtimeMs === mtimeMs) {
+      return cached.sourceFile;
+    }
+    const sourceFile = delegate(fileName, languageVersionOrOptions, onError);
+    /* v8 ignore next -- defensive: the delegate returns a SourceFile for a file
+       we just stat'd successfully; the nullish case never executes here. */
+    if (sourceFile !== undefined) {
+      sourceFileCache.set(fileName, { mtimeMs, sourceFile });
+    }
+    return sourceFile;
+  };
+  return host;
+}
+
 async function extractAtlasKeys(setupFile: string, tsconfigPath?: string): Promise<ExtractedKey[]> {
   const tsModule = await loadTypeScript();
   const compilerOptions = readCompilerOptions(tsModule, setupFile, tsconfigPath);
-  const program = tsModule.createProgram([setupFile], compilerOptions);
+  const program = tsModule.createProgram(
+    [setupFile],
+    compilerOptions,
+    createCachingCompilerHost(tsModule, compilerOptions)
+  );
   const checker = program.getTypeChecker();
   const sourceFile = program.getSourceFile(setupFile);
   /* v8 ignore start -- defensive: createProgram was created with setupFile in
@@ -495,6 +582,16 @@ async function loadTypeScript(): Promise<typeof ts> {
 
 function stripInternalMarker(name: string): string {
   return name.charCodeAt(0) === 0x23 /* '#' */ ? name.slice(1) : name;
+}
+
+// Resolve a loader spec to an importable `file:` URL href, mirroring how
+// `setupFile` is resolved: a URL object → its href; a `file:` string → as-is;
+// a relative/absolute path string → resolved against the cwd.
+function toImportHref(spec: string | URL): string {
+  if (typeof spec !== "string") {
+    return spec.href;
+  }
+  return spec.startsWith("file:") ? spec : pathToFileURL(nodePath.resolve(spec)).href;
 }
 
 // ─── Error utilities ────────────────────────────────────────────────────

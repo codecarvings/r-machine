@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { CONFIG_ACCESSOR, RMachine, type RMachineConfig } from "#r-machine";
-import { type AnyResAtlas, BUS_ACCESSOR } from "#r-machine/core";
+import { type AnyResAtlas, BUS_ACCESSOR, createResourceLoader } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 import { Strategy } from "../../src/strategy/strategy.js";
 
@@ -73,6 +73,9 @@ class TestRMachine extends RMachine<TestAtlas, string, TestResEquipment, {}> {
   }
 }
 
+const testLoader = createResourceLoader();
+testLoader.register(["*"], async () => ({ r: {} }));
+
 const testConfig: RMachineConfig<TestAtlas, string, TestResEquipment, {}> = {
   // Phantom: the config's resourceAtlas is typed as the instance but at
   // runtime holds whatever the caller passes (the class, or — in this test —
@@ -81,7 +84,7 @@ const testConfig: RMachineConfig<TestAtlas, string, TestResEquipment, {}> = {
   instanceName: "test",
   locales: ["en", "it"],
   defaultLocale: "en",
-  load: async () => ({ r: {} }),
+  loader: testLoader,
   layout: {},
   priority: [],
   equipment: { bridgeGears: [], gearKit: {}, shellKit: {}, directKit: {} },

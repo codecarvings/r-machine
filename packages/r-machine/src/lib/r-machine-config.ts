@@ -24,7 +24,7 @@ import {
   getNamespaceMap,
   type NamespaceList,
   type ResEquipment,
-  type ResModuleLoaderFn,
+  type ResourceLoader,
   type ShellPlugKitMap,
 } from "#r-machine/core";
 import {
@@ -51,7 +51,7 @@ export interface RMachineConfig<
   readonly locales: LocaleList<L>;
   readonly defaultLocale: L;
   readonly resourceAtlas: RA;
-  readonly load: ResModuleLoaderFn;
+  readonly loader: ResourceLoader<AnyResLayout>;
   readonly layout: AnyResLayout;
   readonly priority: NamespaceList<RA>;
   readonly equipment: E;
@@ -71,7 +71,6 @@ export interface RMachineConfigParams<
   readonly locales: LL;
   readonly defaultLocale: LL[number];
   readonly ResourceAtlas: RAC;
-  readonly load: ResModuleLoaderFn;
   readonly bridgeGears?: BGL;
   readonly gearKit?: GK;
   readonly shellKit?: SK;
@@ -127,7 +126,7 @@ export function convertRMachineConfigParamsToConfig<
     locales: Object.freeze([...params.locales]),
     defaultLocale: params.defaultLocale,
     resourceAtlas: undefined!,
-    load: params.load,
+    loader: params.ResourceAtlas.loader,
     layout: Object.freeze({ ...params.ResourceAtlas.layout }),
     priority,
     equipment: {

@@ -19,14 +19,14 @@ R-Machine **i18n is dependency injection**.
 
 | Topic | Where | What it shows |
 | --- | --- | --- |
-| **The router is a gear** | [`outer/nav`](src/r-machine/outer/nav.ts) + [`sidebar`](src/components/showcase/sidebar.tsx) | The active view is OuterGear state; switching views is an action. It even survives HMR. |
-| **OuterGear** | [`outer/timer`](src/r-machine/outer/timer.ts) | A reactive gear: `action`, `getter`, a memoized `cell`, a `relay` (derives odd/even), a dep on `base/config`, and `Symbol.dispose` cleanup. |
-| **Gear dependencies** | [`outer/operator`](src/r-machine/outer/operator.ts) | Depends on `outer/timer` by token — injected fully typed, no imports, no wiring. |
-| **Vertex + VertexFrame** | [`vertex/counter`](src/r-machine/vertex/counter.ts) | Per-consumer instances by default; consumers under a `<VertexFrame>` share one. |
-| **Async shells + Suspense** | [`shell/async-demo`](src/r-machine/shell/async-demo/en.tsx) | An async shell suspends its consumer; `DelayedSuspense` shows a fallback only if the wait is noticeable. |
-| **Locale-aware formatting** | [`shell/lib/fmt`](src/r-machine/shell/lib/fmt.ts) | A mono shell wrapping the native `Intl` APIs; numbers/currency/dates/plurals reformat on locale switch. |
-| **Localization without a router** | [`shell/showcase`](src/r-machine/shell/showcase/en.tsx) | Every string is a localized shell; the locale is persisted to `localStorage` and reapplied on reload — no URL. |
-| **BaseGear** | [`base/config`](src/r-machine/base/config.ts) | Stateless app config the timer depends on. |
+| **The router is a gear** | [`outer/nav`](src/r-machine/pub/outer/nav.ts) + [`sidebar`](src/components/showcase/sidebar.tsx) | The active view is OuterGear state; switching views is an action. It even survives HMR. |
+| **OuterGear** | [`outer/timer`](src/r-machine/pub/outer/timer.ts) | A reactive gear: `action`, `getter`, a memoized `cell`, a `relay` (derives odd/even), a dep on `base/config`, and `Symbol.dispose` cleanup. |
+| **Gear dependencies** | [`outer/operator`](src/r-machine/pub/outer/operator.ts) | Depends on `outer/timer` by token — injected fully typed, no imports, no wiring. |
+| **Vertex + VertexFrame** | [`vertex/counter`](src/r-machine/pub/vertex/counter.ts) | Per-consumer instances by default; consumers under a `<VertexFrame>` share one. |
+| **Async shells + Suspense** | [`shell/async-demo`](src/r-machine/pub/shell/async-demo/en.tsx) | An async shell suspends its consumer; `DelayedSuspense` shows a fallback only if the wait is noticeable. |
+| **Locale-aware formatting** | [`shell/lib/fmt`](src/r-machine/pub/shell/lib/fmt.ts) | A mono shell wrapping the native `Intl` APIs; numbers/currency/dates/plurals reformat on locale switch. |
+| **Localization without a router** | [`shell/showcase`](src/r-machine/pub/shell/showcase/en.tsx) | Every string is a localized shell; the locale is persisted to `localStorage` and reapplied on reload — no URL. |
+| **BaseGear** | [`base/config`](src/r-machine/pub/base/config.ts) | Stateless app config the timer depends on. |
 | **Source on demand** | [`code-block`](src/components/showcase/code-block.tsx) | Each view's "Source" tab shows the real file via `?raw`, highlighted with `shiki`. |
 | **Testing with `mockPlug`** | [`tests/`](tests) | `mockPlug` seeds/observes a gear's real state; client components render with **no provider**. Plus `verifyResourceAtlas`. |
 

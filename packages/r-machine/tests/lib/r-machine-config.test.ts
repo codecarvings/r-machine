@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createResourceLoader } from "#r-machine/core";
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
@@ -17,7 +18,7 @@ function makeConfig(over: Partial<RMachineConfig<any, any, any, any>> = {}): RMa
     locales: ["en", "it"],
     defaultLocale: "en",
     resourceAtlas: undefined!,
-    load: async () => ({}) as never,
+    loader: createResourceLoader(),
     layout: { "inner/": "gear:inner" },
     priority: [] as never,
     equipment: { bridgeGears: [], gearKit: {}, shellKit: {} } as never,

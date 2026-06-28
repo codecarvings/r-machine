@@ -77,7 +77,7 @@ One canonical file per locale; every variant is exact-key type-checked against t
 canonical shape.
 
 ```ts
-// r-machine/shell/common/en.tsx  (canonical — defines the shape)
+// r-machine/pub/shell/common/en.tsx  (canonical — defines the shape)
 import { type RShape } from "@/r-machine/setup";
 
 export const r = { greeting: "Hello", addButton: "Add" };
@@ -86,7 +86,7 @@ export type Shell_Common = RShape<typeof r>;
 ```
 
 ```ts
-// r-machine/shell/common/it.tsx  (variant — type-checked against canonical)
+// r-machine/pub/shell/common/it.tsx  (variant — type-checked against canonical)
 import { localized } from "@/r-machine/setup";
 
 export const r = localized("shell/common", {
@@ -101,7 +101,7 @@ export const r = localized("shell/common", {
 them (server side / client side). A stateful `OuterGear`:
 
 ```ts
-// r-machine/outer/counter.ts
+// r-machine/pub/outer/counter.ts
 import { OuterGear, type RShape } from "@/r-machine/setup";
 
 export const r = OuterGear.withDeps("base/config") // a BaseGear dependency
@@ -154,17 +154,20 @@ strategy you pick. Follow the package guide for your stack:
 - **Next.js (App Router)** → [`@r-machine/next`](https://www.npmjs.com/package/@r-machine/next)
 
 In both cases an R-Machine project lives in **one folder** (conventionally
-`src/r-machine/`): a few wiring files, plus one subfolder per resource family.
+`src/r-machine/`): a few wiring files, plus resources grouped by bundle visibility
+into **`pub/`** (client-safe) and **`prv/`** (server-only `inner/`), each with one
+subfolder per family and its own `loader.ts`. The `pub/`/`prv/` segment is
+filesystem-only — atlas namespaces are unchanged (`base/config`, `inner/catalog`).
 
 The common pieces:
 
-| File / folder                         | Role                                                                                                                                                                    |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `setup.ts`                            | Creates the machine and the locale-routing **strategy**; exports the producer toolset used to _declare_ resources                                                       |
-| `resource-atlas.ts`                   | The **registry**: maps each folder to a resource family and registers every resource namespace against its type                                                         |
-| `toolset.ts`, …                       | Derives the typed **consumer tools** (`Plug`, the provider, `<VertexFrame>`, …) you use across the app. Next splits this into `server-toolset.ts` + `client-toolset.ts` |
-| `path-atlas.ts`                       | _(Next only)_ the route map — typed `href` helpers, plus localized URL segments for the path / origin strategies                                                        |
-| `base/` `outer/` `vertex/` `shell/` … | Your resources, one subfolder per family. `inner/` (server-only gears) applies to Next server components only                                                           |
+| File / folder       | Role                                                                                                                                                                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setup.ts`          | Creates the machine and the locale-routing **strategy**; exports the producer toolset used to _declare_ resources                                                                                                             |
+| `resource-atlas.ts` | The **registry**: maps each folder to a resource family and registers every resource namespace against its type                                                                                                               |
+| `toolset.ts`, …     | Derives the typed **consumer tools** (`Plug`, the provider, `<VertexFrame>`, …) you use across the app. Next splits this into `server-toolset.ts` + `client-toolset.ts`                                                       |
+| `path-atlas.ts`     | _(Next only)_ the route map — typed `href` helpers, plus localized URL segments for the path / origin strategies                                                                                                              |
+| `pub/`, `prv/`      | Your resources, split by bundle visibility: `pub/` holds the client-safe families (`base/` `outer/` `vertex/` `shell/`), `prv/` holds the server-only `inner/` family (Next server components only). Each owns a `loader.ts`. |
 
 → Full, copy-pasteable setup lives in the package READMEs linked above.
 

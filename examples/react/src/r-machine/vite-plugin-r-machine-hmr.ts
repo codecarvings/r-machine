@@ -31,7 +31,12 @@ function toResourcePath(file: string): string | null {
   if (!file.startsWith(prefix) || !EXT_RE.test(file)) {
     return null;
   }
-  const rel = file.slice(prefix.length).replace(EXT_RE, "");
+  // Resources live under `pub/` (client-safe) or `prv/` (server-only); strip
+  // that leading segment so the path matches the r-machine namespace.
+  const rel = file
+    .slice(prefix.length)
+    .replace(EXT_RE, "")
+    .replace(/^(pub|prv)\//, "");
   return rel.includes("/") ? rel : null;
 }
 

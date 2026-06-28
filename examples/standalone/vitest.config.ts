@@ -1,6 +1,15 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig, type ViteUserConfig } from "vitest/config";
 
 export default defineConfig({
+  resolve: {
+    // Mirror the tsconfig "@/*" -> "./src/*" path mapping (Vitest does not read
+    // tsconfig paths). Resource modules import the setup/atlas via this alias,
+    // so without it `verifyResourceAtlas` cannot load them.
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
   test: {
     environment: "node",
     globals: true,

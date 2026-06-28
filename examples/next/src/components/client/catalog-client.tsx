@@ -1,7 +1,7 @@
 "use client";
 
 import { ClientPlug, VertexFrame } from "@/r-machine/client-toolset";
-import type { Product } from "@/r-machine/inner/catalog";
+import type { Product } from "@/r-machine/prv/inner/catalog";
 import { CatalogFilterBar } from "./catalog-filter-bar";
 import { CatalogGrid } from "./catalog-grid";
 

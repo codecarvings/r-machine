@@ -22,7 +22,7 @@ type ResourceMap = {
 
 class ResourceAtlas extends folders<ResourceMap>() {}
 
-const load = (async () => ({ r: {} }) as unknown as AnyResModule) as never;
+ResourceAtlas.loader.register(["*"], async () => ({ r: {} }) as unknown as AnyResModule);
 
 // No directKit → `$.kit` is absent from the context.
 const plain = RMachine.create({
@@ -30,7 +30,6 @@ const plain = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
   ResourceAtlas,
-  load,
   experimental: { outerGear: "on" },
 }).createToolset();
 
@@ -40,7 +39,6 @@ const kitted = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
   ResourceAtlas,
-  load,
   directKit: { cfg: "base/cfg" },
   experimental: { outerGear: "on" },
 }).createToolset();

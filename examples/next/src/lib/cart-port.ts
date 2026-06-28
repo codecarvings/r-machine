@@ -1,6 +1,6 @@
 "use server";
 
-import type { CartLine } from "../r-machine/outer/cart";
+import type { CartLine } from "@/r-machine/pub/outer/cart";
 
 /**
  * SSR-hydration snapshot source, passed as a PORT into `outer/cart`.

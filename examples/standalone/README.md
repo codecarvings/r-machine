@@ -41,14 +41,15 @@ Three vitest suites, all in a pure-Node environment:
 
 | Path | Role |
 | ---- | ---- |
-| `src/r-machine/setup.ts` | `RMachine.create(...)` + `createToolset()` — **no strategy** |
+| `src/r-machine/setup.ts` | `RMachine.create(...)` + `createToolset()` — **no strategy**; imports `./pub/loader` |
 | `src/r-machine/resource-atlas.ts` | layout (folder → family) + resource type map |
-| `src/r-machine/base/config.ts` | a base gear |
-| `src/r-machine/shell/greeting/{en,it}.ts` | a locale-aware shell |
-| `src/r-machine/shell/lib/fmt.ts` | a `shell(mono)` formatter, exposed via `directKit` |
+| `src/r-machine/pub/loader.ts` | the explicit module map — registers the loader |
+| `src/r-machine/pub/base/config.ts` | a base gear |
+| `src/r-machine/pub/shell/greeting/{en,it}.ts` | a locale-aware shell |
+| `src/r-machine/pub/shell/lib/fmt.ts` | a `shell(mono)` formatter, exposed via `directKit` |
 | `src/render.ts` | the renderer — owns the `DirectPlug`, returns localized output for a locale |
 | `src/main.ts` | the CLI — loops the configured locales and prints `render(locale)` |
 
-The loader is an explicit module map (`setup.ts`) — there is no bundler magic. Each entry
-is a literal `import(...)`, so the same `load` works identically under plain `tsx` (the CLI),
+The loader is an explicit module map (`pub/loader.ts`) — there is no bundler magic. Each entry
+is a literal `import(...)`, so the same loader works identically under plain `tsx` (the CLI),
 under Vite (vitest), and inside `verifyResourceAtlas`.

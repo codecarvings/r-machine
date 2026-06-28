@@ -117,7 +117,7 @@ Dep-graph asymmetry: no dep path connects `gear:inner` to `gear:outer`, `gear:ou
 
 ## 3. Setup
 
-A project has exactly two configuration files by convention: `resource-atlas.ts` and `setup.ts`.
+A project has two declarative configuration files by convention — `resource-atlas.ts` and `setup.ts` — plus per-folder `loader.ts` files that wire module loading (see §3.3, "Module loading").
 
 ### 3.1. `defineLayout`
 
@@ -179,7 +179,7 @@ Rules:
 - The marker must be the **first character** (`"#base/jwt"`); suffix or mid-string `#` is not recognized.
 - Layout classification is unchanged — `#base/jwt` still resolves to `gear:base` via the `base/` prefix (the leading `#` is stripped before prefix matching).
 - Factory-side `gearKit` / `shellKit` may reference internal namespaces; the consumer `kit` / `clientKit` / `serverKit` may not (compile error).
-- The `#` is a **type-level marker only** — it never appears in filesystem paths or module loading. `#base/jwt` lives at `base/jwt.ts`; `load` receives the unmarked path.
+- The `#` is a **type-level marker only** — it never appears in filesystem paths or module loading. `#base/jwt` lives at `pub/base/jwt.ts`; the loader receives the unmarked path.
 - Use the same string everywhere a handle is needed: `withDeps("#base/jwt")`, `token("#base/jwt")`, `bridgeGears: ["#base/jwt"]`.
 
 ### 3.3. `RMachine.create`
@@ -189,7 +189,6 @@ RMachine.create({
   ResourceAtlas,                         // required
   locales: ["en", "it"] as const,        // const tuple narrows L type
   defaultLocale: "en",                   // must be one of `locales`
-  load: (path) => import(`./${path}.ts`),// async module loader
   bridgeGears: ["base/config"],          // optional: base namespaces visible to shells
   gearKit:   { log: "base/logger" },     // optional: injected as $.kit.* into every gear factory
   shellKit:  { fmt: "shell/lib/fmt" },   // optional: injected as $.kit.* into every shell factory
@@ -199,6 +198,22 @@ RMachine.create({
 
 - `bridgeGears` is type-narrowed to `gear:base` namespaces only (an outer/inner namespace is a type error); `gearKit` / `shellKit` are injected as `$.kit.{name}` into every factory of that family.
 - `experimental.outerGear`: opt-in flag, `"on"`-or-absent (no `"off"` value — `{ outerGear: "off" }` is a type error). **Omitted is the default**: `OuterGear` is removed from the toolset at the type level. The `experimental` namespace gates features whose API may still evolve incompatibly; the flag is retired once the feature stabilizes.
+
+#### Module loading (`ResourceAtlas.loader`)
+
+How a namespace becomes a module is configured on the atlas, **not** in `RMachine.create`. Register a loader for one or more layout prefixes — or `"*"` as a catch-all fallback (a prefix-specific loader always wins over `"*"`). The fn receives the **full** resource path (e.g. `"base/config"`, locale-suffixed for shells):
+
+```ts
+ResourceAtlas.loader.register(["base/", "shell/", "shell/lib/", "outer/", "vertex/"], (path) =>
+  devImport ? devImport(`./${path}`) : import(`./${path}`)
+);
+```
+
+Loaders are split across the two resource folders (layout in §16) so server-only code never reaches the client bundle. Each folder owns a `loader.ts` whose `import()` glob is rooted there (so its bundler context is non-empty even before any resource exists — green-field builds don't break):
+
+- `pub/loader.ts` registers the client-safe prefixes (`base/`, `outer/`, `vertex/`, `shell/`, `shell/lib/`); imported for its side effect from `setup.ts`.
+- `prv/loader.ts` is fenced with `import "server-only"` and registers `["inner/"]`; imported from `server-toolset.ts`. Because the server-only glob lives only in this fenced module, `inner/` chunks never enter the client bundle.
+- A project with **no** server-only resources needs only `pub/` and can register `["*"]` as a single catch-all (React SPA, standalone, Next apps without `inner/`).
 
 ### 3.4. Toolset
 
@@ -336,7 +351,7 @@ Same `OuterGear` composer. There is no `VertexGear` export.
 What makes a resource a vertex is its **layout entry**, not the call shape — an ordinary `OuterGear` declared under a `gear:outer(vertex)` prefix:
 
 ```ts
-// vertex/shopping-cart.ts (export type Vertex_ShoppingCart = RShape<typeof r>)
+// pub/vertex/shopping-cart.ts (export type Vertex_ShoppingCart = RShape<typeof r>)
 export const r = OuterGear.withState({ items: [] as string[] }).define((plugin, _) => {
   const { $ } = plugin;
   return {
@@ -354,19 +369,19 @@ Each `Plug("vertex/...").useR()` call creates a fresh instance with lifecycle bo
 The canonical file exports `r` (and `export type Shell_X = RShape<typeof r>`). R-Machine derives the shape from it. It can be a **plain object** or a **factory** — use a factory when the canonical needs `$.locale`, `$.kit`, `$.ports`, deps, or async:
 
 ```ts
-// shell/common/en.ts — plain object
+// pub/shell/common/en.ts — plain object
 export const r = { greeting: "Hello", farewell: "Goodbye" };
 
-// shell/common/en.ts — factory (locale-aware)
+// pub/shell/common/en.ts — factory (locale-aware)
 export const r = Shell.define((plugin) => ({ greeting: `Hello (${plugin.$.locale})` }));
 
-// shell/landing/en.ts — factory with ports (async load)
+// pub/shell/landing/en.ts — factory with ports (async load)
 export const r = Shell.withPorts({ fetchHeroCopy }).define(async ({ $ }) => {
   const data = await $.ports.fetchHeroCopy($.locale);
   return { hero: data.hero, sub: data.sub };
 });
 
-// shell/common/en.ts — with deps
+// pub/shell/common/en.ts — with deps
 export const r = Shell.withDeps("base/config").define((plugin) => {
   const [config, $] = plugin;
   return { hero: `Welcome — API: ${config.apiBase}`, copy: $.kit.fmt.number(1000) };
@@ -375,7 +390,7 @@ export const r = Shell.withDeps("base/config").define((plugin) => {
 
 **Variant files** use `localized(namespace, value)`, which performs **exact-keyed validation** against the canonical type (extra keys → `never`; missing keys → `Property '...' is missing`):
 ```ts
-// shell/common/it.ts
+// pub/shell/common/it.ts
 export const r = localized("shell/common", { greeting: "Ciao", farewell: "Arrivederci" });
 ```
 
@@ -392,8 +407,8 @@ export const r = Shell.define(async () => {
 A **single-file locale-aware** resource: it has access to `$.locale` like any shell, but no per-locale variant files. Use for formatters and locale-aware helpers without translation. The mono nature comes from the layout entry (`"shell/lib/": "shell(mono)"`).
 
 ```ts
-// shell/lib/fmt.ts
-import { type RShape, Shell } from "../../setup";
+// pub/shell/lib/fmt.ts
+import { type RShape, Shell } from "@/r-machine/setup";
 
 export const r = Shell.define((plugin) => {
   const { $ } = plugin;
@@ -417,8 +432,8 @@ A pluralization helper is a few lines of TypeScript on top of `Intl.PluralRules`
 For locales with binary plural rules (English, Italian, German, French, Spanish, ...):
 
 ```ts
-// shell/lib/fmt.ts
-import { type RShape, Shell } from "../../setup";
+// pub/shell/lib/fmt.ts
+import { type RShape, Shell } from "@/r-machine/setup";
 
 type PluralForms = { one?: string; other: string };
 
@@ -479,7 +494,7 @@ Two consequences follow.
 If a project needs a locale-aware primitive R-Machine doesn't ship — ICU `MessageFormat`, Fluent, a Markdown renderer, an in-house format — there is no integration story. The library is imported inside a `shell` or `shell(mono)` factory; `$.locale` is the wiring. A `shell(mono)` exposing ICU `MessageFormat` via `intl-messageformat`:
 
 ```ts
-// shell/lib/icu.ts — import the library, $.locale is the wiring
+// pub/shell/lib/icu.ts — import the library, $.locale is the wiring
 import { IntlMessageFormat, type PrimitiveType } from "intl-messageformat";
 
 export const r = Shell.withPorts({ IntlMessageFormat }).define(({ $ }) => {
@@ -499,7 +514,7 @@ The same shape applies to any locale-aware library — date formatters (`date-fn
 A resource's shape is whatever the factory returns. For a shell, that is not restricted to strings:
 
 ```tsx
-// shell/features/intl_demo/en.tsx
+// pub/shell/features/intl_demo/en.tsx
 export const r = Shell.define(({ fmt }) => ({
   sectionTitle: "Locale-Aware Formatting",                        // plain string
   caption: (d: Date) => `Today's date: ${fmt.date.long(d)}`,      // fn → string
@@ -538,13 +553,13 @@ matrix.withPorts(...).withState(...).clone(fn?)      ← derive from existing
 `withPorts` / `withState` produce intermediate builders whose only terminal is `clone(fn?)`. The optional `fn` is a transform that the system runs **after** the original factory and **before** post-processing, so it receives the resource already resolved (locale, deps, state) and can override only the fields it wants — the rest pass through unchanged. The transform never widens the result shape: extra keys outside `R` are pinned to `never` at the type level (the matrix's `clone` is generic over the inferred return type, and `NoExcess<R, T>` blocks excess properties at the call site).
 
 ```ts
-// outer/cart.ts                         ← source (export type Outer_Cart = RShape<typeof r>)
+// pub/outer/cart.ts                     ← source (export type Outer_Cart = RShape<typeof r>)
 export const r = OuterGear
   .withPorts({ checkout: prodCheckout })
   .withState({ items: [] as Item[] })
   .define((plugin, _) => { /* ... */ });
 
-// outer/cart-secondary.ts               ← derived resource, own module + own atlas key
+// pub/outer/cart-secondary.ts           ← derived resource, own module + own atlas key
 import { r as base } from "./cart";
 export const r = base.clone();           // identical logic, new identity
 ```
@@ -573,10 +588,10 @@ Both entries (`"outer/cart"` and `"outer/cart-secondary"`, both typed `Outer_Car
 Use when N independent instances of the same gear must coexist under distinct namespaces. Examples: a product-comparison page rendering three cards side by side, multiple carts in a multi-tenant UI, or the same gear surfaced both globally and inside a `gear:outer(vertex)` (§12).
 
 ```ts
-// outer/product-card.ts                 ← source (export type Outer_ProductCard = RShape<typeof r>)
+// pub/outer/product-card.ts             ← source (export type Outer_ProductCard = RShape<typeof r>)
 export const r = OuterGear.withState({ productId: "", qty: 1 }).define((plugin, _) => { /* … */ });
 
-// outer/product-card-a.ts, -b.ts, -c.ts ← one no-arg clone per slot
+// pub/outer/product-card-a.ts, -b.ts, -c.ts ← one no-arg clone per slot
 import { r as base } from "./product-card";
 export const r = base.clone();
 ```
@@ -590,13 +605,13 @@ The **global + vertex** variant follows the same shape: keep the logic in one mo
 Use when the same logic must run against a different external boundary — a draft writer instead of the published one, a stub fetcher instead of the CMS.
 
 ```ts
-// outer/post-form.ts                    ← source (export type Outer_PostForm = RShape<typeof r>)
+// pub/outer/post-form.ts                ← source (export type Outer_PostForm = RShape<typeof r>)
 export const r = OuterGear
   .withPorts({ createPost: prodCreatePost })
   .withState({ pending: false })
   .define((plugin, _) => { /* ... */ });
 
-// outer/post-form-draft.ts              ← variant, own atlas key "outer/post-form-draft"
+// pub/outer/post-form-draft.ts          ← variant, own atlas key "outer/post-form-draft"
 import { r as base } from "./post-form";
 export const r = base.withPorts({ createPost: draftCreatePost }).clone();
 ```
@@ -608,7 +623,7 @@ The same shape applies to `Shell` variants (e.g. a `shell/landing-static` derive
 Available on stateful `OuterGear` only. Combine with `withPorts` when both need to change — the chain is commutative:
 
 ```ts
-// outer/post-form-debug.ts
+// pub/outer/post-form-debug.ts
 import { r as base } from "./post-form";
 export const r = base
   .withPorts({ createPost: loggedCreatePost })
@@ -621,8 +636,8 @@ export const r = base
 The common case is a second locale that is almost identical to the first, with a handful of phrases that differ (US vs UK spelling, dialectal swaps, regulator-mandated wording). The factory runs in the **clone's** locale context, so anything that already depends on `$.locale` is correct in `res` — `fn` only has to override the values that genuinely differ between regions.
 
 ```ts
-// shell/checkout/en-US.tsx — source variant: Shell.define(({ $ }) => ({ cta: "Add to cart", colorLabel: "Color", … }))
-// shell/checkout/en-GB.tsx — sibling locale, mostly identical
+// pub/shell/checkout/en-US.tsx — source variant: Shell.define(({ $ }) => ({ cta: "Add to cart", colorLabel: "Color", … }))
+// pub/shell/checkout/en-GB.tsx — sibling locale, mostly identical
 import { r as enUS } from "./en-US";
 export const r = enUS.clone((res, { $ }) => ({
   ...res,
@@ -858,7 +873,7 @@ Two levels, selected by how the value is declared in the gear (§6):
 Raw-state reads are deliberately coarse: reading *any* part of `$.state` subscribes the consumer to that instance's entire state object (no per-property proxy). For **fine-grained** "re-render only when *this* derived value changes" behavior, expose the value as a **cell** (`_.cell`): a cell is its own dependency, so when an unrelated action runs it is marked dirty, recomputes lazily on next read, and — if its output is `Object.is`-unchanged — notifies no one.
 
 ```tsx
-// outer/cart.ts — within define((plugin, _) => { const { $ } = plugin; return {...} })
+// pub/outer/cart.ts — within define((plugin, _) => { const { $ } = plugin; return {...} })
 state:     _.getter(),                              // whole-state dep
 count:     _.cell(() => $.state.items.length),      // fine-grained
 subtotal:  _.cell(() => sum($.state.items)),        // fine-grained
@@ -1191,10 +1206,11 @@ This requires building the toolset with `await strategy.createNoProxyServerTools
 Helper for `setup.ts` that returns a development-mode module loader backed by [`jiti`](https://github.com/unjs/jiti), so that edits on resource modules (gears, shells) propagate to subsequent SSR renders **without restarting the dev server**. In production it returns `null` and the consumer falls through to a native dynamic `import(...)`.
 
 ```ts
-// in setup.ts — route RMachine.create's `load` through it
+// in pub/loader.ts (or prv/loader.ts) — route the loader through it
 import { createNextDevImport } from "@r-machine/next/dev";
 const devImport = await createNextDevImport(import.meta.url);
-// load: (path) => (devImport ? devImport(`./${path}`) : import(`./${path}`))
+// ResourceAtlas.loader.register(["base/", ...], (path) =>
+//   devImport ? devImport(`./${path}`) : import(`./${path}`));
 ```
 
 **Signature:** `createNextDevImport(importMetaUrl: string): Promise<((path: string) => Promise<unknown>) | null>`.
@@ -1219,7 +1235,7 @@ export async function loadCartSnapshot(): Promise<{ items: string[] }> {
   return { items: ["Keyboard", "Mouse", "Monitor"] }; // prod: read DB / session
 }
 
-// r-machine/outer/cart.ts — seed initial state from the snapshot
+// r-machine/pub/outer/cart.ts — seed initial state from the snapshot
 export const r = OuterGear
   .withPorts({ loadCartSnapshot })
   .withState({ items: [] as string[] })
@@ -1474,7 +1490,7 @@ import { verifyResourceAtlas } from "@r-machine/testing";
 const report = await verifyResourceAtlas("./src/r-machine/setup.ts");
 ```
 
-**Signature:** `verifyResourceAtlas(setupFile: string, options?: { strategyExportName?: string; tsconfig?: string }): Promise<VerifyReport>`. `setupFile` is absolute or relative to `process.cwd()` (project root under vitest); `strategyExportName` defaults to `"strategy"`, `tsconfig` to the nearest one.
+**Signature:** `verifyResourceAtlas(setupFile: string | URL, options?: { strategyExportName?: string; tsconfig?: string; loaders?: (string | URL)[] }): Promise<VerifyReport>`. `setupFile` is absolute or relative to `process.cwd()` (project root under vitest); `strategyExportName` defaults to `"strategy"`, `tsconfig` to the nearest one. `loaders` lists extra loader modules to import (side-effect) before verification — needed for a split Next setup, where `setup.ts` imports only `pub/loader` and the server-only `inner/` loader lives in `prv/loader.ts` (see the split-loader note below).
 
 **Report shape:**
 
@@ -1496,17 +1512,19 @@ Each `VerifyIssue` is plain JSON-serializable data. Common kinds:
 | `invalid-module-shape`    | Returned value is missing the `{ r: ... }` shape                                                                                     |
 | `atlas-extraction-failed` | Could not locate the `ResourceAtlas` class via the TS API                                                                            |
 | `config-access-failed`    | Setup file does not export the expected strategy                                                                                     |
+| `loader-module-failed`    | An extra module listed in `loaders` threw while being imported                                                                       |
 | `dev-loader-not-active`   | Next setup used [`createNextDevImport`](#118-createnextdevimport-nextjs-only) but jiti did not activate — install hint surfaced |
 
 Shell-keyed issues additionally carry `locale` and `isCanonical: boolean` (true when the failing locale is `defaultLocale` — distinguishes a structural break from a translation gap). All key-bound issues carry a `sourceLocation: { file, line, column }` pointing to where the key is declared in `resource-atlas.ts` — clickable from most editors and CI log viewers.
 
-**Mechanics.** A static phase uses the TS Compiler API to walk the import graph from `setupFile`, locate `ResourceAtlas`, and extract its keys + declaration positions. A runtime phase dynamic-imports `setupFile`, reads the named strategy export, and verifies each key via the production `load`, dispatched by layout kind: `shell` → one `load` per locale (full matrix); `shell(mono)` → one against `defaultLocale`; `gear:*` → one with `locale: undefined`. The same return-shape check used in production runs here.
+**Mechanics.** A static phase uses the TS Compiler API to walk the import graph from `setupFile`, locate `ResourceAtlas`, and extract its keys + declaration positions. A runtime phase dynamic-imports `setupFile`, reads the named strategy export, then imports any extra `loaders` for their `register()` side-effect — these land on the **same** `ResourceAtlas.loader` the config holds (the dispatcher reads the registry lazily, so the import just has to precede the key loop). It then verifies each key via the production `load`, dispatched by layout kind: `shell` → one `load` per locale (full matrix); `shell(mono)` → one against `defaultLocale`; `gear:*` → one with `locale: undefined`. The same return-shape check used in production runs here.
 
 **Test-as-CI-gate pattern (recommended).** Place a single test next to the setup file; `vitest run` is the gate (no separate CLI, same loader env as production). On failure `expect(report.issues).toEqual([])` prints the full issue list in the diff:
 
 ```ts
 // tests/r-machine/setup.test.ts
 it("every declared resource resolves through the configured loader", async () => {
+  // split Next setup: also pass { loaders: [import.meta.resolve("../../src/r-machine/prv/loader.ts")] } (see split-loader note below)
   const report = await verifyResourceAtlas(import.meta.resolve("../../src/r-machine/setup.ts"));
   expect(report.issues).toEqual([]);
   expect(report.totalChecks).toBeGreaterThan(0);
@@ -1514,6 +1532,8 @@ it("every declared resource resolves through the configured loader", async () =>
 ```
 
 **Peer dep & environment:** uses the TS Compiler API, declaring `typescript >=5.0` as an **optional** peer dependency (only needed when you call `verifyResourceAtlas`). Since it invokes the *real* `load`, run it in the project's bundler-aware runner if the loader uses bundler APIs (`import.meta.glob`, Webpack contexts) — `vitest` satisfies this for Vite. For **Next.js**, ``import(`./${path}`)`` does not resolve under Vite: use [`createNextDevImport`](#118-createnextdevimport-nextjs-only) (routes loads through bundler-neutral `jiti`, activated via a process-global flag); if jiti is missing the report surfaces `dev-loader-not-active`.
+
+**Split `pub/`/`prv/` loaders (Next.js).** A split Next setup keeps the server-only `inner/` loader in `prv/loader.ts`, imported only by `server-toolset.ts` — so importing `setup.ts` registers only `pub/loader` and `inner/` keys would fail with `loader-error` (`ERR_NO_LOADER_REGISTERED`). Pass `prv/loader.ts` via `loaders` so its `register()` lands on the same atlas loader before the check runs: `verifyResourceAtlas(import.meta.resolve("../../src/r-machine/setup.ts"), { loaders: [import.meta.resolve("../../src/r-machine/prv/loader.ts")] })`. Because `prv/loader.ts` starts with `import "server-only"` (which throws outside an RSC bundle), alias it to a no-op in the vitest config: `resolve.alias["server-only"] = "@r-machine/next/dev/no-op"`. Projects with no `inner/` resources register `["*"]` in `pub/loader` and need neither `loaders` nor the alias.
 
 ---
 
@@ -1559,14 +1579,33 @@ collector.dispose();
 
 ## 16. File conventions
 
-A project has two config files: **`resource-atlas.ts`** (full example in §3.1/§3.2 — `defineLayout({...})` → `class ResourceAtlas extends folders<ResourceMap>() {}`) and **`setup.ts`** (full example in §3.3/§3.4 — `RMachine.create({...})` then `createToolset()` exports + the per-framework strategy via §11.1/§11.2). Per-resource files:
+A project has two config files: **`resource-atlas.ts`** (full example in §3.1/§3.2 — `defineLayout({...})` → `class ResourceAtlas extends folders<ResourceMap>() {}`) and **`setup.ts`** (full example in §3.3/§3.4 — `RMachine.create({...})` then `createToolset()` exports + the per-framework strategy via §11.1/§11.2).
+
+Resource modules live under one of two folders, by bundle visibility: **`pub/`** ("public", client-safe — `base`/`outer`/`vertex`/`shell`/`shell/lib`) or **`prv/`** ("private", server-only — `inner`). Each folder owns a `loader.ts` (mechanism in §3.3). The `pub/`/`prv/` segment is **filesystem-only** — atlas namespaces are unchanged (`base/config`, `inner/catalog`); the loader's location absorbs it.
+
+```
+src/r-machine/
+├─ resource-atlas.ts
+├─ setup.ts
+├─ pub/            # client-safe — loader registered from setup.ts
+│  ├─ loader.ts
+│  ├─ base/  outer/  vertex/
+│  └─ shell/  (+ shell/lib/)
+└─ prv/            # server-only — loader registered from server-toolset.ts (import "server-only")
+   ├─ loader.ts
+   └─ inner/
+```
+
+Per-resource files (the path shows the folder; the namespace omits the `pub/`/`prv/` segment):
 
 ```ts
-// gear file: import { InnerGear | BaseGear | OuterGear, type RShape } from "../setup";
+// pub/<family>/<name>.ts — gear file (family ∈ base | outer | vertex);
+// server-only inner gears live at prv/inner/<name>.ts
+import { InnerGear | BaseGear | OuterGear, type RShape } from "@/r-machine/setup";
 export const r = /* composer chain */.define(/* factory */);
 export type Some_Name = RShape<typeof r>;
 
-// shell variant file:
+// pub/shell/<name>/<locale>.tsx — shell variant file
 export const r = localized("shell/<name>", { /* keys */ });
 ```
 
@@ -1576,8 +1615,8 @@ export const r = localized("shell/<name>", { /* keys */ });
 
 | If X is… | Place it as |
 |---|---|
-| Locale-dependent text content with translations | Multi-locale `shell` (`shell/<name>/<locale>.ts` files) |
-| Locale-aware behavior without translations (formatters, parsers) | `shell(mono)` (single file at `shell/lib/<name>.ts`) |
+| Locale-dependent text content with translations | Multi-locale `shell` (`pub/shell/<name>/<locale>.tsx` files) |
+| Locale-aware behavior without translations (formatters, parsers) | `shell(mono)` (single file at `pub/shell/lib/<name>.ts`) |
 | Reactive/stateful, consumed in the React tree at application scope | `gear:outer` (with `withState`) |
 | Stateful UI whose initial state comes from a server snapshot (SSR hydration) | `gear:outer` seeded inside the factory from a port (e.g. a server action) via `_.action()(await $.ports.…)` (see §11.9) |
 | Component-local reactive state consumed by descendants | `gear:outer(vertex)` consumed inside a `<VertexFrame>` |
@@ -1585,7 +1624,7 @@ export const r = localized("shell/<name>", { /* keys */ });
 | Stateless service used by other gears, never by shells | `gear:base` |
 | Stateless service that translations need to read | `gear:base`, listed in `bridgeGears` |
 | Cross-cutting service every gear/shell needs | `gear:base` referenced from `gearKit` and/or `shellKit` |
-| Server-only service (DB, secret) | `gear:inner` |
+| Server-only service (DB, secret) | `gear:inner` (server-only — lives under `prv/inner/`) |
 | One-shot async resource (fetched once) | `Shell.define(async () => …)` or `OuterGear.define(async () => …)` |
 | Side effect that fires on state change | `_.relay` inside the owning outer gear |
 | Pure derived value over state | `_.getter(() => …)` (or `_.cell(() => …)` for memoized + fine-grained) |
@@ -1605,6 +1644,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-06-21.021
+rev 2026-06-27.022
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com

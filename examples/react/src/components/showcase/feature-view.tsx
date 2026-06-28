@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { ViewId } from "@/r-machine/outer/nav";
+import type { ViewId } from "@/r-machine/pub/outer/nav";
 import { Plug } from "@/r-machine/toolset";
 import { CodeBlock } from "./code-block";
 import { VIEWS } from "./views/registry";

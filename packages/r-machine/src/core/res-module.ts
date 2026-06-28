@@ -12,22 +12,11 @@
  */
 
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
-import type { AnyLocale } from "#r-machine/locale";
 import type { AnyResOrigin } from "./res.js";
-import type { AnyNamespace, NamespaceParts } from "./res-domain.js";
 
 export interface AnyResModule {
   readonly r: AnyResOrigin;
 }
-
-export interface ResModuleLoaderFnOptions {
-  readonly namespace: AnyNamespace;
-  readonly namespaceParts: NamespaceParts;
-  readonly pathParts: string[];
-  readonly locale: AnyLocale | undefined;
-}
-
-export type ResModuleLoaderFn = (path: string, options: ResModuleLoaderFnOptions) => Promise<AnyResModule>;
 
 export function validateResModule(input: unknown): RMachineResolveError | null {
   if (typeof input !== "object" || input === null) {

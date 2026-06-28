@@ -3,10 +3,12 @@
 After creating the resource file(s), add two things to `resource-atlas.ts`:
 
 ```ts
-// 1. Import (with other import type lines, keep alphabetical order)
-import type { Outer_Cart } from "./outer/cart";
+// 1. Import (with other import type lines, keep alphabetical order).
+//    Resource files live under pub/ (client-safe) or prv/ (server-only, inner/).
+import type { Outer_Cart } from "./pub/outer/cart";
 
-// 2. ResourceMap entry (inside type ResourceMap = { ... })
+// 2. ResourceMap entry (inside type ResourceMap = { ... }).
+//    Namespaces are unchanged — the pub/ / prv/ segment is filesystem-only.
 "outer/cart": Outer_Cart;
 ```
 
@@ -14,7 +16,13 @@ For multi-locale shells, the import path points to the canonical (default
 locale) file:
 
 ```ts
-import type { Shell_Product } from "./shell/product/en";
+import type { Shell_Product } from "./pub/shell/product/en";
+```
+
+Server-only `inner/` gears live under `prv/`:
+
+```ts
+import type { Inner_Catalog } from "./prv/inner/catalog";
 ```
 
 ## Internal namespaces (`#` marker)
@@ -32,8 +40,8 @@ should never appear in UI code (JWT/crypto helpers, server-only adapters).
 Rules:
 
 - The `#` must be the **first character** (`"#base/jwt"`); mid-string is ignored.
-- It is a **type-level marker only** — never in filesystem paths or `load`. The
-  file lives at `base/jwt.ts`; `load` receives the unmarked `base/jwt`.
+- It is a **type-level marker only** — never in filesystem paths or the loader.
+  The file lives at `pub/base/jwt.ts`; the loader receives the unmarked `base/jwt`.
 - Layout classification is unchanged (`#base/jwt` still resolves to `gear:base`).
 - Factory kits (`gearKit`/`shellKit`) may reference `#` namespaces; consumer kits
   (`kit`/`clientKit`/`serverKit`) may **not** (compile error).

@@ -39,6 +39,50 @@ bun add --dev @r-machine/testing
   - `cookie`
   - other (user defines)
 - **Kit** — does the project need a formatter shell (`shell/lib/fmt`)? Recommended.
+- **React Compiler** — check whether it's enabled (a `babel-plugin-react-compiler` entry in the project's Babel config / `@vitejs/plugin-react` babel options, or the plugin in `devDependencies`).
+  - **Not enabled** → do nothing (R-Machine's preferred default).
+  - **Enabled** → tell the user it's discouraged with R-Machine and ask keep-or-disable. If kept, set `reactCompiler: "on"` in the strategy config (§2.3); otherwise `useR()` reads go stale.
+
+---
+
+## 1.5 Ensure the `@/` import alias
+
+Every file generated below imports via the `@/` alias (e.g.
+`import { ResourceAtlas } from "@/r-machine/resource-atlas";`). This is the
+**preferred** style — initialize the alias when the project lacks it rather than
+falling back to relative paths.
+
+**Detect first.** Read `tsconfig.json` / `tsconfig.app.json` `compilerOptions.paths`:
+
+- **Alias present** → mirror exactly where `@/*` points (`./src/*`, or `./*` for a
+  project with no `src/`) and proceed.
+- **Alias absent** → **propose creating it and ask the user to confirm** before editing
+  config. If they decline, use relative paths everywhere (see SKILL.md Step 3 for the
+  depth calculation) and skip the rest of this section.
+
+**Creating it (after confirmation).** Vite does **not** read tsconfig `paths`, so the
+alias must be declared in **both** places:
+
+1. `tsconfig.app.json` (and/or `tsconfig.json`) — add to `compilerOptions`:
+
+   ```jsonc
+   "paths": { "@/*": ["./src/*"] }
+   ```
+
+2. `vite.config.ts` — add `resolve.alias` (see §4.2 below for the full file):
+
+   ```ts
+   import path from "node:path";
+   // ...
+   resolve: { alias: { "@": path.resolve(__dirname, "src") } },
+   ```
+
+3. Mirror the same alias in `vitest.config.ts` (Vitest does not read tsconfig paths
+   either) — see [testing.md](./testing.md).
+
+**No `src/` directory?** Some Vite setups keep source at the repo root. Then use
+`"@/*": ["./*"]` and `path.resolve(__dirname, ".")`, and drop the `src/` segment from
+every path below.
 
 ---
 
@@ -51,7 +95,7 @@ All files live under `src/r-machine/`.
 ```ts
 // src/r-machine/resource-atlas.ts
 import { defineLayout } from "r-machine";
-import type { Shell_Lib_Fmt } from "./shell/lib/fmt"; // scaffold this file first
+import type { Shell_Lib_Fmt } from "./pub/shell/lib/fmt"; // scaffold this file first
 
 const folders = defineLayout({
   "base/": "gear:base",
@@ -78,33 +122,48 @@ const token = ResourceAtlas.getTokenBuilder();
 export const fmt = token("shell/lib/fmt");
 ```
 
-Scaffold `shell/lib/fmt` first (A.4 step 3). No formatter? Drop the `fmt`
+Scaffold `shell/lib/fmt` first (see `patterns/shell.md`). No formatter? Drop the `fmt`
 import/entry/token and keep the self-check via
 `export const token = ResourceAtlas.getTokenBuilder();`.
 
-### 2.2 `setup.ts`
+### 2.2 `pub/loader.ts`
+
+Resource modules live under `src/r-machine/pub/` ("public" — client-safe). The
+loader lives alongside them in `pub/loader.ts` so its `import.meta.glob` is rooted
+at that folder. A React (Vite) SPA has no server bundle boundary, so a single
+catch-all (`["*"]`) loader covers every prefix.
+
+```ts
+// src/r-machine/pub/loader.ts
+import type { AnyResModule } from "r-machine/core";
+import { ResourceAtlas } from "@/r-machine/resource-atlas";
+
+// Vite: statically analysed at build time for code splitting (rooted at pub/).
+const moduleLoaders = import.meta.glob<AnyResModule>("./**/*.{tsx,ts}", {});
+
+// A single loader. The fn receives the full resolved path.
+ResourceAtlas.loader.register(["*"], async (path) => {
+  const tsx = `./${path}.tsx`;
+  const ts = `./${path}.ts`;
+  const resolved = moduleLoaders[tsx] ? tsx : moduleLoaders[ts] ? ts : null;
+  if (!resolved) throw new Error(`R-Machine: module not found: ${path}`);
+  return moduleLoaders[resolved]!();
+});
+```
+
+### 2.3 `setup.ts`
 
 ```ts
 // src/r-machine/setup.ts
 import { ReactStandardStrategy } from "@r-machine/react";
 import { RMachine, type RMachineLocale } from "r-machine";
-import type { AnyResModule } from "r-machine/core";
 import { ResourceAtlas } from "./resource-atlas";
-
-// Vite: statically analysed at build time for code splitting
-const moduleLoaders = import.meta.glob<AnyResModule>("./**/*.{tsx,ts}", {});
+import "./pub/loader"; // registers the loader (§2.2)
 
 const rMachine = RMachine.create({
   locales: ["en", "it"] as const, // ← replace with real locales
   defaultLocale: "en", // ← replace with real default
   ResourceAtlas,
-  load: async (path) => {
-    const tsx = `./${path}.tsx`;
-    const ts = `./${path}.ts`;
-    const resolved = moduleLoaders[tsx] ? tsx : moduleLoaders[ts] ? ts : null;
-    if (!resolved) throw new Error(`R-Machine: module not found: ${path}`);
-    return moduleLoaders[resolved]!();
-  },
   shellKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
@@ -127,10 +186,21 @@ export const strategy = ReactStandardStrategy.create(rMachine, {
     get: () => localStorage.getItem("locale") ?? undefined,
     set: (next) => localStorage.setItem("locale", next),
   },
+  // reactCompiler: "on", // ONLY if React Compiler stays enabled (see §1)
 });
 
 export const { localeHelper } = strategy.getHelpers();
 ```
+
+**Locale persistence and detection live here.** These two strategy options are the
+single place to customize locale behavior — no other file changes:
+
+- **`localeStore`** (`get`/`set`) — how the chosen locale is **persisted/read** across
+  reloads (localStorage, cookie, …). `set` is invoked automatically by `$.setLocale()`
+  (§2.5). Omit it entirely for no persistence.
+- **`localeDetector`** — the **initial detection** when `localeStore.get()` returns
+  nothing (e.g. first visit). Above it matches the browser's `navigator.languages`;
+  replace it with any logic (geo-IP, an `Accept-Language` header, a fixed default).
 
 **Locale storage variants:**
 
@@ -149,7 +219,9 @@ No persistence (always detect from browser):
 // Omit localeStore entirely — locale is detected fresh every page load
 ```
 
-### 2.3 `toolset.ts`
+> **React Compiler:** disabled is the preferred default — R-Machine reactivity is already read-driven, so the compiler adds little benefit while adding per-re-render wrapping overhead. If §1 detected it enabled **and** the user chose to keep it, set `reactCompiler: "on"` in the strategy config above so each reactive surface gets a fresh identity per re-render (otherwise `useR()` reads go stale). Keep the build-level flag and the strategy flag in sync.
+
+### 2.4 `toolset.ts`
 
 ```ts
 // src/r-machine/toolset.ts
@@ -159,7 +231,7 @@ export const { ReactRMachine, Plug, VertexFrame } =
   await strategy.createToolset();
 ```
 
-### 2.4 Update `App.tsx` (or `main.tsx`)
+### 2.5 Update `App.tsx` (or `main.tsx`)
 
 Wrap the root with `ReactRMachine`. It handles locale resolution and
 suspense-based resource loading.
@@ -177,18 +249,37 @@ export default function App() {
 }
 ```
 
-If locale switching is needed in the UI, pass `writeLocale`:
+**Locale switching in the UI.** `ReactRMachine` takes no locale prop — persistence and
+detection are already wired in `setup.ts` via `localeStore` (`get`/`set`) and
+`localeDetector` (§2.3). To change the active locale at runtime, read `$.locale` and call
+`$.setLocale(next)` from any consumer (`plug.useR()`); the strategy's `localeStore.set`
+runs automatically. A switcher needs no resources, so use a resourceless `Plug()`:
 
 ```tsx
-import { localeHelper } from "@/r-machine/setup";
+// src/components/locale-switcher.tsx
+import { localeHelper, type Locale } from "@/r-machine/setup";
+import { Plug } from "@/r-machine/toolset";
 
-<ReactRMachine
-  writeLocale={(next) => localStorage.setItem("locale", next)}
-  fallback={<div>Loading…</div>}
->
-  {/* your app */}
-</ReactRMachine>;
+const plug = Plug(); // no resources — only the $ context
+export function LocaleSwitcher() {
+  const { $ } = plug.useR();
+  return (
+    <select
+      value={$.locale}
+      onChange={(e) => $.setLocale(e.target.value as Locale)}
+    >
+      {localeHelper.locales.map((l) => (
+        <option key={l} value={l}>
+          {l}
+        </option>
+      ))}
+    </select>
+  );
+}
+LocaleSwitcher.plug = plug;
 ```
+
+See `references/patterns/consume/plug.md` ("Switch the locale") for the full consumer pattern.
 
 ---
 
@@ -197,6 +288,7 @@ import { localeHelper } from "@/r-machine/setup";
 | File                              | Notes                                   |
 | --------------------------------- | --------------------------------------- |
 | `src/r-machine/resource-atlas.ts` | Layout + empty ResourceMap              |
+| `src/r-machine/pub/loader.ts`     | catch-all loader (`register(["*"])`)    |
 | `src/r-machine/setup.ts`          | RMachine.create + ReactStandardStrategy |
 | `src/r-machine/toolset.ts`        | strategy.createToolset()                |
 | `src/App.tsx`                     | Wrap root with `<ReactRMachine>`        |
@@ -252,7 +344,12 @@ const EXT_RE = /\.(ts|tsx)$/;
 function toResourcePath(file: string): string | null {
   const prefix = `${R_MACHINE_DIR}/`;
   if (!file.startsWith(prefix) || !EXT_RE.test(file)) return null;
-  const rel = file.slice(prefix.length).replace(EXT_RE, "");
+  // Resources live under `pub/` (client-safe) or `prv/` (server-only); strip
+  // that leading segment so the path matches the r-machine namespace.
+  const rel = file
+    .slice(prefix.length)
+    .replace(EXT_RE, "")
+    .replace(/^(pub|prv)\//, "");
   return rel.includes("/") ? rel : null;
 }
 
@@ -266,11 +363,8 @@ export function rMachineHmr(): Plugin {
       const { moduleGraph } = this.environment;
 
       if (type === "delete") {
-        if (toResourcePath(file)) {
-          this.environment.hot.send({ type: "full-reload" });
-          return [];
-        }
-        return;
+        this.environment.hot.send({ type: "full-reload" });
+        return [];
       }
       if (type !== "update") return;
 
@@ -320,51 +414,64 @@ export function rMachineHmr(): Plugin {
 
 ```ts
 // vite.config.ts
+import path from "node:path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { rMachineHmr } from "./src/r-machine/vite-plugin-r-machine-hmr";
 
 export default defineConfig({
   plugins: [react(), rMachineHmr()],
+  // The `@/` alias the generated code imports through (§1.5). Vite does not read
+  // tsconfig `paths`, so it must be declared here too. Use `"."` if the project
+  // keeps its source at the repo root (no `src/`).
+  resolve: { alias: { "@": path.resolve(__dirname, "src") } },
 });
 ```
 
 ### 4.3 Add the client-side handler in `setup.ts`
 
-Add this block before `RMachine.create(...)` — `load` references `useHMR`, so
-the constant must be in scope when the config is built. It just invalidates the
-changed resource; the next resolve re-imports it via the cache-busting `load`:
+Add this block after `RMachine.create(...)` in `setup.ts` — it needs the
+`rMachine` instance. It just invalidates the changed resource; the next resolve
+re-imports it via the cache-busting loader:
 
 ```ts
-// Before RMachine.create(...):
+// After RMachine.create(...):
 
-const useHMR = import.meta.hot && !import.meta.env.TEST;
-if (useHMR) {
-  import.meta.hot!.on("r-machine:update", ({ file }) => {
+if (import.meta.hot && !import.meta.env.TEST) {
+  import.meta.hot.on("r-machine:update", ({ file }) => {
     rMachine.reloadModule(file);
   });
 }
 ```
 
-Then make `load` cache-bust in dev. `load` only runs on a blueprint cache miss
-(initial load + after `reloadModule`), so the always-fresh import is not
-per-render overhead — and there's no module-scoped reload set to desync with the
-globalThis RMachine singleton's captured `load` closure:
+Then make the loader in `pub/loader.ts` cache-bust in dev. The loader only runs
+on a blueprint cache miss (initial load + after `reloadModule`), so the
+always-fresh import is not per-render overhead — and there's no module-scoped
+reload set to desync with the globalThis RMachine singleton's captured loader
+closure:
 
 ```ts
-load: async (path) => {
+// src/r-machine/pub/loader.ts
+import type { AnyResModule } from "r-machine/core";
+import { ResourceAtlas } from "@/r-machine/resource-atlas";
+
+const moduleLoaders = import.meta.glob<AnyResModule>("./**/*.{tsx,ts}", {});
+const useHMR = import.meta.hot && !import.meta.env.TEST;
+
+ResourceAtlas.loader.register(["*"], async (path) => {
   const tsx = `./${path}.tsx`;
-  const ts  = `./${path}.ts`;
+  const ts = `./${path}.ts`;
   const resolved = moduleLoaders[tsx] ? tsx : moduleLoaders[ts] ? ts : null;
   if (!resolved) throw new Error(`R-Machine: module not found: ${path}`);
 
   if (useHMR) {
     // In dev, ALWAYS import with a cache-busting query so an HMR-invalidated
     // module (and its freshly-bumped transitive deps) is re-fetched.
-    const freshUrl = new URL(`${resolved}?t=${Date.now()}`, import.meta.url).href;
+    const freshUrl = new URL(`${resolved}?t=${Date.now()}`, import.meta.url)
+      .href;
     return import(/* @vite-ignore */ freshUrl) as Promise<AnyResModule>;
   }
 
   return moduleLoaders[resolved]!();
-},
+});
 ```

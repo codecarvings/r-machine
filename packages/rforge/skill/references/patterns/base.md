@@ -6,10 +6,13 @@ rule see [plugin-context.md](./plugin-context.md); to test a BaseGear see
 
 ---
 
+> Client-safe `base/` resources live under `src/r-machine/pub/base/`.
+
 ## BaseGear — static, no deps
 
 ```ts
-import { BaseGear, type RShape } from "../setup";
+// src/r-machine/pub/base/config.ts
+import { BaseGear, type RShape } from "@/r-machine/setup";
 
 export const r = BaseGear.define(() => ({
   apiBase: "https://api.example.com",
@@ -22,7 +25,8 @@ export type Base_Config = RShape<typeof r>;
 ## BaseGear — with deps (list form)
 
 ```ts
-import { BaseGear, type RShape } from "../setup";
+// src/r-machine/pub/base/http.ts
+import { BaseGear, type RShape } from "@/r-machine/setup";
 
 export const r = BaseGear.withDeps("base/config").define((plugin) => {
   const [config] = plugin;
@@ -40,8 +44,9 @@ export type Base_Http = RShape<typeof r>;
 ## BaseGear — with external ports
 
 ```ts
-import { BaseGear, type RShape } from "../setup";
-import { createClient } from "../lib/db";
+// src/r-machine/pub/base/db.ts
+import { BaseGear, type RShape } from "@/r-machine/setup";
+import { createClient } from "@/lib/db";
 
 export const r = BaseGear.withPorts({ createClient }).define((plugin) => {
   const { $ } = plugin;
@@ -59,7 +64,7 @@ export type Base_Db = RShape<typeof r>;
 
 ```ts
 import { mockPlug } from "@r-machine/testing";
-import { r } from "@/r-machine/base/config";
+import { r } from "@/r-machine/pub/base/config";
 
 it("exposes its values", async () => {
   using _ctrl = mockPlug(r).default();

@@ -1,11 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { AnyRes, AnyResOrigin } from "../../src/core/res.js";
-import {
-  type AnyResModule,
-  type ResModuleLoaderFn,
-  type ResModuleLoaderFnOptions,
-  validateResModule,
-} from "../../src/core/res-module.js";
+import { type AnyResModule, validateResModule } from "../../src/core/res-module.js";
 import type { RMachineResolveError } from "../../src/errors/index.js";
 
 describe("AnyResModule", () => {
@@ -47,49 +42,6 @@ describe("AnyResModule", () => {
     // @ts-expect-error — null is not assignable to AnyResOrigin
     const m: AnyResModule = { r: null };
     void m;
-  });
-});
-
-describe("ResModuleLoaderFn", () => {
-  it("takes (path: string, options: ResModuleLoaderFnOptions) and returns Promise<AnyResModule>", () => {
-    expectTypeOf<ResModuleLoaderFn>().parameter(0).toEqualTypeOf<string>();
-    expectTypeOf<ResModuleLoaderFn>().parameter(1).toEqualTypeOf<ResModuleLoaderFnOptions>();
-    expectTypeOf<ResModuleLoaderFn>().returns.toEqualTypeOf<Promise<AnyResModule>>();
-  });
-
-  it("has arity of exactly two parameters", () => {
-    expectTypeOf<Parameters<ResModuleLoaderFn>>().toEqualTypeOf<[path: string, options: ResModuleLoaderFnOptions]>();
-  });
-
-  it("accepts a conforming inline function", () => {
-    const fn: ResModuleLoaderFn = async (_path, _options) => ({ r: { x: 1 } });
-    expectTypeOf(fn).toEqualTypeOf<ResModuleLoaderFn>();
-  });
-
-  it("rejects a function whose return type is not a Promise<AnyResModule>", () => {
-    // @ts-expect-error — returning a bare AnyResModule (not a promise) is invalid
-    const bad: ResModuleLoaderFn = (_path, _options) => ({ r: {} });
-    void bad;
-  });
-
-  it("rejects a function whose resolved value lacks the `r` field", () => {
-    // @ts-expect-error — resolved value must satisfy AnyResModule
-    const bad: ResModuleLoaderFn = async (_path, _options) => ({});
-    void bad;
-  });
-
-  it("requires the options parameter at the call site", () => {
-    const fn = (async () => ({ r: {} })) as ResModuleLoaderFn;
-    // @ts-expect-error — options is required
-    void fn("path");
-    // @ts-expect-error — options cannot be undefined
-    void fn("path", undefined);
-    void fn("path", {
-      namespace: "ns",
-      namespaceParts: ["", "ns"],
-      pathParts: [],
-      locale: undefined,
-    });
   });
 });
 

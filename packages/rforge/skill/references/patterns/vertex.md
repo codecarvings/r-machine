@@ -5,8 +5,8 @@ full composer surface). The vertex nature comes from the layout entry
 (`"vertex/": "gear:outer(vertex)"`), not the composer.
 
 ```ts
-// vertex/shopping-cart.ts
-import { OuterGear, type RShape } from "../setup";
+// src/r-machine/pub/vertex/shopping-cart.ts
+import { OuterGear, type RShape } from "@/r-machine/setup";
 
 export const r = OuterGear.withState({ items: [] as string[] }).define(
   (plugin, _) => {

@@ -40,16 +40,18 @@ Three wiring files bootstrap the machine; everything else is your resources, wit
 
 ```
 src/r-machine/
-├── setup.ts            # creates the machine + strategy; exports the producer toolset
+├── setup.ts            # creates the machine + strategy; exports the producer toolset; imports ./pub/loader
 ├── toolset.ts          # derives the consumer toolset (Plug, VertexFrame, provider)
 ├── resource-atlas.ts   # layout map (folder → family) + the typed resource registry
 ├── vite-plugin-r-machine-hmr.ts   # (Vite dev) HMR plugin — see "HMR with Vite" below
 │
-├── base/               # BaseGear resources
-├── outer/              # OuterGear resources
-├── vertex/             # vertex gears
-└── shell/              # locale-aware content - shell
-    └── lib/            # single-file shell - shell(mono)
+└── pub/                # resources (a Vite SPA has no server boundary — all client-safe)
+    ├── loader.ts       # registers the loader (register(["*"], …))
+    ├── base/           # BaseGear resources
+    ├── outer/          # OuterGear resources
+    ├── vertex/         # vertex gears
+    └── shell/          # locale-aware content - shell
+        └── lib/        # single-file shell - shell(mono)
 ```
 
 ### `resource-atlas.ts` — the registry
@@ -63,7 +65,7 @@ resource file and this entry for you:
 ```ts
 // src/r-machine/resource-atlas.ts
 import { defineLayout } from "r-machine";
-import type { Shell_Lib_Fmt } from "./shell/lib/fmt";
+import type { Shell_Lib_Fmt } from "./pub/shell/lib/fmt";
 
 // 1. Map each folder to a resource family.
 const folders = defineLayout({
@@ -97,13 +99,12 @@ the React strategy:
 import { ReactStandardStrategy } from "@r-machine/react";
 import { RMachine, type RMachineLocale } from "r-machine";
 import { ResourceAtlas } from "./resource-atlas";
+import "./pub/loader"; // registers the loader
 
 const rMachine = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
   ResourceAtlas,
-  // See examples/react for the Vite `import.meta.glob` loader used in production.
-  load: (path) => import(`./${path}`),
   shellKit: { fmt: "shell/lib/fmt" },
   experimental: { outerGear: "on" },
 });
@@ -122,6 +123,30 @@ export const strategy = ReactStandardStrategy.create(rMachine, {
   },
 });
 ```
+
+### `pub/loader.ts` — the resource loader
+
+Resource modules live under `pub/`, and the loader lives alongside them so its
+`import.meta.glob` is rooted at that folder. A Vite SPA has no server bundle
+boundary, so a single catch-all (`["*"]`) loader covers every prefix:
+
+```ts
+// src/r-machine/pub/loader.ts
+import type { AnyResModule } from "r-machine/core";
+import { ResourceAtlas } from "../resource-atlas";
+
+// Vite statically analyses this glob (rooted at pub/) for code splitting.
+const moduleLoaders = import.meta.glob<AnyResModule>("./**/*.{tsx,ts}", {});
+
+ResourceAtlas.loader.register(["*"], async (path) => {
+  const resolved = moduleLoaders[`./${path}.tsx`]
+    ? `./${path}.tsx`
+    : `./${path}.ts`;
+  return moduleLoaders[resolved]!();
+});
+```
+
+See `examples/react` for the full HMR-aware loader.
 
 ### `toolset.ts` — the consumer toolset
 
@@ -166,7 +191,7 @@ Declare a `Shell` — one file per locale. The canonical file fixes the shape; e
 variant is type-checked against it:
 
 ```tsx
-// src/r-machine/shell/greeting/en.tsx — canonical (defines the shape)
+// src/r-machine/pub/shell/greeting/en.tsx — canonical (defines the shape)
 import { type RShape } from "@/r-machine/setup";
 
 export const r = { hello: "Hello", cta: "Get started" };
@@ -174,7 +199,7 @@ export type Shell_Greeting = RShape<typeof r>;
 ```
 
 ```tsx
-// src/r-machine/shell/greeting/it.tsx — variant (type-checked against canonical)
+// src/r-machine/pub/shell/greeting/it.tsx — variant (type-checked against canonical)
 import { localized } from "@/r-machine/setup";
 
 export const r = localized("shell/greeting", { hello: "Ciao", cta: "Inizia" });
@@ -250,7 +275,7 @@ See the [`r-machine`](https://www.npmjs.com/package/r-machine) core README for t
 
 ## HMR with Vite
 
-R-Machine resources are loaded dynamically (the `load` function above), so Vite's
+R-Machine resources are loaded dynamically (the loader above), so Vite's
 default Fast Refresh doesn't know how to hot-reload them — and it certainly can't
 tell that editing a shared port or a `lib/` helper _outside_ the `r-machine/`
 directory should refresh the resources that transitively depend on it.
@@ -260,53 +285,55 @@ example solves this with a small, self-contained dev plugin,
 [`vite-plugin-r-machine-hmr.ts`](https://github.com/codecarvings/r-machine/blob/main/examples/react/src/r-machine/vite-plugin-r-machine-hmr.ts).
 On every change it walks Vite's module graph _upward_ from the edited file to find
 the resource modules that (transitively) import it, then emits a custom
-`r-machine:update` event per resource. Your `setup.ts` listens for it and re-imports
-just those modules:
+`r-machine:update` event per resource. Your `setup.ts` listens for it (it needs the
+`rMachine` instance) and `pub/loader.ts` re-imports the invalidated module with a
+cache-busting query:
 
 ```ts
-// src/r-machine/setup.ts
-import type { AnyResModule } from "r-machine/core";
-
-const moduleLoaders = import.meta.glob<AnyResModule>("./**/*.{tsx,ts}", {});
-
-const useHMR = import.meta.hot && !import.meta.env.TEST;
-if (useHMR) {
-  import.meta.hot!.on("r-machine:update", ({ file }) => {
+// src/r-machine/setup.ts — after RMachine.create(...)
+if (import.meta.hot && !import.meta.env.TEST) {
+  import.meta.hot.on("r-machine:update", ({ file }) => {
     rMachine.reloadModule(file);
   });
 }
+```
 
-const rMachine = RMachine.create({
-  ...
-  load: async (path) => {
-    const modulePathTsx = `./${path}.tsx`;
-    const modulePathTs = `./${path}.ts`;
-    const resolvedPath = moduleLoaders[modulePathTsx]
-      ? modulePathTsx
-      : moduleLoaders[modulePathTs]
-        ? modulePathTs
-        : null;
+```ts
+// src/r-machine/pub/loader.ts
+import type { AnyResModule } from "r-machine/core";
+import { ResourceAtlas } from "../resource-atlas";
 
-    if (!resolvedPath) {
-      throw new Error(`Module not found: ${path}`);
-    }
+const moduleLoaders = import.meta.glob<AnyResModule>("./**/*.{tsx,ts}", {});
+const useHMR = import.meta.hot && !import.meta.env.TEST;
 
-    if (useHMR) {
-      // In dev, ALWAYS import with a cache-busting query so an HMR-invalidated
-      // module (and its freshly-bumped transitive deps) is re-fetched.
-      const freshUrl = new URL(`${resolvedPath}?t=${Date.now()}`, import.meta.url).href;
-      return import(/* @vite-ignore */ freshUrl) as Promise<AnyResModule>;
-    }
+ResourceAtlas.loader.register(["*"], async (path) => {
+  const modulePathTsx = `./${path}.tsx`;
+  const modulePathTs = `./${path}.ts`;
+  const resolvedPath = moduleLoaders[modulePathTsx]
+    ? modulePathTsx
+    : moduleLoaders[modulePathTs]
+      ? modulePathTs
+      : null;
 
-    return moduleLoaders[resolvedPath]!();
-  },
-  ...
+  if (!resolvedPath) {
+    throw new Error(`Module not found: ${path}`);
+  }
+
+  if (useHMR) {
+    // In dev, ALWAYS import with a cache-busting query so an HMR-invalidated
+    // module (and its freshly-bumped transitive deps) is re-fetched.
+    const freshUrl = new URL(`${resolvedPath}?t=${Date.now()}`, import.meta.url)
+      .href;
+    return import(/* @vite-ignore */ freshUrl) as Promise<AnyResModule>;
+  }
+
+  return moduleLoaders[resolvedPath]!();
 });
 ```
 
-Register the plugin in `vite.config.ts`, and in dev have the `load` function
+Register the plugin in `vite.config.ts`, and in dev have the loader
 re-import with a cache-busting query (`?t=${Date.now()}`) so freshly-invalidated
-modules are actually re-fetched — see the example's `setup.ts` for the full loader.
+modules are actually re-fetched — see the example's `pub/loader.ts` for the full loader.
 
 The plugin is **plain, commented code you own** — copy it and adapt the paths to
 your project layout as needed. When you scaffold a Vite project with the

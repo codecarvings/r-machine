@@ -1,4 +1,4 @@
-import type { Product } from "../r-machine/inner/catalog";
+import type { Product } from "@/r-machine/prv/inner/catalog";
 
 /**
  * Catalog data source, passed as a PORT into `inner/catalog`.

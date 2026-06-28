@@ -7,16 +7,17 @@ import { ResourceAtlas } from "./resource-atlas.js";
 // package does not need a dependency on `@r-machine/next`.)
 (globalThis as Record<symbol, unknown>)[Symbol.for("@r-machine:dev-loader-attempted")] = true;
 
+// Loader fails for every path — what would happen if jiti weren't available
+// and the production `import(...)` template-literal path couldn't resolve.
+ResourceAtlas.loader.register(["*"], async () => {
+  throw new Error("simulated: dev loader not active");
+});
+
 const rMachine = RMachine.create({
   instanceName: "verify-test-dev-loader-missing",
   locales: ["en", "it"],
   defaultLocale: "en",
   ResourceAtlas,
-  // Loader fails for every path — what would happen if jiti weren't available
-  // and the production `import(...)` template-literal path couldn't resolve.
-  load: (async () => {
-    throw new Error("simulated: dev loader not active");
-  }) as unknown as Parameters<typeof RMachine.create>[0]["load"],
 });
 
 export const strategy = rMachine;

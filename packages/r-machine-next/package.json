@@ -53,6 +53,7 @@
       "./app/origin": "./src/app/origin/index.ts",
       "./app/path": "./src/app/path/index.ts",
       "./dev": "./src/dev/index.ts",
+      "./dev/no-op": "./src/dev/no-op/index.ts",
       ".": "./src/lib/index.ts"
     },
     "conditions": {
@@ -83,6 +84,12 @@
       "types": "./dev/index.d.cts",
       "import": "./dev/index.js",
       "require": "./dev/index.cjs"
+    },
+    "./dev/no-op": {
+      "@r-machine/source": "./src/dev/no-op/index.ts",
+      "types": "./dev/no-op/index.d.cts",
+      "import": "./dev/no-op/index.js",
+      "require": "./dev/no-op/index.cjs"
     },
     ".": {
       "@r-machine/source": "./src/lib/index.ts",

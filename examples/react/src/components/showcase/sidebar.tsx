@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { VIEW_IDS } from "@/r-machine/outer/nav";
+import { VIEW_IDS } from "@/r-machine/pub/outer/nav";
 import { Plug } from "@/r-machine/toolset";
 
 // The sidebar reads and writes a single OuterGear — this navigation IS a gear.

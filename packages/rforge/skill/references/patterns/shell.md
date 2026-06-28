@@ -35,8 +35,8 @@ JSX alone is **not** a reason to use `.define` — `.tsx` is the file _extension
 Use this form when the shell is pure static translations with no dynamic logic:
 
 ```ts
-// shell/product/en.tsx
-import type { RShape } from "../../setup"; // adjust path depth
+// src/r-machine/pub/shell/product/en.tsx
+import type { RShape } from "@/r-machine/setup";
 
 export const r = {
   title: "Product",
@@ -49,8 +49,8 @@ export type Shell_Product = RShape<typeof r>;
 Locale variant (e.g. `it.tsx`):
 
 ```ts
-// shell/product/it.tsx
-import { localized } from "../../setup";
+// src/r-machine/pub/shell/product/it.tsx
+import { localized } from "@/r-machine/setup";
 
 export const r = localized("shell/product", {
   title: "Prodotto",
@@ -65,8 +65,8 @@ access, kit helpers, or deps. (Map form vs list form governs how `fmt` is
 reached — see [plugin-context.md](./plugin-context.md).)
 
 ```ts
-// shell/greeting/en.tsx
-import { Shell, type RShape } from "../../setup";
+// src/r-machine/pub/shell/greeting/en.tsx
+import { Shell, type RShape } from "@/r-machine/setup";
 
 // Map form — kit entry "fmt" hoisted to top level
 export const r = Shell.define((plugin) => {
@@ -89,8 +89,8 @@ export type Shell_Greeting = RShape<typeof r>;
 **Locale variant — plain object** (when the variant does not need kit/locale):
 
 ```ts
-// shell/greeting/it.tsx
-import { localized } from "../../setup";
+// src/r-machine/pub/shell/greeting/it.tsx
+import { localized } from "@/r-machine/setup";
 
 export const r = localized("shell/greeting", {
   welcome: "Benvenuto!",
@@ -104,8 +104,8 @@ If a member (e.g. a formatting function) must use the kit formatter, the
 variant file also needs a factory. Wrap `localized` in `Shell.define`:
 
 ```ts
-// shell/greeting/it.tsx
-import { localized, Shell } from "../../setup";
+// src/r-machine/pub/shell/greeting/it.tsx
+import { localized, Shell } from "@/r-machine/setup";
 
 export const r = Shell.define((plugin) => {
   const { fmt } = plugin;
@@ -149,8 +149,8 @@ touches kit/locale/ports). Note the different word order and link position per
 locale:
 
 ```tsx
-// shell/common/en.tsx — canonical (plain object; static JSX)
-import type { RShape } from "../../setup";
+// src/r-machine/pub/shell/common/en.tsx — canonical (plain object; static JSX)
+import type { RShape } from "@/r-machine/setup";
 
 export const r = {
   footer: (
@@ -167,8 +167,8 @@ export type Shell_Common = RShape<typeof r>;
 ```
 
 ```tsx
-// shell/common/it.tsx — variant: own word order, own href
-import { localized } from "../../setup";
+// src/r-machine/pub/shell/common/it.tsx — variant: own word order, own href
+import { localized } from "@/r-machine/setup";
 
 export const r = localized("shell/common", {
   footer: (
@@ -186,7 +186,7 @@ export const r = localized("shell/common", {
 Still a **plain object**: a pure function needs no factory.
 
 ```tsx
-// shell/common/en.tsx
+// src/r-machine/pub/shell/common/en.tsx
 export const r = {
   terms: (props: { href: string; linkClassName?: string }) => (
     <>
@@ -208,8 +208,8 @@ dynamic href, a CSS class).
 ## Shell — multi-locale, with bridge gear dep
 
 ```ts
-// shell/product/en.tsx
-import { Shell, type RShape } from "../../setup";
+// src/r-machine/pub/shell/product/en.tsx
+import { Shell, type RShape } from "@/r-machine/setup";
 
 // List form — dep first, $ last
 export const r = Shell.withDeps("base/config") // base/config must be in bridgeGears in setup.ts
@@ -241,8 +241,8 @@ supplies the dep; the variant only provides translation values).
 Use for formatters, locale-aware helpers — no per-locale files:
 
 ```ts
-// shell/lib/fmt.ts
-import { Shell, type RShape } from "../../setup";
+// src/r-machine/pub/shell/lib/fmt.ts
+import { Shell, type RShape } from "@/r-machine/setup";
 
 export const r = Shell.define((plugin) => {
   const { $ } = plugin;
@@ -261,8 +261,8 @@ A shell factory may be `async`; the consumer suspends and shows a fallback until
 it resolves.
 
 ```ts
-// shell/async-demo/en.tsx
-import { Shell, type RShape } from "../../setup";
+// src/r-machine/pub/shell/async-demo/en.tsx
+import { Shell, type RShape } from "@/r-machine/setup";
 
 export const r = Shell.define(async () => {
   const data = await loadContent();
@@ -286,12 +286,14 @@ exact-key type-check, so the default is to **skip the test**. If you want one,
 import each locale module and assert its `r` directly — no mock:
 
 ```ts
-import { r as en } from "@/r-machine/shell/home/en";
-import { r as it } from "@/r-machine/shell/home/it";
+// Alias each locale import — do NOT use `en`/`it`. With vitest globals on, a local
+// `it` shadows the global `it()` test fn → `TS2349: expression is not callable`.
+import { r as enHome } from "@/r-machine/pub/shell/home/en";
+import { r as itHome } from "@/r-machine/pub/shell/home/it";
 
 it("en/it content", () => {
-  expect(en.deployNow).toBe("Deploy Now");
-  expect(it.deployNow).toBe("Distribuisci ora");
+  expect(enHome.deployNow).toBe("Deploy Now");
+  expect(itHome.deployNow).toBe("Distribuisci ora");
 });
 ```
 
@@ -300,7 +302,7 @@ it("en/it content", () => {
 
 ```ts
 import { mockPlug } from "@r-machine/testing";
-import { r as greet } from "@/r-machine/shell/greeting/en";
+import { r as greet } from "@/r-machine/pub/shell/greeting/en";
 
 it("resolves the shell per locale", async () => {
   using _ctrl = mockPlug(greet).with({ $: { locale: "it" } });

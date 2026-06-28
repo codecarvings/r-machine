@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { ProductCard } from "@/components/client/product-card";
 import { ClientPlug } from "@/r-machine/client-toolset";
-import type { Product } from "@/r-machine/inner/catalog";
+import type { Product } from "@/r-machine/prv/inner/catalog";
 
 // Reads the SHARED `vertex/catalog-filter` instance (shared via the parent's
 // <VertexFrame>) plus `shell/catalog`. Sorting/filtering happens client-side and

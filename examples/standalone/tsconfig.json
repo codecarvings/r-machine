@@ -14,8 +14,13 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
 
-    "types": ["node", "vitest/globals"]
+    "types": ["node", "vitest/globals"],
+
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src", "tests"]
 }

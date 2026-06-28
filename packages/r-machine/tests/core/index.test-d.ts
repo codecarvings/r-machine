@@ -15,6 +15,7 @@ import type {
   AnyResLayout,
   AnyResModule,
   AnyResOrigin,
+  AnyResourceLoader,
   BaseGearComposer,
   BaseGearNamespaceList,
   BusBridge,
@@ -62,6 +63,7 @@ import type {
   ResMatrix,
   ResModuleLoaderFn,
   ResModuleLoaderFnOptions,
+  ResourceLoader,
   RState,
   RuntimeAction,
   ShellComposer,
@@ -89,6 +91,7 @@ import {
   createOuterGearComposer,
   createPlug,
   createRequestScope,
+  createResourceLoader,
   createShellComposer,
   createToken,
   deepPartialMerge,
@@ -144,6 +147,7 @@ describe("core barrel exports", () => {
     expectTypeOf(setPlugOverride).toBeFunction();
     expectTypeOf(setPlugResolve).toBeFunction();
     expectTypeOf(createToken).toBeFunction();
+    expectTypeOf(createResourceLoader).toBeFunction();
     expectTypeOf(getResFamilyFromLayoutType).toBeFunction();
     expectTypeOf(isOuterGearLayoutType).toBeFunction();
     expectTypeOf(isVertexGearLayoutType).toBeFunction();
@@ -239,6 +243,8 @@ describe("core barrel exports", () => {
     expectTypeOf<AnyResModule>().not.toBeNever();
     expectTypeOf<ResModuleLoaderFn>().not.toBeNever();
     expectTypeOf<ResModuleLoaderFnOptions>().not.toBeNever();
+    expectTypeOf<ResourceLoader<any>>().not.toBeNever();
+    expectTypeOf<AnyResourceLoader>().not.toBeNever();
     expectTypeOf<RequestScope>().not.toBeNever();
     expectTypeOf<RequestScopeProvider>().not.toBeNever();
     expectTypeOf<ShellComposer<any, any, any, any>>().not.toBeNever();

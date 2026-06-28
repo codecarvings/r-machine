@@ -29,6 +29,9 @@ class ResourceAtlas extends folders<ResourceMap>() {}
 
 // A loader for machines that never resolve anything (construction-only tests).
 const emptyLoad = async (): Promise<AnyResModule> => ({ r: {} }) as unknown as AnyResModule;
+// The loader now lives on the atlas. Register a default for the shared atlas;
+// makeMachine overrides it per-call with a closure that resolves real gears.
+ResourceAtlas.loader.register(["*"], emptyLoad);
 
 // A loosely-typed machine handle: the locale param is widened to `string` so
 // test call-sites can pass "en"/"it" freely, and deps/kit accept any namespace.
@@ -50,32 +53,34 @@ function makeMachine(suffix = "", directKit: Record<string, string> = {}) {
     // Test helper: the kit values are real atlas namespaces, but the param is
     // loosely typed for call-site convenience — cast to satisfy the kit map.
     directKit: directKit as never,
-    load: async (path): Promise<AnyResModule> => {
-      const { InnerGear, BaseGear, OuterGear, Shell } = toolset;
-      // Shells load from a locale-suffixed module path (e.g. "shell/greeting/it"),
-      // so match by prefix rather than exact path.
-      if (path.startsWith("shell/greeting")) {
-        return {
-          r: Shell.define(({ $ }: any) => ({ text: `hello (${$.locale})` })),
-        } as unknown as AnyResModule;
-      }
-      switch (path) {
-        case "inner/double":
-          return { r: InnerGear.define(() => ({ double: (n: number) => n * 2 })) } as unknown as AnyResModule;
-        case "base/cfg":
-          return { r: BaseGear.define(() => ({ url: "https://api" })) } as unknown as AnyResModule;
-        case "outer/counter":
-          return {
-            r: OuterGear.withState({ n: 0 }).define((plugin: any, _: any) => ({
-              value: _.getter(() => plugin.$.state.n),
-              inc: _.action(() => ({ n: plugin.$.state.n + 1 })),
-            })),
-          } as unknown as AnyResModule;
-        default:
-          throw new Error(`block-c fixture: unknown resource "${path}"`);
-      }
-    },
     experimental: { outerGear: "on" },
+  });
+  // Loader lives on the (shared) atlas; this call overrides the module-level
+  // default with a closure that resolves real gears for THIS machine's toolset.
+  ResourceAtlas.loader.register(["*"], async (path): Promise<AnyResModule> => {
+    const { InnerGear, BaseGear, OuterGear, Shell } = toolset;
+    // Shells load from a locale-suffixed module path (e.g. "shell/greeting/it"),
+    // so match by prefix rather than exact path.
+    if (path.startsWith("shell/greeting")) {
+      return {
+        r: Shell.define(({ $ }: any) => ({ text: `hello (${$.locale})` })),
+      } as unknown as AnyResModule;
+    }
+    switch (path) {
+      case "inner/double":
+        return { r: InnerGear.define(() => ({ double: (n: number) => n * 2 })) } as unknown as AnyResModule;
+      case "base/cfg":
+        return { r: BaseGear.define(() => ({ url: "https://api" })) } as unknown as AnyResModule;
+      case "outer/counter":
+        return {
+          r: OuterGear.withState({ n: 0 }).define((plugin: any, _: any) => ({
+            value: _.getter(() => plugin.$.state.n),
+            inc: _.action(() => ({ n: plugin.$.state.n + 1 })),
+          })),
+        } as unknown as AnyResModule;
+      default:
+        throw new Error(`block-c fixture: unknown resource "${path}"`);
+    }
   });
   toolset = rm.createToolset() as Record<string, any>;
   return { rm: rm as unknown as AnyMachine, toolset, instanceName };
@@ -104,7 +109,6 @@ describe("RMachine.create — construction & toolset", () => {
         locales: ["en", "en"],
         defaultLocale: "en",
         ResourceAtlas,
-        load: emptyLoad,
         experimental: { outerGear: "on" },
       })
     ).toThrow(RMachineConfigError);
@@ -122,12 +126,12 @@ describe("RMachine.create — construction & toolset", () => {
     // A layout WITHOUT outer entries so the config validates with outerGear off.
     const innerOnly = defineLayout({ "inner/": "gear:inner" });
     class InnerAtlas extends innerOnly<{ "inner/x": { v: number } }>() {}
+    InnerAtlas.loader.register(["*"], emptyLoad);
     const rm = RMachine.create({
       instanceName: "block-c-no-outer",
       locales: ["en"],
       defaultLocale: "en",
       ResourceAtlas: InnerAtlas,
-      load: emptyLoad,
     });
 
     const toolset = rm.createToolset() as Record<string, unknown>;
@@ -269,7 +273,6 @@ describe("RMachine.create — singleton caching", () => {
       locales: ["en"],
       defaultLocale: "en",
       ResourceAtlas,
-      load: emptyLoad,
       experimental: { outerGear: "on" },
     });
     const b = RMachine.create({
@@ -277,7 +280,6 @@ describe("RMachine.create — singleton caching", () => {
       locales: ["en"],
       defaultLocale: "en",
       ResourceAtlas,
-      load: emptyLoad,
       experimental: { outerGear: "on" },
     });
     expect(b).toBe(a);
@@ -293,7 +295,6 @@ describe("RMachine.create — singleton caching", () => {
       locales: ["en"],
       defaultLocale: "en",
       ResourceAtlas,
-      load: emptyLoad,
       experimental: { outerGear: "on" },
     });
     const disposeSpy = vi.spyOn(
@@ -306,7 +307,6 @@ describe("RMachine.create — singleton caching", () => {
       locales: ["en"],
       defaultLocale: "en",
       ResourceAtlas,
-      load: emptyLoad,
       experimental: { outerGear: "on" },
     });
     expect(second).toBe(first);

@@ -88,6 +88,13 @@ export {
   ResLayoutResolver,
 } from "./res-layout.js";
 export { getNamespaceList, type HandleList, type NamespaceList, type ValidatedDepListType } from "./res-list.js";
+export {
+  type AnyResourceLoader,
+  createResourceLoader,
+  type ResModuleLoaderFn,
+  type ResModuleLoaderFnOptions,
+  type ResourceLoader,
+} from "./res-loader.js";
 export { ResManager } from "./res-manager.js";
 export {
   type AnyNamespaceMap,
@@ -99,8 +106,6 @@ export {
 export type { ResMatrix } from "./res-matrix.js";
 export {
   type AnyResModule,
-  type ResModuleLoaderFn,
-  type ResModuleLoaderFnOptions,
   validateResModule,
 } from "./res-module.js";
 export { createRequestScope, PROCESS_SCOPE_PROVIDER, type RequestScope, type RequestScopeProvider } from "./scope.js";

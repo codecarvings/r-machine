@@ -48,9 +48,16 @@ is already a devDependency in every setup.
 **Standalone / Node:**
 
 ```ts
+import { fileURLToPath } from "node:url";
 import { defineConfig, type ViteUserConfig } from "vitest/config";
 
 export default defineConfig({
+  resolve: {
+    // Mirror the tsconfig "@/*" -> "./src/*" path mapping (Vitest does not read
+    // tsconfig paths). Resource modules import setup/atlas via this alias, so
+    // without it `verifyResourceAtlas` cannot load them.
+    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+  },
   test: {
     environment: "node",
     globals: true,
@@ -95,6 +102,30 @@ export default defineConfig({
     server: { deps: { inline: ["@r-machine/next", "@r-machine/testing"] } },
 ```
 
+Also alias `server-only` to a no-op in `resolve.alias`. `verifyResourceAtlas`
+imports the server-only `prv/loader.ts` (to pick up the `inner/` loader), and
+that file starts with `import "server-only"`, whose default resolution throws
+outside an RSC bundle:
+
+```ts
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "server-only": "@r-machine/next/dev/no-op",
+    },
+    dedupe: ["react", "react-dom"],
+  },
+```
+
+**No `src/` directory? Adjust the alias and the verify paths.** All snippets here
+assume source under `src/` (`@/*` → `./src/*`). A default `create-next-app` (and
+many Vite setups) keep source at the **repo root** with `@/*` → `./*`. Read the
+project's `tsconfig.json` `paths` and mirror it: when there's no `src/`, the alias
+becomes `"@": fileURLToPath(new URL(".", import.meta.url))` and every
+`import.meta.resolve("../../src/r-machine/…")` in a test drops the `src/` segment
+(`"../../r-machine/setup.ts"`). The same applies to `proxy.ts`, which sits at the
+source root — repo root when there's no `src/`.
+
 ### `vitest.setup.ts` (React / Next only)
 
 ```ts
@@ -132,6 +163,24 @@ The project's `tsconfig` must **include the test directory** so the test files
 (and their mocks) are themselves type-checked — that is what turns a drifted mock
 into a failed `test` run instead of a false green.
 
+**Make the vitest globals type-visible (required, or `tsc` fails first).** The
+baseline test (and the examples below) use the globals `describe` / `it` /
+`expect` without importing them. Vitest's runner provides them at runtime, but
+`tsc` doesn't know them → the first `typecheck` fails with `TS2582: Cannot find
+name 'describe'`. Don't fix this by adding `"types": ["vitest/globals"]` to
+`compilerOptions` — that key **restricts** which `@types/*` are auto-included, so
+in a Next/React project it drops the ambient `node`/`react` types and breaks the
+build. Instead add a one-line ambient reference file at the project root so the
+globals are visible **without** narrowing `types`:
+
+```ts
+// vitest.d.ts
+/// <reference types="vitest/globals" />
+```
+
+(Equivalently, import `{ describe, it, expect }` from `"vitest"` in every test —
+but the ambient file keeps the examples copy-paste-clean.)
+
 ### Baseline test — `verifyResourceAtlas`
 
 Static + runtime check that every namespace in the ResourceAtlas resolves through
@@ -153,6 +202,18 @@ describe("setup.ts ResourceAtlas", () => {
 });
 ```
 
+**Next.js (split `pub/` + `prv/`)**: `setup.ts` only imports `pub/loader`, so the
+server-only `inner/` prefix is unregistered during verify. Pass the
+`prv/loader.ts` via the `loaders` option so its `inner/` resources are checked
+too (requires the `server-only` no-op alias in the vitest config, above):
+
+```ts
+const report = await verifyResourceAtlas(
+  import.meta.resolve("../../src/r-machine/setup.ts"),
+  { loaders: [import.meta.resolve("../../src/r-machine/prv/loader.ts")] },
+);
+```
+
 **Standalone has no strategy**, so point it at the exported `RMachine` instance:
 
 ```ts
@@ -168,13 +229,13 @@ Tests live in a top-level `tests/` directory that **mirrors `src/`** — a sourc
 file `src/<path>.ext` gets its test at `tests/<path>.test.ts(x)`. Do **not**
 flatten into one folder.
 
-- `src/r-machine/outer/cart.ts` → `tests/r-machine/outer/cart.test.ts`
+- `src/r-machine/pub/outer/cart.ts` → `tests/r-machine/pub/outer/cart.test.ts`
 - `src/components/client/cart-view.tsx` → `tests/components/client/cart-view.test.tsx`
 
 For a **multi-locale shell** (a folder of per-locale files), name the test after
 the shell, at the folder's level — not per-locale:
 
-- `src/r-machine/shell/home/{en,it}.tsx` → `tests/r-machine/shell/home.test.ts`
+- `src/r-machine/pub/shell/home/{en,it}.tsx` → `tests/r-machine/pub/shell/home.test.ts`
 
 ---
 
@@ -209,7 +270,7 @@ mock as a safety net (e.g. in an `afterEach`).
 
 ```ts
 import { mockPlug } from "@r-machine/testing";
-import { type Product, r } from "@/r-machine/inner/catalog";
+import { type Product, r } from "@/r-machine/prv/inner/catalog";
 
 it("resolves products through the async port and looks them up", async () => {
   // Mock only the async port; the real `base/store-config` dep still resolves.
@@ -229,7 +290,7 @@ it("resolves products through the async port and looks them up", async () => {
 
 ```ts
 import { mockPlug } from "@r-machine/testing";
-import { r } from "@/r-machine/outer/cart";
+import { r } from "@/r-machine/pub/outer/cart";
 
 // Seed the SSR-snapshot port to an empty cart so each test starts clean.
 const seedEmpty = () =>
@@ -285,7 +346,7 @@ one, import each locale module and assert `r` directly. A **factory** shell
 
 ```ts
 import { mockPlug } from "@r-machine/testing";
-import { r as greet } from "@/r-machine/shell/greeting/en";
+import { r as greet } from "@/r-machine/pub/shell/greeting/en";
 
 it("resolves the shell in the requested locale", async () => {
   const def = await greet.create();
@@ -374,7 +435,7 @@ dependency's surface _through this plug_ by position/name.
 import { mockPlug } from "@r-machine/testing";
 // Import just the page — its plug rides along as `ProductPage.plug`:
 import ProductPage from "@/app/[locale]/product/[id]/page";
-import type { Product } from "@/r-machine/inner/catalog";
+import type { Product } from "@/r-machine/prv/inner/catalog";
 
 vi.mock("next/navigation", () => ({
   notFound: () => {

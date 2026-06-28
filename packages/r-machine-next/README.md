@@ -43,24 +43,33 @@ npm install -D jiti
 ## Setup
 
 An R-Machine project lives in **one folder** — conventionally `src/r-machine/`.
-A few wiring files bootstrap the machine; everything else is your resources, with
-**one subfolder per family**:
+A few wiring files bootstrap the machine; everything else is your resources,
+grouped into two folders by bundle visibility: **`pub/`** ("public", client-safe)
+and **`prv/`** ("private", server-only). Inside each, **one subfolder per family**:
 
 ```
 src/r-machine/
-├── setup.ts             # creates the machine + strategy; exports the producer toolset
-├── server-toolset.ts    # server consumer toolset (ServerPlug, NextServerRMachine, …)
+├── setup.ts             # creates the machine + strategy; exports the producer toolset; imports ./pub/loader
+├── server-toolset.ts    # server consumer toolset (ServerPlug, NextServerRMachine, …); imports ./prv/loader
 ├── client-toolset.ts    # client consumer toolset (ClientPlug, VertexFrame, …) — "use client"
 ├── resource-atlas.ts    # layout map (folder → family) + the typed resource registry
 ├── path-atlas.ts        # path map with translated URL segments per locale
 │
-├── inner/               # InnerGear resources (server-only)
-├── base/                # BaseGear resources
-├── outer/               # OuterGear resources
-├── vertex/              # vertex gears
-└── shell/               # locale-aware content - shell
-    └── lib/             # single-file shell - shell(mono)
+├── pub/                 # client-safe resources (may appear in the client bundle)
+│   ├── loader.ts        # registers the client-safe loaders (base/, shell/, outer/, vertex/)
+│   ├── base/            # BaseGear resources
+│   ├── outer/           # OuterGear resources
+│   ├── vertex/          # vertex gears
+│   └── shell/           # locale-aware content - shell
+│       └── lib/         # single-file shell - shell(mono)
+│
+└── prv/                 # server-only resources (never in the client bundle)
+    ├── loader.ts        # server-only loaders (inner/) behind "server-only"
+    └── inner/           # InnerGear resources (server-only)
 ```
+
+The `pub/`/`prv/` segment is **filesystem-only** — atlas namespaces are unchanged
+(still `base/config`, `inner/catalog`, etc.).
 
 Unlike a plain React app, the consumer toolset is **split in two** — server and
 client.
@@ -76,7 +85,7 @@ resource file and this entry for you:
 ```ts
 // src/r-machine/resource-atlas.ts
 import { defineLayout } from "r-machine";
-import type { Shell_Lib_Fmt } from "./shell/lib/fmt";
+import type { Shell_Lib_Fmt } from "./pub/shell/lib/fmt";
 
 // 1. Map each folder to a resource family.
 const folders = defineLayout({
@@ -109,19 +118,15 @@ Creates the machine from the atlas, derives the **producer** toolset (`InnerGear
 ```ts
 // src/r-machine/setup.ts
 import { NextAppPathStrategy } from "@r-machine/next/app/path";
-import { createNextDevImport } from "@r-machine/next/dev";
 import { RMachine, type RMachineLocale } from "r-machine";
 import { PathAtlas } from "./path-atlas";
 import { ResourceAtlas } from "./resource-atlas";
-
-const devImport = await createNextDevImport(import.meta.url);
+import "./pub/loader"; // registers the client-safe loaders
 
 const rMachine = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
   ResourceAtlas,
-  load: (path) =>
-    devImport ? devImport(`./${path}`) : import(/* @vite-ignore */ `./${path}`),
   shellKit: { fmt: "shell/lib/fmt" },
   experimental: { outerGear: "on" },
 });
@@ -137,6 +142,46 @@ export const strategy = NextAppPathStrategy.create(rMachine, {
   PathAtlas,
   cookie: "on",
 });
+```
+
+### `pub/loader.ts` — client-safe loaders
+
+Register the client-safe prefixes (`base/`, `shell/`, `shell/lib/`, `outer/`,
+`vertex/`) here. The `import()` glob is rooted at `pub/`, so its chunks may
+legitimately appear in the client bundle. Imported for its side effect from
+`setup.ts` (above).
+
+```ts
+// src/r-machine/pub/loader.ts
+import { createNextDevImport } from "@r-machine/next/dev";
+import { ResourceAtlas } from "../resource-atlas";
+
+const devImport = await createNextDevImport(import.meta.url);
+
+ResourceAtlas.loader.register(
+  ["base/", "shell/", "shell/lib/", "outer/", "vertex/"],
+  (path) =>
+    devImport ? devImport(`./${path}`) : import(/* @vite-ignore */ `./${path}`),
+);
+```
+
+### `prv/loader.ts` — server-only loaders
+
+Register the `inner/` prefix here, behind `import "server-only"`, so its
+`import()` glob lives in a server-fenced module rooted at `prv/` and never reaches
+the client bundle. Imported for its side effect from `server-toolset.ts` (below).
+
+```ts
+// src/r-machine/prv/loader.ts
+import "server-only";
+import { createNextDevImport } from "@r-machine/next/dev";
+import { ResourceAtlas } from "../resource-atlas";
+
+const devImport = await createNextDevImport(import.meta.url);
+
+ResourceAtlas.loader.register(["inner/"], (path) =>
+  devImport ? devImport(`./${path}`) : import(/* @vite-ignore */ `./${path}`),
+);
 ```
 
 ### `server-toolset.ts` / `client-toolset.ts` — the consumer toolsets
@@ -157,8 +202,10 @@ export const { NextClientRMachine, ClientPlug, VertexFrame } =
 
 ```ts
 // src/r-machine/server-toolset.ts
+import "server-only";
 import { NextClientRMachine } from "./client-toolset";
 import { strategy } from "./setup";
+import "./prv/loader"; // registers the server-only loaders
 
 export const {
   ServerPlug,
@@ -235,7 +282,7 @@ Declare a `Shell` — one file per locale. The canonical file fixes the shape; e
 variant is type-checked against it:
 
 ```tsx
-// src/r-machine/shell/greeting/en.tsx — canonical (defines the shape)
+// src/r-machine/pub/shell/greeting/en.tsx — canonical (defines the shape)
 import { type RShape } from "@/r-machine/setup";
 
 export const r = { hello: "Hello", cta: "Get started" };
@@ -243,7 +290,7 @@ export type Shell_Greeting = RShape<typeof r>;
 ```
 
 ```tsx
-// src/r-machine/shell/greeting/it.tsx — variant (type-checked against canonical)
+// src/r-machine/pub/shell/greeting/it.tsx — variant (type-checked against canonical)
 import { localized } from "@/r-machine/setup";
 
 export const r = localized("shell/greeting", { hello: "Ciao", cta: "Inizia" });

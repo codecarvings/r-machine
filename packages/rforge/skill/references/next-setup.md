@@ -57,6 +57,11 @@ Also ask:
   - **No-proxy**: creates `app/route.ts` instead; simpler but no middleware
 - **Origin strategy only**: the origin map — `{ en: "https://example.com", it: "https://example.it" }`
 - **Kit**: does the project need a formatter shell (`shell/lib/fmt`)? Almost always yes.
+- **React Compiler** — check the project's `next.config.*` for `reactCompiler: true` (top-level) or `experimental.reactCompiler: true`.
+  - **Not enabled** → do nothing. Disabled is R-Machine's preferred default.
+  - **Enabled** → tell the user it's discouraged with R-Machine (reactivity is already read-driven, so the compiler adds little benefit and adds per-re-render wrapping overhead) and ask whether to **keep** or **disable** it.
+    - _Disable_ → remove it from `next.config`.
+    - _Keep_ → set `reactCompiler: "on"` in the strategy config (§3). The two must stay in sync: React Compiler on in `next.config` ⇒ `reactCompiler: "on"` in the strategy, otherwise `useR()` reads render stale.
 
 A **`path-atlas.ts` is created by default for every Next strategy** (all of them
 accept a `PathAtlas`) — start it empty and add localized routes later. No need to
@@ -68,6 +73,22 @@ ask.
 
 All files live under `src/r-machine/` (or wherever the `@/r-machine/` alias points).
 
+> **Check `tsconfig.json` `paths` first.** A default `create-next-app` often has
+> **no `src/`** with `@/*` → `./*`. In that case every path below loses its `src/`
+> segment: R-Machine goes in `./r-machine/`, `proxy.ts` at the **repo root**, the
+> locale layout at `app/[locale]/layout.tsx`, and the vitest alias + verify paths
+> follow suit (see [testing.md](./testing.md)). Mirror whatever `@/*` resolves to
+> — don't hardcode `src/`.
+>
+> **If `@/*` is missing entirely** (rare with `create-next-app`) the generated code's
+> `@/r-machine/...` imports won't resolve. The `@/` alias is the **preferred** style —
+> **propose adding it and ask the user to confirm** before editing config, rather than
+> falling back to relative paths. If confirmed, add `"paths": { "@/*": ["./src/*"] }`
+> (or `["./*"]` with no `src/`) to `tsconfig.json` `compilerOptions`. Next reads
+> tsconfig `paths` natively, so **no bundler alias is needed** — only the tsconfig entry
+> plus the matching `vitest.config.ts` alias for tests ([testing.md](./testing.md)). If
+> the user declines, use relative paths (SKILL.md Step 3).
+
 ### 2.1 `resource-atlas.ts` (identical for all strategies)
 
 Wire the full layout, the formatter the kits reference, and `getTokenBuilder()`.
@@ -76,7 +97,7 @@ Add other resources as you scaffold them.
 ```ts
 // src/r-machine/resource-atlas.ts
 import { defineLayout } from "r-machine";
-import type { Shell_Lib_Fmt } from "./shell/lib/fmt"; // scaffold this file first (A.4 step 3)
+import type { Shell_Lib_Fmt } from "./pub/shell/lib/fmt"; // scaffold this file first (A.4 step 3)
 
 const folders = defineLayout({
   "inner/": "gear:inner",
@@ -106,9 +127,77 @@ exporting the builder instead:
 Omit families the project won't use (e.g. omit `gear:inner` for client-only apps).
 If using `gear:inner`, keep it — removing it later is trivial.
 
-### 2.2 `setup.ts` — strategy-specific
+### 2.2 `pub/loader.ts` + `prv/loader.ts` — the loader split
 
-See §3 below for each strategy's variant.
+R-Machine loads resource modules through a per-prefix loader registered on the
+atlas (`ResourceAtlas.loader`). Resource modules live under two folders that
+mirror their bundle visibility:
+
+- **`pub/`** ("public") holds the **client-safe** families (`base/`, `outer/`,
+  `vertex/`, `shell/`, `shell/lib/`) — these may legitimately appear in the
+  client bundle.
+- **`prv/`** ("private") holds the **server-only** family (`inner/`) — these
+  must never reach the client bundle.
+
+The `pub/`/`prv/` segment is **filesystem-only**: atlas namespaces are
+unchanged (still `base/config`, `inner/catalog`, etc.) — the segment is absorbed
+by where each `loader.ts` sits. Split the loader registration across two files so
+server-only code never reaches the client bundle:
+
+- **`pub/loader.ts`** registers the **client-safe** prefixes (`base/`, `shell/`,
+  `shell/lib/`, `outer/`, `vertex/`). Its `import()` glob is rooted at `pub/`.
+  `setup.ts` imports it via `import "./pub/loader";`.
+- **`prv/loader.ts`** registers the **server-only** `inner/` prefix behind
+  `import "server-only"`, so its `import()` glob lives in a server-fenced module
+  rooted at `prv/` and Webpack/Turbopack never emit `./inner/*` chunks into the
+  client build.
+
+Each loader file creates its own `devImport` via
+`createNextDevImport(import.meta.url)`.
+
+```ts
+// src/r-machine/pub/loader.ts
+import { createNextDevImport } from "@r-machine/next/dev";
+import { ResourceAtlas } from "@/r-machine/resource-atlas";
+
+const devImport = await createNextDevImport(import.meta.url);
+
+// Client-safe loaders: every family except `inner/`. The glob is rooted at this
+// folder (`pub/`), which always contains this file → the bundler context is
+// never empty, even before any resource exists.
+ResourceAtlas.loader.register(
+  ["base/", "shell/", "shell/lib/", "outer/", "vertex/"],
+  (path) =>
+    devImport ? devImport(`./${path}`) : import(/* @vite-ignore */ `./${path}`),
+);
+```
+
+```ts
+// src/r-machine/prv/loader.ts
+import "server-only";
+import { createNextDevImport } from "@r-machine/next/dev";
+import { ResourceAtlas } from "@/r-machine/resource-atlas";
+
+const devImport = await createNextDevImport(import.meta.url);
+
+// Server-only loaders. Behind `import "server-only"` and rooted at this folder
+// (`prv/`), so the `import()` glob over server-only resources never reaches the
+// client bundle. Imported for its side effect by server-toolset.ts.
+ResourceAtlas.loader.register(["inner/"], (path) =>
+  devImport ? devImport(`./${path}`) : import(/* @vite-ignore */ `./${path}`),
+);
+```
+
+`prv/loader.ts` is imported for its side effect from `server-toolset.ts`
+(§2.4) — never from client code. Skip this file (and the `prv/` folder) entirely
+if the project has no `inner/` gears; then `pub/loader.ts` can register `["*"]`
+as a single catch-all instead.
+
+**Testing note:** because `setup.ts` imports only `pub/loader`, the `inner/`
+prefix is unregistered when `verifyResourceAtlas` runs. Pass `prv/loader.ts`
+through its `loaders` option, and alias `server-only` to a no-op in the vitest
+config (its top-level `import "server-only"` throws outside an RSC bundle). See
+[testing.md](./testing.md) for both snippets.
 
 ### 2.3 `client-toolset.ts` (identical for all strategies)
 
@@ -128,8 +217,10 @@ export const { NextClientRMachine, ClientPlug, VertexFrame } =
 
 ```ts
 // src/r-machine/server-toolset.ts
+import "server-only";
 import { NextClientRMachine } from "./client-toolset";
 import { strategy } from "./setup";
+import "./prv/loader"; // registers the server-only loaders
 
 export const {
   rMachineProxy,
@@ -145,8 +236,10 @@ export const {
 
 ```ts
 // src/r-machine/server-toolset.ts
+import "server-only";
 import { NextClientRMachine } from "./client-toolset";
 import { strategy } from "./setup";
+import "./prv/loader"; // registers the server-only loaders
 
 export const {
   routeHandlers,
@@ -263,18 +356,16 @@ Once a shell is added (e.g. `shell/common`), replace `ServerPlug()` with
 ```ts
 // src/r-machine/setup.ts
 import { NextAppPathStrategy } from "@r-machine/next/app/path";
-import { createNextDevImport } from "@r-machine/next/dev";
 import { RMachine, type RMachineLocale } from "r-machine";
-import { ResourceAtlas } from "./resource-atlas";
 import { PathAtlas } from "./path-atlas";
-
-const devImport = await createNextDevImport(import.meta.url);
+import { ResourceAtlas } from "./resource-atlas";
+import "./pub/loader"; // registers the client-safe loaders (§2.2)
 
 const rMachine = RMachine.create({
   locales: ["en", "it"] as const, // ← replace with real locales
   defaultLocale: "en", // ← replace with real default
   ResourceAtlas,
-  load: (path) => (devImport ? devImport(`./${path}`) : import(`./${path}`)),
+  // bridgeGears: ["base/store-config"], // base gears a shell is allowed to depend on
   shellKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
@@ -297,31 +388,32 @@ export const strategy = NextAppPathStrategy.create(rMachine, {
   },
   PathAtlas,
   cookie: "on",
-  // implicitDefaultLocale: "on",     // hides default locale prefix from URLs
+  // implicitDefaultLocale: "on",     // hides default locale prefix from URLs.
+  //   Object form scopes it to localized paths only (exclude API/static routes):
+  //   implicitDefaultLocale: { pathMatcher: /^(?!\/(__|api)($|\/)).*/ },
+  // reactCompiler: "on",             // ONLY if React Compiler stays enabled in next.config (see §1)
 });
 
 export const { localeHelper, hrefHelper } = strategy.getHelpers();
 ```
 
-> **React Compiler:** do not enable it (`reactCompiler` in `next.config`) for R-Machine apps — R-Machine reactivity is already read-driven, so it adds little benefit. If you must run it in a mixed codebase, set `reactCompiler: "on"` in the strategy config above to avoid stale reads (it adds per-re-render wrapping overhead). See the main docs §10.4.
+> **React Compiler:** disabled is the preferred default — R-Machine reactivity is already read-driven, so the compiler adds little benefit while adding per-re-render wrapping overhead. If §1 detected it enabled in `next.config` **and** the user chose to keep it, set `reactCompiler: "on"` in the strategy config above so each reactive surface gets a fresh identity per re-render (otherwise `ClientPlug(...).useR()` reads go stale). Keep the two settings in sync.
 
 ### 3.2 `NextAppFlatStrategy`
 
 ```ts
 // src/r-machine/setup.ts
 import { NextAppFlatStrategy } from "@r-machine/next/app/flat";
-import { createNextDevImport } from "@r-machine/next/dev";
 import { RMachine, type RMachineLocale } from "r-machine";
-import { ResourceAtlas } from "./resource-atlas";
 import { PathAtlas } from "./path-atlas";
-
-const devImport = await createNextDevImport(import.meta.url);
+import { ResourceAtlas } from "./resource-atlas";
+import "./pub/loader"; // registers the client-safe loaders (§2.2)
 
 const rMachine = RMachine.create({
   locales: ["en", "it"] as const,
   defaultLocale: "en",
   ResourceAtlas,
-  load: (path) => (devImport ? devImport(`./${path}`) : import(`./${path}`)),
+  // bridgeGears: ["base/store-config"], // base gears a shell is allowed to depend on
   shellKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
@@ -341,30 +433,32 @@ export const strategy = NextAppFlatStrategy.create(rMachine, {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
   PathAtlas,
+  // pathMatcher: /^(?!\/(__|api)($|\/)).*/, // restrict locale handling to localized paths
+  // reactCompiler: "on", // ONLY if React Compiler stays enabled in next.config (see §1)
 });
 
 export const { localeHelper, hrefHelper } = strategy.getHelpers();
 ```
 
 Note: `NextAppFlatStrategy` **requires** `proxy.ts` — no no-proxy alternative.
+`pathMatcher` (optional `RegExp`) excludes non-localized routes (API, static) from
+locale resolution.
 
 ### 3.3 `NextAppOriginStrategy`
 
 ```ts
 // src/r-machine/setup.ts
 import { NextAppOriginStrategy } from "@r-machine/next/app/origin";
-import { createNextDevImport } from "@r-machine/next/dev";
 import { RMachine, type RMachineLocale } from "r-machine";
-import { ResourceAtlas } from "./resource-atlas";
 import { PathAtlas } from "./path-atlas";
-
-const devImport = await createNextDevImport(import.meta.url);
+import { ResourceAtlas } from "./resource-atlas";
+import "./pub/loader"; // registers the client-safe loaders (§2.2)
 
 const rMachine = RMachine.create({
   locales: ["en", "it"] as const,
   defaultLocale: "en",
   ResourceAtlas,
-  load: (path) => (devImport ? devImport(`./${path}`) : import(`./${path}`)),
+  // bridgeGears: ["base/store-config"], // base gears a shell is allowed to depend on
   shellKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
@@ -386,14 +480,18 @@ export const strategy = NextAppOriginStrategy.create(rMachine, {
   PathAtlas,
   localeOriginMap: {
     en: "https://example.com", // ← replace with real origins
-    it: "https://example.it",
+    it: ["https://example.it"], // string OR string[] (multiple origins per locale)
   },
+  // pathMatcher: /^(?!\/(__|api)($|\/)).*/, // restrict locale handling to localized paths
+  // reactCompiler: "on", // ONLY if React Compiler stays enabled in next.config (see §1)
 });
 
 export const { localeHelper, hrefHelper } = strategy.getHelpers();
 ```
 
-Note: `NextAppOriginStrategy` **requires** `proxy.ts`.
+Note: `NextAppOriginStrategy` **requires** `proxy.ts`. `localeOriginMap` values accept a
+single origin or an array of origins per locale; `pathMatcher` (optional `RegExp`)
+excludes non-localized routes from locale resolution.
 
 ---
 
@@ -405,6 +503,8 @@ After generating all files, confirm with the user:
 | ------------------------- | --------------------- | ------------------------------ |
 | `resource-atlas.ts`       | `src/r-machine/`      | ✅ always                      |
 | `setup.ts`                | `src/r-machine/`      | ✅ always                      |
+| `pub/loader.ts`           | `src/r-machine/pub/`  | ✅ always                      |
+| `prv/loader.ts`           | `src/r-machine/prv/`  | ✅ always                      |
 | `client-toolset.ts`       | `src/r-machine/`      | ✅ always                      |
 | `server-toolset.ts`       | `src/r-machine/`      | ✅ always                      |
 | `proxy.ts`                | `src/` (project root) | ✅ Path/Flat/Origin with proxy |
@@ -435,3 +535,12 @@ the first `tsc` fails with a `never` type. Do ONE of:
 
 Then run the typecheck gate — `tsc --noEmit` must be clean before declaring the
 setup done.
+
+**Final gate — run `next build` once.** `tsc` and `verifyResourceAtlas` prove the
+setup type-checks and every atlas key resolves, but only a real build proves it
+works at runtime: that Next picks up `proxy.ts` as middleware (shown as
+`ƒ Proxy (Middleware)`), that `generateLocaleStaticParams` SSGs the `[locale]`
+segment (`/en`, `/it`, …), that shells resolve server-side during static
+generation, and that no `"use client"` consumer leaks a server-only import into
+the client bundle. A green `next build` is the strongest single confirmation the
+scaffold is sound.
