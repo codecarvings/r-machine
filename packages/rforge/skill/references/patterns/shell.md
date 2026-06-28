@@ -286,12 +286,14 @@ exact-key type-check, so the default is to **skip the test**. If you want one,
 import each locale module and assert its `r` directly — no mock:
 
 ```ts
-import { r as en } from "@/r-machine/pub/shell/home/en";
-import { r as it } from "@/r-machine/pub/shell/home/it";
+// Alias each locale import — do NOT use `en`/`it`. With vitest globals on, a local
+// `it` shadows the global `it()` test fn → `TS2349: expression is not callable`.
+import { r as enHome } from "@/r-machine/pub/shell/home/en";
+import { r as itHome } from "@/r-machine/pub/shell/home/it";
 
 it("en/it content", () => {
-  expect(en.deployNow).toBe("Deploy Now");
-  expect(it.deployNow).toBe("Distribuisci ora");
+  expect(enHome.deployNow).toBe("Deploy Now");
+  expect(itHome.deployNow).toBe("Distribuisci ora");
 });
 ```
 

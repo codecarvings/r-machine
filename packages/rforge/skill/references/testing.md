@@ -117,6 +117,15 @@ outside an RSC bundle:
   },
 ```
 
+**No `src/` directory? Adjust the alias and the verify paths.** All snippets here
+assume source under `src/` (`@/*` → `./src/*`). A default `create-next-app` (and
+many Vite setups) keep source at the **repo root** with `@/*` → `./*`. Read the
+project's `tsconfig.json` `paths` and mirror it: when there's no `src/`, the alias
+becomes `"@": fileURLToPath(new URL(".", import.meta.url))` and every
+`import.meta.resolve("../../src/r-machine/…")` in a test drops the `src/` segment
+(`"../../r-machine/setup.ts"`). The same applies to `proxy.ts`, which sits at the
+source root — repo root when there's no `src/`.
+
 ### `vitest.setup.ts` (React / Next only)
 
 ```ts
@@ -153,6 +162,24 @@ defeating the whole point of typed mocks (R-Machine's core guarantee). Make the
 The project's `tsconfig` must **include the test directory** so the test files
 (and their mocks) are themselves type-checked — that is what turns a drifted mock
 into a failed `test` run instead of a false green.
+
+**Make the vitest globals type-visible (required, or `tsc` fails first).** The
+baseline test (and the examples below) use the globals `describe` / `it` /
+`expect` without importing them. Vitest's runner provides them at runtime, but
+`tsc` doesn't know them → the first `typecheck` fails with `TS2582: Cannot find
+name 'describe'`. Don't fix this by adding `"types": ["vitest/globals"]` to
+`compilerOptions` — that key **restricts** which `@types/*` are auto-included, so
+in a Next/React project it drops the ambient `node`/`react` types and breaks the
+build. Instead add a one-line ambient reference file at the project root so the
+globals are visible **without** narrowing `types`:
+
+```ts
+// vitest.d.ts
+/// <reference types="vitest/globals" />
+```
+
+(Equivalently, import `{ describe, it, expect }` from `"vitest"` in every test —
+but the ambient file keeps the examples copy-paste-clean.)
 
 ### Baseline test — `verifyResourceAtlas`
 

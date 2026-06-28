@@ -183,7 +183,10 @@ Read it to learn:
 - The `defineLayout` prefix → family map (which folders exist).
 - Existing `ResourceMap` entries (to avoid collisions).
 - The import style used for existing entries — relative (`"../setup"`) or
-  alias (`"@/r-machine/setup"` - preferred) — you will mirror it.
+  alias (`"@/r-machine/setup"` - preferred) — you will mirror it. If the project has
+  no `@/` alias configured yet, the alias is still the preferred form: offer to
+  initialize it (see the framework's setup ref — React/Next) rather than defaulting to
+  relative paths. See Step 3.
 
 ### `setup.ts`
 
@@ -254,21 +257,24 @@ Segments that already contain underscores or numbers keep them: `box_1_2` →
 
 ### Import path from the new file to `setup.ts`
 
-The resource file imports from `setup.ts`. Resources live under `pub/`
-(client-safe) or `prv/` (server-only `inner/`); `setup.ts` sits one level above
-both. Count the directory depth of the new file relative to the `r-machine/`
-folder and compute the relative path, or mirror the alias style
-(`@/r-machine/setup`) if the project uses it (preferred).
+The resource file imports from `setup.ts`. **Prefer the `@/` alias** —
+`import { OuterGear, type RShape } from "@/r-machine/setup";` — mirroring exactly what
+the existing resource files do.
 
-Examples (file is inside `r-machine/pub/` or `r-machine/prv/`):
+If the project has **no** `@/` alias configured, the alias is still the preferred form:
+**propose initializing it and ask the user to confirm** (React →
+`references/react-setup.md` §1.5; Next → `references/next-setup.md` §2), then import
+through it. Fall back to relative paths only when creating the alias isn't feasible or
+the user declines.
+
+**Relative-path fallback.** Resources live under `pub/` (client-safe) or `prv/`
+(server-only `inner/`); `setup.ts` sits one level above both. Count the directory depth
+of the new file relative to the `r-machine/` folder and compute the relative path:
 
 - `pub/outer/cart.ts` → `import { OuterGear, type RShape } from "../../setup";`
 - `prv/inner/catalog.ts` → `import { InnerGear, type RShape } from "../../setup";`
 - `pub/shell/product/en.tsx` → `import { Shell, type RShape } from "../../../setup";`
 - `pub/shell/lib/fmt.ts` → `import { Shell, type RShape } from "../../../setup";`
-
-If the project uses a path alias (e.g. `@/r-machine/setup`), use that instead
-of the relative path. Mirror exactly what the existing resource files do.
 
 ---
 

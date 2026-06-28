@@ -57,6 +57,11 @@ Also ask:
   - **No-proxy**: creates `app/route.ts` instead; simpler but no middleware
 - **Origin strategy only**: the origin map — `{ en: "https://example.com", it: "https://example.it" }`
 - **Kit**: does the project need a formatter shell (`shell/lib/fmt`)? Almost always yes.
+- **React Compiler** — check the project's `next.config.*` for `reactCompiler: true` (top-level) or `experimental.reactCompiler: true`.
+  - **Not enabled** → do nothing. Disabled is R-Machine's preferred default.
+  - **Enabled** → tell the user it's discouraged with R-Machine (reactivity is already read-driven, so the compiler adds little benefit and adds per-re-render wrapping overhead) and ask whether to **keep** or **disable** it.
+    - _Disable_ → remove it from `next.config`.
+    - _Keep_ → set `reactCompiler: "on"` in the strategy config (§3). The two must stay in sync: React Compiler on in `next.config` ⇒ `reactCompiler: "on"` in the strategy, otherwise `useR()` reads render stale.
 
 A **`path-atlas.ts` is created by default for every Next strategy** (all of them
 accept a `PathAtlas`) — start it empty and add localized routes later. No need to
@@ -67,6 +72,22 @@ ask.
 ## 2. Files to create
 
 All files live under `src/r-machine/` (or wherever the `@/r-machine/` alias points).
+
+> **Check `tsconfig.json` `paths` first.** A default `create-next-app` often has
+> **no `src/`** with `@/*` → `./*`. In that case every path below loses its `src/`
+> segment: R-Machine goes in `./r-machine/`, `proxy.ts` at the **repo root**, the
+> locale layout at `app/[locale]/layout.tsx`, and the vitest alias + verify paths
+> follow suit (see [testing.md](./testing.md)). Mirror whatever `@/*` resolves to
+> — don't hardcode `src/`.
+>
+> **If `@/*` is missing entirely** (rare with `create-next-app`) the generated code's
+> `@/r-machine/...` imports won't resolve. The `@/` alias is the **preferred** style —
+> **propose adding it and ask the user to confirm** before editing config, rather than
+> falling back to relative paths. If confirmed, add `"paths": { "@/*": ["./src/*"] }`
+> (or `["./*"]` with no `src/`) to `tsconfig.json` `compilerOptions`. Next reads
+> tsconfig `paths` natively, so **no bundler alias is needed** — only the tsconfig entry
+> plus the matching `vitest.config.ts` alias for tests ([testing.md](./testing.md)). If
+> the user declines, use relative paths (SKILL.md Step 3).
 
 ### 2.1 `resource-atlas.ts` (identical for all strategies)
 
@@ -344,6 +365,7 @@ const rMachine = RMachine.create({
   locales: ["en", "it"] as const, // ← replace with real locales
   defaultLocale: "en", // ← replace with real default
   ResourceAtlas,
+  // bridgeGears: ["base/store-config"], // base gears a shell is allowed to depend on
   shellKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
@@ -366,13 +388,16 @@ export const strategy = NextAppPathStrategy.create(rMachine, {
   },
   PathAtlas,
   cookie: "on",
-  // implicitDefaultLocale: "on",     // hides default locale prefix from URLs
+  // implicitDefaultLocale: "on",     // hides default locale prefix from URLs.
+  //   Object form scopes it to localized paths only (exclude API/static routes):
+  //   implicitDefaultLocale: { pathMatcher: /^(?!\/(__|api)($|\/)).*/ },
+  // reactCompiler: "on",             // ONLY if React Compiler stays enabled in next.config (see §1)
 });
 
 export const { localeHelper, hrefHelper } = strategy.getHelpers();
 ```
 
-> **React Compiler:** do not enable it (`reactCompiler` in `next.config`) for R-Machine apps — R-Machine reactivity is already read-driven, so it adds little benefit. If you must run it in a mixed codebase, set `reactCompiler: "on"` in the strategy config above to avoid stale reads (it adds per-re-render wrapping overhead). See the main docs §10.4.
+> **React Compiler:** disabled is the preferred default — R-Machine reactivity is already read-driven, so the compiler adds little benefit while adding per-re-render wrapping overhead. If §1 detected it enabled in `next.config` **and** the user chose to keep it, set `reactCompiler: "on"` in the strategy config above so each reactive surface gets a fresh identity per re-render (otherwise `ClientPlug(...).useR()` reads go stale). Keep the two settings in sync.
 
 ### 3.2 `NextAppFlatStrategy`
 
@@ -388,6 +413,7 @@ const rMachine = RMachine.create({
   locales: ["en", "it"] as const,
   defaultLocale: "en",
   ResourceAtlas,
+  // bridgeGears: ["base/store-config"], // base gears a shell is allowed to depend on
   shellKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
@@ -407,12 +433,16 @@ export const strategy = NextAppFlatStrategy.create(rMachine, {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
   PathAtlas,
+  // pathMatcher: /^(?!\/(__|api)($|\/)).*/, // restrict locale handling to localized paths
+  // reactCompiler: "on", // ONLY if React Compiler stays enabled in next.config (see §1)
 });
 
 export const { localeHelper, hrefHelper } = strategy.getHelpers();
 ```
 
 Note: `NextAppFlatStrategy` **requires** `proxy.ts` — no no-proxy alternative.
+`pathMatcher` (optional `RegExp`) excludes non-localized routes (API, static) from
+locale resolution.
 
 ### 3.3 `NextAppOriginStrategy`
 
@@ -428,6 +458,7 @@ const rMachine = RMachine.create({
   locales: ["en", "it"] as const,
   defaultLocale: "en",
   ResourceAtlas,
+  // bridgeGears: ["base/store-config"], // base gears a shell is allowed to depend on
   shellKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
@@ -449,14 +480,18 @@ export const strategy = NextAppOriginStrategy.create(rMachine, {
   PathAtlas,
   localeOriginMap: {
     en: "https://example.com", // ← replace with real origins
-    it: "https://example.it",
+    it: ["https://example.it"], // string OR string[] (multiple origins per locale)
   },
+  // pathMatcher: /^(?!\/(__|api)($|\/)).*/, // restrict locale handling to localized paths
+  // reactCompiler: "on", // ONLY if React Compiler stays enabled in next.config (see §1)
 });
 
 export const { localeHelper, hrefHelper } = strategy.getHelpers();
 ```
 
-Note: `NextAppOriginStrategy` **requires** `proxy.ts`.
+Note: `NextAppOriginStrategy` **requires** `proxy.ts`. `localeOriginMap` values accept a
+single origin or an array of origins per locale; `pathMatcher` (optional `RegExp`)
+excludes non-localized routes from locale resolution.
 
 ---
 
@@ -500,3 +535,12 @@ the first `tsc` fails with a `never` type. Do ONE of:
 
 Then run the typecheck gate — `tsc --noEmit` must be clean before declaring the
 setup done.
+
+**Final gate — run `next build` once.** `tsc` and `verifyResourceAtlas` prove the
+setup type-checks and every atlas key resolves, but only a real build proves it
+works at runtime: that Next picks up `proxy.ts` as middleware (shown as
+`ƒ Proxy (Middleware)`), that `generateLocaleStaticParams` SSGs the `[locale]`
+segment (`/en`, `/it`, …), that shells resolve server-side during static
+generation, and that no `"use client"` consumer leaks a server-only import into
+the client bundle. A green `next build` is the strongest single confirmation the
+scaffold is sound.
