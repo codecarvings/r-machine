@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import { statSync } from "node:fs";
 import nodePath from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { CONFIG_ACCESSOR, type RMachineConfig } from "r-machine";
@@ -394,10 +395,61 @@ async function runCheck(
 
 // ─── Static extraction via TS Compiler API ──────────────────────────────
 
+// `createProgram` re-parses and re-binds the entire type graph reachable from
+// the setup file — `lib.d.ts` plus the whole r-machine `.d.ts` surface — on
+// EVERY call. Production usage calls `verifyResourceAtlas` once per process, but
+// the test suite (and any future watch-style caller) invokes it many times over
+// the same shared sources. Caching parsed SourceFiles by path lets repeated
+// programs reuse them: TS's binder skips a file whose `locals` are already set,
+// and each program's checker keeps its own per-node links, so sharing immutable,
+// already-bound SourceFiles across sequential programs is safe. The cache is
+// process-scoped and keyed by path, invalidated by mtime so a file edited
+// between calls is re-parsed.
+interface CachedSourceFile {
+  readonly mtimeMs: number;
+  readonly sourceFile: ts.SourceFile;
+}
+const sourceFileCache = new Map<string, CachedSourceFile>();
+
+function createCachingCompilerHost(tsModule: typeof ts, options: ts.CompilerOptions): ts.CompilerHost {
+  const host = tsModule.createCompilerHost(options, /* setParentNodes */ true);
+  const delegate = host.getSourceFile.bind(host);
+  // Keyed by path alone: the extracted atlas keys are a function of the source
+  // text, not of the language version, so a SourceFile parsed under one program's
+  // target is safe to reuse under another's. Invalidated by mtime.
+  host.getSourceFile = (fileName, languageVersionOrOptions, onError) => {
+    let mtimeMs: number;
+    try {
+      mtimeMs = statSync(fileName).mtimeMs;
+    } catch {
+      /* v8 ignore next -- defensive: TS only requests files it has already
+         resolved to exist, so the stat never fails in practice; fall back to a
+         plain (uncached) read if it ever does. */
+      return delegate(fileName, languageVersionOrOptions, onError);
+    }
+    const cached = sourceFileCache.get(fileName);
+    if (cached !== undefined && cached.mtimeMs === mtimeMs) {
+      return cached.sourceFile;
+    }
+    const sourceFile = delegate(fileName, languageVersionOrOptions, onError);
+    /* v8 ignore next -- defensive: the delegate returns a SourceFile for a file
+       we just stat'd successfully; the nullish case never executes here. */
+    if (sourceFile !== undefined) {
+      sourceFileCache.set(fileName, { mtimeMs, sourceFile });
+    }
+    return sourceFile;
+  };
+  return host;
+}
+
 async function extractAtlasKeys(setupFile: string, tsconfigPath?: string): Promise<ExtractedKey[]> {
   const tsModule = await loadTypeScript();
   const compilerOptions = readCompilerOptions(tsModule, setupFile, tsconfigPath);
-  const program = tsModule.createProgram([setupFile], compilerOptions);
+  const program = tsModule.createProgram(
+    [setupFile],
+    compilerOptions,
+    createCachingCompilerHost(tsModule, compilerOptions)
+  );
   const checker = program.getTypeChecker();
   const sourceFile = program.getSourceFile(setupFile);
   /* v8 ignore start -- defensive: createProgram was created with setupFile in
