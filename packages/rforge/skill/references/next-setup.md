@@ -196,6 +196,7 @@ export const { NextClientRMachine, ClientPlug, VertexFrame } =
 
 ```ts
 // src/r-machine/server-toolset.ts
+import "server-only";
 import { NextClientRMachine } from "./client-toolset";
 import { strategy } from "./setup";
 import "./prv/loader"; // registers the server-only loaders
@@ -214,6 +215,7 @@ export const {
 
 ```ts
 // src/r-machine/server-toolset.ts
+import "server-only";
 import { NextClientRMachine } from "./client-toolset";
 import { strategy } from "./setup";
 import "./prv/loader"; // registers the server-only loaders
