@@ -178,6 +178,19 @@ describe("NextAppStrategyCore", () => {
 
       await expect(strategy.createClientToolset()).rejects.toThrow("client impl failure");
     });
+
+    it("caches the toolset on the rMachine and reuses it on the next call", async () => {
+      const { strategy } = createTestStrategy();
+      const toolset = { NextClientRMachine: vi.fn() };
+      mockCreateClientToolset.mockReturnValue(toolset);
+
+      const first = await strategy.createClientToolset();
+      const second = await strategy.createClientToolset();
+
+      expect(first).toBe(second);
+      // Built once; the second call is served from the rMachine cache.
+      expect(mockCreateClientToolset).toHaveBeenCalledOnce();
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -219,6 +232,54 @@ describe("NextAppStrategyCore", () => {
       vi.spyOn(strategy as any, "createServerImpl").mockRejectedValue(implError);
 
       await expect(strategy.createServerToolset(MockNextClientRMachine)).rejects.toThrow("server impl failure");
+    });
+
+    it("caches the toolset on the rMachine and ignores NextClientRMachine on a cache hit", async () => {
+      const { strategy } = createTestStrategy();
+      const toolset = { bindLocale: vi.fn() };
+      mockCreateServerToolset.mockReturnValue(toolset);
+      const First = vi.fn() as unknown as NextAppClientRMachine<TestLocale>;
+      const Second = vi.fn() as unknown as NextAppClientRMachine<TestLocale>;
+
+      const first = await strategy.createServerToolset(First);
+      const second = await strategy.createServerToolset(Second);
+
+      expect(first).toBe(second);
+      // Built once; the second call is served from the rMachine cache and its
+      // `Second` argument is discarded (the toolset was built with `First`).
+      expect(mockCreateServerToolset).toHaveBeenCalledOnce();
+      expect(mockCreateServerToolset).toHaveBeenCalledWith(
+        expect.anything(),
+        NextAppStrategyCore.defaultConfig.serverKit,
+        expect.anything(),
+        First
+      );
+    });
+
+    it("returns an inert toolset under the forced dev loader, without constructing", async () => {
+      // verifyResourceAtlas forces the dev loader: no Next runtime to build the
+      // toolset, and it only loads modules (never runs factories).
+      const FORCE_DEV_LOADER_FLAG = Symbol.for("@r-machine:force-dev-loader");
+      const slot = globalThis as unknown as { [FORCE_DEV_LOADER_FLAG]?: number };
+      slot[FORCE_DEV_LOADER_FLAG] = 1;
+      try {
+        const { strategy } = createTestStrategy();
+        const MockNextClientRMachine = vi.fn() as unknown as NextAppClientRMachine<TestLocale>;
+
+        const toolset = (await strategy.createServerToolset(MockNextClientRMachine)) as unknown as Record<
+          string,
+          () => unknown
+        >;
+
+        // Nothing was constructed — the real factory was skipped.
+        expect(mockCreateServerToolset).not.toHaveBeenCalled();
+        // Inert: any member (e.g. ServerPlug) reads back as a no-op function, so
+        // a resource module defining `ServerPlug("…")` at load time won't crash.
+        expect(typeof toolset.ServerPlug).toBe("function");
+        expect(toolset.ServerPlug()).toBeUndefined();
+      } finally {
+        delete slot[FORCE_DEV_LOADER_FLAG];
+      }
     });
   });
 });
