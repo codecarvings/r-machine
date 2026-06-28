@@ -217,10 +217,21 @@ export function createStateBinding(plug: PlugBody<AnyPlugHead>): StateBinding {
     // on `$` (set in augmentCtx). For a consumer `$` it is absent → no-op.
     bindKey("own", ctx);
     // Kit entries (client kits may hold stateful outer gears) live on `$.kit`.
+    // A kit may carry deferred cycle-breaker getters (self/recursive refs) that
+    // throw while their own slot is still mid-resolution — which is exactly when
+    // this bind runs during the mocked plug's own resolve. Such an entry can't
+    // be a resolved stateful surface, so swallow the access and skip it; runtime
+    // never reads these getters, only this eager scan.
     const kit = ctx !== null && typeof ctx === "object" ? (ctx as Record<string, unknown>).kit : undefined;
     if (kit !== null && typeof kit === "object") {
       for (const name of Object.keys(kit as Record<string, unknown>)) {
-        bindKey(`kit:${name}`, (kit as Record<string, unknown>)[name]);
+        let value: unknown;
+        try {
+          value = (kit as Record<string, unknown>)[name];
+        } catch {
+          continue;
+        }
+        bindKey(`kit:${name}`, value);
       }
     }
   };
