@@ -19,9 +19,10 @@ CartButton.plug = plug;
 ## Consume multiple resources
 
 A consumer plugs into **several namespaces at once** — this is how a component
-gets both behavior (a gear) and localized content (a shell), even though a gear
-can never depend on a shell. The **consumer is where the independent families
-meet** (see [../../concepts/dep-asymmetry.md](../../concepts/dep-asymmetry.md)).
+gets both behavior (a gear) and localized content (a shell) as plain surfaces,
+even though a gear reaches a shell only indirectly (as a locale loader via
+`res.perLocale`). The **consumer is where the independent families meet** (see
+[../../concepts/dep-asymmetry.md](../../concepts/dep-asymmetry.md)).
 
 **List form** — positional; `useR()` returns a tuple, deps first and `$` last:
 

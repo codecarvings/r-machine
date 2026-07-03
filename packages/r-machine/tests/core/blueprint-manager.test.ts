@@ -15,7 +15,15 @@ import { ASYNC } from "../../src/core/sync-resolve.js";
 // plugHead.nsDepList (the dep list the BM extracts to populate forwardDeps).
 // connector / userFactory / cursor are never invoked by BM (they are exercised
 // by RM's resolvePod, which is not under test here).
-function makeMatrixModule(family: "gear" | "shell", role: GearRole | undefined, deps: string[]): AnyResModule {
+function makeMatrixModule(
+  family: "gear" | "shell",
+  role: GearRole | undefined,
+  deps: string[],
+  // `perLocale(...)` shell deps: index → shell namespace. Recorded on the head like
+  // the real partition (res-plug.ts) so the BM can exercise the dev-only reverse
+  // edge without eager-preloading the shell.
+  shellDeps?: Record<string, string>
+): AnyResModule {
   const head = {
     realm: "res",
     family,
@@ -23,6 +31,7 @@ function makeMatrixModule(family: "gear" | "shell", role: GearRole | undefined, 
     deps,
     nsDeps: deps,
     nsDepList: deps,
+    shellDeps,
     ports: {},
   };
   const meta = family === "gear" ? { family, role: role as GearRole } : { family };
@@ -189,6 +198,27 @@ describe("BlueprintManager — dep graph population", () => {
     // Reverse graph is consistent: HMR(A) cascade reaches X and B.
     expect(reverseDeps.get("g/A")).toEqual(new Set(["g/X", "g/B"]));
     expect(reverseDeps.get("g/B")).toEqual(new Set(["g/X", "g/A"]));
+  });
+
+  it("perLocale deps: reverse edge registered, but shell NOT eager-preloaded", async () => {
+    // g/X declares a `perLocale("s/Y")` shell dep: no normal deps, s/Y recorded in
+    // shellDeps. The reverse edge (s/Y → g/X) must exist so an HMR on the shell
+    // disposes g/X — but s/Y must NOT be eager-loaded (a shell has no
+    // locale-free resolution).
+    const env = createTestEnv({
+      modules: {
+        "g/X": () => makeMatrixModule("gear", "inner", [], { "0": "s/Y" }),
+        "s/Y": () => makeRawModule({ greeting: "hi" }),
+      },
+    });
+
+    await loadByNs(env, "g/X");
+
+    const { forwardDeps, reverseDeps } = env.inspect();
+    expect(forwardDeps.get("g/X")).toEqual(new Set(["s/Y"]));
+    expect(reverseDeps.get("s/Y")?.has("g/X")).toBe(true);
+    // s/Y was tracked for the reverse edge but never eager-loaded.
+    expect(env.loadCalls).toEqual(["g/X"]);
   });
 
   it("populates the dep graph transitively as deps are eagerly loaded", async () => {

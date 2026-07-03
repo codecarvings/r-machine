@@ -23,7 +23,7 @@ if (import.meta.hot && !import.meta.env.TEST) {
   });
 }
 
-export const { BaseGear, OuterGear, Shell, DirectPlug, localized } = rMachine.createToolset();
+export const { BaseGear, OuterGear, Shell, DirectPlug, localized, res } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 

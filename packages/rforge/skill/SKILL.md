@@ -155,17 +155,20 @@ Gather (from the message or by asking) these four things:
 4. **Dependencies** — any deps (`withDeps`) or external functions (`withPorts`)?
    For `OuterGear`, is it stateful (`withState`)?
 
-   Valid dep families per resource kind (never suggest anything outside these):
+   Valid **plain** dep families per resource kind — a plain dep resolves to the
+   resource's own surface (never suggest anything outside these):
    - `gear:outer` → `gear:base`, `gear:outer`
    - `gear:base` → `gear:base`
    - `gear:inner` → `gear:base`, `gear:inner`
    - `shell` / `shell(mono)` → `shell`, `shell(mono)`, `gear:base` (only if in `bridgeGears`)
    - `gear:outer(vertex)` → same as `gear:outer`
 
-   **Shells (`shell`, `shell(mono)`) can never be deps of any gear.**
-   Never suggest a `shell/…` namespace as a dep when the resource being
-   created is a gear. (Why this asymmetry — and `bridgeGears` — in
-   `references/concepts/dep-asymmetry.md`.)
+   **A bare `shell/…` is never a plain dep of a gear.** A gear (or a shell)
+   reaches a `Shell` only through `res.perLocale("shell/…")` inside `withDeps`:
+   the dep then resolves to a locale loader `(locale) => Promise<Surface>`, not a
+   surface — so a locale-agnostic gear can read localized content at runtime.
+   Never suggest a _bare_ `shell/…` as a gear dep. (Asymmetry, `bridgeGears`, and
+   `res.perLocale`: `references/concepts/dep-asymmetry.md`.)
 
 Don't ask for all four upfront if some are already obvious from the request.
 Clarify only what's missing.
@@ -313,6 +316,10 @@ Key rules (enforced by the TS compiler — get them right upfront):
 - `InnerGear` can depend on `gear:inner` and `gear:base`.
 - `Shell` can depend on `shell`, `shell(mono)`, and `gear:base` (only if
   listed in `bridgeGears`).
+- Any gear (or shell) reaches a `Shell` **only** via `res.perLocale("shell/…")`
+  in `withDeps` → resolves to a loader `(locale) => Promise<Surface>`, never a
+  plain surface; a bare `shell/…` is not a valid gear dep. (The rules above are
+  plain, same-surface deps.)
 - `gear:outer(vertex)` **cannot be a dep of any resource** — it's consumer-only.
 - Only `OuterGear` supports `withState` and cursor primitives (`_.action`,
   `_.getter`, `_.relay`).

@@ -121,9 +121,58 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
     };
   };
 
+  // `res.perLocale(...)` deps: build one locale loader per declared shell (locale is
+  // supplied by the caller at invocation, so the loaders are locale-agnostic
+  // and built once). `injectShellPickers` layers them onto the resolved dep plugin
+  // at their declared position WITHOUT mutating the (wire-cached, possibly
+  // shared) plugin — map: copy descriptors so lazy kit getters stay lazy; list:
+  // re-insert each loader at its original tuple index.
+  const shellDeps = head.shellDeps;
+  const makeLoader =
+    (shellNs: AnyNamespace) =>
+    (locale: AnyLocale): Promise<unknown> => {
+      // Defensive: a real RMachine connector always provides `resolveShell`. Only
+      // a bare composer (unit test wiring) could omit it, and only if it both
+      // declared a picker dep AND invoked the loader — never happens in practice.
+      /* v8 ignore next 3 */
+      if (connector.resolveShell === undefined) {
+        throw new Error(`Cannot resolve shell "${shellNs}": this connector has no resolveShell (bare composer?).`);
+      }
+      return connector.resolveShell(shellNs, locale);
+    };
+  const injectShellPickers =
+    shellDeps === undefined
+      ? (plugin: unknown): unknown => plugin
+      : (plugin: unknown): unknown => {
+          if (head.mode === "map") {
+            const src = plugin as Record<string, unknown>;
+            const out: Record<string, unknown> = {};
+            for (const key of Reflect.ownKeys(src)) {
+              Object.defineProperty(out, key, Object.getOwnPropertyDescriptor(src, key)!);
+            }
+            for (const key in shellDeps) {
+              out[key] = makeLoader(shellDeps[key]);
+            }
+            return out;
+          }
+          // list: [...compactedDeps, $] → re-interleave loaders by original index
+          const arr = plugin as unknown[];
+          const ctx$ = arr[arr.length - 1];
+          const compacted = arr.slice(0, -1);
+          const origLen = compacted.length + Object.keys(shellDeps).length;
+          const out: unknown[] = [];
+          let ci = 0;
+          for (let i = 0; i < origLen; i++) {
+            const shellNs = shellDeps[String(i)];
+            out.push(shellNs !== undefined ? makeLoader(shellNs) : compacted[ci++]);
+          }
+          out.push(ctx$);
+          return out;
+        };
+
   setPlugResolve(plug, async (locale: AnyLocale | undefined, chain: readonly AnyNamespace[]) => {
     const wire = await connector.getWire(head.nsDeps, locale, makeBuildCtx2(locale), chain);
-    return wire.plugin as never;
+    return injectShellPickers(wire.plugin) as never;
   });
 
   // Sync sibling of the plug resolve. Declines (ASYNC) when the connector has
@@ -136,7 +185,7 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
     if (wire === ASYNC) {
       return ASYNC;
     }
-    return wire.plugin as never;
+    return injectShellPickers(wire.plugin) as never;
   });
 
   // Eligibility holder mutated by `create` (below) and read via

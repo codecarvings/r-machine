@@ -88,6 +88,26 @@ export function cloneSurfaceWithOverride(surface: object, partial: AnyRecord | u
 }
 
 /**
+ * Apply a single dep-position override. A normal dep resolves to a Surface →
+ * layer the partial over it. A `res.perLocale(...)` dep resolves to a LOADER
+ * function `(locale) => Promise<Surface>` → keep it a loader, but per call
+ * resolve the REAL localized surface and deep-merge the mock's returned partial
+ * ON TOP (so the mock overrides only the fields it names, inheriting the rest
+ * of the real shell/locale). Detection is on the REAL resolved value: only a
+ * perLocale loader is a function; the type layer guarantees the override is
+ * then a function too.
+ */
+function applyDepOverride(real: unknown, override: AnyRecord): unknown {
+  if (typeof real === "function") {
+    const realLoader = real as (locale: unknown) => Promise<unknown>;
+    const mockFn = override as unknown as (locale: unknown) => unknown;
+    return async (locale: unknown): Promise<unknown> =>
+      deepPartialMerge(await realLoader(locale), await mockFn(locale));
+  }
+  return cloneSurfaceWithOverride(real as object, override);
+}
+
+/**
  * Clone the kit object applying per-entry overrides. Non-overridden entries are
  * copied by descriptor — crucially keeping any chain-deferred self-reference
  * getter LAZY (reading it mid-factory throws `ERR_CIRCULAR_DEPENDENCY`).
@@ -178,8 +198,9 @@ export function cloneMapPlugin(plugin: object, data: AnyRecord): object {
       continue; // rebuilt last
     }
     if (typeof key === "string" && hasOwn(data, key)) {
-      // Dep override. Deps are eager resolved Surfaces (data props), safe to read.
-      out[key] = cloneSurfaceWithOverride((plugin as AnyRecord)[key] as object, data[key] as AnyRecord);
+      // Dep override. A normal dep is an eager Surface; a perLocale dep is a
+      // loader function (see applyDepOverride).
+      out[key] = applyDepOverride((plugin as AnyRecord)[key], data[key] as AnyRecord);
     } else {
       // Copy descriptor: keeps eager values and any lazy deferred-kit getter lazy.
       Object.defineProperty(out, key, Object.getOwnPropertyDescriptor(plugin, key)!);
@@ -216,7 +237,7 @@ export function cloneListPlugin(plugin: readonly unknown[], data: AnyRecord): un
   const out: unknown[] = [];
   for (let i = 0; i < lastIdx; i++) {
     const override = data[String(i)] as AnyRecord | undefined;
-    out.push(override !== undefined ? cloneSurfaceWithOverride(plugin[i] as object, override) : plugin[i]);
+    out.push(override !== undefined ? applyDepOverride(plugin[i], override) : plugin[i]);
   }
   out.push(cloneCtx(plugin[lastIdx] as object, ctxOverride));
   return out;

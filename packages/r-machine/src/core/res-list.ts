@@ -19,10 +19,18 @@ import {
   getNamespace,
   type Handle,
   type Namespace,
+  type ShellPickerHandle,
 } from "./res-domain.js";
 import type { Surface } from "./surface.js";
 
 export type HandleList<RA extends AnyResAtlas, C extends ResAtlasCatalog = "shape"> = readonly Handle<RA[C]>[];
+
+// `withDeps` (list form) catalog for GEARS: see DepHandleMap. Each element is a
+// normal handle from catalog `C` OR a `res.perLocale(...)` over a shell namespace.
+export type DepHandleList<RA extends AnyResAtlas, C extends ResAtlasCatalog = "shape"> = readonly (
+  | Handle<RA[C]>
+  | ShellPickerHandle<Namespace<RA["shape"]>>
+)[];
 
 export type NamespaceList<RA extends AnyResAtlas, C extends ResAtlasCatalog = "shape"> = readonly Namespace<RA[C]>[];
 
@@ -49,4 +57,12 @@ export type SurfaceList<RA extends AnyResAtlas, HL extends HandleList<RA>> = {
     ExtractNamespace<HL[I]>,
     RA["let"][ExtractNamespace<HL[I]>]
   >;
+};
+
+// Dep-facing variant of SurfaceList (see DepSurfaceMap): a `ShellPickerHandle<S>`
+// element resolves to a locale-parametric loader instead of a plain Surface.
+export type DepSurfaceList<RA extends AnyResAtlas, HL extends HandleList<RA>> = {
+  -readonly [I in keyof HL]: HL[I] extends ShellPickerHandle<infer S extends string, infer L>
+    ? (locale: L) => Promise<Surface<RA["shape"][S], S, RA["let"][S]>>
+    : Surface<RA["shape"][ExtractNamespace<HL[I]>], ExtractNamespace<HL[I]>, RA["let"][ExtractNamespace<HL[I]>]>;
 };

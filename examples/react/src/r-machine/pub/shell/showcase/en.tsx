@@ -19,6 +19,7 @@ export const r = {
     async: "Async + Suspense",
     formatting: "Formatting",
     localization: "Localization",
+    crossLocale: "Cross-locale",
   },
 
   // Per-view heading + blurb
@@ -73,6 +74,14 @@ export const r = {
         "Every string here comes from a localized shell. Switching locale is persisted to localStorage and survives a reload — no URL, no router.",
       footnote:
         "Every heading, blurb and label in this app is a localized shell — switching locale re-resolves them all.",
+    },
+    crossLocale: {
+      heading: "One gear, every locale",
+      blurb:
+        "res.perLocale turns a shell into a locale LOADER that a locale-agnostic gear calls at runtime. base/preview asks the loader for the showcase shell in every configured locale at once — so this panel shows all translations side by side, independent of the app's active locale.",
+      ambientLabel: "app locale",
+      panelNote:
+        "These cards come from a single gear (base/preview) that reused shell/showcase across locales. Switch the app locale (top-right) — the badge above changes, but the cards do not.",
     },
   },
 

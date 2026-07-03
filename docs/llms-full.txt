@@ -55,6 +55,9 @@ The same flow scaffolds gears and shells.
 **Composers** (resource declaration)
 `InnerGear`, `BaseGear`, `OuterGear`, `Shell`, `localized`
 
+**Toolset dep builders**
+`res.perLocale` — declares a `Shell` as a locale-loader dep inside `withDeps`; `.pickAll` / `.pick` batch-resolve loaders (§4.1)
+
 **Plug** (consumer primitive)
 `Plug`, `ClientPlug`, `ServerPlug`, `DirectPlug` (container-free, runs anywhere)
 
@@ -104,14 +107,14 @@ Six family values are accepted in `defineLayout`. Anything else is a compile err
 
 | Family | Composer | Stateful? | Can depend on | Consumed by | Locale-aware? | Eligible for kit? |
 |---|---|---|---|---|---|---|
-| `gear:inner` | `InnerGear` | no | `InnerGear`, `BaseGear`, `gearKit` | `InnerGear`, `BaseGear`, and `ServerPlug` (Next.js RSC only — never `Plug` or `ClientPlug`) | no | yes (`gearKit`) |
-| `gear:base` | `BaseGear` | no | `BaseGear`, `gearKit` | `InnerGear`, `BaseGear`, `OuterGear`, `Shell` (only if listed in `bridgeGears`) | no | yes (`gearKit`, `serverKit`/`clientKit`) |
-| `gear:outer` | `OuterGear` | optional | `BaseGear`, `OuterGear`, `gearKit` | other `OuterGear` and consumers via `Plug` / `ClientPlug` (not `ServerPlug`) | no | optional |
+| `gear:inner` | `InnerGear` | no | `InnerGear`, `BaseGear`, `gearKit`; any Shell via `res.perLocale` (§4.1) | `InnerGear`, `BaseGear`, and `ServerPlug` (Next.js RSC only — never `Plug` or `ClientPlug`) | no | yes (`gearKit`) |
+| `gear:base` | `BaseGear` | no | `BaseGear`, `gearKit`; any Shell via `res.perLocale` (§4.1) | `InnerGear`, `BaseGear`, `OuterGear`, `Shell` (only if listed in `bridgeGears`) | no | yes (`gearKit`, `serverKit`/`clientKit`) |
+| `gear:outer` | `OuterGear` | optional | `BaseGear`, `OuterGear`, `gearKit`; any Shell via `res.perLocale` (§4.1) | other `OuterGear` and consumers via `Plug` / `ClientPlug` (not `ServerPlug`) | no | optional |
 | `gear:outer(vertex)` | `OuterGear` | optional | same as `gear:outer` | only consumers via `Plug` / `ClientPlug`; **cannot be a dep of any resource**; instance scoped per call (or shared via `<VertexFrame>`) | no | optional |
-| `shell` | `Shell` | no | `Shell`, `shell(mono)`, `BaseGear` (only if in `bridgeGears`), `shellKit` | other `Shell` and consumers | yes | yes (`shellKit`) |
+| `shell` | `Shell` | no | `Shell`, `shell(mono)`, `BaseGear` (only if in `bridgeGears`), `shellKit`; any Shell in any locale via `res.perLocale` (§4.1) | other `Shell` and consumers | yes | yes (`shellKit`) |
 | `shell(mono)` | `Shell` | no | same as `shell` | other `Shell` and consumers | yes | yes (`shellKit`) |
 
-Dep-graph asymmetry: no dep path connects `gear:inner` to `gear:outer`, `gear:outer(vertex)`, or `Shell`. Enforced at the `withDeps(...)` call site by the compiler.
+Dep-graph asymmetry: no *plain* dep path connects `gear:inner` to `gear:outer`, `gear:outer(vertex)`, or `Shell` — enforced at the `withDeps(...)` call site by the compiler. The one sanctioned bridge to a `Shell` is `res.perLocale(...)` (§4.1), which admits it as a locale **loader** `(locale) => Promise<Surface>`, not a resolved surface.
 
 ---
 
@@ -218,7 +221,7 @@ Loaders are split across the two resource folders (layout in §16) so server-onl
 ### 3.4. Toolset
 
 ```ts
-export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized } = rMachine.createToolset();
+export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized, res } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 ```
@@ -290,6 +293,19 @@ The factory takes a single first argument — `plugin` — uniform across all fo
 - **No deps** (or `withDeps()` with no arguments) — map form (default): `const { $ } = plugin;`.
 - **Map form** (`withDeps({ name: "ns" })`) — `const { name, $ } = plugin;`, with `$` alongside the named deps.
 - **List form** (`withDeps("ns1", "ns2")`) — `const [dep1, dep2, $] = plugin;`, with `$` always as the last tuple element.
+
+**`res.perLocale("shell/x")` — a `Shell` as a locale-loader dep.** Wrapping a shell namespace with `res.perLocale(...)` (from the toolset, §3.4) resolves it not to a surface but to a **loader** `(locale) => Promise<Surface>`, so a locale-agnostic gear — or a `Shell` reusing another locale — reads localized content at runtime; `locale` is typed to the configured locale union. Usable in `withDeps` of any gear family and `Shell`, in list or map form:
+
+```ts
+BaseGear.withDeps({ hi: res.perLocale("shell/greeting") }).define((plugin) => {
+  const { hi } = plugin;                       // hi: (locale: Locale) => Promise<Surface>
+  return { greet: (locale: Locale) => hi(locale) };
+});
+```
+
+Mock it with a function (§14.2).
+
+Two resolution-time batch helpers on `res.perLocale` (they close over the configured locales) fold multiple loaders in one call: `res.perLocale.pickAll(loader | map)` resolves **every** locale, locale-major (`Record<Locale, Surface>` / `Record<Locale, {…}>`); `res.perLocale.pick(locale, map | tuple)` resolves a batch at **one** locale, shape preserved.
 
 ### 4.2. `withPorts({...})`
 
@@ -1324,7 +1340,7 @@ State is deliberately **not** a `.with(...)` override — it's a live cell, so i
 
 ### 14.2. Channel A — resolution overrides (`.with`)
 
-Overridable: the plug's direct dependencies (by name / position), kit entries (`$.kit`), and — conditional on the resource — the locale key (named by plug kind, §14.7; gears have no locale) and `$.ports` (only resources declared with `withPorts({...})`). Anything not overridden runs through the production factory as a deep partial on top of the resulting Surface, so unsubstituted paths (including `[Symbol.dispose]` teardown) still run; `mockPlug` also reaches `$`-prefixed members (relays, internal actions).
+Overridable: the plug's direct dependencies (by name / position), kit entries (`$.kit`), and — conditional on the resource — the locale key (named by plug kind, §14.7; gears have no locale) and `$.ports` (only resources declared with `withPorts({...})`). Anything not overridden runs through the production factory as a deep partial on top of the resulting Surface, so unsubstituted paths (including `[Symbol.dispose]` teardown) still run; `mockPlug` also reaches `$`-prefixed members (relays, internal actions). A `res.perLocale` dep (§4.1) resolves to a loader, so it is mocked with a **function** `(locale) => partial` deep-merged over the real localized surface per call.
 
 Resource-level test — override a port (pass the resource `r`), drive the rest of the real factory:
 
@@ -1644,6 +1660,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-06-27.022
+rev 2026-07-03.023
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com

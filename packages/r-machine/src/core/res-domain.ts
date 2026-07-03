@@ -11,6 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
+import type { AnyLocale } from "#r-machine/locale";
 import type { AnyResAtlas, ResAtlasCatalog } from "./res-atlas.js";
 import type { ResLayoutEntryType } from "./res-layout.js";
 import type { AnyNamespaceList, NamespaceList } from "./res-list.js";
@@ -42,6 +43,58 @@ export type Handle<RD extends AnyResDomain> = Namespace<RD> | Token<Namespace<RD
 
 export type ExtractNamespace<H extends Handle<any>> = H extends Token<infer N> ? N : H;
 
+// A `ShellPickerHandle<N, L>` marks a dependency whose RESOLVED value is a
+// locale-parametric loader `(locale: L) => Promise<Surface>` rather than a plain
+// Surface — used to declare a locale-keyed shell as a dependency of a
+// locale-agnostic gear (the locale arrives at runtime). It is structurally a
+// `Token<N>` (carries the same `[namespaceSymbol]: N`, so `ExtractNamespace`
+// keeps working unchanged) plus a private `[shellPickerSymbol]` brand. Both symbols
+// are module-private, so a ShellPickerHandle cannot be forged outside `createShellPicker()`.
+// `L` is a TYPE-ONLY phantom carrying the atlas's configured locale union (so the
+// loader's `locale` param is typed, not `AnyLocale`); it is absent at runtime.
+const shellPickerSymbol = Symbol("shellPicker");
+declare const shellPickerLocale: unique symbol;
+export interface ShellPickerHandle<N extends string, L extends AnyLocale = AnyLocale> extends Token<N> {
+  readonly [shellPickerSymbol]: true;
+  readonly [shellPickerLocale]?: L;
+}
+
+// True when a handle is a shell picker (drives the dep→surface conditional in
+// DepSurfaceMap/DepSurfaceList).
+export type IsShellPicker<H> = H extends { readonly [shellPickerSymbol]: true } ? true : false;
+
+// A resolved `res.perLocale(...)` dependency: a loader that returns the shell
+// surface for the locale passed at call time. `S = any` on purpose — the surface
+// type is inferred from each loader at the batch-helper call site.
+export type LocaleLoader<L extends AnyLocale, S = any> = (locale: L) => Promise<S>;
+type LoaderMap<L extends AnyLocale> = Record<string, LocaleLoader<L>>;
+// Maps a loader map (or loader tuple — a mapped tuple stays a tuple) to the
+// record/tuple of its resolved surfaces. The `infer S` on the loader's Promise
+// keeps `X[K]` from needing a function constraint (which a tuple's array members
+// would break).
+type Loaded<X> = { [K in keyof X]: X[K] extends (locale: any) => Promise<infer S> ? S : never };
+
+// `res.perLocale`: a builder AND a pair of resolution-time batch helpers.
+//   - CALL form — `res.perLocale("shell/x")` — declares the dep (returns a handle,
+//     symmetry with `withDeps`: accepts a shell namespace string OR a shell token).
+//     `L` (the configured locale union) is fixed by the toolset exposing the builder
+//     and stamped onto the handle, so the resolved loader's locale is typed.
+//   - `pickAll(...)` — resolve loader(s) for EVERY configured locale, locale-major
+//     (`Record<L, …>`); a bare loader yields `Record<L, S>`, a map yields
+//     `Record<L, { …resolved }>`.
+//   - `pick(locale, …)` — resolve a batch at ONE locale, preserving shape (map→map,
+//     tuple→tuple).
+// Overload order matters: the single-loader / tuple forms come first (a tuple fails
+// the `LoaderMap` constraint via `length`/array methods, and a function is not a
+// record, so the map overloads never mis-capture them).
+export interface ShellPickerBuilder<RD extends AnyResDomain, L extends AnyLocale = AnyLocale> {
+  <N extends Namespace<RD>>(nsOrToken: N | Token<N>): ShellPickerHandle<N, L>;
+  pickAll<S>(loader: LocaleLoader<L, S>): Promise<Record<L, S>>;
+  pickAll<M extends LoaderMap<L>>(loaders: M): Promise<Record<L, Loaded<M>>>;
+  pick<T extends readonly LocaleLoader<L>[]>(locale: L, loaders: readonly [...T]): Promise<Loaded<T>>;
+  pick<M extends LoaderMap<L>>(locale: L, loaders: M): Promise<Loaded<M>>;
+}
+
 export type NamespaceCollection<RA extends AnyResAtlas, C extends ResAtlasCatalog = "shape"> =
   | NamespaceMap<RA, C>
   | NamespaceList<RA, C>;
@@ -69,6 +122,56 @@ export function isHandle(value: unknown): value is Handle<any> {
   return typeof value === "string" || (typeof value === "object" && value !== null && namespaceSymbol in value);
 }
 
+export function isShellPicker(value: unknown): value is ShellPickerHandle<AnyNamespace> {
+  return typeof value === "object" && value !== null && shellPickerSymbol in value;
+}
+
 export function createToken<N extends AnyNamespace>(namespace: N): Token<N> {
   return { [namespaceSymbol]: namespace };
+}
+
+// Build a shell picker handle from a shell namespace string or token. Reuses
+// `getNamespace` for extraction (token → symbol, string → itself; strips the
+// internal marker), so the stored namespace is always bare.
+export function createShellPicker<N extends AnyNamespace>(nsOrToken: N | Token<N>): ShellPickerHandle<N> {
+  const namespace = getNamespace(nsOrToken as Handle<any>) as N;
+  return { [namespaceSymbol]: namespace, [shellPickerSymbol]: true };
+}
+
+// Build the toolset's `res.perLocale` member: the `createShellPicker` builder with
+// the resolution-time batch helpers `pickAll` / `pick` attached, closing over the
+// machine's configured `locales` (so a factory never has to enumerate them itself).
+// The helpers operate on ALREADY-RESOLVED loaders `(locale) => Promise<Surface>`;
+// locale validation lives in the loader, so it is not repeated here.
+export function createPerLocale<RD extends AnyResDomain, L extends AnyLocale>(
+  locales: readonly L[]
+): ShellPickerBuilder<RD, L> {
+  const perLocale = ((nsOrToken: AnyNamespace | Token<AnyNamespace>) =>
+    createShellPicker(nsOrToken)) as ShellPickerBuilder<RD, L>;
+
+  perLocale.pickAll = (async (x: LocaleLoader<L> | LoaderMap<L>) => {
+    if (typeof x === "function") {
+      const entries = await Promise.all(locales.map(async (l) => [l, await x(l)] as const));
+      return Object.fromEntries(entries);
+    }
+    const keys = Object.keys(x);
+    const entries = await Promise.all(
+      locales.map(async (l) => {
+        const bundle = await Promise.all(keys.map(async (k) => [k, await x[k]!(l)] as const));
+        return [l, Object.fromEntries(bundle)] as const;
+      })
+    );
+    return Object.fromEntries(entries);
+  }) as ShellPickerBuilder<RD, L>["pickAll"];
+
+  perLocale.pick = (async (locale: L, x: readonly LocaleLoader<L>[] | LoaderMap<L>) => {
+    if (Array.isArray(x)) {
+      return Promise.all(x.map((fn) => fn(locale)));
+    }
+    const map = x as LoaderMap<L>;
+    const bundle = await Promise.all(Object.keys(map).map(async (k) => [k, await map[k]!(locale)] as const));
+    return Object.fromEntries(bundle);
+  }) as ShellPickerBuilder<RD, L>["pick"];
+
+  return perLocale;
 }

@@ -152,10 +152,20 @@ export class BlueprintManager {
     family: ResFamily,
     locale: AnyLocale | undefined,
     nsDepList: AnyNamespaceList,
+    shellNsList: AnyNamespaceList,
     chain: readonly string[]
   ): Promise<AnyNamespace[]> {
     const kitDeps = this.kitDepList[family].filter((n) => n !== namespace);
-    const allNsDeps = [...new Set([...nsDepList, ...kitDeps])];
+    // `res.perLocale(...)` shell deps: weak reverse edge so editing a shell disposes
+    // dependent gears (HMR). Tracked in the graph (via allNsDeps) but NOT
+    // eager-preloaded — a shell has no locale-free resolution. Folded
+    // UNCONDITIONALLY, exactly like kitDeps: the edge is naturally inert in
+    // prod (reloadModule/invalidate is a dev-only path) and does not perturb
+    // the relay-ordering reverse-BFS (a shell never depends on a gear, so an OG
+    // mutation source never traverses into a shell key). A NODE_ENV gate would
+    // be WRONG here — client HMR runs in the browser where `isDevEnv()` is
+    // false by design (no `process`), which would silently disable it.
+    const allNsDeps = [...new Set([...nsDepList, ...kitDeps, ...shellNsList])];
     // Eager preload only the explicit plug deps. Kit deps are tracked in
     // the dep graph (via the returned allNsDeps) for HMR cascade purposes,
     // but loaded lazily by the ResManager at factory-runtime. Eagerly
@@ -205,6 +215,7 @@ export class BlueprintManager {
             blueprint.family,
             locale,
             blueprint.plugHead!.nsDepList,
+            Object.values(blueprint.plugHead!.shellDeps ?? {}),
             [...chain, key]
           );
         }

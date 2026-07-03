@@ -73,9 +73,14 @@ export type { Handle, NamespaceCollection } from "./res-domain.js";
 export {
   type AnyNamespace,
   type AnyResDomain,
+  createPerLocale,
+  createShellPicker,
   createToken,
   type ExtractNamespace,
+  type LocaleLoader,
   type Namespace,
+  type ShellPickerBuilder,
+  type ShellPickerHandle,
   type Token,
 } from "./res-domain.js";
 export type { AnyResEquipment, ResEquipment } from "./res-equipment.js";

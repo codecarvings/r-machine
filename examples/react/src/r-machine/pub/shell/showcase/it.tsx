@@ -17,6 +17,7 @@ export const r = localized("shell/showcase", {
     async: "Async + Suspense",
     formatting: "Formattazione",
     localization: "Localizzazione",
+    crossLocale: "Cross-locale",
   },
 
   views: {
@@ -72,6 +73,14 @@ export const r = localized("shell/showcase", {
         "Ogni stringa qui viene da uno shell localizzato. Il cambio locale è persistito in localStorage e sopravvive al reload — niente URL, niente router.",
       footnote:
         "Ogni heading, blurb ed etichetta in quest'app è uno shell localizzato — cambiando locale si ri-risolvono tutti.",
+    },
+    crossLocale: {
+      heading: "Un gear, tutte le locale",
+      blurb:
+        "res.perLocale trasforma uno shell in un LOADER di locale che un gear locale-agnostico chiama a runtime. base/preview chiede al loader lo shell showcase in ogni locale configurata in una volta sola — così questo pannello mostra tutte le traduzioni affiancate, indipendentemente dalla locale attiva dell'app.",
+      ambientLabel: "locale dell'app",
+      panelNote:
+        "Queste card vengono da un solo gear (base/preview) che ha riusato shell/showcase in tutte le locale. Cambia la locale dell'app (in alto a destra) — il badge sopra cambia, ma le card no.",
     },
   },
 

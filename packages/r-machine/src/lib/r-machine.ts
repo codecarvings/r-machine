@@ -29,6 +29,7 @@ import {
   createEventBus,
   createInnerGearComposer,
   createOuterGearComposer,
+  createPerLocale,
   createPlug,
   createShellComposer,
   type DirectPlugDefiner,
@@ -185,6 +186,33 @@ export class RMachine<
       // Stamped onto every Plug built through this connector so test helpers can
       // reach `disposeResources()` from `r.plug` alone (`@r-machine/testing`).
       machine: this[PLUG_MACHINE_ACCESSOR],
+      // Backs `res.perLocale(...)` dep loaders: single-shot, non-subscribing resolve of
+      // one shell surface for a runtime-supplied locale (empty kit, no wire).
+      // Mirrors the DirectPlug locale validation.
+      resolveShell: async (shellNs, localeArg) => {
+        const effLocale = getCanonicalUnicodeLocaleId(localeArg) as L;
+        const error = this.localeHelper.validateLocale(effLocale);
+        if (error) {
+          throw new RMachineUsageError(
+            ERR_UNKNOWN_LOCALE,
+            `Cannot resolve shell "${shellNs}" for invalid locale: "${localeArg}".`,
+            error
+          );
+        }
+        const augmentCtx: PluginCtxAugmenter = ($) => {
+          $.locale = effLocale;
+        };
+        const plugin = await this.resManager.getPlugin(
+          {} as NamespaceMap<RA>,
+          { shell: shellNs } as unknown as NamespaceCollection<RA>,
+          effLocale,
+          augmentCtx,
+          [],
+          0,
+          undefined
+        );
+        return (plugin as { shell: unknown }).shell;
+      },
     };
   }
 
@@ -206,7 +234,11 @@ export class RMachine<
       this.createResComposerConnector(this.config.equipment.shellKit)
     );
     const DirectPlug = this.createDirectPlug();
-    return { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized };
+    // `res` (derived-dependency builders) and `localized` are pure, atlas-typed
+    // helpers (no machine state); exposed here so all resource/consumer tooling
+    // comes from one place.
+    const res = { perLocale: createPerLocale(this.localeHelper.locales) } as RMachineToolset<RA, L, E, EF>["res"];
+    return { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized, res };
   }
 
   // The container-free, framework-neutral consumer plug. Unlike ClientPlug
