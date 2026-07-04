@@ -1,4 +1,4 @@
-import { Languages } from "lucide-react";
+import { Check, Languages } from "lucide-react";
 import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,14 +39,18 @@ export function LocaleSwitcher() {
           <span className="hidden sm:inline text-base">{currentLocaleItem.name}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-40">
-        {Object.entries(localeItems).map(([key, { name }]) => (
+      <DropdownMenuContent align="end" className="min-w-50">
+        {Object.entries(localeItems).map(([locale, { name }]) => (
           <DropdownMenuItem
-            key={key}
-            onClick={() => setLocaleAfterMenuClose(key as Locale)}
+            key={locale}
+            onClick={() => setLocaleAfterMenuClose(locale as Locale)}
             className="cursor-pointer gap-2 text-base py-2"
           >
+            <Check className={`mr-2 h-4 w-4 ${$.locale === locale ? "opacity-100" : "opacity-0"}`} />
             <span>{name}</span>
+            <span className="ms-auto font-mono text-xs text-muted-foreground bg-muted rounded px-1.5 py-0.5">
+              {locale}
+            </span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
