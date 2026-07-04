@@ -101,7 +101,7 @@
     }
   ],
   "devDependencies": {
-    "@biomejs/biome": "2.5.1",
+    "@biomejs/biome": "2.5.2",
     "@changesets/cli": "^2.31.0",
     "@playwright/test": "^1.61.1",
     "@r-machine/next": "workspace:*",
@@ -117,14 +117,14 @@
     "husky": "9.1.7",
     "jsdom": "^29.1.1",
     "lint-staged": "^17.0.8",
-    "next": "^16.2.9",
-    "prettier": "^3.8.4",
+    "next": "^16.2.10",
+    "prettier": "^3.9.4",
     "r-machine": "workspace:*",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "semver": "^7.8.5",
     "size-limit": "^12.1.0",
-    "tsx": "^4.22.4",
+    "tsx": "^4.23.0",
     "typescript": "~6.0.3",
     "vitest": "^4.1.9",
     "zshy": "0.7.3"
