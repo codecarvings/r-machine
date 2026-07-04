@@ -6,7 +6,6 @@ import { Plug } from "@/r-machine/toolset";
 const plug = Plug("outer/timer", "shell/showcase");
 export function OuterGearDemo() {
   const [timer, s] = plug.useR();
-  const labels = s.views["outer-gear"];
 
   return (
     <Card>
@@ -14,11 +13,11 @@ export function OuterGearDemo() {
         <div className="flex items-baseline gap-3">
           <span className="font-mono text-4xl font-bold tabular-nums">{timer.value}</span>
           <Badge variant={timer.isOdd ? "default" : "secondary"}>
-            {timer.isOdd ? labels.oddLabel : labels.evenLabel}
+            {timer.isOdd ? s.views.outerGear.oddLabel : s.views.outerGear.evenLabel}
           </Badge>
         </div>
         <div className="text-sm text-muted-foreground">
-          {labels.doubledLabel} <span className="font-mono">{timer.doubled}</span>
+          {s.views.outerGear.doubledLabel} <span className="font-mono">{timer.doubled}</span>
         </div>
         <div className="flex gap-2">
           <Button onClick={() => timer.add(1)}>+1</Button>
@@ -26,7 +25,7 @@ export function OuterGearDemo() {
             +10
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">{labels.note}</p>
+        <p className="text-xs text-muted-foreground">{s.views.outerGear.note}</p>
       </CardContent>
     </Card>
   );

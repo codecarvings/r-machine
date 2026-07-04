@@ -5,8 +5,8 @@ import { OuterGear, type RShape } from "@/r-machine/setup";
 // survives HMR reloads.
 export const VIEW_IDS = [
   "intro",
-  "outer-gear",
-  "gear-deps",
+  "outerGear",
+  "gearDeps",
   "vertex",
   "async",
   "formatting",

@@ -18,7 +18,7 @@ export function GearDepsDemo() {
           </div>
         </div>
         <Button onClick={operator.add10}>operator.add10() → timer.add(10)</Button>
-        <p className="text-xs text-muted-foreground">{s.views["gear-deps"].note}</p>
+        <p className="text-xs text-muted-foreground">{s.views.gearDeps.note}</p>
       </CardContent>
     </Card>
   );

@@ -37,14 +37,14 @@ export const VIEWS: Record<ViewId, ViewEntry> = {
       { label: "components/showcase/sidebar.tsx", lang: "tsx", code: sidebarSrc },
     ],
   },
-  "outer-gear": {
+  outerGear: {
     Demo: OuterGearDemo,
     sources: [
       { label: "r-machine/pub/outer/timer.ts", lang: "ts", code: timerSrc },
       { label: "OuterGearDemo.tsx", lang: "tsx", code: outerGearDemoSrc },
     ],
   },
-  "gear-deps": {
+  gearDeps: {
     Demo: GearDepsDemo,
     sources: [
       { label: "r-machine/pub/outer/operator.ts", lang: "ts", code: operatorSrc },

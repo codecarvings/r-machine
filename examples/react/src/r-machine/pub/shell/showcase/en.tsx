@@ -13,8 +13,8 @@ export const r = {
   // Sidebar labels, keyed by ViewId
   nav: {
     intro: "Intro",
-    "outer-gear": "OuterGear",
-    "gear-deps": "Gear dependencies",
+    outerGear: "OuterGear",
+    gearDeps: "Gear dependencies",
     vertex: "Vertex",
     async: "Async + Suspense",
     formatting: "Formatting",
@@ -34,7 +34,7 @@ export const r = {
       activeViewLabel: "active view",
       hmrNote: "Edit a resource and save — thanks to HMR, the OuterGear keeps its state and this selection persists.",
     },
-    "outer-gear": {
+    outerGear: {
       heading: "OuterGear — reactive state",
       blurb:
         "Actions mutate state, getters read it, a memoized cell derives from it, and a relay reacts to changes. The interval lives in the gear with Symbol.dispose cleanup.",
@@ -43,7 +43,7 @@ export const r = {
       doubledLabel: "doubled (memoized cell):",
       note: "Auto-increments every second via an interval owned by the gear; a relay flips the odd/even badge.",
     },
-    "gear-deps": {
+    gearDeps: {
       heading: "Gear dependencies",
       blurb:
         "operator depends on timer, declared by token and injected fully typed — no imports, no manual wiring. Read its derived value and command it.",

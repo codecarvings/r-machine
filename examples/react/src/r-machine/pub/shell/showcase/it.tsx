@@ -11,8 +11,8 @@ export const r = localized("shell/showcase", {
 
   nav: {
     intro: "Intro",
-    "outer-gear": "OuterGear",
-    "gear-deps": "Dipendenze tra gear",
+    outerGear: "OuterGear",
+    gearDeps: "Dipendenze tra gear",
     vertex: "Vertex",
     async: "Async + Suspense",
     formatting: "Formattazione",
@@ -33,7 +33,7 @@ export const r = localized("shell/showcase", {
       hmrNote:
         "Modifica una risorsa e salva — grazie all'HMR, l'OuterGear mantiene il suo stato e questa selezione persiste.",
     },
-    "outer-gear": {
+    outerGear: {
       heading: "OuterGear — stato reattivo",
       blurb:
         "Le action mutano lo stato, i getter lo leggono, una cell memoizzata ne deriva un valore e un relay reagisce ai cambiamenti. L'interval vive nel gear con cleanup via Symbol.dispose.",
@@ -42,7 +42,7 @@ export const r = localized("shell/showcase", {
       doubledLabel: "raddoppiato (cell memoizzata):",
       note: "Si auto-incrementa ogni secondo tramite un interval gestito dal gear; un relay alterna il badge dispari/pari.",
     },
-    "gear-deps": {
+    gearDeps: {
       heading: "Dipendenze tra gear",
       blurb:
         "operator dipende da timer, dichiarato per token e iniettato completamente tipizzato — niente import, niente wiring manuale. Leggine il valore derivato e comandalo.",
