@@ -8,6 +8,7 @@ import type {
   HrefTranslator,
   PathAtlas,
   PathAtlasClass,
+  PathCanonicalizer,
   PathParamMap,
   PathParams,
   PathSelector,
@@ -37,6 +38,8 @@ describe("core barrel exports", () => {
     expectTypeOf<PathAtlas<AnySegment>>().toBeObject();
 
     expectTypeOf<PathAtlasClass<AnyPathAtlas>>().toBeConstructibleWith();
+
+    expectTypeOf<PathCanonicalizer>().toBeObject();
 
     expectTypeOf<PathParamMap<"/">>().toBeObject();
 

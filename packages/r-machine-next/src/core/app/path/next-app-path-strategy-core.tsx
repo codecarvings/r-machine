@@ -23,6 +23,7 @@ import {
   HrefTranslator,
   type NextClientPlugKitMap,
   type NextServerPlugKitMap,
+  PathCanonicalizer,
   type PathParamMap,
   type PathParams,
   type PathSelector,
@@ -138,7 +139,7 @@ export abstract class NextAppPathStrategyCore<
     this.rMachine.localeHelper.defaultLocale
   );
   // Used by setLocale to keep the content path when changing locale
-  protected readonly pathCanonicalizer = new NextAppPathStrategyPathCanonicalizer(
+  protected readonly pathCanonicalizer = new PathCanonicalizer(
     this.pathAtlas,
     this.rMachine.localeHelper.locales,
     this.rMachine.localeHelper.defaultLocale,
@@ -244,30 +245,5 @@ export class NextAppPathStrategyPathTranslator extends HrefTranslator {
       return path === "/" ? prefix : `${prefix}${path}`;
     },
     preApply: false,
-  };
-}
-
-export class NextAppPathStrategyPathCanonicalizer extends HrefCanonicalizer {
-  constructor(
-    atlas: AnyPathAtlas,
-    locales: AnyLocaleList,
-    defaultLocale: AnyLocale,
-    protected readonly implicitDefaultLocale: boolean
-  ) {
-    super(atlas, locales, defaultLocale);
-  }
-
-  protected override readonly adapter = {
-    fn: (locale: AnyLocale, path: string): string => {
-      if (this.implicitDefaultLocale && locale === this.defaultLocale) {
-        return path;
-      }
-      const secondSlashIndex = path.indexOf("/", 1);
-      if (secondSlashIndex === -1) {
-        return "/";
-      }
-      return path.slice(secondSlashIndex);
-    },
-    preApply: true,
   };
 }
