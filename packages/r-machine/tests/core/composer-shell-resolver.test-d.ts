@@ -3,14 +3,14 @@ import type { BaseGearComposer } from "../../src/core/base-gear-composer.js";
 import type { InnerGearComposer } from "../../src/core/inner-gear-composer.js";
 import type { OuterGearComposer } from "../../src/core/outer-gear-composer.js";
 import type { AnyResAtlas } from "../../src/core/res-atlas.js";
-import type { ShellPickerBuilder } from "../../src/core/res-domain.js";
+import type { ShellResolverBuilder } from "../../src/core/res-domain.js";
 import type { ShellComposer } from "../../src/core/shell-composer.js";
 
 // The atlas's configured locale union — what `res.perLocale`'s loader param is
 // typed to (NOT the wide `AnyLocale`), so an invalid locale is a compile error.
 type Locale = "en" | "it";
 
-// Concrete atlas exercising `shellPicker`. `shape@shell` is what restricts a shell picker
+// Concrete atlas exercising `shellResolver`. `shape@shell` is what restricts a shell resolver
 // to SHELLS only (gears are rejected), mirroring how `withDeps` reads `valid@*`.
 type CfgShape = { apiBase: string };
 type GreetShape = { text: string; subject: string };
@@ -35,26 +35,26 @@ declare const baseComposer: BaseGearComposer<TestAtlas, {}>;
 declare const outerComposer: OuterGearComposer<TestAtlas, {}>;
 declare const shellComposer: ShellComposer<TestAtlas, Locale, [], {}>;
 
-// The shell picker builder as exposed on the toolset (`toolset.res.perLocale`) —
+// The shell resolver builder as exposed on the toolset (`toolset.res.perLocale`) —
 // restricted to the atlas's shell catalog, carrying the configured locale `L`.
-declare const shellPicker: ShellPickerBuilder<TestAtlas["shape@shell"], Locale>;
+declare const shellResolver: ShellResolverBuilder<TestAtlas["shape@shell"], Locale>;
 
-describe("shellPicker — restricted to the shell catalog", () => {
+describe("shellResolver — restricted to the shell catalog", () => {
   it("accepts a shell namespace inside withDeps (all gear families)", () => {
-    innerComposer.withDeps({ greet: shellPicker("s/greet") });
-    baseComposer.withDeps({ greet: shellPicker("s/greet") });
-    outerComposer.withDeps({ greet: shellPicker("s/greet") });
+    innerComposer.withDeps({ greet: shellResolver("s/greet") });
+    baseComposer.withDeps({ greet: shellResolver("s/greet") });
+    outerComposer.withDeps({ greet: shellResolver("s/greet") });
   });
 
-  it("rejects a non-shell (gear) namespace passed to shellPicker itself", () => {
-    // @ts-expect-error — a gear namespace is not a valid shellPicker target
-    innerComposer.withDeps({ bad: shellPicker("i/cfg") });
+  it("rejects a non-shell (gear) namespace passed to shellResolver itself", () => {
+    // @ts-expect-error — a gear namespace is not a valid shellResolver target
+    innerComposer.withDeps({ bad: shellResolver("i/cfg") });
   });
 });
 
-describe("resolved type of a shell picker dep", () => {
+describe("resolved type of a shell resolver dep", () => {
   it("is a locale-parametric loader returning the shell surface", () => {
-    innerComposer.withDeps({ greet: shellPicker("s/greet") }).define((plugin) => {
+    innerComposer.withDeps({ greet: shellResolver("s/greet") }).define((plugin) => {
       expectTypeOf(plugin.greet).toBeFunction();
       expectTypeOf(plugin.greet).parameter(0).toEqualTypeOf<Locale>();
       plugin.greet("en"); // a configured locale is accepted
@@ -69,13 +69,13 @@ describe("resolved type of a shell picker dep", () => {
 
   it("coexists with normal deps (which stay plain surfaces)", () => {
     innerComposer
-      .withDeps({ cfg: "i/cfg", greet: shellPicker("s/greet") })
+      .withDeps({ cfg: "i/cfg", greet: shellResolver("s/greet") })
       .withPorts({ send: (_s: string) => 1 })
       .define((plugin) => {
         // normal dep → plain surface (fields exposed directly, NOT a function)
         expectTypeOf(plugin.cfg.apiBase).toEqualTypeOf<string>();
         expectTypeOf(plugin.cfg).not.toBeFunction();
-        // shell picker dep → loader function
+        // shell resolver dep → loader function
         expectTypeOf(plugin.greet).toBeFunction();
         expectTypeOf(plugin.$.ports.send).toBeFunction();
         return {};
@@ -83,9 +83,9 @@ describe("resolved type of a shell picker dep", () => {
   });
 });
 
-describe("shellPicker — list (positional) form", () => {
-  it("resolves the loader at the shell picker's tuple position", () => {
-    innerComposer.withDeps("i/cfg", shellPicker("s/greet")).define((plugin) => {
+describe("shellResolver — list (positional) form", () => {
+  it("resolves the loader at the shell resolver's tuple position", () => {
+    innerComposer.withDeps("i/cfg", shellResolver("s/greet")).define((plugin) => {
       const [cfg, greet] = plugin;
       expectTypeOf(cfg.apiBase).toEqualTypeOf<string>();
       expectTypeOf(greet).toBeFunction();
@@ -97,17 +97,17 @@ describe("shellPicker — list (positional) form", () => {
 
 describe("res.perLocale — batch helpers (pickAll / pick)", () => {
   it("pickAll(loader) resolves Record<Locale, Surface>", () => {
-    innerComposer.withDeps({ greet: shellPicker("s/greet") }).define((plugin) => {
+    innerComposer.withDeps({ greet: shellResolver("s/greet") }).define((plugin) => {
       type S = Awaited<ReturnType<typeof plugin.greet>>;
-      expectTypeOf(shellPicker.pickAll(plugin.greet)).resolves.toEqualTypeOf<Record<Locale, S>>();
+      expectTypeOf(shellResolver.pickAll(plugin.greet)).resolves.toEqualTypeOf<Record<Locale, S>>();
       return {};
     });
   });
 
   it("pickAll(map) resolves Record<Locale, bundle> (locale-major)", () => {
-    innerComposer.withDeps({ greet: shellPicker("s/greet") }).define((plugin) => {
+    innerComposer.withDeps({ greet: shellResolver("s/greet") }).define((plugin) => {
       type S = Awaited<ReturnType<typeof plugin.greet>>;
-      expectTypeOf(shellPicker.pickAll({ a: plugin.greet, b: plugin.greet })).resolves.toEqualTypeOf<
+      expectTypeOf(shellResolver.pickAll({ a: plugin.greet, b: plugin.greet })).resolves.toEqualTypeOf<
         Record<Locale, { a: S; b: S }>
       >();
       return {};
@@ -115,23 +115,23 @@ describe("res.perLocale — batch helpers (pickAll / pick)", () => {
   });
 
   it("pick(locale, …) resolves the bundle (map) / tuple, typed to the configured locale", () => {
-    innerComposer.withDeps({ greet: shellPicker("s/greet") }).define((plugin) => {
+    innerComposer.withDeps({ greet: shellResolver("s/greet") }).define((plugin) => {
       type S = Awaited<ReturnType<typeof plugin.greet>>;
-      expectTypeOf(shellPicker.pick("en", { a: plugin.greet, b: plugin.greet })).resolves.toEqualTypeOf<{
+      expectTypeOf(shellResolver.pick("en", { a: plugin.greet, b: plugin.greet })).resolves.toEqualTypeOf<{
         a: S;
         b: S;
       }>();
-      expectTypeOf(shellPicker.pick("it", [plugin.greet, plugin.greet])).resolves.toEqualTypeOf<[S, S]>();
+      expectTypeOf(shellResolver.pick("it", [plugin.greet, plugin.greet])).resolves.toEqualTypeOf<[S, S]>();
       // @ts-expect-error — "de" is not a configured locale of this atlas
-      shellPicker.pick("de", { a: plugin.greet });
+      shellResolver.pick("de", { a: plugin.greet });
       return {};
     });
   });
 });
 
-describe("shellPicker — usable inside a SHELL's withDeps (cross-locale reuse)", () => {
-  it("a shell can declare a shell picker dep, resolving ANOTHER locale on demand", () => {
-    shellComposer.withDeps({ other: shellPicker("s/greet") }).define((plugin) => {
+describe("shellResolver — usable inside a SHELL's withDeps (cross-locale reuse)", () => {
+  it("a shell can declare a shell resolver dep, resolving ANOTHER locale on demand", () => {
+    shellComposer.withDeps({ other: shellResolver("s/greet") }).define((plugin) => {
       // the shell has its OWN ambient locale…
       expectTypeOf(plugin.$.locale).toEqualTypeOf<Locale>();
       // …and can pull another locale's shell surface via the loader.
@@ -143,12 +143,12 @@ describe("shellPicker — usable inside a SHELL's withDeps (cross-locale reuse)"
     });
   });
 
-  it("shell picker coexists with a normal shell dep (same-locale surface)", () => {
-    shellComposer.withDeps({ same: "s/greet", other: shellPicker("s/greet") }).define((plugin) => {
+  it("shell resolver coexists with a normal shell dep (same-locale surface)", () => {
+    shellComposer.withDeps({ same: "s/greet", other: shellResolver("s/greet") }).define((plugin) => {
       // normal dep → resolved surface in the shell's own locale (NOT a function)
       expectTypeOf(plugin.same.text).toEqualTypeOf<string>();
       expectTypeOf(plugin.same).not.toBeFunction();
-      // picker dep → locale loader
+      // resolver dep → locale loader
       expectTypeOf(plugin.other).toBeFunction();
       return { text: "hi", subject: "s" };
     });

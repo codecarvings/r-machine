@@ -6,7 +6,7 @@ import { mockPlug } from "../../src/lib/mock-plug.js";
 // Mock seam for a `res.perLocale(...)` dep: the dep resolves to a locale loader
 // `(locale) => Promise<Surface>`, so it is mocked with a FUNCTION returning a
 // PARTIAL that is deep-merged ON TOP of the REAL localized surface — per call,
-// per alias (un-mocked pickers keep resolving for real).
+// per alias (un-mocked resolvers keep resolving for real).
 const folders = defineLayout({
   "base/": "gear:base",
   "shell/": "shell",
@@ -25,7 +25,7 @@ function makeMachine() {
   seq += 1;
   let toolset: Record<string, any>;
   const rm = RMachine.create({
-    instanceName: `mock-shell-picker-${seq}`,
+    instanceName: `mock-shell-resolver-${seq}`,
     locales: ["en", "it"],
     defaultLocale: "en",
     ResourceAtlas,
@@ -40,7 +40,7 @@ function makeMachine() {
     if (path.startsWith("shell/footer")) {
       return { r: Shell.define(({ $ }: any) => ({ note: `foot-${$.locale}` })) } as unknown as AnyResModule;
     }
-    throw new Error(`mock-shell-picker fixture: unknown resource "${path}"`);
+    throw new Error(`mock-shell-resolver fixture: unknown resource "${path}"`);
   });
   toolset = rm.createToolset() as Record<string, any>;
   return toolset;
@@ -80,7 +80,7 @@ describe("mockPlug — res.perLocale dep (map form)", () => {
     expect(await inst.greetIn("it")).toEqual({ greeting: "mock-it", extra: "keep" });
   });
 
-  it("mocking is per-alias: an un-mocked picker still resolves for real", async () => {
+  it("mocking is per-alias: an un-mocked resolver still resolves for real", async () => {
     const { BaseGear, res } = makeMachine();
     const g = BaseGear.withDeps({
       greet: res.perLocale("shell/greet"),
@@ -101,7 +101,7 @@ describe("mockPlug — res.perLocale dep (map form)", () => {
 });
 
 describe("mockPlug — res.perLocale dep (list form)", () => {
-  it("mocks a picker at its positional index, deep-merged over the real surface", async () => {
+  it("mocks a resolver at its positional index, deep-merged over the real surface", async () => {
     const { BaseGear, res } = makeMachine();
     const g = BaseGear.withDeps(res.perLocale("shell/greet")).define(([greet]: any) => ({
       greetIn: (locale: string) => greet(locale),

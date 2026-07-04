@@ -13,7 +13,7 @@
 
 import type { ListPlugHead, MapPlugHead, PlugBody, PluginCtx, ShellDepMap } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import { type AnyNamespace, getNamespace, isShellPicker } from "./res-domain.js";
+import { type AnyNamespace, getNamespace, isShellResolver } from "./res-domain.js";
 import type { HandleList } from "./res-list.js";
 import type { HandleMap } from "./res-map.js";
 
@@ -47,14 +47,14 @@ export function createResMapPlugHead<
   PM extends AnyPortMap,
   CTX extends ResPluginCtx<RA, KM, PM>,
 >(family: F, deps: DM, ports: PM): ResMapPlugHead<F, RA, KM, DM, PM, CTX> {
-  // Partition: normal deps → nsDeps (eager, resolved to surfaces); shell picker deps
+  // Partition: normal deps → nsDeps (eager, resolved to surfaces); shell resolver deps
   // → shellDeps (locale loaders injected by the matrix), kept out of nsDeps and
   // nsDepList so no locale-free resolve is attempted at init.
   const nsDeps: Record<string, AnyNamespace> = {};
   const shellDeps: Record<string, AnyNamespace> = {};
   for (const key in deps) {
     const handle = deps[key];
-    if (isShellPicker(handle)) {
+    if (isShellResolver(handle)) {
       shellDeps[key] = getNamespace(handle);
     } else {
       nsDeps[key] = getNamespace(handle);
@@ -101,13 +101,13 @@ export function createResListPlugHead<
   PM extends AnyPortMap,
   CTX extends ResPluginCtx<RA, KM, PM>,
 >(family: F, deps: DL, ports: PM): ResListPlugHead<F, RA, KM, DL, PM, CTX> {
-  // Partition (list form): shell picker deps are recorded by ORIGINAL index in
+  // Partition (list form): shell resolver deps are recorded by ORIGINAL index in
   // shellDeps and removed from nsDeps (compacted). The matrix re-inserts each
-  // loader at its original tuple position (see injectShellPickers in res-matrix).
+  // loader at its original tuple position (see injectShellResolvers in res-matrix).
   const nsDeps: AnyNamespace[] = [];
   const shellDeps: Record<string, AnyNamespace> = {};
   deps.forEach((handle, index) => {
-    if (isShellPicker(handle)) {
+    if (isShellResolver(handle)) {
       shellDeps[String(index)] = getNamespace(handle);
     } else {
       nsDeps.push(getNamespace(handle));

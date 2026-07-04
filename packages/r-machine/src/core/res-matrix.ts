@@ -123,7 +123,7 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
 
   // `res.perLocale(...)` deps: build one locale loader per declared shell (locale is
   // supplied by the caller at invocation, so the loaders are locale-agnostic
-  // and built once). `injectShellPickers` layers them onto the resolved dep plugin
+  // and built once). `injectShellResolvers` layers them onto the resolved dep plugin
   // at their declared position WITHOUT mutating the (wire-cached, possibly
   // shared) plugin — map: copy descriptors so lazy kit getters stay lazy; list:
   // re-insert each loader at its original tuple index.
@@ -133,14 +133,14 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
     (locale: AnyLocale): Promise<unknown> => {
       // Defensive: a real RMachine connector always provides `resolveShell`. Only
       // a bare composer (unit test wiring) could omit it, and only if it both
-      // declared a picker dep AND invoked the loader — never happens in practice.
+      // declared a resolver dep AND invoked the loader — never happens in practice.
       /* v8 ignore next 3 */
       if (connector.resolveShell === undefined) {
         throw new Error(`Cannot resolve shell "${shellNs}": this connector has no resolveShell (bare composer?).`);
       }
       return connector.resolveShell(shellNs, locale);
     };
-  const injectShellPickers =
+  const injectShellResolvers =
     shellDeps === undefined
       ? (plugin: unknown): unknown => plugin
       : (plugin: unknown): unknown => {
@@ -172,7 +172,7 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
 
   setPlugResolve(plug, async (locale: AnyLocale | undefined, chain: readonly AnyNamespace[]) => {
     const wire = await connector.getWire(head.nsDeps, locale, makeBuildCtx2(locale), chain);
-    return injectShellPickers(wire.plugin) as never;
+    return injectShellResolvers(wire.plugin) as never;
   });
 
   // Sync sibling of the plug resolve. Declines (ASYNC) when the connector has
@@ -185,7 +185,7 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
     if (wire === ASYNC) {
       return ASYNC;
     }
-    return injectShellPickers(wire.plugin) as never;
+    return injectShellResolvers(wire.plugin) as never;
   });
 
   // Eligibility holder mutated by `create` (below) and read via

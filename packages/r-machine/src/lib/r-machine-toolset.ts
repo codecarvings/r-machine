@@ -24,7 +24,7 @@ import type {
   Namespace,
   OuterGearComposer,
   ShellComposer,
-  ShellPickerBuilder,
+  ShellResolverBuilder,
 } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
@@ -55,9 +55,9 @@ export type RMachineToolset<
 //  - `perLocale(shell)`: declares a locale-keyed shell as a gear/shell dependency;
 //    the resolved value is a loader `(locale: L) => Promise<Surface>` typed to the
 //    atlas's configured locales `L` (the locale arrives at runtime). Restricted to
-//    the shell catalog via `ShellPickerBuilder`.
+//    the shell catalog via `ShellResolverBuilder`.
 type ResDepBuilders<RA extends AnyResAtlas, L extends AnyLocale> = {
-  readonly perLocale: ShellPickerBuilder<RA["shape@shell"], L>;
+  readonly perLocale: ShellResolverBuilder<RA["shape@shell"], L>;
 };
 
 type LocalizerHelper<RD extends AnyResDomain> = <N extends Namespace<RD>, const R extends RD[N]>(

@@ -74,13 +74,13 @@ export {
   type AnyNamespace,
   type AnyResDomain,
   createPerLocale,
-  createShellPicker,
+  createShellResolver,
   createToken,
   type ExtractNamespace,
   type LocaleLoader,
   type Namespace,
-  type ShellPickerBuilder,
-  type ShellPickerHandle,
+  type ShellResolverBuilder,
+  type ShellResolverHandle,
   type Token,
 } from "./res-domain.js";
 export type { AnyResEquipment, ResEquipment } from "./res-equipment.js";

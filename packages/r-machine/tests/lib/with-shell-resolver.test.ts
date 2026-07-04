@@ -26,7 +26,7 @@ function makeMachine() {
   seq += 1;
   let toolset: Record<string, any>;
   const rm = RMachine.create({
-    instanceName: `with-shell-picker-${seq}`,
+    instanceName: `with-shell-resolver-${seq}`,
     locales: ["en", "it"],
     defaultLocale: "en",
     ResourceAtlas,
@@ -37,7 +37,7 @@ function makeMachine() {
     if (path.startsWith("shell/greeting")) {
       return { r: Shell.define(({ $ }: any) => ({ text: `hello (${$.locale})` })) } as unknown as AnyResModule;
     }
-    // A SHELL declaring a shell-picker dep: it has its own ambient locale but can
+    // A SHELL declaring a shell-resolver dep: it has its own ambient locale but can
     // pull `shell/greeting` in ANY locale on demand (cross-locale reuse).
     if (path.startsWith("shell/multi")) {
       return {
@@ -50,7 +50,7 @@ function makeMachine() {
     if (path.startsWith("base/cfg")) {
       return { r: BaseGear.define(() => ({ url: "https://api" })) } as unknown as AnyResModule;
     }
-    throw new Error(`with-shell-picker fixture: unknown resource "${path}"`);
+    throw new Error(`with-shell-resolver fixture: unknown resource "${path}"`);
   });
   toolset = rm.createToolset() as Record<string, any>;
   return toolset;
@@ -114,7 +114,7 @@ describe("res.perLocale — invalid locale", () => {
 describe("res.perLocale — inside a SHELL (cross-locale reuse)", () => {
   it("a shell resolves ANOTHER locale's shell on demand, independent of its own", async () => {
     const { DirectPlug } = makeMachine();
-    // Resolve shell/multi in "en"; its factory captured a picker on shell/greeting.
+    // Resolve shell/multi in "en"; its factory captured a resolver on shell/greeting.
     const [multi, $] = (await DirectPlug("shell/multi").useR("en")) as [
       { ownLocale: string; greetIn: (l: string) => Promise<{ text: string }> },
       { locale: string },

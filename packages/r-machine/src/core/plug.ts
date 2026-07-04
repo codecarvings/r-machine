@@ -42,7 +42,7 @@ export type MapPlugin<RA extends AnyResAtlas, DM extends HandleMap<RA>, CTX> = D
 
 export type ListPlugin<RA extends AnyResAtlas, DL extends HandleList<RA>, CTX> = [...DepSurfaceList<RA, DL>, CTX];
 
-// Shell picker deps split off from the normal dep collection at head
+// Shell resolver deps split off from the normal dep collection at head
 // construction: key (map) or stringified index (list) → shell namespace. Kept
 // OUT of `nsDeps`/`nsDepList` (no locale-free eager resolve); the matrix turns
 // each into a locale loader injected at its dep position. Absent when a plug

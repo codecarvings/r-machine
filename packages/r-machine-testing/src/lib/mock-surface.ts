@@ -20,7 +20,7 @@ import type {
   HandleMap,
   RelayBrand,
   RuntimeAction,
-  ShellPickerHandle,
+  ShellResolverHandle,
 } from "r-machine/core";
 
 type MockSurfaceItem<I> =
@@ -37,7 +37,7 @@ type MockSurface<R extends AnyRes> = {
 // over the REAL localized surface per call (see `applyDepOverride` in
 // mock-merge.ts). Sync or async return accepted (the runtime awaits).
 export type MockSurfaceMap<RA extends AnyResAtlas, HM extends HandleMap<RA>> = {
-  [K in keyof HM]?: HM[K] extends ShellPickerHandle<infer S extends string, infer L>
+  [K in keyof HM]?: HM[K] extends ShellResolverHandle<infer S extends string, infer L>
     ? (locale: L) => MockSurface<RA["shape"][S]> | Promise<MockSurface<RA["shape"][S]>>
     : MockSurface<RA["shape"][ExtractNamespace<HM[K]>]>;
 };

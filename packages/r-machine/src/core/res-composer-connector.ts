@@ -42,7 +42,7 @@ export interface ResComposerConnector {
   // — backs the `res.perLocale(...)` dep loaders (`plugin.<alias>(locale)`). Creates
   // no persistent wire (like `getGatePlugin`). Optional: absent for connectors
   // assembled outside an RMachine (bare composer unit tests), in which case a
-  // shell picker dep resolves to a loader that throws if actually invoked.
+  // shell resolver dep resolves to a loader that throws if actually invoked.
   readonly resolveShell?: (shellNs: AnyNamespace, locale: AnyLocale) => Promise<unknown>;
 }
 
