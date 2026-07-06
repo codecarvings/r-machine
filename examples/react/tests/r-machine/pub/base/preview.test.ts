@@ -6,8 +6,8 @@ import { r } from "@/r-machine/pub/base/preview";
 // `res.perLocale` dep (a locale loader) and resolves EVERY configured locale.
 describe("Base_Preview", () => {
   it("reuses shell/showcase across every configured locale (resolved real)", async () => {
-    using _ctrl = mockPlug(r).default();
-    const preview = await r.create();
+    using ctrl = mockPlug(r).default();
+    const preview = await ctrl.createRes();
 
     expect(Object.keys(preview.preview)).toEqual(["en", "it"]);
     expect(preview.preview.en.tagline).toBe("A feature tour — no router required.");
@@ -15,8 +15,8 @@ describe("Base_Preview", () => {
   });
 
   it("mocks a res.perLocale dep with a function, deep-merged over the real surface", async () => {
-    using _ctrl = mockPlug(r).with({ showcase: async (locale) => ({ tagline: `mock-${locale}` }) });
-    const preview = await r.create();
+    using ctrl = mockPlug(r).with({ showcase: async (locale) => ({ tagline: `mock-${locale}` }) });
+    const preview = await ctrl.createRes();
 
     // `tagline` comes from the mock; `appName` is inherited from the REAL surface.
     expect(preview.preview.en.tagline).toBe("mock-en");

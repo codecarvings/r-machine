@@ -92,7 +92,7 @@ Next.js server (no-proxy, path strategy only): `NextServerRMachine`, `bindLocale
 `declarePathAtlas` (from `@r-machine/next`) — see §3.5
 
 **Resource (`ResMatrix`)** — value produced by `.define(...)`
-`r.create()`, `r.plug`, `r.clone(...)` — see §4.4 and §5
+`r.plug`, `r.clone(...)` — see §4.4 and §5 (instantiation is engine-internal; tests instantiate via `ctrl.createRes()`, §14)
 
 **Strategy helpers** — `strategy.getHelpers()` returns `{ localeHelper }` on every strategy, plus `hrefHelper` on all Next.js strategies. See §11.3.
 
@@ -342,7 +342,6 @@ Final step. The user factory receives the `plugin` context as its first argument
 
 | Property | Type | Purpose |
 |---|---|---|
-| `r.create()` | `() => Promise<R>` | Resolves the resource and returns its production Surface; awaits any async work in the user factory. Used directly in resource-level tests (§14.2). |
 | `r.plug` | typed plug | The plug handle for this resource, used as the target of `mockPlug(...)` (§10.3, §14). Carries deps/ports/locale narrowing at the type level. |
 | `r.clone(fn?)` | `() => ResMatrix<R, P>` / `<T extends R>(fn: (res: R, plugin, [cursor]) => T) => ResMatrix<R, P>` | Returns a fresh, independent `ResMatrix` reusing the same factory and chain, with an optional transform `fn` that overrides fields of `R` (locked to the same shape — see §5). Pair with `withPorts(...)` / `withState(...)` for ports / state overrides. |
 
@@ -806,7 +805,7 @@ export const r = OuterGear.withState(0).define(({ $ }, _) => {
 
 ### 9.1. Manual disposal in tests
 
-The resource from `r.create()` is directly compatible with the TC39 explicit resource management proposal — three equivalent teardowns: `value[Symbol.dispose]()`, the `dispose(value)` wrapper (from `r-machine`), or scope-bound `await using value = await r.create()` (TS 5.2+, lib `esnext.disposable`).
+The resource from `ctrl.createRes()` retains `Symbol.dispose` on its `TestSurface` and is compatible with the TC39 explicit resource management proposal. You rarely dispose it by hand: **the controller auto-disposes every instance it created on reset**, so `using ctrl` alone tears them down. When you do want explicit control, three equivalent teardowns work — `value[Symbol.dispose]()`, the `dispose(value)` wrapper (from `r-machine`), or scope-bound `using value = await ctrl.createRes()` (TS 5.2+, lib `esnext.disposable`).
 
 ---
 
@@ -1346,13 +1345,15 @@ Resource-level test — override a port (pass the resource `r`), drive the rest 
 
 ```ts
 const calls: [string, string][] = [];
-using _ctrl = mockPlug(r).with({                  // `using` resets at block exit
+using ctrl = mockPlug(r).with({                   // `using` resets at block exit
   $: { ports: { createPost: async (t, b) => { calls.push([t, b]); } } },
 });
-const instance = await r.create();
+const instance = await ctrl.createRes();          // → TestSurface
 await instance.submit("hello", "world");
 expect(calls).toEqual([["hello", "world"]]);
 ```
+
+`ctrl.createRes()` (present only when a **`ResMatrix`** is passed to `mockPlug` — a consumer is rendered, not instantiated) returns the resource's **`TestSurface`**: the SAME shape a dependency is mocked in, so both sides of a test speak one language. A **getter or cell reads as a property** (`inst.subtotal`, not `inst.subtotal()`); actions stay callable and return the resulting state; relays, `$`-members and `Symbol.dispose` are retained (a consumer's Surface hides those).
 
 ### 14.3. Channel B — the state controller (live, reactive)
 
@@ -1366,21 +1367,21 @@ Only stateful outer/vertex gears appear; everything else is absent from the type
 
 **Writing is a deep-partial merge** (same shape a reducer returns): `ctrl.state = { count: 10 }` merges over current state — other keys survive, arrays replaced wholesale — it does **not** replace the whole object.
 
-**Reading returns the full current state.** Since a write is a partial patch, the complete value exists only once resolved, so **reading `.state` before the plug resolves throws** `ERR_STATE_NOT_RESOLVED` (a loud "render/`create` first" rather than a misleading partial).
+**Reading returns the full current state.** Since a write is a partial patch, the complete value exists only once resolved, so **reading `.state` before the plug resolves throws** `ERR_STATE_NOT_RESOLVED` (a loud "render/`createRes` first" rather than a misleading partial).
 
-**Seed before, drive after.** A write *before* resolution is queued and applied once the cell comes to life; writes *after* publish straight to the live cell. Order in a test: seed → render/`create` → drive and read.
+**Seed before, drive after.** A write *before* resolution is queued and applied once the cell comes to life; writes *after* publish straight to the live cell. Order in a test: seed → render/`createRes` → drive and read.
 
 ```ts
 using ctrl = mockPlug(counter).default();
 
 ctrl.state = { count: 10, label: "x" }; // seed: queued until resolve
 
-const inst = await counter.create();    // cell comes to life; seed applied
-expect(inst.count()).toBe(10);          // the REAL getter reads the seeded cell
+const inst = await ctrl.createRes();    // cell comes to life; seed applied
+expect(inst.count).toBe(10);            // the REAL getter reads the seeded cell (property)
 expect(ctrl.state).toEqual({ count: 10, label: "x" });
 
 ctrl.state = { count: 20 };             // live deep-partial merge — `label` survives
-expect(inst.count()).toBe(20);
+expect(inst.count).toBe(20);
 
 inst.bump(5);                           // a REAL action publishes to the same cell
 expect(ctrl.state).toEqual({ count: 25, label: "x" }); // the controller observes it
@@ -1388,7 +1389,7 @@ expect(ctrl.state).toEqual({ count: 25, label: "x" }); // the controller observe
 
 Driving a **dependency's** state is identical through `ctrl.deps[<key>].state` (seed before render, read after — see the end-to-end example in §14.8). Because the cell is the **real, shared** one, the dependency's real getters/actions and the consumer's reactivity stay coherent — no fake surface to sync; for a vertex gear it binds to the per-consumer instance.
 
-> In React, a write that should re-render (`ctrl.state = …`, or a real action) must run inside `act(...)` (standard RTL). The binding assumes the dependency resolves once and its cell stays stable; a re-mount or second `r.create()` creates a new cell and the handle tracks the most recent.
+> In React, a write that should re-render (`ctrl.state = …`, or a real action) must run inside `act(...)` (standard RTL). The binding assumes the dependency resolves once and its cell stays stable; a re-mount or second instantiation creates a new cell and the handle tracks the most recent.
 
 ### 14.4. `.default()` and the lifecycle
 
@@ -1660,6 +1661,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-07-03.023
+rev 2026-07-06.024
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com

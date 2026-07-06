@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { instantiateRes } from "../../src/core/res-matrix.js";
 import type { AnyResModule } from "../../src/core/res-module.js";
 import { defineLayout } from "../../src/lib/layout.js";
 import { RMachine } from "../../src/lib/r-machine.js";
@@ -62,7 +63,7 @@ describe("res.perLocale — map form", () => {
     const greeter = BaseGear.withDeps({ greeting: res.perLocale("shell/greeting") }).define(({ greeting }: any) => ({
       greet: (locale: string) => greeting(locale),
     }));
-    const inst = (await greeter.create()) as { greet: (l: string) => Promise<any> };
+    const inst = (await instantiateRes(greeter)) as { greet: (l: string) => Promise<any> };
     expect((await inst.greet("en")).text).toBe("hello (en)");
     expect((await inst.greet("it")).text).toBe("hello (it)");
   });
@@ -75,7 +76,7 @@ describe("res.perLocale — map form", () => {
         greet: (locale: string) => greeting(locale),
       })
     );
-    const inst = (await g.create()) as { url: string; greet: (l: string) => Promise<any> };
+    const inst = (await instantiateRes(g)) as { url: string; greet: (l: string) => Promise<any> };
     expect(inst.url).toBe("https://api");
     expect((await inst.greet("it")).text).toBe("hello (it)");
   });
@@ -88,7 +89,7 @@ describe("res.perLocale — list (positional) form", () => {
       url: cfg.url,
       greet: (locale: string) => greeting(locale),
     }));
-    const inst = (await g.create()) as { url: string; greet: (l: string) => Promise<any> };
+    const inst = (await instantiateRes(g)) as { url: string; greet: (l: string) => Promise<any> };
     // cfg (index 0) is a plain surface; greeting (index 1) is the loader.
     expect(inst.url).toBe("https://api");
     expect((await inst.greet("en")).text).toBe("hello (en)");
@@ -101,7 +102,7 @@ describe("res.perLocale — invalid locale", () => {
     const greeter = BaseGear.withDeps({ greeting: res.perLocale("shell/greeting") }).define(({ greeting }: any) => ({
       greet: (locale: string) => greeting(locale),
     }));
-    const inst = (await greeter.create()) as { greet: (l: string) => Promise<any> };
+    const inst = (await instantiateRes(greeter)) as { greet: (l: string) => Promise<any> };
     try {
       await inst.greet("xx");
       expect.unreachable("expected an invalid-locale error");

@@ -3,8 +3,8 @@ import type { AnyResModule } from "r-machine/core";
 import { ResourceAtlas } from "./resource-atlas.js";
 
 // Dependency / kit modules are synthesised inline. `InnerGear` is referenced
-// from the toolset destructured below; the closure only runs during a test's
-// `r.create()`, by which point the binding is initialised.
+// from the toolset destructured below; the closure only runs when a test
+// instantiates a resource, by which point the binding is initialised.
 ResourceAtlas.loader.register(["*"], async (path): Promise<AnyResModule> => {
   switch (path) {
     case "inner/double":

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { instantiateRes } from "../../src/core/res-matrix.js";
 import type { AnyResModule } from "../../src/core/res-module.js";
 import { defineLayout } from "../../src/lib/layout.js";
 import { RMachine } from "../../src/lib/r-machine.js";
@@ -53,7 +54,7 @@ describe("res.perLocale.pickAll — all configured locales, locale-major", () =>
       const { greet } = plugin;
       return { all: await res.perLocale.pickAll(greet) };
     });
-    const inst = (await g.create()) as { all: Record<string, any> };
+    const inst = (await instantiateRes(g)) as { all: Record<string, any> };
     expect(inst.all).toEqual({
       en: { greeting: "real-en", extra: "keep" },
       it: { greeting: "real-it", extra: "keep" },
@@ -69,7 +70,7 @@ describe("res.perLocale.pickAll — all configured locales, locale-major", () =>
       const { greet, footer } = plugin;
       return { all: await res.perLocale.pickAll({ greet, footer }) };
     });
-    const inst = (await g.create()) as { all: Record<string, any> };
+    const inst = (await instantiateRes(g)) as { all: Record<string, any> };
     expect(inst.all).toEqual({
       en: { greet: { greeting: "real-en", extra: "keep" }, footer: { note: "foot-en" } },
       it: { greet: { greeting: "real-it", extra: "keep" }, footer: { note: "foot-it" } },
@@ -87,7 +88,7 @@ describe("res.perLocale.pick — one locale, shape preserved", () => {
       const { greet, footer } = plugin;
       return { it: await res.perLocale.pick("it", { greet, footer }) };
     });
-    const inst = (await g.create()) as { it: Record<string, any> };
+    const inst = (await instantiateRes(g)) as { it: Record<string, any> };
     expect(inst.it).toEqual({ greet: { greeting: "real-it", extra: "keep" }, footer: { note: "foot-it" } });
   });
 
@@ -100,7 +101,7 @@ describe("res.perLocale.pick — one locale, shape preserved", () => {
       const { greet, footer } = plugin;
       return { en: await res.perLocale.pick("en", [greet, footer]) };
     });
-    const inst = (await g.create()) as { en: any[] };
+    const inst = (await instantiateRes(g)) as { en: any[] };
     expect(inst.en).toEqual([{ greeting: "real-en", extra: "keep" }, { note: "foot-en" }]);
   });
 
@@ -110,7 +111,7 @@ describe("res.perLocale.pick — one locale, shape preserved", () => {
       const { greet } = plugin;
       return { pick: (locale: string) => res.perLocale.pick(locale, { greet }) };
     });
-    const inst = (await g.create()) as { pick: (l: string) => Promise<unknown> };
+    const inst = (await instantiateRes(g)) as { pick: (l: string) => Promise<unknown> };
     try {
       await inst.pick("de");
       expect.unreachable("pick with an unconfigured locale should reject");

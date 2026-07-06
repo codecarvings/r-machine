@@ -16,12 +16,7 @@
  *
  * Convenience for callers who cannot (or prefer not to) use `using` /
  * `await using` syntax and would otherwise reach for the symbol directly
- * (`res[Symbol.dispose]()`).
- *
- * @example
- * const res = await r.create();
- * // ...use res...
- * dispose(res);
+ * (`resource[Symbol.dispose]()`).
  */
 export function dispose(disposable: Disposable): void {
   disposable[Symbol.dispose]();

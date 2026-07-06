@@ -10,10 +10,10 @@ The golden rule: **mock the unit under test, then run its real code.** Pass the
 unit itself to `mockPlug` — a resource (`mockPlug(r)`) or a consumer
 (`mockPlug(CartButton)`) — the thing that _declares the unit's dependencies_.
 Through that single mock you OVERRIDE what its dependencies, ports, and kit
-resolve to (and seed/read state), then call the real `r.create()` / render the
-real component. You never re-declare the unit.
+resolve to (and seed/read state), then instantiate it via `ctrl.createRes()`
+(a resource) / render the real component. You never re-declare the unit.
 
-**Only a factory has a plug.** `mockPlug` (and `.create()`) exist only for
+**Only a factory has a plug.** `mockPlug` (and `ctrl.createRes()`) exist only for
 resources built with a factory — `Shell.define`, `BaseGear.define`,
 `OuterGear.define`, etc. A resource declared as a **plain object** (`export const
 r = { … }`, the canonical form for static shells) has **no plug** — `mockPlug`
@@ -260,6 +260,18 @@ the shell, at the folder's level — not per-locale:
 `.default()` is `.with({})` — enter test mode with no overrides (e.g. resolve a
 stateless gear, or resolve at the machine's default locale).
 
+**Instantiate a resource to assert on it — `ctrl.createRes()`.** For a resource
+(`mockPlug(r)`, a gear/shell), the controller exposes `createRes()`: it builds the
+mocked resource (overrides applied) and returns its **`TestSurface`** — the SAME
+shape a dependency is mocked in, so both sides of a test speak one language. So a
+**getter or cell reads as a property** (`cart.subtotal`, not `cart.subtotal()`);
+actions stay callable and return the resulting state; relays, `$`-members and
+`Symbol.dispose` are retained (a consumer's surface hides those). The controller
+**auto-disposes** each instance it created when it resets, so `using ctrl` alone
+tears the instance down too (dispose is idempotent, so an explicit `using inst`
+composes safely). A consumer or a bare `plug` controller has **no `createRes`** —
+a consumer is rendered, not instantiated.
+
 The controller is disposable: prefer the `using` keyword (auto-exits test mode at
 scope end); otherwise call `ctrl.reset()`. `resetMockPlugs()` clears every active
 mock as a safety net (e.g. in an `afterEach`).
@@ -274,12 +286,11 @@ import { type Product, r } from "@/r-machine/prv/inner/catalog";
 
 it("resolves products through the async port and looks them up", async () => {
   // Mock only the async port; the real `base/store-config` dep still resolves.
-  // Stateless → `using` just exits test mode at scope end.
-  using _ctrl = mockPlug(r).with({
+  using ctrl = mockPlug(r).with({
     $: { ports: { fetchProducts: async () => FIXTURES } },
   });
 
-  const catalog = await r.create();
+  const catalog = await ctrl.createRes();
 
   expect(catalog.byId("b")?.name).toBe("Beta");
   expect(catalog.byCategory("audio").map((p) => p.id)).toEqual(["a", "c"]);
@@ -299,14 +310,15 @@ const seedEmpty = () =>
   });
 
 it("adds items and computes itemCount + subtotal", async () => {
-  using _ctrl = seedEmpty();
-  const cart = await r.create();
+  using ctrl = seedEmpty();
+  const cart = await ctrl.createRes();
 
   cart.addItem({ productId: "a", name: "Alpha", unitPrice: 10 });
   cart.addItem({ productId: "b", name: "Beta", unitPrice: 20, qty: 2 });
 
-  expect(cart.itemCount()).toBe(3); // real getters run against the live cell
-  expect(cart.subtotal()).toBe(50);
+  // Getters/cells read as PROPERTIES on the TestSurface (real, against the live cell).
+  expect(cart.itemCount).toBe(3);
+  expect(cart.subtotal).toBe(50);
 });
 ```
 
@@ -316,21 +328,20 @@ keys survive):
 ```ts
 using ctrl = mockPlug(r).with({
   $: {
-    ports: {
-      /* … */
-    },
+    ports: {/* … */},
   },
 });
-ctrl.state = { count: 10 }; // seed before create(); `label` etc. preserved
-const inst = await r.create();
-expect(inst.count()).toBe(10);
+ctrl.state = { count: 10 }; // seed before createRes(); `label` etc. preserved
+const inst = await ctrl.createRes();
+expect(inst.count).toBe(10);
 ```
 
 A relay's `onChange` runs for real — assert its side effect (here via a spy):
 
 ```ts
+using ctrl = seedEmpty();
 const logSpy = vitest.spyOn(console, "log").mockImplementation(() => {});
-const cart = await r.create();
+const cart = await ctrl.createRes();
 cart.addItem({ productId: "a", name: "Alpha", unitPrice: 10 });
 expect(logSpy).toHaveBeenCalledWith("cart changed: 1 line(s)");
 ```
@@ -338,7 +349,7 @@ expect(logSpy).toHaveBeenCalledWith("cart changed: 1 line(s)");
 ## Test a Shell
 
 A **plain-object** shell (`export const r = { … }`, no `.define`) has **no plug
-and no `.create()`** — `mockPlug` throws `ERR_MOCK_TARGET_INVALID` on it. Default
+and no `createRes`** — `mockPlug` throws `ERR_MOCK_TARGET_INVALID` on it. Default
 to **no test** (its shape is already guarded by `localized(...)`); if you want
 one, import each locale module and assert `r` directly. A **factory** shell
 (`Shell.define`, uses `$.locale` / kit) has a plug — re-resolve it per locale via
@@ -349,11 +360,14 @@ import { mockPlug } from "@r-machine/testing";
 import { r as greet } from "@/r-machine/pub/shell/greeting/en";
 
 it("resolves the shell in the requested locale", async () => {
-  const def = await greet.create();
-  expect(def.greeting).toBe("Hello"); // default locale
+  {
+    using ctrl = mockPlug(greet).default();
+    const def = await ctrl.createRes();
+    expect(def.greeting).toBe("Hello"); // default locale
+  } // scope closes → mock reset, so the same plug can be re-mocked below
 
-  using _ctrl = mockPlug(greet).with({ $: { locale: "it" } });
-  const localized = await greet.create();
+  using ctrl = mockPlug(greet).with({ $: { locale: "it" } });
+  const localized = await ctrl.createRes();
   expect(localized.greeting).toBe("Ciao");
 });
 ```

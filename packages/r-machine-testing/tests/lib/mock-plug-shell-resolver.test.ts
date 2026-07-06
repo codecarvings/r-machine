@@ -1,5 +1,5 @@
 import { defineLayout, RMachine } from "r-machine";
-import type { AnyResModule } from "r-machine/core";
+import { type AnyResModule, instantiateRes } from "r-machine/core";
 import { describe, expect, it } from "vitest";
 import { mockPlug } from "../../src/lib/mock-plug.js";
 
@@ -52,7 +52,7 @@ describe("mockPlug — res.perLocale dep (map form)", () => {
     const g = BaseGear.withDeps({ greet: res.perLocale("shell/greet") }).define(({ greet }: any) => ({
       greetIn: (locale: string) => greet(locale),
     }));
-    const inst = (await g.create()) as { greetIn: (l: string) => Promise<any> };
+    const inst = (await instantiateRes(g)) as { greetIn: (l: string) => Promise<any> };
     expect(await inst.greetIn("en")).toEqual({ greeting: "real-en", extra: "keep" });
     expect(await inst.greetIn("it")).toEqual({ greeting: "real-it", extra: "keep" });
   });
@@ -64,7 +64,7 @@ describe("mockPlug — res.perLocale dep (map form)", () => {
     }));
     using _ctrl = mockPlug(g).with({ greet: async () => ({ greeting: "MOCK" }) } as never);
 
-    const inst = (await g.create()) as { greetIn: (l: string) => Promise<any> };
+    const inst = (await instantiateRes(g)) as { greetIn: (l: string) => Promise<any> };
     // `greeting` comes from the mock; `extra` is inherited from the REAL surface.
     expect(await inst.greetIn("en")).toEqual({ greeting: "MOCK", extra: "keep" });
   });
@@ -76,7 +76,7 @@ describe("mockPlug — res.perLocale dep (map form)", () => {
     }));
     using _ctrl = mockPlug(g).with({ greet: async (locale: string) => ({ greeting: `mock-${locale}` }) } as never);
 
-    const inst = (await g.create()) as { greetIn: (l: string) => Promise<any> };
+    const inst = (await instantiateRes(g)) as { greetIn: (l: string) => Promise<any> };
     expect(await inst.greetIn("it")).toEqual({ greeting: "mock-it", extra: "keep" });
   });
 
@@ -91,7 +91,7 @@ describe("mockPlug — res.perLocale dep (map form)", () => {
     }));
     using _ctrl = mockPlug(g).with({ greet: async () => ({ greeting: "MOCK" }) } as never);
 
-    const inst = (await g.create()) as {
+    const inst = (await instantiateRes(g)) as {
       greetIn: (l: string) => Promise<any>;
       footIn: (l: string) => Promise<any>;
     };
@@ -108,7 +108,7 @@ describe("mockPlug — res.perLocale dep (list form)", () => {
     }));
     using _ctrl = mockPlug(g).with({ 0: async () => ({ greeting: "MOCK" }) } as never);
 
-    const inst = (await g.create()) as { greetIn: (l: string) => Promise<any> };
+    const inst = (await instantiateRes(g)) as { greetIn: (l: string) => Promise<any> };
     expect(await inst.greetIn("it")).toEqual({ greeting: "MOCK", extra: "keep" });
   });
 });

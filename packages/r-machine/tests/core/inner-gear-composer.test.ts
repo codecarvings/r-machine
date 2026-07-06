@@ -15,7 +15,6 @@ describe("InnerGear composer — construction", () => {
     const matrix = composer.define(factory);
 
     expect(factory).not.toHaveBeenCalled();
-    expect(typeof matrix.create).toBe("function");
     expect(matrix.plug).toBeDefined();
     // meta retrievable via the internal-key accessor; family/role pinned to inner.
     expect(tryGetResMatrixMeta(matrix as never)).toEqual({ family: "gear", role: "inner" });

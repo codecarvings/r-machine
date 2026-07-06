@@ -1,3 +1,4 @@
+import { instantiateRes } from "r-machine/core";
 import { describe, expect, it } from "vitest";
 import { mockPlug } from "../../src/lib/mock-plug.js";
 import { r as selfKit } from "../fixtures/mock-plug/self-kit.js";
@@ -14,13 +15,13 @@ import { r as selfKit } from "../fixtures/mock-plug/self-kit.js";
 describe("mockPlug — kit-resident shell with deferred self-reference (regression)", () => {
   it("binds at the default locale without tripping the deferred self-ref kit getter", async () => {
     using _ctrl = mockPlug(selfKit).with({ $: { locale: "en" } });
-    const inst = await selfKit.create();
+    const inst = await instantiateRes(selfKit);
     expect(inst.tag).toBe("self@en");
   });
 
   it("re-resolves at the overridden locale", async () => {
     using _ctrl = mockPlug(selfKit).with({ $: { locale: "it" } });
-    const inst = await selfKit.create();
+    const inst = await instantiateRes(selfKit);
     expect(inst.tag).toBe("self@it");
   });
 });

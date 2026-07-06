@@ -5,7 +5,7 @@ import { promoteMemberNames } from "../../src/core/member-name.js";
 import { buildStatefulOuterGearCursor, stateCellSlot } from "../../src/core/outer-gear-composer.js";
 import type { AnyRes } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
-import { createResMatrix } from "../../src/core/res-matrix.js";
+import { type AnyResMatrix, createResMatrix, instantiateRes } from "../../src/core/res-matrix.js";
 import { createStateCell, type StateCell } from "../../src/core/state-cell.js";
 
 function buildMatrix<S>(
@@ -43,9 +43,8 @@ function buildMatrix<S>(
   });
 }
 
-type InternalCreateCall = (locale: undefined, chain: never[]) => Promise<unknown>;
-async function resolve(matrix: { create: () => Promise<unknown> }): Promise<Record<string, unknown>> {
-  return (await (matrix.create as unknown as InternalCreateCall)(undefined, [])) as Record<string, unknown>;
+async function resolve(matrix: AnyResMatrix): Promise<Record<string, unknown>> {
+  return (await instantiateRes(matrix)) as Record<string, unknown>;
 }
 
 describe("_.cmd composer", () => {

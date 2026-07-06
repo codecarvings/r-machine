@@ -35,7 +35,7 @@ export {
 export type { ExperimentalFlags } from "./experimental-flags.js";
 export type { GateListPlugHead, GateMapPlugHead, GatePluginCtx } from "./gate-plug.js";
 export type { GearPlugKitMap } from "./gear-plug.js";
-export type { Getter } from "./getter.js";
+export { type Getter, isGetter } from "./getter.js";
 export { createInnerGearComposer, type InnerGearComposer } from "./inner-gear-composer.js";
 export { createOuterGearComposer, type OuterGearComposer } from "./outer-gear-composer.js";
 export {
@@ -108,11 +108,18 @@ export {
   type NamespaceMap,
   type ValidatedDepMapType,
 } from "./res-map.js";
-export type { ResMatrix } from "./res-matrix.js";
+export {
+  type AnyResMatrix,
+  instantiateRes,
+  instantiateResSync,
+  type ResMatrix,
+  tryGetResMatrixMeta,
+} from "./res-matrix.js";
 export {
   type AnyResModule,
   validateResModule,
 } from "./res-module.js";
+export type { AnyResPlug } from "./res-plug.js";
 export { createRequestScope, PROCESS_SCOPE_PROVIDER, type RequestScope, type RequestScopeProvider } from "./scope.js";
 export { createShellComposer, type ShellComposer } from "./shell-composer.js";
 export type { ShellPlugKitMap } from "./shell-plug.js";

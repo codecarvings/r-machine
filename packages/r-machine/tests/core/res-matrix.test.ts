@@ -4,6 +4,8 @@ import {
   type AnyResMatrix,
   createResMatrix,
   type GearMatrixMeta,
+  instantiateRes,
+  instantiateResSync,
   isResMatrixSyncEligible,
   type ShellMatrixMeta,
   tryGetResMatrixMeta,
@@ -54,10 +56,13 @@ const gearMeta: GearMatrixMeta = { family: "gear", role: "inner" };
 
 describe("createResMatrix", () => {
   describe("shape of the returned matrix", () => {
-    it("returns an object that exposes create and plug as own properties", () => {
+    it("exposes plug and keeps instantiation behind an internal key (no public create)", () => {
       const mat = createResMatrix(makeOptions(gearMeta));
 
-      expect(typeof mat.create).toBe("function");
+      // `create`/`createSync` are engine-internal (symbol-keyed) — reachable only
+      // via `instantiateRes`/`instantiateResSync`, never as public methods.
+      expect((mat as { create?: unknown }).create).toBeUndefined();
+      expect((mat as { createSync?: unknown }).createSync).toBeUndefined();
       expect(mat.plug).toBeDefined();
     });
 
@@ -80,15 +85,15 @@ describe("createResMatrix", () => {
       expect("meta" in mat).toBe(false);
     });
 
-    it("lists exactly the public string-keyed own properties: `create`, `createSync`, `plug`", () => {
-      // No accidental extras leaking into the public surface. The meta and the
-      // Tier-B sync-eligibility holder live under symbol keys and must not
-      // appear in Object.keys(). `createSync` is the synchronous sibling of
-      // `create` (Tier B fast path). Derivation methods (clone/withPorts/
+    it("lists exactly one public string-keyed own property: `plug`", () => {
+      // No accidental extras leaking into the public surface. `plug` is the only
+      // public string key; instantiation (`create`/`createSync`), the meta and
+      // the Tier-B sync-eligibility holder all live under symbol keys and must
+      // NOT appear in Object.keys(). Derivation methods (clone/withPorts/
       // withState) are added by specialized matrix builders, not here.
       const mat = createResMatrix(makeOptions(gearMeta));
 
-      expect(Object.keys(mat).sort()).toEqual(["create", "createSync", "plug"]);
+      expect(Object.keys(mat).sort()).toEqual(["plug"]);
     });
   });
 
@@ -260,13 +265,13 @@ describe("createResMatrix — sync eligibility inference", () => {
 
   it("becomes eligible after an async resolve whose user factory returns synchronously", async () => {
     const mat = createResMatrix(makeOptions(gearMeta, { userFactory: () => ({}) }));
-    await mat.create();
+    await instantiateRes(mat);
     expect(isResMatrixSyncEligible(mat)).toBe(true);
   });
 
   it("stays NOT eligible when the user factory is async", async () => {
     const mat = createResMatrix(makeOptions(gearMeta, { userFactory: async () => ({}) }));
-    await mat.create();
+    await instantiateRes(mat);
     expect(isResMatrixSyncEligible(mat)).toBe(false);
   });
 });
@@ -274,22 +279,44 @@ describe("createResMatrix — sync eligibility inference", () => {
 describe("createResMatrix — createSync", () => {
   it("declines (ASYNC) when the connector exposes no getWireSync", () => {
     const mat = createResMatrix(makeOptions(gearMeta, { userFactory: () => ({}) }));
-    expect(mat.createSync()).toBe(ASYNC);
+    expect(instantiateResSync(mat)).toBe(ASYNC);
   });
 
   it("runs the factory synchronously and returns the resource when getWireSync resolves", () => {
     const resource = { ok: true };
     const mat = createResMatrix(makeSyncOptions(gearMeta, { userFactory: () => resource }));
-    expect(mat.createSync()).toBe(resource);
+    expect(instantiateResSync(mat)).toBe(resource);
   });
 
   it("declines (ASYNC) when getWireSync declines (a transitive dep is not sync)", () => {
     const mat = createResMatrix(makeSyncOptions(gearMeta, { userFactory: () => ({}), wireSyncResult: ASYNC }));
-    expect(mat.createSync()).toBe(ASYNC);
+    expect(instantiateResSync(mat)).toBe(ASYNC);
   });
 
   it("declines (ASYNC) defensively when the factory unexpectedly returns a thenable", () => {
     const mat = createResMatrix(makeSyncOptions(gearMeta, { userFactory: () => Promise.resolve({}) }));
-    expect(mat.createSync()).toBe(ASYNC);
+    expect(instantiateResSync(mat)).toBe(ASYNC);
+  });
+});
+
+describe("createResMatrix — idempotent dispose (uniform across families)", () => {
+  it("wraps the resource's `[Symbol.dispose]` so repeated calls run the teardown once", async () => {
+    // Not an OuterGear (no relay-cleanup wrap) — proves the invariant is applied
+    // at the instantiation point, so every family (base/inner/shell) gets it.
+    const teardown = vi.fn();
+    const mat = createResMatrix(makeOptions(gearMeta, { userFactory: () => ({ [Symbol.dispose]: teardown }) }));
+    const res = (await instantiateRes(mat)) as { [Symbol.dispose](): void };
+
+    res[Symbol.dispose]();
+    res[Symbol.dispose]();
+    res[Symbol.dispose]();
+
+    expect(teardown).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves a resource without a dispose untouched", async () => {
+    const mat = createResMatrix(makeOptions(gearMeta, { userFactory: () => ({ foo: 1 }) }));
+    const res = (await instantiateRes(mat)) as { [Symbol.dispose]?: unknown };
+    expect(res[Symbol.dispose]).toBeUndefined();
   });
 });

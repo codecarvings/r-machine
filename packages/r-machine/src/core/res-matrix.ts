@@ -56,19 +56,33 @@ const resMatrixMetaSymbol: unique symbol = Symbol("resMatrixMeta");
 // async factory's synchronous prefix is never executed speculatively.
 const resMatrixSyncEligibleSymbol: unique symbol = Symbol("resMatrixSyncEligible");
 
+// Instantiation is INTERNAL: R-Machine resources are built by the engine (during
+// by-namespace resolution) — never by application code. So the res builders
+// live behind module-private symbols, not public `create`/`createSync` methods.
+// The only sanctioned direct instantiation is a test, via `ctrl.createRes()`
+// (@r-machine/testing), which reaches them through `instantiateRes` below.
+const createSymbol: unique symbol = Symbol("create");
+const createSyncSymbol: unique symbol = Symbol("createSync");
+
+// Internal signature: the engine threads `locale` + the resolution `chain`; both
+// default (empty chain) so a bare test instantiation works with no args.
+type Create<R> = (locale?: AnyLocale, chain?: readonly AnyNamespace[]) => Promise<R>;
+type CreateSync<R> = (locale?: AnyLocale, chain?: readonly AnyNamespace[]) => R | typeof ASYNC;
+
 // Cannot use ResMatrix<R extends AnyRes, ...> because of res tags.
 // The base type carries only what's universally observable: identity (meta),
-// resolution (`create`) and the plug. Derivation methods (`clone`, `withPorts`,
-// `withState`) live on the specialized matrix types — each family knows
-// what's meaningful to override, and the typing stays strict there.
+// the res builders (symbol-keyed → not part of the public surface) and the
+// plug. Derivation methods (`clone`, `withPorts`, `withState`) live on the
+// specialized matrix types — each family knows what's meaningful to override,
+// and the typing stays strict there.
 export interface ResMatrix<R, P extends AnyResPlug> {
   readonly [resMatrixMetaSymbol]: ResMatrixMeta;
-  readonly create: () => Promise<R>;
-  // Synchronous sibling of `create` (Tier B). Runs the user factory in the
-  // current tick, returning the resource or `ASYNC` when a dep can't be
-  // resolved synchronously / the factory turns out async. Only invoked by
-  // `resolvePodSync` once the matrix is sync-eligible.
-  readonly createSync: () => R | typeof ASYNC;
+  readonly [createSymbol]: Create<R>;
+  // Synchronous sibling (Tier B). Runs the user factory in the current tick,
+  // returning the resource or `ASYNC` when a dep can't be resolved synchronously
+  // / the factory turns out async. Only invoked by `resolvePodSync` once the
+  // matrix is sync-eligible.
+  readonly [createSyncSymbol]: CreateSync<R>;
   readonly plug: P;
   readonly [resMatrixSyncEligibleSymbol]: { eligible: boolean };
 }
@@ -77,6 +91,26 @@ export type AnyResMatrix = ResMatrix<any, any>;
 
 export function tryGetResMatrixMeta(origin: AnyResOrigin): ResMatrixMeta | undefined {
   return (origin as Partial<AnyResMatrix>)[resMatrixMetaSymbol];
+}
+
+// The sanctioned internal seam to instantiate a resource from its matrix. Used by
+// the engine (`res-manager`) and by `@r-machine/testing` (`ctrl.createRes()`).
+// Application code never instantiates resources — it accesses them through the
+// engine (a Plug/strategy resolves and builds on demand).
+export function instantiateRes<R>(
+  matrix: ResMatrix<R, any>,
+  locale?: AnyLocale,
+  chain?: readonly AnyNamespace[]
+): Promise<R> {
+  return matrix[createSymbol](locale, chain);
+}
+
+export function instantiateResSync<R>(
+  matrix: ResMatrix<R, any>,
+  locale?: AnyLocale,
+  chain?: readonly AnyNamespace[]
+): R | typeof ASYNC {
+  return matrix[createSyncSymbol](locale, chain);
 }
 
 // True when this origin is a matrix whose user factory has already proven
@@ -98,6 +132,27 @@ interface CreateResMatrixOptions {
 }
 
 const defaultBuildCtx: PluginCtxAugmenter = ($) => $;
+
+// Make a resource's `[Symbol.dispose]` idempotent — a UNIFORM invariant across
+// every family (OuterGear, Base/Inner gear, Shell). A teardown must be safe to
+// call more than once (e.g. a test disposes an instance that the mock controller
+// also auto-disposes on reset). Applied at the single instantiation point so no
+// family can diverge. No-op when the resource carries no dispose.
+function makeDisposeIdempotent(res: AnyRes): AnyRes {
+  const dispose = (res as { [Symbol.dispose]?: () => void })[Symbol.dispose];
+  if (typeof dispose !== "function") {
+    return res;
+  }
+  let disposed = false;
+  (res as { [Symbol.dispose]: () => void })[Symbol.dispose] = (): void => {
+    if (disposed) {
+      return;
+    }
+    disposed = true;
+    dispose.call(res);
+  };
+  return res;
+}
 
 export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
   const { connector, meta, head, cursor, userFactory, augmentCtx, postProcess } = options;
@@ -193,10 +248,9 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
   // the async path, which proves whether the factory is synchronous.
   const eligibility = { eligible: false };
 
-  // `chain` defaults to empty so the public `create(): () => Promise<R>`
-  // contract holds when called with no args (e.g. `r.create()` in resource-level
-  // tests, §14.2). Internal callers that thread a resolution chain pass it
-  // explicitly.
+  // `chain` defaults to empty so a bare instantiation works with no args (e.g.
+  // `instantiateRes(matrix)` behind `ctrl.createRes()` in resource-level tests).
+  // The engine (res-manager) threads a resolution chain explicitly.
   const create = async (
     locale: AnyLocale | undefined = undefined,
     chain: readonly AnyNamespace[] = []
@@ -216,7 +270,7 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
     // re-checked independently each time `createSync` runs.)
     eligibility.eligible = !isThenable(rawOrPromise);
     const raw = await rawOrPromise;
-    return (postProcess ? postProcess(raw, resolvedCursor as never) : raw) as AnyRes;
+    return makeDisposeIdempotent((postProcess ? postProcess(raw, resolvedCursor as never) : raw) as AnyRes);
   };
 
   const createSync = (
@@ -235,13 +289,13 @@ export function createResMatrix(options: CreateResMatrixOptions): AnyResMatrix {
     if (isThenable(raw)) {
       return ASYNC;
     }
-    return (postProcess ? postProcess(raw, resolvedCursor as never) : raw) as AnyRes;
+    return makeDisposeIdempotent((postProcess ? postProcess(raw, resolvedCursor as never) : raw) as AnyRes);
   };
 
   return {
     [resMatrixMetaSymbol]: meta,
-    create: create as () => Promise<AnyRes>,
-    createSync: createSync as () => AnyRes | typeof ASYNC,
+    [createSymbol]: create as Create<AnyRes>,
+    [createSyncSymbol]: createSync as CreateSync<AnyRes>,
     plug,
     [resMatrixSyncEligibleSymbol]: eligibility,
   };

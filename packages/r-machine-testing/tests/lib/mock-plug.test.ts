@@ -3,6 +3,7 @@ import {
   createPlug,
   getPlugMachine,
   getPlugOverride,
+  instantiateRes,
   type PlugBody,
   setPlugMachine,
 } from "r-machine/core";
@@ -34,7 +35,7 @@ describe("mockPlug", () => {
       });
       ctrl.state = { count: 10 }; // deep-partial: `label` must survive
 
-      const inst = await counter.create();
+      const inst = await instantiateRes(counter);
 
       // Getter reads the seeded cell; untouched state key preserved.
       expect(inst.count()).toBe(10);
@@ -56,12 +57,12 @@ describe("mockPlug", () => {
         0: { double: (n: number) => n + 100 },
       });
 
-      const mocked = await listForm.create();
+      const mocked = await instantiateRes(listForm);
       expect(mocked.quadruple(1)).toBe(201); // (1 + 100) + 100
 
       reset();
 
-      const prod = await listForm.create();
+      const prod = await instantiateRes(listForm);
       expect(prod.quadruple(1)).toBe(4); // production restored: (1 * 2) * 2
     });
   });
@@ -81,7 +82,7 @@ describe("mockPlug", () => {
       using ctrl = mockPlug(counter.plug).with({});
       ctrl.state = { count: 3 };
 
-      const inst = await counter.create();
+      const inst = await instantiateRes(counter);
       expect(inst.count()).toBe(3);
     });
   });
@@ -94,7 +95,7 @@ describe("mockPlug", () => {
     it("accepts a ResMatrix carrier (`mockPlug(r)`) and drives its plug", async () => {
       using ctrl = mockPlug(counter).with({}); // pass `counter`, not `counter.plug`
       ctrl.state = { count: 7 };
-      const inst = await counter.create();
+      const inst = await instantiateRes(counter);
       expect(inst.count()).toBe(7);
     });
 
@@ -128,10 +129,10 @@ describe("mockPlug", () => {
         $: { ports: { persist: async () => {} } },
       });
       ctrl.state = { count: 99 };
-      await counter.create();
+      await instantiateRes(counter);
       ctrl.reset();
 
-      const inst = await counter.create();
+      const inst = await instantiateRes(counter);
       // Fresh per-create cell → production default, not the mocked 99.
       expect(inst.count()).toBe(0);
       expect(inst.label()).toBe("init");
@@ -265,7 +266,7 @@ describe("mockPlug", () => {
       expect(machine().testMode.isEnabled).toBe(false);
 
       // The counter plug's resolve was restored → production default.
-      const inst = await counter.create();
+      const inst = await instantiateRes(counter);
       expect(inst.count()).toBe(0);
     });
   });
@@ -294,7 +295,7 @@ describe("mockPlug", () => {
       // Seed (write before the cell exists): queued, applied at resolve.
       ctrl.state = { count: 10, label: "x" };
 
-      const inst = await counter.create();
+      const inst = await instantiateRes(counter);
       // Real getters read the seeded cell; controller reads the same live cell.
       expect(inst.count()).toBe(10);
       expect(ctrl.state).toEqual({ count: 10, label: "x" });
@@ -316,7 +317,7 @@ describe("mockPlug", () => {
 
       deps[0].state = { n: 5 }; // seed the dependency's state
 
-      const inst = await sharedConsumer.create();
+      const inst = await instantiateRes(sharedConsumer);
       // The consumer's real getter reads the dep's seeded state.
       expect(inst.sharedValue()).toBe(5);
       expect(deps[0].state).toEqual({ n: 5 });
@@ -333,7 +334,7 @@ describe("mockPlug", () => {
     it("reset() clears the controller (state throws again after reset)", async () => {
       const ctrl = mockPlug(counter.plug).default();
       ctrl.state = { count: 3, label: "z" };
-      await counter.create();
+      await instantiateRes(counter);
       expect(ctrl.state).toEqual({ count: 3, label: "z" });
 
       ctrl.reset();
@@ -355,7 +356,7 @@ describe("mockPlug", () => {
 
       deps.shared.state = { n: 7 }; // seed the named dependency's state
 
-      const inst = await mappedConsumer.create();
+      const inst = await instantiateRes(mappedConsumer);
       expect(inst.sharedValue()).toBe(7);
       expect(deps.shared.state).toEqual({ n: 7 });
 
@@ -373,7 +374,7 @@ describe("mockPlug", () => {
       // queued seed, then reads/writes go straight to the production-default cell.
       using ctrl = mockPlug(counter.plug).default();
 
-      const inst = await counter.create();
+      const inst = await instantiateRes(counter);
       // Production default, untouched — the controller still reads the live cell.
       expect(ctrl.state).toEqual({ count: 0, label: "init" });
 
@@ -388,7 +389,7 @@ describe("mockPlug", () => {
       // unresolved (the type layer also hides it — it is out-of-band here).
       using ctrl = mockPlug(kitConsumer.plug).default();
 
-      const inst = await kitConsumer.create();
+      const inst = await instantiateRes(kitConsumer);
       expect(inst.viaKit()).toBe("hi x"); // production kit runs untouched
 
       // Reaching for a stateless kit entry's `.state` throws — there is no cell.

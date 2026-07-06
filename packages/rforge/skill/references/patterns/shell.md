@@ -280,7 +280,7 @@ First decide which kind of shell it is — the two test the opposite way:
 
 **Plain-object shell (no `.define`) → NO plug.** A resource declared as a plain
 object (`export const r = { … }`) carries no factory, so it has **no `.plug` and
-no `.create()`** — you **cannot** `mockPlug` it (that throws
+no `createRes`** — you **cannot** `mockPlug` it (that throws
 `ERR_MOCK_TARGET_INVALID`). It's static data already guarded by `localized(...)`'s
 exact-key type-check, so the default is to **skip the test**. If you want one,
 import each locale module and assert its `r` directly — no mock:
@@ -305,8 +305,8 @@ import { mockPlug } from "@r-machine/testing";
 import { r as greet } from "@/r-machine/pub/shell/greeting/en";
 
 it("resolves the shell per locale", async () => {
-  using _ctrl = mockPlug(greet).with({ $: { locale: "it" } });
-  const localized = await greet.create();
+  using ctrl = mockPlug(greet).with({ $: { locale: "it" } });
+  const localized = await ctrl.createRes();
   expect(localized.welcome).toBe("Benvenuto!");
 });
 ```
