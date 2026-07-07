@@ -39,7 +39,7 @@ R-Machine ships an **LLM-agent skill** (via the `rforge` CLI) that scaffolds the
 
 ```bash
 pnpm create next-app@latest        # or an existing Next.js / React (Vite) app
-pnpm dlx rforge@latest skill       # installs the skill into .claude/skills/r-machine
+pnpm dlx rforge@latest skill       # installs the skill into .claude/skills + .agents/skills
 ```
 
 Then prompt your agent (Claude Code or another), e.g.:
@@ -1663,6 +1663,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-07-07.025
+rev 2026-07-07.026
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com

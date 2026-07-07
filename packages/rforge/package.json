@@ -49,8 +49,9 @@
     "clean": "git clean -xdf . -e node_modules",
     "build": "tsc --project tsconfig.build.json",
     "postbuild": "pnpm biome check --write .",
-    "test": "pnpm vitest run --typecheck",
-    "test:watch": "pnpm vitest watch --typecheck",
+    "typecheck": "tsc --noEmit",
+    "test": "tsc --noEmit && vitest run --typecheck",
+    "test:watch": "vitest watch --typecheck",
     "dev": "tsx --conditions @r-machine/source src/bin.ts"
   },
   "dependencies": {

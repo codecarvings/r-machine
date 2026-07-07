@@ -51,13 +51,24 @@ correctly.
 rforge skill [--out <dir>] [--force]
 ```
 
-| Flag          | Default            | Description                                                             |
-| ------------- | ------------------ | ----------------------------------------------------------------------- |
-| `--out <dir>` | `./.claude/skills` | Skills directory to install into. The Skill lands in `<out>/r-machine`. |
-| `--force`     | `false`            | Overwrite an existing Skill at the destination.                         |
+| Flag          | Default       | Description                                                                                           |
+| ------------- | ------------- | ----------------------------------------------------------------------------------------------------- |
+| `--out <dir>` | _(see below)_ | Install into a single skills directory instead of the defaults. The Skill lands in `<out>/r-machine`. |
+| `--force`     | `false`       | Refresh the Skill even if it is already up to date at the destination.                                |
 
-Commit the installed folder to share it with your team; re-run with `--force` to
-refresh it after upgrading `rforge`.
+**Where it installs.** With no `--out`, a first install seeds the Skill into both
+`.claude/skills` (Claude Code) and `.agents/skills` (the vendor-neutral location
+other agents read), so it is picked up regardless of which tool runs. On a re-run,
+only the locations that already have the Skill are updated — a directory you
+removed is never re-created. Pass `--out <dir>` to target exactly one directory
+(e.g. `rforge skill --out ./.agents/skills` to add a location later).
+
+**Staying current.** Each installed Skill carries a `.rforge-skill.json` manifest,
+so a re-run knows whether it is up to date. If the bundled Skill changed (e.g.
+after upgrading `rforge`), the command offers to update it; otherwise it reports
+that nothing needs doing. Use `--force` to refresh unconditionally.
+
+Commit the installed folder(s) to share the Skill with your team.
 
 ---
 
