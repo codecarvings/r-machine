@@ -316,7 +316,8 @@ type MockCtxContent<PH extends AnyPlugHead, C> = {
       : K]?: K extends "kit"
     ? MockSurfaceMap<ExtractResAtlas<PH>, ExtractKit<PH>>
     : K extends "ports"
-      ? Partial<C[K]>
+      ? // ports are deep-merged over the real ports object (mergeLiveOverride).
+        DeepPartial<C[K]>
       : // e.g. the locale key (a string) — DeepPartial is the identity.
         DeepPartial<C[K]>;
 };

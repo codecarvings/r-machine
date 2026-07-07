@@ -23,6 +23,15 @@ ResourceAtlas.loader.register(["*"], async (path): Promise<AnyResModule> => {
           inc: _.action(() => ({ n: plugin.$.state.n + 1 })),
         })),
       } as unknown as AnyResModule;
+    case "outer/probe":
+      // A stateful gear whose getter returns an OBJECT deriving `a` from state
+      // (and a constant `b`): the live-getter mock scenario — mock `b`, drive
+      // state, watch `a` keep tracking.
+      return {
+        r: OuterGear.withState({ n: 0 }).define((plugin, _) => ({
+          view: _.getter(() => ({ a: plugin.$.state.n, b: 2 })),
+        })),
+      } as unknown as AnyResModule;
     default:
       throw new Error(`mock-plug fixture: unknown resource "${path}"`);
   }

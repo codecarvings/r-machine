@@ -257,6 +257,42 @@ the shell, at the folder's level — not per-locale:
    `ctrl.kit[key].state`. Writes before resolve are deep-partial **seeds**; reads
    and writes after resolve hit the live cell.
 
+**Every resolution override is a `DeepPartial` deep-merged over the real surface**
+— the same merge law as an action reducer and `ctrl.state`. Mock a single nested
+sub-key and its **siblings are inherited** from the real resource:
+
+```ts
+// Override only views.intro.heading; every other key (blurb, other views, …)
+// comes from the real shell.
+mockPlug(r).with({
+  showcase: (locale) => ({ views: { intro: { heading: `x-${locale}` } } }),
+});
+```
+
+Level-0 members stay **live**: pass a getter and it is re-read on each access
+(useful to drive a value over a test, or to check a consumer reads a dep fresh):
+
+```ts
+let appName = "abc";
+using ctrl = mockPlug(r).with({
+  config: {
+    get appName() {
+      return appName;
+    },
+  },
+});
+const inst = await ctrl.createRes();
+expect(inst.getAppName()).toBe("abc");
+appName = "xyz";
+expect(inst.getAppName()).toBe("xyz"); // re-read, not snapshotted
+```
+
+An override getter is a **partial**, not a whole replacement: if a real dep getter
+derives from state (`foo → { a: <state>, b: 2 }`), mocking `{ foo: { b: 100 } }`
+and then driving `ctrl.deps.foo.state` yields `{ a: <new state>, b: 100 }` — `a`
+keeps tracking, `b` stays mocked. (On primitive leaves the deep-merge degrades to a
+plain replacement.)
+
 `.default()` is `.with({})` — enter test mode with no overrides (e.g. resolve a
 stateless gear, or resolve at the machine's default locale).
 

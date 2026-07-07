@@ -1339,7 +1339,9 @@ State is deliberately **not** a `.with(...)` override — it's a live cell, so i
 
 ### 14.2. Channel A — resolution overrides (`.with`)
 
-Overridable: the plug's direct dependencies (by name / position), kit entries (`$.kit`), and — conditional on the resource — the locale key (named by plug kind, §14.7; gears have no locale) and `$.ports` (only resources declared with `withPorts({...})`). Anything not overridden runs through the production factory as a deep partial on top of the resulting Surface, so unsubstituted paths (including `[Symbol.dispose]` teardown) still run; `mockPlug` also reaches `$`-prefixed members (relays, internal actions). A `res.perLocale` dep (§4.1) resolves to a loader, so it is mocked with a **function** `(locale) => partial` deep-merged over the real localized surface per call.
+Overridable: the plug's direct dependencies (by name / position), kit entries (`$.kit`), and — conditional on the resource — the locale key (named by plug kind, §14.7; gears have no locale) and `$.ports` (only resources declared with `withPorts({...})`). Every override is a `DeepPartial` **deep-merged** over the real Surface (the same merge law as an action reducer and `ctrl.state`, §14.3): a mocked nested sub-key inherits its **siblings** from the real resource, and unsubstituted paths (including `[Symbol.dispose]` teardown) still run. `mockPlug` also reaches `$`-prefixed members (relays, internal actions). A `res.perLocale` dep (§4.1) resolves to a loader, so it is mocked with a **function** `(locale) => partial` deep-merged over the real localized surface per call.
+
+Level-0 members stay **live**: pass a getter and it is re-read on each access (drive a value across a test, or check a consumer reads a dep fresh). An override getter is a *partial*, not a whole replacement — if a real dep getter derives `foo → { a: <state>, b: 2 }`, mocking `{ foo: { b: 100 } }` and driving `ctrl.deps.foo.state` gives `{ a: <new state>, b: 100 }` (`a` tracks, `b` stays mocked). On primitive leaves the deep-merge degrades to a plain replacement.
 
 Resource-level test — override a port (pass the resource `r`), drive the rest of the real factory:
 
@@ -1661,6 +1663,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-07-06.024
+rev 2026-07-07.025
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com

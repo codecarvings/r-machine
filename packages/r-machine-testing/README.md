@@ -39,8 +39,11 @@ npm install -D @r-machine/testing
 
 `mockPlug(r)` returns a disposable controller. Use `.default()` to run the
 real resource, or `.with({ ... })` to override its plugin context (`$.ports`,
-`$.locale`, …) and dependencies. For a resource, `ctrl.createRes()` instantiates
-it (overrides applied) and returns its `TestSurface`:
+`$.locale`, …) and dependencies. Every override is a `DeepPartial` **deep-merged**
+over the real surface (siblings inherited), with level-0 getters kept **live** —
+the same merge law as an action reducer and `ctrl.state`. For a resource,
+`ctrl.createRes()` instantiates it (overrides applied) and returns its
+`TestSurface`:
 
 ```ts
 import { mockPlug } from "@r-machine/testing";

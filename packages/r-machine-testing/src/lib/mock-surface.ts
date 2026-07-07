@@ -15,6 +15,7 @@ import type {
   Action,
   AnyRes,
   AnyResAtlas,
+  DeepPartial,
   ExtractNamespace,
   Getter,
   HandleMap,
@@ -23,8 +24,18 @@ import type {
   ShellResolverHandle,
 } from "r-machine/core";
 
+// A mock member is a DeepPartial deep-merged over the real surface (see
+// `mergeLiveOverride`): a getter's value and a plain data member both accept a
+// partial sub-tree (siblings inherited from the real), degrading to a whole
+// replacement on primitives. Actions replace wholesale; relays are wiring.
 type MockSurfaceItem<I> =
-  I extends Getter<infer V> ? V : I extends Action<infer F> ? RuntimeAction<F> : I extends RelayBrand ? never : I;
+  I extends Getter<infer V>
+    ? DeepPartial<V>
+    : I extends Action<infer F>
+      ? RuntimeAction<F>
+      : I extends RelayBrand
+        ? never
+        : DeepPartial<I>;
 
 type MockSurface<R extends AnyRes> = {
   [K in keyof R as K extends `$${string}` | symbol ? never : K]?: MockSurfaceItem<R[K]>;

@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import { deepPartialMerge } from "r-machine/core";
+import { deepPartialMerge, isPlainObject } from "r-machine/core";
 
 // ---------------------------------------------------------------------------
 // Runtime override merge for mockPlug.
@@ -24,13 +24,15 @@ import { deepPartialMerge } from "r-machine/core";
 // them — sidestepping the deferred-kit self-reference getters that throw while
 // a factory is still running).
 //
-// Override semantics: deps (map by name / list by index), `$.kit` entries,
-// `$.state` and `$.ports`. Each Surface member override is a whole-value
-// replacement; `$.ports` is a deep-partial merge over the ports object;
-// `$.state` seeds the resource's state cell (see `cloneCtx`); `$.kit` entries
-// are cloned with the deferred-getter contract preserved (see `cloneKit`).
-// `$.locale` is handled upstream in mock-plug.ts by re-resolving in the
-// effective locale (shells resolve their content BY locale).
+// Override semantics: deps (map by name / list by index), `$.kit` entries and
+// `$.ports`. Every override is a `DeepPartial` DEEP-MERGED over the real surface
+// via `mergeLiveOverride` (the same merge law as actions / `ctrl.state`), with
+// level-0 getters kept live on both sides — a mocked sub-key preserves its
+// siblings and a stateful real getter keeps tracking. `$.state` is NOT an
+// override here (driven by the controller); `$.kit` entries preserve the
+// deferred-getter contract (see `cloneKit`). `$.locale` is handled upstream in
+// mock-plug.ts by re-resolving in the effective locale (shells resolve their
+// content BY locale).
 // ---------------------------------------------------------------------------
 
 type AnyRecord = Record<string, unknown>;
@@ -60,29 +62,65 @@ export function hasOverrides(data: AnyRecord): boolean {
 }
 
 /**
- * Produce a fresh Surface with `partial` layered on top. Original members are
- * copied by descriptor (no getter is invoked); overridden members are defined
- * as fresh data properties. The clone is a new object, so the originals'
- * `configurable: false` descriptors never get in the way.
+ * Layer `partial` (a `DeepPartial`) over `prev` — the ONE merge law shared with
+ * `deepPartialMerge` (actions, `ctrl.state`), extended so LEVEL-0 getters on
+ * either side stay LIVE:
+ *
+ * - Original members are copied by DESCRIPTOR (a real getter — e.g. a stateful
+ *   gear cell — is transplanted WITHOUT invoking it, staying live).
+ * - An overridden key whose real OR override side is a getter becomes a live
+ *   getter that RE-MERGES on every read: the real side is re-read lazily (so it
+ *   keeps tracking state) and the override is re-read too (so a live override
+ *   getter keeps changing). So mocking `foo`'s `b` while `foo` derives `a` from
+ *   state → after `ctrl.state`, `foo` is `{ a: <new state>, b: <mock> }`.
+ * - An overridden key with plain values on both sides is a fixed
+ *   `deepPartialMerge` (sibling keys preserved; primitives replaced).
+ *
+ * Below level 0 the depth is delegated verbatim to `deepPartialMerge` (core,
+ * untouched): `undefined`→skip, arrays/atomics→replace, plain objects→deep. A
+ * non-plain side, or an empty override, degrades to `deepPartialMerge`/identity.
  */
-export function cloneSurfaceWithOverride(surface: object, partial: AnyRecord | undefined): object {
-  if (partial === undefined || Object.keys(partial).length === 0) {
-    return surface;
+export function mergeLiveOverride(prev: unknown, partial: unknown): unknown {
+  if (partial === undefined) {
+    return prev;
   }
-  const out = Object.create(Object.getPrototypeOf(surface));
-  for (const key of Reflect.ownKeys(surface)) {
+  if (!isPlainObject(prev) || !isPlainObject(partial)) {
+    return deepPartialMerge(prev, partial); // base case: whole-value semantics
+  }
+  if (Object.keys(partial).length === 0) {
+    return prev; // no-op override → keep identity
+  }
+  const out = Object.create(Object.getPrototypeOf(prev)) as Record<PropertyKey, unknown>;
+  for (const key of Reflect.ownKeys(prev)) {
     if (typeof key === "string" && hasOwn(partial, key)) {
-      continue; // replaced below
+      continue; // overridden below
     }
-    Object.defineProperty(out, key, Object.getOwnPropertyDescriptor(surface, key)!);
+    Object.defineProperty(out, key, Object.getOwnPropertyDescriptor(prev, key)!);
   }
   for (const key of Object.keys(partial)) {
-    Object.defineProperty(out, key, {
-      enumerable: true,
-      configurable: true,
-      writable: false,
-      value: partial[key],
-    });
+    const realDesc = Object.getOwnPropertyDescriptor(prev, key);
+    const ovDesc = Object.getOwnPropertyDescriptor(partial, key)!;
+    if (realDesc?.get !== undefined || ovDesc.get !== undefined) {
+      // Live: re-merge each read so a stateful real getter keeps tracking and a
+      // live override getter keeps being re-read.
+      Object.defineProperty(out, key, {
+        enumerable: true,
+        configurable: true,
+        get: () => {
+          const realValue =
+            realDesc === undefined ? undefined : realDesc.get ? realDesc.get.call(prev) : realDesc.value;
+          const ovValue = ovDesc.get ? ovDesc.get.call(partial) : ovDesc.value;
+          return deepPartialMerge(realValue, ovValue);
+        },
+      });
+    } else {
+      Object.defineProperty(out, key, {
+        enumerable: true,
+        configurable: true,
+        writable: false,
+        value: deepPartialMerge(realDesc === undefined ? undefined : realDesc.value, ovDesc.value),
+      });
+    }
   }
   return out;
 }
@@ -102,9 +140,9 @@ function applyDepOverride(real: unknown, override: AnyRecord): unknown {
     const realLoader = real as (locale: unknown) => Promise<unknown>;
     const mockFn = override as unknown as (locale: unknown) => unknown;
     return async (locale: unknown): Promise<unknown> =>
-      deepPartialMerge(await realLoader(locale), await mockFn(locale));
+      mergeLiveOverride(await realLoader(locale), await mockFn(locale));
   }
-  return cloneSurfaceWithOverride(real as object, override);
+  return mergeLiveOverride(real, override);
 }
 
 /**
@@ -113,8 +151,9 @@ function applyDepOverride(real: unknown, override: AnyRecord): unknown {
  * getter LAZY (reading it mid-factory throws `ERR_CIRCULAR_DEPENDENCY`).
  * Overridden entries become a lazy, memoized getter that reads the original
  * entry only at access time (by then the factory has committed) and layers the
- * partial via `cloneSurfaceWithOverride` — so deferred kit entries can be
- * overridden without forcing an early read.
+ * partial via `mergeLiveOverride` — so deferred kit entries can be overridden
+ * without forcing an early read. (Memoizing the merged OBJECT is safe: its own
+ * level-0 getters stay live.)
  */
 export function cloneKit(kit: object, kitOverride: AnyRecord): object {
   const out: AnyRecord = {};
@@ -137,7 +176,7 @@ export function cloneKit(kit: object, kitOverride: AnyRecord): object {
           // Read the original lazily: a getter (deferred kit) only resolves once
           // its slot is committed; a plain value (eager kit) reads immediately.
           const original = origDesc?.get ? origDesc.get.call(kit) : (origDesc?.value as object | undefined);
-          cached = cloneSurfaceWithOverride(original ?? Object.create(null), partial);
+          cached = mergeLiveOverride(original ?? Object.create(null), partial) as object;
           resolved = true;
         }
         return cached;
@@ -173,7 +212,7 @@ export function cloneCtx($: object, ctxOverride: AnyRecord | undefined): object 
       enumerable: true,
       configurable: true,
       writable: true,
-      value: deepPartialMerge(($ as AnyRecord).ports, ctxOverride.ports),
+      value: mergeLiveOverride(($ as AnyRecord).ports, ctxOverride.ports),
     });
   }
 

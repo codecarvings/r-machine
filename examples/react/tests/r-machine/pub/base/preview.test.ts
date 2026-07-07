@@ -22,4 +22,21 @@ describe("Base_Preview", () => {
     expect(preview.preview.en.tagline).toBe("mock-en");
     expect(preview.preview.en.appName).toBe("R-Machine × React");
   });
+
+  it("mocks a DEEP sub-key of a res.perLocale dep, inheriting the real siblings", async () => {
+    // Override just `views.intro.heading`: a DeepPartial deep-merged over the
+    // real localized surface, so every un-mocked key (blurb, tagline, other
+    // views) is inherited from the real shell.
+    using ctrl = mockPlug(r).with({
+      showcase: (locale) => ({ views: { intro: { heading: `mock-${locale}` } } }),
+    });
+    const preview = await ctrl.createRes();
+
+    expect(preview.preview.en.views.intro.heading).toBe("mock-en"); // mocked leaf
+    expect(preview.preview.it.views.intro.heading).toBe("mock-it");
+    // Siblings survive the deep-merge — not wiped by the partial.
+    expect(preview.preview.en.views.intro.blurb).toContain("no router"); // sibling key
+    expect(preview.preview.en.views.outerGear.heading).toBe("OuterGear — reactive state"); // sibling view
+    expect(preview.preview.en.tagline).toBe("A feature tour — no router required.");
+  });
 });

@@ -18,6 +18,9 @@ type ResourceMap = {
   // Stateful dep used by the cross-test isolation suite: its cached state cell
   // is what `reset` must clear between tests.
   "outer/shared": { value: number; inc: () => void };
+  // Stateful dep whose getter returns an object deriving from state: the
+  // live-getter mock scenario (mock a sub-key, drive state, the sibling tracks).
+  "outer/probe": { view: { a: number; b: number } };
 };
 
 export class ResourceAtlas extends folders<ResourceMap>() {}

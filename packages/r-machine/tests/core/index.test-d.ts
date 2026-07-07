@@ -112,6 +112,7 @@ import {
   isDevEnv,
   isGetter,
   isOuterGearLayoutType,
+  isPlainObject,
   isVertexGearLayoutType,
   PLUG_MACHINE_ACCESSOR,
   PROCESS_SCOPE_PROVIDER,
@@ -157,6 +158,7 @@ describe("core barrel exports", () => {
     expectTypeOf(getResFamilyFromLayoutType).toBeFunction();
     expectTypeOf(isGetter).toBeFunction();
     expectTypeOf(isOuterGearLayoutType).toBeFunction();
+    expectTypeOf(isPlainObject).toBeFunction();
     expectTypeOf(isVertexGearLayoutType).toBeFunction();
     expectTypeOf(instantiateRes).toBeFunction();
     expectTypeOf(instantiateResSync).toBeFunction();

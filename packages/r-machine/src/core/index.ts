@@ -18,7 +18,7 @@ export { BlueprintManager } from "./blueprint-manager.js";
 export type { CassetteRecorder } from "./cassette-recorder.js";
 export { createCassetteRecorder } from "./cassette-recorder.js";
 export type { SwitchableOption } from "./config-options.js";
-export { type DeepPartial, deepPartialMerge } from "./deep-partial.js";
+export { type DeepPartial, deepPartialMerge, isPlainObject } from "./deep-partial.js";
 export { isDevEnv } from "./dev-env.js";
 export type {
   DirectPlugDefiner,
