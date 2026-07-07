@@ -36,13 +36,24 @@ export type TestSurface<R> = {
 // `surface.x` reads its value, fresh on each access), everything else copied
 // verbatim. Mirrors core's `buildSurface` but WITHOUT dropping `$`/relays/symbols.
 //
+// A plain `get foo()` accessor is transplanted LIVE (via its descriptor, bound
+// to `res`), never read-and-frozen — exactly like `buildSurface`, so a test sees
+// the same fresh-on-read behaviour a consumer does. (Same caveat as
+// `buildSurface`: a plain `get` is always a plain live value; declaring a
+// branded/wiring member via an accessor is unsupported misuse.)
+//
 // `[Symbol.dispose]` is copied through as-is: the resource's dispose is already
 // idempotent (guaranteed uniformly by `createResMatrix`), so the mock controller
 // can safely auto-dispose the instance on reset even if the test already did.
 export function buildTestSurface(res: object): object {
   const out = Object.create(Object.getPrototypeOf(res)) as Record<PropertyKey, unknown>;
   for (const key of Reflect.ownKeys(res)) {
-    const entry = (res as Record<PropertyKey, unknown>)[key];
+    const desc = Object.getOwnPropertyDescriptor(res, key)!;
+    if (desc.get !== undefined) {
+      Object.defineProperty(out, key, { enumerable: true, get: () => desc.get!.call(res) });
+      continue;
+    }
+    const entry = desc.value as unknown;
     if (isGetter(entry)) {
       Object.defineProperty(out, key, { enumerable: true, get: entry as () => unknown });
     } else {

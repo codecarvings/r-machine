@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { mockPlug } from "../../src/lib/mock-plug.js";
 import { r as counter } from "../fixtures/mock-plug/outer-counter.js";
-import { OuterGear } from "../fixtures/mock-plug/setup.js";
+import { BaseGear, OuterGear } from "../fixtures/mock-plug/setup.js";
 
 // `ctrl.createRes()` instantiates the mocked resource and returns its
 // `TestSurface`: the SAME shape a dependency is mocked in (getter → property),
@@ -80,6 +80,31 @@ describe("ctrl.createRes — TestSurface projection", () => {
 
     await inst.save(); // hits the mocked port
     expect(saved).toEqual([15]);
+  });
+
+  it("keeps a plain `get` member live (fresh on each read), backed by a mocked port", async () => {
+    // A gear member written as a bare `get avail()` — NOT `_.getter` — backed by
+    // a port must re-read on each access, not snapshot at instantiation.
+    const gear = BaseGear.withPorts({
+      stat: (): number => {
+        throw new Error("stat not mocked");
+      },
+    }).define((plugin) => {
+      const { $ } = plugin;
+      return {
+        get avail() {
+          return { free: $.ports.stat() };
+        },
+      };
+    });
+
+    let free = 10;
+    using ctrl = mockPlug(gear).with({ $: { ports: { stat: () => free } } });
+    const inst = (await ctrl.createRes()) as { avail: { free: number } };
+
+    expect(inst.avail).toEqual({ free: 10 });
+    free = 20;
+    expect(inst.avail).toEqual({ free: 20 }); // re-read, not a build-time snapshot
   });
 });
 

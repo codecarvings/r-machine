@@ -52,6 +52,24 @@ describe("Surface projection — member lifting", () => {
     expect(surface.count).toBe(20); // reads through on each access
   });
 
+  it("lifts a plain `get` accessor to a live property (re-read on each access)", () => {
+    // A gear member written as a bare `get foo()` — e.g. backed by a port —
+    // must stay live, NOT be read-and-frozen at surface build. Inspecting the
+    // descriptor (not reading the value) is what preserves it.
+    let n = 1;
+    const res = {
+      get foo() {
+        return { a: n };
+      },
+    } as unknown as AnyRes;
+    const surface = surfaceOf(res) as { foo: { a: number } };
+
+    expect(surface.foo).toEqual({ a: 1 });
+    n = 2;
+    expect(surface.foo).toEqual({ a: 2 }); // fresh on each read, not a build-time snapshot
+    expect(Object.getOwnPropertyDescriptor(surface, "foo")?.get).toBeTypeOf("function");
+  });
+
   it("preserves an Action as a callable value", () => {
     const fn = createAction((a: number, b: number) => ({ sum: a + b }), "add");
     const res = { add: fn } as AnyRes;
