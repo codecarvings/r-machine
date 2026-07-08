@@ -132,10 +132,10 @@ importers:
   examples/next:
     dependencies:
       '@r-machine/next':
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine-next
       '@r-machine/react':
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine-react
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.19
@@ -159,7 +159,7 @@ importers:
         specifier: 16.2.10
         version: 16.2.10(@playwright/test@1.61.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       r-machine:
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine
       react:
         specifier: 19.2.7
@@ -172,7 +172,7 @@ importers:
         version: 3.6.0
     devDependencies:
       '@r-machine/testing':
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine-testing
       '@tailwindcss/postcss':
         specifier: ^4.3.2
@@ -220,10 +220,10 @@ importers:
   examples/next-with-app-flat-strategy:
     dependencies:
       '@r-machine/next':
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine-next
       '@r-machine/react':
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine-react
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.19
@@ -247,7 +247,7 @@ importers:
         specifier: 16.2.10
         version: 16.2.10(@playwright/test@1.61.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       r-machine:
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine
       react:
         specifier: 19.2.7
@@ -290,10 +290,10 @@ importers:
   examples/next-with-app-origin-strategy:
     dependencies:
       '@r-machine/next':
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine-next
       '@r-machine/react':
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine-react
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.19
@@ -317,7 +317,7 @@ importers:
         specifier: 16.2.10
         version: 16.2.10(@playwright/test@1.61.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       r-machine:
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine
       react:
         specifier: 19.2.7
@@ -360,10 +360,10 @@ importers:
   examples/next-with-app-path-strategy:
     dependencies:
       '@r-machine/next':
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine-next
       '@r-machine/react':
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine-react
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.19
@@ -387,7 +387,7 @@ importers:
         specifier: 16.2.10
         version: 16.2.10(@playwright/test@1.61.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       r-machine:
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine
       react:
         specifier: 19.2.7
@@ -430,10 +430,10 @@ importers:
   examples/next-with-app-path-strategy-no-proxy:
     dependencies:
       '@r-machine/next':
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine-next
       '@r-machine/react':
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine-react
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.19
@@ -457,7 +457,7 @@ importers:
         specifier: 16.2.10
         version: 16.2.10(@playwright/test@1.61.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       r-machine:
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine
       react:
         specifier: 19.2.7
@@ -500,7 +500,7 @@ importers:
   examples/react:
     dependencies:
       '@r-machine/react':
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine-react
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.19
@@ -521,7 +521,7 @@ importers:
         specifier: ^1.23.0
         version: 1.23.0(react@19.2.7)
       r-machine:
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine
       radix-ui:
         specifier: ^1.6.1
@@ -540,7 +540,7 @@ importers:
         version: 4.3.2
     devDependencies:
       '@r-machine/testing':
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine-testing
       '@shikijs/langs':
         specifier: ^4.3.1
@@ -591,11 +591,11 @@ importers:
   examples/standalone:
     dependencies:
       r-machine:
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine
     devDependencies:
       '@r-machine/testing':
-        specifier: ^1.0.0-alpha.14
+        specifier: ^1.0.0-alpha.15
         version: link:../../packages/r-machine-testing
       '@types/node':
         specifier: ^24.13.2
