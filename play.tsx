@@ -16,5 +16,5 @@ const rMachine = RMachine.create({
   load: async () => undefined!, // Implement your resource loading logic here
 });
 
-export const { BaseGear, InnerGear, Shell, DirectPlug, localized } = rMachine.createToolset();
+export const { BaseGear, InnerGear, Shell, DirectPlug, localized, res } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;

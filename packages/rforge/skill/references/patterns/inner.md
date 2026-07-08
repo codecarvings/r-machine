@@ -51,10 +51,10 @@ import { mockPlug } from "@r-machine/testing";
 import { r } from "@/r-machine/prv/inner/catalog";
 
 it("resolves through the mocked port; real deps stay real", async () => {
-  using _ctrl = mockPlug(r).with({
+  using ctrl = mockPlug(r).with({
     $: { ports: { fetchProducts: async () => FIXTURES } },
   });
-  const catalog = await r.create();
+  const catalog = await ctrl.createRes();
   expect(catalog.byId("b")?.name).toBe("Beta");
 });
 ```

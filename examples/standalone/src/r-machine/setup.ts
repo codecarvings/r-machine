@@ -18,7 +18,7 @@ export const rMachine = RMachine.create({
   },
 });
 
-export const { BaseGear, Shell, DirectPlug, localized } = rMachine.createToolset();
+export const { BaseGear, Shell, DirectPlug, localized, res } = rMachine.createToolset();
 
 // The locale helper is available standalone too (content negotiation, locale
 // enumeration) — here we use it to iterate the configured locales in main.ts.

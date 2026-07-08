@@ -9,15 +9,15 @@ describe("Outer_Operator", () => {
   afterEach(() => vi.useRealTimers());
 
   it("derives -timer.value and commands the timer via add10()", async () => {
-    using _ctrl = mockPlug(r).default();
-    const operator = await r.create();
+    using ctrl = mockPlug(r).default();
+    const operator = await ctrl.createRes();
 
-    expect(operator.negative()).toBe(-0); // -timer.value with value 0
+    expect(operator.negative).toBe(-0); // -timer.value with value 0
 
     operator.add10(); // → timer.add(10)
-    expect(operator.negative()).toBe(-10);
+    expect(operator.negative).toBe(-10);
 
     operator.add10();
-    expect(operator.negative()).toBe(-20);
+    expect(operator.negative).toBe(-20);
   });
 });

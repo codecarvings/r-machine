@@ -24,6 +24,7 @@ import type {
   Namespace,
   OuterGearComposer,
   ShellComposer,
+  ShellResolverBuilder,
 } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 
@@ -38,11 +39,26 @@ export type RMachineToolset<
   readonly Shell: ShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>;
   readonly DirectPlug: DirectPlugDefiner<RA, L, E["directKit"]>;
   readonly localized: LocalizerHelper<RA["shape@shell"]>;
+  // Groups the "derived dependency" builders — used INSIDE `withDeps` to declare
+  // a dependency whose resolved value is a transformed view of the resource
+  // rather than the plain surface. Lives on the toolset (authoring layer,
+  // alongside the composers). One member today; future adapters (e.g. `lazy`,
+  // `optional`) join here without proliferating top-level toolset helpers.
+  readonly res: ResDepBuilders<RA, L>;
 } & (EF["outerGear"] extends "on"
   ? {
       readonly OuterGear: OuterGearComposer<RA, E["gearKit"]>;
     }
   : {});
+
+// Derived-dependency builders exposed as `toolset.res`.
+//  - `perLocale(shell)`: declares a locale-keyed shell as a gear/shell dependency;
+//    the resolved value is a loader `(locale: L) => Promise<Surface>` typed to the
+//    atlas's configured locales `L` (the locale arrives at runtime). Restricted to
+//    the shell catalog via `ShellResolverBuilder`.
+type ResDepBuilders<RA extends AnyResAtlas, L extends AnyLocale> = {
+  readonly perLocale: ShellResolverBuilder<RA["shape@shell"], L>;
+};
 
 type LocalizerHelper<RD extends AnyResDomain> = <N extends Namespace<RD>, const R extends RD[N]>(
   namespace: N,

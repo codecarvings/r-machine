@@ -1,7 +1,7 @@
 # R-Machine — Standalone / Node Setup (container-free, `DirectPlug`)
 
 Use this guide when adding R-Machine to a plain Node project with **no framework
-strategy** — a CLI, a queue worker, a cron job, or a React Email template.
+strategy** — a CLI, a queue worker, a cron job, or a template renderer.
 Resources are consumed container-free via `DirectPlug` (the locale is passed
 explicitly to `useR(locale)`). Canonical working reference: `examples/standalone`.
 

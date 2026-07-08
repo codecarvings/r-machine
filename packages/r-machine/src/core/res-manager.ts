@@ -28,7 +28,7 @@ import type { AnyResEquipment } from "./res-equipment.js";
 import { isOuterGearLayoutType, type ResLayoutEntryType, type ResLayoutResolver } from "./res-layout.js";
 import { type AnyNamespaceList, type AnyResolvedNamespaceList, isNamespaceList } from "./res-list.js";
 import type { AnyNamespaceMap, AnyResolvedNamespaceMap } from "./res-map.js";
-import { type AnyResMatrix, isResMatrixSyncEligible } from "./res-matrix.js";
+import { type AnyResMatrix, instantiateRes, instantiateResSync, isResMatrixSyncEligible } from "./res-matrix.js";
 import { buildResPod, type ResPod } from "./res-pod.js";
 import { attachResolveContext } from "./resolve-context.js";
 import { PROCESS_SCOPE_PROVIDER, type RequestScope, type RequestScopeProvider, type Slot } from "./scope.js";
@@ -166,16 +166,12 @@ export class ResManager {
           pod = buildResPod(blueprint.origin as AnyRes, vertexTag);
           this.busHost.bus?.emit({ type: "res:built", namespace });
         } else {
-          const create = blueprint.origin.create as (
-            locale: AnyLocale | undefined,
-            chain: readonly AnyNamespace[]
-          ) => Promise<AnyRes>;
           // Extend the chain with our own namespace before invoking the factory:
           // any nested loadKit / getPod under us will see us as in-flight
           // and break cycles via the deferred-kit getter. The "self" of the
           // running factory is implicitly chain[chain.length - 1].
           this.busHost.bus?.emit({ type: "res:factoryInvoked", namespace, locale });
-          const res = await create(locale, [...chain, namespace]);
+          const res = await instantiateRes(blueprint.origin as AnyResMatrix, locale, [...chain, namespace]);
           pod = buildResPod(res, vertexTag);
           this.busHost.bus?.emit({ type: "res:built", namespace });
         }
@@ -451,12 +447,8 @@ export class ResManager {
       if (!isResMatrixSyncEligible(blueprint.origin)) {
         return ASYNC;
       }
-      const createSync = (blueprint.origin as AnyResMatrix).createSync as (
-        locale: AnyLocale | undefined,
-        chain: readonly AnyNamespace[]
-      ) => AnyRes | typeof ASYNC;
       this.busHost.bus?.emit({ type: "res:factoryInvoked", namespace, locale });
-      const res = createSync(locale, [...chain, namespace]);
+      const res = instantiateResSync(blueprint.origin as AnyResMatrix, locale, [...chain, namespace]);
       if (res === ASYNC) {
         return ASYNC;
       }

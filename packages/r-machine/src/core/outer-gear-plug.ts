@@ -26,12 +26,12 @@ import type { GetterCellComposer, GetterComposer, StatelessGetterComposer } from
 import type { ListPlugin, MapPlugin, PlugBody } from "./plug.js";
 import type { RelayComposer } from "./relay.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { HandleList } from "./res-list.js";
-import type { HandleMap } from "./res-map.js";
+import type { DepHandleList } from "./res-list.js";
+import type { DepHandleMap } from "./res-map.js";
 import type { AnyState } from "./state.js";
 
-export type OuterGearPlugDepMap<RA extends AnyResAtlas> = HandleMap<RA, "valid@gear:outer">;
-export type OuterGearPlugDepList<RA extends AnyResAtlas> = HandleList<RA, "valid@gear:outer">;
+export type OuterGearPlugDepMap<RA extends AnyResAtlas> = DepHandleMap<RA, "valid@gear:outer">;
+export type OuterGearPlugDepList<RA extends AnyResAtlas> = DepHandleList<RA, "valid@gear:outer">;
 
 // #region Stateful
 

@@ -15,8 +15,8 @@ import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
 import type { AnyLocale } from "#r-machine/locale";
 import type { AnyResAtlas } from "./res-atlas.js";
 import { type AnyNamespace, isHandle } from "./res-domain.js";
-import type { AnyNamespaceList, HandleList, SurfaceList } from "./res-list.js";
-import type { AnyNamespaceMap, HandleMap, SurfaceMap } from "./res-map.js";
+import type { AnyNamespaceList, DepSurfaceList, HandleList } from "./res-list.js";
+import type { AnyNamespaceMap, DepSurfaceMap, HandleMap, SurfaceMap } from "./res-map.js";
 import { ASYNC } from "./sync-resolve.js";
 import type { TestMode } from "./test-mode.js";
 
@@ -36,11 +36,18 @@ export type LocaleAwarePluginCtx<RA extends AnyResAtlas, L extends AnyLocale, KM
   readonly locale: L;
 };
 
-export type MapPlugin<RA extends AnyResAtlas, DM extends HandleMap<RA>, CTX> = SurfaceMap<RA, Omit<DM, "$">> & {
+export type MapPlugin<RA extends AnyResAtlas, DM extends HandleMap<RA>, CTX> = DepSurfaceMap<RA, Omit<DM, "$">> & {
   $: CTX;
 } & (CTX extends { readonly kit: infer KM } ? Omit<KM, keyof DM> : {});
 
-export type ListPlugin<RA extends AnyResAtlas, DL extends HandleList<RA>, CTX> = [...SurfaceList<RA, DL>, CTX];
+export type ListPlugin<RA extends AnyResAtlas, DL extends HandleList<RA>, CTX> = [...DepSurfaceList<RA, DL>, CTX];
+
+// Shell resolver deps split off from the normal dep collection at head
+// construction: key (map) or stringified index (list) → shell namespace. Kept
+// OUT of `nsDeps`/`nsDepList` (no locale-free eager resolve); the matrix turns
+// each into a locale loader injected at its dep position. Absent when a plug
+// declares no `res.perLocale(...)` deps.
+export type ShellDepMap = { readonly [keyOrIndex: string]: AnyNamespace };
 
 declare const resAtlas: unique symbol;
 declare const kit: unique symbol;
@@ -53,6 +60,7 @@ interface BasePlugHead<
 > {
   readonly realm: R;
   readonly nsDepList: AnyNamespaceList;
+  readonly shellDeps?: ShellDepMap;
   readonly [resAtlas]: RA;
   readonly [kit]: KM;
   readonly [ctx]: CTX;

@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import nodePath from "node:path";
 import { pathToFileURL } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { verifyResourceAtlas } from "../../src/lib/verify-resource-atlas.js";
 
 const FORCE_DEV_LOADER_FLAG = Symbol.for("@r-machine:force-dev-loader");
@@ -20,7 +20,22 @@ afterEach(() => {
   }
 });
 
+// Give the whole file generous headroom: every test drives the TS Compiler API
+// (createProgram over lib.d.ts + the full r-machine .d.ts surface), which is slow
+// to spin up on a loaded CI runner and occasionally blew the 5s default — the
+// first `it` was the one absorbing the cold-start. The trailing `20_000` sets
+// the per-test timeout for every test in this describe.
 describe("verifyResourceAtlas", () => {
+  // Pay the cold cost once up front — import("typescript") + the first
+  // createProgram that primes the process-scoped sourceFileCache with lib.d.ts
+  // and the shared r-machine .d.ts files. Every subsequent per-test call then
+  // reuses those parsed SourceFiles and stays fast, instead of the first `it`
+  // carrying the whole cold-start (the CI flake source). The hook gets its own
+  // generous timeout since it holds the worst case.
+  beforeAll(async () => {
+    await verifyResourceAtlas(fixture("ok-setup.ts"));
+  }, 30_000);
+
   describe("happy path", () => {
     it("returns ok with no issues when every key resolves", async () => {
       const report = await verifyResourceAtlas(fixture("ok-setup.ts"));
@@ -374,4 +389,4 @@ describe("verifyResourceAtlas", () => {
       expect((globalThis as Record<symbol, number>)[FORCE_DEV_LOADER_FLAG]).toBe(1);
     });
   });
-});
+}, 20_000);

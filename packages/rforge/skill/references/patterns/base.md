@@ -67,8 +67,8 @@ import { mockPlug } from "@r-machine/testing";
 import { r } from "@/r-machine/pub/base/config";
 
 it("exposes its values", async () => {
-  using _ctrl = mockPlug(r).default();
-  const config = await r.create();
+  using ctrl = mockPlug(r).default();
+  const config = await ctrl.createRes();
   expect(config.apiBase).toBe("https://api.example.com");
 });
 ```

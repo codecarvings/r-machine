@@ -16,6 +16,8 @@ import {
   type AnyMapPlugHead,
   type AnyNamespace,
   type AnyPlugHead,
+  type AnyResMatrix,
+  type AnyResPlug,
   type DeepPartial,
   type ExtractCtx,
   type ExtractKit,
@@ -24,10 +26,13 @@ import {
   getPlugMachine,
   getPlugOverride,
   getPlugResolve,
+  instantiateRes,
   type PlugBody,
   type PlugResolve,
+  type ResMatrix,
   setPlugOverride,
   setPlugResolve,
+  tryGetResMatrixMeta,
 } from "r-machine/core";
 import { RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
@@ -35,6 +40,7 @@ import { ERR_MOCK_TARGET_INVALID, ERR_PLUG_ALREADY_MOCKED } from "#r-machine/tes
 import { createStateBinding, type MockListController, type MockMapController } from "./mock-controller.js";
 import { cloneListPlugin, cloneMapPlugin, hasOverrides } from "./mock-merge.js";
 import type { MockSurfaceMap } from "./mock-surface.js";
+import { buildTestSurface, type TestSurface } from "./test-surface.js";
 
 const plugMockSymbol = Symbol("plugMock");
 
@@ -97,6 +103,28 @@ interface ListMockPlug<PH extends AnyListPlugHead> {
   readonly default: () => MockListController<PH>;
 }
 
+// `createRes()` instantiates the mocked resource (overrides applied) and returns
+// its `TestSurface` — the assert-side twin of the dep-mock surface. Present ONLY
+// when a `ResMatrix` is passed to `mockPlug` (gear/shell): a bare plug can't
+// instantiate (the factory/cursor live in the matrix closure), and a consumer
+// isn't a resource — so the method's absence is self-explanatory. The controller
+// auto-disposes each instance it created on reset (dispose is idempotent, so it
+// is safe even if the test also disposed it), so a `using ctrl` alone tears down
+// the instance too.
+interface MockRes<R> {
+  readonly createRes: () => Promise<TestSurface<R>>;
+}
+
+interface MapMockPlugWithRes<R, PH extends AnyMapPlugHead> {
+  readonly with: (data: MockPlugMapData<PH>) => MockMapController<PH> & MockRes<R>;
+  readonly default: () => MockMapController<PH> & MockRes<R>;
+}
+
+interface ListMockPlugWithRes<R, PH extends AnyListPlugHead> {
+  readonly with: (data: MockPlugListData<PH>) => MockListController<PH> & MockRes<R>;
+  readonly default: () => MockListController<PH> & MockRes<R>;
+}
+
 // A plug is exposed either bare, or attached to a CARRIER: the consumer function
 // it powers (`Comp.plug`, the function that calls `plug.useR()`) or a `ResMatrix`
 // (`r.plug`). `mockPlug` accepts both — the carrier is the symbol a test naturally
@@ -105,6 +133,21 @@ type PlugCarrier<PH extends AnyPlugHead> = { readonly plug: PlugBody<PH> };
 type MockPlugTarget<PH extends AnyPlugHead> = PlugBody<PH> | PlugCarrier<PH>;
 
 interface MockPlug {
+  // ResMatrix (gear/shell) — the controller gains `createRes()`. Listed FIRST so
+  // it wins over the generic carrier overloads below (a `ResMatrix` also matches
+  // `PlugCarrier` via its `.plug`). `R` is captured for `TestSurface<R>`; the head
+  // is inferred from the matrix's own plug (a res head, which satisfies
+  // `AnyResPlug`), then dispatched to the map/list controller.
+  <R, P extends AnyResPlug>(
+    target: ResMatrix<R, P>
+  ): P extends PlugBody<infer PH>
+    ? PH extends AnyMapPlugHead
+      ? MapMockPlugWithRes<R, PH>
+      : PH extends AnyListPlugHead
+        ? ListMockPlugWithRes<R, PH>
+        : never
+    : never;
+  // Bare plug or consumer carrier — no `createRes` (not instantiable / not a resource).
   <PH extends AnyMapPlugHead>(target: MockPlugTarget<PH>): MapMockPlug<PH>;
   <PH extends AnyListPlugHead>(target: MockPlugTarget<PH>): ListMockPlug<PH>;
 }
@@ -126,6 +169,14 @@ export const mockPlug: MockPlug = (target: MockPlugTarget<AnyPlugHead>) => {
     );
   }
   const plug: PlugBody<AnyPlugHead> = resolved;
+
+  // When the target is a ResMatrix (gear/shell), capture it so the controller
+  // can expose `createRes()`. `instantiateRes(matrix)` runs through the
+  // mock-wrapped resolve (overrides applied); `buildTestSurface` reshapes the
+  // res's getters into properties. A bare plug / consumer carrier has no matrix
+  // → no method.
+  const resMatrix =
+    tryGetResMatrixMeta(target as never) !== undefined ? (target as unknown as AnyResMatrix) : undefined;
 
   const withData = (data: MockPlugMapData<AnyMapPlugHead> | MockPlugListData<AnyListPlugHead>) => {
     const overrides = data as Record<string, unknown>;
@@ -151,6 +202,35 @@ export const mockPlug: MockPlug = (target: MockPlugTarget<AnyPlugHead>) => {
       return Array.isArray(plugin) ? cloneListPlugin(plugin, overrides) : cloneMapPlugin(plugin as object, overrides);
     };
 
+    // Test instances produced by `createRes()`, tracked so the controller
+    // auto-disposes them on reset. A `createRes` instance is engine-untracked
+    // (instantiated directly, not a resolved slot), so without this a forgotten
+    // teardown (e.g. a `setInterval`, a relay subscription) would leak across
+    // tests. Dispose is idempotent (guaranteed by `createResMatrix`), so calling
+    // it here is safe even when the test already disposed the instance itself.
+    const created: Array<{ [Symbol.dispose]?: () => void }> = [];
+    const disposeCreated = (): void => {
+      for (const surface of created) {
+        surface[Symbol.dispose]?.();
+      }
+      created.length = 0;
+    };
+
+    // Build the controller and, for a ResMatrix target, graft `createRes()`.
+    const finish = (reset: ResetPlug): Record<string, unknown> => {
+      const ctrl = binding.makeController(reset);
+      if (resMatrix !== undefined) {
+        ctrl.createRes = async () => {
+          const surface = buildTestSurface((await instantiateRes(resMatrix)) as object);
+          if (typeof (surface as { [Symbol.dispose]?: unknown })[Symbol.dispose] === "function") {
+            created.push(surface as { [Symbol.dispose]?: () => void });
+          }
+          return surface;
+        };
+      }
+      return ctrl;
+    };
+
     // B — CONSUMER plug (`realm: "gate"`): its own resolve is never invoked
     // at consume time (deps resolve by namespace via getWire/getGatePlugin),
     // so register a post-resolution override that core applies there.
@@ -165,7 +245,7 @@ export const mockPlug: MockPlug = (target: MockPlugTarget<AnyPlugHead>) => {
         setPlugOverride(plug, undefined);
         binding.clear();
       });
-      return binding.makeController(reset) as never;
+      return finish(reset) as never;
     }
 
     // A — RESOURCE plug: wrap its resolve, which IS invoked during
@@ -181,10 +261,13 @@ export const mockPlug: MockPlug = (target: MockPlugTarget<AnyPlugHead>) => {
     (resolve as any)[plugMockSymbol] = true;
     setPlugResolve(plug, resolve);
     const reset = enterAndBuildReset(plug, () => {
+      // Dispose the test instances the controller created (unless the test
+      // already did) BEFORE restoring the resolve / wiping machine state.
+      disposeCreated();
       setPlugResolve(plug, prevResolve);
       binding.clear();
     });
-    return binding.makeController(reset) as never;
+    return finish(reset) as never;
   };
 
   return {
@@ -233,7 +316,8 @@ type MockCtxContent<PH extends AnyPlugHead, C> = {
       : K]?: K extends "kit"
     ? MockSurfaceMap<ExtractResAtlas<PH>, ExtractKit<PH>>
     : K extends "ports"
-      ? Partial<C[K]>
+      ? // ports are deep-merged over the real ports object (mergeLiveOverride).
+        DeepPartial<C[K]>
       : // e.g. the locale key (a string) — DeepPartial is the identity.
         DeepPartial<C[K]>;
 };

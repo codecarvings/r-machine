@@ -49,6 +49,7 @@
   "module": "./lib/index.js",
   "zshy": {
     "exports": {
+      "./core": "./src/core/index.ts",
       "./app/flat": "./src/app/flat/index.ts",
       "./app/origin": "./src/app/origin/index.ts",
       "./app/path": "./src/app/path/index.ts",
@@ -61,6 +62,12 @@
     }
   },
   "exports": {
+    "./core": {
+      "@r-machine/source": "./src/core/index.ts",
+      "types": "./core/index.d.cts",
+      "import": "./core/index.js",
+      "require": "./core/index.cjs"
+    },
     "./app/flat": {
       "@r-machine/source": "./src/app/flat/index.ts",
       "types": "./app/flat/index.d.cts",

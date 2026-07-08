@@ -1,12 +1,11 @@
 import type { ExperimentalFlags, ResEquipment } from "r-machine/core";
 import { RMachineConfigError } from "r-machine/errors";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
+import { HrefCanonicalizer, HrefTranslator, PathCanonicalizer } from "#r-machine/next/core";
 import { NextAppStrategyCore } from "#r-machine/next/core/app";
 import {
   type NextAppPathStrategyConfig,
   NextAppPathStrategyCore,
-  NextAppPathStrategyPathCanonicalizer,
   NextAppPathStrategyPathTranslator,
 } from "../../../../src/core/app/path/next-app-path-strategy-core.js";
 import {
@@ -194,9 +193,9 @@ describe("NextAppPathStrategyCore", () => {
       expect((strategy as any).contentPathCanonicalizer).toBeInstanceOf(HrefCanonicalizer);
     });
 
-    it("creates pathCanonicalizer as NextAppPathStrategyPathCanonicalizer", () => {
+    it("creates pathCanonicalizer as PathCanonicalizer", () => {
       const { strategy } = createTestStrategy();
-      expect((strategy as any).pathCanonicalizer).toBeInstanceOf(NextAppPathStrategyPathCanonicalizer);
+      expect((strategy as any).pathCanonicalizer).toBeInstanceOf(PathCanonicalizer);
     });
 
     it("sets containsTranslations to false for atlas without translations", () => {
@@ -689,97 +688,6 @@ describe("NextAppPathStrategyPathTranslator", () => {
       );
 
       expect(translator.get("en", "/unknown", {})).toEqual({ value: "/en/unknown", dynamic: false });
-    });
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Tests — NextAppPathStrategyPathCanonicalizer
-// ---------------------------------------------------------------------------
-
-describe("NextAppPathStrategyPathCanonicalizer", () => {
-  const cLocales = ["en", "it"];
-  const cDefaultLocale = "en";
-
-  describe("extends HrefCanonicalizer", () => {
-    it("is an instance of HrefCanonicalizer", () => {
-      const canonicalizer = new NextAppPathStrategyPathCanonicalizer(
-        createMockAtlas(),
-        cLocales,
-        cDefaultLocale,
-        false
-      );
-
-      expect(canonicalizer).toBeInstanceOf(HrefCanonicalizer);
-    });
-  });
-
-  describe("adapter", () => {
-    it("has preApply set to true", () => {
-      const canonicalizer = new NextAppPathStrategyPathCanonicalizer(
-        createMockAtlas(),
-        cLocales,
-        cDefaultLocale,
-        false
-      );
-
-      expect((canonicalizer as any).adapter.preApply).toBe(true);
-    });
-  });
-
-  describe("strip locale prefix", () => {
-    it('strips locale prefix and returns content path (e.g. "/en/about" → "/about")', () => {
-      const canonicalizer = new NextAppPathStrategyPathCanonicalizer(aboutAtlas, cLocales, cDefaultLocale, false);
-
-      expect(canonicalizer.get("en", "/en/about")).toEqual({ value: "/about", dynamic: false });
-      expect(canonicalizer.get("it", "/it/chi-siamo")).toEqual({ value: "/about", dynamic: false });
-    });
-
-    it('returns "/" when path has no content segment after locale (e.g. "/en")', () => {
-      const canonicalizer = new NextAppPathStrategyPathCanonicalizer(
-        createMockAtlas(),
-        cLocales,
-        cDefaultLocale,
-        false
-      );
-
-      expect(canonicalizer.get("en", "/en")).toEqual({ value: "/", dynamic: false });
-      expect(canonicalizer.get("it", "/it")).toEqual({ value: "/", dynamic: false });
-    });
-
-    it("handles paths with dynamic segments", () => {
-      const canonicalizer = new NextAppPathStrategyPathCanonicalizer(productsAtlas, cLocales, cDefaultLocale, false);
-
-      expect(canonicalizer.get("en", "/en/products/[id]")).toEqual({
-        value: "/products/[id]",
-        dynamic: true,
-      });
-    });
-  });
-
-  describe("implicitDefaultLocale", () => {
-    it("returns path as-is for default locale when enabled", () => {
-      const canonicalizer = new NextAppPathStrategyPathCanonicalizer(aboutAtlas, cLocales, cDefaultLocale, true);
-
-      expect(canonicalizer.get("en", "/about")).toEqual({ value: "/about", dynamic: false });
-    });
-
-    it("still strips locale prefix for non-default locale when enabled", () => {
-      const canonicalizer = new NextAppPathStrategyPathCanonicalizer(aboutAtlas, cLocales, cDefaultLocale, true);
-
-      expect(canonicalizer.get("it", "/it/chi-siamo")).toEqual({ value: "/about", dynamic: false });
-    });
-
-    it("strips locale prefix for default locale when disabled", () => {
-      const canonicalizer = new NextAppPathStrategyPathCanonicalizer(aboutAtlas, cLocales, cDefaultLocale, false);
-
-      expect(canonicalizer.get("en", "/en/about")).toEqual({ value: "/about", dynamic: false });
-    });
-
-    it('returns "/" for root path of non-default locale when enabled', () => {
-      const canonicalizer = new NextAppPathStrategyPathCanonicalizer(createMockAtlas(), cLocales, cDefaultLocale, true);
-
-      expect(canonicalizer.get("it", "/it")).toEqual({ value: "/", dynamic: false });
     });
   });
 });

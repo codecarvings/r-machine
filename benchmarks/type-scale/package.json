@@ -18,11 +18,11 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@typescript/analyze-trace": "^0.11.0",
+    "@typescript/analyze-trace": "^0.11.1",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "tsx": "^4.22.4",
+    "tsx": "^4.23.0",
     "typescript": "~6.0.3"
   }
 }

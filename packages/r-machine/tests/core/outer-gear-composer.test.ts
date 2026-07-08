@@ -10,14 +10,11 @@ import { type AnyRes, tryGetDispose } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
 import type { AnyNamespace } from "../../src/core/res-domain.js";
 import type { AnyResLayout } from "../../src/core/res-layout.js";
+import { type AnyResMatrix, instantiateRes } from "../../src/core/res-matrix.js";
 import { createStateCell } from "../../src/core/state-cell.js";
 import { buildResolveEnv, outerGearModule } from "../_fixtures/build-resolve-env.js";
 
 const LAYOUT: AnyResLayout = { "g/": "gear:outer" };
-
-// Internal create signature: ResMatrix.create is publicly `() => Promise<R>`
-// but the runtime expects (locale, chain). Phase-1-style direct invocation.
-type InternalCreateCall = (locale: undefined, chain: never[]) => Promise<unknown>;
 
 // Mock connector that augments a fresh map-form ctx (`{ $ }`) — the same path
 // ResManager drives, but without the blueprint stack. Used where a test needs
@@ -535,7 +532,7 @@ describe("OuterGear composer — stateless relay teardown", () => {
       return { read: cursor.getter(() => ext.read().v) };
     });
 
-    const raw = (await (matrix.create as unknown as InternalCreateCall)(undefined, [])) as AnyRes;
+    const raw = (await instantiateRes(matrix as AnyResMatrix)) as AnyRes;
     const dispose = tryGetDispose(raw);
     expect(dispose).toBeDefined();
 

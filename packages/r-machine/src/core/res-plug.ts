@@ -11,10 +11,11 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { ListPlugHead, MapPlugHead, PlugBody, PluginCtx } from "./plug.js";
+import type { ListPlugHead, MapPlugHead, PlugBody, PluginCtx, ShellDepMap } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import { getNamespaceList, type HandleList } from "./res-list.js";
-import { getNamespaceMap, type HandleMap } from "./res-map.js";
+import { type AnyNamespace, getNamespace, isShellResolver } from "./res-domain.js";
+import type { HandleList } from "./res-list.js";
+import type { HandleMap } from "./res-map.js";
 
 export type ResFamily = "gear" | "shell";
 
@@ -46,7 +47,19 @@ export function createResMapPlugHead<
   PM extends AnyPortMap,
   CTX extends ResPluginCtx<RA, KM, PM>,
 >(family: F, deps: DM, ports: PM): ResMapPlugHead<F, RA, KM, DM, PM, CTX> {
-  const nsDeps = getNamespaceMap(deps);
+  // Partition: normal deps → nsDeps (eager, resolved to surfaces); shell resolver deps
+  // → shellDeps (locale loaders injected by the matrix), kept out of nsDeps and
+  // nsDepList so no locale-free resolve is attempted at init.
+  const nsDeps: Record<string, AnyNamespace> = {};
+  const shellDeps: Record<string, AnyNamespace> = {};
+  for (const key in deps) {
+    const handle = deps[key];
+    if (isShellResolver(handle)) {
+      shellDeps[key] = getNamespace(handle);
+    } else {
+      nsDeps[key] = getNamespace(handle);
+    }
+  }
   const nsDepList = Object.values(nsDeps);
   return {
     realm: "res",
@@ -55,8 +68,16 @@ export function createResMapPlugHead<
     deps,
     nsDeps,
     nsDepList,
+    shellDeps: hasKeys(shellDeps) ? (shellDeps as ShellDepMap) : undefined,
     ports,
   } as unknown as ResMapPlugHead<F, RA, KM, DM, PM, CTX>;
+}
+
+function hasKeys(o: Record<string, unknown>): boolean {
+  for (const _ in o) {
+    return true;
+  }
+  return false;
 }
 
 export interface ResListPlugHead<
@@ -80,7 +101,18 @@ export function createResListPlugHead<
   PM extends AnyPortMap,
   CTX extends ResPluginCtx<RA, KM, PM>,
 >(family: F, deps: DL, ports: PM): ResListPlugHead<F, RA, KM, DL, PM, CTX> {
-  const nsDeps = getNamespaceList(deps);
+  // Partition (list form): shell resolver deps are recorded by ORIGINAL index in
+  // shellDeps and removed from nsDeps (compacted). The matrix re-inserts each
+  // loader at its original tuple position (see injectShellResolvers in res-matrix).
+  const nsDeps: AnyNamespace[] = [];
+  const shellDeps: Record<string, AnyNamespace> = {};
+  deps.forEach((handle, index) => {
+    if (isShellResolver(handle)) {
+      shellDeps[String(index)] = getNamespace(handle);
+    } else {
+      nsDeps.push(getNamespace(handle));
+    }
+  });
   return {
     realm: "res",
     family,
@@ -88,6 +120,7 @@ export function createResListPlugHead<
     deps,
     nsDeps,
     nsDepList: nsDeps,
+    shellDeps: hasKeys(shellDeps) ? (shellDeps as ShellDepMap) : undefined,
     ports,
   } as unknown as ResListPlugHead<F, RA, KM, DL, PM, CTX>;
 }

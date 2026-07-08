@@ -31,7 +31,7 @@ Every resource belongs to one of six families, declared via folder prefix in `de
 | `shell` | `Shell` | no | yes | `Plug` / `ClientPlug` / `ServerPlug` / `DirectPlug` |
 | `shell(mono)` | `Shell` | no | yes | `Plug` / `ClientPlug` / `ServerPlug` / `DirectPlug` |
 
-The dep-graph is asymmetric by design: no path connects `gear:inner` to `gear:outer` or `Shell`. Enforced at compile time.
+The dep-graph is asymmetric by design: no *plain* path connects `gear:inner` to `gear:outer` or `Shell` (compile-time enforced). A gear or shell can still pull a `Shell` as a runtime locale loader via `res.perLocale(...)` inside `withDeps`.
 
 ### Composers
 
@@ -43,6 +43,8 @@ OuterGear                     →  withDeps → withPorts → withState → defi
 ```
 
 `define(...)` returns a `ResMatrix` (`r`): the canonical export of every resource module.
+
+Inside `withDeps`, `res.perLocale("shell/x")` (from the toolset) declares a `Shell` as a locale-loader dep — resolving to `(locale) => Promise<Surface>` — so a locale-agnostic gear can read localized content at runtime.
 
 ### Consumer primitive: Plug
 
@@ -97,6 +99,6 @@ https://rmachine.dev/llms-full.txt
 
 ---
 
-rev 2026-06-27.022
+rev 2026-07-07.026
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com

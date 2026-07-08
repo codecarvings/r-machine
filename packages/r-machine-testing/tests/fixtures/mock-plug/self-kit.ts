@@ -16,8 +16,9 @@ type ResourceMap = {
 
 class ResourceAtlas extends folders<ResourceMap>() {}
 
-// The closure only runs during a test's `r.create()`, by which point the `r`
-// binding below is initialised (same deferred-reference pattern as `setup.ts`).
+// The closure only runs when a test instantiates the resource (via
+// `ctrl.createRes()` / `instantiateRes`), by which point the `r` binding below
+// is initialised (same deferred-reference pattern as `setup.ts`).
 // Shells are locale-aware, so the loader path carries a `/<locale>` suffix
 // (`shell/self-kit/en`) — the module is the same across locales (content is
 // decided inside `define` via `$.locale`), so match on the base namespace.

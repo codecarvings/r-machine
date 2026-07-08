@@ -11,34 +11,76 @@
  * contact: licensing@codecarvings.com
  */
 
-import { access, cp, mkdir, readdir, rm } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { access, cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cancel, confirm, intro, isCancel, log, outro } from "@clack/prompts";
 import { defineCommand } from "citty";
 import pc from "picocolors";
+import { CLI_VERSION } from "../version.js";
 
-/** Folder name created inside the target skills directory. */
+/** Folder name created inside each target skills directory. */
 export const SKILL_NAME = "r-machine";
-/** Default destination, relative to the current working directory. */
-export const DEFAULT_OUT = "./.claude/skills";
+/**
+ * Skills directories seeded on a first install, relative to the current working
+ * directory. `.claude/skills` is Claude Code's location; `.agents/skills` is the
+ * vendor-neutral location other agent tools read.
+ */
+export const DEFAULT_TARGETS = ["./.claude/skills", "./.agents/skills"] as const;
+/** Primary default target — kept for messaging and backwards compatibility. */
+export const DEFAULT_OUT = DEFAULT_TARGETS[0];
+/** Manifest written into each installed Skill folder to track its provenance. */
+export const MANIFEST_NAME = ".rforge-skill.json";
+
+/** Provenance record written alongside an installed Skill. */
+export interface SkillManifest {
+  skill: string;
+  /** rforge version that produced this install — a human-readable label. */
+  rforgeVersion: string;
+  /** Hash of the bundled Skill content at install time — the staleness signal. */
+  sourceHash: string;
+  installedAt: string;
+}
 
 export interface InstallSkillOptions {
-  /** Skills directory to install into. Defaults to {@link DEFAULT_OUT}. */
+  /**
+   * A single explicit skills directory to install into. When set, the multi-target
+   * policy is bypassed and only this location is touched. Defaults to the
+   * {@link DEFAULT_TARGETS} policy.
+   */
   out?: string | undefined;
-  /** Overwrite an existing destination. */
+  /** Overwrite/refresh every resolved target unconditionally. */
   force?: boolean | undefined;
-  /** Base directory the `out` path is resolved against. Defaults to `process.cwd()`. */
+  /** Base directory the `out`/targets are resolved against. Defaults to `process.cwd()`. */
   cwd?: string | undefined;
 }
 
-export interface InstallSkillResult {
-  /** `"installed"` if files were written; `"exists"` if the destination already exists and `force` was not set. */
-  status: "installed" | "exists";
+/** Whether an installed Skill is missing, matches the bundled one, or is out of date. */
+export type TargetState = "absent" | "current" | "stale";
+
+export interface TargetResult {
+  /** The skills directory (the parent of the `r-machine` folder). */
+  skillsDir: string;
   /** Absolute path of the installed Skill folder. */
   dest: string;
-  /** Files written, relative to `dest`. Empty when `status` is `"exists"`. */
+  /** State of the destination *before* this run acted on it. */
+  state: TargetState;
+  /** Whether files were written to this target during this run. */
+  written: boolean;
+  /** Files written, relative to `dest` (empty when `written` is `false`). */
   files: string[];
+}
+
+export interface InstallSkillResult {
+  /**
+   * - `"installed"` — files were written to at least one target.
+   * - `"up-to-date"` — every resolved target already matched the bundled Skill; nothing written.
+   * - `"stale"` — an update is available but was not written (no `force`); the caller decides.
+   */
+  status: "installed" | "up-to-date" | "stale";
+  /** One entry per resolved target. */
+  targets: TargetResult[];
 }
 
 /**
@@ -97,27 +139,132 @@ async function pathExists(path: string): Promise<boolean> {
 }
 
 /**
- * Copy the bundled Skill into `<out>/r-machine`.
+ * Deterministic content hash of a Skill folder.
  *
- * Pure of any CLI/prompt concerns so it can be driven from tests or other
- * tooling. Returns `status: "exists"` (without writing) when the destination is
- * present and `force` is not set — callers decide how to confirm overwrites.
+ * Hashes the sorted files (path + bytes), excluding the manifest so a fresh
+ * install and its recorded hash agree. The source is always read from the
+ * package (LF line endings), so this is not exposed to `git autocrlf`
+ * normalization — it identifies *which bundled Skill* a manifest came from.
  */
-export async function installSkill(opts: InstallSkillOptions = {}): Promise<InstallSkillResult> {
-  const cwd = opts.cwd ?? process.cwd();
-  const skillsDir = resolve(cwd, opts.out ?? DEFAULT_OUT);
-  const dest = join(skillsDir, SKILL_NAME);
+async function computeSkillHash(dir: string): Promise<string> {
+  const files = (await listFiles(dir)).filter((f) => f !== MANIFEST_NAME);
+  const hash = createHash("sha256");
+  for (const rel of files) {
+    hash.update(rel);
+    hash.update("\0");
+    hash.update(await readFile(join(dir, rel)));
+    hash.update("\0");
+  }
+  return `sha256:${hash.digest("hex")}`;
+}
 
-  if (!opts.force && (await pathExists(dest))) {
-    return { status: "exists", dest, files: [] };
+/** Read an installed Skill's manifest, or `null` if it is missing/unreadable. */
+async function readManifest(dest: string): Promise<SkillManifest | null> {
+  try {
+    return JSON.parse(await readFile(join(dest, MANIFEST_NAME), "utf8")) as SkillManifest;
+  } catch {
+    return null;
+  }
+}
+
+/** Classify a destination against the bundled Skill's hash. */
+async function targetState(dest: string, sourceHash: string): Promise<TargetState> {
+  if (!(await pathExists(dest))) {
+    return "absent";
+  }
+  const manifest = await readManifest(dest);
+  // A pre-existing folder with no (or an older) manifest reads as stale, so
+  // installs from before manifests existed are offered an update rather than
+  // silently skipped.
+  return manifest?.sourceHash === sourceHash ? "current" : "stale";
+}
+
+/**
+ * Resolve which skills directories this run acts on.
+ *
+ * - An explicit `out` bypasses the policy and targets exactly that directory.
+ * - Otherwise: if the Skill is already present in any default target, act only on
+ *   the present ones (never resurrect a location the user removed). If present in
+ *   none, this is a first install — seed all defaults.
+ */
+async function resolveTargets(cwd: string, out?: string): Promise<string[]> {
+  if (out) {
+    return [resolve(cwd, out)];
   }
 
-  const source = await locateBundledSkill();
+  const dirs = DEFAULT_TARGETS.map((t) => resolve(cwd, t));
+  const present: string[] = [];
+  for (const dir of dirs) {
+    if (await pathExists(join(dir, SKILL_NAME))) {
+      present.push(dir);
+    }
+  }
+  return present.length > 0 ? present : dirs;
+}
+
+/** Copy the bundled Skill into `<skillsDir>/r-machine` and stamp its manifest. */
+async function writeTarget(source: string, sourceHash: string, skillsDir: string): Promise<string[]> {
+  const dest = join(skillsDir, SKILL_NAME);
   await rm(dest, { recursive: true, force: true });
   await mkdir(skillsDir, { recursive: true });
   await cp(source, dest, { recursive: true });
 
-  return { status: "installed", dest, files: await listFiles(dest) };
+  const manifest: SkillManifest = {
+    skill: SKILL_NAME,
+    rforgeVersion: CLI_VERSION,
+    sourceHash,
+    installedAt: new Date().toISOString(),
+  };
+  await writeFile(join(dest, MANIFEST_NAME), `${JSON.stringify(manifest, null, 2)}\n`);
+
+  return listFiles(dest);
+}
+
+/**
+ * Install (or report the status of) the bundled Skill across the resolved targets.
+ *
+ * Pure of any CLI/prompt concerns so it can be driven from tests or other
+ * tooling. Without `force`, an available update is *not* written — the result's
+ * `status` is `"stale"` and the caller decides how to confirm it.
+ */
+export async function installSkill(opts: InstallSkillOptions = {}): Promise<InstallSkillResult> {
+  const cwd = opts.cwd ?? process.cwd();
+  const source = await locateBundledSkill();
+  const sourceHash = await computeSkillHash(source);
+  const skillsDirs = await resolveTargets(cwd, opts.out);
+
+  const plan = await Promise.all(
+    skillsDirs.map(async (skillsDir) => {
+      const dest = join(skillsDir, SKILL_NAME);
+      return { skillsDir, dest, state: await targetState(dest, sourceHash) };
+    })
+  );
+
+  const allCurrent = plan.every((p) => p.state === "current");
+  const anyStale = plan.some((p) => p.state === "stale");
+
+  // Which targets to write this run:
+  //  - force            → refresh everything in the set
+  //  - all current      → nothing
+  //  - an update exists  → nothing (needs the caller's consent)
+  //  - otherwise         → the not-yet-current ones (a fresh install)
+  const shouldWrite = (state: TargetState): boolean =>
+    opts.force ? true : !allCurrent && !anyStale && state !== "current";
+
+  const targets: TargetResult[] = [];
+  for (const p of plan) {
+    if (shouldWrite(p.state)) {
+      const files = await writeTarget(source, sourceHash, p.skillsDir);
+      targets.push({ ...p, written: true, files });
+    } else {
+      targets.push({ ...p, written: false, files: [] });
+    }
+  }
+
+  const wroteSomething = targets.some((t) => t.written);
+  const status: InstallSkillResult["status"] = wroteSomething ? "installed" : allCurrent ? "up-to-date" : "stale";
+
+  return { status, targets };
 }
 
 export const skillCommand = defineCommand({
@@ -128,48 +275,71 @@ export const skillCommand = defineCommand({
   args: {
     out: {
       type: "string",
-      description: `Skills directory to install into (defaults to ${DEFAULT_OUT}).`,
+      description: `A single skills directory to install into (defaults to ${DEFAULT_TARGETS.join(" + ")}).`,
       required: false,
     },
     force: {
       type: "boolean",
-      description: "Overwrite the Skill if it already exists at the destination.",
+      description: "Refresh the Skill even if it already exists at the destination.",
       default: false,
     },
   },
   async run({ args }) {
     intro(pc.redBright("R-Machine") + pc.dim(" : ") + pc.whiteBright("skill"));
 
+    const prettyDest = (dest: string): string => relative(process.cwd(), dest) || dest;
+
+    // Only ever called on an "installed" result, where every resolved target was
+    // written (a fresh install writes all-absent; a confirmed update forces all).
     const report = (result: InstallSkillResult) => {
-      const prettyDest = relative(process.cwd(), result.dest) || result.dest;
-      log.success(pc.green(`Installed the R-Machine Skill to ${pc.bold(prettyDest)}`));
-      log.message(result.files.map((f) => pc.dim("  • ") + f).join("\n"));
+      const written = result.targets;
+
+      log.success(
+        pc.green(`Installed the R-Machine Skill to ${written.map((t) => pc.bold(prettyDest(t.dest))).join(", ")}`)
+      );
+      log.message(written[0].files.map((f) => pc.dim("  • ") + f).join("\n"));
+
       outro(
-        `The agent will now pick up the Skill from ${pc.bold(prettyDest)}.\n` +
-          pc.dim("  Commit it to share with your team, or re-run with --force to refresh.")
+        `The agent will now pick up the Skill.\n` +
+          pc.dim("  Commit it to share with your team.\n") +
+          pc.dim(`  Add another location later with ${pc.bold("--out")}, e.g. rforge skill --out ./.agents/skills`)
       );
     };
 
     try {
       const first = await installSkill({ out: args.out, force: args.force });
+
       if (first.status === "installed") {
         report(first);
         return;
       }
 
-      const prettyDest = relative(process.cwd(), first.dest) || first.dest;
+      if (first.status === "up-to-date") {
+        const dests = first.targets.map((t) => prettyDest(t.dest)).join(", ");
+        outro(pc.green(`The R-Machine Skill is already up to date at ${pc.bold(dests)}.`));
+        return;
+      }
 
-      // Destination exists and --force was not passed.
+      // status === "stale": an update is available but was not written.
+      const staleList = first.targets
+        .filter((t) => t.state === "stale")
+        .map((t) => prettyDest(t.dest))
+        .join(", ");
+
       if (!process.stdout.isTTY) {
         // Non-interactive (CI, piped) sessions cannot be prompted.
-        cancel(pc.red(`"${prettyDest}" already exists. Re-run with `) + pc.bold("--force") + pc.red(" to overwrite."));
+        cancel(
+          pc.red(`A newer R-Machine Skill is available for "${staleList}". Re-run with `) +
+            pc.bold("--force") +
+            pc.red(" to update.")
+        );
         process.exitCode = 1;
         return;
       }
 
-      const proceed = await confirm({ message: `"${prettyDest}" already exists. Overwrite it?`, initialValue: false });
+      const proceed = await confirm({ message: `Update the R-Machine Skill at "${staleList}"?`, initialValue: true });
       if (isCancel(proceed) || !proceed) {
-        cancel("Installation cancelled — nothing was written.");
+        cancel("Update cancelled — nothing was written.");
         return;
       }
 

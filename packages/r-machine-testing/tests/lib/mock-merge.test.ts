@@ -4,8 +4,8 @@ import {
   cloneKit,
   cloneListPlugin,
   cloneMapPlugin,
-  cloneSurfaceWithOverride,
   hasOverrides,
+  mergeLiveOverride,
 } from "../../src/lib/mock-merge.js";
 
 // These are the pure runtime-override primitives behind mockPlug. They are
@@ -36,26 +36,95 @@ describe("mock-merge", () => {
     });
   });
 
-  describe("cloneSurfaceWithOverride", () => {
+  describe("mergeLiveOverride", () => {
     it("returns the SAME surface for an empty/undefined partial (no work)", () => {
       const surface = { a: 1 };
-      expect(cloneSurfaceWithOverride(surface, undefined)).toBe(surface);
-      expect(cloneSurfaceWithOverride(surface, {})).toBe(surface);
+      expect(mergeLiveOverride(surface, undefined)).toBe(surface);
+      expect(mergeLiveOverride(surface, {})).toBe(surface);
+    });
+
+    it("falls back to whole-value semantics when a side is not a plain object", () => {
+      // Non-plain base → override wins wholesale (deepPartialMerge base case).
+      expect(mergeLiveOverride(42, { a: 1 })).toEqual({ a: 1 });
+      // Non-plain override → replaces.
+      expect(mergeLiveOverride({ a: 1 }, "str")).toBe("str");
     });
 
     it("layers the partial onto a fresh object, copying untouched members", () => {
-      const proto = { kind: "surface" };
-      const surface = Object.create(proto) as Record<string, unknown>;
+      // Real surfaces are null-proto (core's `buildSurface` → `Object.create(null)`).
+      const surface = Object.create(null) as Record<string, unknown>;
       Object.defineProperty(surface, "keep", { enumerable: true, value: 1 });
       Object.defineProperty(surface, "replace", { enumerable: true, value: "old" });
 
-      const out = cloneSurfaceWithOverride(surface, { replace: "new" }) as Record<string, unknown>;
+      const out = mergeLiveOverride(surface, { replace: "new" }) as Record<string, unknown>;
 
       expect(out).not.toBe(surface);
-      expect(Object.getPrototypeOf(out)).toBe(proto);
+      expect(Object.getPrototypeOf(out)).toBe(null); // null proto preserved
       expect(out.keep).toBe(1); // untouched member copied by descriptor
       expect(out.replace).toBe("new"); // overridden member replaced
       expect(surface.replace).toBe("old"); // original untouched
+    });
+
+    it("deep-merges an overridden object member, preserving its siblings", () => {
+      const surface = { views: { a: { x: 1 }, b: { y: 2 } } };
+      const out = mergeLiveOverride(surface, { views: { a: { x: 9 } } }) as typeof surface;
+
+      expect(out.views).toEqual({ a: { x: 9 }, b: { y: 2 } }); // sibling `b` kept
+      expect(surface.views.a.x).toBe(1); // original untouched
+    });
+
+    it("keeps a REAL level-0 getter live (transplanted, re-read each access)", () => {
+      let n = 1;
+      const surface = {};
+      Object.defineProperty(surface, "live", { enumerable: true, configurable: true, get: () => ({ n, k: "real" }) });
+
+      // Override a DIFFERENT key so `live` is only copied by descriptor.
+      const out = mergeLiveOverride(surface, { other: true }) as { live: { n: number; k: string }; other: boolean };
+      expect(out.live).toEqual({ n: 1, k: "real" });
+      n = 5;
+      expect(out.live).toEqual({ n: 5, k: "real" }); // re-read, still live
+    });
+
+    it("re-merges live when the REAL member is a getter and the override is a value", () => {
+      let n = 1;
+      const surface = {};
+      Object.defineProperty(surface, "foo", { enumerable: true, configurable: true, get: () => ({ n, b: 2 }) });
+
+      const out = mergeLiveOverride(surface, { foo: { b: 100 } }) as { foo: { n: number; b: number } };
+      expect(out.foo).toEqual({ n: 1, b: 100 }); // real `n` + mocked `b`
+      n = 2;
+      expect(out.foo).toEqual({ n: 2, b: 100 }); // `n` still tracks, `b` overridden
+    });
+
+    it("re-reads a live OVERRIDE getter and merges it over the real value", () => {
+      let b = 100;
+      const surface = { foo: { n: 1, b: 2 } };
+      const out = mergeLiveOverride(surface, {
+        get foo() {
+          return { b };
+        },
+      }) as { foo: { n: number; b: number } };
+
+      expect(out.foo).toEqual({ n: 1, b: 100 }); // real `n` kept, override `b`
+      b = 101;
+      expect(out.foo).toEqual({ n: 1, b: 101 }); // override getter re-read
+    });
+
+    it("adds a NEW key via a live override getter (no real side to merge over)", () => {
+      let v = 1;
+      const out = mergeLiveOverride(
+        { keep: "x" },
+        {
+          get fresh() {
+            return { v };
+          },
+        }
+      ) as { keep: string; fresh: { v: number } };
+
+      expect(out.keep).toBe("x"); // untouched real member
+      expect(out.fresh).toEqual({ v: 1 }); // real side undefined → override alone
+      v = 2;
+      expect(out.fresh).toEqual({ v: 2 }); // still a live getter
     });
   });
 

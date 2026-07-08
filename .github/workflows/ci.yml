@@ -1,10 +1,11 @@
 name: CI
 
 on:
+  # PR-only: the "Build, Test and Check" run on the PR is the sole gate. Branch
+  # protection on `main` requires this check to pass AND the branch to be up to
+  # date before merging, so the tested tree equals the merged tree — a duplicate
+  # `push: main` run would only re-test what the PR already verified.
   pull_request:
-  push:
-    branches:
-      - main
 
 jobs:
   build-test-and-check:

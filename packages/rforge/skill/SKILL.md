@@ -2,23 +2,37 @@
 name: r-machine
 description: >
   Scaffolds R-Machine into a Next.js, React (Vite), or plain Node project (CLI,
-  queue worker, cron, React Email — consumed container-free via DirectPlug) from
+  queue worker, cron, template renderer — consumed container-free via DirectPlug) from
   scratch, OR adds a single resource (OuterGear, BaseGear, InnerGear, Shell,
   Vertex) to an existing R-Machine project and updates resource-atlas.ts
-  automatically. Trigger when the user asks to set up / install / add r-machine,
-  create the initial config, or scaffold a gear, shell, or locale-aware resource — including
-  namespace patterns like "outer/name" or "shell/name".
+  automatically, OR implements a whole feature in an existing R-Machine project by
+  decomposing it into gears, shells, and a React consumer, OR modifies / evolves an
+  existing resource or feature (change behavior, add a member, rename, remove) with
+  a minimal compiler-verified blast radius. Trigger when the user asks to set up /
+  install / add r-machine, create the initial config, scaffold a gear, shell, or
+  locale-aware resource — including namespace patterns like "outer/name" or
+  "shell/name" — or, inside an R-Machine project, implement, change, or refactor a
+  feature / behavior / UI / resource.
 ---
 
 # R-Machine Skill
 
-You help developers with two distinct workflows:
+You help developers with four distinct workflows:
 
 1. **Initial project setup** — installing R-Machine and creating all config
    files from scratch in a Next.js, React (Vite), or plain Node / standalone
    project (the latter consumes R-Machine container-free via `DirectPlug`).
 2. **Adding a resource** — creating a new gear/shell file and updating
    `resource-atlas.ts` in an existing R-Machine project.
+3. **Implementing a feature** — turning a plain, high-level request ("a timer
+   with start/stop", "a favorites list") into R-Machine's shape by decomposing it
+   into gears (logic) + shells (localized content) + a React consumer (glue),
+   then creating each piece via workflow 2.
+4. **Modifying or evolving** — changing an existing resource or feature (add a
+   member, change behavior, rename, remove). **This is where R-Machine shines:**
+   the namespace is a stable contract, so a change behind it has a minimal,
+   compiler-verifiable blast radius. Prefer this workflow whenever the target
+   already exists.
 
 **Always detect the mode first (Step 0) before doing anything else.**
 
@@ -29,6 +43,8 @@ You help developers with two distinct workflows:
 This skill is partitioned so each task reads a small slice, never the whole doc:
 
 - **Setup** (one per mode): `references/{next-setup,react-setup,standalone-setup}.md`.
+- **Decompose** (a feature → resources): `references/decompose.md` (Section C).
+- **Modify** (change existing, blast radius): `references/modify.md` (Section D).
 - **Patterns** (per resource family): `references/patterns/{outer,vertex,base,inner,shell}.md`.
 - **Consume** (per plug): `references/patterns/consume/{plug,client-plug,server-plug,direct-plug}.md`.
 - **Cross-cutting**: `references/patterns/{plugin-context,atlas-update,clone}.md`.
@@ -54,9 +70,33 @@ Look at the project (or ask the user) to determine which mode applies:
 **Adding a resource** if:
 
 - `resource-atlas.ts` and `setup.ts` already exist, AND
-- The user asks to add a gear, shell, or other resource.
+- The user asks to add a **specific** resource — names a family (gear, shell,
+  vertex…) or a namespace (`outer/name`, `shell/name`).
 
 → Go to **Section B: Adding a Resource** (Step 1 onwards).
+
+**Implementing a feature** if:
+
+- `resource-atlas.ts` and `setup.ts` already exist (it is an R-Machine project), AND
+- The user asks for a **feature / behavior / UI in plain terms** ("add a timer",
+  "build a favorites list", "let users filter the table") **without** naming a
+  resource kind or namespace.
+
+→ Go to **Section C: Implement a Feature**. (Section C decomposes the request,
+then loops through Section B for each resulting resource.)
+
+**Modifying or evolving** if:
+
+- `resource-atlas.ts` and `setup.ts` already exist, AND
+- The request targets something that **already exists** — change its behavior,
+  add/rename/remove a member, extend a feature, fix a bug ("make the timer count
+  down", "add a pause button to the timer", "rename `cart.add`", "remove X").
+
+→ Go to **Section D: Modify or Evolve**. (Section D locates the owning
+resource(s), edits behind the namespace, and reports the blast radius.)
+
+**Tie-breaker:** if the target already exists, prefer **Modifying (D)** over
+Adding (B) / Implementing (C) — B and C are for net-new resources/features.
 
 ---
 
@@ -65,7 +105,7 @@ Look at the project (or ask the user) to determine which mode applies:
 Read `references/next-setup.md` for Next.js App Router projects.
 Read `references/react-setup.md` for React (Vite) projects.
 Read `references/standalone-setup.md` for plain Node projects (CLI, queue worker,
-cron, React Email) that consume R-Machine container-free via `DirectPlug`.
+cron, template renderer) that consume R-Machine container-free via `DirectPlug`.
 
 ### A.1 — Identify the framework / mode
 
@@ -73,7 +113,7 @@ Check what the project has:
 
 - `next.config.*` → **Next.js App Router** → `references/next-setup.md`
 - `vite.config.*` / `react-scripts` → **React (Vite)** → `references/react-setup.md`
-- Neither, and it's a plain Node project (CLI, queue worker, cron, React Email) —
+- Neither, and it's a plain Node project (CLI, queue worker, cron, template renderer) —
   or the user explicitly wants container-free usage → **Standalone / DirectPlug**
   → `references/standalone-setup.md`
 
@@ -137,6 +177,77 @@ After generating the config files, tell the user:
    `build` script) — must be clean before declaring setup done.
 5. From now on, use this skill normally to add gears and shells (Section B).
 
+### A.5 — Write the agent routing stanza
+
+So that a **later, plain feature request** (which names no R-Machine terms) still
+routes through this skill, record that this is an R-Machine project in the agent
+instruction files. Add the stanza below to **both** `CLAUDE.md` and `AGENTS.md`
+at the project root:
+
+- **Create** the file if it does not exist; **append** the stanza if it does —
+  never overwrite existing content.
+- **Idempotent** — skip a file that already contains an equivalent R-Machine
+  routing stanza (do not duplicate).
+
+```md
+## R-Machine project
+
+This project uses **R-Machine**. For any feature, behavior, or UI work — new or a
+change to something that already exists — use the `r-machine` skill. Build new
+work as **gears** (logic) + **shells** (localized content) + a **React consumer**
+(glue); make changes behind the owning resource's namespace and check the blast
+radius with `tsc`. Do not hand-roll ad-hoc state or hardcode localizable
+user-facing text. See the skill's Section C (implement) and Section D (modify).
+```
+
+---
+
+## Section C — Implement a Feature
+
+A high-level request ("a timer with start/stop", "a favorites list") is not one
+resource — it decomposes into several. Section C plans that decomposition, then
+**dispatches each piece to Section B**; it creates nothing itself.
+
+1. **Read [`references/decompose.md`](references/decompose.md)** — the forward
+   procedure and the placement rubric.
+2. **Decompose** the feature into logic (gears) / localized content (shells) /
+   glue (a React consumer), and **emit a short plan** — per piece: resource kind,
+   namespace, one-line shape. State any assumption you had to make (the
+   "When in doubt" defaults in `decompose.md`).
+3. **Confirm** the plan with the user in one short exchange.
+4. **Dispatch**: for each resource in the plan, run **Section B (Step 1 →)**,
+   picking the pattern file by family; for the component, follow the matching
+   `references/patterns/consume/*.md`. Update the atlas per resource
+   (`references/patterns/atlas-update.md`) and finish with the typecheck gate.
+5. **Routing stanza fallback**: if this project's `CLAUDE.md` / `AGENTS.md` lacks
+   the R-Machine routing stanza (e.g. it was set up by hand, or before this skill
+   version), offer to add it — see **A.5** for the exact text and rules.
+
+---
+
+## Section D — Modify or Evolve
+
+The mode where R-Machine earns **Uniformity Under Change**: a namespace is a
+stable contract, so a change behind it has a minimal, compiler-verifiable blast
+radius. Section D locates the owner(s), edits behind the namespace, and — the
+whole point — **reports the blast radius** back. It edits existing resources; a
+genuinely new piece it dispatches to Section B.
+
+1. **Read [`references/modify.md`](references/modify.md)** — the locate → classify
+   → edit → report procedure and the three kinds of change.
+2. **Locate** the owning resource(s) via `resource-atlas.ts`. For a feature-level
+   change spanning several resources, decompose the _change_ with the rubric in
+   [`references/decompose.md`](references/decompose.md) to find every affected owner.
+3. **Classify** each change — implementation-only (Surface unchanged) / additive
+   (new member) / breaking (rename, remove, re-type) — then **edit behind the
+   namespace**, keeping the Surface stable unless the contract must change.
+4. **Run the typecheck gate** (`tsc --noEmit`). The compiler names exactly the
+   consumers/tests a breaking change touches — update precisely those. Mocks and
+   fixtures track the same contract, so a rename propagates into tests, not rot.
+5. **Report the blast radius** explicitly: _"Surface unchanged → nothing
+   downstream"_ / _"additive → only new usage"_ / _"breaking → tsc flagged these N
+   sites, all updated"_. Make the property visible.
+
 ---
 
 ## Section B — Adding a Resource
@@ -155,17 +266,20 @@ Gather (from the message or by asking) these four things:
 4. **Dependencies** — any deps (`withDeps`) or external functions (`withPorts`)?
    For `OuterGear`, is it stateful (`withState`)?
 
-   Valid dep families per resource kind (never suggest anything outside these):
+   Valid **plain** dep families per resource kind — a plain dep resolves to the
+   resource's own surface (never suggest anything outside these):
    - `gear:outer` → `gear:base`, `gear:outer`
    - `gear:base` → `gear:base`
    - `gear:inner` → `gear:base`, `gear:inner`
    - `shell` / `shell(mono)` → `shell`, `shell(mono)`, `gear:base` (only if in `bridgeGears`)
    - `gear:outer(vertex)` → same as `gear:outer`
 
-   **Shells (`shell`, `shell(mono)`) can never be deps of any gear.**
-   Never suggest a `shell/…` namespace as a dep when the resource being
-   created is a gear. (Why this asymmetry — and `bridgeGears` — in
-   `references/concepts/dep-asymmetry.md`.)
+   **A bare `shell/…` is never a plain dep of a gear.** A gear (or a shell)
+   reaches a `Shell` only through `res.perLocale("shell/…")` inside `withDeps`:
+   the dep then resolves to a locale loader `(locale) => Promise<Surface>`, not a
+   surface — so a locale-agnostic gear can read localized content at runtime.
+   Never suggest a _bare_ `shell/…` as a gear dep. (Asymmetry, `bridgeGears`, and
+   `res.perLocale`: `references/concepts/dep-asymmetry.md`.)
 
 Don't ask for all four upfront if some are already obvious from the request.
 Clarify only what's missing.
@@ -235,16 +349,17 @@ shells are **always `.tsx`** — these render JSX, and `.tsx` is correct for pla
 strings too and stays correct when you add formatted text/JSX, so there's no
 per-shell decision. In a **standalone / plain Node** project (no JSX), content
 shells are `.ts` — use `.tsx` there only for a shell that actually renders JSX
-(e.g. a React Email template). A `shell(mono)` code helper (`shell/lib/fmt`) is
+(e.g. a JSX email template). A `shell(mono)` code helper (`shell/lib/fmt`) is
 `.ts` either way; gears (`outer/`, `base/`, `inner/`, `vertex/`) are always `.ts`.
 
 ### Type name convention
 
-Convert each `/`-delimited segment to PascalCase, join with `_`:
+Split the namespace on `/` **and** `-`, PascalCase each part, join with `_`:
 
 | Namespace                | Type name                |
 | ------------------------ | ------------------------ |
 | `outer/cart`             | `Outer_Cart`             |
+| `outer/day-counter`      | `Outer_Day_Counter`      |
 | `base/logger`            | `Base_Logger`            |
 | `inner/session`          | `Inner_Session`          |
 | `vertex/search`          | `Vertex_Search`          |
@@ -252,8 +367,9 @@ Convert each `/`-delimited segment to PascalCase, join with `_`:
 | `shell/features/box_1_2` | `Shell_Features_Box_1_2` |
 | `shell/lib/fmt`          | `Shell_Lib_Fmt`          |
 
-Segments that already contain underscores or numbers keep them: `box_1_2` →
-`Box_1_2`.
+A hyphen inside a segment is a word separator, like `/` — it becomes `_`
+(`day-counter` → `Day_Counter`). Existing underscores and numbers are kept
+(`box_1_2` → `Box_1_2`).
 
 ### Import path from the new file to `setup.ts`
 
@@ -313,6 +429,10 @@ Key rules (enforced by the TS compiler — get them right upfront):
 - `InnerGear` can depend on `gear:inner` and `gear:base`.
 - `Shell` can depend on `shell`, `shell(mono)`, and `gear:base` (only if
   listed in `bridgeGears`).
+- Any gear (or shell) reaches a `Shell` **only** via `res.perLocale("shell/…")`
+  in `withDeps` → resolves to a loader `(locale) => Promise<Surface>`, never a
+  plain surface; a bare `shell/…` is not a valid gear dep. (The rules above are
+  plain, same-surface deps.)
 - `gear:outer(vertex)` **cannot be a dep of any resource** — it's consumer-only.
 - Only `OuterGear` supports `withState` and cursor primitives (`_.action`,
   `_.getter`, `_.relay`).

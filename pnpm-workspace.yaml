@@ -6,6 +6,7 @@ packages:
 overrides:
   react: 19.2.7
   react-dom: 19.2.7
+  next: 16.2.10
 
 allowBuilds:
   esbuild: true
@@ -53,3 +54,14 @@ minimumReleaseAgeExclude:
   - '@radix-ui/rect@1.1.2'
   - '@types/node@24.13.1'
   - '@types/react@19.2.17'
+  - '@clack/core@1.4.3'
+  - '@clack/prompts@1.7.0'
+  - '@shikijs/core@4.3.1'
+  - '@shikijs/engine-javascript@4.3.1'
+  - '@shikijs/engine-oniguruma@4.3.1'
+  - '@shikijs/langs@4.3.1'
+  - '@shikijs/primitive@4.3.1'
+  - '@shikijs/themes@4.3.1'
+  - '@shikijs/types@4.3.1'
+  - shiki@4.3.1
+  - tsx@4.23.0

@@ -10,22 +10,21 @@ const plug = Plug("shell/lib/fmt", "shell/showcase");
 export function FormattingDemo() {
   const [fmt, s] = plug.useR();
   const [count, setCount] = useState(2);
-  const f = s.formatting;
 
   return (
     <Card>
       <CardContent className="space-y-4 pt-6">
-        <Row label={f.dateLabel} value={fmt.date.long(sampleDate)} />
-        <Row label={f.numberLabel} value={fmt.number(sampleAmount)} />
-        <Row label={f.currencyLabel} value={fmt.currency(sampleAmount)} />
+        <Row label={s.formatting.dateLabel} value={fmt.date.long(sampleDate)} />
+        <Row label={s.formatting.numberLabel} value={fmt.number(sampleAmount)} />
+        <Row label={s.formatting.currencyLabel} value={fmt.currency(sampleAmount)} />
 
         <div className="space-y-1">
-          <div className="text-sm text-muted-foreground">{f.pluralLabel}</div>
+          <div className="text-sm text-muted-foreground">{s.formatting.pluralLabel}</div>
           <div className="flex items-center gap-3">
             <Button size="sm" variant="outline" onClick={() => setCount(Math.max(0, count - 1))}>
               −
             </Button>
-            <span className="font-mono">{fmt.plural(count, f.unit.one, f.unit.other)}</span>
+            <span className="font-mono">{fmt.plural(count, s.formatting.unit.one, s.formatting.unit.other)}</span>
             <Button size="sm" variant="outline" onClick={() => setCount(count + 1)}>
               +
             </Button>

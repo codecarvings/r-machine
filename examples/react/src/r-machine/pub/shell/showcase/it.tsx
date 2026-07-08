@@ -11,12 +11,13 @@ export const r = localized("shell/showcase", {
 
   nav: {
     intro: "Intro",
-    "outer-gear": "OuterGear",
-    "gear-deps": "Dipendenze tra gear",
+    outerGear: "OuterGear",
+    gearDeps: "Dipendenze tra gear",
     vertex: "Vertex",
     async: "Async + Suspense",
     formatting: "Formattazione",
     localization: "Localizzazione",
+    crossLocale: "Cross-locale",
   },
 
   views: {
@@ -32,7 +33,7 @@ export const r = localized("shell/showcase", {
       hmrNote:
         "Modifica una risorsa e salva — grazie all'HMR, l'OuterGear mantiene il suo stato e questa selezione persiste.",
     },
-    "outer-gear": {
+    outerGear: {
       heading: "OuterGear — stato reattivo",
       blurb:
         "Le action mutano lo stato, i getter lo leggono, una cell memoizzata ne deriva un valore e un relay reagisce ai cambiamenti. L'interval vive nel gear con cleanup via Symbol.dispose.",
@@ -41,7 +42,7 @@ export const r = localized("shell/showcase", {
       doubledLabel: "raddoppiato (cell memoizzata):",
       note: "Si auto-incrementa ogni secondo tramite un interval gestito dal gear; un relay alterna il badge dispari/pari.",
     },
-    "gear-deps": {
+    gearDeps: {
       heading: "Dipendenze tra gear",
       blurb:
         "operator dipende da timer, dichiarato per token e iniettato completamente tipizzato — niente import, niente wiring manuale. Leggine il valore derivato e comandalo.",
@@ -72,6 +73,14 @@ export const r = localized("shell/showcase", {
         "Ogni stringa qui viene da uno shell localizzato. Il cambio locale è persistito in localStorage e sopravvive al reload — niente URL, niente router.",
       footnote:
         "Ogni heading, blurb ed etichetta in quest'app è uno shell localizzato — cambiando locale si ri-risolvono tutti.",
+    },
+    crossLocale: {
+      heading: "Un gear, tutte le locale",
+      blurb:
+        "res.perLocale trasforma uno shell in un LOADER di locale che un gear locale-agnostico chiama a runtime. base/preview chiede al loader lo shell showcase in ogni locale configurata in una volta sola — così questo pannello mostra tutte le traduzioni affiancate, indipendentemente dalla locale attiva dell'app.",
+      ambientLabel: "locale dell'app",
+      panelNote:
+        "Queste card vengono da un solo gear (base/preview) che ha riusato shell/showcase in tutte le locale. Cambia la locale dell'app (in alto a destra) — il badge sopra cambia, ma le card no.",
     },
   },
 

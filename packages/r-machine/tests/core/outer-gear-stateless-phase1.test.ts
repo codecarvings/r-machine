@@ -4,15 +4,14 @@ import { type Getter, isGetter } from "../../src/core/getter.js";
 import { buildGetterCellComposer, buildStatelessGetterComposer } from "../../src/core/outer-gear-composer.js";
 import type { AnyRes } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
-import { createResMatrix } from "../../src/core/res-matrix.js";
+import { type AnyResMatrix, createResMatrix, instantiateRes } from "../../src/core/res-matrix.js";
 import { buildResPod } from "../../src/core/res-pod.js";
 import { createStateCell } from "../../src/core/state-cell.js";
 
 // --- helpers -----------------------------------------------------------------
 
-type InternalCreateCall = (locale: undefined, chain: never[]) => Promise<unknown>;
-async function resolve(matrix: { create: () => Promise<unknown> }): Promise<unknown> {
-  const raw = await (matrix.create as unknown as InternalCreateCall)(undefined, []);
+async function resolve(matrix: AnyResMatrix): Promise<unknown> {
+  const raw = await instantiateRes(matrix);
   return buildResPod(raw as AnyRes, undefined).surface;
 }
 

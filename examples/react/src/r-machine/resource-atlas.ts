@@ -1,5 +1,6 @@
 import { defineLayout } from "r-machine";
 import type { Base_Config } from "./pub/base/config";
+import type { Base_Preview } from "./pub/base/preview";
 import type { Outer_Nav } from "./pub/outer/nav";
 import type { Outer_Operator } from "./pub/outer/operator";
 import type { Outer_Timer } from "./pub/outer/timer";
@@ -18,6 +19,7 @@ const folders = defineLayout({
 
 type ResourceMap = {
   "base/config": Base_Config;
+  "base/preview": Base_Preview;
   "outer/timer": Outer_Timer;
   "outer/operator": Outer_Operator;
   "outer/nav": Outer_Nav;

@@ -12,11 +12,11 @@ describe("Inner_Catalog", () => {
   it("resolves products through the async port and looks them up", async () => {
     // Mock only the async port; the real `base/store-config` dep resolves.
     // InnerGear resources are stateless — `using` just exits test mode on scope end.
-    using _ctrl = mockPlug(r.plug).with({
+    using ctrl = mockPlug(r).with({
       $: { ports: { fetchProducts: async () => FIXTURES } },
     });
 
-    const catalog = await r.create();
+    const catalog = await ctrl.createRes();
 
     expect(catalog.products).toHaveLength(3);
     expect(catalog.byId("b")?.name).toBe("Beta");

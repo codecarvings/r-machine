@@ -3,8 +3,8 @@ import type { AnyResModule } from "r-machine/core";
 import { ResourceAtlas } from "./resource-atlas.js";
 
 // Dependency / kit modules are synthesised inline. `InnerGear` is referenced
-// from the toolset destructured below; the closure only runs during a test's
-// `r.create()`, by which point the binding is initialised.
+// from the toolset destructured below; the closure only runs when a test
+// instantiates a resource, by which point the binding is initialised.
 ResourceAtlas.loader.register(["*"], async (path): Promise<AnyResModule> => {
   switch (path) {
     case "inner/double":
@@ -21,6 +21,15 @@ ResourceAtlas.loader.register(["*"], async (path): Promise<AnyResModule> => {
         r: OuterGear.withState({ n: 0 }).define((plugin, _) => ({
           value: _.getter(() => plugin.$.state.n),
           inc: _.action(() => ({ n: plugin.$.state.n + 1 })),
+        })),
+      } as unknown as AnyResModule;
+    case "outer/probe":
+      // A stateful gear whose getter returns an OBJECT deriving `a` from state
+      // (and a constant `b`): the live-getter mock scenario — mock `b`, drive
+      // state, watch `a` keep tracking.
+      return {
+        r: OuterGear.withState({ n: 0 }).define((plugin, _) => ({
+          view: _.getter(() => ({ a: plugin.$.state.n, b: 2 })),
         })),
       } as unknown as AnyResModule;
     default:

@@ -287,8 +287,8 @@ return {
 };
 ```
 
-In a test, the controller/surface still sees it: `(await r.create()).$bump()`. See
-[../testing.md](../testing.md).
+In a test, the `TestSurface` still sees it: `(await ctrl.createRes()).$bump()`
+(`$`-members are retained). See [../testing.md](../testing.md).
 
 ---
 
@@ -301,10 +301,10 @@ import { r } from "@/r-machine/pub/outer/counter";
 it("runs the real action against seeded state", async () => {
   using ctrl = mockPlug(r).default();
   ctrl.state = { count: 10 }; // deep-partial seed of the gear's own state
-  const counter = await r.create();
+  const counter = await ctrl.createRes();
 
   counter.increment();
-  expect(counter.count()).toBe(11); // the real action + getter run
+  expect(counter.count).toBe(11); // the real action runs; the getter reads as a property
 });
 ```
 

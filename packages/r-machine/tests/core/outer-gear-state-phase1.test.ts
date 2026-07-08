@@ -7,20 +7,18 @@ import {
 } from "../../src/core/outer-gear-composer.js";
 import { type AnyRes, tryGetDispose } from "../../src/core/res.js";
 import type { ResComposerConnector } from "../../src/core/res-composer-connector.js";
-import { createResMatrix } from "../../src/core/res-matrix.js";
+import { type AnyResMatrix, createResMatrix, instantiateRes } from "../../src/core/res-matrix.js";
 import { buildResPod } from "../../src/core/res-pod.js";
 import { createStateCell, type StateCell } from "../../src/core/state-cell.js";
 
 // --- helpers -----------------------------------------------------------------
 
-// The public ResMatrix.create is typed as `() => Promise<R>` but the actual
-// implementation expects (locale, chain). For phase-1 tests we bypass the
-// blueprint stack and invoke the resolution directly, so we need the wider
-// signature. We also wrap the raw resource in a pod so getter specs
-// are materialized as JS accessors (matching what consumers see in production).
-type InternalCreateCall = (locale: undefined, chain: never[]) => Promise<unknown>;
-async function resolve(matrix: { create: () => Promise<unknown> }): Promise<unknown> {
-  const raw = await (matrix.create as unknown as InternalCreateCall)(undefined, []);
+// Instantiation is internal (engine-only); `instantiateRes` is the sanctioned
+// seam. For phase-1 tests we bypass the blueprint stack and instantiate the
+// matrix directly, then wrap the raw resource in a pod so getter specs are
+// materialized as JS accessors (matching what consumers see in production).
+async function resolve(matrix: AnyResMatrix): Promise<unknown> {
+  const raw = await instantiateRes(matrix);
   return buildResPod(raw as AnyRes, undefined).surface;
 }
 
@@ -226,7 +224,7 @@ describe("OuterGear state — phase 1 end-to-end", () => {
         inc: cursor.action(() => ({ count: $.state.count + 1 })),
       };
     });
-    const raw = await (matrix.create as unknown as InternalCreateCall)(undefined, []);
+    const raw = await instantiateRes(matrix);
     const resource = raw as { read: () => number; inc: () => unknown };
     const surface = buildResPod(raw as AnyRes, undefined).surface as {
       read: number;
@@ -266,7 +264,7 @@ describe("OuterGear state — phase 1 end-to-end", () => {
         set: cursor.action((v: number) => ({ v })),
       };
     });
-    const raw = await (matrix.create as unknown as InternalCreateCall)(undefined, []);
+    const raw = await instantiateRes(matrix);
     const resource = raw as { set: (v: number) => unknown };
     resource.set(7);
     expect(onChange).toHaveBeenCalledTimes(1);

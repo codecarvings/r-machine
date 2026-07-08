@@ -51,10 +51,13 @@ describe("ResMatrix", () => {
     expectTypeOf<Specific>().toExtend<AnyResMatrix>();
   });
 
-  it("exposes `create` as a zero-argument function returning Promise<R>", () => {
-    type Specific = ResMatrix<{ greeting: string }, AnyResPlug>;
-    expectTypeOf<Specific["create"]>().toEqualTypeOf<() => Promise<{ greeting: string }>>();
-    expectTypeOf<Specific["create"]>().parameters.toEqualTypeOf<[]>();
+  it("keeps instantiation internal — `create`/`createSync` are NOT public keys", () => {
+    // R-Machine resources are engine-instantiated; the res builders live
+    // behind module-private symbols, so a string `create`/`createSync` is never
+    // part of the public matrix surface (instantiation goes through
+    // `instantiateRes` / `ctrl.createRes()`).
+    expectTypeOf<"create">().not.toExtend<keyof ResMatrix<AnyRes, AnyResPlug>>();
+    expectTypeOf<"createSync">().not.toExtend<keyof ResMatrix<AnyRes, AnyResPlug>>();
   });
 
   it("exposes `plug` as the exact P type passed in", () => {
@@ -75,13 +78,10 @@ describe("ResMatrix", () => {
     expectTypeOf<"clone">().not.toExtend<keyof ResMatrix<AnyRes, AnyResPlug>>();
   });
 
-  it("marks `create` and `plug` as readonly", () => {
+  it("marks `plug` as readonly", () => {
     // Structural test: the mutable twin must not be equal to the interface.
-    type Writable<R extends AnyRes, P extends AnyResPlug> = {
-      create: () => Promise<R>;
-      plug: P;
-    };
-    expectTypeOf<ResMatrix<AnyRes, AnyResPlug>>().not.toEqualTypeOf<Writable<AnyRes, AnyResPlug>>();
+    type Writable<P extends AnyResPlug> = { plug: P };
+    expectTypeOf<ResMatrix<AnyRes, AnyResPlug>>().not.toEqualTypeOf<Writable<AnyResPlug>>();
   });
 
   it("does NOT expose `data` as a public field (the symbol key replaced it)", () => {

@@ -30,7 +30,32 @@ function buildSurface(res: AnyRes, vertexTag: VertexGearTagData | undefined): An
     if (key.startsWith("$")) {
       continue;
     }
-    const entry = (res as AnyResolvedNamespaceMap)[key];
+    const desc = Object.getOwnPropertyDescriptor(res, key)!;
+    // A plain `get foo()` accessor is transplanted LIVE (re-evaluated on every
+    // read), NOT read-and-frozen. Inspecting the descriptor — instead of reading
+    // `res[key]` — is what keeps it live: a gear member backed by a port
+    // (`get availableDiskSpace() { return $.ports.stat() }`) returns a fresh
+    // value each call, exactly like reading it off `res`. `_.getter`/`_.cell` add
+    // reactivity/memoization on top; a plain getter is just fresh-on-read.
+    //
+    // NOTE — this check runs BEFORE isRelay/isGetter, and we deliberately never
+    // invoke the accessor here (invoking would re-introduce the eager-snapshot
+    // this fix removes). So a plain `get` is ALWAYS treated as a plain live
+    // value. Declaring a branded/wiring member via an accessor —
+    // `get onTick() { return _.relay(...) }` or `get g() { return _.getter(...) }`
+    // — is UNSUPPORTED misuse: the relay/getter would not be detected here (a
+    // non-`$` relay would leak onto the surface; a branded getter would project
+    // as the raw function). Branded/wiring members MUST be data properties
+    // (`onTick: _.relay(...)`), which is exactly what the builder API returns.
+    if (desc.get !== undefined) {
+      Object.defineProperty(surface, key, {
+        enumerable: true,
+        configurable: false,
+        get: () => desc.get!.call(res),
+      });
+      continue;
+    }
+    const entry = desc.value as AnyResolvedNamespaceMap[string];
     // Relay items are wiring, not consumer-facing values — excluded from the surface.
     if (isRelay(entry)) {
       continue;

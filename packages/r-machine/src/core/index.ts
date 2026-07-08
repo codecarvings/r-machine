@@ -18,7 +18,7 @@ export { BlueprintManager } from "./blueprint-manager.js";
 export type { CassetteRecorder } from "./cassette-recorder.js";
 export { createCassetteRecorder } from "./cassette-recorder.js";
 export type { SwitchableOption } from "./config-options.js";
-export { type DeepPartial, deepPartialMerge } from "./deep-partial.js";
+export { type DeepPartial, deepPartialMerge, isPlainObject } from "./deep-partial.js";
 export { isDevEnv } from "./dev-env.js";
 export type {
   DirectPlugDefiner,
@@ -35,7 +35,7 @@ export {
 export type { ExperimentalFlags } from "./experimental-flags.js";
 export type { GateListPlugHead, GateMapPlugHead, GatePluginCtx } from "./gate-plug.js";
 export type { GearPlugKitMap } from "./gear-plug.js";
-export type { Getter } from "./getter.js";
+export { type Getter, isGetter } from "./getter.js";
 export { createInnerGearComposer, type InnerGearComposer } from "./inner-gear-composer.js";
 export { createOuterGearComposer, type OuterGearComposer } from "./outer-gear-composer.js";
 export {
@@ -73,9 +73,14 @@ export type { Handle, NamespaceCollection } from "./res-domain.js";
 export {
   type AnyNamespace,
   type AnyResDomain,
+  createPerLocale,
+  createShellResolver,
   createToken,
   type ExtractNamespace,
+  type LocaleLoader,
   type Namespace,
+  type ShellResolverBuilder,
+  type ShellResolverHandle,
   type Token,
 } from "./res-domain.js";
 export type { AnyResEquipment, ResEquipment } from "./res-equipment.js";
@@ -103,11 +108,18 @@ export {
   type NamespaceMap,
   type ValidatedDepMapType,
 } from "./res-map.js";
-export type { ResMatrix } from "./res-matrix.js";
+export {
+  type AnyResMatrix,
+  instantiateRes,
+  instantiateResSync,
+  type ResMatrix,
+  tryGetResMatrixMeta,
+} from "./res-matrix.js";
 export {
   type AnyResModule,
   validateResModule,
 } from "./res-module.js";
+export type { AnyResPlug } from "./res-plug.js";
 export { createRequestScope, PROCESS_SCOPE_PROVIDER, type RequestScope, type RequestScopeProvider } from "./scope.js";
 export { createShellComposer, type ShellComposer } from "./shell-composer.js";
 export type { ShellPlugKitMap } from "./shell-plug.js";

@@ -10,10 +10,10 @@ The golden rule: **mock the unit under test, then run its real code.** Pass the
 unit itself to `mockPlug` — a resource (`mockPlug(r)`) or a consumer
 (`mockPlug(CartButton)`) — the thing that _declares the unit's dependencies_.
 Through that single mock you OVERRIDE what its dependencies, ports, and kit
-resolve to (and seed/read state), then call the real `r.create()` / render the
-real component. You never re-declare the unit.
+resolve to (and seed/read state), then instantiate it via `ctrl.createRes()`
+(a resource) / render the real component. You never re-declare the unit.
 
-**Only a factory has a plug.** `mockPlug` (and `.create()`) exist only for
+**Only a factory has a plug.** `mockPlug` (and `ctrl.createRes()`) exist only for
 resources built with a factory — `Shell.define`, `BaseGear.define`,
 `OuterGear.define`, etc. A resource declared as a **plain object** (`export const
 r = { … }`, the canonical form for static shells) has **no plug** — `mockPlug`
@@ -163,13 +163,50 @@ The project's `tsconfig` must **include the test directory** so the test files
 (and their mocks) are themselves type-checked — that is what turns a drifted mock
 into a failed `test` run instead of a false green.
 
-**Make the vitest globals type-visible (required, or `tsc` fails first).** The
-baseline test (and the examples below) use the globals `describe` / `it` /
-`expect` without importing them. Vitest's runner provides them at runtime, but
-`tsc` doesn't know them → the first `typecheck` fails with `TS2582: Cannot find
-name 'describe'`. Don't fix this by adding `"types": ["vitest/globals"]` to
-`compilerOptions` — that key **restricts** which `@types/*` are auto-included, so
-in a Next/React project it drops the ambient `node`/`react` types and breaks the
+- **Next / Standalone** (single tsconfig): add `"tests"` to its `include`.
+- **React (Vite)** (project references): the app config includes only `src`, so
+  tests need their **own referenced project** or `tsc -b` never checks them.
+  Create `tsconfig.test.json` — it **extends** `tsconfig.app.json`, so it inherits
+  `lib` / `jsx` / `paths` / `moduleResolution` (no duplication) — and add it to the
+  root `tsconfig.json` `references`:
+
+  ```jsonc
+  // tsconfig.test.json
+  {
+    "extends": "./tsconfig.app.json",
+    "compilerOptions": {
+      "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+      "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
+    },
+    "include": ["tests", "vitest.setup.ts"],
+  }
+  ```
+
+  ```jsonc
+  // tsconfig.json — add the third reference (keep the existing two)
+  {
+    "files": [],
+    "references": [
+      { "path": "./tsconfig.app.json" },
+      { "path": "./tsconfig.node.json" },
+      { "path": "./tsconfig.test.json" },
+    ],
+  }
+  ```
+
+  Here `types` is set **inside the test-only project**, so it does not narrow the
+  app/build config — which is exactly why the shared-config warning below does
+  **not** apply here, and why this project needs no `vitest.d.ts`.
+
+**Make the vitest globals type-visible — single-tsconfig setups (Next /
+Standalone).** (React (Vite) already handles this via the `types` array in the
+`tsconfig.test.json` above.) The baseline test (and the examples below) use the
+globals `describe` / `it` / `expect` without importing them. Vitest's runner
+provides them at runtime, but `tsc` doesn't know them → the first `typecheck`
+fails with `TS2582: Cannot find name 'describe'`. Don't fix this by adding
+`"types": ["vitest/globals"]` to the **shared** `compilerOptions` — that key
+**restricts** which `@types/*` are auto-included, so in a single-tsconfig
+Next/Standalone project it drops the ambient `node`/`react` types and breaks the
 build. Instead add a one-line ambient reference file at the project root so the
 globals are visible **without** narrowing `types`:
 
@@ -177,6 +214,10 @@ globals are visible **without** narrowing `types`:
 // vitest.d.ts
 /// <reference types="vitest/globals" />
 ```
+
+**It only works if a tsconfig includes it.** A `**/*.ts` include (create-next-app's
+default) already picks it up; if the tsconfig `include` is scoped (e.g. to `src`),
+add `"vitest.d.ts"` to it — otherwise the file is inert and `TS2582` comes back.
 
 (Equivalently, import `{ describe, it, expect }` from `"vitest"` in every test —
 but the ambient file keeps the examples copy-paste-clean.)
@@ -257,8 +298,56 @@ the shell, at the folder's level — not per-locale:
    `ctrl.kit[key].state`. Writes before resolve are deep-partial **seeds**; reads
    and writes after resolve hit the live cell.
 
+**Every resolution override is a `DeepPartial` deep-merged over the real surface**
+— the same merge law as an action reducer and `ctrl.state`. Mock a single nested
+sub-key and its **siblings are inherited** from the real resource:
+
+```ts
+// Override only views.intro.heading; every other key (blurb, other views, …)
+// comes from the real shell.
+mockPlug(r).with({
+  showcase: (locale) => ({ views: { intro: { heading: `x-${locale}` } } }),
+});
+```
+
+Level-0 members stay **live**: pass a getter and it is re-read on each access
+(useful to drive a value over a test, or to check a consumer reads a dep fresh):
+
+```ts
+let appName = "abc";
+using ctrl = mockPlug(r).with({
+  config: {
+    get appName() {
+      return appName;
+    },
+  },
+});
+const inst = await ctrl.createRes();
+expect(inst.getAppName()).toBe("abc");
+appName = "xyz";
+expect(inst.getAppName()).toBe("xyz"); // re-read, not snapshotted
+```
+
+An override getter is a **partial**, not a whole replacement: if a real dep getter
+derives from state (`foo → { a: <state>, b: 2 }`), mocking `{ foo: { b: 100 } }`
+and then driving `ctrl.deps.foo.state` yields `{ a: <new state>, b: 100 }` — `a`
+keeps tracking, `b` stays mocked. (On primitive leaves the deep-merge degrades to a
+plain replacement.)
+
 `.default()` is `.with({})` — enter test mode with no overrides (e.g. resolve a
 stateless gear, or resolve at the machine's default locale).
+
+**Instantiate a resource to assert on it — `ctrl.createRes()`.** For a resource
+(`mockPlug(r)`, a gear/shell), the controller exposes `createRes()`: it builds the
+mocked resource (overrides applied) and returns its **`TestSurface`** — the SAME
+shape a dependency is mocked in, so both sides of a test speak one language. So a
+**getter or cell reads as a property** (`cart.subtotal`, not `cart.subtotal()`);
+actions stay callable and return the resulting state; relays, `$`-members and
+`Symbol.dispose` are retained (a consumer's surface hides those). The controller
+**auto-disposes** each instance it created when it resets, so `using ctrl` alone
+tears the instance down too (dispose is idempotent, so an explicit `using inst`
+composes safely). A consumer or a bare `plug` controller has **no `createRes`** —
+a consumer is rendered, not instantiated.
 
 The controller is disposable: prefer the `using` keyword (auto-exits test mode at
 scope end); otherwise call `ctrl.reset()`. `resetMockPlugs()` clears every active
@@ -274,12 +363,11 @@ import { type Product, r } from "@/r-machine/prv/inner/catalog";
 
 it("resolves products through the async port and looks them up", async () => {
   // Mock only the async port; the real `base/store-config` dep still resolves.
-  // Stateless → `using` just exits test mode at scope end.
-  using _ctrl = mockPlug(r).with({
+  using ctrl = mockPlug(r).with({
     $: { ports: { fetchProducts: async () => FIXTURES } },
   });
 
-  const catalog = await r.create();
+  const catalog = await ctrl.createRes();
 
   expect(catalog.byId("b")?.name).toBe("Beta");
   expect(catalog.byCategory("audio").map((p) => p.id)).toEqual(["a", "c"]);
@@ -299,14 +387,15 @@ const seedEmpty = () =>
   });
 
 it("adds items and computes itemCount + subtotal", async () => {
-  using _ctrl = seedEmpty();
-  const cart = await r.create();
+  using ctrl = seedEmpty();
+  const cart = await ctrl.createRes();
 
   cart.addItem({ productId: "a", name: "Alpha", unitPrice: 10 });
   cart.addItem({ productId: "b", name: "Beta", unitPrice: 20, qty: 2 });
 
-  expect(cart.itemCount()).toBe(3); // real getters run against the live cell
-  expect(cart.subtotal()).toBe(50);
+  // Getters/cells read as PROPERTIES on the TestSurface (real, against the live cell).
+  expect(cart.itemCount).toBe(3);
+  expect(cart.subtotal).toBe(50);
 });
 ```
 
@@ -316,21 +405,20 @@ keys survive):
 ```ts
 using ctrl = mockPlug(r).with({
   $: {
-    ports: {
-      /* … */
-    },
+    ports: {/* … */},
   },
 });
-ctrl.state = { count: 10 }; // seed before create(); `label` etc. preserved
-const inst = await r.create();
-expect(inst.count()).toBe(10);
+ctrl.state = { count: 10 }; // seed before createRes(); `label` etc. preserved
+const inst = await ctrl.createRes();
+expect(inst.count).toBe(10);
 ```
 
 A relay's `onChange` runs for real — assert its side effect (here via a spy):
 
 ```ts
+using ctrl = seedEmpty();
 const logSpy = vitest.spyOn(console, "log").mockImplementation(() => {});
-const cart = await r.create();
+const cart = await ctrl.createRes();
 cart.addItem({ productId: "a", name: "Alpha", unitPrice: 10 });
 expect(logSpy).toHaveBeenCalledWith("cart changed: 1 line(s)");
 ```
@@ -338,7 +426,7 @@ expect(logSpy).toHaveBeenCalledWith("cart changed: 1 line(s)");
 ## Test a Shell
 
 A **plain-object** shell (`export const r = { … }`, no `.define`) has **no plug
-and no `.create()`** — `mockPlug` throws `ERR_MOCK_TARGET_INVALID` on it. Default
+and no `createRes`** — `mockPlug` throws `ERR_MOCK_TARGET_INVALID` on it. Default
 to **no test** (its shape is already guarded by `localized(...)`); if you want
 one, import each locale module and assert `r` directly. A **factory** shell
 (`Shell.define`, uses `$.locale` / kit) has a plug — re-resolve it per locale via
@@ -349,11 +437,14 @@ import { mockPlug } from "@r-machine/testing";
 import { r as greet } from "@/r-machine/pub/shell/greeting/en";
 
 it("resolves the shell in the requested locale", async () => {
-  const def = await greet.create();
-  expect(def.greeting).toBe("Hello"); // default locale
+  {
+    using ctrl = mockPlug(greet).default();
+    const def = await ctrl.createRes();
+    expect(def.greeting).toBe("Hello"); // default locale
+  } // scope closes → mock reset, so the same plug can be re-mocked below
 
-  using _ctrl = mockPlug(greet).with({ $: { locale: "it" } });
-  const localized = await greet.create();
+  using ctrl = mockPlug(greet).with({ $: { locale: "it" } });
+  const localized = await ctrl.createRes();
   expect(localized.greeting).toBe("Ciao");
 });
 ```
@@ -411,6 +502,13 @@ it("renders seeded state and reacts to the real action", async () => {
   expect(screen.getByText("14")).toBeInTheDocument(); // real add() published to the cell
 });
 ```
+
+**First assert must be `findBy*` (async), not `getBy*`.** `Plug` / `ClientPlug` are
+**Suspense-driven**: the first render commits the empty fallback and the real
+surface resolves on a later tick. `screen.getBy*` / `getByRole` on the **first**
+query races that and fails intermittently (it sees an empty `<div />`). Use
+`await screen.findBy*` for the first assertion — once it resolves the tree is
+settled, so `getBy*` is fine for every assertion after it.
 
 For a **Next** client component, also stub `next/navigation` (the client toolset
 reads its hooks during render):

@@ -16,13 +16,12 @@ function CounterWidget({ label }: { label: string }) {
 const framePlug = Plug({ counter: "vertex/counter", showcase: "shell/showcase" });
 export function VertexDemo() {
   const { counter, showcase: s } = framePlug.useR();
-  const t = s.views.vertex;
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t.independentTitle}</CardTitle>
+          <CardTitle className="text-base">{s.views.vertex.independentTitle}</CardTitle>
         </CardHeader>
         <CardContent className="flex gap-3">
           <CounterWidget label="A" />
@@ -32,7 +31,7 @@ export function VertexDemo() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t.sharedTitle}</CardTitle>
+          <CardTitle className="text-base">{s.views.vertex.sharedTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <VertexFrame gear={[counter]}>
@@ -44,7 +43,7 @@ export function VertexDemo() {
         </CardContent>
       </Card>
 
-      <p className="text-xs text-muted-foreground">{t.note}</p>
+      <p className="text-xs text-muted-foreground">{s.views.vertex.note}</p>
     </div>
   );
 }

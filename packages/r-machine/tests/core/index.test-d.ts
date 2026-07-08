@@ -13,9 +13,11 @@ import type {
   AnyResDomain,
   AnyResEquipment,
   AnyResLayout,
+  AnyResMatrix,
   AnyResModule,
   AnyResOrigin,
   AnyResourceLoader,
+  AnyResPlug,
   BaseGearComposer,
   BaseGearNamespaceList,
   BusBridge,
@@ -105,8 +107,12 @@ import {
   getPlugOverride,
   getPlugResolve,
   getResFamilyFromLayoutType,
+  instantiateRes,
+  instantiateResSync,
   isDevEnv,
+  isGetter,
   isOuterGearLayoutType,
+  isPlainObject,
   isVertexGearLayoutType,
   PLUG_MACHINE_ACCESSOR,
   PROCESS_SCOPE_PROVIDER,
@@ -116,6 +122,7 @@ import {
   setPlugOverride,
   setPlugResolve,
   TestMode,
+  tryGetResMatrixMeta,
   tryGetStateAccess,
   tryGetVertexGearTag,
   validateResModule,
@@ -149,8 +156,13 @@ describe("core barrel exports", () => {
     expectTypeOf(createToken).toBeFunction();
     expectTypeOf(createResourceLoader).toBeFunction();
     expectTypeOf(getResFamilyFromLayoutType).toBeFunction();
+    expectTypeOf(isGetter).toBeFunction();
     expectTypeOf(isOuterGearLayoutType).toBeFunction();
+    expectTypeOf(isPlainObject).toBeFunction();
     expectTypeOf(isVertexGearLayoutType).toBeFunction();
+    expectTypeOf(instantiateRes).toBeFunction();
+    expectTypeOf(instantiateResSync).toBeFunction();
+    expectTypeOf(tryGetResMatrixMeta).toBeFunction();
     expectTypeOf(getNamespaceList).toBeFunction();
     expectTypeOf(getNamespaceMap).toBeFunction();
     expectTypeOf(validateResModule).toBeFunction();
@@ -240,6 +252,8 @@ describe("core barrel exports", () => {
     expectTypeOf<NamespaceMap<any>>().not.toBeNever();
     expectTypeOf<ValidatedDepMapType<any, any>>().not.toBeNever();
     expectTypeOf<ResMatrix<any, any>>().not.toBeNever();
+    expectTypeOf<AnyResMatrix>().not.toBeNever();
+    expectTypeOf<AnyResPlug>().not.toBeNever();
     expectTypeOf<AnyResModule>().not.toBeNever();
     expectTypeOf<ResModuleLoaderFn>().not.toBeNever();
     expectTypeOf<ResModuleLoaderFnOptions>().not.toBeNever();

@@ -15,12 +15,12 @@ import type { Namespace } from "#r-machine/core";
 import type { GearListPlugHead, GearMapPlugHead, GearPluginCtx, GearPlugKitMap } from "./gear-plug.js";
 import type { ListPlugin, MapPlugin, PlugBody } from "./plug.js";
 import type { AnyResAtlas } from "./res-atlas.js";
-import type { HandleList } from "./res-list.js";
-import type { HandleMap } from "./res-map.js";
+import type { DepHandleList } from "./res-list.js";
+import type { DepHandleMap } from "./res-map.js";
 import type { AnyPortMap } from "./res-plug.js";
 
-export type BaseGearPlugDepMap<RA extends AnyResAtlas> = HandleMap<RA, "shape@gear:base">;
-export type BaseGearPlugDepList<RA extends AnyResAtlas> = HandleList<RA, "shape@gear:base">;
+export type BaseGearPlugDepMap<RA extends AnyResAtlas> = DepHandleMap<RA, "shape@gear:base">;
+export type BaseGearPlugDepList<RA extends AnyResAtlas> = DepHandleList<RA, "shape@gear:base">;
 export type BaseGearPlugPortMap = AnyPortMap;
 
 // export type BaseGearNamespaceList<RA extends AnyResAtlas> = NamespaceList<RA, "shape@gear:base">;

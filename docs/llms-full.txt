@@ -39,7 +39,7 @@ R-Machine ships an **LLM-agent skill** (via the `rforge` CLI) that scaffolds the
 
 ```bash
 pnpm create next-app@latest        # or an existing Next.js / React (Vite) app
-pnpm dlx rforge@latest skill       # installs the skill into .claude/skills/r-machine
+pnpm dlx rforge@latest skill       # installs the skill into .claude/skills + .agents/skills
 ```
 
 Then prompt your agent (Claude Code or another), e.g.:
@@ -54,6 +54,9 @@ The same flow scaffolds gears and shells.
 
 **Composers** (resource declaration)
 `InnerGear`, `BaseGear`, `OuterGear`, `Shell`, `localized`
+
+**Toolset dep builders**
+`res.perLocale` — declares a `Shell` as a locale-loader dep inside `withDeps`; `.pickAll` / `.pick` batch-resolve loaders (§4.1)
 
 **Plug** (consumer primitive)
 `Plug`, `ClientPlug`, `ServerPlug`, `DirectPlug` (container-free, runs anywhere)
@@ -89,7 +92,7 @@ Next.js server (no-proxy, path strategy only): `NextServerRMachine`, `bindLocale
 `declarePathAtlas` (from `@r-machine/next`) — see §3.5
 
 **Resource (`ResMatrix`)** — value produced by `.define(...)`
-`r.create()`, `r.plug`, `r.clone(...)` — see §4.4 and §5
+`r.plug`, `r.clone(...)` — see §4.4 and §5 (instantiation is engine-internal; tests instantiate via `ctrl.createRes()`, §14)
 
 **Strategy helpers** — `strategy.getHelpers()` returns `{ localeHelper }` on every strategy, plus `hrefHelper` on all Next.js strategies. See §11.3.
 
@@ -104,14 +107,14 @@ Six family values are accepted in `defineLayout`. Anything else is a compile err
 
 | Family | Composer | Stateful? | Can depend on | Consumed by | Locale-aware? | Eligible for kit? |
 |---|---|---|---|---|---|---|
-| `gear:inner` | `InnerGear` | no | `InnerGear`, `BaseGear`, `gearKit` | `InnerGear`, `BaseGear`, and `ServerPlug` (Next.js RSC only — never `Plug` or `ClientPlug`) | no | yes (`gearKit`) |
-| `gear:base` | `BaseGear` | no | `BaseGear`, `gearKit` | `InnerGear`, `BaseGear`, `OuterGear`, `Shell` (only if listed in `bridgeGears`) | no | yes (`gearKit`, `serverKit`/`clientKit`) |
-| `gear:outer` | `OuterGear` | optional | `BaseGear`, `OuterGear`, `gearKit` | other `OuterGear` and consumers via `Plug` / `ClientPlug` (not `ServerPlug`) | no | optional |
+| `gear:inner` | `InnerGear` | no | `InnerGear`, `BaseGear`, `gearKit`; any Shell via `res.perLocale` (§4.1) | `InnerGear`, `BaseGear`, and `ServerPlug` (Next.js RSC only — never `Plug` or `ClientPlug`) | no | yes (`gearKit`) |
+| `gear:base` | `BaseGear` | no | `BaseGear`, `gearKit`; any Shell via `res.perLocale` (§4.1) | `InnerGear`, `BaseGear`, `OuterGear`, `Shell` (only if listed in `bridgeGears`) | no | yes (`gearKit`, `serverKit`/`clientKit`) |
+| `gear:outer` | `OuterGear` | optional | `BaseGear`, `OuterGear`, `gearKit`; any Shell via `res.perLocale` (§4.1) | other `OuterGear` and consumers via `Plug` / `ClientPlug` (not `ServerPlug`) | no | optional |
 | `gear:outer(vertex)` | `OuterGear` | optional | same as `gear:outer` | only consumers via `Plug` / `ClientPlug`; **cannot be a dep of any resource**; instance scoped per call (or shared via `<VertexFrame>`) | no | optional |
-| `shell` | `Shell` | no | `Shell`, `shell(mono)`, `BaseGear` (only if in `bridgeGears`), `shellKit` | other `Shell` and consumers | yes | yes (`shellKit`) |
+| `shell` | `Shell` | no | `Shell`, `shell(mono)`, `BaseGear` (only if in `bridgeGears`), `shellKit`; any Shell in any locale via `res.perLocale` (§4.1) | other `Shell` and consumers | yes | yes (`shellKit`) |
 | `shell(mono)` | `Shell` | no | same as `shell` | other `Shell` and consumers | yes | yes (`shellKit`) |
 
-Dep-graph asymmetry: no dep path connects `gear:inner` to `gear:outer`, `gear:outer(vertex)`, or `Shell`. Enforced at the `withDeps(...)` call site by the compiler.
+Dep-graph asymmetry: no *plain* dep path connects `gear:inner` to `gear:outer`, `gear:outer(vertex)`, or `Shell` — enforced at the `withDeps(...)` call site by the compiler. The one sanctioned bridge to a `Shell` is `res.perLocale(...)` (§4.1), which admits it as a locale **loader** `(locale) => Promise<Surface>`, not a resolved surface.
 
 ---
 
@@ -218,7 +221,7 @@ Loaders are split across the two resource folders (layout in §16) so server-onl
 ### 3.4. Toolset
 
 ```ts
-export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized } = rMachine.createToolset();
+export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized, res } = rMachine.createToolset();
 export type Locale = RMachineLocale<typeof rMachine>;
 export type { BrandedResource as RShape } from "r-machine";
 ```
@@ -291,6 +294,19 @@ The factory takes a single first argument — `plugin` — uniform across all fo
 - **Map form** (`withDeps({ name: "ns" })`) — `const { name, $ } = plugin;`, with `$` alongside the named deps.
 - **List form** (`withDeps("ns1", "ns2")`) — `const [dep1, dep2, $] = plugin;`, with `$` always as the last tuple element.
 
+**`res.perLocale("shell/x")` — a `Shell` as a locale-loader dep.** Wrapping a shell namespace with `res.perLocale(...)` (from the toolset, §3.4) resolves it not to a surface but to a **loader** `(locale) => Promise<Surface>`, so a locale-agnostic gear — or a `Shell` reusing another locale — reads localized content at runtime; `locale` is typed to the configured locale union. Usable in `withDeps` of any gear family and `Shell`, in list or map form:
+
+```ts
+BaseGear.withDeps({ hi: res.perLocale("shell/greeting") }).define((plugin) => {
+  const { hi } = plugin;                       // hi: (locale: Locale) => Promise<Surface>
+  return { greet: (locale: Locale) => hi(locale) };
+});
+```
+
+Mock it with a function (§14.2).
+
+Two resolution-time batch helpers on `res.perLocale` (they close over the configured locales) fold multiple loaders in one call: `res.perLocale.pickAll(loader | map)` resolves **every** locale, locale-major (`Record<Locale, Surface>` / `Record<Locale, {…}>`); `res.perLocale.pick(locale, map | tuple)` resolves a batch at **one** locale, shape preserved.
+
 ### 4.2. `withPorts({...})`
 
 Declares external values (server actions, SDK clients, fetch wrappers, locale-aware data sources) used inside the factory. Accessed as `$.ports.{name}`.
@@ -326,7 +342,6 @@ Final step. The user factory receives the `plugin` context as its first argument
 
 | Property | Type | Purpose |
 |---|---|---|
-| `r.create()` | `() => Promise<R>` | Resolves the resource and returns its production Surface; awaits any async work in the user factory. Used directly in resource-level tests (§14.2). |
 | `r.plug` | typed plug | The plug handle for this resource, used as the target of `mockPlug(...)` (§10.3, §14). Carries deps/ports/locale narrowing at the type level. |
 | `r.clone(fn?)` | `() => ResMatrix<R, P>` / `<T extends R>(fn: (res: R, plugin, [cursor]) => T) => ResMatrix<R, P>` | Returns a fresh, independent `ResMatrix` reusing the same factory and chain, with an optional transform `fn` that overrides fields of `R` (locked to the same shape — see §5). Pair with `withPorts(...)` / `withState(...)` for ports / state overrides. |
 
@@ -790,7 +805,7 @@ export const r = OuterGear.withState(0).define(({ $ }, _) => {
 
 ### 9.1. Manual disposal in tests
 
-The resource from `r.create()` is directly compatible with the TC39 explicit resource management proposal — three equivalent teardowns: `value[Symbol.dispose]()`, the `dispose(value)` wrapper (from `r-machine`), or scope-bound `await using value = await r.create()` (TS 5.2+, lib `esnext.disposable`).
+The resource from `ctrl.createRes()` retains `Symbol.dispose` on its `TestSurface` and is compatible with the TC39 explicit resource management proposal. You rarely dispose it by hand: **the controller auto-disposes every instance it created on reset**, so `using ctrl` alone tears them down. When you do want explicit control, three equivalent teardowns work — `value[Symbol.dispose]()`, the `dispose(value)` wrapper (from `r-machine`), or scope-bound `using value = await ctrl.createRes()` (TS 5.2+, lib `esnext.disposable`).
 
 ---
 
@@ -1324,19 +1339,23 @@ State is deliberately **not** a `.with(...)` override — it's a live cell, so i
 
 ### 14.2. Channel A — resolution overrides (`.with`)
 
-Overridable: the plug's direct dependencies (by name / position), kit entries (`$.kit`), and — conditional on the resource — the locale key (named by plug kind, §14.7; gears have no locale) and `$.ports` (only resources declared with `withPorts({...})`). Anything not overridden runs through the production factory as a deep partial on top of the resulting Surface, so unsubstituted paths (including `[Symbol.dispose]` teardown) still run; `mockPlug` also reaches `$`-prefixed members (relays, internal actions).
+Overridable: the plug's direct dependencies (by name / position), kit entries (`$.kit`), and — conditional on the resource — the locale key (named by plug kind, §14.7; gears have no locale) and `$.ports` (only resources declared with `withPorts({...})`). Every override is a `DeepPartial` **deep-merged** over the real Surface (the same merge law as an action reducer and `ctrl.state`, §14.3): a mocked nested sub-key inherits its **siblings** from the real resource, and unsubstituted paths (including `[Symbol.dispose]` teardown) still run. `mockPlug` also reaches `$`-prefixed members (relays, internal actions). A `res.perLocale` dep (§4.1) resolves to a loader, so it is mocked with a **function** `(locale) => partial` deep-merged over the real localized surface per call.
+
+Level-0 members stay **live**: pass a getter and it is re-read on each access (drive a value across a test, or check a consumer reads a dep fresh). An override getter is a *partial*, not a whole replacement — if a real dep getter derives `foo → { a: <state>, b: 2 }`, mocking `{ foo: { b: 100 } }` and driving `ctrl.deps.foo.state` gives `{ a: <new state>, b: 100 }` (`a` tracks, `b` stays mocked). On primitive leaves the deep-merge degrades to a plain replacement.
 
 Resource-level test — override a port (pass the resource `r`), drive the rest of the real factory:
 
 ```ts
 const calls: [string, string][] = [];
-using _ctrl = mockPlug(r).with({                  // `using` resets at block exit
+using ctrl = mockPlug(r).with({                   // `using` resets at block exit
   $: { ports: { createPost: async (t, b) => { calls.push([t, b]); } } },
 });
-const instance = await r.create();
+const instance = await ctrl.createRes();          // → TestSurface
 await instance.submit("hello", "world");
 expect(calls).toEqual([["hello", "world"]]);
 ```
+
+`ctrl.createRes()` (present only when a **`ResMatrix`** is passed to `mockPlug` — a consumer is rendered, not instantiated) returns the resource's **`TestSurface`**: the SAME shape a dependency is mocked in, so both sides of a test speak one language. A **getter or cell reads as a property** (`inst.subtotal`, not `inst.subtotal()`); actions stay callable and return the resulting state; relays, `$`-members and `Symbol.dispose` are retained (a consumer's Surface hides those).
 
 ### 14.3. Channel B — the state controller (live, reactive)
 
@@ -1350,21 +1369,21 @@ Only stateful outer/vertex gears appear; everything else is absent from the type
 
 **Writing is a deep-partial merge** (same shape a reducer returns): `ctrl.state = { count: 10 }` merges over current state — other keys survive, arrays replaced wholesale — it does **not** replace the whole object.
 
-**Reading returns the full current state.** Since a write is a partial patch, the complete value exists only once resolved, so **reading `.state` before the plug resolves throws** `ERR_STATE_NOT_RESOLVED` (a loud "render/`create` first" rather than a misleading partial).
+**Reading returns the full current state.** Since a write is a partial patch, the complete value exists only once resolved, so **reading `.state` before the plug resolves throws** `ERR_STATE_NOT_RESOLVED` (a loud "render/`createRes` first" rather than a misleading partial).
 
-**Seed before, drive after.** A write *before* resolution is queued and applied once the cell comes to life; writes *after* publish straight to the live cell. Order in a test: seed → render/`create` → drive and read.
+**Seed before, drive after.** A write *before* resolution is queued and applied once the cell comes to life; writes *after* publish straight to the live cell. Order in a test: seed → render/`createRes` → drive and read.
 
 ```ts
 using ctrl = mockPlug(counter).default();
 
 ctrl.state = { count: 10, label: "x" }; // seed: queued until resolve
 
-const inst = await counter.create();    // cell comes to life; seed applied
-expect(inst.count()).toBe(10);          // the REAL getter reads the seeded cell
+const inst = await ctrl.createRes();    // cell comes to life; seed applied
+expect(inst.count).toBe(10);            // the REAL getter reads the seeded cell (property)
 expect(ctrl.state).toEqual({ count: 10, label: "x" });
 
 ctrl.state = { count: 20 };             // live deep-partial merge — `label` survives
-expect(inst.count()).toBe(20);
+expect(inst.count).toBe(20);
 
 inst.bump(5);                           // a REAL action publishes to the same cell
 expect(ctrl.state).toEqual({ count: 25, label: "x" }); // the controller observes it
@@ -1372,7 +1391,7 @@ expect(ctrl.state).toEqual({ count: 25, label: "x" }); // the controller observe
 
 Driving a **dependency's** state is identical through `ctrl.deps[<key>].state` (seed before render, read after — see the end-to-end example in §14.8). Because the cell is the **real, shared** one, the dependency's real getters/actions and the consumer's reactivity stay coherent — no fake surface to sync; for a vertex gear it binds to the per-consumer instance.
 
-> In React, a write that should re-render (`ctrl.state = …`, or a real action) must run inside `act(...)` (standard RTL). The binding assumes the dependency resolves once and its cell stays stable; a re-mount or second `r.create()` creates a new cell and the handle tracks the most recent.
+> In React, a write that should re-render (`ctrl.state = …`, or a real action) must run inside `act(...)` (standard RTL). The binding assumes the dependency resolves once and its cell stays stable; a re-mount or second instantiation creates a new cell and the handle tracks the most recent.
 
 ### 14.4. `.default()` and the lifecycle
 
@@ -1644,6 +1663,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-06-27.022
+rev 2026-07-07.026
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com

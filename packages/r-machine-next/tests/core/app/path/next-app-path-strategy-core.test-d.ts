@@ -2,14 +2,7 @@ import type { RMachine } from "r-machine";
 import type { AnyResAtlas, ExperimentalFlags, ResEquipment, SwitchableOption } from "r-machine/core";
 import type { CookieDeclaration } from "r-machine/strategy/web";
 import { describe, expectTypeOf, it } from "vitest";
-import type {
-  AnyPathAtlas,
-  HrefCanonicalizer,
-  HrefTranslator,
-  PathAtlasClass,
-  PathParamMap,
-  PathSelector,
-} from "#r-machine/next/core";
+import type { AnyPathAtlas, HrefTranslator, PathAtlasClass, PathParamMap, PathSelector } from "#r-machine/next/core";
 import type {
   AnyNextAppPathStrategyConfig,
   NextAppPathStrategyConfig,
@@ -17,7 +10,6 @@ import type {
 } from "../../../../src/core/app/path/next-app-path-strategy-core.js";
 import {
   NextAppPathStrategyCore,
-  NextAppPathStrategyPathCanonicalizer,
   NextAppPathStrategyPathTranslator,
 } from "../../../../src/core/app/path/next-app-path-strategy-core.js";
 import type { SimplePathAtlas, TestLocale, TranslatedPathAtlas } from "../../../_fixtures/constants.js";
@@ -335,24 +327,5 @@ describe("NextAppPathStrategyPathTranslator", () => {
 
   it("extends HrefTranslator", () => {
     expectTypeOf<NextAppPathStrategyPathTranslator>().toExtend<HrefTranslator>();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// NextAppPathStrategyPathCanonicalizer
-// ---------------------------------------------------------------------------
-
-describe("NextAppPathStrategyPathCanonicalizer", () => {
-  it("is constructible with (AnyPathAtlas, readonly string[], string, boolean)", () => {
-    expectTypeOf(NextAppPathStrategyPathCanonicalizer).toBeConstructibleWith(
-      {} as AnyPathAtlas,
-      ["en", "it"] as const,
-      "en",
-      false
-    );
-  });
-
-  it("extends HrefCanonicalizer", () => {
-    expectTypeOf<NextAppPathStrategyPathCanonicalizer>().toExtend<HrefCanonicalizer>();
   });
 });

@@ -15,7 +15,6 @@ describe("Shell composer — construction", () => {
     const matrix = composer.define(factory);
 
     expect(factory).not.toHaveBeenCalled();
-    expect(typeof matrix.create).toBe("function");
     expect(matrix.plug).toBeDefined();
     expect(tryGetResMatrixMeta(matrix as never)).toEqual({ family: "shell" });
   });

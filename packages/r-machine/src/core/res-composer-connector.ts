@@ -38,6 +38,12 @@ export interface ResComposerConnector {
   // through this connector (see `createResMatrix`). Absent when a connector is
   // assembled outside an RMachine (bare composer unit tests).
   readonly machine?: PlugMachine;
+  // Single-shot, non-subscribing resolve of a SHELL surface for a given locale
+  // — backs the `res.perLocale(...)` dep loaders (`plugin.<alias>(locale)`). Creates
+  // no persistent wire (like `getGatePlugin`). Optional: absent for connectors
+  // assembled outside an RMachine (bare composer unit tests), in which case a
+  // shell resolver dep resolves to a loader that throws if actually invoked.
+  readonly resolveShell?: (shellNs: AnyNamespace, locale: AnyLocale) => Promise<unknown>;
 }
 
 export interface ResWire {

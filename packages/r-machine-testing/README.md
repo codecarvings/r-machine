@@ -38,8 +38,12 @@ npm install -D @r-machine/testing
 ## Usage
 
 `mockPlug(r)` returns a disposable controller. Use `.default()` to run the
-real resource, or `.with({ ... })` to override its plugin context (`$.state`,
-`$.ports`, `$.locale`, …) and dependencies:
+real resource, or `.with({ ... })` to override its plugin context (`$.ports`,
+`$.locale`, …) and dependencies. Every override is a `DeepPartial` **deep-merged**
+over the real surface (siblings inherited), with level-0 getters kept **live** —
+the same merge law as an action reducer and `ctrl.state`. For a resource,
+`ctrl.createRes()` instantiates it (overrides applied) and returns its
+`TestSurface`:
 
 ```ts
 import { mockPlug } from "@r-machine/testing";
@@ -47,11 +51,12 @@ import { expect, test } from "vitest";
 import { r as timerR } from "../src/r-machine/pub/outer/timer";
 
 test("timer starts at zero", async () => {
-  // `using` auto-disposes the mock at end of scope; `.default()` runs the real gear.
-  using _ctrl = mockPlug(timerR).default();
-  using timer = await timerR.create();
+  // `using ctrl` auto-disposes the mock — AND every instance `createRes()` made —
+  // at end of scope; `.default()` runs the real gear.
+  using ctrl = mockPlug(timerR).default();
+  const timer = await ctrl.createRes();
 
-  expect(timer.value()).toBe(0);
+  expect(timer.value).toBe(0); // getter → property
 });
 ```
 

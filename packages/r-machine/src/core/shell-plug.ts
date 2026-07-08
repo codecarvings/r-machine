@@ -11,7 +11,7 @@
  * contact: licensing@codecarvings.com
  */
 
-import type { Token } from "#r-machine/core";
+import type { Namespace, ShellResolverHandle, Token } from "#r-machine/core";
 import type { AnyLocale } from "#r-machine/locale";
 import type { BaseGearNamespaceList } from "./base-gear-plug.js";
 import type { ListPlugin, MapPlugin, PlugBody } from "./plug.js";
@@ -22,9 +22,16 @@ type ShellPlugDepNamespace<RA extends AnyResAtlas, BGL extends BaseGearNamespace
   | Extract<keyof RA["shape@shell"], string>
   | BGL[number];
 
+// A shell dep is a shell/bridge-gear handle, OR a `res.perLocale(...)` shell
+// resolver — letting a shell resolve ANOTHER locale's content on demand
+// (`(locale) => Promise<Surface>`), not just its own ambient locale. Same
+// mechanism as gears; the shell restriction is enforced at the `res.perLocale`
+// builder (`ShellResolverBuilder<RA["shape@shell"]>`), so the catalog admits the
+// cheap `ShellResolverHandle<Namespace<RA["shape"]>>` (see DepHandleMap).
 type ShellPlugDepHandle<RA extends AnyResAtlas, BGL extends BaseGearNamespaceList<RA>> =
   | ShellPlugDepNamespace<RA, BGL>
-  | Token<ShellPlugDepNamespace<RA, BGL>>;
+  | Token<ShellPlugDepNamespace<RA, BGL>>
+  | ShellResolverHandle<Namespace<RA["shape"]>>;
 
 export type ShellPlugKitMap<RA extends AnyResAtlas, BGL extends BaseGearNamespaceList<RA> = any> = {
   readonly [k: string]: ShellPlugDepNamespace<RA, BGL>;
