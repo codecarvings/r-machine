@@ -1,8 +1,9 @@
 # R-Machine Patterns — Consume with `ServerPlug` (Next.js server, async)
 
-The Next.js server consumer. Async; binds the locale from the request scope
-(via `params`). To mock this plug in a test see
-[../../testing.md](../../testing.md).
+The Next.js server consumer. Async. The locale is bound **once per request**, at
+the **page / layout** entry point that receives route `params` — nested server
+components **inherit** it (see "Entry point vs nested" below). To mock this plug in
+a test see [../../testing.md](../../testing.md).
 
 ```tsx
 import { ServerPlug } from "@/r-machine/server-toolset";
@@ -14,6 +15,28 @@ export default async function ProductPage({ params }) {
 }
 ProductPage.plug = plug;
 ```
+
+**Entry point vs nested — the #1 mistake when extracting a server component.**
+Only a **page or layout** (the component Next hands `params`) binds the locale, via
+`plug.useR(params)`. A **nested** server component rendered inside that request
+**must not re-bind**: it takes **no `params` prop** and calls `plug.useR()` with
+**no arguments** — the locale, `$`, and `$.getPath` are inherited from the request:
+
+```tsx
+import Link from "next/link";
+import { ServerPlug } from "@/r-machine/server-toolset";
+
+const plug = ServerPlug("shell/nav"); // nested component — no params
+export async function Nav() {
+  const [nav, $] = await plug.useR(); // inherits the request-bound locale
+  return <Link href={$.getPath("/")}>{nav.home}</Link>;
+}
+Nav.plug = plug;
+```
+
+Passing `params` into a nested component and calling `useR(params)` still works,
+but it **re-binds** a locale the request already established and couples the
+component to a prop it does not need — don't.
 
 **Multiple resources** (inner gear + shells, etc.) — list/map form, same as
 [plug.md](./plug.md#consume-multiple-resources), but async:

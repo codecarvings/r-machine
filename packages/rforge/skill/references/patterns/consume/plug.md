@@ -3,6 +3,14 @@
 The React consumer. Synchronous, Suspense-driven. Lives in a component file. To
 mock this plug in a test see [../../testing.md](../../testing.md).
 
+> **Scope — React (Vite) only.** `Plug` from `@/r-machine/toolset` exists in a
+> React/Vite project. A **Next.js** project has no `toolset.ts`/bare `Plug`: use
+> `ClientPlug` from `@/r-machine/client-toolset` ([client-plug.md](./client-plug.md))
+> for interactive/client components and `ServerPlug` from `@/r-machine/server-toolset`
+> ([server-plug.md](./server-plug.md)) for server components. The consumption
+> **shape** below is identical across all of them — only the import module and plug
+> name change.
+
 ```tsx
 import { Plug } from "@/r-machine/toolset";
 
@@ -59,8 +67,13 @@ origin, per strategy). A switcher needs **no resources**, so use a **resourceles
 plug** just for `$` (current locale + `setLocale`):
 
 ```tsx
+// React (Vite). In Next this is a client component — see client-plug.md
+// (ClientPlug from @/r-machine/client-toolset + "use client").
 import { localeHelper, type Locale } from "@/r-machine/setup";
-import { Plug } from "@/r-machine/toolset"; // Next client → ClientPlug + "use client"
+import { Plug } from "@/r-machine/toolset";
+
+// Language names are autonyms — locale-invariant, so hardcoded (see note below).
+const LOCALE_NAMES: Record<Locale, string> = { en: "English", it: "Italiano" };
 
 const plug = Plug(); // no resources — only the $ context
 export function LocaleSwitcher() {
@@ -72,7 +85,7 @@ export function LocaleSwitcher() {
     >
       {localeHelper.locales.map((l) => (
         <option key={l} value={l}>
-          {l}
+          {LOCALE_NAMES[l]}
         </option>
       ))}
     </select>
@@ -80,6 +93,12 @@ export function LocaleSwitcher() {
 }
 LocaleSwitcher.plug = plug;
 ```
+
+**Language names are autonyms, not localized** — each shows in its own name, which
+is locale-invariant, so the map is hardcoded, _not_ a shell (a shell would
+translate the names to the active locale — wrong for a switcher). If the switcher
+has its own visible/aria text (e.g. a "Language" label), _that_ is localizable →
+put it in a shell.
 
 `$.setLocale` is on `Plug` / `ClientPlug` / `ServerPlug` — **not** `DirectPlug`
 (no bound container; its locale is passed to `useR(locale)`). See
@@ -116,13 +135,13 @@ import { CartButton } from "./cart-button";
 
 it("renders seeded state and reacts to the real action", async () => {
   using ctrl = mockPlug(CartButton).with({ $: { ambientLocale: "en" } });
-  ctrl.deps[0].state = {
-    /* the dep gear's state */
-  };
+  ctrl.deps[0].state = {/* the dep gear's state */};
   await act(async () => {
     render(<CartButton />);
   });
-  // assert via screen … then fireEvent.click(...) and assert the re-render
+  // FIRST assert must be async — Suspense-driven, first render is the empty fallback:
+  //   expect(await screen.findByText("…")).toBeInTheDocument();
+  // then getBy* for the rest, and fireEvent.click(...) to assert the re-render.
 });
 ```
 

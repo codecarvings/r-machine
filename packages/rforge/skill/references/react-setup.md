@@ -72,17 +72,17 @@ alias must be declared in **both** places:
 2. `vite.config.ts` — add `resolve.alias` (see §4.2 below for the full file):
 
    ```ts
-   import path from "node:path";
+   import { fileURLToPath } from "node:url";
    // ...
-   resolve: { alias: { "@": path.resolve(__dirname, "src") } },
+   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
    ```
 
 3. Mirror the same alias in `vitest.config.ts` (Vitest does not read tsconfig paths
-   either) — see [testing.md](./testing.md).
+   either) — see [testing.md](./testing.md). Use the **same idiom** in both files.
 
 **No `src/` directory?** Some Vite setups keep source at the repo root. Then use
-`"@/*": ["./*"]` and `path.resolve(__dirname, ".")`, and drop the `src/` segment from
-every path below.
+`"@/*": ["./*"]` and `fileURLToPath(new URL(".", import.meta.url))`, and drop the
+`src/` segment from every path below.
 
 ---
 
@@ -414,17 +414,25 @@ export function rMachineHmr(): Plugin {
 
 ```ts
 // vite.config.ts
-import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { rMachineHmr } from "./src/r-machine/vite-plugin-r-machine-hmr";
+// `.ts` extension is REQUIRED: vite.config.ts is type-checked under
+// tsconfig.node.json (`module: "nodenext"`), which needs explicit extensions on
+// relative imports — create-vite enables `allowImportingTsExtensions`, so the
+// `.ts` is valid, and Vite loads the config via esbuild so it runs fine. Without
+// it, the first `tsc -b --noEmit` fails with TS2835.
+import { rMachineHmr } from "./src/r-machine/vite-plugin-r-machine-hmr.ts";
 
 export default defineConfig({
   plugins: [react(), rMachineHmr()],
   // The `@/` alias the generated code imports through (§1.5). Vite does not read
-  // tsconfig `paths`, so it must be declared here too. Use `"."` if the project
-  // keeps its source at the repo root (no `src/`).
-  resolve: { alias: { "@": path.resolve(__dirname, "src") } },
+  // tsconfig `paths`, so it must be declared here too. Same idiom as
+  // vitest.config.ts (see testing.md); use `new URL(".", …)` if the project keeps
+  // its source at the repo root (no `src/`).
+  resolve: {
+    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+  },
 });
 ```
 

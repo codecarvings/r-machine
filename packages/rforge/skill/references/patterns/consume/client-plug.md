@@ -20,8 +20,37 @@ CartButton.plug = plug;
 [plug.md](./plug.md#consume-multiple-resources):
 `ClientPlug("outer/cart", "shell/cart")` → `const [cart, s, $] = plug.useR()`.
 
-**Language switcher** — a resourceless `ClientPlug()` + `$.setLocale(locale)`; same
-recipe as [plug.md](./plug.md#switch-the-locale-language-switcher) (add `"use client"`).
+**Language switcher** — a resourceless `ClientPlug()` for the `$` context only.
+The **shape** is the same as [plug.md](./plug.md#switch-the-locale-language-switcher),
+but the imports are Next-specific — there is **no `toolset.ts` / bare `Plug`** in a
+Next project; use `ClientPlug` from `@/r-machine/client-toolset` and add `"use client"`:
+
+```tsx
+"use client";
+import { localeHelper, type Locale } from "@/r-machine/setup";
+import { ClientPlug } from "@/r-machine/client-toolset";
+
+// Autonyms — locale-invariant, so hardcoded, not a shell (see plug.md's note).
+const LOCALE_NAMES: Record<Locale, string> = { en: "English", it: "Italiano" };
+
+const plug = ClientPlug(); // no resources — only the $ context
+export function LocaleSwitcher() {
+  const { $ } = plug.useR();
+  return (
+    <select
+      value={$.locale}
+      onChange={(e) => $.setLocale(e.target.value as Locale)}
+    >
+      {localeHelper.locales.map((l) => (
+        <option key={l} value={l}>
+          {LOCALE_NAMES[l]}
+        </option>
+      ))}
+    </select>
+  );
+}
+LocaleSwitcher.plug = plug;
+```
 
 **Localized links** — build type-safe localized URLs with
 `$.getPath("/product/[id]", { id })` (needs a `PathAtlas`, default-created for Next);

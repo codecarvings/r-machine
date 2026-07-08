@@ -75,6 +75,10 @@ Dynamic/catch-all segments take no translation — their value is `{}`.
   const { locale } = await bindLocale(params); // from `[locale]` route params
   ```
 
+  Nested server components then **inherit** the bound locale — they take no
+  `params` and call `plug.useR()` with no arguments (see
+  [patterns/consume/server-plug.md](./patterns/consume/server-plug.md)).
+
 - **Switch** (a Server Action / Route Handler, NOT the render path) — validates and
   persists per strategy (cookie / origin redirect):
 
@@ -86,8 +90,9 @@ Dynamic/catch-all segments take no translation — their value is `{}`.
   ```
 
 - From a client component, `$.setLocale("it")` delegates to the same persistence.
-  For a **language switcher** UI (resourceless plug + `$.setLocale`), see
-  [patterns/consume/plug.md](./patterns/consume/plug.md#switch-the-locale-language-switcher).
+  For a **language switcher** UI (resourceless `ClientPlug()` + `$.setLocale`, with
+  `"use client"`), see
+  [patterns/consume/client-plug.md](./patterns/consume/client-plug.md).
 
 `bindLocale` / `setLocale` come from the server toolset (`strategy.createServerToolset`).
 

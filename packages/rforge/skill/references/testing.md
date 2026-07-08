@@ -163,13 +163,50 @@ The project's `tsconfig` must **include the test directory** so the test files
 (and their mocks) are themselves type-checked — that is what turns a drifted mock
 into a failed `test` run instead of a false green.
 
-**Make the vitest globals type-visible (required, or `tsc` fails first).** The
-baseline test (and the examples below) use the globals `describe` / `it` /
-`expect` without importing them. Vitest's runner provides them at runtime, but
-`tsc` doesn't know them → the first `typecheck` fails with `TS2582: Cannot find
-name 'describe'`. Don't fix this by adding `"types": ["vitest/globals"]` to
-`compilerOptions` — that key **restricts** which `@types/*` are auto-included, so
-in a Next/React project it drops the ambient `node`/`react` types and breaks the
+- **Next / Standalone** (single tsconfig): add `"tests"` to its `include`.
+- **React (Vite)** (project references): the app config includes only `src`, so
+  tests need their **own referenced project** or `tsc -b` never checks them.
+  Create `tsconfig.test.json` — it **extends** `tsconfig.app.json`, so it inherits
+  `lib` / `jsx` / `paths` / `moduleResolution` (no duplication) — and add it to the
+  root `tsconfig.json` `references`:
+
+  ```jsonc
+  // tsconfig.test.json
+  {
+    "extends": "./tsconfig.app.json",
+    "compilerOptions": {
+      "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+      "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
+    },
+    "include": ["tests", "vitest.setup.ts"],
+  }
+  ```
+
+  ```jsonc
+  // tsconfig.json — add the third reference (keep the existing two)
+  {
+    "files": [],
+    "references": [
+      { "path": "./tsconfig.app.json" },
+      { "path": "./tsconfig.node.json" },
+      { "path": "./tsconfig.test.json" },
+    ],
+  }
+  ```
+
+  Here `types` is set **inside the test-only project**, so it does not narrow the
+  app/build config — which is exactly why the shared-config warning below does
+  **not** apply here, and why this project needs no `vitest.d.ts`.
+
+**Make the vitest globals type-visible — single-tsconfig setups (Next /
+Standalone).** (React (Vite) already handles this via the `types` array in the
+`tsconfig.test.json` above.) The baseline test (and the examples below) use the
+globals `describe` / `it` / `expect` without importing them. Vitest's runner
+provides them at runtime, but `tsc` doesn't know them → the first `typecheck`
+fails with `TS2582: Cannot find name 'describe'`. Don't fix this by adding
+`"types": ["vitest/globals"]` to the **shared** `compilerOptions` — that key
+**restricts** which `@types/*` are auto-included, so in a single-tsconfig
+Next/Standalone project it drops the ambient `node`/`react` types and breaks the
 build. Instead add a one-line ambient reference file at the project root so the
 globals are visible **without** narrowing `types`:
 
@@ -177,6 +214,10 @@ globals are visible **without** narrowing `types`:
 // vitest.d.ts
 /// <reference types="vitest/globals" />
 ```
+
+**It only works if a tsconfig includes it.** A `**/*.ts` include (create-next-app's
+default) already picks it up; if the tsconfig `include` is scoped (e.g. to `src`),
+add `"vitest.d.ts"` to it — otherwise the file is inert and `TS2582` comes back.
 
 (Equivalently, import `{ describe, it, expect }` from `"vitest"` in every test —
 but the ambient file keeps the examples copy-paste-clean.)
@@ -461,6 +502,13 @@ it("renders seeded state and reacts to the real action", async () => {
   expect(screen.getByText("14")).toBeInTheDocument(); // real add() published to the cell
 });
 ```
+
+**First assert must be `findBy*` (async), not `getBy*`.** `Plug` / `ClientPlug` are
+**Suspense-driven**: the first render commits the empty fallback and the real
+surface resolves on a later tick. `screen.getBy*` / `getByRole` on the **first**
+query races that and fails intermittently (it sees an empty `<div />`). Use
+`await screen.findBy*` for the first assertion — once it resolves the tree is
+settled, so `getBy*` is fine for every assertion after it.
 
 For a **Next** client component, also stub `next/navigation` (the client toolset
 reads its hooks during render):
