@@ -4,7 +4,7 @@
 Next request scope (headers/cookies). `DirectPlug` is bound to **nothing**: you
 pass the locale to `useR(locale)` yourself. Because it carries no container, it
 runs **anywhere** — a server component, a client event handler, a queue worker,
-a cron job, or a React Email template.
+a cron job, or a template renderer.
 
 It comes from the **core toolset** (`rMachine.createToolset()`), so it is the same
 import everywhere — React, Next, or a standalone Node setup. Deps are restricted

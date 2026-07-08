@@ -245,7 +245,7 @@ export class RMachine<
   // (bound to React context) or ServerPlug (bound to the Next request scope /
   // headers), it carries no locale container: the locale is passed explicitly
   // to `useR`, resolution is async, and it works anywhere — server components,
-  // client handlers, queue workers, cron jobs, React Email template renders.
+  // client handlers, queue workers, cron jobs, template renderers.
   // Deps are restricted to `valid@direct` (base gears + shells), exactly the
   // resources whose resolution is a pure function of locale.
   protected createDirectPlug(): DirectPlugDefiner<RA, L, E["directKit"]> {

@@ -2,7 +2,7 @@
 name: r-machine
 description: >
   Scaffolds R-Machine into a Next.js, React (Vite), or plain Node project (CLI,
-  queue worker, cron, React Email — consumed container-free via DirectPlug) from
+  queue worker, cron, template renderer — consumed container-free via DirectPlug) from
   scratch, OR adds a single resource (OuterGear, BaseGear, InnerGear, Shell,
   Vertex) to an existing R-Machine project and updates resource-atlas.ts
   automatically. Trigger when the user asks to set up / install / add r-machine,
@@ -65,7 +65,7 @@ Look at the project (or ask the user) to determine which mode applies:
 Read `references/next-setup.md` for Next.js App Router projects.
 Read `references/react-setup.md` for React (Vite) projects.
 Read `references/standalone-setup.md` for plain Node projects (CLI, queue worker,
-cron, React Email) that consume R-Machine container-free via `DirectPlug`.
+cron, template renderer) that consume R-Machine container-free via `DirectPlug`.
 
 ### A.1 — Identify the framework / mode
 
@@ -73,7 +73,7 @@ Check what the project has:
 
 - `next.config.*` → **Next.js App Router** → `references/next-setup.md`
 - `vite.config.*` / `react-scripts` → **React (Vite)** → `references/react-setup.md`
-- Neither, and it's a plain Node project (CLI, queue worker, cron, React Email) —
+- Neither, and it's a plain Node project (CLI, queue worker, cron, template renderer) —
   or the user explicitly wants container-free usage → **Standalone / DirectPlug**
   → `references/standalone-setup.md`
 
@@ -238,7 +238,7 @@ shells are **always `.tsx`** — these render JSX, and `.tsx` is correct for pla
 strings too and stays correct when you add formatted text/JSX, so there's no
 per-shell decision. In a **standalone / plain Node** project (no JSX), content
 shells are `.ts` — use `.tsx` there only for a shell that actually renders JSX
-(e.g. a React Email template). A `shell(mono)` code helper (`shell/lib/fmt`) is
+(e.g. a JSX email template). A `shell(mono)` code helper (`shell/lib/fmt`) is
 `.ts` either way; gears (`outer/`, `base/`, `inner/`, `vertex/`) are always `.ts`.
 
 ### Type name convention
