@@ -9,10 +9,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "r-machine": "^1.0.0-alpha.14"
+    "r-machine": "^1.0.0-alpha.15"
   },
   "devDependencies": {
-    "@r-machine/testing": "^1.0.0-alpha.14",
+    "@r-machine/testing": "^1.0.0-alpha.15",
     "@types/node": "^24.13.2",
     "tsx": "^4.22.4",
     "typescript": "~6.0.3",
