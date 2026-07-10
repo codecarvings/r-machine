@@ -29,7 +29,6 @@ export const r = InnerGear.withDeps({ store: "base/store-config" })
       byCategory: (category: string | null): Product[] =>
         category ? products.filter((p) => p.category === category) : products,
       categories: store.categories,
-      secretValue: "SUPER SECRET VALUE",
     };
   });
 

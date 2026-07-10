@@ -17,7 +17,7 @@ resource the container resolves for the active locale.
 | --- | --- | --- |
 | **InnerGear** | [`inner/catalog`](src/r-machine/prv/inner/catalog.ts) | Stateless, app-global resource. Loads products through an async **port** (`fetchProducts`) → the server component suspends while it resolves. |
 | **BaseGear** | [`base/store-config`](src/r-machine/pub/base/store-config.ts) | Stateless store configuration that other gears depend on. |
-| **OuterGear** | [`outer/cart`](src/r-machine/pub/outer/cart.ts) | The reactive cart: actions, a memoized `subtotal` cell, an item-count getter, a persistence relay, and SSR-hydration seeding. Browser-session state that survives navigation. |
+| **OuterGear** | [`outer/cart`](src/r-machine/pub/outer/cart.ts) | The reactive cart: actions, a memoized `subtotal` cell, an item-count getter, a relay, and SSR-hydration seeding. Browser-session state that survives navigation. |
 | **Vertex** (request-scoped outer) | [`vertex/catalog-filter`](src/r-machine/pub/vertex/catalog-filter.ts) | Per-page sort/category state, **shared** between the filter bar and the grid via `<VertexFrame>`. |
 | **Shells** (multilingual) | [`shell/{common,catalog,product,cart}`](src/r-machine/pub/shell) | Localized UI content (en + it), authored as plain typed objects with `localized(...)` for non-default locales. |
 | **Mono shell** | [`shell/lib/fmt`](src/r-machine/pub/shell/lib/fmt.ts) | Per-locale `Intl` formatters — USD vs EUR currency, number grouping, pluralization. The engine behind the "wow" moment. |
