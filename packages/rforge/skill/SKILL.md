@@ -266,6 +266,8 @@ Gather (from the message or by asking) these four things:
 4. **Dependencies** — any deps (`withDeps`) or external functions (`withPorts`)?
    For `OuterGear`, is it stateful (`withState`)?
 
+   Dependencies are declared the **same way at every site** — a list or a map of
+   namespaces; only _which_ families are allowed changes, keyed on the declaring site.
    Valid **plain** dep families per resource kind — a plain dep resolves to the
    resource's own surface (never suggest anything outside these):
    - `gear:outer` → `gear:base`, `gear:outer`
@@ -273,6 +275,12 @@ Gather (from the message or by asking) these four things:
    - `gear:inner` → `gear:base`, `gear:inner`
    - `shell` / `shell(mono)` → `shell`, `shell(mono)`, `gear:base` (only if in `bridgeGears`)
    - `gear:outer(vertex)` → same as `gear:outer`
+
+   The **consumer** side is keyed too — each plug is pinned to a catalog, **not**
+   unconstrained: `DirectPlug` → `base`, `shell`; `ServerPlug` → `inner`, `base`, `shell`;
+   `Plug`/`ClientPlug` → `base`, `outer`, `vertex`, `shell`. (A `ClientPlug` cannot reach
+   `inner/`; a `ServerPlug` cannot reach `outer/` — compile errors, not conventions.)
+   Full matrix: `references/concepts/dep-asymmetry.md`.
 
    **A bare `shell/…` is never a plain dep of a gear.** A gear (or a shell)
    reaches a `Shell` only through `res.perLocale("shell/…")` inside `withDeps`:
@@ -434,6 +442,11 @@ Key rules (enforced by the TS compiler — get them right upfront):
   plain surface; a bare `shell/…` is not a valid gear dep. (The rules above are
   plain, same-surface deps.)
 - `gear:outer(vertex)` **cannot be a dep of any resource** — it's consumer-only.
+- Consumers are keyed too — each plug is pinned to a catalog, **not** unconstrained:
+  `DirectPlug` → `base` + `shell`; `ServerPlug` → `inner` + `base` + `shell`;
+  `Plug`/`ClientPlug` → `base` + `outer` + `vertex` + `shell`. Same list/map declaration
+  as `withDeps`; only the allowed set differs. (So a `ClientPlug` can't reach a server-only
+  `inner/` gear — a compile error, not a convention.)
 - Only `OuterGear` supports `withState` and cursor primitives (`_.action`,
   `_.getter`, `_.relay`).
 

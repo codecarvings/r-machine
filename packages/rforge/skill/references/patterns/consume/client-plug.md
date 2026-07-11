@@ -20,6 +20,11 @@ CartButton.plug = plug;
 [plug.md](./plug.md#consume-multiple-resources):
 `ClientPlug("outer/cart", "shell/cart")` → `const [cart, s, $] = plug.useR()`.
 
+**Deps allowed** — `gear:base`, `gear:outer`, `gear:outer(vertex)`, `shell` /
+`shell(mono)` (same catalog as the React `Plug`). A `ClientPlug` **cannot** reach an
+`inner/` gear: inner is server-only and never enters the client bundle — the compiler
+rejects it. See [../../concepts/dep-asymmetry.md](../../concepts/dep-asymmetry.md).
+
 **Language switcher** — a resourceless `ClientPlug()` for the `$` context only.
 The **shape** is the same as [plug.md](./plug.md#switch-the-locale-language-switcher),
 but the imports are Next-specific — there is **no `toolset.ts` / bare `Plug`** in a

@@ -42,6 +42,11 @@ component to a prop it does not need — don't.
 [plug.md](./plug.md#consume-multiple-resources), but async:
 `ServerPlug("inner/catalog", "shell/product")` → `const [catalog, s, $] = await plug.useR(params)`.
 
+**Deps allowed** — `gear:inner`, `gear:base`, `shell` / `shell(mono)`. `ServerPlug` is
+the **only** consumer that reaches server-only `inner/` gears; conversely it **cannot**
+reach `outer/` or `vertex/` gears (client-reactive — consume those with `ClientPlug`).
+See [../../concepts/dep-asymmetry.md](../../concepts/dep-asymmetry.md).
+
 **Localized links** — build type-safe localized URLs with the awaited `$`:
 `$.getPath("/product/[id]", { id })` (needs a `PathAtlas`, default-created for Next);
 see [../../next-features.md](../../next-features.md#pathatlas-and-localized-urls).

@@ -29,8 +29,12 @@ CartButton.plug = plug;
 A consumer plugs into **several namespaces at once** — this is how a component
 gets both behavior (a gear) and localized content (a shell) as plain surfaces,
 even though a gear reaches a shell only indirectly (as a locale loader via
-`res.perLocale`). The **consumer is where the independent families meet** (see
-[../../concepts/dep-asymmetry.md](../../concepts/dep-asymmetry.md)).
+`res.perLocale`). Same list/map declaration as `withDeps`, but keyed by the plug.
+
+**Deps allowed** — `Plug` accepts `gear:base`, `gear:outer`, `gear:outer(vertex)`,
+`shell` / `shell(mono)`. It **cannot** reach an `inner/` gear (server-only — absent
+from a React bundle; a compile error). See
+[../../concepts/dep-asymmetry.md](../../concepts/dep-asymmetry.md).
 
 **List form** — positional; `useR()` returns a tuple, deps first and `$` last:
 
@@ -106,9 +110,13 @@ put it in a shell.
 
 ---
 
-## Or — consume as a dep in another resource (not a plug)
+## From inside a resource — declare the dep with `withDeps`
 
-A resource consumes another resource through `withDeps`, not through a plug:
+Same dependency, **same list/map declaration** — a plug is just the _consumer_ entry
+point. From **inside** a resource, declare the dep with `withDeps` instead: a resource is
+constrained by its family (the matrix in
+[../../concepts/dep-asymmetry.md](../../concepts/dep-asymmetry.md)), just as each plug is
+constrained by its catalog. One mechanism, different sites, different rule sets:
 
 ```ts
 OuterGear.withDeps("outer/cart").define((plugin, _) => {
