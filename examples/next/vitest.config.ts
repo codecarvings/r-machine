@@ -1,4 +1,4 @@
-import { fileURLToPath } from "node:url";
+import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type ViteUserConfig } from "vitest/config";
 
@@ -8,7 +8,7 @@ export default defineConfig({
     // Mirror the tsconfig "@/*" -> "./src/*" path mapping (Vitest does not
     // read tsconfig paths by default).
     alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@": path.resolve(import.meta.dirname, "src"),
       // disable `server-only` module in Vitest
       "server-only": "@r-machine/next/dev/no-op",
     },
