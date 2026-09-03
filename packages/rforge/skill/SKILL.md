@@ -181,13 +181,41 @@ After generating the config files, tell the user:
 
 So that a **later, plain feature request** (which names no R-Machine terms) still
 routes through this skill, record that this is an R-Machine project in the agent
-instruction files. Add the stanza below to **both** `CLAUDE.md` and `AGENTS.md`
-at the project root:
+instruction files at the project root. The stanza is written **once**, in
+`AGENTS.md`; `CLAUDE.md` only points at it.
 
-- **Create** the file if it does not exist; **append** the stanza if it does —
-  never overwrite existing content.
-- **Idempotent** — skip a file that already contains an equivalent R-Machine
-  routing stanza (do not duplicate).
+**1. `AGENTS.md` — the stanza itself.** This is the vendor-neutral file (Claude
+Code, Cursor, Codex, Copilot all read it), so it holds the content.
+
+- **Create** it with the stanza if it does not exist; **append** the stanza if it
+  does — never overwrite existing content.
+- **Append after any managed block.** A generator may own part of the file and
+  rewrite it. Next.js is the case you will actually hit: `next dev` re-writes
+  everything between `<!-- BEGIN:nextjs-agent-rules -->` and
+  `<!-- END:nextjs-agent-rules -->` whenever it detects an agent, so a stanza
+  placed inside those markers is silently lost on the next run. Append **after**
+  the closing marker.
+
+**2. `CLAUDE.md` — a pointer, not a copy.** Claude Code resolves a bare
+`@AGENTS.md` line by inlining that file, so the stanza is never duplicated.
+Write exactly this one line (no code fence — an `@` import inside a code block or
+code span is **not** resolved):
+
+```md
+@AGENTS.md
+```
+
+- **Create** `CLAUDE.md` containing just that line if it does not exist;
+  **append** the line if the file exists with other content — the import resolves
+  anywhere in the file, not only on line 1.
+- **Skip `CLAUDE.md` entirely if it is a symlink to `AGENTS.md`** (some projects
+  do this) — the two are one file, and writing both would duplicate the stanza.
+
+**Idempotent** — before writing either file, skip it if it already contains an
+equivalent R-Machine routing stanza, and skip `CLAUDE.md` if it already imports
+`@AGENTS.md`.
+
+The stanza to write into `AGENTS.md`:
 
 ```md
 ## R-Machine project
@@ -219,9 +247,12 @@ resource — it decomposes into several. Section C plans that decomposition, the
    picking the pattern file by family; for the component, follow the matching
    `references/patterns/consume/*.md`. Update the atlas per resource
    (`references/patterns/atlas-update.md`) and finish with the typecheck gate.
-5. **Routing stanza fallback**: if this project's `CLAUDE.md` / `AGENTS.md` lacks
-   the R-Machine routing stanza (e.g. it was set up by hand, or before this skill
-   version), offer to add it — see **A.5** for the exact text and rules.
+5. **Routing stanza fallback**: if this project's `AGENTS.md` lacks the R-Machine
+   routing stanza (e.g. it was set up by hand, or before this skill version),
+   offer to add it — see **A.5** for the exact text and rules. A project set up by
+   an older skill version may instead carry the stanza duplicated in **both**
+   `AGENTS.md` and `CLAUDE.md`; offer to collapse `CLAUDE.md` to `@AGENTS.md`,
+   keeping any other content it has.
 
 ---
 
