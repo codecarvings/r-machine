@@ -10,7 +10,6 @@ R-Machine is a TypeScript resource layer for React and Next.js unifying state, D
 https://rmachine.dev
 
 https://github.com/codecarvings/r-machine/
-Warning: R-Machine is still in active development - API may change before stable release.
 
 ---
 
