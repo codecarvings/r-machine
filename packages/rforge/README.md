@@ -1,7 +1,3 @@
-⚠️ **WARNING: THIS LIBRARY IS STILL IN DEVELOPMENT** ⚠️
-
----
-
 <img src="r-machine.logo.svg" width="158px" align="center" alt="R-Machine logo" />
 
 # rforge — Command-line interface for R-Machine
