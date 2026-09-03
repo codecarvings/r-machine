@@ -22,11 +22,35 @@ module and asserting `r` directly, or skip the test (the `localized(...)` type-c
 already guards the shape).
 
 **Where the plug lives.** A consumer does NOT export its plug; it attaches it to
-the function that calls `plug.useR()` (`CartButton.plug = plug`), mirroring a
+**each function that calls a plug** (`CartButton.plug = plug`), mirroring a
 resource's `r.plug`. So you never import a bare `plug` (no wall of identically
 named `plug` exports across test files) — you import the consumer/resource and
 hand it to `mockPlug`. `mockPlug` accepts either the carrier (`r`, `CartButton`)
 or a bare plug; the carrier is the norm.
+
+**One plug per function, so one mock per function.** A module that exports two
+consuming units declares two plugs (see
+[patterns/consume/server-plug.md](./patterns/consume/server-plug.md)), and each
+is mocked through its own carrier — a page's metadata is testable without
+rendering the page:
+
+```ts
+import { generateMetadata } from "@/app/[locale]/layout";
+
+it("builds the title from shell/common, without rendering the layout", async () => {
+  // generateMetadata.plug = ServerPlug("shell/common") — list form, so dep 0.
+  using _ctrl = mockPlug(generateMetadata).with({ 0: { title: "Shop" } });
+
+  const meta = await generateMetadata({
+    params: Promise.resolve({ locale: "en" }),
+  } as never);
+  expect(meta.title).toBe("Shop");
+});
+```
+
+Sharing one plug across both exports breaks this: `mockPlug` keys on the plug's
+identity, so the two units become one target and mocking both in a test throws
+`ERR_PLUG_ALREADY_MOCKED`. A function with no `.plug` cannot be mocked at all.
 
 **Never `mockPlug` a dependency's plug to test its consumer.** A unit is a black
 box over its deps: it declares them but must not know their internals or their

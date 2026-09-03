@@ -354,6 +354,11 @@ Key rules (enforced by the TS compiler — get them right upfront):
   `inner/` gear — a compile error, not a convention.)
 - Only `OuterGear` supports `withState` and cursor primitives (`_.action`,
   `_.getter`, `_.relay`).
+- **Every function that calls a plug owns its own plug**, attached as `Fn.plug` —
+  a page and its `generateMetadata` are two units, not one. In Next, exports that
+  do **not** own the render tree (`generateMetadata`, `generateStaticParams`, a
+  route handler) read the locale with **`useUnboundR`**, never `useR`. See
+  [`references/patterns/consume/server-plug.md`](references/patterns/consume/server-plug.md).
 
 For multi-locale shells: create one file per locale. The canonical (default
 locale) file exports the type. All other locale files use `localized(...)`.

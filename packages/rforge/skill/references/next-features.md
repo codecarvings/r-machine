@@ -89,6 +89,18 @@ Dynamic/catch-all segments take no translation — their value is `{}`.
   }
   ```
 
+- **Read without binding** (`generateMetadata`, `generateStaticParams`, a route
+  handler) — same locale, no request-scoped binding:
+
+  ```ts
+  const [s, $] = await metaPlug.useUnboundR(params); // or useUnboundR(locale)
+  ```
+
+  Use it wherever the unit _needs_ the locale but does **not** own the render
+  tree for the request. `bindLocale` / `useR(params)` are for a page or layout
+  only — see the three-call-site table in
+  [patterns/consume/server-plug.md](./patterns/consume/server-plug.md).
+
 - From a client component, `$.setLocale("it")` delegates to the same persistence.
   For a **language switcher** UI (resourceless `ClientPlug()` + `$.setLocale`, with
   `"use client"`), see
