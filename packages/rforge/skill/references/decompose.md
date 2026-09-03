@@ -118,18 +118,32 @@ export const r = OuterGear.withState({ running: false, elapsed: 0 }).define(
     const { $ } = plugin;
     let handle: ReturnType<typeof setInterval> | undefined;
     const tick = _.action(() => ({ elapsed: $.state.elapsed + 1 }));
+
+    // The interval is a side effect OF `running`, so it belongs in a relay —
+    // NOT in the actions (an action is a pure reducer; see
+    // patterns/outer.md). Driving it from the flag is what makes the two
+    // impossible to desync: whoever flips `running`, the interval follows.
+    const syncInterval = (running: boolean) => {
+      if (running) {
+        handle ??= setInterval(() => tick(), 1000);
+      } else {
+        clearInterval(handle);
+        handle = undefined;
+      }
+    };
+    // A relay does NOT fire on registration, so sync the state we start with:
+    // it may already be `running` (state survives HMR, a cassette restore, a
+    // test seed). Without this line a restored timer shows "running" and never
+    // ticks.
+    syncInterval($.state.running);
+    _.relay({ select: () => $.state.running, onChange: syncInterval });
+
     return {
       running: _.getter(() => $.state.running),
       display: _.cell(() => fmtMMSS($.state.elapsed)),
-      start: _.action(() => {
-        handle ??= setInterval(tick, 1000);
-        return { running: true };
-      }),
-      stop: _.action(() => {
-        clearInterval(handle);
-        handle = undefined;
-        return { running: false };
-      }),
+      start: _.action(() => ({ running: true })),
+      stop: _.action(() => ({ running: false })),
+      // A relay has no teardown of its own — own the handle's lifecycle here.
       [Symbol.dispose]: () => clearInterval(handle),
     };
   },
