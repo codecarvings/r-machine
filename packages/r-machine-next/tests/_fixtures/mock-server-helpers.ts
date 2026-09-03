@@ -22,12 +22,28 @@ export function createMockCookiesFn(options: { succeedOnSet?: boolean } = {}): a
 
 export function createMockRequest(
   pathname: string,
-  options: { cookie?: string; cookieName?: string; acceptLanguage?: string; url?: string } = {}
+  options: {
+    cookie?: string;
+    cookieName?: string;
+    acceptLanguage?: string;
+    url?: string;
+    rsc?: boolean;
+    fetchDest?: string;
+  } = {}
 ) {
   const cookieName = options.cookieName ?? "NEXT_LOCALE";
   const headers = new Headers();
   if (options.acceptLanguage) {
     headers.set("accept-language", options.acceptLanguage);
+  }
+  if (options.rsc) {
+    // What actually reaches the proxy on an RSC request: Next strips `rsc` and
+    // `next-router-prefetch` beforehand, `next-url` and `sec-fetch-dest` survive
+    headers.set("next-url", "/it");
+    headers.set("sec-fetch-dest", "empty");
+  }
+  if (options.fetchDest) {
+    headers.set("sec-fetch-dest", options.fetchDest);
   }
 
   const cookies = {

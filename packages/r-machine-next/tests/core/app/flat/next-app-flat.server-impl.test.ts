@@ -29,7 +29,7 @@ vi.mock("next/navigation", () => ({
   redirect: (...args: unknown[]) => mockRedirect(...args),
 }));
 
-const mockRewrite = vi.fn((..._args: unknown[]) => ({ _type: "rewrite" }));
+const mockRewrite = vi.fn((..._args: unknown[]) => ({ _type: "rewrite", headers: new Headers() }));
 const mockNext = vi.fn((..._args: any[]) => ({ _type: "next" }));
 vi.mock("next/server", () => ({
   NextResponse: {
@@ -42,6 +42,10 @@ vi.mock("next/server", () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
+function rewriteHeader(name: string) {
+  return mockRewrite.mock.results[0]!.value.headers.get(name);
+}
+
 function createMockStrategyConfig(overrides: Partial<AnyNextAppFlatStrategyConfig> = {}) {
   return {
     localeKey: "locale",
@@ -49,6 +53,7 @@ function createMockStrategyConfig(overrides: Partial<AnyNextAppFlatStrategyConfi
     basePath: "",
     cookie: { name: "NEXT_LOCALE", path: "/", maxAge: 31536000 },
     pathMatcher: null,
+    localeCacheControl: "private",
     ...overrides,
   } as AnyNextAppFlatStrategyConfig;
 }
@@ -61,6 +66,7 @@ interface CreateImplOptions {
   cookieOverrides?: Partial<AnyNextAppFlatStrategyConfig["cookie"]>;
   matchLocaleReturn?: TestLocale;
   pathCanonicalizer?: HrefCanonicalizer;
+  localeCacheControl?: "inherit" | "private";
 }
 
 async function createImpl(options: CreateImplOptions = {}) {
@@ -74,6 +80,7 @@ async function createImpl(options: CreateImplOptions = {}) {
     autoLocaleBinding: options.autoLocaleBinding ?? "off",
     pathMatcher: options.pathMatcher !== undefined ? options.pathMatcher : null,
     ...(options.localeKey !== undefined ? { localeKey: options.localeKey } : {}),
+    ...(options.localeCacheControl !== undefined ? { localeCacheControl: options.localeCacheControl } : {}),
     ...(options.cookieOverrides
       ? { cookie: { name: "NEXT_LOCALE", path: "/", maxAge: 31536000, ...options.cookieOverrides } }
       : {}),
@@ -285,6 +292,37 @@ describe("createNextAppFlatServerImpl", () => {
         expect(mockNext).toHaveBeenCalledOnce();
         expect(mockRewrite).not.toHaveBeenCalled();
         expect(result).toEqual({ _type: "next" });
+      });
+
+      it("declares the header dependency on the rewrite", async () => {
+        // Every handled path is a cacheable 200 chosen from Cookie + Accept-Language
+        const { impl } = await createImpl();
+        const proxy = impl.createProxy() as AnyProxyFn;
+
+        proxy(createMockRequest("/any/path", { cookie: "it" }));
+
+        expect(rewriteHeader("vary")).toBe("Accept-Language, Cookie");
+      });
+
+      it("keeps the rewrite out of shared caches", async () => {
+        // With the locale outside the URL, no handled path is shared-cacheable
+        const { impl } = await createImpl();
+        const proxy = impl.createProxy() as AnyProxyFn;
+
+        proxy(createMockRequest("/any/path", { cookie: "it" }));
+
+        expect(rewriteHeader("cache-control")).toBe("private, no-cache");
+      });
+
+      it("leaves the rewrite cacheable when told to inherit", async () => {
+        const { impl } = await createImpl({ localeCacheControl: "inherit" });
+        const proxy = impl.createProxy() as AnyProxyFn;
+
+        proxy(createMockRequest("/any/path", { cookie: "it" }));
+
+        expect(rewriteHeader("cache-control")).toBeNull();
+        // the declaration itself is not conditional
+        expect(rewriteHeader("vary")).toBe("Accept-Language, Cookie");
       });
     });
 

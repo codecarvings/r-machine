@@ -174,3 +174,12 @@ pattern: the "async factory (SSR-hydration seed)" section of
   proxy-set header, so `useR()` takes no params. Trade-off: it opts those routes
   into **dynamic rendering** (no SSG). Default `"off"` keeps routes statically
   optimizable; you bind explicitly with `useR(params)`.
+- **`localeCacheControl`** (Path + Flat) — a response whose locale came from the
+  cookie cannot say so with `Vary`: Next owns that header on a rewrite and
+  overwrites it. So R-Machine marks those responses `private, no-cache` instead,
+  the only statement that survives, keeping a shared cache from serving one
+  visitor's locale to everybody. Default `"private"`; use `"inherit"` only when
+  the cache in front resolves the locale itself — because it runs the proxy
+  before its own lookup, or keys on the cookie. It covers the auto-detect branch
+  in Path (RSC requests and non-matching paths stay cacheable) and every handled
+  path in Flat, where the locale is never in the URL.

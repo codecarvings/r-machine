@@ -1,5 +1,6 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type {
+  LocaleCacheControlOption,
   NextAppClientImpl,
   NextAppClientRMachine,
   NextAppClientToolset,
@@ -17,6 +18,8 @@ import { localeHeaderName } from "../../../src/core/app/index.js";
 describe("core/app barrel exports", () => {
   it("exports all expected symbols", () => {
     expectTypeOf(localeHeaderName).toBeString();
+
+    expectTypeOf<LocaleCacheControlOption>().toEqualTypeOf<"inherit" | "private">();
 
     expectTypeOf<NextAppStrategyCore<any, any, any, any, any>>().toBeObject();
 

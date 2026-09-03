@@ -984,8 +984,9 @@ Every option is optional unless marked **required**; omitting one uses the liste
 |---|---|---|---|
 | `cookie` | `"on" \| "off" \| CookieDeclaration` | `"off"` | Persist locale in a cookie (default `rm-locale`, 30-day); required when `implicitDefaultLocale` is on. |
 | `localeLabel` | `"strict" \| "lowercase"` | `"lowercase"` | URL case for `"it-IT"`: `lowercase`→`/it-it/`, `strict`→`/it-IT/`. Matched case-insensitively; `$.locale` is always canonical, `$.params.locale` is this raw form. |
-| `autoDetectLocale` | `"on" \| "off" \| { pathMatcher }` | `"on"` | Proxy reads locale from the URL segment and binds it (`{ pathMatcher }` restricts paths). Requires the proxy. |
+| `autoDetectLocale` | `"on" \| "off" \| { pathMatcher }` | `"on"` | On a URL with no locale segment, picks the locale from cookie → `Accept-Language` and redirects; `{ pathMatcher }` restricts which paths (default: root only with `implicitDefaultLocale` on, else all standard paths). Document requests only — an RSC navigation/prefetch gets the URL's canonical locale, keeping a cookie-dependent answer out of the router cache. Requires the proxy. |
 | `implicitDefaultLocale` | `"on" \| "off" \| { pathMatcher }` | `"off"` | `"on"`: default-locale URLs omit the prefix (`/page` not `/en/page`). Requires `cookie` + the proxy. |
+| `localeCacheControl` | `"private" \| "inherit"` | `"private"` | `cache-control` on the auto-detect responses, whose locale came from cookie / `Accept-Language`: `"private"` sends `private, no-cache` (`Vary` cannot carry it — Next overwrites it on a rewrite). `"inherit"` only if the cache in front resolves the locale itself. |
 
 **Flat / Origin / React additions:**
 
@@ -993,6 +994,7 @@ Every option is optional unless marked **required**; omitting one uses the liste
 |---|---|---|---|
 | `NextAppFlatStrategy` | `cookie: CookieDeclaration` (**required**) | `{ name: "rm-locale", maxAge: 30d, path: "/" }` | The only place the locale lives (no `"off"`). |
 | `NextAppFlatStrategy` | `pathMatcher: RegExp \| null` | excludes `/_next`, `/_vercel`, `/api`, files | Request paths the locale middleware handles; `null` = all. |
+| `NextAppFlatStrategy` | `localeCacheControl: "private" \| "inherit"` | `"private"` | As in Path, but on every handled path — with the locale outside the URL, all of them are cookie-dependent. |
 | `NextAppOriginStrategy` | `localeOriginMap: { [locale]: string \| string[] }` (**required**) | — | Maps each locale to its origin(s) for absolute URLs via `hrefHelper.getUrl` (§11.3); array → first used. |
 | `NextAppOriginStrategy` | `pathMatcher` | same as Flat | Same as Flat. |
 | `ReactStandardStrategy` | `kit: { name: namespace }` | `{}` | Consumer kit (§11.4) — single map, one runtime. |
@@ -1663,6 +1665,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-07-07.026
+rev 2026-09-03.027
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com

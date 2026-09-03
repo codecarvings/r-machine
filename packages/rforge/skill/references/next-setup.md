@@ -396,6 +396,9 @@ export const strategy = NextAppPathStrategy.create(rMachine, {
   // implicitDefaultLocale: "on",     // hides default locale prefix from URLs.
   //   Object form scopes it to localized paths only (exclude API/static routes):
   //   implicitDefaultLocale: { pathMatcher: /^(?!\/(__|api)($|\/)).*/ },
+  // localeCacheControl: "inherit",   // ONLY if the cache in front resolves the locale itself
+  //   (runs this proxy before its own lookup, or keys on the cookie). Default "private"
+  //   marks the cookie-chosen responses `private, no-cache` — see next-features.md
   // reactCompiler: "on",             // ONLY if React Compiler stays enabled in next.config (see §1)
 });
 
@@ -439,6 +442,9 @@ export const strategy = NextAppFlatStrategy.create(rMachine, {
   },
   PathAtlas,
   // pathMatcher: /^(?!\/(__|api)($|\/)).*/, // restrict locale handling to localized paths
+  // localeCacheControl: "inherit", // ONLY if the cache in front resolves the locale itself
+  //   (runs this proxy before its own lookup, or keys on the cookie). Default "private"
+  //   marks every handled path `private, no-cache` — see next-features.md
   // reactCompiler: "on", // ONLY if React Compiler stays enabled in next.config (see §1)
 });
 

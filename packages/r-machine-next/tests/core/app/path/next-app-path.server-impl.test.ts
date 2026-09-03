@@ -30,11 +30,12 @@ vi.mock("next/navigation", () => ({
   redirect: (...args: unknown[]) => mockRedirect(...args),
 }));
 
-const mockRewrite = vi.fn((..._args: unknown[]) => ({ _type: "rewrite" }));
+const mockRewrite = vi.fn((..._args: unknown[]) => ({ _type: "rewrite", headers: new Headers() }));
 const mockNext = vi.fn((..._args: any[]) => ({ _type: "next" }));
 const mockRedirectResponse = vi.fn((..._args: any[]) => ({
   _type: "redirect" as const,
   cookies: { set: vi.fn() },
+  headers: new Headers(),
 }));
 vi.mock("next/server", () => ({
   NextResponse: {
@@ -48,6 +49,22 @@ vi.mock("next/server", () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
+function rewriteVary() {
+  return mockRewrite.mock.results[0]!.value.headers.get("vary");
+}
+
+function redirectVary() {
+  return mockRedirectResponse.mock.results[0]!.value.headers.get("vary");
+}
+
+function rewriteCacheControl() {
+  return mockRewrite.mock.results[0]!.value.headers.get("cache-control");
+}
+
+function redirectCacheControl() {
+  return mockRedirectResponse.mock.results[0]!.value.headers.get("cache-control");
+}
+
 function createMockStrategyConfig(overrides: Partial<AnyNextAppPathStrategyConfig> = {}) {
   return {
     localeKey: "locale",
@@ -57,6 +74,7 @@ function createMockStrategyConfig(overrides: Partial<AnyNextAppPathStrategyConfi
     localeLabel: "lowercase",
     autoDetectLocale: "on",
     implicitDefaultLocale: "off",
+    localeCacheControl: "private",
     ...overrides,
   } as AnyNextAppPathStrategyConfig;
 }
@@ -72,6 +90,7 @@ interface CreateImplOptions {
   basePath?: string;
   matchLocaleReturn?: TestLocale;
   pathCanonicalizer?: HrefCanonicalizer;
+  localeCacheControl?: "inherit" | "private";
 }
 
 async function createImpl(options: CreateImplOptions = {}) {
@@ -89,6 +108,7 @@ async function createImpl(options: CreateImplOptions = {}) {
     ...(options.autoDetectLocale !== undefined ? { autoDetectLocale: options.autoDetectLocale } : {}),
     ...(options.implicitDefaultLocale !== undefined ? { implicitDefaultLocale: options.implicitDefaultLocale } : {}),
     ...(options.basePath !== undefined ? { basePath: options.basePath } : {}),
+    ...(options.localeCacheControl !== undefined ? { localeCacheControl: options.localeCacheControl } : {}),
   });
   const pathTranslator = new HrefTranslator(atlas, [...locales], defaultLocale);
   const pathCanonicalizer = options.pathCanonicalizer ?? new HrefCanonicalizer(atlas, [...locales], defaultLocale);
@@ -429,6 +449,37 @@ describe("createNextAppPathServerImpl", () => {
         expect(url.pathname).toBe("/en/about");
       });
 
+      it("declares the auto-detect header dependency on the redirect", async () => {
+        const { impl } = await createImpl({ atlas: aboutAtlas });
+        const proxy = impl.createProxy() as AnyProxyFn;
+
+        proxy(createMockRequest("/about", { cookie: "it" }));
+
+        expect(redirectVary()).toBe("Accept-Language, Cookie");
+      });
+
+      it("keeps the auto-detect redirect out of shared caches", async () => {
+        const { impl } = await createImpl({ atlas: aboutAtlas });
+        const proxy = impl.createProxy() as AnyProxyFn;
+
+        proxy(createMockRequest("/about", { cookie: "it" }));
+
+        expect(redirectCacheControl()).toBe("private, no-cache");
+      });
+
+      it("still auto-detects on an RSC request", async () => {
+        // Without implicit URLs an unprefixed path has no canonical content of its own,
+        // so the redirect is the only possible outcome — the RSC exemption does not apply
+        const { impl } = await createImpl({ atlas: aboutAtlas });
+        const proxy = impl.createProxy() as AnyProxyFn;
+
+        proxy(createMockRequest("/about", { cookie: "it", rsc: true }));
+
+        expect(mockRedirectResponse).toHaveBeenCalledOnce();
+        const [url] = mockRedirectResponse.mock.calls[0] as [URL];
+        expect(url.pathname).toBe("/it/about");
+      });
+
       it("redirects root to the locale prefix without a trailing slash", async () => {
         // Regression: "/" must redirect to "/it", not "/it/", otherwise Next
         // (trailingSlash:false) re-normalizes "/it/" -> "/it" in a second hop.
@@ -730,6 +781,201 @@ describe("createNextAppPathServerImpl", () => {
 
           expect(rMachine.localeHelper.matchLocalesForAcceptLanguageHeader).toHaveBeenCalledWith("it");
           expect(mockRedirectResponse).toHaveBeenCalledOnce();
+        });
+
+        it("declares the auto-detect header dependency on the redirect", async () => {
+          const { impl } = await createImpl({ implicitDefaultLocale: "on", autoDetectLocale: "on" });
+          const proxy = impl.createProxy() as AnyProxyFn;
+
+          proxy(createMockRequest("/", { cookie: "it" }));
+
+          expect(redirectVary()).toBe("Accept-Language, Cookie");
+        });
+
+        it("declares the auto-detect header dependency on the default-locale rewrite", async () => {
+          // The cacheable 200 is the outcome that matters most: it carries content
+          const { impl } = await createImpl({
+            implicitDefaultLocale: "on",
+            autoDetectLocale: "on",
+            matchLocaleReturn: "en",
+          });
+          const proxy = impl.createProxy() as AnyProxyFn;
+
+          proxy(createMockRequest("/"));
+
+          expect(rewriteVary()).toBe("Accept-Language, Cookie");
+        });
+
+        it("omits Cookie from the declared dependency when the cookie is disabled", async () => {
+          const { impl } = await createImpl({
+            implicitDefaultLocale: "on",
+            autoDetectLocale: "on",
+            cookie: "off",
+            matchLocaleReturn: "it",
+          });
+          const proxy = impl.createProxy() as AnyProxyFn;
+
+          proxy(createMockRequest("/"));
+
+          expect(redirectVary()).toBe("Accept-Language");
+        });
+
+        it("does not auto-detect on an RSC request, rewriting as the default locale instead", async () => {
+          // The client router keys its prefetch cache by URL and ignores `vary`, so a
+          // cookie-dependent redirect cached here would survive the cookie change and
+          // send a switch back to the default locale to the previous locale instead
+          const { impl } = await createImpl({ implicitDefaultLocale: "on", autoDetectLocale: "on" });
+          const proxy = impl.createProxy() as AnyProxyFn;
+
+          proxy(createMockRequest("/", { cookie: "it", rsc: true }));
+
+          expect(mockRedirectResponse).not.toHaveBeenCalled();
+          expect(mockRewrite).toHaveBeenCalledOnce();
+          const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
+          expect(url.pathname).toBe("/en");
+        });
+
+        it("applies the RSC exemption on every auto-detect path, not just the root", async () => {
+          // The auto-detect matcher is configurable: with a widened one the whole matched
+          // set produces cookie-dependent responses, and all of it must stay out of the
+          // prefetch cache — not only the default root-only matcher
+          const { impl } = await createImpl({
+            atlas: aboutAtlas,
+            implicitDefaultLocale: "on",
+            autoDetectLocale: { pathMatcher: null },
+          });
+          const proxy = impl.createProxy() as AnyProxyFn;
+
+          proxy(createMockRequest("/about", { cookie: "it", rsc: true }));
+
+          expect(mockRedirectResponse).not.toHaveBeenCalled();
+          const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
+          expect(url.pathname).toBe("/en/about");
+        });
+
+        it("still auto-detects on a document request to a widened auto-detect path", async () => {
+          const { impl } = await createImpl({
+            atlas: aboutAtlas,
+            implicitDefaultLocale: "on",
+            autoDetectLocale: { pathMatcher: null },
+          });
+          const proxy = impl.createProxy() as AnyProxyFn;
+
+          proxy(createMockRequest("/about", { cookie: "it", fetchDest: "document" }));
+
+          expect(mockRedirectResponse).toHaveBeenCalledOnce();
+          const [url] = mockRedirectResponse.mock.calls[0] as [URL];
+          expect(url.pathname).toBe("/it/about");
+          expect(redirectVary()).toBe("Accept-Language, Cookie");
+        });
+
+        it("does not read the locale cookie on an RSC request", async () => {
+          const { impl } = await createImpl({ implicitDefaultLocale: "on", autoDetectLocale: "on" });
+          const proxy = impl.createProxy() as AnyProxyFn;
+
+          const request = createMockRequest("/", { cookie: "it", rsc: true });
+          proxy(request);
+
+          expect(request.cookies.get).not.toHaveBeenCalled();
+        });
+
+        it("still auto-detects on a document request", async () => {
+          const { impl } = await createImpl({ implicitDefaultLocale: "on", autoDetectLocale: "on" });
+          const proxy = impl.createProxy() as AnyProxyFn;
+
+          proxy(createMockRequest("/", { cookie: "it", fetchDest: "document" }));
+
+          expect(mockRedirectResponse).toHaveBeenCalledOnce();
+          const [url] = mockRedirectResponse.mock.calls[0] as [URL];
+          expect(url.pathname).toBe("/it");
+        });
+
+        it("does not auto-detect on a client fetch carrying no next-url", async () => {
+          // `sec-fetch-dest` is the second-opinion marker when the Next one is absent
+          const { impl } = await createImpl({ implicitDefaultLocale: "on", autoDetectLocale: "on" });
+          const proxy = impl.createProxy() as AnyProxyFn;
+
+          proxy(createMockRequest("/", { cookie: "it", fetchDest: "empty" }));
+
+          expect(mockRedirectResponse).not.toHaveBeenCalled();
+          const [url] = mockRewrite.mock.calls[0] as MockRewriteArgs;
+          expect(url.pathname).toBe("/en");
+        });
+
+        it("declares no header dependency on the RSC rewrite", async () => {
+          // Its outcome is header-independent, so the only `vary` left is the one Next sets
+          const { impl } = await createImpl({ implicitDefaultLocale: "on", autoDetectLocale: "on" });
+          const proxy = impl.createProxy() as AnyProxyFn;
+
+          proxy(createMockRequest("/", { cookie: "it", rsc: true }));
+
+          expect(rewriteVary()).toBeNull();
+        });
+
+        it("keeps the auto-detect rewrite out of shared caches", async () => {
+          // It inherits the `cache-control` of the prerendered page it rewrites to, which is
+          // correct for that URL and wrong here, where the response was chosen from a cookie
+          const { impl } = await createImpl({
+            implicitDefaultLocale: "on",
+            autoDetectLocale: "on",
+            matchLocaleReturn: "en",
+          });
+          const proxy = impl.createProxy() as AnyProxyFn;
+
+          proxy(createMockRequest("/"));
+
+          expect(rewriteCacheControl()).toBe("private, no-cache");
+        });
+
+        it("keeps the auto-detect redirect out of shared caches", async () => {
+          const { impl } = await createImpl({ implicitDefaultLocale: "on", autoDetectLocale: "on" });
+          const proxy = impl.createProxy() as AnyProxyFn;
+
+          proxy(createMockRequest("/", { cookie: "it" }));
+
+          expect(redirectCacheControl()).toBe("private, no-cache");
+        });
+
+        it("leaves the auto-detect responses cacheable when told to inherit", async () => {
+          // For a cache that resolves the locale itself, so the URL is not the whole key
+          const { impl } = await createImpl({
+            implicitDefaultLocale: "on",
+            autoDetectLocale: "on",
+            localeCacheControl: "inherit",
+          });
+          const proxy = impl.createProxy() as AnyProxyFn;
+
+          proxy(createMockRequest("/", { cookie: "it" }));
+
+          expect(redirectCacheControl()).toBeNull();
+          // the declaration itself is not conditional
+          expect(redirectVary()).toBe("Accept-Language, Cookie");
+        });
+
+        it("leaves the RSC rewrite shared-cacheable", async () => {
+          // Its outcome does not depend on the cookie, so the URL identifies the content
+          const { impl } = await createImpl({ implicitDefaultLocale: "on", autoDetectLocale: "on" });
+          const proxy = impl.createProxy() as AnyProxyFn;
+
+          proxy(createMockRequest("/", { cookie: "it", rsc: true }));
+
+          expect(rewriteCacheControl()).toBeNull();
+        });
+
+        it("does not declare a header dependency on the implicit canonicalization redirect", async () => {
+          // /en/about -> /about depends on the URL alone; marking it would be spurious
+          const { impl } = await createImpl({
+            atlas: aboutAtlas,
+            implicitDefaultLocale: "on",
+            autoDetectLocale: "on",
+          });
+          const proxy = impl.createProxy() as AnyProxyFn;
+
+          proxy(createMockRequest("/en/about", { cookie: "it" }));
+
+          expect(mockRedirectResponse).toHaveBeenCalledOnce();
+          expect(redirectVary()).toBeNull();
+          expect(redirectCacheControl()).toBeNull();
         });
       });
 

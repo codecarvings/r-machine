@@ -26,6 +26,23 @@ import type { NextAppServerImpl, NextAppServerToolset } from "./next-app-server-
 
 export const localeHeaderName = "x-rm-locale";
 
+/**
+ * What `cache-control` a response carries when its locale was chosen from
+ * `Cookie` / `Accept-Language` rather than from the URL.
+ *
+ * Such a response cannot declare that dependency with `vary` — Next owns that
+ * header on a rewrite and overwrites it — so `"private"` states it the only way
+ * that survives: `private, no-cache`, which keeps a shared cache from storing the
+ * response under the requested URL and serving one visitor's locale to everybody.
+ * A private cache may still keep it, it just has to revalidate.
+ *
+ * `"inherit"` leaves the `cache-control` Next would assign. Correct only where
+ * the cache in front resolves the locale itself — because it runs this proxy
+ * ahead of its own lookup, or keys on the cookie — which is a property of the
+ * deployment that this library cannot observe, hence the explicit opt-in.
+ */
+export type LocaleCacheControlOption = "inherit" | "private";
+
 // ── Per-rMachine toolset cache ──────────────────────────────────────────────
 // `createClientToolset`/`createServerToolset` memoize their result on the
 // `rMachine` instance. This is what keeps the jiti dev loader working: a
