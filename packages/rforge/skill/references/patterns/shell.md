@@ -236,6 +236,27 @@ export type Shell_Product = RShape<typeof r>;
 Variant files for a shell with deps use `localized` the same way (the runtime
 supplies the dep; the variant only provides translation values).
 
+## Evolving a multi-locale shell
+
+**A new member must be added to every locale file, not just the canonical one.**
+`localized()` validates each variant against the canonical type at exact keys, in
+both directions: a missing key fails, an extra key fails. So adding one label to
+`en.tsx` breaks the compile of every sibling until it carries the same label:
+
+```
+src/r-machine/pub/shell/cart/it.tsx(3,42): error TS2345: Argument of type '{ … }'
+  is not assignable to parameter of type '{ … }'.
+  Type '{ … }' is missing the following properties from type '{ … }': pause, resume
+```
+
+That error is the **work list**, not a problem to route around: there is no
+partial-variant or fallback mode, by design, so a half-translated shell cannot
+reach production. Add the member to the canonical file first (it owns the type),
+then to each variant `tsc` names, and re-run until clean.
+
+Removing or renaming a member is the same walk in reverse — canonical first, then
+every variant — plus the consumers `tsc` flags.
+
 ## Shell — `shell(mono)` (locale-aware, single file, no variants)
 
 Use for formatters, locale-aware helpers — no per-locale files:

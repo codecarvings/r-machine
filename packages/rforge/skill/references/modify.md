@@ -51,6 +51,12 @@ Always **say which kind it was** in the summary: _"Surface unchanged → nothing
 downstream"_, _"added `pause` → only the new button reads it"_, or _"renamed
 `add`→`addItem` → tsc flagged 2 consumers + 1 test, all updated"_.
 
+**Report what `tsc` named — never predict a file count.** The kind of change is
+yours to state; the numbers are the compiler's. "tsc flagged 2 consumers + 1
+test" is a finding; "additive across 3 files" is a guess, and it is usually low —
+a multi-locale shell alone is one file per locale (see
+[patterns/shell.md](./patterns/shell.md#evolving-a-multi-locale-shell)).
+
 ---
 
 ## Worked example A — implementation-only (zero blast radius)
@@ -108,12 +114,16 @@ component. Each is a **modify**, one is **additive**:
 ```
 outer/timer   modify — additive: + paused state, + pause()/resume() actions
 shell/timer   modify — additive: + "pause" / "resume" labels
+              ↳ every locale variant, not just the canonical file
 <Timer>       modify — read the new members, render the button
 ```
 
-Because the gear/shell changes are **additive**, nothing that already consumed
+Because the gear/shell changes are **additive**, nothing that already _consumed_
 `outer/timer` breaks — only `<Timer>`, which opts into the new members, changes.
-**Report:** _"Additive across 3 files; existing consumers of the timer untouched."_
+The locale variants are not consumers: they co-author `shell/timer`, so each one
+needs the two new labels before the project compiles again — `tsc` names them.
+**Report:** _"Additive: no existing consumer of the timer changed. tsc named the
+locale variants still missing the new labels; all updated."_
 
 ---
 
