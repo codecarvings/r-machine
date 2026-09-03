@@ -36,6 +36,11 @@ server/client toolsets, and `@r-machine/testing` provides testing utilities.
 resource HMR under `next dev` — **Next.js only** (not needed for React/standalone).
 If `jiti` isn't already present, install it.
 
+While editing `package.json`, **add `"type": "module"` if it is missing** —
+`create-next-app` does not set it, and the ESM `vitest.config.ts` generated in
+[testing.md](./testing.md) is loaded as CommonJS without it. Skip only if the
+project still contains genuine CJS files; see the note in testing.md.
+
 ---
 
 ## 1. Which strategy?

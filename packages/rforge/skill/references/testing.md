@@ -45,10 +45,19 @@ is already a devDependency in every setup.
 
 ### `vitest.config.ts` — per mode
 
+> **First, check `package.json` for `"type": "module"` — add it if missing.**
+> Every config below is ESM (`export default`, `import.meta.dirname`). Without
+> the field Node treats `.ts`/`.js` in the package as CommonJS, and Vite's
+> native config loader (a future default) warns today and will fail later.
+> `create-vite` already sets it; **`create-next-app` does not**, so a Next
+> project almost always needs it added. Only skip it if the project still
+> contains genuine CJS files (`require(`, `module.exports`) — then name the
+> config `vitest.config.mts` instead.
+
 **Standalone / Node:**
 
 ```ts
-import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { defineConfig, type ViteUserConfig } from "vitest/config";
 
 export default defineConfig({
@@ -56,7 +65,7 @@ export default defineConfig({
     // Mirror the tsconfig "@/*" -> "./src/*" path mapping (Vitest does not read
     // tsconfig paths). Resource modules import setup/atlas via this alias, so
     // without it `verifyResourceAtlas` cannot load them.
-    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+    alias: { "@": path.resolve(import.meta.dirname, "src") },
   },
   test: {
     environment: "node",
@@ -74,14 +83,14 @@ export default defineConfig({
 **React (Vite):**
 
 ```ts
-import { fileURLToPath } from "node:url";
+import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type ViteUserConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+    alias: { "@": path.resolve(import.meta.dirname, "src") },
     dedupe: ["react", "react-dom"],
   },
   test: {
@@ -110,7 +119,7 @@ outside an RSC bundle:
 ```ts
   resolve: {
     alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@": path.resolve(import.meta.dirname, "src"),
       "server-only": "@r-machine/next/dev/no-op",
     },
     dedupe: ["react", "react-dom"],
@@ -121,7 +130,7 @@ outside an RSC bundle:
 assume source under `src/` (`@/*` → `./src/*`). A default `create-next-app` (and
 many Vite setups) keep source at the **repo root** with `@/*` → `./*`. Read the
 project's `tsconfig.json` `paths` and mirror it: when there's no `src/`, the alias
-becomes `"@": fileURLToPath(new URL(".", import.meta.url))` and every
+becomes `"@": path.resolve(import.meta.dirname)` and every
 `import.meta.resolve("../../src/r-machine/…")` in a test drops the `src/` segment
 (`"../../r-machine/setup.ts"`). The same applies to `proxy.ts`, which sits at the
 source root — repo root when there's no `src/`.
