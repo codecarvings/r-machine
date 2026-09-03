@@ -98,8 +98,9 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     // Inline so Vite — not Node's raw ESM loader — resolves `@r-machine/testing`
     // and `r-machine` to a SINGLE `plug.ts` instance. Otherwise mockPlug and the
-    // resolved plug live in two module instances and `getPlugResolve` reads
-    // `undefined`. (This is the consumer-side fix — NOT `#r-machine/*` aliases.)
+    // resolved plug live in two module instances, the plug's symbols don't match,
+    // and EVERY mockPlug call throws ERR_MOCK_TARGET_INVALID. Do not remove this
+    // line. (Consumer-side fix — NOT the `#r-machine/*` aliases.)
     server: { deps: { inline: ["@r-machine/testing"] } },
   },
 }) as ViteUserConfig;
@@ -621,9 +622,17 @@ try {
 - **Single plug instance (the big one).** `mockPlug` and the resolved plug must
   share one `plug.ts` module instance. In a consumer project the fix is
   `server: { deps: { inline: ["@r-machine/testing"] } }` in `vitest.config.ts`
-  (plus `@r-machine/next` for Next). Without it, `getPlugResolve` reads
-  `undefined` and mocks silently do nothing. (The `#r-machine/*` source aliases
-  are a monorepo-internal concern — do NOT add them to a consumer project.)
+  (plus `@r-machine/next` for Next). (The `#r-machine/*` source aliases are a
+  monorepo-internal concern — do NOT add them to a consumer project.)
+
+  **How it shows up:** a plug's internals hang off module-local symbols, so two
+  instances mean two registries and the testing package reads `undefined` for a
+  perfectly valid plug. `mockPlug` guards for exactly that and **throws
+  `ERR_MOCK_TARGET_INVALID`** — on **every** call, including targets you know are
+  correct. So the tell is not one broken test: it is _every_ `mockPlug` in the
+  suite failing at once with a message about the target. Suspect the config, not
+  the target — see the `ERR_MOCK_TARGET_INVALID` bullet below.
+
 - **Drive a relay with a "tick", not a field-equal object.** An action that
   returns a new but field-equal object (`{ n: 1 }` twice) is collapsed by
   `deepPartialMerge` to the same reference, so an identity-based relay won't
@@ -638,6 +647,14 @@ try {
   (`Comp.plug = plug`); hand the consumer/resource to `mockPlug` (`mockPlug(Comp)`,
   `mockPlug(r)`). Passing something with no plug attached — a component that forgot
   its `.plug` line, or a stray value — throws `ERR_MOCK_TARGET_INVALID`.
+- **`ERR_MOCK_TARGET_INVALID` has three causes — check them in this order.** The
+  message only says the target looks wrong, so read it as "no plug was found
+  here", not "you passed the wrong thing":
+  1. **Every `mockPlug` in the suite throws** → the module-instance problem, not
+     the target. Add `server: { deps: { inline: … } }` (first bullet).
+  2. **One resource throws** → it is a **plain object** (`export const r = { … }`),
+     which has no plug at all. Assert `r` directly, or make it a factory.
+  3. **One consumer throws** → its `Fn.plug = plug` line is missing.
 
 ---
 
