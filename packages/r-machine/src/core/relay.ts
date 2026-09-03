@@ -89,13 +89,20 @@ const UNSET: unique symbol = Symbol("relay-prev-unset");
  *
  * The relay registers internal subscribers on every dep captured by `select`.
  * When a dep mutates, the recorder marks the relay dirty; the outermost
- * action's flush walks dirty relays in registration order and calls
- * `runIfDirty()` on each. Initial registration captures deps and seeds
- * `prev` WITHOUT calling `onChange` (semantics: react to changes, not to
- * existence).
+ * action's flush walks the dirty relays and calls `runIfDirty()` on each.
+ * Their order comes from the installed `RelayOrderingProvider` — in a real
+ * RMachine that is the blueprint-backed one (dep-depth from a mutation
+ * source, then atlas priority, then registration index); the recorder falls
+ * back to plain registration order only when no provider is set. Initial
+ * registration captures deps and seeds `prev` WITHOUT calling `onChange`
+ * (semantics: react to changes, not to existence).
  *
- * Step 1: returned cmds are ignored; returned Promises are ignored.
- * Step 3 will dispatch returned cmds and handle async onChange.
+ * `onChange`'s return value IS honoured. `runIfDirty` hands the sync cmds
+ * back to the recorder, which dispatches them in the flush's Phase 2 — after
+ * every dirty relay has fired, so they all observe the same world state. A
+ * returned Promise is deliberately NOT awaited here: `extractSyncResult`
+ * schedules it on a microtask and its cmds are dispatched in a separate
+ * transaction, i.e. a later flush.
  */
 export function createRelayRuntime(
   relay: AnyRelay,
