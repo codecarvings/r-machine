@@ -37,11 +37,12 @@ plug_ — by name (map form) or position (list form) — as shown below.
 
 ## Setup — tests are scaffolded by default
 
-When setting up a project (Section A), check whether a test framework already
-exists (`vitest.config.*`, a `vitest` devDependency, a `"test"` script). If none
-exists, **propose configuring vitest** (the suggested default) and, if accepted,
-generate the config + a baseline `verifyResourceAtlas` test. `@r-machine/testing`
-is already a devDependency in every setup.
+When setting up a project ([Mode A](./setup.md) A.4), check whether a test
+framework already exists (`vitest.config.*`, a `vitest` devDependency, a
+`"test"` script). If none exists, **propose configuring vitest** (the suggested
+default) and, if accepted, generate the config + a baseline
+`verifyResourceAtlas` test. `@r-machine/testing` is already a devDependency in
+every setup.
 
 ### `vitest.config.ts` — per mode
 

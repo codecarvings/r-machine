@@ -102,7 +102,7 @@ Add other resources as you scaffold them.
 ```ts
 // src/r-machine/resource-atlas.ts
 import { defineLayout } from "r-machine";
-import type { Shell_Lib_Fmt } from "./pub/shell/lib/fmt"; // scaffold this file first (A.4 step 3)
+import type { Shell_Lib_Fmt } from "./pub/shell/lib/fmt"; // scaffold this file first (setup.md A.4 step 3)
 
 const folders = defineLayout({
   "inner/": "gear:inner",
