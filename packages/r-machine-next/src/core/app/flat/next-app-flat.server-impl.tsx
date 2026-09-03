@@ -16,8 +16,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import type { RMachine } from "r-machine";
 import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
-import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
-import { localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
+import { type HrefCanonicalizer, type HrefTranslator, localeHeaderName } from "#r-machine/next/core";
+import type { NextAppServerImpl } from "#r-machine/next/core/app";
 import type { NextProxyResult } from "#r-machine/next/internal";
 import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core.js";
 

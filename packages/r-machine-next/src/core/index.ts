@@ -26,4 +26,4 @@ export {
   type Segment,
 } from "./path-atlas.js";
 export { PathCanonicalizer } from "./path-canonicalizer.js";
-export type { RMachineProxy } from "./proxy.js";
+export { localeHeaderName, type RMachineProxy } from "./proxy.js";

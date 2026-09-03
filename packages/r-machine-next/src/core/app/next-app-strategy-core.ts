@@ -24,8 +24,6 @@ import type {
 import type { NextAppClientImpl, NextAppClientRMachine, NextAppClientToolset } from "./next-app-client-toolset.js";
 import type { NextAppServerImpl, NextAppServerToolset } from "./next-app-server-toolset.js";
 
-export const localeHeaderName = "x-rm-locale";
-
 /**
  * What `cache-control` a response carries when its locale was chosen from
  * `Cookie` / `Accept-Language` rather than from the URL.

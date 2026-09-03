@@ -5,7 +5,6 @@ import type { NextAppClientImpl, NextAppClientRMachine } from "../../../src/core
 import type { NextAppServerImpl } from "../../../src/core/app/next-app-server-toolset.js";
 import {
   DefaultPathAtlas,
-  localeHeaderName,
   type NextAppStrategyConfig,
   NextAppStrategyCore,
 } from "../../../src/core/app/next-app-strategy-core.js";
@@ -95,12 +94,6 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
-
-describe("localeHeaderName", () => {
-  it("equals 'x-rm-locale'", () => {
-    expect(localeHeaderName).toBe("x-rm-locale");
-  });
-});
 
 describe("DefaultPathAtlas", () => {
   it("can be instantiated", () => {

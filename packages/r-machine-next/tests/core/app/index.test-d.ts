@@ -12,13 +12,10 @@ import type {
   NextAppStrategyConfigParams,
   NextAppStrategyCore,
 } from "../../../src/core/app/index.js";
-import { localeHeaderName } from "../../../src/core/app/index.js";
 
 // Barrel test: uses a single it() to verify export completeness only. Type shape tests belong in dedicated files.
 describe("core/app barrel exports", () => {
   it("exports all expected symbols", () => {
-    expectTypeOf(localeHeaderName).toBeString();
-
     expectTypeOf<LocaleCacheControlOption>().toEqualTypeOf<"inherit" | "private">();
 
     expectTypeOf<NextAppStrategyCore<any, any, any, any, any>>().toBeObject();

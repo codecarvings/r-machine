@@ -18,8 +18,8 @@ import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/
 import { RMachineConfigError } from "r-machine/errors";
 import { type AnyLocale, getCanonicalUnicodeLocaleId } from "r-machine/locale";
 import { defaultCookieDeclaration } from "r-machine/strategy/web";
-import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
-import { localeHeaderName, type NextAppNoProxyServerImpl } from "#r-machine/next/core/app";
+import { type HrefCanonicalizer, type HrefTranslator, localeHeaderName } from "#r-machine/next/core";
+import type { NextAppNoProxyServerImpl } from "#r-machine/next/core/app";
 import { ERR_FEATURE_REQUIRES_PROXY } from "#r-machine/next/errors";
 import { type CookiesFn, defaultPathMatcher, type HeadersFn, type NextProxyResult } from "#r-machine/next/internal";
 import type { AnyNextAppPathStrategyConfig } from "./next-app-path-strategy-core.js";

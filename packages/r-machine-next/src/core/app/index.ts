@@ -16,7 +16,6 @@ export type { NextAppNoProxyServerImpl, NextAppNoProxyServerToolset } from "./ne
 export type { NextAppServerImpl, NextAppServerToolset } from "./next-app-server-toolset.js";
 export {
   type LocaleCacheControlOption,
-  localeHeaderName,
   type NextAppStrategyConfig,
   type NextAppStrategyConfigParams,
   NextAppStrategyCore,
