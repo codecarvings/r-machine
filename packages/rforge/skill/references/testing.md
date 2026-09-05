@@ -334,8 +334,14 @@ the shell, at the folder's level — not per-locale:
    and writes after resolve hit the live cell.
 
 **Every resolution override is a `DeepPartial` deep-merged over the real surface**
-— the same merge law as an action reducer and `ctrl.state`. Mock a single nested
-sub-key and its **siblings are inherited** from the real resource:
+— the same merge law as an action reducer and `ctrl.state`, including its four
+rules: read
+[patterns/outer.md § Action return semantics](./patterns/outer.md#action-return-semantics--the-deep-partial-merge)
+once. The one that bites in tests: **only plain objects merge**, so an array,
+`Date`, `Map`, `Set` or class instance in an override or a seed **replaces** the
+real value wholesale — never element-wise, even though `DeepPartial<T[]>` lets
+you write partial elements. Mock a single nested sub-key and its **siblings are
+inherited** from the real resource:
 
 ```ts
 // Override only views.intro.heading; every other key (blurb, other views, …)
@@ -366,8 +372,9 @@ expect(inst.getAppName()).toBe("xyz"); // re-read, not snapshotted
 An override getter is a **partial**, not a whole replacement: if a real dep getter
 derives from state (`foo → { a: <state>, b: 2 }`), mocking `{ foo: { b: 100 } }`
 and then driving `ctrl.deps.foo.state` yields `{ a: <new state>, b: 100 }` — `a`
-keeps tracking, `b` stays mocked. (On primitive leaves the deep-merge degrades to a
-plain replacement.)
+keeps tracking, `b` stays mocked. (On any non-plain-object leaf — a primitive, an
+array, a `Date`/`Map`/`Set`, a class instance — the deep-merge degrades to a plain
+replacement.)
 
 `.default()` is `.with({})` — enter test mode with no overrides (e.g. resolve a
 stateless gear, or resolve at the machine's default locale).
@@ -435,7 +442,7 @@ it("adds items and computes itemCount + subtotal", async () => {
 ```
 
 Seed the gear's **own** state directly with `ctrl.state` (deep-partial — other
-keys survive):
+keys survive; an array-valued key is replaced whole, not appended to):
 
 ```ts
 using ctrl = mockPlug(r).with({

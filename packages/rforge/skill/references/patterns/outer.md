@@ -196,6 +196,24 @@ Four rules, none of them guessable:
   To append, build the new array from the old one:
   `_.action((t: string) => ({ tags: [...$.state.tags, t] }))`.
 
+  **The type disagrees with the runtime here, and nothing warns you.**
+  `DeepPartial<T[]>` distributes _into_ the elements (`DeepPartial<Item>[]`), so
+  an array of **partial elements typechecks** — while the merge replaces the
+  whole array with exactly what you returned. The result is a state that lies:
+
+  ```ts
+  // state: { lines: { productId: string; qty: number }[] }
+  const bad = _.action(() => ({ lines: [{ qty: 1 }] }));
+  // ✅ compiles — DeepPartial<Line>[] accepts a partial element
+  // ❌ state.lines is now [{ qty: 1 }]: one element, no `productId`, still
+  //    typed `Line[]`. No compile error, no runtime error, corrupt state.
+  ```
+
+  This is the one place in R-Machine where the compiler does not have your back:
+  an array in an action fragment (or a `ctrl.state` seed, or a mock override) is
+  **always a whole-array write**, so build it from `$.state` and return complete
+  elements.
+
 - **`undefined` is a no-op, not a value.** A key whose value is `undefined` is
   **skipped** by the merge, so an action **cannot clear a field** that way —
   `{ note: undefined }` leaves `note` exactly as it was, and nothing warns you.
