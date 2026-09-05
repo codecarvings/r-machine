@@ -373,8 +373,18 @@ export type Outer_Form = RShape<typeof r>;
 
 `_.cell(...)` is a memoized getter that is its own dependency: a consumer reading
 only it re-renders when its output changes by `Object.is` — fine-grained
-reactivity (see [../concepts/reactivity.md](../concepts/reactivity.md)). Use it for
-derived values that many components read.
+reactivity. **`_.getter` is the default; `_.cell` is the exception**, because a
+subscribed cell is eager (it recomputes on every state change) and carries its own
+node in the graph. Reach for it only when the body **allocates** (`.map`/`.filter`,
+literal, spread — a getter hands out a new reference on every read), when it is a
+**non-trivial computation** over a collection, or when its output **stays
+`Object.is`-unchanged while the state changes** often. Never for a direct
+projection of a single-field state. The full decision rule, with the two cases
+where a cell is actively wrong, is in
+[../concepts/reactivity.md](../concepts/reactivity.md#choosing-between-them--_getter-is-the-default).
+
+In the cart below, `lines` is a direct projection (getter) while `itemCount` and
+`subtotal` are aggregates whose output survives most edits to `lines` (cells):
 
 ```ts
 export const r = OuterGear.withState({ lines: [] as Line[] }).define(

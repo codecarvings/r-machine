@@ -56,7 +56,8 @@ Classify each part; take the first row that fits.
 | stateless service used by other gears (never by shells)                  | `gear:base`                                                  |
 | server-only work (DB, secret, private API)                               | `gear:inner` (`prv/inner/`, `ServerPlug`-only)               |
 | a side effect that fires when state changes                              | `_.relay` inside the owning outer gear                       |
-| a value derived from state                                               | `_.getter` (or `_.cell` for memoized / fine-grained)         |
+| a value read straight off state (direct projection)                      | `_.getter` — the default                                     |
+| a derived value that allocates, aggregates, or gates re-renders          | `_.cell` (see [reactivity.md](./concepts/reactivity.md))     |
 | an external fn / server action / SDK / fetch                             | a **port** — `.withPorts({ name })`, read via `$.ports.name` |
 
 Plain, non-locale-aware code (a `mm:ss` formatter, a math helper) is **not** a
