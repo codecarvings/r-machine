@@ -10,9 +10,6 @@ const rMachine = RMachine.create({
   shellKit: {
     fmt: "shell/lib/fmt",
   },
-  experimental: {
-    outerGear: "on",
-  },
 });
 
 // HMR: noop in production, but in dev we listen for a custom "r-machine:update"

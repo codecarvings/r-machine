@@ -30,7 +30,6 @@ import {
 import {
   ERR_DEFAULT_LOCALE_NOT_IN_LIST,
   ERR_DUPLICATE_LOCALES,
-  ERR_EXPERIMENTAL_OUTER_GEAR_REQUIRED,
   ERR_NO_LOCALES,
   RMachineConfigError,
 } from "#r-machine/errors";
@@ -165,18 +164,6 @@ export function validateRMachineConfig(config: RMachineConfig<any, any, any, any
       ERR_DEFAULT_LOCALE_NOT_IN_LIST,
       `Default locale "${config.defaultLocale}" is not in the list of locales.`
     );
-  }
-
-  if (!config.experimental.outerGear) {
-    const outerPrefixes = Object.entries(config.layout)
-      .filter(([, type]) => (type as string).startsWith("gear:outer"))
-      .map(([prefix]) => prefix);
-    if (outerPrefixes.length) {
-      return new RMachineConfigError(
-        ERR_EXPERIMENTAL_OUTER_GEAR_REQUIRED,
-        `Layout contains "gear:outer" entries (${outerPrefixes.map((p) => `"${p}"`).join(", ")}) but the "outerGear" experimental feature is not enabled. Add \`experimental: { outerGear: "on" }\` to RMachine.create(...) to opt in.`
-      );
-    }
   }
 
   return null;

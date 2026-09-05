@@ -317,7 +317,6 @@ export function renderSetup(): string {
     `  ResourceAtlas,\n` +
     `  shellKit: { fmt: "shell/lib/fmt" },\n` +
     `  directKit: { fmt: "shell/lib/fmt" },\n` +
-    `  experimental: { outerGear: "on" },\n` +
     `});\n\n` +
     `export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized } = rMachine.createToolset();\n` +
     `export type Locale = RMachineLocale<typeof rMachine>;\n` +

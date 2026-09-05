@@ -17,7 +17,7 @@ import type { VertexFrameType } from "@r-machine/react/core";
 import { type CreateReactBareToolsetOptions, createReactBareToolset, RequestScopeContext } from "@r-machine/react/core";
 import { usePathname, useRouter } from "next/navigation";
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags, ExperimentalTools } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import { type ReactNode, useEffect, useRef } from "react";
@@ -38,11 +38,11 @@ export type NextAppClientToolset<
 > = {
   readonly NextClientRMachine: NextAppClientRMachine<L>;
   readonly ClientPlug: NextClientPlugDefiner<RA, L, CKM, PA>;
-} & (EF["outerGear"] extends "on"
-  ? {
-      readonly VertexFrame: VertexFrameType;
-    }
-  : {});
+  readonly VertexFrame: VertexFrameType;
+  // Experimental-flag seam — see `ExperimentalTools`. No flag is active, so
+  // this intersection is a no-op. The retired `outerGear` gate read:
+  //   EF["outerGear"] extends "on" ? { readonly VertexFrame: VertexFrameType } : {}
+} & ExperimentalTools<EF>;
 
 export type NextAppClientRMachine<L extends AnyLocale> = (props: NextAppClientRMachineProps<L>) => ReactNode;
 interface NextAppClientRMachineProps<L extends AnyLocale> {
@@ -80,11 +80,7 @@ export async function createNextAppClientToolset<
   impl: NextAppClientImpl<L>,
   options: CreateReactBareToolsetOptions = {}
 ): Promise<NextAppClientToolset<RA, L, EF, CKM, PA>> {
-  const {
-    ReactRMachine,
-    VertexFrame,
-    Plug: BasePlug,
-  } = await createReactBareToolset(rMachine as RMachine<RA, L, E, { outerGear: "on" }>, clientKit, options);
+  const { ReactRMachine, VertexFrame, Plug: BasePlug } = await createReactBareToolset(rMachine, clientKit, options);
 
   function NextClientRMachine({ locale, scopeId, children }: NextAppClientRMachineProps<L>) {
     useEffect(() => {

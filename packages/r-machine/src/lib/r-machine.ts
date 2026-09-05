@@ -223,13 +223,10 @@ export class RMachine<
     const BaseGear = createBaseGearComposer<RA, E["gearKit"]>(
       this.createResComposerConnector(this.config.equipment.gearKit)
     );
-    const OuterGear =
-      this.config.experimental.outerGear === "on"
-        ? createOuterGearComposer<RA, E["gearKit"]>(
-            this.createResComposerConnector(this.config.equipment.gearKit),
-            this.cassetteRecorder
-          )
-        : undefined!;
+    const OuterGear = createOuterGearComposer<RA, E["gearKit"]>(
+      this.createResComposerConnector(this.config.equipment.gearKit),
+      this.cassetteRecorder
+    );
     const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(
       this.createResComposerConnector(this.config.equipment.shellKit)
     );

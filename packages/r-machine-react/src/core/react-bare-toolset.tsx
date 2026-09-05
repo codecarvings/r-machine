@@ -23,6 +23,7 @@ import type {
   AnyPlugHead,
   AnyResAtlas,
   ExperimentalFlags,
+  ExperimentalTools,
   HandleList,
   HandleMap,
   NamespaceCollection,
@@ -80,11 +81,11 @@ export type ReactBareToolset<
 > = {
   readonly ReactRMachine: ReactBareRMachine<L>;
   readonly Plug: ReactPlugDefiner<RA, L, KM>;
-} & (EF["outerGear"] extends "on"
-  ? {
-      readonly VertexFrame: typeof VertexFrame;
-    }
-  : {});
+  readonly VertexFrame: typeof VertexFrame;
+  // Experimental-flag seam — see `ExperimentalTools`. No flag is active, so
+  // this intersection is a no-op. The retired `outerGear` gate read:
+  //   EF["outerGear"] extends "on" ? { readonly VertexFrame: typeof VertexFrame } : {}
+} & ExperimentalTools<EF>;
 
 export interface ReactBareRMachine<L extends AnyLocale> {
   (props: ReactBareRMachineProps<L>): ReactNode;

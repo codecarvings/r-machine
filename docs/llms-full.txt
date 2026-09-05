@@ -194,12 +194,10 @@ RMachine.create({
   bridgeGears: ["base/config"],          // optional: base namespaces visible to shells
   gearKit:   { log: "base/logger" },     // optional: injected as $.kit.* into every gear factory
   shellKit:  { fmt: "shell/lib/fmt" },   // optional: injected as $.kit.* into every shell factory
-  experimental: { outerGear: "on" },     // type-level conditional gate for OuterGear in toolset
 });
 ```
 
 - `bridgeGears` is type-narrowed to `gear:base` namespaces only (an outer/inner namespace is a type error); `gearKit` / `shellKit` are injected as `$.kit.{name}` into every factory of that family.
-- `experimental.outerGear`: opt-in flag, `"on"`-or-absent (no `"off"` value — `{ outerGear: "off" }` is a type error). **Omitted is the default**: `OuterGear` is removed from the toolset at the type level. The `experimental` namespace gates features whose API may still evolve incompatibly; the flag is retired once the feature stabilizes.
 
 #### Module loading (`ResourceAtlas.loader`)
 
@@ -1664,6 +1662,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-09-03.027
+rev 2026-09-05.028
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com

@@ -32,7 +32,7 @@ export {
   type InternalEvent,
   type InternalEventBus,
 } from "./event-bus.js";
-export type { ExperimentalFlags } from "./experimental-flags.js";
+export type { ExperimentalFlags, ExperimentalTools } from "./experimental-flags.js";
 export type { GateListPlugHead, GateMapPlugHead, GatePluginCtx } from "./gate-plug.js";
 export type { GearPlugKitMap } from "./gear-plug.js";
 export { type Getter, isGetter } from "./getter.js";

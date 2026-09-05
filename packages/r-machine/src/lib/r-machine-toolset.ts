@@ -20,6 +20,7 @@ import type {
   BaseGearComposer,
   DirectPlugDefiner,
   ExperimentalFlags,
+  ExperimentalTools,
   InnerGearComposer,
   Namespace,
   OuterGearComposer,
@@ -36,6 +37,7 @@ export type RMachineToolset<
 > = {
   readonly InnerGear: InnerGearComposer<RA, E["gearKit"]>;
   readonly BaseGear: BaseGearComposer<RA, E["gearKit"]>;
+  readonly OuterGear: OuterGearComposer<RA, E["gearKit"]>;
   readonly Shell: ShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>;
   readonly DirectPlug: DirectPlugDefiner<RA, L, E["directKit"]>;
   readonly localized: LocalizerHelper<RA["shape@shell"]>;
@@ -45,11 +47,11 @@ export type RMachineToolset<
   // alongside the composers). One member today; future adapters (e.g. `lazy`,
   // `optional`) join here without proliferating top-level toolset helpers.
   readonly res: ResDepBuilders<RA, L>;
-} & (EF["outerGear"] extends "on"
-  ? {
-      readonly OuterGear: OuterGearComposer<RA, E["gearKit"]>;
-    }
-  : {});
+  // Experimental-flag seam. No flag is active, so `ExperimentalTools` resolves
+  // to `{}` and this intersection is a no-op; it is where a future flag adds
+  // its tools to this surface. The retired `outerGear` gate read:
+  //   EF["outerGear"] extends "on" ? { readonly OuterGear: OuterGearComposer<RA, E["gearKit"]> } : {}
+} & ExperimentalTools<EF>;
 
 // Derived-dependency builders exposed as `toolset.res`.
 //  - `perLocale(shell)`: declares a locale-keyed shell as a gear/shell dependency;

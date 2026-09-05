@@ -102,7 +102,6 @@ const rMachine = RMachine.create({
   defaultLocale: "en",
   ResourceAtlas,
   shellKit: { fmt: "shell/lib/fmt" },
-  experimental: { outerGear: "on" },
 });
 
 export const { BaseGear, OuterGear, Shell, DirectPlug, localized } =

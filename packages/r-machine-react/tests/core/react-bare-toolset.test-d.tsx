@@ -12,8 +12,7 @@ import type { ReactPlugDefiner } from "../../src/core/react-plug.js";
 import type { TestAtlas } from "../_fixtures/mock-machine.js";
 
 type E = ResEquipment<TestAtlas>;
-type NoFlags = ExperimentalFlags; // outerGear not "on"
-type OuterOn = { readonly outerGear: "on" };
+type NoFlags = ExperimentalFlags;
 type KM = {};
 
 // ---------------------------------------------------------------------------
@@ -30,7 +29,7 @@ describe("createReactBareToolset", () => {
 });
 
 // ---------------------------------------------------------------------------
-// ReactBareToolset — current shape: { ReactRMachine, Plug } (+ VertexFrame)
+// ReactBareToolset — current shape: { ReactRMachine, Plug, VertexFrame }
 // ---------------------------------------------------------------------------
 
 describe("ReactBareToolset", () => {
@@ -41,13 +40,8 @@ describe("ReactBareToolset", () => {
     expectTypeOf<Toolset["Plug"]>().toEqualTypeOf<ReactPlugDefiner<TestAtlas, AnyLocale, KM>>();
   });
 
-  it("has exactly { ReactRMachine, Plug } when outerGear is off", () => {
-    expectTypeOf<keyof Toolset>().toEqualTypeOf<"ReactRMachine" | "Plug">();
-  });
-
-  it("adds VertexFrame when experimental.outerGear is 'on'", () => {
-    type OuterToolset = ReactBareToolset<TestAtlas, AnyLocale, OuterOn, KM>;
-    expectTypeOf<keyof OuterToolset>().toEqualTypeOf<"ReactRMachine" | "Plug" | "VertexFrame">();
+  it("has exactly { ReactRMachine, Plug, VertexFrame } — the experimental seam adds nothing", () => {
+    expectTypeOf<keyof Toolset>().toEqualTypeOf<"ReactRMachine" | "Plug" | "VertexFrame">();
   });
 
   it("no longer carries the legacy hook surface", () => {

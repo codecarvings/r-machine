@@ -374,9 +374,6 @@ const rMachine = RMachine.create({
   shellKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
-  experimental: {
-    outerGear: "on",
-  },
 });
 
 export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized } =
@@ -425,7 +422,6 @@ const rMachine = RMachine.create({
   shellKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
-  experimental: { outerGear: "on" },
 });
 
 export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized } =
@@ -473,7 +469,6 @@ const rMachine = RMachine.create({
   shellKit: {
     fmt: "shell/lib/fmt", // remove if not using a formatter shell
   },
-  experimental: { outerGear: "on" },
 });
 
 export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized } =

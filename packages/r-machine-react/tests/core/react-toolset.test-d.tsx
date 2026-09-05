@@ -46,8 +46,8 @@ describe("ReactToolset", () => {
     expectTypeOf<Toolset["Plug"]>().toEqualTypeOf<ReactPlugDefiner<TestAtlas, AnyLocale, KM>>();
   });
 
-  it("has exactly { ReactRMachine, Plug } when outerGear is off", () => {
-    expectTypeOf<keyof Toolset>().toEqualTypeOf<"ReactRMachine" | "Plug">();
+  it("has exactly { ReactRMachine, Plug, VertexFrame }", () => {
+    expectTypeOf<keyof Toolset>().toEqualTypeOf<"ReactRMachine" | "Plug" | "VertexFrame">();
   });
 });
 
