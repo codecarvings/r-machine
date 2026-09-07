@@ -592,10 +592,13 @@ const PRODUCT: Product = {
 };
 
 it("resolves via useR(params) and renders the product, price formatted server-side", async () => {
-  // ProductPage.plug = ServerPlug("inner/catalog", "shell/product", "shell/catalog") — list form.
-  // Override dep 0 (the catalog) THROUGH the page; the shells stay real.
+  // ProductPage.plug = ServerPlug({ catalog: "inner/catalog", sProduct: "shell/product",
+  //   sCatalog: "shell/catalog" }) — 3 deps, so map form: overrides are keyed by name.
+  // Override the `catalog` dep THROUGH the page; the shells stay real.
   using _ctrl = mockPlug(ProductPage).with({
-    0: { byId: (id: string) => (id === PRODUCT.id ? PRODUCT : undefined) },
+    catalog: {
+      byId: (id: string) => (id === PRODUCT.id ? PRODUCT : undefined),
+    },
   });
 
   const el = await ProductPage({

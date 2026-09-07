@@ -221,7 +221,7 @@ export const r = Shell.withDeps("base/config") // base/config must be in bridgeG
     };
   });
 
-// Equivalent map form:
+// The map form (3 deps or more — see plugin-context.md) hoists the kit instead:
 // Shell.withDeps({ config: "base/config" }).define((plugin) => {
 //   const { config, fmt } = plugin;
 //   return {

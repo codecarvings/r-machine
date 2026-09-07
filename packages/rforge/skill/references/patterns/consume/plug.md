@@ -36,7 +36,12 @@ even though a gear reaches a shell only indirectly (as a locale loader via
 from a React bundle; a compile error). See
 [../../concepts/dep-asymmetry.md](../../concepts/dep-asymmetry.md).
 
-**List form** — positional; `useR()` returns a tuple, deps first and `$` last:
+**Which form** — up to 2 deps: list. From 3 up: map. The rule and what follows
+from it (kit access, test overrides) are in
+[../plugin-context.md](../plugin-context.md).
+
+**List form** (up to 2 deps) — positional; `useR()` returns a tuple, deps first and
+`$` last:
 
 ```tsx
 const plug = Plug("outer/timer", "shell/timer");
@@ -51,11 +56,15 @@ export function Timer() {
 Timer.plug = plug;
 ```
 
-**Map form** — named (clearer beyond two deps):
+**Map form** (3 deps or more) — named; `useR()` returns an object:
 
 ```tsx
-const plug = Plug({ timer: "outer/timer", t: "shell/timer" });
-const { timer, t, $ } = plug.useR();
+const plug = Plug({
+  timer: "outer/timer",
+  t: "shell/timer",
+  cfg: "base/config",
+});
+const { timer, t, cfg, $ } = plug.useR();
 ```
 
 The same shape works on `ClientPlug` / `ServerPlug` / `DirectPlug` (Server and

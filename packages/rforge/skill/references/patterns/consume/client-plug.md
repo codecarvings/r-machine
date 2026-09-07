@@ -17,7 +17,8 @@ CartButton.plug = plug;
 ```
 
 **Multiple resources** (a gear + a localized shell, etc.) — list/map form, same as
-[plug.md](./plug.md#consume-multiple-resources):
+[plug.md](./plug.md#consume-multiple-resources) (up to 2 deps list, 3 or more map —
+[../plugin-context.md](../plugin-context.md)):
 `ClientPlug("outer/cart", "shell/cart")` → `const [cart, s, $] = plug.useR()`.
 
 **Deps allowed** — `gear:base`, `gear:outer`, `gear:outer(vertex)`, `shell` /

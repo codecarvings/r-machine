@@ -71,12 +71,10 @@ reuse another locale's content). `res` comes from `createToolset()`.
 
 ```ts
 // prv/inner/mailer.ts — sends a confirmation email in the RECIPIENT's locale
-InnerGear.withDeps({
-  mail: res.perLocale("shell/mail"),
-})
+InnerGear.withDeps(res.perLocale("shell/mail"))
   .withPorts({ sendMail })
   .define((plugin) => {
-    const { mail, $ } = plugin;
+    const [mail, $] = plugin;
     return {
       confirm: async (to: string, locale: Locale) => {
         const s = await mail(locale);

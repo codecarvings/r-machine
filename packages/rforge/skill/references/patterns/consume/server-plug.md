@@ -120,7 +120,8 @@ export default function CatalogPage(props: PageProps<"/[locale]">) {
 ```
 
 **Multiple resources** (inner gear + shells, etc.) — list/map form, same as
-[plug.md](./plug.md#consume-multiple-resources), but async:
+[plug.md](./plug.md#consume-multiple-resources) (up to 2 deps list, 3 or more map —
+[../plugin-context.md](../plugin-context.md)), but async:
 `ServerPlug("inner/catalog", "shell/product")` → `const [catalog, s, $] = await plug.useR(params)`.
 
 **Deps allowed** — `gear:inner`, `gear:base`, `shell` / `shell(mono)`. `ServerPlug` is

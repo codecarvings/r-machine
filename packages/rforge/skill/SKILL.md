@@ -319,7 +319,9 @@ Consult the matching pattern file for the chosen family — load only that one:
 | `gear:inner`            | `references/patterns/inner.md`  |
 | `shell` / `shell(mono)` | `references/patterns/shell.md`  |
 
-Cross-cutting: `references/patterns/plugin-context.md` (map vs list form) and
+Cross-cutting: `references/patterns/plugin-context.md` (map vs list form — deps are
+declared positionally up to 2 and by name from 3 up; the form also decides how the
+`plugin` argument is shaped and how kit entries are reached) and
 `references/patterns/atlas-update.md` (atlas edit). To consume the resource, see
 `references/patterns/consume/<plug>.md`; to test it, `references/testing.md`.
 

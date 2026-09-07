@@ -20,7 +20,7 @@ export const r = OuterGear.define(() => ({
 export type Outer_Foo = RShape<typeof r>;
 ```
 
-## OuterGear — stateless, with deps (list form)
+## OuterGear — stateless, with deps (list form — up to 2 deps)
 
 ```ts
 import { OuterGear, type RShape } from "@/r-machine/setup";
@@ -37,16 +37,20 @@ export const r = OuterGear.withDeps("outer/other", "base/config").define(
 export type Outer_Foo = RShape<typeof r>;
 ```
 
-Use the **map form** for three or more deps (survives renames better):
+## OuterGear — stateless, with deps (map form — 3 deps or more)
+
+From the third dep on, switch to names — see
+[plugin-context.md](./plugin-context.md) for the rule and what follows from it.
 
 ```ts
 export const r = OuterGear.withDeps({
   other: "outer/other",
+  session: "outer/session",
   cfg: "base/config",
 }).define((plugin) => {
-  const { other, cfg } = plugin;
+  const { other, session, cfg } = plugin;
   return {
-    combined: () => other.value + cfg.apiBase,
+    combined: () => other.value + session.id + cfg.apiBase,
   };
 });
 ```
