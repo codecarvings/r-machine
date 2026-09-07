@@ -65,6 +65,23 @@ Follow the framework-specific reference file exactly. Generate all required
 files and show them to the user. Explain any placeholder that needs
 customisation (real domain names, locale lists, etc.).
 
+**Say here that setup also touches the agent instruction files.** The routing
+stanza (A.5) is part of setup, not an extra — but a user who did not expect
+`AGENTS.md` / `CLAUDE.md` to change reads it as the skill editing files behind
+their back. Announce it alongside the generated files, in one short passage:
+
+```text
+Setup also appends a short R-Machine routing stanza to AGENTS.md, and the line
+@AGENTS.md to CLAUDE.md. That stanza is what makes a later plain request ("add a
+timer") come back to this skill instead of being hand-rolled. Both writes are
+append-only — nothing you already have is overwritten.
+```
+
+This is an **opt-out point, not a gate**: state it and carry on with A.4. Skip
+A.5 only if the user objects. Do not turn it into a yes/no question — the user
+cannot yet know what the stanza is for, and a "no" here silently costs them the
+routing they just asked for.
+
 ## A.4 — Next steps after initial setup
 
 After generating the config files, tell the user:
@@ -94,6 +111,11 @@ So that a **later, plain feature request** (which names no R-Machine terms) stil
 routes through this skill, record that this is an R-Machine project in the agent
 instruction files at the project root. The stanza is written **once**, in
 `AGENTS.md`; `CLAUDE.md` only points at it.
+
+You already announced this in A.3 — **write it, don't ask again**. Asking twice
+turns a disclosed step into a negotiation. (Outside Mode A it is the reverse: on
+a project that is already set up, the user's request was a feature, not project
+configuration, so the stanza is _offered_ — see SKILL.md Section C step 5.)
 
 **1. `AGENTS.md` — the stanza itself.** This is the vendor-neutral file (Claude
 Code, Cursor, Codex, Copilot all read it), so it holds the content.
@@ -125,6 +147,13 @@ code span is **not** resolved):
 **Idempotent** — before writing either file, skip it if it already contains an
 equivalent R-Machine routing stanza, and skip `CLAUDE.md` if it already imports
 `@AGENTS.md`.
+
+**3. Report what you wrote.** List the two files in the setup summary next to the
+generated ones, with the reason and the way out, e.g. "Appended the R-Machine
+routing stanza to `AGENTS.md` and `@AGENTS.md` to `CLAUDE.md`, so later plain
+feature requests route through the skill — delete the stanza to opt out." Name
+whichever file you skipped and why (already had the stanza, symlink, user
+declined). The user must never discover these edits from a diff.
 
 The stanza to write into `AGENTS.md`:
 

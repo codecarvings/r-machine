@@ -123,7 +123,9 @@ resource — it decomposes into several. Section C plans that decomposition, the
 5. **Routing stanza fallback**: if this project's `AGENTS.md` lacks the R-Machine
    routing stanza (e.g. it was set up by hand, or before this skill version),
    offer to add it — see [`references/setup.md`](references/setup.md) **A.5** for
-   the exact text and rules. A project set up by
+   the exact text and rules. **Ask, and wait for a yes.** Unlike Mode A setup, the
+   request here was a feature; editing the project's agent instruction files is
+   outside it, so it is a proposal, not a disclosed step. A project set up by
    an older skill version may instead carry the stanza duplicated in **both**
    `AGENTS.md` and `CLAUDE.md`; offer to collapse `CLAUDE.md` to `@AGENTS.md`,
    keeping any other content it has.
