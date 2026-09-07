@@ -129,6 +129,13 @@ the **only** consumer that reaches server-only `inner/` gears; conversely it **c
 reach `outer/` or `vertex/` gears (client-reactive — consume those with `ClientPlug`).
 See [../../concepts/dep-asymmetry.md](../../concepts/dep-asymmetry.md).
 
+**Kit access** — kit entries reach the consumer as **`$.kit.<entry>`** in list form
+(`$.kit.fmt.currency(price)`); the map form additionally hoists them as top-level
+keys, so `const { catalog, fmt, $ } = await plug.useR(params)` works too. Same rule as a declaration
+site — [../plugin-context.md](../plugin-context.md). The declaration site differs per plug
+(`kit` / `clientKit` / `serverKit` on the strategy, `directKit` on
+`RMachine.create`), but the access path is `$.kit` for all of them.
+
 **Localized links** — build type-safe localized URLs with the awaited `$`:
 `$.getPath("/product/[id]", { id })` (needs a `PathAtlas`, default-created for Next);
 see [../../next-features.md](../../next-features.md#pathatlas-and-localized-urls).

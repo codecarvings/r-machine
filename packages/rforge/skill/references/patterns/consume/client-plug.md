@@ -58,6 +58,13 @@ export function LocaleSwitcher() {
 LocaleSwitcher.plug = plug;
 ```
 
+**Kit access** — kit entries reach the consumer as **`$.kit.<entry>`** in list form
+(`$.kit.fmt.currency(price)`); the map form additionally hoists them as top-level
+keys, so `const { cart, fmt, $ } = plug.useR()` works too. Same rule as a declaration
+site — [../plugin-context.md](../plugin-context.md). The declaration site differs per plug
+(`kit` / `clientKit` / `serverKit` on the strategy, `directKit` on
+`RMachine.create`), but the access path is `$.kit` for all of them.
+
 **Localized links** — build type-safe localized URLs with
 `$.getPath("/product/[id]", { id })` (needs a `PathAtlas`, default-created for Next);
 see [../../next-features.md](../../next-features.md#pathatlas-and-localized-urls).

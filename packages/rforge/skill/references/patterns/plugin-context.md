@@ -87,5 +87,28 @@ Shell.withDeps("shell/common").define((plugin) => {
 });
 ```
 
+## The same rule on a consumer plug
+
+Every example above is a declaration site, but the form decides the shape of
+`useR()`'s result in exactly the same way — the plugin type is shared. Kit access
+on a consumer is not an analogy; it is the same rule.
+
+```tsx
+// List form — a tuple: deps first, `$` last. The kit goes through `$`.
+const plug = Plug("outer/cart", "shell/cart");
+const [cart, s, $] = plug.useR();
+$.kit.fmt.currency(cart.subtotal);
+
+// Map form — an object: named deps, `$`, and the kit keys alongside them.
+const plug = Plug({ cart: "outer/cart", copy: "shell/cart", nav: "shell/nav" });
+const { cart, copy, fmt, $ } = plug.useR();
+fmt.currency(cart.subtotal); // same surface as $.kit.fmt.currency(...)
+```
+
+`$.kit.<entry>` works in **both** forms, so it is the safe default when you are
+unsure. One catch in the map form: **a dep name shadows a kit key of the same
+name.** Name a dep `fmt` and the top-level `fmt` is that dep — the kit entry is
+then reachable only as `$.kit.fmt`.
+
 Rule of thumb: if you destructure with `{ }`, kit keys are available directly.
 If you destructure with `[ ]`, you must use `$` for the kit.
