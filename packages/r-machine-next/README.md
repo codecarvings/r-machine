@@ -381,19 +381,3 @@ resolved from each request:
 
 `@r-machine/next/dev` exports `createNextDevImport`, a [jiti](https://github.com/unjs/jiti)-based
 loader that keeps resource modules hot-reloading correctly under `next dev`.
-
----
-
-## License
-
-`@r-machine/next` is licensed under the
-[GNU Affero General Public License v3.0](./LICENSE) (AGPL-3.0-only).
-
-This means:
-
-- ✅ Free to use in open source projects with a compatible license
-- ✅ Free to modify and distribute under the same terms
-- ❌ **Cannot** be used in closed-source / proprietary software
-
-> If you need to use `@r-machine/next` in a proprietary project,
-> reach out at licensing@codecarvings.com to discuss a commercial arrangement.

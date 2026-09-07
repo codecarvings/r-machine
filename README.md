@@ -200,17 +200,3 @@ pnpm test
 # Format and lint
 pnpm check
 ```
-
-## License
-
-| Package | License |
-|---|---|
-| `r-machine` | [AGPL-3.0](./LICENSE) |
-| `@r-machine/react` | [AGPL-3.0](./LICENSE) |
-| `@r-machine/next` | [AGPL-3.0](./LICENSE) |
-| `@r-machine/testing` | [AGPL-3.0](./LICENSE) |
-| `rforge` | [AGPL-3.0](./LICENSE) |
-
-> All packages are free for open source projects.
-> If you need to use them in a proprietary project, reach out at 
-> licensing@codecarvings.com to discuss a commercial arrangement.

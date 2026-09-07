@@ -65,19 +65,3 @@ after upgrading `rforge`), the command offers to update it; otherwise it reports
 that nothing needs doing. Use `--force` to refresh unconditionally.
 
 Commit the installed folder(s) to share the Skill with your team.
-
----
-
-## License
-
-`rforge` is licensed under the
-[GNU Affero General Public License v3.0](./LICENSE) (AGPL-3.0-only).
-
-This means:
-
-- ✅ Free to use in open source projects with a compatible license
-- ✅ Free to modify and distribute under the same terms
-- ❌ **Cannot** be used in closed-source / proprietary software
-
-> If you need to use `rforge` in a proprietary project,
-> reach out at licensing@codecarvings.com to discuss a commercial arrangement.

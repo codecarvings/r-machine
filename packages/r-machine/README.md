@@ -173,19 +173,3 @@ consume resources through `DirectPlug`, passing the locale explicitly to
 `useR(locale)` — ideal for workers, cron jobs, scripts, or template renderers. Setup
 collapses to `setup.ts` + `resource-atlas.ts` (no provider, `toolset.ts`, or
 `path-atlas.ts`). See the [`standalone` example](https://github.com/codecarvings/r-machine/tree/main/examples/standalone).
-
----
-
-## License
-
-`r-machine` is licensed under the
-[GNU Affero General Public License v3.0](./LICENSE) (AGPL-3.0-only).
-
-This means:
-
-- ✅ Free to use in open source projects with a compatible license
-- ✅ Free to modify and distribute under the same terms
-- ❌ **Cannot** be used in closed-source / proprietary software
-
-> If you need to use `r-machine` in a proprietary project,
-> reach out at licensing@codecarvings.com to discuss a commercial arrangement.

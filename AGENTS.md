@@ -125,8 +125,9 @@ branches: `@r-machine/source` → `./src/…/index.ts`, `types` → the built `.
 - **Biome** owns formatting and linting (2-space indent, width 120, double
   quotes, ES5 trailing commas, import organisation). Run `pnpm check` before you
   call a change done — CI runs `check:dry` and fails on drift.
-- **Every new file under `packages/*/src/` carries the AGPL header** — copy the
-  12-line block verbatim from a sibling file. Test files do not carry it.
+- **Every new file under `packages/*/src/` carries the SPDX licence header** —
+  copy the 4-line block verbatim from a sibling file. It is identical in every
+  file and every package. Test files do not carry it.
 - **Type-driven first.** Design the types with zero runtime, iterate until the
   surface is right, then implement. Type tests are part of the API contract, not
   an afterthought.

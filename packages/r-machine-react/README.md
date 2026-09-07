@@ -334,19 +334,3 @@ The plugin is **plain, commented code you own** — copy it and adapt the paths 
 your project layout as needed. When you scaffold a Vite project with the
 [`rforge`](https://www.npmjs.com/package/rforge) skill, it sets up an analogous
 plugin for you.
-
----
-
-## License
-
-`@r-machine/react` is licensed under the
-[GNU Affero General Public License v3.0](./LICENSE) (AGPL-3.0-only).
-
-This means:
-
-- ✅ Free to use in open source projects with a compatible license
-- ✅ Free to modify and distribute under the same terms
-- ❌ **Cannot** be used in closed-source / proprietary software
-
-> If you need to use `@r-machine/react` in a proprietary project,
-> reach out at licensing@codecarvings.com to discuss a commercial arrangement.

@@ -108,19 +108,3 @@ Two more helpers:
 - **`verifyResourceAtlas(setupFile)`** — asserts every shell resolves in every
   configured locale, catching missing translations at test time.
 - **`createEventCollector()`** — captures resource lifecycle events for assertions.
-
----
-
-## License
-
-`@r-machine/testing` is licensed under the
-[GNU Affero General Public License v3.0](./LICENSE) (AGPL-3.0-only).
-
-This means:
-
-- ✅ Free to use in open source projects with a compatible license
-- ✅ Free to modify and distribute under the same terms
-- ❌ **Cannot** be used in closed-source / proprietary software
-
-> If you need to use `@r-machine/testing` in a proprietary project,
-> reach out at licensing@codecarvings.com to discuss a commercial arrangement.
