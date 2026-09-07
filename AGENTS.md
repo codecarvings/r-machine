@@ -176,6 +176,12 @@ reading it has **zero training data** about this library. So:
 - Write down what cannot be guessed. Do not document what an LLM would infer.
 - **Verify every claim against `examples/`** before writing it. If a pattern is
   not exercised by a real example, it is a hypothesis, not documentation.
+- **Verify against `examples/`, but never point at it.** The Skill is installed
+  into a *consumer* project, which has no `examples/` — a bare path like
+  `examples/next` sends the reading model after a directory that isn't there.
+  Inline the code you learned from it, or link the public URL
+  (`https://github.com/codecarvings/r-machine/tree/main/examples/…`). The same
+  goes for any other path that exists only in this repo.
 - `docs/llms.txt` and `docs/llms-full.txt` are published for LLM consumers and
   have a hard size budget — prefer a code comment plus a changeset over adding
   prose there.

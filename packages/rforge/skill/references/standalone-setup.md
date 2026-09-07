@@ -3,7 +3,8 @@
 Use this guide when adding R-Machine to a plain Node project with **no framework
 strategy** — a CLI, a queue worker, a cron job, or a template renderer.
 Resources are consumed container-free via `DirectPlug` (the locale is passed
-explicitly to `useR(locale)`). Canonical working reference: `examples/standalone`.
+explicitly to `useR(locale)`). Canonical working reference:
+<https://github.com/codecarvings/r-machine/tree/main/examples/standalone>.
 
 `DirectPlug` consumes only the `valid@direct` families — **`gear:base`, `shell`,
 `shell(mono)`**. No `outer`/`inner`/`vertex` gears (those need a stateful
