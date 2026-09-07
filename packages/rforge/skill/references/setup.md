@@ -34,7 +34,7 @@ If unclear, ask the user.
 For **Next.js**, ask (or infer from context):
 
 1. Which routing strategy? Path / Flat / Origin
-2. Locales (e.g. `["en", "it"]`) and default locale
+2. Locales and default locale — see **Asking for locales** below
 3. Path strategy only: proxy or no-proxy?
 4. Origin strategy only: the origin map (`{ en: "https://…", it: "https://…" }`)
 5. Use a formatter shell (`shell/lib/fmt`)? Recommended — default yes.
@@ -44,12 +44,12 @@ ask about it.)
 
 For **React**, ask (or infer):
 
-1. Locales and default locale
+1. Locales and default locale — see **Asking for locales** below
 2. Locale persistence: `localStorage` (default), cookie, or none
 
 For **Standalone / Node**, ask (or infer):
 
-1. Locales and default locale
+1. Locales and default locale — see **Asking for locales** below
 2. Which shared resources to expose as `directKit` (e.g. a `shell/lib/fmt`
    formatter)? Optional.
 
@@ -58,6 +58,34 @@ details in `./standalone-setup.md`.)
 
 Don't ask for everything at once if the intent is already clear from the
 message.
+
+### Asking for locales
+
+The locale list is **business data the project owner already has**. It is not
+inferable — not from the framework, not from the codebase, and not from the
+example lists in these reference files. So:
+
+- **Never propose a locale list.** Ask openly ("which locales, and which is the
+  default?") and take the answer as given. `["en", "it"]` appears throughout
+  these references as an _example shape_, never as a recommendation — offering
+  it as a pre-selected or "recommended" choice invents a project requirement the
+  user never stated. The same holds for every other piece of project-specific
+  business data (the origin map's real domains, the default locale): ask open,
+  do not dress a guess as a recommended option.
+- **One locale is a first-class setup, not a degraded one.** If the answer is a
+  single locale, take it and move on — do not talk the user into a second one
+  "to exercise the machinery". `locales: ["en"]` is fully valid; only an empty
+  list is rejected. A single-locale project already has the architecture right:
+  that is the point of the shell boundary, not a consolation prize.
+- **If the user is undecided, state the real cost.** Each extra locale is one
+  more sibling file per content shell, permanently. There is **no fallback
+  chain**: a shell resolves to `shell/<name>/<locale>`, and a missing locale
+  file is a resolve error, not a silent fall back to the default locale.
+- **Adding a locale later is additive, so "just in case" is never a reason.**
+  Extend `locales`, then add one sibling file per content shell. Gears,
+  components, `resource-atlas.ts` and `path-atlas.ts` are untouched — an absent
+  per-locale key in `path-atlas.ts` simply leaves that route untranslated in the
+  new locale, it does not break the build.
 
 ## A.3 — Generate the files
 

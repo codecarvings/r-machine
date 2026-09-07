@@ -256,8 +256,13 @@ Step 4, "Where the file lives":
 | `shell/product` | `pub/shell/product/en.tsx` (+ one file per extra locale) |
 | `shell/lib/fmt` | `pub/shell/lib/fmt.ts` (mono — single file)              |
 
-For multi-locale shells, the canonical file is `en.tsx` (or the project's
-`defaultLocale`). Additional locale files live as siblings.
+A content shell **always** lives in a folder with one file per locale, named
+after the locale — `shell/product/en.tsx`, never `shell/product.tsx`. The
+canonical file is the project's `defaultLocale` (`en.tsx` above) and exports the
+type; other locale files are siblings. **This holds for a single-locale project
+too**: with `locales: ["en"]` the shell is still `pub/shell/product/en.tsx`,
+because the resolver always looks for `shell/<name>/<locale>`. `shell(mono)` is
+the only shell family that is a single file.
 
 **Shell extension follows the project's UI.** In **React / Next** projects, content
 shells are **always `.tsx`** — these render JSX, and `.tsx` is correct for plain

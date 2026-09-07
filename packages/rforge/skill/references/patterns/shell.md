@@ -4,9 +4,11 @@ Code templates for the `shell` / `shell(mono)` families. For the map-form vs
 list-form plugin rule see [plugin-context.md](./plugin-context.md); to test a
 Shell see [../testing.md](../testing.md).
 
-For multi-locale shells: the canonical file is `en` (or the project's
-`defaultLocale`) and exports the type; every other locale file is a sibling that
-uses `localized(...)`. **Extension:** `.tsx` in React/Next projects (used in the
+A content shell is always a folder with one file per locale: the canonical file
+is `en` (or the project's `defaultLocale`) and exports the type; every other
+locale file is a sibling that uses `localized(...)`. A **single-locale** project
+has exactly the canonical file — `shell/product/en.tsx`, still in its folder,
+never `shell/product.tsx` (SKILL.md Step 3). **Extension:** `.tsx` in React/Next projects (used in the
 JSX examples below); `.ts` in a plain Node project with no JSX (see the rule in
 SKILL.md Step 3).
 
