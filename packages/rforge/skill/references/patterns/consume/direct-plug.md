@@ -69,8 +69,9 @@ Notes:
 runs against the mock; untouched deps stay real:
 
 ```ts
+// tests/render.test.ts — mirrors src/render.ts; the test does NOT sit next to it
 import { mockPlug } from "@r-machine/testing";
-import { render } from "./render"; // render.plug = DirectPlug("shell/greeting", "base/config")
+import { render } from "@/render.ts"; // render.plug = DirectPlug("shell/greeting", "base/config")
 
 using _ctrl = mockPlug(render).with({
   0: { greet: (n: string) => `MOCK ${n}` },

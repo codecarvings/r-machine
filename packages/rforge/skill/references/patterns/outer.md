@@ -452,6 +452,7 @@ In a test, the `TestSurface` still sees it: `(await ctrl.createRes()).$bump()`
 ## Test it
 
 ```ts
+// tests/r-machine/pub/outer/counter.test.ts — mirrors the source path
 import { mockPlug } from "@r-machine/testing";
 import { r } from "@/r-machine/pub/outer/counter";
 

@@ -307,6 +307,7 @@ exact-key type-check, so the default is to **skip the test**. If you want one,
 import each locale module and assert its `r` directly — no mock:
 
 ```ts
+// tests/r-machine/pub/shell/home.test.ts — named after the shell folder, not per locale
 // Alias each locale import — do NOT use `en`/`it`. With vitest globals on, a local
 // `it` shadows the global `it()` test fn → `TS2349: expression is not callable`.
 import { r as enHome } from "@/r-machine/pub/shell/home/en";
@@ -322,6 +323,7 @@ it("en/it content", () => {
 `$: { locale }` (override a kit entry with `$: { kit: { fmt: { … } } }`):
 
 ```ts
+// tests/r-machine/pub/shell/greeting.test.ts — named after the shell folder, not per locale
 import { mockPlug } from "@r-machine/testing";
 import { r as greet } from "@/r-machine/pub/shell/greeting/en";
 

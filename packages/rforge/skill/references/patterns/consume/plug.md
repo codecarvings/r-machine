@@ -137,9 +137,11 @@ state with `ctrl.deps[…].state`; the real getters/actions run, so an interacti
 re-renders through real reactivity:
 
 ```tsx
+// tests/components/cart-button.test.tsx — mirrors src/components/cart-button.tsx;
+// the test does NOT sit next to the component.
 import { mockPlug } from "@r-machine/testing";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { CartButton } from "./cart-button";
+import { CartButton } from "@/components/cart-button";
 
 it("renders seeded state and reacts to the real action", async () => {
   using ctrl = mockPlug(CartButton).with({ $: { ambientLocale: "en" } });

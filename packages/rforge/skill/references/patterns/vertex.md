@@ -34,4 +34,6 @@ Reminders:
 
 A vertex gear is an OuterGear — test it the same way (mock its plug, seed state,
 run the real members). Because it cannot be a dep, you mock its OWN plug
-directly. See [outer.md](./outer.md#test-it) and [../testing.md](../testing.md).
+directly. Its test mirrors the source path
+(`src/r-machine/pub/vertex/shopping-cart.ts` → `tests/r-machine/pub/vertex/shopping-cart.test.ts`).
+See [outer.md](./outer.md#test-it) and [../testing.md](../testing.md).

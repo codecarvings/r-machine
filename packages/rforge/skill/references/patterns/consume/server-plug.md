@@ -148,8 +148,10 @@ THROUGH this plug by position/name.
 
 ```tsx
 // @vitest-environment node
+// tests/app/product-page.test.tsx — mirrors src/app/[locale]/product/[id]/page.tsx
 import { mockPlug } from "@r-machine/testing";
-import ProductPage from "./product-page"; // the plug rides along as ProductPage.plug
+// the plug rides along as ProductPage.plug
+import ProductPage from "@/app/[locale]/product/[id]/page";
 
 // ProductPage.plug = ServerPlug("shell/product") → dep 0 is the product shell.
 using _ctrl = mockPlug(ProductPage).with({ 0: { title: "Mock Title" } });

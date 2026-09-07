@@ -63,6 +63,7 @@ export type Base_Db = RShape<typeof r>;
 ## Test it
 
 ```ts
+// tests/r-machine/pub/base/config.test.ts — mirrors the source path
 import { mockPlug } from "@r-machine/testing";
 import { r } from "@/r-machine/pub/base/config";
 
