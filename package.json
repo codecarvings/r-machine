@@ -29,7 +29,6 @@
     "size:why": "size-limit --why --save-bundle ./size-limit",
     "prepare": "husky",
     "dev": "tsx --conditions @r-machine/source",
-    "dev:play": "pnpm dev play.tsx",
     "changeset": "changeset",
     "__changeset:pre-enter": "changeset pre enter",
     "__changeset:pre-exit": "changeset pre exit",

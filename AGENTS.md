@@ -54,7 +54,6 @@ pnpm is the package manager (version pinned in `packageManager`); CI runs Node 2
 | `pnpm build:packages` / `pnpm build:examples` | Half of the above. |
 | `pnpm test:e2e` | Playwright. Requires a prior `pnpm build` — the web servers run each example's `start`/`preview`. |
 | `pnpm check` | Biome format + lint, writing. `pnpm check:dry` is the CI variant that fails on drift. |
-| `pnpm dev:play` | Runs the root `play.tsx` scratchpad under `tsx` with the source condition — the quickest way to poke at the API by hand. |
 | `pnpm size` / `pnpm size:why` | size-limit budgets on the built entry points. |
 | `pnpm changeset` | Record a release note (see below). |
 
