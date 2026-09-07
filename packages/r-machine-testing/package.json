@@ -35,6 +35,9 @@
     "gear",
     "plug"
   ],
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "sideEffects": false,
   "files": [
     "**/*.js",
@@ -42,7 +45,8 @@
     "**/*.cjs",
     "**/*.d.ts",
     "**/*.d.mts",
-    "**/*.d.cts"
+    "**/*.d.cts",
+    "!**/coverage/**"
   ],
   "main": "./lib/index.cjs",
   "types": "./lib/index.d.cts",
@@ -83,7 +87,7 @@
     "test:watch": "pnpm vitest watch --typecheck"
   },
   "peerDependencies": {
-    "r-machine": "workspace:*",
+    "r-machine": "workspace:^",
     "typescript": ">=5.0.0"
   },
   "peerDependenciesMeta": {

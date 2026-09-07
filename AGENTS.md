@@ -144,14 +144,26 @@ branches: `@r-machine/source` → `./src/…/index.ts`, `types` → the built `.
 ## Changesets & release
 
 - Any change to `packages/*` that a consumer could notice needs a changeset:
-  `pnpm changeset`. The five published packages are **`linked`**, so they version
-  together; `examples/*` and the benchmark are ignored.
+  `pnpm changeset`. The five published packages are **`fixed`**, so every release
+  bumps all five to one version; `examples/*` and the benchmark are ignored.
+  `fixed` rather than `linked` is load-bearing: `linked` only aligns packages
+  that are *already* releasing, and since the inter-package `peerDependencies`
+  use `workspace:^` (which the new version still satisfies) a package with no
+  changeset of its own would otherwise be left behind at an unpublished version.
 - The repo is in changesets **pre-release mode**; `.changeset/pre.json` holds the
-  current tag.
+  current tag. Changesets **already released** under that tag live in
+  `.changeset/pre/` — leave them there; a new changeset belongs at the top level
+  of `.changeset/`, which is where `pnpm changeset` puts it. Never run
+  `changeset version` (or `pnpm version-packages`) by hand — it is CI's job on
+  `main`. `changeset status` is the safe local preview.
 - Release is automated: pushing to `main` runs `changeset version` →
   `scripts/sync-example-deps.ts` (rewrites `examples/*` dependency ranges to the
-  freshly-versioned core) → `changeset publish`. Do not hand-edit example
-  dependency ranges or package versions.
+  freshly-versioned core) → `changeset publish` → `scripts/update-npm-dist-tags.ts`.
+  Do not hand-edit example dependency ranges or package versions.
+- That last script is not optional bookkeeping: in pre-release mode
+  `changeset publish` stops moving the `latest` dist-tag as soon as a second pre
+  tag exists, so without it `npm install r-machine` would keep serving the last
+  release of the *previous* tag. It moves `latest` too, never backwards.
 
 ---
 
