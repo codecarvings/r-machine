@@ -31,7 +31,7 @@
     "dev": "tsx --conditions @r-machine/source",
     "dev:play": "pnpm dev play.tsx",
     "changeset": "changeset",
-    "__changeset:pre-enter-alpha": "changeset pre enter alpha",
+    "__changeset:pre-enter": "changeset pre enter",
     "__changeset:pre-exit": "changeset pre exit",
     "version-packages": "changeset version && tsx scripts/sync-example-deps.ts && pnpm install --lockfile-only && pnpm check",
     "release": "pnpm build:packages && changeset publish"
