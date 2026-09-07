@@ -13,9 +13,9 @@ function CounterWidget({ label }: { label: string }) {
   );
 }
 
-const framePlug = Plug({ counter: "vertex/counter", showcase: "shell/showcase" });
+const framePlug = Plug("vertex/counter", "shell/showcase");
 export function VertexDemo() {
-  const { counter, showcase: s } = framePlug.useR();
+  const [counter, s] = framePlug.useR();
 
   return (
     <div className="space-y-6">

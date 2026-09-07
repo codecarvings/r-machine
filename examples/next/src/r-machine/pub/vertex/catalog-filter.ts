@@ -7,10 +7,10 @@ export type CatalogSort = "price-asc" | "price-desc" | "name";
 // the request, not the browser session. Ideal for transient page UI state like
 // the catalog sort/category selection — it must NOT survive navigation the way
 // the cart does.
-export const r = OuterGear.withDeps({ store: "base/store-config" })
+export const r = OuterGear.withDeps("base/store-config")
   .withState({ sort: "price-asc" as CatalogSort, category: null as string | null })
   .define((plugin, _) => {
-    const { store, $ } = plugin;
+    const [store, $] = plugin;
 
     // Seed the initial sort from store config.
     _.action()({ sort: store.defaultSort });

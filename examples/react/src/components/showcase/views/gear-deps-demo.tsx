@@ -2,9 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plug } from "@/r-machine/toolset";
 
-const plug = Plug("outer/operator", "outer/timer", "shell/showcase");
+const plug = Plug({ operator: "outer/operator", timer: "outer/timer", showcase: "shell/showcase" });
 export function GearDepsDemo() {
-  const [operator, timer, s] = plug.useR();
+  const { operator, timer, showcase: s } = plug.useR();
 
   return (
     <Card>

@@ -8,9 +8,9 @@ import { ServerPlug } from "@/r-machine/server-toolset";
 // `shell/product` and `shell/catalog` chrome. The price is formatted server-side
 // via the `fmt` kit; the only interactive bit (Add to cart) is delegated to a
 // client island that receives the product as plain props.
-const plug = ServerPlug("inner/catalog", "shell/product", "shell/catalog");
+const plug = ServerPlug({ catalog: "inner/catalog", sProduct: "shell/product", sCatalog: "shell/catalog" });
 export default async function ProductPage({ params }: PageProps<"/[locale]/product/[id]">) {
-  const [catalog, sp, sc, $] = await plug.useR(params);
+  const { catalog, sProduct, sCatalog, $ } = await plug.useR(params);
 
   const product = catalog.byId($.params.id);
   if (!product) {
@@ -21,17 +21,17 @@ export default async function ProductPage({ params }: PageProps<"/[locale]/produ
     <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="max-w-3xl mx-auto space-y-6">
         <Link href={$.getPath("/")} className="text-sm text-primary underline">
-          {sp.backToCatalog}
+          {sProduct.backToCatalog}
         </Link>
 
         <div className="space-y-3">
-          <Badge variant="secondary">{sc.category[product.category as keyof typeof sc.category]}</Badge>
+          <Badge variant="secondary">{sCatalog.category[product.category as keyof typeof sCatalog.category]}</Badge>
           <h1 className="text-3xl font-bold tracking-tight">{product.name}</h1>
           <p className="text-muted-foreground">{product.blurb}</p>
         </div>
 
         <p className="text-4xl font-bold tabular-nums">{$.kit.fmt.currency(product.price)}</p>
-        <p className="text-sm text-green-600 font-medium">{sp.inStock}</p>
+        <p className="text-sm text-green-600 font-medium">{sProduct.inStock}</p>
 
         <AddToCartButton product={{ id: product.id, name: product.name, price: product.price }} />
       </div>

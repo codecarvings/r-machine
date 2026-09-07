@@ -7,8 +7,8 @@ import { BaseGear, type RShape, res } from "@/r-machine/setup";
 // resolves it for EVERY configured locale in a single call (locale-major), so a
 // consumer can render all translations at once — independent of the app's
 // active locale.
-export const r = BaseGear.withDeps({ showcase: res.perLocale("shell/showcase") }).define(async (plugin) => {
-  const { showcase } = plugin;
+export const r = BaseGear.withDeps(res.perLocale("shell/showcase")).define(async (plugin) => {
+  const [showcase] = plugin;
   return { preview: await res.perLocale.pickAll(showcase) };
 });
 
