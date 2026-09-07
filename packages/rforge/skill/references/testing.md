@@ -653,6 +653,13 @@ try {
 - **`using` vs `reset()`.** Prefer `using ctrl = mockPlug(...)` (TS auto-dispose).
   A second mock on the same plug before reset throws `ERR_PLUG_ALREADY_MOCKED`.
   Use `resetMockPlugs()` in `afterEach` as a safety net.
+- **Name it `_ctrl` when you never read it.** Plenty of tests only need the mock
+  _active_ for the scope — the binding exists so `Symbol.dispose` runs at the end
+  of the block, and nothing reads it. That is correct code that looks unused, so
+  give it the `_` prefix: linters read the underscore, and a reader sees at a
+  glance that the value is deliberately unused. Keep the plain `ctrl` whenever you
+  do touch it (`ctrl.state`, `ctrl.createRes()`). A stock `create-next-app` ESLint
+  config does not ignore `^_` out of the box — see `./setup.md` A.4.
 - **Pass the carrier, not a bare `plug`.** A consumer attaches its plug
   (`Comp.plug = plug`); hand the consumer/resource to `mockPlug` (`mockPlug(Comp)`,
   `mockPlug(r)`). Passing something with no plug attached — a component that forgot

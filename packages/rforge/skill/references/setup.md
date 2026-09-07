@@ -123,6 +123,33 @@ After generating the config files, tell the user:
    vitest and, if accepted, generate `vitest.config.ts` for the mode + a baseline
    `verifyResourceAtlas` test. R-Machine treats tests as a default, not an extra —
    see `./testing.md`.
+
+   **If the project lints with ESLint, offer the `^_` ignore pattern.** Many mock
+   scopes bind a disposable they never read (`using _ctrl = mockPlug(...)` — the
+   binding exists so `Symbol.dispose` runs at end of scope). A stock
+   `create-next-app` config does not ignore `^_`, so every such test reports
+   `'_ctrl' is assigned a value but never used`: correct code, complaining linter.
+   The fix is one option in `eslint.config.mjs` —
+
+   ```js
+   rules: {
+     "@typescript-eslint/no-unused-vars": ["warn", { varsIgnorePattern: "^_" }],
+   }
+   ```
+
+   `varsIgnorePattern` is the only one this needs: `using _ctrl = …` is a variable
+   declaration, which is why the warning reads _"assigned a value but never
+   used"_. Do not bundle in `argsIgnorePattern` / `caughtErrorsIgnorePattern` —
+   they cover unused parameters and `catch` bindings, which R-Machine's pattern
+   never produces, so proposing them widens the project's lint policy beyond what
+   was asked. If the rule is **already** configured, add the option to the existing
+   object rather than replacing it.
+
+   **Offer it, do not write it.** A lint config is project-wide policy the user may
+   have curated, and in some projects a warning fails CI — this is the same
+   treatment as the `@/` alias, not the same as the files setup owns. Say what the
+   warnings will be and why, and let them decide.
+
 3. **Make the kit type-clean (required).** The kit points at `shell/lib/fmt`,
    which doesn't exist yet → the first `tsc` fails with a `never`. Either scaffold
    it as the first resource (`shell(mono)`, `./patterns/shell.md`) and
