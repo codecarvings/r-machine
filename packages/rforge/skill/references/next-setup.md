@@ -216,6 +216,26 @@ export const { NextClientRMachine, ClientPlug, VertexFrame } =
   await strategy.createClientToolset();
 ```
 
+> **If the project builds with webpack** (`next build --webpack`; Turbopack is
+> Next's default and needs nothing here), webpack warns on this file and on
+> `pub/loader.ts` that the generated code contains async/await while the target
+> environment does not appear to support it. Both use top-level await, and Next
+> targets the client bundle at ES2015, which predates async/await. The bundle is
+> correct — it is only a warning — but to silence it add to `next.config`:
+>
+> ```ts
+> webpack: (config, { isServer }) => {
+>   // drop the ES2015 constraint from the client bundle
+>   if (!isServer) {
+>     config.target = "web";
+>   }
+>   return config;
+> },
+> ```
+>
+> Leave the server branch alone. It already targets Node, and the same branch
+> also covers the edge compilation, which is not Node.
+
 ### 2.4 `server-toolset.ts`
 
 **With proxy** (Path, Flat, Origin strategies — default):
