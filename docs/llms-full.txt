@@ -291,6 +291,8 @@ The factory takes a single first argument — `plugin` — uniform across all fo
 - **Map form** (`withDeps({ name: "ns" })`) — `const { name, $ } = plugin;`, with `$` alongside the named deps.
 - **List form** (`withDeps("ns1", "ns2")`) — `const [dep1, dep2, $] = plugin;`, with `$` always as the last tuple element.
 
+Both forms are available everywhere and the compiler is indifferent to the choice. The convention R-Machine's own examples follow — worth adopting, not enforced — is **list form up to two deps, map form from three up**: past two, position stops being self-evident at the destructuring site, and inserting a dep shifts every later index, including the `mockPlug` override keys (§14.2).
+
 **`res.perLocale("shell/x")` — a `Shell` as a locale-loader dep.** Wrapping a shell namespace with `res.perLocale(...)` (from the toolset, §3.4) resolves it not to a surface but to a **loader** `(locale) => Promise<Surface>`, so a locale-agnostic gear — or a `Shell` reusing another locale — reads localized content at runtime; `locale` is typed to the configured locale union. Usable in `withDeps` of any gear family and `Shell`, in list or map form:
 
 ```ts
@@ -814,8 +816,8 @@ Single-resource returns a one-element tuple; list form is positional, map form n
 
 ```ts
 const [tasks] = Plug("outer/tasks").useR();                                    // single
-const [tasks, common, config] = Plug("outer/tasks", "shell/common", "base/config").useR(); // list
-const { tasks, common, config } = Plug({ tasks: "outer/tasks", common: "shell/common", config: "base/config" }).useR(); // map
+const [tasks, common] = Plug("outer/tasks", "shell/common").useR();             // list (up to 2 deps)
+const { tasks, common, config } = Plug({ tasks: "outer/tasks", common: "shell/common", config: "base/config" }).useR(); // map (from 3 up — §4.1)
 ```
 
 ### 10.2. Variants and runtime contexts
@@ -1662,6 +1664,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-09-05.028
+rev 2026-09-07.029
 Copyright (c) 2026 Sergio Turolla.
 https://codecarvings.com
