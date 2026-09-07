@@ -92,8 +92,9 @@ then loops through Section B for each resulting resource.)
 
 - `resource-atlas.ts` and `setup.ts` already exist, AND
 - The request targets something that **already exists** — change its behavior,
-  add/rename/remove a member, extend a feature, fix a bug ("make the timer count
-  down", "add a pause button to the timer", "rename `cart.add`", "remove X").
+  add/rename/remove a member, extend a feature, fix a bug, or move it to another
+  family ("make the timer count down", "add a pause button to the timer", "rename
+  `cart.add`", "remove X", "let this component appear several times on a page").
 
 → Go to **Section D: Modify or Evolve**. (Section D locates the owning
 resource(s), edits behind the namespace, and reports the blast radius.)
@@ -141,19 +142,21 @@ whole point — **reports the blast radius** back. It edits existing resources; 
 genuinely new piece it dispatches to Section B.
 
 1. **Read [`references/modify.md`](references/modify.md)** — the locate → classify
-   → edit → report procedure and the three kinds of change.
+   → edit → report procedure and the kinds of change.
 2. **Locate** the owning resource(s) via `resource-atlas.ts`. For a feature-level
    change spanning several resources, decompose the _change_ with the rubric in
    [`references/decompose.md`](references/decompose.md) to find every affected owner.
 3. **Classify** each change — implementation-only (Surface unchanged) / additive
-   (new member) / breaking (rename, remove, re-type) — then **edit behind the
-   namespace**, keeping the Surface stable unless the contract must change.
+   (new member) / breaking (rename, remove, re-type) / relocation (same Surface,
+   different family or namespace) — then **edit behind the namespace**, keeping
+   the Surface stable unless the contract must change.
 4. **Run the typecheck gate** (`tsc --noEmit`). The compiler names exactly the
    consumers/tests a breaking change touches — update precisely those. Mocks and
    fixtures track the same contract, so a rename propagates into tests, not rot.
 5. **Report the blast radius** explicitly: _"Surface unchanged → nothing
    downstream"_ / _"additive → only new usage"_ / _"breaking → tsc flagged these N
-   sites, all updated"_. Make the property visible.
+   sites, all updated"_ / _"relocation → the body is unchanged, only its address
+   moved"_. Make the property visible.
 
 ---
 

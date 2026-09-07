@@ -23,7 +23,7 @@ resources; to add a genuinely new one it dispatches to **SKILL.md Section B**.
    use the rubric in [decompose.md](./decompose.md) to find every affected owner.
 
 2. **Classify the change** (this decides the blast radius — see next section):
-   implementation-only, additive, or breaking.
+   implementation-only, additive, breaking, or relocation.
 
 3. **Edit behind the namespace.** Change the factory body / state / members in
    place. Keep the **Surface** (the public shape consumers see) stable unless the
@@ -39,13 +39,17 @@ resources; to add a genuinely new one it dispatches to **SKILL.md Section B**.
 
 ---
 
-## The three kinds of change (and their blast radius)
+## The kinds of change (and their blast radius)
 
-| Change                  | What you did                                  | Blast radius                                                                                                                                                                 |
-| ----------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Implementation-only** | Rewrote the body; Surface unchanged           | **Zero.** One file. Consumers, tests, and mocks don't notice — they depend on the namespace, which is unchanged.                                                             |
-| **Additive**            | Added a new member to the Surface             | **New usage only.** Existing consumers still typecheck untouched; only code that wants the new member changes.                                                               |
-| **Breaking**            | Renamed / removed / re-typed a Surface member | **Exactly the dependents** `tsc` names. The mock/fixture layer breaks too — because it tracks the same contract — so a rename propagates into tests instead of rotting them. |
+| Change                  | What you did                                                        | Blast radius                                                                                                                                                                                                             |
+| ----------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Implementation-only** | Rewrote the body; Surface unchanged                                 | **Zero.** One file. Consumers, tests, and mocks don't notice — they depend on the namespace, which is unchanged.                                                                                                         |
+| **Additive**            | Added a new member to the Surface                                   | **New usage only.** Existing consumers still typecheck untouched; only code that wants the new member changes.                                                                                                           |
+| **Breaking**            | Renamed / removed / re-typed a Surface member                       | **Exactly the dependents** `tsc` names. The mock/fixture layer breaks too — because it tracks the same contract — so a rename propagates into tests instead of rotting them.                                             |
+| **Relocation**          | Moved the resource to another family / namespace; Surface identical | **The consumers `tsc` names, plus the registration.** The body does not change — the address does. One step is runtime-only, and a family change can carry a semantic change the compiler cannot see (worked example D). |
+
+The first three classify a change to the **Surface**; **relocation** is
+orthogonal — the Surface is identical and the resource's _address_ moves.
 
 Always **say which kind it was** in the summary: _"Surface unchanged → nothing
 downstream"_, _"added `pause` → only the new button reads it"_, or _"renamed
@@ -124,6 +128,69 @@ The locale variants are not consumers: they co-author `shell/timer`, so each one
 needs the two new labels before the project compiles again — `tsc` names them.
 **Report:** _"Additive: no existing consumer of the timer changed. tsc named the
 locale variants still missing the new labels; all updated."_
+
+---
+
+## Worked example D — relocation: change a resource's family
+
+> "Make this component usable several times on the same page."
+
+The component reads `outer/counter`. A `gear:outer` resource is **one shared
+instance** per `(namespace, locale)`, so every copy of the component shows the
+same value. The fix is a family change: `outer/counter` → `vertex/counter`. A
+vertex gear has the same composer and the same Surface — it is the _layout entry_
+that gives each consumer its own instance.
+
+This is the clearest demonstration of Uniformity Under Change in the skill: **the
+gear body is not touched at all.**
+
+**First, two preconditions that can block the move** — check them before editing:
+
+- **A vertex may not be a dep of anything.** If any gear or shell lists
+  `outer/counter` in `withDeps`, the conversion cannot proceed until that
+  dependency is resolved another way. Report it and ask; do not work around it.
+- **A vertex is not valid in a consumer kit.** If the namespace appears in `kit` /
+  `clientKit`, remove it there — it stays reachable as an ordinary plug dep.
+
+(Both rules: [concepts/dep-asymmetry.md](./concepts/dep-asymmetry.md).)
+
+**Then the move:**
+
+1. **Layout + loader.** `defineLayout` needs `"vertex/": "gear:outer(vertex)"`,
+   and the `vertex/` prefix needs a `ResourceAtlas.loader.register([…])` entry.
+   The layout entry is compiler-checked — an atlas key with no matching prefix
+   fails to compile. **The loader prefix is not**: omit it and the resource fails
+   at runtime with `ERR_NO_LOADER_REGISTERED`. This is the one step `tsc` will not
+   catch for you.
+2. **Move the file** — `pub/outer/counter.ts` → `pub/vertex/counter.ts`. The
+   contents do not change: it still imports and calls `OuterGear`.
+3. **Rename the exported type** — `Outer_Counter` → `Vertex_Counter` (the naming
+   convention in SKILL.md Step 3).
+4. **Update `resource-atlas.ts`** — the import path and the `ResourceMap` key
+   (`"outer/counter"` → `"vertex/counter"`).
+5. **Update the consumers** — `Plug("outer/counter")` → `Plug("vertex/counter")`.
+6. **Move the test** to mirror the new source path
+   (`tests/r-machine/pub/vertex/counter.test.ts`). Its assertions do not change;
+   only the import of `r` follows the file.
+
+**Then say what the compiler cannot.** `tsc` verifies every step above except the
+loader prefix — but it cannot see the thing that actually changed: `outer/` is
+**one shared instance**, `vertex/` is **one per consumer**. A consumer that
+already existed and relied on the shared state now gets its own. If some subtree
+must keep sharing, wrap it in `<VertexFrame gear={instance}>`
+([patterns/vertex.md](./patterns/vertex.md)) — and when it is not obvious which
+consumers wanted sharing, ask instead of assuming.
+
+**Report:** _"Relocation: `outer/counter` → `vertex/counter`. The gear body is
+unchanged — only its address and its registration moved. tsc flagged 2 consumers
+plus the atlas; the test moved with the file. Behavior change: each consumer now
+has its own counter instead of one shared one."_
+
+**Only `outer` ↔ `vertex` is this cheap.** Those two families share a composer, so
+the body survives untouched. Other family changes rewrite the file: `base` ↔
+`inner` swaps the composer (`BaseGear` / `InnerGear`) and crosses the `pub/` /
+`prv/` fence, and `shell` ↔ `shell(mono)` converts between a folder of per-locale
+files and a single locale-agnostic one.
 
 ---
 
