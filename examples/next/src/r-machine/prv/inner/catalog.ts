@@ -26,8 +26,6 @@ export const r = InnerGear.withDeps("base/store-config")
     return {
       products,
       byId: (id: string): Product | undefined => products.find((p) => p.id === id),
-      byCategory: (category: string | null): Product[] =>
-        category ? products.filter((p) => p.category === category) : products,
       categories: store.categories,
     };
   });

@@ -21,8 +21,6 @@ describe("Inner_Catalog", () => {
     expect(catalog.products).toHaveLength(3);
     expect(catalog.byId("b")?.name).toBe("Beta");
     expect(catalog.byId("missing")).toBeUndefined();
-    expect(catalog.byCategory("audio").map((p) => p.id)).toEqual(["a", "c"]);
-    expect(catalog.byCategory(null)).toHaveLength(3);
     // `categories` flows in from the real base gear.
     expect(catalog.categories).toEqual(["peripherals", "displays", "audio"]);
   });

@@ -14,4 +14,14 @@ describe("shell/lib/fmt", () => {
     const itFmt = await ctrl.createRes();
     expect(itFmt.number(123.4)).toBe("123,4");
   });
+
+  it("collates strings by locale rather than by code unit", async () => {
+    using ctrl = mockPlug(fmt).with({ $: { locale: "it" } });
+    const itFmt = await ctrl.createRes();
+    const names = ["Zeta", "àlpha", "Beta"];
+
+    // A naive code-unit sort pushes the accented word past the ASCII ones.
+    expect([...names].sort()).toEqual(["Beta", "Zeta", "àlpha"]);
+    expect([...names].sort(itFmt.compare)).toEqual(["àlpha", "Beta", "Zeta"]);
+  });
 });
