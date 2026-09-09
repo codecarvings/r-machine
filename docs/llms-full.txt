@@ -1664,6 +1664,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-09-07.029
-Copyright (c) 2026 Sergio Turolla.
-https://codecarvings.com
+rev 2026-09-09.030
+Copyright (c) 2026 Sergio Turolla and R-Machine contributors
+https://rmachine.dev | https://codecarvings.com
