@@ -11,8 +11,8 @@
   "bugs": "https://github.com/codecarvings/r-machine/issues",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
-    "check": "biome check --write .",
-    "check:dry": "biome check .",
+    "check": "biome check --write . && tsx scripts/check-license-headers.ts --write",
+    "check:dry": "biome check . && tsx scripts/check-license-headers.ts",
     "clean": "pnpm run -r clean",
     "build": "pnpm -r --workspace-concurrency=1 build",
     "build:packages": "pnpm run -r --filter './packages/**' build",

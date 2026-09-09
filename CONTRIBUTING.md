@@ -36,6 +36,29 @@ that the project can be relicensed or transferred, and in exchange the packages
 carrying your contribution are committed to staying available under an
 OSI-approved open source licence. You are asked once, not per pull request.
 
+## Licence headers
+
+Every file under `packages/*/src/` opens with the same four-line block:
+
+```ts
+/**
+ * Copyright (c) 2026 Sergio Turolla and R-Machine contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+```
+
+Copy it verbatim into any new source file — it is identical in every file and
+every package, year included, and test files do not carry it.
+
+**Do not add a personal copyright line, and do not edit an existing header.** The
+collective wording already covers you: you keep the copyright in what you write
+(see the [CLA](CLA.md)), and your authorship is recorded permanently in the
+commit history and in the `cla-signatures` branch. A per-contributor notice would
+drift out of date and record nothing that `git log` does not.
+
+Third-party material is the one exception: it keeps its own header and licence
+terms, and Section 5 of the [CLA](CLA.md) says how to submit it.
+
 ## Setup
 
 Node **>= 20.9** (CI runs 24) and pnpm — the version is pinned in
@@ -63,7 +86,9 @@ Two things catch people out:
   test fails CI at 0% — it does not slip through. Every `/* v8 ignore */` needs
   an inline justification.
 - **`pnpm check:dry` fails on any formatting drift.** Run `pnpm check` before you
-  push; the CI variant does not write.
+  push; the CI variant does not write. It also verifies the licence headers —
+  `pnpm check` inserts a missing one for you, but a header that is present and
+  non-standard is always a hard failure.
 
 ## Changesets
 

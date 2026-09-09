@@ -53,7 +53,7 @@ pnpm is the package manager (version pinned in `packageManager`); CI runs Node 2
 | `pnpm build` | Everything, `--workspace-concurrency=1` (packages before examples). |
 | `pnpm build:packages` / `pnpm build:examples` | Half of the above. |
 | `pnpm test:e2e` | Playwright. Requires a prior `pnpm build` — the web servers run each example's `start`/`preview`. |
-| `pnpm check` | Biome format + lint, writing. `pnpm check:dry` is the CI variant that fails on drift. |
+| `pnpm check` | Biome format + lint, writing, then the licence-header check. `pnpm check:dry` is the CI variant that fails on drift. |
 | `pnpm size` / `pnpm size:why` | size-limit budgets on the built entry points. |
 | `pnpm changeset` | Record a release note (see below). |
 
@@ -126,7 +126,10 @@ branches: `@r-machine/source` → `./src/…/index.ts`, `types` → the built `.
   call a change done — CI runs `check:dry` and fails on drift.
 - **Every new file under `packages/*/src/` carries the SPDX licence header** —
   copy the 4-line block verbatim from a sibling file. It is identical in every
-  file and every package. Test files do not carry it.
+  file and every package. Test files do not carry it. The notice is collective
+  (`… and R-Machine contributors`): never add a personal copyright line, in any
+  file. `scripts/check-license-headers.ts`, run from `pnpm check`, enforces both
+  — and inserts a missing header with `--write`.
 - **Type-driven first.** Design the types with zero runtime, iterate until the
   surface is right, then implement. Type tests are part of the API contract, not
   an afterthought.
