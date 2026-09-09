@@ -58,6 +58,6 @@ describe("CartView (component, it)", () => {
     expect(screen.getByText("1 articolo")).toBeInTheDocument(); // count updated (singular)
 
     // Observe the dependency's state through the controller after the action.
-    expect((ctrl.deps[0].state as { lines: unknown[] }).lines).toHaveLength(1);
+    expect(ctrl.deps[0].state.lines).toHaveLength(1);
   });
 });

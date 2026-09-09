@@ -1,7 +1,7 @@
 {
   "name": "rforge",
   "version": "1.0.0-beta",
-  "description": "Command-line interface for R-Machine — scaffolding, diagnostics, and LLM-agent skill generation.",
+  "description": "Command-line interface for R-Machine — LLM-agent skill generation.",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "Apache-2.0",
   "type": "module",

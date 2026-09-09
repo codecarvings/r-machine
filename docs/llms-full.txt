@@ -1497,7 +1497,7 @@ it("drives the cart dependency's real state and reacts to the real removeItem", 
 
   expect(screen.queryByText("4K Monitor")).not.toBeInTheDocument();
   expect(screen.getByText("1 articolo")).toBeInTheDocument();              // singular
-  expect((ctrl.deps[0].state as { lines: unknown[] }).lines).toHaveLength(1);
+  expect(ctrl.deps[0].state.lines).toHaveLength(1);
 });
 ```
 
