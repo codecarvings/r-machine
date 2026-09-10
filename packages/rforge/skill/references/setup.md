@@ -45,7 +45,8 @@ ask about it.)
 For **React**, ask (or infer):
 
 1. Locales and default locale — see **Asking for locales** below
-2. Locale persistence: `localStorage` (default), cookie, or none
+2. Locale persistence: `localStorage`, cookie, or none — equal choices, mark
+   none of them as recommended
 
 For **Standalone / Node**, ask (or infer):
 
@@ -61,31 +62,36 @@ message.
 
 ### Asking for locales
 
-The locale list is **business data the project owner already has**. It is not
-inferable — not from the framework, not from the codebase, and not from the
-example lists in these reference files. So:
+Offer exactly these options, in this order, and **mark none of them as
+recommended or default**:
 
-- **Never propose a locale list.** Ask openly ("which locales, and which is the
-  default?") and take the answer as given. `["en", "it"]` appears throughout
-  these references as an _example shape_, never as a recommendation — offering
-  it as a pre-selected or "recommended" choice invents a project requirement the
-  user never stated. The same holds for every other piece of project-specific
-  business data (the origin map's real domains, the default locale): ask open,
-  do not dress a guess as a recommended option.
-- **One locale is a first-class setup, not a degraded one.** If the answer is a
-  single locale, take it and move on — do not talk the user into a second one
-  "to exercise the machinery". `locales: ["en"]` is fully valid; only an empty
-  list is rejected. A single-locale project already has the architecture right:
-  that is the point of the shell boundary, not a consolation prize.
-- **If the user is undecided, state the real cost.** Each extra locale is one
-  more sibling file per content shell, permanently. There is **no fallback
-  chain**: a shell resolves to `shell/<name>/<locale>`, and a missing locale
-  file is a resolve error, not a silent fall back to the default locale.
-- **Adding a locale later is additive, so "just in case" is never a reason.**
-  Extend `locales`, then add one sibling file per content shell. Gears,
-  components, `resource-atlas.ts` and `path-atlas.ts` are untouched — an absent
-  per-locale key in `path-atlas.ts` simply leaves that route untranslated in the
-  new locale, it does not break the build.
+1. **`en` only** — a single locale is a complete setup.
+2. **`en` + `it`**, default `en` — multi-locale in one click.
+3. **Other** — the user types the locale codes, default first. If your question
+   tool already adds a free-text answer, that is this option; do not add a
+   duplicate.
+
+With the question, **say that the choice is not permanent**:
+
+- **Locales can be added or removed at any time.** Gears and components never
+  depend on the locale list, so neither change touches them. A single-locale
+  project has nothing to restructure: content shells are a folder with one file
+  per locale from day one.
+  - **Add**: extend `locales`, then add one sibling file per content shell
+    (`localized(...)`, see `patterns/shell.md`). There is no fallback chain: a
+    missing `shell/<name>/<locale>` file is a resolve error, not a fall back to
+    the default, and the baseline `verifyResourceAtlas` test names every file
+    still missing. With the Next Origin strategy, also add the locale to
+    `localeOriginMap`; it is not typed against `locales`, so a missing entry
+    only shows at runtime (`No origin defined for locale …`). An absent
+    per-locale key in `path-atlas.ts` just leaves that route untranslated.
+  - **Remove**: drop it from `locales` (choose a new `defaultLocale` if it was
+    the default), then delete its sibling files and its `localeOriginMap` /
+    `path-atlas.ts` entries (`tsc` names every leftover `path-atlas.ts` key as
+    an unknown locale). If it was the **canonical** locale (the file that
+    exports the shell's type), promote a remaining sibling in each content
+    shell to the canonical form (`patterns/shell.md`) and point the type import
+    in `resource-atlas.ts` at it.
 
 ## A.3 — Generate the files
 
@@ -118,11 +124,15 @@ After generating the config files, tell the user:
    - **Next.js**: `r-machine`, `@r-machine/react`, `@r-machine/next` (prod) + `@r-machine/testing`, `jiti` (dev — `jiti` powers `createNextDevImport` HMR)
    - **React**: `r-machine`, `@r-machine/react` (prod) + `@r-machine/testing` (dev)
    - **Standalone / Node**: `r-machine` (prod) + `@r-machine/testing` (dev) — no framework packages
-2. **Set up tests (default).** Check for an existing test framework
+2. **Set up tests — strongly recommended.** Check for an existing test framework
    (`vitest.config.*`, a `vitest` devDependency). If none, propose configuring
    vitest and, if accepted, generate `vitest.config.ts` for the mode + a baseline
-   `verifyResourceAtlas` test. R-Machine treats tests as a default, not an extra —
-   see `./testing.md`.
+   `verifyResourceAtlas` test. **Mark it as recommended**, with its
+   reason in one line: `mockPlug` mocks are typed, so a
+   changed resource makes its tests fail to compile instead of passing green,
+   and `verifyResourceAtlas` catches every missing resource or locale file
+   before runtime. R-Machine treats tests as a default, not an extra — see
+   `./testing.md`.
 
    **If the project lints with ESLint, offer the `^_` ignore pattern.** Many mock
    scopes bind a disposable they never read (`using _ctrl = mockPlug(...)` — the

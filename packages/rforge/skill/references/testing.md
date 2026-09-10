@@ -63,8 +63,9 @@ plug_ — by name (map form) or position (list form) — as shown below.
 
 When setting up a project ([Mode A](./setup.md) A.4), check whether a test
 framework already exists (`vitest.config.*`, a `vitest` devDependency, a
-`"test"` script). If none exists, **propose configuring vitest** (the suggested
-default) and, if accepted, generate the config + a baseline
+`"test"` script). If none exists, **propose configuring vitest, marked as
+strongly recommended** (see Mode A A.4 for the one-line reason to give) and, if
+accepted, generate the config + a baseline
 `verifyResourceAtlas` test. `@r-machine/testing` is already a devDependency in
 every setup.
 

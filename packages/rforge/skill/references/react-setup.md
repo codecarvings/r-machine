@@ -34,9 +34,13 @@ bun add --dev @r-machine/testing
 
 - **Locales** — e.g. `["en", "it"]`
 - **Default locale** — e.g. `"en"`
-- **Locale storage** — where should the selected locale be persisted?
-  - `localStorage` (default, simplest)
+- **Locale storage** — where should the selected locale be persisted? These are
+  equal choices with no recommendation: do not mark any of them as recommended
+  or default. The §2.3 template uses `localStorage` only because it has to show
+  one.
+  - `localStorage`
   - `cookie`
+  - none (detected from the browser on every load)
   - other (user defines)
 - **Kit** — does the project need a formatter shell (`shell/lib/fmt`)? Recommended.
 - **React Compiler** — check whether it's enabled (a `babel-plugin-react-compiler` entry in the project's Babel config / `@vitejs/plugin-react` babel options, or the plugin in `devDependencies`).
