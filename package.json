@@ -1,6 +1,6 @@
 {
   "private": true,
-  "description": "Monorepo for R-Machine — typed resource layer with structural uniformity under change for TypeScript.",
+  "description": "Monorepo for R-Machine — a TypeScript resource layer for React and Next.js.",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "type": "module",
   "homepage": "https://rmachine.dev",

@@ -186,7 +186,7 @@ rforge skill
 
 #### `rforge skill`
 
-Installs the R-Machine **LLM-agent Skill** into your project so AI coding agents
+Installs the R-Machine **agent skill** into your project so AI coding agents
 (Claude Code and others) know how to scaffold and extend R-Machine resources
 correctly.
 

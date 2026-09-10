@@ -1,7 +1,7 @@
 {
   "name": "rforge",
   "version": "1.0.0-beta",
-  "description": "Command-line interface for R-Machine — LLM-agent skill generation.",
+  "description": "Command-line interface for R-Machine — installs the agent skill that scaffolds projects and adds resources.",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "Apache-2.0",
   "type": "module",
@@ -16,11 +16,13 @@
     "r-machine",
     "cli",
     "typescript",
-    "i18n",
+    "scaffolding",
+    "agent-skills",
+    "claude-code",
+    "coding-agents",
+    "llm-amenability",
     "llm-friendly",
-    "ai-friendly",
-    "skill",
-    "scaffolding"
+    "ai-friendly"
   ],
   "engines": {
     "node": ">=20.9.0"

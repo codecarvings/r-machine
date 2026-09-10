@@ -262,7 +262,7 @@ export async function installSkill(opts: InstallSkillOptions = {}): Promise<Inst
 export const skillCommand = defineCommand({
   meta: {
     name: "skill",
-    description: "Install the R-Machine LLM-agent Skill into the target project.",
+    description: "Install the R-Machine agent skill into the target project.",
   },
   args: {
     out: {

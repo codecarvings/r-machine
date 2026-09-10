@@ -34,7 +34,7 @@ R-Machine applies the same principle to application code. The resource namespace
 
 ## Getting started
 
-R-Machine ships an **LLM-agent skill** (via the `rforge` CLI) that scaffolds the project and adds resources, so an AI coding agent applies the conventions in this document correctly. Scaffold an app, install the skill, then drive it with natural-language prompts:
+R-Machine ships an **agent skill** (via the `rforge` CLI) that scaffolds the project and adds resources, so an AI coding agent applies the conventions in this document correctly. Scaffold an app, install the skill, then drive it with natural-language prompts:
 
 ```bash
 pnpm create next-app@latest        # or an existing Next.js / React (Vite) app
@@ -1664,6 +1664,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-09-09.030
+rev 2026-09-10.031
 Copyright (c) 2026 Sergio Turolla and R-Machine contributors
 https://rmachine.dev | https://codecarvings.com
