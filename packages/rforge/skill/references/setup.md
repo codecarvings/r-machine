@@ -37,16 +37,18 @@ For **Next.js**, ask (or infer from context):
 2. Locales and default locale — see **Asking for locales** below
 3. Path strategy only: proxy or no-proxy?
 4. Origin strategy only: the origin map (`{ en: "https://…", it: "https://…" }`)
-5. Use a formatter shell (`shell/lib/fmt`)? Recommended — default yes.
 
-(An empty `path-atlas.ts` is created by default for every Next strategy — don't
-ask about it.)
+(An empty `path-atlas.ts` and the formatter shell `shell/lib/fmt` are created by
+default for every Next strategy — don't ask about either; see A.4 step 3.)
 
 For **React**, ask (or infer):
 
 1. Locales and default locale — see **Asking for locales** below
 2. Locale persistence: `localStorage`, cookie, or none — equal choices, mark
    none of them as recommended
+
+(The formatter shell `shell/lib/fmt` is created by default — don't ask about it;
+see A.4 step 3.)
 
 For **Standalone / Node**, ask (or infer):
 
@@ -160,11 +162,12 @@ After generating the config files, tell the user:
    treatment as the `@/` alias, not the same as the files setup owns. Say what the
    warnings will be and why, and let them decide.
 
-3. **Make the kit type-clean (required).** The kit points at `shell/lib/fmt`,
-   which doesn't exist yet → the first `tsc` fails with a `never`. Either scaffold
-   it as the first resource (`shell(mono)`, `./patterns/shell.md`) and
-   register it in the atlas, or remove the `fmt` kit entries. (Per-mode details in
-   the setup reference.)
+3. **Create the formatter shell (required).** The atlas and the kits reference
+   `shell/lib/fmt`, so `tsc` is not clean until the file exists. Scaffold it as
+   the first resource (`shell(mono)`, `./patterns/shell.md`); the atlas template
+   already registers it. For Next.js and React the formatter is part of the
+   setup, not an option: never remove the `fmt` entries to make `tsc` pass.
+   (Standalone: `directKit` is optional — see `./standalone-setup.md`.)
 4. **Run the typecheck gate** (`tsc --noEmit`, or the project's `typecheck` /
    `build` script) — must be clean before declaring setup done.
 5. From now on, use this skill normally to add gears and shells (**SKILL.md

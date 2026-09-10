@@ -55,13 +55,13 @@ Ask the user before writing any file:
 
 Also ask:
 
-- **Locales** — e.g. `["en", "it"]`
-- **Default locale** — e.g. `"en"`
+- **Locales and default locale** — offer exactly the options in
+  **Asking for locales** ([setup.md](./setup.md)), including its note that the
+  choice is not permanent.
 - **Path strategy only**: proxy or no-proxy variant?
   - **Proxy** (default, recommended): creates `src/proxy.ts`
   - **No-proxy**: creates `app/route.ts` instead; simpler but no middleware
 - **Origin strategy only**: the origin map — `{ en: "https://example.com", it: "https://example.it" }`
-- **Kit**: does the project need a formatter shell (`shell/lib/fmt`)? Almost always yes.
 - **React Compiler** — check the project's `next.config.*` for `reactCompiler: true` (top-level) or `experimental.reactCompiler: true`.
   - **Not enabled** → do nothing. Disabled is R-Machine's preferred default.
   - **Enabled** → tell the user it's discouraged with R-Machine (reactivity is already read-driven, so the compiler adds little benefit and adds per-re-render wrapping overhead) and ask whether to **keep** or **disable** it.
@@ -71,6 +71,9 @@ Also ask:
 A **`path-atlas.ts` is created by default for every Next strategy** (all of them
 accept a `PathAtlas`) — start it empty and add localized routes later. No need to
 ask.
+
+The **formatter shell `shell/lib/fmt` is created by default** too: the atlas and
+every kit reference it (§4). Don't ask whether the project needs one.
 
 ---
 
@@ -124,10 +127,6 @@ const token = ResourceAtlas.getTokenBuilder();
 
 export const fmt = token("shell/lib/fmt");
 ```
-
-No formatter? Drop the `fmt` import/entry/token and keep the self-check by
-exporting the builder instead:
-`export const token = ResourceAtlas.getTokenBuilder();`.
 
 Omit families the project won't use (e.g. omit `gear:inner` for client-only apps).
 If using `gear:inner`, keep it — removing it later is trivial.
@@ -392,7 +391,7 @@ const rMachine = RMachine.create({
   ResourceAtlas,
   // bridgeGears: ["base/store-config"], // base gears a shell is allowed to depend on
   shellKit: {
-    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+    fmt: "shell/lib/fmt",
   },
 });
 
@@ -403,10 +402,10 @@ export type { BrandedResource as RShape } from "r-machine";
 
 export const strategy = NextAppPathStrategy.create(rMachine, {
   clientKit: {
-    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+    fmt: "shell/lib/fmt",
   },
   serverKit: {
-    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+    fmt: "shell/lib/fmt",
   },
   PathAtlas,
   cookie: "on",
@@ -435,12 +434,12 @@ import { ResourceAtlas } from "./resource-atlas";
 import "./pub/loader"; // registers the client-safe loaders (§2.2)
 
 const rMachine = RMachine.create({
-  locales: ["en", "it"] as const,
-  defaultLocale: "en",
+  locales: ["en", "it"] as const, // ← replace with real locales
+  defaultLocale: "en", // ← replace with real default
   ResourceAtlas,
   // bridgeGears: ["base/store-config"], // base gears a shell is allowed to depend on
   shellKit: {
-    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+    fmt: "shell/lib/fmt",
   },
 });
 
@@ -451,10 +450,10 @@ export type { BrandedResource as RShape } from "r-machine";
 
 export const strategy = NextAppFlatStrategy.create(rMachine, {
   clientKit: {
-    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+    fmt: "shell/lib/fmt",
   },
   serverKit: {
-    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+    fmt: "shell/lib/fmt",
   },
   PathAtlas,
   // pathMatcher: /^(?!\/(__|api)($|\/)).*/, // restrict locale handling to localized paths
@@ -482,12 +481,12 @@ import { ResourceAtlas } from "./resource-atlas";
 import "./pub/loader"; // registers the client-safe loaders (§2.2)
 
 const rMachine = RMachine.create({
-  locales: ["en", "it"] as const,
-  defaultLocale: "en",
+  locales: ["en", "it"] as const, // ← replace with real locales
+  defaultLocale: "en", // ← replace with real default
   ResourceAtlas,
   // bridgeGears: ["base/store-config"], // base gears a shell is allowed to depend on
   shellKit: {
-    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+    fmt: "shell/lib/fmt",
   },
 });
 
@@ -498,10 +497,10 @@ export type { BrandedResource as RShape } from "r-machine";
 
 export const strategy = NextAppOriginStrategy.create(rMachine, {
   clientKit: {
-    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+    fmt: "shell/lib/fmt",
   },
   serverKit: {
-    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+    fmt: "shell/lib/fmt",
   },
   PathAtlas,
   localeOriginMap: {
@@ -531,6 +530,7 @@ After generating all files, confirm with the user:
 | `setup.ts`                | `src/r-machine/`      | ✅ always                      |
 | `pub/loader.ts`           | `src/r-machine/pub/`  | ✅ always                      |
 | `prv/loader.ts`           | `src/r-machine/prv/`  | ✅ always                      |
+| `pub/shell/lib/fmt.ts`    | `src/r-machine/pub/`  | ✅ always                      |
 | `client-toolset.ts`       | `src/r-machine/`      | ✅ always                      |
 | `server-toolset.ts`       | `src/r-machine/`      | ✅ always                      |
 | `proxy.ts`                | `src/` (project root) | ✅ Path/Flat/Origin with proxy |
@@ -550,14 +550,11 @@ yarn add r-machine @r-machine/react @r-machine/next && yarn add --dev @r-machine
 bun add r-machine @r-machine/react @r-machine/next && bun add --dev @r-machine/testing jiti          # bun
 ```
 
-**Required before the setup is type-clean.** `shell/lib/fmt` is referenced in
-`shellKit` / `clientKit` / `serverKit` but does **not** exist yet in
-`resource-atlas.ts` — leaving it points a kit at an unregistered namespace and
-the first `tsc` fails with a `never` type. Do ONE of:
-
-- **(recommended)** scaffold `shell/lib/fmt` as the first resource (`shell(mono)`
-  family, see `patterns/shell.md`) and register it in `resource-atlas.ts`; or
-- remove the `fmt` entries from `shellKit` / `clientKit` / `serverKit`.
+**Create the formatter shell — always.** `shell/lib/fmt` is referenced by
+`resource-atlas.ts` and by `shellKit` / `clientKit` / `serverKit`, so the setup is
+not type-clean until the file exists. Scaffold it as the first resource
+(`shell(mono)` family, see `patterns/shell.md`). It is part of the setup, not an
+option: never remove the `fmt` entries to make `tsc` pass.
 
 Then run the typecheck gate — `tsc --noEmit` must be clean before declaring the
 setup done.

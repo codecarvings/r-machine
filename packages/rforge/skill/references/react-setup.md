@@ -32,8 +32,9 @@ bun add --dev @r-machine/testing
 
 ## 1. What to ask before writing any file
 
-- **Locales** — e.g. `["en", "it"]`
-- **Default locale** — e.g. `"en"`
+- **Locales and default locale** — offer exactly the options in
+  **Asking for locales** ([setup.md](./setup.md)), including its note that the
+  choice is not permanent.
 - **Locale storage** — where should the selected locale be persisted? These are
   equal choices with no recommendation: do not mark any of them as recommended
   or default. The §2.3 template uses `localStorage` only because it has to show
@@ -42,10 +43,12 @@ bun add --dev @r-machine/testing
   - `cookie`
   - none (detected from the browser on every load)
   - other (user defines)
-- **Kit** — does the project need a formatter shell (`shell/lib/fmt`)? Recommended.
 - **React Compiler** — check whether it's enabled (a `babel-plugin-react-compiler` entry in the project's Babel config / `@vitejs/plugin-react` babel options, or the plugin in `devDependencies`).
   - **Not enabled** → do nothing (R-Machine's preferred default).
   - **Enabled** → tell the user it's discouraged with R-Machine and ask keep-or-disable. If kept, set `reactCompiler: "on"` in the strategy config (§2.3); otherwise `useR()` reads go stale.
+
+The **formatter shell `shell/lib/fmt` is created by default**: the atlas and both
+kits reference it (§3). Don't ask whether the project needs one.
 
 ---
 
@@ -126,9 +129,7 @@ const token = ResourceAtlas.getTokenBuilder();
 export const fmt = token("shell/lib/fmt");
 ```
 
-Scaffold `shell/lib/fmt` first (see `patterns/shell.md`). No formatter? Drop the `fmt`
-import/entry/token and keep the self-check via
-`export const token = ResourceAtlas.getTokenBuilder();`.
+Scaffold `shell/lib/fmt` first (see `patterns/shell.md`).
 
 ### 2.2 `pub/loader.ts`
 
@@ -169,7 +170,7 @@ const rMachine = RMachine.create({
   defaultLocale: "en", // ← replace with real default
   ResourceAtlas,
   shellKit: {
-    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+    fmt: "shell/lib/fmt",
   },
 });
 
@@ -180,7 +181,7 @@ export type { BrandedResource as RShape } from "r-machine";
 
 export const strategy = ReactStandardStrategy.create(rMachine, {
   kit: {
-    fmt: "shell/lib/fmt", // remove if not using a formatter shell
+    fmt: "shell/lib/fmt",
   },
   localeDetector: () => rMachine.localeHelper.matchLocales(navigator.languages),
   localeStore: {
@@ -286,25 +287,23 @@ See `references/patterns/consume/plug.md` ("Switch the locale") for the full con
 
 ## 3. Summary checklist
 
-| File                              | Notes                                   |
-| --------------------------------- | --------------------------------------- |
-| `src/r-machine/resource-atlas.ts` | Layout + empty ResourceMap              |
-| `src/r-machine/pub/loader.ts`     | catch-all loader (`register(["*"])`)    |
-| `src/r-machine/setup.ts`          | RMachine.create + ReactStandardStrategy |
-| `src/r-machine/toolset.ts`        | strategy.createToolset()                |
-| `src/App.tsx`                     | Wrap root with `<ReactRMachine>`        |
+| File                                 | Notes                                   |
+| ------------------------------------ | --------------------------------------- |
+| `src/r-machine/resource-atlas.ts`    | Layout + ResourceMap                    |
+| `src/r-machine/pub/loader.ts`        | catch-all loader (`register(["*"])`)    |
+| `src/r-machine/pub/shell/lib/fmt.ts` | Formatter shell (`shell(mono)`)         |
+| `src/r-machine/setup.ts`             | RMachine.create + ReactStandardStrategy |
+| `src/r-machine/toolset.ts`           | strategy.createToolset()                |
+| `src/App.tsx`                        | Wrap root with `<ReactRMachine>`        |
 
 Then remind the user: once the config files exist, use the scaffold skill
 normally to add `gear:base`, `gear:outer`, `shell`, etc.
 
-**Required before the setup is type-clean.** `shell/lib/fmt` is referenced in
-`shellKit` and `kit` but does not exist yet in `resource-atlas.ts` — leaving it
-points a kit at an unregistered namespace and the first `tsc` fails with a `never`
-type. Do ONE of:
-
-- **(recommended)** scaffold `shell/lib/fmt` first as a `shell(mono)` resource
-  (see `patterns/shell.md`) and register it in `resource-atlas.ts`; or
-- remove the `fmt` entries from `shellKit` and `kit`.
+**Create the formatter shell — always.** `shell/lib/fmt` is referenced by
+`resource-atlas.ts` and by `shellKit` / `kit`, so the setup is not type-clean
+until the file exists. Scaffold it as the first resource (`shell(mono)` family,
+see `patterns/shell.md`). It is part of the setup, not an option: never remove
+the `fmt` entries to make `tsc` pass.
 
 Then run the typecheck gate — `tsc -b --noEmit` must be clean before declaring the
 setup done.

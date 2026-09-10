@@ -31,8 +31,9 @@ for the test setup.
 
 ## 1. What to ask before writing any file
 
-- **Locales** — e.g. `["en", "it"]`
-- **Default locale** — e.g. `"en"`
+- **Locales and default locale** — offer exactly the options in
+  **Asking for locales** ([setup.md](./setup.md)), including its note that the
+  choice is not permanent.
 - **`directKit`** — which shared resources to surface as `$.kit` (e.g. a
   `shell/lib/fmt` formatter)? Optional.
 
