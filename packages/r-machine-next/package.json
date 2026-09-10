@@ -1,9 +1,9 @@
 {
   "name": "@r-machine/next",
-  "version": "1.0.0-alpha.15",
-  "description": "Next.js App Router integration for R-Machine — typed resource layer with structural uniformity under change for Typescript.",
+  "version": "1.0.0-beta",
+  "description": "Next.js App Router integration for R-Machine — the TypeScript resource layer built for uniformity under change.",
   "author": "Sergio Turolla <hello@codecarvings.com>",
-  "license": "AGPL-3.0-only",
+  "license": "Apache-2.0",
   "type": "module",
   "homepage": "https://rmachine.dev",
   "repository": {
@@ -16,25 +16,33 @@
     "typescript",
     "type-safe",
     "typesafe",
-    "uniformity-under-change",
-    "refactor-safe",
     "resource-layer",
+    "evolvability",
+    "refactor-safe",
+    "refactoring",
+    "architecture",
+    "llm-amenability",
+    "llm-friendly",
+    "ai-friendly",
+    "coding-agents",
+    "agent-skills",
     "i18n",
     "internationalization",
+    "i18n-routing",
     "dependency-injection",
     "state-management",
     "reactive",
     "testable",
-    "ai-friendly",
-    "llm-friendly",
     "react",
     "nextjs",
+    "app-router",
+    "server-components",
     "no-codegen",
-    "intellisense",
-    "shell",
-    "gear",
-    "plug"
+    "intellisense"
   ],
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "sideEffects": false,
   "files": [
     "**/*.js",
@@ -42,7 +50,8 @@
     "**/*.cjs",
     "**/*.d.ts",
     "**/*.d.mts",
-    "**/*.d.cts"
+    "**/*.d.cts",
+    "!**/coverage/**"
   ],
   "main": "./lib/index.cjs",
   "types": "./lib/index.d.cts",
@@ -175,10 +184,10 @@
     "test:watch": "pnpm vitest watch --typecheck"
   },
   "peerDependencies": {
-    "@r-machine/react": "workspace:*",
+    "@r-machine/react": "workspace:^",
     "jiti": "^2",
     "next": "^15 || ^16",
-    "r-machine": "workspace:*",
+    "r-machine": "workspace:^",
     "react": "^19"
   },
   "peerDependenciesMeta": {

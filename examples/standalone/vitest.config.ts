@@ -1,4 +1,4 @@
-import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { defineConfig, type ViteUserConfig } from "vitest/config";
 
 export default defineConfig({
@@ -7,7 +7,7 @@ export default defineConfig({
     // tsconfig paths). Resource modules import the setup/atlas via this alias,
     // so without it `verifyResourceAtlas` cannot load them.
     alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@": path.resolve(import.meta.dirname, "src"),
     },
   },
   test: {

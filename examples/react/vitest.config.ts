@@ -1,4 +1,4 @@
-import { fileURLToPath } from "node:url";
+import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type ViteUserConfig } from "vitest/config";
 
@@ -7,7 +7,7 @@ export default defineConfig({
   resolve: {
     // Mirror the tsconfig "@/*" -> "./src/*" path mapping.
     alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@": path.resolve(import.meta.dirname, "src"),
     },
     dedupe: ["react", "react-dom"],
   },

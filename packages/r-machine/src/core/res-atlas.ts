@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2026 Sergio Turolla and R-Machine contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import type { RMachineTypeError } from "#r-machine/errors";
 import type { AnyResDomain, AnyResDomainLayout, Namespace, TokenBuilder } from "./res-domain.js";
 import type { AnyResLayout, ResLayoutEntryType, ResolveLayoutType } from "./res-layout.js";

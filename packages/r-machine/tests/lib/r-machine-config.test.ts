@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createResourceLoader } from "#r-machine/core";
-import {
-  ERR_DEFAULT_LOCALE_NOT_IN_LIST,
-  ERR_DUPLICATE_LOCALES,
-  ERR_EXPERIMENTAL_OUTER_GEAR_REQUIRED,
-  ERR_NO_LOCALES,
-} from "#r-machine/errors";
+import { ERR_DEFAULT_LOCALE_NOT_IN_LIST, ERR_DUPLICATE_LOCALES, ERR_NO_LOCALES } from "#r-machine/errors";
 import { type RMachineConfig, validateRMachineConfig } from "../../src/lib/r-machine-config.js";
 
 // validateRMachineConfig is the gate RMachine's constructor runs before wiring
@@ -58,22 +53,9 @@ describe("validateRMachineConfig", () => {
     expect(err?.code).toBe(ERR_DEFAULT_LOCALE_NOT_IN_LIST);
   });
 
-  it("rejects gear:outer layout entries when outerGear is not enabled (ERR_EXPERIMENTAL_OUTER_GEAR_REQUIRED)", () => {
-    const err = validateRMachineConfig(
-      makeConfig({ layout: { "inner/": "gear:inner", "outer/": "gear:outer" }, experimental: {} as never })
-    );
-    expect(err?.code).toBe(ERR_EXPERIMENTAL_OUTER_GEAR_REQUIRED);
-    expect(err?.message).toContain('"outer/"');
-  });
-
-  it("accepts gear:outer layout entries when outerGear is enabled", () => {
+  it("accepts gear:outer layout entries", () => {
     expect(
-      validateRMachineConfig(
-        makeConfig({
-          layout: { "inner/": "gear:inner", "outer/": "gear:outer" },
-          experimental: { outerGear: "on" } as never,
-        })
-      )
+      validateRMachineConfig(makeConfig({ layout: { "inner/": "gear:inner", "outer/": "gear:outer" } }))
     ).toBeNull();
   });
 });

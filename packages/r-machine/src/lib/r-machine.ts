@@ -1,14 +1,6 @@
 /**
- * Copyright (c) 2026 Sergio Turolla
- *
- * This file is part of r-machine, licensed under the
- * GNU Affero General Public License v3.0 (AGPL-3.0-only).
- *
- * You may use, modify, and distribute this file under the terms
- * of the AGPL-3.0. See LICENSE in this package for details.
- *
- * If you need to use this software in a proprietary project,
- * contact: licensing@codecarvings.com
+ * Copyright (c) 2026 Sergio Turolla and R-Machine contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import {
@@ -223,13 +215,10 @@ export class RMachine<
     const BaseGear = createBaseGearComposer<RA, E["gearKit"]>(
       this.createResComposerConnector(this.config.equipment.gearKit)
     );
-    const OuterGear =
-      this.config.experimental.outerGear === "on"
-        ? createOuterGearComposer<RA, E["gearKit"]>(
-            this.createResComposerConnector(this.config.equipment.gearKit),
-            this.cassetteRecorder
-          )
-        : undefined!;
+    const OuterGear = createOuterGearComposer<RA, E["gearKit"]>(
+      this.createResComposerConnector(this.config.equipment.gearKit),
+      this.cassetteRecorder
+    );
     const Shell = createShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>(
       this.createResComposerConnector(this.config.equipment.shellKit)
     );
@@ -348,6 +337,12 @@ export class RMachine<
     // next. Request scopes are unaffected (use `requestScope.dispose`). Reachable
     // from a resource's `r.plug` via `getPlugMachine` (see `@r-machine/testing`).
     disposeResources: () => this.resManager.disposeResources(),
+    // The resource generation every dispose advances, read by the React adapter
+    // off the `rMachine` it closes over to stop serving a wire it cached before a
+    // dispose. Read from the ResManager rather than counted here: not every
+    // dispose goes through this bridge (`create`'s dev singleton reuse calls the
+    // ResManager directly).
+    getResourceGeneration: () => this.resManager.getResourceGeneration(),
     // Per-instance test-mode controller. Toggled by `@r-machine/testing`'s
     // `mockPlug` (it reaches this via the Plug's `getPlugMachine` back-reference)
     // and read by the adapter guards off the `rMachine` they close over. Never

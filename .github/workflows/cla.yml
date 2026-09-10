@@ -1,0 +1,48 @@
+name: CLA
+
+# Runs on `pull_request_target`, which is what gives the job a token able to
+# comment on a pull request opened from a fork. That trigger is only safe because
+# this job never checks out — and therefore never executes — the contributor's
+# code: it only reads the PR metadata and writes a comment plus a status.
+# Do not add a checkout step here.
+on:
+  issue_comment:
+    types: [created]
+  pull_request_target:
+    # `closed` would only be needed to lock merged pull requests, which is off.
+    types: [opened, reopened, synchronize]
+
+permissions:
+  actions: write        # to re-run the check when the signature lands
+  contents: write       # to append the signature to the `cla-signatures` branch
+  pull-requests: write  # to post the request-to-sign comment
+  statuses: write       # to set the CLA check on the pull request
+
+jobs:
+  cla:
+    name: Check CLA signature
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check the contributor has signed the CLA
+        # `issue_comment` also fires on plain issues, hence the pull_request guard.
+        if: >-
+          github.event_name == 'pull_request_target' ||
+          (github.event.issue.pull_request != null &&
+           (github.event.comment.body == 'recheck' ||
+            github.event.comment.body == 'I have read the CLA Document and I hereby sign the CLA'))
+        # Pinned to the v2.6.1 commit: a third-party action holding write
+        # permissions must not be tracked by a mutable tag.
+        uses: contributor-assistant/github-action@ca4a40a7d1004f18d9960b404b97e5f30a505a08
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          path-to-document: https://github.com/codecarvings/r-machine/blob/main/CLA.md
+          # Signatures live on their own branch: `main` is protected by the
+          # required "Build, Test and Check" status, so the bot cannot push there.
+          branch: cla-signatures
+          path-to-signatures: signatures/v1/cla.json
+          # The maintainer and bots never need to sign.
+          allowlist: turolla,dependabot[bot],github-actions[bot]
+          # Keep merged pull requests open to comments for follow-up questions.
+          lock-pullrequest-aftermerge: false

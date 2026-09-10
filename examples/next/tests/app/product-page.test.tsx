@@ -43,7 +43,7 @@ const PRODUCT: Product = {
 describe("ProductPage (server page, en)", () => {
   it("resolves via useR(params) and renders the seeded product, price formatted server-side", async () => {
     using _ctrl = mockPlug(ProductPage).with({
-      0: { byId: (id: string) => (id === PRODUCT.id ? PRODUCT : undefined) },
+      catalog: { byId: (id: string) => (id === PRODUCT.id ? PRODUCT : undefined) },
     });
 
     const el = await ProductPage({ params: Promise.resolve({ locale: "en", id: "kbd-01" }) } as never);

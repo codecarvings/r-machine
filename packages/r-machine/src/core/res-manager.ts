@@ -1,14 +1,6 @@
 /**
- * Copyright (c) 2026 Sergio Turolla
- *
- * This file is part of r-machine, licensed under the
- * GNU Affero General Public License v3.0 (AGPL-3.0-only).
- *
- * You may use, modify, and distribute this file under the terms
- * of the AGPL-3.0. See LICENSE in this package for details.
- *
- * If you need to use this software in a proprietary project,
- * contact: licensing@codecarvings.com
+ * Copyright (c) 2026 Sergio Turolla and R-Machine contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import {
@@ -83,6 +75,11 @@ export class ResManager {
   // or this same `slots` map (fallback for client browser, tests, etc.).
   protected readonly slots = new Map<string, Slot>();
   protected readonly generationByNs = new Map<AnyNamespace, number>();
+  // Machine-wide counterpart of `generationByNs`, advanced by every
+  // `disposeResources()`. Unlike the per-namespace generations — which that same
+  // dispose resets — it never restarts, so a value captured before a dispose can
+  // never read as current after it. See `getResourceGeneration`.
+  protected resourceGeneration = 0;
   protected readonly subscribersByNs = new Map<AnyNamespace, Set<() => void>>();
   // Two-level index of vertex slots created under each wire's `genId`.
   // Outer key: genId. Inner map: namespace → set of `occurrenceTag`s active
@@ -747,13 +744,17 @@ export class ResManager {
   // Drop ALL resolved state held in the process-tier `slots` map: dispose every
   // slot (running `Symbol.dispose` teardowns) in dispose-safe order — dependents
   // before dependencies — then clear the generation / subscriber / vertex
-  // indices. Blueprints (loaded modules) are intentionally KEPT, so the next
-  // resolve re-runs the cached factories against fresh state rather than
-  // re-importing. Request scopes are NOT touched (use `disposeRequestScope`).
+  // indices, and advance the resource generation. Blueprints (loaded modules) are
+  // intentionally KEPT, so the next resolve re-runs the cached factories against
+  // fresh state rather than re-importing. Request scopes are NOT touched (use
+  // `disposeRequestScope`).
   //
   // This is a hard wipe with no subscriber notification — a test-isolation
   // primitive (`RMachine.disposeResources`), not an HMR-style `invalidate`. Any
-  // live wire still subscribed is orphaned by design; the next test builds fresh.
+  // live wire still subscribed is orphaned by design: never marked dirty, it keeps
+  // its dead plugin. "The next test builds fresh" therefore holds only for a
+  // caller that stops reusing such a wire — which is what the resource generation
+  // is for (see `getResourceGeneration`).
   disposeResources(): void {
     // Order namespaces dependents-first via the union of reverse closures, so a
     // teardown can still reference resources its dependencies hold.
@@ -797,7 +798,16 @@ export class ResManager {
     this.generationByNs.clear();
     this.subscribersByNs.clear();
     this.vertexSlotsByGenId.clear();
+    this.resourceGeneration++;
     this.busHost.bus?.emit({ type: "res:resourcesDisposed" });
+  }
+
+  // Advanced by every `disposeResources()` and by nothing else. A caller caching
+  // wires outside the manager (the React adapter's wire cache) records it with
+  // each entry: an entry from an older generation holds a wire a dispose has
+  // orphaned, which must be rebuilt rather than reused.
+  getResourceGeneration(): number {
+    return this.resourceGeneration;
   }
 
   invalidate(ns: AnyNamespace, locale?: AnyLocale | undefined): void {

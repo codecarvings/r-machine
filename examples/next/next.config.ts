@@ -11,9 +11,11 @@ const nextConfig: NextConfig = {
   // get fresh-identity wrapping (otherwise reads from `useR()` render stale).
   reactCompiler: false,
 
-  // When using Webpack, do not warn about Top-Level Await (TLA) usage.
+  // When using Webpack (`--webpack`), do not warn about Top-Level Await (TLA) usage.
   webpack: (config, { isServer }) => {
-    config.target = isServer ? "node18" : "web";
+    if (!isServer) {
+      config.target = "web";
+    }
     return config;
   },
   turbopack: {},

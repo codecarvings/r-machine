@@ -1,14 +1,6 @@
 /**
- * Copyright (c) 2026 Sergio Turolla
- *
- * This file is part of @r-machine/next, licensed under the
- * GNU Affero General Public License v3.0 (AGPL-3.0-only).
- *
- * You may use, modify, and distribute this file under the terms
- * of the AGPL-3.0. See LICENSE in this package for details.
- *
- * If you need to use this software in a proprietary project,
- * contact: licensing@codecarvings.com
+ * Copyright (c) 2026 Sergio Turolla and R-Machine contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import type { NextProxy } from "#r-machine/next/internal";
@@ -16,3 +8,11 @@ import type { NextProxy } from "#r-machine/next/internal";
 export interface RMachineProxy extends NextProxy {
   // TODO: Add chainable proxy methods here in the future
 }
+
+/**
+ * Request header the proxy writes the resolved locale into, and the server
+ * toolset reads back, when `autoLocaleBinding` is on. Exported so app code can
+ * read the bound locale outside a plug — in a route handler, an instrumentation
+ * hook, or anything else holding the request headers.
+ */
+export const localeHeaderName = "x-rm-locale";

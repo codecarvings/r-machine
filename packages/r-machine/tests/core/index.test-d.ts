@@ -27,6 +27,7 @@ import type {
   DirectPlugDefiner,
   DirectPlugKitMap,
   ExperimentalFlags,
+  ExperimentalTools,
   ExtractCtx,
   ExtractKit,
   ExtractNamespace,
@@ -205,6 +206,7 @@ describe("core barrel exports", () => {
     expectTypeOf<InternalEvent>().not.toBeNever();
     expectTypeOf<InternalEventBus>().not.toBeNever();
     expectTypeOf<ExperimentalFlags>().not.toBeNever();
+    expectTypeOf<ExperimentalTools<ExperimentalFlags>>().not.toBeNever();
     expectTypeOf<GateListPlugHead<any, any, any, any, any>>().not.toBeNever();
     expectTypeOf<GateMapPlugHead<any, any, any, any, any>>().not.toBeNever();
     expectTypeOf<GatePluginCtx<any, any, any>>().not.toBeNever();

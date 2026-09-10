@@ -6,7 +6,6 @@
 https://rmachine.dev
 
 https://github.com/codecarvings/r-machine/
-Warning: R-Machine is still in active development - API may change before stable release.
 
 ---
 
@@ -99,6 +98,6 @@ https://rmachine.dev/llms-full.txt
 
 ---
 
-rev 2026-07-07.026
-Copyright (c) 2026 Sergio Turolla.
-https://codecarvings.com
+rev 2026-09-10.031
+Copyright (c) 2026 Sergio Turolla and R-Machine contributors
+https://rmachine.dev | https://codecarvings.com

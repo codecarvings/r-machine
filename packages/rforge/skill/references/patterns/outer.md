@@ -20,7 +20,7 @@ export const r = OuterGear.define(() => ({
 export type Outer_Foo = RShape<typeof r>;
 ```
 
-## OuterGear — stateless, with deps (list form)
+## OuterGear — stateless, with deps (list form — up to 2 deps)
 
 ```ts
 import { OuterGear, type RShape } from "@/r-machine/setup";
@@ -37,16 +37,20 @@ export const r = OuterGear.withDeps("outer/other", "base/config").define(
 export type Outer_Foo = RShape<typeof r>;
 ```
 
-Use the **map form** for three or more deps (survives renames better):
+## OuterGear — stateless, with deps (map form — 3 deps or more)
+
+From the third dep on, switch to names — see
+[plugin-context.md](./plugin-context.md) for the rule and what follows from it.
 
 ```ts
 export const r = OuterGear.withDeps({
   other: "outer/other",
+  session: "outer/session",
   cfg: "base/config",
 }).define((plugin) => {
-  const { other, cfg } = plugin;
+  const { other, session, cfg } = plugin;
   return {
-    combined: () => other.value + cfg.apiBase,
+    combined: () => other.value + session.id + cfg.apiBase,
   };
 });
 ```
@@ -143,28 +147,175 @@ export type Outer_Counter = RShape<typeof r>;
 **Critical rule — `_.cmd` scope:**
 `_.cmd` is **only valid** as the return value of `_.relay`'s `onChange` callback.
 It is **NOT valid** inside an `_.action` body. An action returns the next state:
-a `Partial<State>` (object state) or the new scalar value (scalar state) —
-never `_.cmd(...)`.
+a `DeepPartial<State>` (object state) or the new scalar value (scalar state) —
+never `_.cmd(...)`. See [Action return semantics](#action-return-semantics--the-deep-partial-merge)
+for what "deep partial" buys you and where it bites.
 
 ```ts
 // ✅ correct — _.cmd inside _.relay onChange
 _.relay({ select: () => $.state.x, onChange: (v) => _.cmd(setX, v) });
 
-// ✅ correct — action returns partial state directly
-const start = _.action(() => {
-  handle = setInterval(tick, 1000);
-  return { running: true }; // just return the state change
-});
+// ✅ correct — an action is a pure reducer: it returns the next state
+const start = _.action(() => ({ running: true }));
 
-// ❌ wrong — _.cmd inside an action return
+// ❌ wrong — _.cmd as an action's return value
+const start = _.action(() => _.cmd(setRunning, true));
+
+// ❌ wrong — a side effect in an action body. It typechecks (the return value
+// is still a valid state partial), so nothing warns you: the effect now fires
+// on the CLICK instead of on the STATE, and drifts the moment the state
+// changes by any other route (HMR restore, cassette, a test seed, another
+// action). The interval belongs in a relay on `running`.
 const start = _.action(() => {
   handle = setInterval(tick, 1000);
-  return _.cmd(setRunning, true); // invalid
+  return { running: true };
 });
 ```
 
-If an action needs to both perform a side effect AND update state, return the
-state partial directly — no need to call another action via `_.cmd`.
+**An action never performs a side effect.** It is a synchronous reducer:
+arguments in, `DeepPartial<State>` out (or the new value, for scalar state).
+Anything that must _happen_ when state changes goes in a `_.relay` keyed on that
+state; anything that must happen once at construction goes in the factory body;
+anything that must be undone goes in `[Symbol.dispose]`. Keeping actions pure is
+what lets a relay be the single owner of an effect — and therefore what makes
+the effect impossible to desync from the state that drives it.
+
+## Action return semantics — the deep-partial merge
+
+An action returns a **`DeepPartial<State>`**, not a shallow `Partial`. The
+returned fragment is deep-merged over the current state, so you write only the
+leaf you are changing and every sibling is preserved:
+
+```ts
+// state: { user: { name: "ada", prefs: { theme: "dark", lang: "en" } } }
+const setTheme = _.action((theme: string) => ({ user: { prefs: { theme } } }));
+// → prefs.lang and user.name are untouched. No spreading, no re-stating siblings.
+```
+
+Four rules, none of them guessable:
+
+- **Only plain objects merge.** Anything else **replaces** wholesale — arrays,
+  `Date`, `Map`, `Set`, `RegExp`, `URL`, class instances, primitives. So
+  `{ tags: ["z"] }` **replaces** the whole array; there is no element-wise merge.
+  To append, build the new array from the old one:
+  `_.action((t: string) => ({ tags: [...$.state.tags, t] }))`.
+
+  **The type disagrees with the runtime here, and nothing warns you.**
+  `DeepPartial<T[]>` distributes _into_ the elements (`DeepPartial<Item>[]`), so
+  an array of **partial elements typechecks** — while the merge replaces the
+  whole array with exactly what you returned. The result is a state that lies:
+
+  ```ts
+  // state: { lines: { productId: string; qty: number }[] }
+  const bad = _.action(() => ({ lines: [{ qty: 1 }] }));
+  // ✅ compiles — DeepPartial<Line>[] accepts a partial element
+  // ❌ state.lines is now [{ qty: 1 }]: one element, no `productId`, still
+  //    typed `Line[]`. No compile error, no runtime error, corrupt state.
+  ```
+
+  This is the one place in R-Machine where the compiler does not have your back:
+  an array in an action fragment (or a `ctrl.state` seed, or a mock override) is
+  **always a whole-array write**, so build it from `$.state` and return complete
+  elements.
+
+- **`undefined` is a no-op, not a value.** A key whose value is `undefined` is
+  **skipped** by the merge, so an action **cannot clear a field** that way —
+  `{ note: undefined }` leaves `note` exactly as it was, and nothing warns you.
+  Model a clearable field as `T | null` and return `null`, which _does_ replace.
+  Returning `undefined` from the whole reducer likewise means "no change".
+
+- **A no-op keeps the state identity.** If every key in the fragment is already
+  `Object.is`-equal to what is in state, the merge returns the **same** state
+  reference — no new object, so nothing downstream sees a change. That is what
+  makes an idempotent action cheap, and why writing an equal value does not
+  wake subscribers.
+
+- **It is a merge, not a transaction hook.** The reducer must be pure and
+  synchronous: compute from `$.state` and arguments, return the fragment. No
+  `await`, no side effect, no `_.cmd` (see the rule above).
+
+For **scalar state** (`withState(0)`, `withState("")`) there is nothing to merge:
+the action returns the **new value** directly.
+
+## Relay semantics — read this before writing one
+
+A relay is `{ select, onChange, equals? }`. `select` is tracked: the relay
+subscribes to every state cell / cell it reads, and re-runs when one mutates.
+The exact behaviour matters, and most of it is not guessable:
+
+- **It does NOT fire on registration.** The initial pass captures dependencies
+  and seeds the previous value _without_ calling `onChange` — the semantics are
+  "react to changes", not "react to existence". So if the effect must also hold
+  for the state you **start** with (already `running`, already `open`), call the
+  handler once yourself in the factory body, then register the relay:
+
+  ```ts
+  syncInterval($.state.running); // covers restored / seeded state
+  _.relay({ select: () => $.state.running, onChange: syncInterval });
+  ```
+
+  This is not a corner case: OuterGear state survives HMR, so a gear can be
+  re-created with a state it never saw change.
+
+- **`equals` decides when `onChange` runs.** Default `"identity"`
+  (`Object.is`); `"shallow"` compares own enumerable keys one level deep; or
+  pass your own `(current, prev) => boolean`. Returning `true` means
+  "equivalent" and **suppresses** the call. Select an object without `shallow`
+  and you fire on every new reference.
+
+- **`onChange(current, prev)` may return** `void`, a `Cmd`, or a `Cmd[]` — build
+  them with `_.cmd(action, ...args)`. A void return is perfectly valid: that is
+  the form for a pure side effect (timers, subscriptions, logging).
+
+- **Returned cmds are dispatched after every dirty relay has fired**, not
+  inline. All relays in one flush therefore observe the same world state before
+  any cmd-driven mutation begins; the resulting mutations are picked up in the
+  next round of the same flush.
+
+- **`onChange` may be `async`.** It is not awaited synchronously: the promise is
+  scheduled on a microtask and its cmds are dispatched in a **separate**
+  transaction, i.e. a later flush. Don't rely on an async relay's effect being
+  visible to the action that triggered it.
+
+- **A relay has no teardown.** There is no disposer in its config, so anything
+  it creates (interval, listener, subscription) must be released in the gear's
+  `[Symbol.dispose]`.
+
+- **Runaway loops abort.** If one relay fires more than 3 times in a single
+  flush, R-Machine emits a `relay:loopDetected` bus event and throws
+  `RelayLoopError`. Usually it means `onChange` writes state that `select`
+  reads; narrow `select` or add an `equals`.
+
+- **Throws are contained, not propagated.** An error in `select` or `onChange`
+  is swallowed and emitted as `relay:onChangeError` on the event bus (see
+  [../testing.md](../testing.md) for asserting on bus events). A throwing
+  `select` stalls that relay until its next successful pass — it does not take
+  down the action that triggered it.
+
+- **Firing order within a flush is deterministic, and it is not registration
+  order.** Relays are sorted by (1) **depth** — the shortest distance from a
+  namespace whose action mutated state to the relay's own gear, so a relay in
+  the mutating gear fires first; then (2) the **priority** declared in the
+  ResourceAtlas (lower index first; a namespace absent from the list sorts
+  last); then (3) registration order as a stable tie-break. Don't encode an
+  assumption about cross-gear ordering into a relay — make each one correct on
+  its own.
+
+- **A relay is overridable in tests.** Its three members are read live off the
+  resource on every tick, so a test can reassign `res.$relay.onChange`,
+  `.select`, or `.equals`. Expose it with a `$`-prefixed hidden member (see
+  [Hidden members](#hidden-members--prefix)) to reach it without widening the
+  public surface.
+
+**Where each kind of code belongs:**
+
+| Code                                   | Home                  |
+| -------------------------------------- | --------------------- |
+| pure state transition                  | `_.action` (reducer)  |
+| derived read-only value                | `_.getter` / `_.cell` |
+| must _happen_ when state changes       | `_.relay`             |
+| must happen once, at construction      | the factory body      |
+| must be undone when the gear goes away | `[Symbol.dispose]`    |
 
 ## OuterGear — stateful with lifecycle (`[Symbol.dispose]`)
 
@@ -226,8 +377,18 @@ export type Outer_Form = RShape<typeof r>;
 
 `_.cell(...)` is a memoized getter that is its own dependency: a consumer reading
 only it re-renders when its output changes by `Object.is` — fine-grained
-reactivity (see [../concepts/reactivity.md](../concepts/reactivity.md)). Use it for
-derived values that many components read.
+reactivity. **`_.getter` is the default; `_.cell` is the exception**, because a
+subscribed cell is eager (it recomputes on every state change) and carries its own
+node in the graph. Reach for it only when the body **allocates** (`.map`/`.filter`,
+literal, spread — a getter hands out a new reference on every read), when it is a
+**non-trivial computation** over a collection, or when its output **stays
+`Object.is`-unchanged while the state changes** often. Never for a direct
+projection of a single-field state. The full decision rule, with the two cases
+where a cell is actively wrong, is in
+[../concepts/reactivity.md](../concepts/reactivity.md#choosing-between-them--_getter-is-the-default).
+
+In the cart below, `lines` is a direct projection (getter) while `itemCount` and
+`subtotal` are aggregates whose output survives most edits to `lines` (cells):
 
 ```ts
 export const r = OuterGear.withState({ lines: [] as Line[] }).define(
@@ -295,6 +456,7 @@ In a test, the `TestSurface` still sees it: `(await ctrl.createRes()).$bump()`
 ## Test it
 
 ```ts
+// tests/r-machine/pub/outer/counter.test.ts — mirrors the source path
 import { mockPlug } from "@r-machine/testing";
 import { r } from "@/r-machine/pub/outer/counter";
 

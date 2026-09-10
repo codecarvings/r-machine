@@ -45,7 +45,6 @@ const rMachine = RMachine.create({
   // Machine-wide kit: `helper` is injected into every gear's `$.kit` (and
   // hoisted onto the top-level), exercised by the kit-override suite.
   gearKit: { helper: "base/helper" },
-  experimental: { outerGear: "on" },
 });
 
 export const { InnerGear, BaseGear, OuterGear, DirectPlug, Shell } = rMachine.createToolset();

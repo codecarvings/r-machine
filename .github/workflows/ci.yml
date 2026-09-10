@@ -7,6 +7,11 @@ on:
   # `push: main` run would only re-test what the PR already verified.
   pull_request:
 
+# Already the repository default; stated here so the workflow keeps a read-only
+# token even if that default is ever changed.
+permissions:
+  contents: read
+
 jobs:
   build-test-and-check:
     name: Build, Test and Check

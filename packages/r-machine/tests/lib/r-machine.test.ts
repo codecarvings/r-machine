@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ASYNC, createPlug, createRequestScope, setPlugOverride } from "#r-machine/core";
+import { ASYNC, createPlug, createRequestScope, PLUG_MACHINE_ACCESSOR, setPlugOverride } from "#r-machine/core";
 import { RMachineConfigError } from "#r-machine/errors";
 import type { AnyPlugHead } from "../../src/core/plug.js";
 import type { AnyNamespace } from "../../src/core/res-domain.js";
@@ -53,7 +53,6 @@ function makeMachine(suffix = "", directKit: Record<string, string> = {}) {
     // Test helper: the kit values are real atlas namespaces, but the param is
     // loosely typed for call-site convenience — cast to satisfy the kit map.
     directKit: directKit as never,
-    experimental: { outerGear: "on" },
   });
   // Loader lives on the (shared) atlas; this call overrides the module-level
   // default with a closure that resolves real gears for THIS machine's toolset.
@@ -109,7 +108,6 @@ describe("RMachine.create — construction & toolset", () => {
         locales: ["en", "en"],
         defaultLocale: "en",
         ResourceAtlas,
-        experimental: { outerGear: "on" },
       })
     ).toThrow(RMachineConfigError);
   });
@@ -122,8 +120,7 @@ describe("RMachine.create — construction & toolset", () => {
     expect(rm.resolveLayoutEntryType("shell/greeting" as AnyNamespace)).toBe("shell");
   });
 
-  it("OuterGear is omitted from the toolset when the experimental flag is off", () => {
-    // A layout WITHOUT outer entries so the config validates with outerGear off.
+  it("exposes OuterGear on the toolset even for a layout without outer entries", () => {
     const innerOnly = defineLayout({ "inner/": "gear:inner" });
     class InnerAtlas extends innerOnly<{ "inner/x": { v: number } }>() {}
     InnerAtlas.loader.register(["*"], emptyLoad);
@@ -135,7 +132,7 @@ describe("RMachine.create — construction & toolset", () => {
     });
 
     const toolset = rm.createToolset() as Record<string, unknown>;
-    expect(toolset.OuterGear).toBeUndefined();
+    expect(toolset.OuterGear).toBeDefined();
     expect(toolset.InnerGear).toBeDefined();
   });
 });
@@ -273,14 +270,12 @@ describe("RMachine.create — singleton caching", () => {
       locales: ["en"],
       defaultLocale: "en",
       ResourceAtlas,
-      experimental: { outerGear: "on" },
     });
     const b = RMachine.create({
       instanceName: "block-c-singleton",
       locales: ["en"],
       defaultLocale: "en",
       ResourceAtlas,
-      experimental: { outerGear: "on" },
     });
     expect(b).toBe(a);
   });
@@ -295,7 +290,6 @@ describe("RMachine.create — singleton caching", () => {
       locales: ["en"],
       defaultLocale: "en",
       ResourceAtlas,
-      experimental: { outerGear: "on" },
     });
     const disposeSpy = vi.spyOn(
       (first as unknown as { resManager: { disposeResources(): void } }).resManager,
@@ -307,10 +301,33 @@ describe("RMachine.create — singleton caching", () => {
       locales: ["en"],
       defaultLocale: "en",
       ResourceAtlas,
-      experimental: { outerGear: "on" },
     });
     expect(second).toBe(first);
     expect(disposeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  // The reuse disposes through the ResManager directly, bypassing the plug-machine
+  // bridge — so the bridge must report the ResManager's generation rather than
+  // count its own calls, or this dispose would never reach the adapter wire
+  // caches keyed on it.
+  it("in dev, the reuse's dispose advances the resource generation the plug machine reports", () => {
+    vi.stubEnv("NODE_ENV", "development");
+
+    const first = RMachine.create({
+      instanceName: "block-c-singleton-generation",
+      locales: ["en"],
+      defaultLocale: "en",
+      ResourceAtlas,
+    });
+    const before = first[PLUG_MACHINE_ACCESSOR].getResourceGeneration();
+
+    RMachine.create({
+      instanceName: "block-c-singleton-generation",
+      locales: ["en"],
+      defaultLocale: "en",
+      ResourceAtlas,
+    });
+    expect(first[PLUG_MACHINE_ACCESSOR].getResourceGeneration()).toBe(before + 1);
   });
 });
 

@@ -29,10 +29,26 @@ CartButton.plug = plug;
 A consumer plugs into **several namespaces at once** — this is how a component
 gets both behavior (a gear) and localized content (a shell) as plain surfaces,
 even though a gear reaches a shell only indirectly (as a locale loader via
-`res.perLocale`). The **consumer is where the independent families meet** (see
-[../../concepts/dep-asymmetry.md](../../concepts/dep-asymmetry.md)).
+`res.perLocale`). Same list/map declaration as `withDeps`, but keyed by the plug.
 
-**List form** — positional; `useR()` returns a tuple, deps first and `$` last:
+**Deps allowed** — `Plug` accepts `gear:base`, `gear:outer`, `gear:outer(vertex)`,
+`shell` / `shell(mono)`. It **cannot** reach an `inner/` gear (server-only — absent
+from a React bundle; a compile error). See
+[../../concepts/dep-asymmetry.md](../../concepts/dep-asymmetry.md).
+
+**Which form** — up to 2 deps: list. From 3 up: map. The rule and what follows
+from it (kit access, test overrides) are in
+[../plugin-context.md](../plugin-context.md).
+
+**Kit access** — kit entries reach the consumer as **`$.kit.<entry>`** in list form
+(`$.kit.fmt.currency(price)`); the map form additionally hoists them as top-level
+keys, so `const { timer, fmt, $ } = plug.useR()` works too. Same rule as a declaration
+site — [../plugin-context.md](../plugin-context.md). The declaration site differs per plug
+(`kit` / `clientKit` / `serverKit` on the strategy, `directKit` on
+`RMachine.create`), but the access path is `$.kit` for all of them.
+
+**List form** (up to 2 deps) — positional; `useR()` returns a tuple, deps first and
+`$` last:
 
 ```tsx
 const plug = Plug("outer/timer", "shell/timer");
@@ -47,11 +63,15 @@ export function Timer() {
 Timer.plug = plug;
 ```
 
-**Map form** — named (clearer beyond two deps):
+**Map form** (3 deps or more) — named; `useR()` returns an object:
 
 ```tsx
-const plug = Plug({ timer: "outer/timer", t: "shell/timer" });
-const { timer, t, $ } = plug.useR();
+const plug = Plug({
+  timer: "outer/timer",
+  t: "shell/timer",
+  cfg: "base/config",
+});
+const { timer, t, cfg, $ } = plug.useR();
 ```
 
 The same shape works on `ClientPlug` / `ServerPlug` / `DirectPlug` (Server and
@@ -106,9 +126,13 @@ put it in a shell.
 
 ---
 
-## Or — consume as a dep in another resource (not a plug)
+## From inside a resource — declare the dep with `withDeps`
 
-A resource consumes another resource through `withDeps`, not through a plug:
+Same dependency, **same list/map declaration** — a plug is just the _consumer_ entry
+point. From **inside** a resource, declare the dep with `withDeps` instead: a resource is
+constrained by its family (the matrix in
+[../../concepts/dep-asymmetry.md](../../concepts/dep-asymmetry.md)), just as each plug is
+constrained by its catalog. One mechanism, different sites, different rule sets:
 
 ```ts
 OuterGear.withDeps("outer/cart").define((plugin, _) => {
@@ -129,9 +153,11 @@ state with `ctrl.deps[…].state`; the real getters/actions run, so an interacti
 re-renders through real reactivity:
 
 ```tsx
+// tests/components/cart-button.test.tsx — mirrors src/components/cart-button.tsx;
+// the test does NOT sit next to the component.
 import { mockPlug } from "@r-machine/testing";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { CartButton } from "./cart-button";
+import { CartButton } from "@/components/cart-button";
 
 it("renders seeded state and reacts to the real action", async () => {
   using ctrl = mockPlug(CartButton).with({ $: { ambientLocale: "en" } });

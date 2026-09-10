@@ -4,9 +4,11 @@ Code templates for the `shell` / `shell(mono)` families. For the map-form vs
 list-form plugin rule see [plugin-context.md](./plugin-context.md); to test a
 Shell see [../testing.md](../testing.md).
 
-For multi-locale shells: the canonical file is `en` (or the project's
-`defaultLocale`) and exports the type; every other locale file is a sibling that
-uses `localized(...)`. **Extension:** `.tsx` in React/Next projects (used in the
+A content shell is always a folder with one file per locale: the canonical file
+is `en` (or the project's `defaultLocale`) and exports the type; every other
+locale file is a sibling that uses `localized(...)`. A **single-locale** project
+has exactly the canonical file — `shell/product/en.tsx`, still in its folder,
+never `shell/product.tsx` (SKILL.md Step 3). **Extension:** `.tsx` in React/Next projects (used in the
 JSX examples below); `.ts` in a plain Node project with no JSX (see the rule in
 SKILL.md Step 3).
 
@@ -221,7 +223,7 @@ export const r = Shell.withDeps("base/config") // base/config must be in bridgeG
     };
   });
 
-// Equivalent map form:
+// The map form (3 deps or more — see plugin-context.md) hoists the kit instead:
 // Shell.withDeps({ config: "base/config" }).define((plugin) => {
 //   const { config, fmt } = plugin;
 //   return {
@@ -235,6 +237,27 @@ export type Shell_Product = RShape<typeof r>;
 
 Variant files for a shell with deps use `localized` the same way (the runtime
 supplies the dep; the variant only provides translation values).
+
+## Evolving a multi-locale shell
+
+**A new member must be added to every locale file, not just the canonical one.**
+`localized()` validates each variant against the canonical type at exact keys, in
+both directions: a missing key fails, an extra key fails. So adding one label to
+`en.tsx` breaks the compile of every sibling until it carries the same label:
+
+```
+src/r-machine/pub/shell/cart/it.tsx(3,42): error TS2345: Argument of type '{ … }'
+  is not assignable to parameter of type '{ … }'.
+  Type '{ … }' is missing the following properties from type '{ … }': pause, resume
+```
+
+That error is the **work list**, not a problem to route around: there is no
+partial-variant or fallback mode, by design, so a half-translated shell cannot
+reach production. Add the member to the canonical file first (it owns the type),
+then to each variant `tsc` names, and re-run until clean.
+
+Removing or renaming a member is the same walk in reverse — canonical first, then
+every variant — plus the consumers `tsc` flags.
 
 ## Shell — `shell(mono)` (locale-aware, single file, no variants)
 
@@ -286,6 +309,7 @@ exact-key type-check, so the default is to **skip the test**. If you want one,
 import each locale module and assert its `r` directly — no mock:
 
 ```ts
+// tests/r-machine/pub/shell/home.test.ts — named after the shell folder, not per locale
 // Alias each locale import — do NOT use `en`/`it`. With vitest globals on, a local
 // `it` shadows the global `it()` test fn → `TS2349: expression is not callable`.
 import { r as enHome } from "@/r-machine/pub/shell/home/en";
@@ -301,6 +325,7 @@ it("en/it content", () => {
 `$: { locale }` (override a kit entry with `$: { kit: { fmt: { … } } }`):
 
 ```ts
+// tests/r-machine/pub/shell/greeting.test.ts — named after the shell folder, not per locale
 import { mockPlug } from "@r-machine/testing";
 import { r as greet } from "@/r-machine/pub/shell/greeting/en";
 

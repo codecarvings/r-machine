@@ -1,30 +1,100 @@
-⚠️ **WARNING: THIS LIBRARY IS STILL IN DEVELOPMENT** ⚠️
+<img src="r-machine.logo.svg" width="100px" align="center" alt="R-Machine logo" />
 
----
-
-<img src="r-machine.logo.svg" width="158px" align="center" alt="R-Machine logo" />
-
-# R-Machine — Uniformity Under Change for TypeScript
-
-Monorepo containing the R-Machine packages.
+# R-Machine
 
 [![NPM Version](https://img.shields.io/npm/v/r-machine?label=latest)](https://www.npmjs.com/package/r-machine)
 [![R-Machine CI status](https://github.com/codecarvings/r-machine/actions/workflows/ci.yml/badge.svg?event=push&branch=main)](https://github.com/codecarvings/r-machine/actions/workflows/ci.yml?query=branch%3Amain)
 
-## Packages
+*A TypeScript resource layer for React and Next.js*
+
+## Uniformity Under Change
+
+A codebase evolves commit after commit, sprint after sprint, LLM iteration after LLM iteration.
+
+So *can it do X?* is only half of what's worth asking about an architecture. The other half: *how far does a change travel?* Move a resource from the server to the client, add a second locale, swap an implementation: count the files you touch. Count how many of them are tests that have nothing to do with what you changed.
+
+In R-Machine logic and state live in a `gear`, content in a `shell`, and a consumer reads a name and the shape behind it. Where the value lives, how it's built, whether it's localized — none of it is visible at the call site, so none of it is something a consumer can depend on. And there is no second way to write that call site: this isn't a pattern you have to remember to follow, it's the only form there is.
+
+<details>
+<summary><strong>An agent promoting a global gear to per-instance state — 5 files, 7 insertions</strong></summary>
+
+<img src=".github/assets/outer-to-vertex.png" width="600px" align="center" alt="An agent promoting a global gear to per-instance state: five files changed, seven insertions" />
+
+</details>
+
+## A codebase with a north
+
+A human learns a project over months and carries the map in their head. An agent has no months — it has whatever fits in the window, and then it's gone.
+
+With R-Machine there is no map to keep up to date: the map is the codebase. The resources, the atlas, the dependencies. This holds for any R-Machine project, not just yours: the coordinates are the same everywhere. To an agent, your code might come across as boring in its predictability.
+
+And the same thing that orients an agent is what stops it. A dependency that doesn't match, a mock that no longer fits the shape the app mounts, a translation the new locale forgot: compile errors at the site that caused them. Not a green run and a surprise in production.
+
+## Getting started
+
+R-Machine ships an agent skill that scaffolds a project and adds resources. Start from a fresh app and install it:
+
+```bash
+# Next.js
+npm create next-app@latest my-app
+cd my-app
+npx rforge@latest skill
+```
+
+```bash
+# React + Vite
+npm create vite@latest my-app -- --template react-ts
+cd my-app
+npx rforge@latest skill
+```
+
+> Using pnpm, yarn or bun? Replace `npx rforge@latest` with `pnpm dlx rforge@latest`,
+> `yarn dlx rforge@latest` or `bunx rforge@latest`. R-Machine itself has no package
+> manager preference — the skill installs the packages with whichever one your project uses.
+
+Then prompt your agent:
+
+```
+Install R-Machine in this project
+```
+
+Then describe a feature in plain words:
+
+```
+Add a counter to the home page: a label showing the current value,
+and two buttons, "Increase" and "Decrease".
+Disable "Decrease" when the value is 0.
+```
+
+A step-by-step quickstart is coming on rmachine.dev.
+
+### Packages
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| [`r-machine`](./packages/r-machine) | [![npm](https://img.shields.io/npm/v/r-machine)](https://www.npmjs.com/package/r-machine) | Core library — composers + framework-free `DirectPlug` |
-| [`@r-machine/react`](./packages/r-machine-react) | [![npm](https://img.shields.io/npm/v/@r-machine/react)](https://www.npmjs.com/package/@r-machine/react) | React integration |
-| [`@r-machine/next`](./packages/r-machine-next) | [![npm](https://img.shields.io/npm/v/@r-machine/next)](https://www.npmjs.com/package/@r-machine/next) | Next.js App Router integration |
-| [`@r-machine/testing`](./packages/r-machine-testing) | [![npm](https://img.shields.io/npm/v/@r-machine/testing)](https://www.npmjs.com/package/@r-machine/testing) | Testing utilities |
+| [`r-machine`](./packages/r-machine) | [![npm](https://img.shields.io/npm/v/r-machine)](https://www.npmjs.com/package/r-machine) | The core: atlas, composers, plugs. Every project needs it. |
+| [`@r-machine/react`](./packages/r-machine-react) | [![npm](https://img.shields.io/npm/v/@r-machine/react)](https://www.npmjs.com/package/@r-machine/react) | React integration. Install it in every project that renders React, Next.js included. |
+| [`@r-machine/next`](./packages/r-machine-next) | [![npm](https://img.shields.io/npm/v/@r-machine/next)](https://www.npmjs.com/package/@r-machine/next) | Next.js App Router on top of the above: three routing models, the locale proxy, path composition. |
+| [`@r-machine/testing`](./packages/r-machine-testing) | [![npm](https://img.shields.io/npm/v/@r-machine/testing)](https://www.npmjs.com/package/@r-machine/testing) | `mockPlug` and `verifyResourceAtlas`. A dev dependency, and the recommended way to test resources. |
 | [`rforge`](./packages/rforge) | [![npm](https://img.shields.io/npm/v/rforge)](https://www.npmjs.com/package/rforge) | Command-line interface for R-Machine |
 
-## Documentation
+```bash
+# React
+npm install r-machine @r-machine/react
+npm install -D @r-machine/testing
 
-→ Full reference: [`llms-full.txt`](https://rmachine.dev/llms-full.txt) · runnable
-example [`examples/`](./examples).
+# Next.js
+npm install r-machine @r-machine/react @r-machine/next
+npm install -D @r-machine/testing
+```
+
+### Documentation
+
+**[`llms-full.txt`](https://rmachine.dev/llms-full.txt)** — the full API reference, written
+to be read by an agent. Hand it over and ask what you'd ask a colleague who knows the
+library: *"how does `OuterGear` work?"*, *"how would I do X here?"*
+
+Each example below is a working app you can clone and run.
 
 | Example | Description |
 |---------|-------------|
@@ -35,33 +105,6 @@ example [`examples/`](./examples).
 | [`next-with-app-path-strategy-no-proxy`](./examples/next-with-app-path-strategy-no-proxy) | Path strategy without proxy |
 | [`react`](./examples/react) | React + Vite |
 | [`standalone`](./examples/standalone) | Framework-free Node CLI — `r-machine` core via `DirectPlug`, no strategy |
-
-## Conceptual model: the namespace as a stable contract
-
-R-Machine is easier to reason about through one model than through a list of
-features. A codebase is a dynamic entity: it evolves sprint after sprint, refactor
-after refactor, generation after generation. A useful question when evaluating an
-architecture is not only *"can it do X?"* but *"how many files must change when X
-evolves?"* — production files, test files, mocks, fixtures, imports.
-
-R-Machine answers that question the way a DBMS does:
-
-| DBMS concept | R-Machine equivalent |
-|---|---|
-| Table name (`customers`) | Resource namespace (`outer/cart`, `shell/checkout`) |
-| Schema (column types) | TypeScript interface |
-| Query (`SELECT * FROM customers`) | `Plug(...).useR()` |
-| Storage engine, indexes | Implementation body (gear or shell) |
-
-A database table has a stable name that consumers depend on. The storage engine can
-be replaced and indexes can change without forcing any consumer to update: the table
-name is the contract.
-
-R-Machine applies the same principle to application code. The resource namespace is
-the stable contract; the implementation behind it is the volatile layer. Consumers —
-including tests, mocks, and fixtures — depend on the namespace, not on where a value
-lives or how it is shaped, so a change to the implementation does not propagate to
-them.
 
 ## Core concepts at a glance
 
@@ -86,7 +129,6 @@ export const r = localized("shell/common", {
   addButton: "Aggiungi",
 });
 ```
-
 
 ### Gear — logic and state
 
@@ -116,7 +158,7 @@ Components reach any resource through `Plug` (or `ClientPlug` / `ServerPlug` for
 
 ```tsx
 // components/my-component.tsx
-import { Plug } from "@/r-machine/toolset";
+import { Plug } from "@/r-machine/...";
 import { Button } from "@/components/ui/button";
 
 const plug = Plug("outer/counter", "shell/common");
@@ -135,40 +177,6 @@ MyComponent.plug = plug; // attached to the consumer for testing purposes with m
 
 For tests, `mockPlug( ... ).with({ ... })` is the **single** override primitive — uniform across gears, shells and consumers.
 
-## Setup
-
-How you wire R-Machine into an app depends on the framework. Most of the structure
-is shared; a few pieces are specific to the framework and the locale-routing
-strategy you pick. Follow the package guide for your stack:
-
-- **React (Vite / SPA)** → [`@r-machine/react`](./packages/r-machine-react)
-- **Next.js (App Router)** → [`@r-machine/next`](./packages/r-machine-next)
-
-In both cases an R-Machine project lives in **one folder** (conventionally
-`src/r-machine/`): a few wiring files, plus resources grouped by bundle visibility
-into **`pub/`** (client-safe) and **`prv/`** (server-only `inner/`), each with one
-subfolder per family and its own `loader.ts`. The `pub/`/`prv/` segment is
-filesystem-only — atlas namespaces are unchanged (`base/config`, `inner/catalog`).
-
-The common pieces:
-
-| File / folder | Role |
-|---|---|
-| `setup.ts` | Creates the machine and the locale-routing **strategy**; exports the producer toolset used to *declare* resources |
-| `resource-atlas.ts` | The **registry**: maps each folder to a resource family and registers every resource namespace against its type |
-| `toolset.ts`, … | Derives the typed **consumer tools** (`Plug`, the provider, `<VertexFrame>`, …) you use across the app. Next splits this into `server-toolset.ts` + `client-toolset.ts` |
-| `path-atlas.ts` | *(Next only)* the route map — typed `href` helpers, plus localized URL segments for the path / origin strategies |
-| `pub/`, `prv/` | Your resources, split by bundle visibility: `pub/` holds the client-safe families (`base/` `outer/` `vertex/` `shell/`), `prv/` holds the server-only `inner/` family (Next server components only). Each owns a `loader.ts`. |
-
-→ Full, copy-pasteable setup lives in the package READMEs linked above.
-
-**Without a framework** you don't need a strategy at all: just `r-machine` (no
-`@r-machine/react` / `@r-machine/next`). Call `RMachine.create(...)` and consume
-resources through `DirectPlug`, passing the locale explicitly to `useR(locale)` —
-ideal for workers, cron jobs, scripts, etc... . Setup collapses to
-`setup.ts` + `resource-atlas.ts` (no provider, `toolset.ts`, or `path-atlas.ts`).
-See [`examples/standalone`](./examples/standalone).
-
 ## Monorepo Structure
 
 ```
@@ -186,7 +194,8 @@ r-machine/
 
 ## Development
 
-This project uses **pnpm** as the package manager.
+Contributing to R-Machine itself requires **pnpm** — the workspace layout depends on it
+and the version is pinned in `packageManager`, so `corepack enable` is enough to get it.
 
 ```bash
 # Install dependencies
@@ -204,17 +213,3 @@ pnpm test
 # Format and lint
 pnpm check
 ```
-
-## License
-
-| Package | License |
-|---|---|
-| `r-machine` | [AGPL-3.0](./LICENSE) |
-| `@r-machine/react` | [AGPL-3.0](./LICENSE) |
-| `@r-machine/next` | [AGPL-3.0](./LICENSE) |
-| `@r-machine/testing` | [AGPL-3.0](./LICENSE) |
-| `rforge` | [AGPL-3.0](./LICENSE) |
-
-> All packages are free for open source projects.
-> If you need to use them in a proprietary project, reach out at 
-> licensing@codecarvings.com to discuss a commercial arrangement.

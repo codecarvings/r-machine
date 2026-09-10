@@ -1,9 +1,9 @@
 {
   "name": "@r-machine/testing",
-  "version": "1.0.0-alpha.15",
-  "description": "Testing utilities for R-Machine — typed resource layer with structural uniformity under change for Typescript.",
+  "version": "1.0.0-beta",
+  "description": "Testing utilities for R-Machine — mockPlug, one typed override primitive for gears, shells and components.",
   "author": "Sergio Turolla <hello@codecarvings.com>",
-  "license": "AGPL-3.0-only",
+  "license": "Apache-2.0",
   "type": "module",
   "homepage": "https://rmachine.dev",
   "repository": {
@@ -16,25 +16,33 @@
     "typescript",
     "type-safe",
     "typesafe",
-    "uniformity-under-change",
-    "refactor-safe",
     "resource-layer",
+    "evolvability",
+    "refactor-safe",
+    "refactoring",
+    "architecture",
+    "llm-amenability",
+    "llm-friendly",
+    "ai-friendly",
+    "coding-agents",
+    "agent-skills",
     "i18n",
     "internationalization",
     "dependency-injection",
     "state-management",
     "reactive",
     "testable",
-    "ai-friendly",
-    "llm-friendly",
+    "testing",
+    "mocking",
+    "test-utils",
     "react",
     "nextjs",
     "no-codegen",
-    "intellisense",
-    "shell",
-    "gear",
-    "plug"
+    "intellisense"
   ],
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "sideEffects": false,
   "files": [
     "**/*.js",
@@ -42,7 +50,8 @@
     "**/*.cjs",
     "**/*.d.ts",
     "**/*.d.mts",
-    "**/*.d.cts"
+    "**/*.d.cts",
+    "!**/coverage/**"
   ],
   "main": "./lib/index.cjs",
   "types": "./lib/index.d.cts",
@@ -83,7 +92,7 @@
     "test:watch": "pnpm vitest watch --typecheck"
   },
   "peerDependencies": {
-    "r-machine": "workspace:*",
+    "r-machine": "workspace:^",
     "typescript": ">=5.0.0"
   },
   "peerDependenciesMeta": {

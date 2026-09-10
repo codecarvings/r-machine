@@ -42,7 +42,8 @@ You help developers with four distinct workflows:
 
 This skill is partitioned so each task reads a small slice, never the whole doc:
 
-- **Setup** (one per mode): `references/{next-setup,react-setup,standalone-setup}.md`.
+- **Setup** (Mode A, one-shot): `references/setup.md` — the procedure itself,
+  plus one per mode: `references/{next-setup,react-setup,standalone-setup}.md`.
 - **Decompose** (a feature → resources): `references/decompose.md` (Section C).
 - **Modify** (change existing, blast radius): `references/modify.md` (Section D).
 - **Patterns** (per resource family): `references/patterns/{outer,vertex,base,inner,shell}.md`.
@@ -65,7 +66,9 @@ Look at the project (or ask the user) to determine which mode applies:
 - The user explicitly says "set up r-machine", "install r-machine",
   "add r-machine to my project", or similar.
 
-→ Go to **Section A: Initial Project Setup**.
+→ **Read [`references/setup.md`](references/setup.md)** (Mode A) and follow it.
+It is the one-shot setup procedure — deliberately kept out of this file so the
+common paths (B / C / D) don't pay for it on every invocation.
 
 **Adding a resource** if:
 
@@ -89,116 +92,15 @@ then loops through Section B for each resulting resource.)
 
 - `resource-atlas.ts` and `setup.ts` already exist, AND
 - The request targets something that **already exists** — change its behavior,
-  add/rename/remove a member, extend a feature, fix a bug ("make the timer count
-  down", "add a pause button to the timer", "rename `cart.add`", "remove X").
+  add/rename/remove a member, extend a feature, fix a bug, or move it to another
+  family ("make the timer count down", "add a pause button to the timer", "rename
+  `cart.add`", "remove X", "let this component appear several times on a page").
 
 → Go to **Section D: Modify or Evolve**. (Section D locates the owning
 resource(s), edits behind the namespace, and reports the blast radius.)
 
 **Tie-breaker:** if the target already exists, prefer **Modifying (D)** over
 Adding (B) / Implementing (C) — B and C are for net-new resources/features.
-
----
-
-## Section A — Initial Project Setup
-
-Read `references/next-setup.md` for Next.js App Router projects.
-Read `references/react-setup.md` for React (Vite) projects.
-Read `references/standalone-setup.md` for plain Node projects (CLI, queue worker,
-cron, template renderer) that consume R-Machine container-free via `DirectPlug`.
-
-### A.1 — Identify the framework / mode
-
-Check what the project has:
-
-- `next.config.*` → **Next.js App Router** → `references/next-setup.md`
-- `vite.config.*` / `react-scripts` → **React (Vite)** → `references/react-setup.md`
-- Neither, and it's a plain Node project (CLI, queue worker, cron, template renderer) —
-  or the user explicitly wants container-free usage → **Standalone / DirectPlug**
-  → `references/standalone-setup.md`
-
-If unclear, ask the user.
-
-### A.2 — Gather required information
-
-For **Next.js**, ask (or infer from context):
-
-1. Which routing strategy? Path / Flat / Origin
-2. Locales (e.g. `["en", "it"]`) and default locale
-3. Path strategy only: proxy or no-proxy?
-4. Origin strategy only: the origin map (`{ en: "https://…", it: "https://…" }`)
-5. Use a formatter shell (`shell/lib/fmt`)? Recommended — default yes.
-
-(An empty `path-atlas.ts` is created by default for every Next strategy — don't
-ask about it.)
-
-For **React**, ask (or infer):
-
-1. Locales and default locale
-2. Locale persistence: `localStorage` (default), cookie, or none
-
-For **Standalone / Node**, ask (or infer):
-
-1. Locales and default locale
-2. Which shared resources to expose as `directKit` (e.g. a `shell/lib/fmt`
-   formatter)? Optional.
-
-(No strategy, proxy, or origin questions — standalone has no framework. Full
-details in `references/standalone-setup.md`.)
-
-Don't ask for everything at once if the intent is already clear from the
-message.
-
-### A.3 — Generate the files
-
-Follow the framework-specific reference file exactly. Generate all required
-files and show them to the user. Explain any placeholder that needs
-customisation (real domain names, locale lists, etc.).
-
-### A.4 — Next steps after initial setup
-
-After generating the config files, tell the user:
-
-1. **Install the packages** using the package manager already in the project — see the reference file for the exact command per package manager.
-   - **Next.js**: `r-machine`, `@r-machine/react`, `@r-machine/next` (prod) + `@r-machine/testing`, `jiti` (dev — `jiti` powers `createNextDevImport` HMR)
-   - **React**: `r-machine`, `@r-machine/react` (prod) + `@r-machine/testing` (dev)
-   - **Standalone / Node**: `r-machine` (prod) + `@r-machine/testing` (dev) — no framework packages
-2. **Set up tests (default).** Check for an existing test framework
-   (`vitest.config.*`, a `vitest` devDependency). If none, propose configuring
-   vitest and, if accepted, generate `vitest.config.ts` for the mode + a baseline
-   `verifyResourceAtlas` test. R-Machine treats tests as a default, not an extra —
-   see `references/testing.md`.
-3. **Make the kit type-clean (required).** The kit points at `shell/lib/fmt`,
-   which doesn't exist yet → the first `tsc` fails with a `never`. Either scaffold
-   it as the first resource (`shell(mono)`, `references/patterns/shell.md`) and
-   register it in the atlas, or remove the `fmt` kit entries. (Per-mode details in
-   the setup reference.)
-4. **Run the typecheck gate** (`tsc --noEmit`, or the project's `typecheck` /
-   `build` script) — must be clean before declaring setup done.
-5. From now on, use this skill normally to add gears and shells (Section B).
-
-### A.5 — Write the agent routing stanza
-
-So that a **later, plain feature request** (which names no R-Machine terms) still
-routes through this skill, record that this is an R-Machine project in the agent
-instruction files. Add the stanza below to **both** `CLAUDE.md` and `AGENTS.md`
-at the project root:
-
-- **Create** the file if it does not exist; **append** the stanza if it does —
-  never overwrite existing content.
-- **Idempotent** — skip a file that already contains an equivalent R-Machine
-  routing stanza (do not duplicate).
-
-```md
-## R-Machine project
-
-This project uses **R-Machine**. For any feature, behavior, or UI work — new or a
-change to something that already exists — use the `r-machine` skill. Build new
-work as **gears** (logic) + **shells** (localized content) + a **React consumer**
-(glue); make changes behind the owning resource's namespace and check the blast
-radius with `tsc`. Do not hand-roll ad-hoc state or hardcode localizable
-user-facing text. See the skill's Section C (implement) and Section D (modify).
-```
 
 ---
 
@@ -219,9 +121,15 @@ resource — it decomposes into several. Section C plans that decomposition, the
    picking the pattern file by family; for the component, follow the matching
    `references/patterns/consume/*.md`. Update the atlas per resource
    (`references/patterns/atlas-update.md`) and finish with the typecheck gate.
-5. **Routing stanza fallback**: if this project's `CLAUDE.md` / `AGENTS.md` lacks
-   the R-Machine routing stanza (e.g. it was set up by hand, or before this skill
-   version), offer to add it — see **A.5** for the exact text and rules.
+5. **Routing stanza fallback**: if this project's `AGENTS.md` lacks the R-Machine
+   routing stanza (e.g. it was set up by hand, or before this skill version),
+   offer to add it — see [`references/setup.md`](references/setup.md) **A.5** for
+   the exact text and rules. **Ask, and wait for a yes.** Unlike Mode A setup, the
+   request here was a feature; editing the project's agent instruction files is
+   outside it, so it is a proposal, not a disclosed step. A project set up by
+   an older skill version may instead carry the stanza duplicated in **both**
+   `AGENTS.md` and `CLAUDE.md`; offer to collapse `CLAUDE.md` to `@AGENTS.md`,
+   keeping any other content it has.
 
 ---
 
@@ -234,19 +142,21 @@ whole point — **reports the blast radius** back. It edits existing resources; 
 genuinely new piece it dispatches to Section B.
 
 1. **Read [`references/modify.md`](references/modify.md)** — the locate → classify
-   → edit → report procedure and the three kinds of change.
+   → edit → report procedure and the kinds of change.
 2. **Locate** the owning resource(s) via `resource-atlas.ts`. For a feature-level
    change spanning several resources, decompose the _change_ with the rubric in
    [`references/decompose.md`](references/decompose.md) to find every affected owner.
 3. **Classify** each change — implementation-only (Surface unchanged) / additive
-   (new member) / breaking (rename, remove, re-type) — then **edit behind the
-   namespace**, keeping the Surface stable unless the contract must change.
+   (new member) / breaking (rename, remove, re-type) / relocation (same Surface,
+   different family or namespace) — then **edit behind the namespace**, keeping
+   the Surface stable unless the contract must change.
 4. **Run the typecheck gate** (`tsc --noEmit`). The compiler names exactly the
    consumers/tests a breaking change touches — update precisely those. Mocks and
    fixtures track the same contract, so a rename propagates into tests, not rot.
 5. **Report the blast radius** explicitly: _"Surface unchanged → nothing
    downstream"_ / _"additive → only new usage"_ / _"breaking → tsc flagged these N
-   sites, all updated"_. Make the property visible.
+   sites, all updated"_ / _"relocation → the body is unchanged, only its address
+   moved"_. Make the property visible.
 
 ---
 
@@ -266,6 +176,8 @@ Gather (from the message or by asking) these four things:
 4. **Dependencies** — any deps (`withDeps`) or external functions (`withPorts`)?
    For `OuterGear`, is it stateful (`withState`)?
 
+   Dependencies are declared the **same way at every site** — a list or a map of
+   namespaces; only _which_ families are allowed changes, keyed on the declaring site.
    Valid **plain** dep families per resource kind — a plain dep resolves to the
    resource's own surface (never suggest anything outside these):
    - `gear:outer` → `gear:base`, `gear:outer`
@@ -273,6 +185,12 @@ Gather (from the message or by asking) these four things:
    - `gear:inner` → `gear:base`, `gear:inner`
    - `shell` / `shell(mono)` → `shell`, `shell(mono)`, `gear:base` (only if in `bridgeGears`)
    - `gear:outer(vertex)` → same as `gear:outer`
+
+   The **consumer** side is keyed too — each plug is pinned to a catalog, **not**
+   unconstrained: `DirectPlug` → `base`, `shell`; `ServerPlug` → `inner`, `base`, `shell`;
+   `Plug`/`ClientPlug` → `base`, `outer`, `vertex`, `shell`. (A `ClientPlug` cannot reach
+   `inner/`; a `ServerPlug` cannot reach `outer/` — compile errors, not conventions.)
+   Full matrix: `references/concepts/dep-asymmetry.md`.
 
    **A bare `shell/…` is never a plain dep of a gear.** A gear (or a shell)
    reaches a `Shell` only through `res.perLocale("shell/…")` inside `withDeps`:
@@ -341,8 +259,13 @@ Step 4, "Where the file lives":
 | `shell/product` | `pub/shell/product/en.tsx` (+ one file per extra locale) |
 | `shell/lib/fmt` | `pub/shell/lib/fmt.ts` (mono — single file)              |
 
-For multi-locale shells, the canonical file is `en.tsx` (or the project's
-`defaultLocale`). Additional locale files live as siblings.
+A content shell **always** lives in a folder with one file per locale, named
+after the locale — `shell/product/en.tsx`, never `shell/product.tsx`. The
+canonical file is the project's `defaultLocale` (`en.tsx` above) and exports the
+type; other locale files are siblings. **This holds for a single-locale project
+too**: with `locales: ["en"]` the shell is still `pub/shell/product/en.tsx`,
+because the resolver always looks for `shell/<name>/<locale>`. `shell(mono)` is
+the only shell family that is a single file.
 
 **Shell extension follows the project's UI.** In **React / Next** projects, content
 shells are **always `.tsx`** — these render JSX, and `.tsx` is correct for plain
@@ -406,7 +329,9 @@ Consult the matching pattern file for the chosen family — load only that one:
 | `gear:inner`            | `references/patterns/inner.md`  |
 | `shell` / `shell(mono)` | `references/patterns/shell.md`  |
 
-Cross-cutting: `references/patterns/plugin-context.md` (map vs list form) and
+Cross-cutting: `references/patterns/plugin-context.md` (map vs list form — deps are
+declared positionally up to 2 and by name from 3 up; the form also decides how the
+`plugin` argument is shaped and how kit entries are reached) and
 `references/patterns/atlas-update.md` (atlas edit). To consume the resource, see
 `references/patterns/consume/<plug>.md`; to test it, `references/testing.md`.
 
@@ -434,8 +359,18 @@ Key rules (enforced by the TS compiler — get them right upfront):
   plain surface; a bare `shell/…` is not a valid gear dep. (The rules above are
   plain, same-surface deps.)
 - `gear:outer(vertex)` **cannot be a dep of any resource** — it's consumer-only.
+- Consumers are keyed too — each plug is pinned to a catalog, **not** unconstrained:
+  `DirectPlug` → `base` + `shell`; `ServerPlug` → `inner` + `base` + `shell`;
+  `Plug`/`ClientPlug` → `base` + `outer` + `vertex` + `shell`. Same list/map declaration
+  as `withDeps`; only the allowed set differs. (So a `ClientPlug` can't reach a server-only
+  `inner/` gear — a compile error, not a convention.)
 - Only `OuterGear` supports `withState` and cursor primitives (`_.action`,
   `_.getter`, `_.relay`).
+- **Every function that calls a plug owns its own plug**, attached as `Fn.plug` —
+  a page and its `generateMetadata` are two units, not one. In Next, exports that
+  do **not** own the render tree (`generateMetadata`, `generateStaticParams`, a
+  route handler) read the locale with **`useUnboundR`**, never `useR`. See
+  [`references/patterns/consume/server-plug.md`](references/patterns/consume/server-plug.md).
 
 For multi-locale shells: create one file per locale. The canonical (default
 locale) file exports the type. All other locale files use `localized(...)`.

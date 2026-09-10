@@ -1,14 +1,6 @@
 /**
- * Copyright (c) 2026 Sergio Turolla
- *
- * This file is part of @r-machine/next, licensed under the
- * GNU Affero General Public License v3.0 (AGPL-3.0-only).
- *
- * You may use, modify, and distribute this file under the terms
- * of the AGPL-3.0. See LICENSE in this package for details.
- *
- * If you need to use this software in a proprietary project,
- * contact: licensing@codecarvings.com
+ * Copyright (c) 2026 Sergio Turolla and R-Machine contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
@@ -27,6 +19,7 @@ import {
   type PathSelector,
 } from "#r-machine/next/core";
 import {
+  type LocaleCacheControlOption,
   type NextAppStrategyConfig,
   type NextAppStrategyConfigParams,
   NextAppStrategyCore,
@@ -51,6 +44,14 @@ export interface NextAppFlatStrategyConfig<
 > extends NextAppStrategyConfig<RA, CKM, SKM, PA, LK> {
   readonly cookie: CookieDeclaration;
   readonly pathMatcher: RegExp | null;
+  /**
+   * `cache-control` for the locale-dependent responses. Every handled path
+   * resolves its locale from the cookie — the locale is never in the URL — so
+   * every one of them is one: `"private"` (the default) marks them all
+   * `private, no-cache`. Switch to `"inherit"` only if the cache in front
+   * resolves the locale itself.
+   */
+  readonly localeCacheControl: LocaleCacheControlOption;
 }
 export type AnyNextAppFlatStrategyConfig = NextAppFlatStrategyConfig<any, any, any, any, any>;
 export interface NextAppFlatStrategyConfigParams<
@@ -62,6 +63,7 @@ export interface NextAppFlatStrategyConfigParams<
 > extends NextAppStrategyConfigParams<RA, CKM, SKM, PA, LK> {
   readonly cookie?: CookieDeclaration;
   readonly pathMatcher?: RegExp | null;
+  readonly localeCacheControl?: LocaleCacheControlOption;
 }
 
 const defaultConfig: NextAppFlatStrategyConfig<
@@ -74,6 +76,7 @@ const defaultConfig: NextAppFlatStrategyConfig<
   ...NextAppStrategyCore.defaultConfig,
   cookie: defaultCookieDeclaration,
   pathMatcher: defaultPathMatcher,
+  localeCacheControl: "private",
 };
 
 export interface NextAppFlatStrategyHelpers<L extends AnyLocale, PA extends AnyPathAtlas> extends StrategyHelpers<L> {

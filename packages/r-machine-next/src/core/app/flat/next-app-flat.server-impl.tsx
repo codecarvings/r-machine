@@ -1,14 +1,6 @@
 /**
- * Copyright (c) 2026 Sergio Turolla
- *
- * This file is part of @r-machine/next, licensed under the
- * GNU Affero General Public License v3.0 (AGPL-3.0-only).
- *
- * You may use, modify, and distribute this file under the terms
- * of the AGPL-3.0. See LICENSE in this package for details.
- *
- * If you need to use this software in a proprietary project,
- * contact: licensing@codecarvings.com
+ * Copyright (c) 2026 Sergio Turolla and R-Machine contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import { redirect } from "next/navigation";
@@ -16,8 +8,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import type { RMachine } from "r-machine";
 import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
-import type { HrefCanonicalizer, HrefTranslator } from "#r-machine/next/core";
-import { localeHeaderName, type NextAppServerImpl } from "#r-machine/next/core/app";
+import { type HrefCanonicalizer, type HrefTranslator, localeHeaderName } from "#r-machine/next/core";
+import type { NextAppServerImpl } from "#r-machine/next/core/app";
 import type { NextProxyResult } from "#r-machine/next/internal";
 import type { AnyNextAppFlatStrategyConfig } from "./next-app-flat-strategy-core.js";
 
@@ -36,9 +28,10 @@ export async function createNextAppFlatServerImpl<
   pathCanonicalizer: HrefCanonicalizer
 ) {
   const { locales, matchLocalesForAcceptLanguageHeader } = rMachine.localeHelper;
-  const { autoLocaleBinding, cookie, pathMatcher } = strategyConfig;
+  const { autoLocaleBinding, cookie, pathMatcher, localeCacheControl } = strategyConfig;
   const localeKey = strategyConfig.localeKey as C["localeKey"]; // Type assertion needed to use localeKey in a typed way, since it's not a generic parameter of the strategy core class
   const autoLBSw = autoLocaleBinding === "on";
+  const privateCacheSw = localeCacheControl === "private";
   const { name: cookieName, ...cookieConfig } = cookie;
 
   return {
@@ -140,7 +133,20 @@ export async function createNextAppFlatServerImpl<
             locale = matchLocalesForAcceptLanguageHeader(request.headers.get("accept-language"));
           }
 
-          return rewriteToCanonicalLocalePath(request, locale, pathname);
+          // Every handled path is served from these request headers, and this is a
+          // cacheable 200 — the dependency must be declared. Append, not set: Next
+          // declares its own RSC headers here and must not be clobbered. Measured on
+          // Next 16.3: Next then overwrites `vary` on a rewritten response, so this
+          // does not reach the client — declared anyway, it is correct at the source.
+          const response = rewriteToCanonicalLocalePath(request, locale, pathname);
+          response.headers.append("vary", "Accept-Language, Cookie");
+          if (privateCacheSw) {
+            // With `vary` unusable, the only way left to keep a shared cache from serving one
+            // visitor's locale to everybody. The whole site pays it here: with the locale
+            // outside the URL, no handled path is shared-cacheable to begin with.
+            response.headers.set("cache-control", "private, no-cache");
+          }
+          return response;
         }
 
         // Irrelevant URL, do not proxy

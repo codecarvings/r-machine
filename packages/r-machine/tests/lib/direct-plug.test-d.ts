@@ -30,7 +30,6 @@ const plain = RMachine.create({
   locales: ["en", "it"],
   defaultLocale: "en",
   ResourceAtlas,
-  experimental: { outerGear: "on" },
 }).createToolset();
 
 // With directKit → `$.kit` is present and typed from the kit map.
@@ -40,7 +39,6 @@ const kitted = RMachine.create({
   defaultLocale: "en",
   ResourceAtlas,
   directKit: { cfg: "base/cfg" },
-  experimental: { outerGear: "on" },
 }).createToolset();
 
 type Last<T extends readonly unknown[]> = T extends readonly [...unknown[], infer C] ? C : never;

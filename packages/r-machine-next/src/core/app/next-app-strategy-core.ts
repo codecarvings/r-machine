@@ -1,14 +1,6 @@
 /**
- * Copyright (c) 2026 Sergio Turolla
- *
- * This file is part of @r-machine/next, licensed under the
- * GNU Affero General Public License v3.0 (AGPL-3.0-only).
- *
- * You may use, modify, and distribute this file under the terms
- * of the AGPL-3.0. See LICENSE in this package for details.
- *
- * If you need to use this software in a proprietary project,
- * contact: licensing@codecarvings.com
+ * Copyright (c) 2026 Sergio Turolla and R-Machine contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags, SwitchableOption } from "r-machine/core";
@@ -24,7 +16,22 @@ import type {
 import type { NextAppClientImpl, NextAppClientRMachine, NextAppClientToolset } from "./next-app-client-toolset.js";
 import type { NextAppServerImpl, NextAppServerToolset } from "./next-app-server-toolset.js";
 
-export const localeHeaderName = "x-rm-locale";
+/**
+ * What `cache-control` a response carries when its locale was chosen from
+ * `Cookie` / `Accept-Language` rather than from the URL.
+ *
+ * Such a response cannot declare that dependency with `vary` — Next owns that
+ * header on a rewrite and overwrites it — so `"private"` states it the only way
+ * that survives: `private, no-cache`, which keeps a shared cache from storing the
+ * response under the requested URL and serving one visitor's locale to everybody.
+ * A private cache may still keep it, it just has to revalidate.
+ *
+ * `"inherit"` leaves the `cache-control` Next would assign. Correct only where
+ * the cache in front resolves the locale itself — because it runs this proxy
+ * ahead of its own lookup, or keys on the cookie — which is a property of the
+ * deployment that this library cannot observe, hence the explicit opt-in.
+ */
+export type LocaleCacheControlOption = "inherit" | "private";
 
 // ── Per-rMachine toolset cache ──────────────────────────────────────────────
 // `createClientToolset`/`createServerToolset` memoize their result on the

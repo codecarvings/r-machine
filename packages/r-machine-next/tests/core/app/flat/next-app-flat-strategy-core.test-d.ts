@@ -35,6 +35,7 @@ describe("NextAppFlatStrategyConfig", () => {
       | "reactCompiler"
       | "cookie"
       | "pathMatcher"
+      | "localeCacheControl"
     >();
   });
 
@@ -107,6 +108,7 @@ describe("NextAppFlatStrategyConfigParams", () => {
       | "reactCompiler"
       | "cookie"
       | "pathMatcher"
+      | "localeCacheControl"
     >();
   });
 

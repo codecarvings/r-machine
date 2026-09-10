@@ -15,7 +15,7 @@ describe("Base_Preview", () => {
   });
 
   it("mocks a res.perLocale dep with a function, deep-merged over the real surface", async () => {
-    using ctrl = mockPlug(r).with({ showcase: async (locale) => ({ tagline: `mock-${locale}` }) });
+    using ctrl = mockPlug(r).with({ 0: async (locale) => ({ tagline: `mock-${locale}` }) });
     const preview = await ctrl.createRes();
 
     // `tagline` comes from the mock; `appName` is inherited from the REAL surface.
@@ -28,7 +28,7 @@ describe("Base_Preview", () => {
     // real localized surface, so every un-mocked key (blurb, tagline, other
     // views) is inherited from the real shell.
     using ctrl = mockPlug(r).with({
-      showcase: (locale) => ({ views: { intro: { heading: `mock-${locale}` } } }),
+      0: (locale) => ({ views: { intro: { heading: `mock-${locale}` } } }),
     });
     const preview = await ctrl.createRes();
 

@@ -45,6 +45,7 @@ describe("NextAppPathStrategyConfig", () => {
       | "localeLabel"
       | "autoDetectLocale"
       | "implicitDefaultLocale"
+      | "localeCacheControl"
     >();
   });
 
@@ -138,6 +139,7 @@ describe("NextAppPathStrategyConfigParams", () => {
       | "localeLabel"
       | "autoDetectLocale"
       | "implicitDefaultLocale"
+      | "localeCacheControl"
     >();
   });
 

@@ -3,7 +3,8 @@
 Use this guide when adding R-Machine to a plain Node project with **no framework
 strategy** — a CLI, a queue worker, a cron job, or a template renderer.
 Resources are consumed container-free via `DirectPlug` (the locale is passed
-explicitly to `useR(locale)`). Canonical working reference: `examples/standalone`.
+explicitly to `useR(locale)`). Canonical working reference:
+<https://github.com/codecarvings/r-machine/tree/main/examples/standalone>.
 
 `DirectPlug` consumes only the `valid@direct` families — **`gear:base`, `shell`,
 `shell(mono)`**. No `outer`/`inner`/`vertex` gears (those need a stateful
@@ -30,8 +31,9 @@ for the test setup.
 
 ## 1. What to ask before writing any file
 
-- **Locales** — e.g. `["en", "it"]`
-- **Default locale** — e.g. `"en"`
+- **Locales and default locale** — offer exactly the options in
+  **Asking for locales** ([setup.md](./setup.md)), including its note that the
+  choice is not permanent.
 - **`directKit`** — which shared resources to surface as `$.kit` (e.g. a
   `shell/lib/fmt` formatter)? Optional.
 

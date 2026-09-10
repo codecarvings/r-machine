@@ -17,8 +17,14 @@ CartButton.plug = plug;
 ```
 
 **Multiple resources** (a gear + a localized shell, etc.) — list/map form, same as
-[plug.md](./plug.md#consume-multiple-resources):
+[plug.md](./plug.md#consume-multiple-resources) (up to 2 deps list, 3 or more map —
+[../plugin-context.md](../plugin-context.md)):
 `ClientPlug("outer/cart", "shell/cart")` → `const [cart, s, $] = plug.useR()`.
+
+**Deps allowed** — `gear:base`, `gear:outer`, `gear:outer(vertex)`, `shell` /
+`shell(mono)` (same catalog as the React `Plug`). A `ClientPlug` **cannot** reach an
+`inner/` gear: inner is server-only and never enters the client bundle — the compiler
+rejects it. See [../../concepts/dep-asymmetry.md](../../concepts/dep-asymmetry.md).
 
 **Language switcher** — a resourceless `ClientPlug()` for the `$` context only.
 The **shape** is the same as [plug.md](./plug.md#switch-the-locale-language-switcher),
@@ -51,6 +57,13 @@ export function LocaleSwitcher() {
 }
 LocaleSwitcher.plug = plug;
 ```
+
+**Kit access** — kit entries reach the consumer as **`$.kit.<entry>`** in list form
+(`$.kit.fmt.currency(price)`); the map form additionally hoists them as top-level
+keys, so `const { cart, fmt, $ } = plug.useR()` works too. Same rule as a declaration
+site — [../plugin-context.md](../plugin-context.md). The declaration site differs per plug
+(`kit` / `clientKit` / `serverKit` on the strategy, `directKit` on
+`RMachine.create`), but the access path is `$.kit` for all of them.
 
 **Localized links** — build type-safe localized URLs with
 `$.getPath("/product/[id]", { id })` (needs a `PathAtlas`, default-created for Next);

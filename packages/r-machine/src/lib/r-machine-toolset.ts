@@ -1,14 +1,6 @@
 /**
- * Copyright (c) 2026 Sergio Turolla
- *
- * This file is part of r-machine, licensed under the
- * GNU Affero General Public License v3.0 (AGPL-3.0-only).
- *
- * You may use, modify, and distribute this file under the terms
- * of the AGPL-3.0. See LICENSE in this package for details.
- *
- * If you need to use this software in a proprietary project,
- * contact: licensing@codecarvings.com
+ * Copyright (c) 2026 Sergio Turolla and R-Machine contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import type {
@@ -20,6 +12,7 @@ import type {
   BaseGearComposer,
   DirectPlugDefiner,
   ExperimentalFlags,
+  ExperimentalTools,
   InnerGearComposer,
   Namespace,
   OuterGearComposer,
@@ -36,6 +29,7 @@ export type RMachineToolset<
 > = {
   readonly InnerGear: InnerGearComposer<RA, E["gearKit"]>;
   readonly BaseGear: BaseGearComposer<RA, E["gearKit"]>;
+  readonly OuterGear: OuterGearComposer<RA, E["gearKit"]>;
   readonly Shell: ShellComposer<RA, L, E["bridgeGears"], E["shellKit"]>;
   readonly DirectPlug: DirectPlugDefiner<RA, L, E["directKit"]>;
   readonly localized: LocalizerHelper<RA["shape@shell"]>;
@@ -45,11 +39,11 @@ export type RMachineToolset<
   // alongside the composers). One member today; future adapters (e.g. `lazy`,
   // `optional`) join here without proliferating top-level toolset helpers.
   readonly res: ResDepBuilders<RA, L>;
-} & (EF["outerGear"] extends "on"
-  ? {
-      readonly OuterGear: OuterGearComposer<RA, E["gearKit"]>;
-    }
-  : {});
+  // Experimental-flag seam. No flag is active, so `ExperimentalTools` resolves
+  // to `{}` and this intersection is a no-op; it is where a future flag adds
+  // its tools to this surface. The retired `outerGear` gate read:
+  //   EF["outerGear"] extends "on" ? { readonly OuterGear: OuterGearComposer<RA, E["gearKit"]> } : {}
+} & ExperimentalTools<EF>;
 
 // Derived-dependency builders exposed as `toolset.res`.
 //  - `perLocale(shell)`: declares a locale-keyed shell as a gear/shell dependency;

@@ -1,14 +1,6 @@
 /**
- * Copyright (c) 2026 Sergio Turolla
- *
- * This file is part of r-machine, licensed under the
- * GNU Affero General Public License v3.0 (AGPL-3.0-only).
- *
- * You may use, modify, and distribute this file under the terms
- * of the AGPL-3.0. See LICENSE in this package for details.
- *
- * If you need to use this software in a proprietary project,
- * contact: licensing@codecarvings.com
+ * Copyright (c) 2026 Sergio Turolla and R-Machine contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import { ERR_RESOLVE_FAILED, RMachineResolveError } from "#r-machine/errors";
@@ -141,9 +133,12 @@ export const PLUG_MACHINE_ACCESSOR: unique symbol = Symbol.for("r-machine.PLUG_M
 // wide surface leaking onto the consumer Plug): the only things reachable from
 // a Plug are the seams `@r-machine/testing` uses — dropping all resolved
 // resource state (`disposeResources`) and toggling the machine's per-instance
-// test mode (reached via `getPlugMachine` from `mockPlug`).
+// test mode (reached via `getPlugMachine` from `mockPlug`) — plus the counter
+// that drop advances (`getResourceGeneration`), read by the React adapter to stop
+// serving wires it cached before a dispose.
 export interface PlugMachine {
   disposeResources(): void;
+  getResourceGeneration(): number;
   readonly testMode: TestMode;
 }
 

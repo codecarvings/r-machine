@@ -8,26 +8,12 @@ import type {
   NextAppStrategyConfig,
   NextAppStrategyConfigParams,
 } from "../../../src/core/app/next-app-strategy-core.js";
-import {
-  DefaultPathAtlas,
-  localeHeaderName,
-  NextAppStrategyCore,
-} from "../../../src/core/app/next-app-strategy-core.js";
+import { DefaultPathAtlas, NextAppStrategyCore } from "../../../src/core/app/next-app-strategy-core.js";
 import type { TestLocale, TranslatedPathAtlas } from "../../_fixtures/constants.js";
 import type { TestAtlas } from "../../_fixtures/mock-machine.js";
 
 type E = ResEquipment<TestAtlas>;
 type EF = ExperimentalFlags;
-
-// ---------------------------------------------------------------------------
-// localeHeaderName
-// ---------------------------------------------------------------------------
-
-describe("localeHeaderName", () => {
-  it("is a string", () => {
-    expectTypeOf(localeHeaderName).toBeString();
-  });
-});
 
 // ---------------------------------------------------------------------------
 // DefaultPathAtlas

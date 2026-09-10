@@ -1,14 +1,6 @@
 /**
- * Copyright (c) 2026 Sergio Turolla
- *
- * This file is part of r-machine, licensed under the
- * GNU Affero General Public License v3.0 (AGPL-3.0-only).
- *
- * You may use, modify, and distribute this file under the terms
- * of the AGPL-3.0. See LICENSE in this package for details.
- *
- * If you need to use this software in a proprietary project,
- * contact: licensing@codecarvings.com
+ * Copyright (c) 2026 Sergio Turolla and R-Machine contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -317,7 +309,6 @@ export function renderSetup(): string {
     `  ResourceAtlas,\n` +
     `  shellKit: { fmt: "shell/lib/fmt" },\n` +
     `  directKit: { fmt: "shell/lib/fmt" },\n` +
-    `  experimental: { outerGear: "on" },\n` +
     `});\n\n` +
     `export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized } = rMachine.createToolset();\n` +
     `export type Locale = RMachineLocale<typeof rMachine>;\n` +

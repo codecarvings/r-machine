@@ -11,9 +11,6 @@ const rMachine = RMachine.create({
   shellKit: {
     fmt: "shell/lib/fmt",
   },
-  experimental: {
-    outerGear: "on",
-  },
 });
 
 export const { InnerGear, BaseGear, OuterGear, Shell, DirectPlug, localized, res } = rMachine.createToolset();

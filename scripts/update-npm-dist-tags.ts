@@ -7,6 +7,19 @@
  * appropriate dist-tag to packages that were just published. This ensures
  * that prerelease versions (e.g., alpha, beta) are tagged correctly on npm.
  *
+ * It also moves `latest`. That is not cosmetic: `changeset publish` only
+ * publishes a prerelease to `latest` while *every* version already on the
+ * registry carries the current pre tag (its `only-pre` branch). The moment a
+ * second pre tag exists — the alpha→beta switch — that branch stops matching
+ * and `latest` would freeze on the last alpha forever, so a bare
+ * `npm install r-machine` (and every install snippet in the READMEs, the
+ * bundled Skill and `docs/`, plus `npx rforge@latest`) would keep serving the
+ * superseded alpha. Moving `latest` here preserves the behaviour those
+ * snippets already rely on.
+ *
+ * The move is guarded: `latest` is never walked backwards to an older version
+ * than the one it currently points at.
+ *
  * Usage:
  *   tsx scripts/update-npm-dist-tags.ts '{"name":"pkg","version":"1.0.0-alpha.1"}'
  *
@@ -17,6 +30,7 @@
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import semver from "semver";
 
 interface PublishedPackage {
   name: string;
@@ -36,6 +50,19 @@ function readPreJson(): PreJson | null {
     return JSON.parse(content) as PreJson;
   } catch {
     console.log("No pre.json file found or unable to read it");
+    return null;
+  }
+}
+
+function readCurrentLatest(packageName: string): string | null {
+  try {
+    const out = execSync(`npm view ${packageName} dist-tags.latest`, {
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+    return out.length > 0 ? out : null;
+  } catch {
+    // Never published, or a registry hiccup — there is no `latest` to protect.
     return null;
   }
 }
@@ -103,6 +130,13 @@ function main(): void {
 
   for (const pkg of publishedPackages) {
     updateDistTag(pkg.name, pkg.version, preJson.tag);
+
+    const currentLatest = readCurrentLatest(pkg.name);
+    if (currentLatest !== null && !semver.gt(pkg.version, currentLatest)) {
+      console.log(`- Leaving ${pkg.name} latest at ${currentLatest} (not older than ${pkg.version})`);
+      continue;
+    }
+    updateDistTag(pkg.name, pkg.version, "latest");
   }
 
   console.log("All dist-tags updated successfully!");

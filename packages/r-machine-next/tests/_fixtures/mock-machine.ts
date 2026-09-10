@@ -3,6 +3,7 @@ import {
   type AnyResAtlas,
   type ExperimentalFlags,
   PLUG_MACHINE_ACCESSOR,
+  type PlugMachine,
   PROCESS_SCOPE_PROVIDER,
   type ResEquipment,
   type ResLayoutEntryType,
@@ -87,6 +88,22 @@ function buildPlugin(
   return { ...kitSurfaces, ...depSurfaces, $ };
 }
 
+/**
+ * Plug-machine bridge that keeps the contract the adapters rely on: every
+ * `disposeResources()` advances the resource generation the React wire cache
+ * keys on.
+ */
+function createMockPlugMachine(): PlugMachine {
+  let resourceGeneration = 0;
+  return {
+    disposeResources: vi.fn(() => {
+      resourceGeneration++;
+    }),
+    getResourceGeneration: () => resourceGeneration,
+    testMode: new TestMode(),
+  };
+}
+
 export function createMockMachine<L extends string = TestLocale>(
   overrides: CreateMockMachineOptions<L> = {}
 ): RMachine<TestAtlas, L, ResEquipment<TestAtlas>, ExperimentalFlags> {
@@ -129,7 +146,7 @@ export function createMockMachine<L extends string = TestLocale>(
     },
     getWire: vi.fn(overrides.getWire ?? (defaultGetWire as never)),
     getGatePlugin: vi.fn(overrides.getGatePlugin ?? (defaultGetGatePlugin as never)),
-    [PLUG_MACHINE_ACCESSOR]: { disposeResources: vi.fn(), testMode: new TestMode() },
+    [PLUG_MACHINE_ACCESSOR]: createMockPlugMachine(),
     // Default to non-vertex so plugs in tests use the shared wireCache path.
     resolveLayoutEntryType: vi.fn(overrides.resolveLayoutEntryType ?? (() => "shell")),
     requestScope: {
@@ -168,7 +185,7 @@ export function createMockMachineForProxy<L extends string = TestLocale>(
       ),
       matchLocalesForAcceptLanguageHeader: vi.fn(() => overrides.matchLocaleReturn ?? dl),
     },
-    [PLUG_MACHINE_ACCESSOR]: { disposeResources: vi.fn(), testMode: new TestMode() },
+    [PLUG_MACHINE_ACCESSOR]: createMockPlugMachine(),
   } as unknown as RMachine<TestAtlas, L, ResEquipment<TestAtlas>, ExperimentalFlags>;
 }
 

@@ -1,14 +1,6 @@
 /**
- * Copyright (c) 2026 Sergio Turolla
- *
- * This file is part of @r-machine/next, licensed under the
- * GNU Affero General Public License v3.0 (AGPL-3.0-only).
- *
- * You may use, modify, and distribute this file under the terms
- * of the AGPL-3.0. See LICENSE in this package for details.
- *
- * If you need to use this software in a proprietary project,
- * contact: licensing@codecarvings.com
+ * Copyright (c) 2026 Sergio Turolla and R-Machine contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags, SwitchableOption } from "r-machine/core";
@@ -29,6 +21,7 @@ import {
   type PathSelector,
 } from "#r-machine/next/core";
 import {
+  type LocaleCacheControlOption,
   type NextAppClientRMachine,
   type NextAppNoProxyServerImpl,
   type NextAppNoProxyServerToolset,
@@ -82,6 +75,14 @@ export interface NextAppPathStrategyConfig<
   readonly localeLabel: LocaleLabelOption;
   readonly autoDetectLocale: AutoDetectLocaleOption;
   readonly implicitDefaultLocale: ImplicitDefaultLocaleOption;
+  /**
+   * `cache-control` for the locale-dependent responses — the ones the auto-detect
+   * branch resolves from `Cookie` / `Accept-Language`. `"private"` (the default)
+   * marks them `private, no-cache`; switch to `"inherit"` only if the cache in
+   * front resolves the locale itself. Paths outside the auto-detect matcher, and
+   * RSC requests, are never marked: their outcome does not depend on those headers.
+   */
+  readonly localeCacheControl: LocaleCacheControlOption;
 }
 export type AnyNextAppPathStrategyConfig = NextAppPathStrategyConfig<any, any, any, any, any>;
 export interface NextAppPathStrategyConfigParams<
@@ -95,6 +96,7 @@ export interface NextAppPathStrategyConfigParams<
   readonly localeLabel?: LocaleLabelOption;
   readonly autoDetectLocale?: AutoDetectLocaleOption;
   readonly implicitDefaultLocale?: ImplicitDefaultLocaleOption;
+  readonly localeCacheControl?: LocaleCacheControlOption;
 }
 
 const defaultConfig: NextAppPathStrategyConfig<
@@ -109,6 +111,7 @@ const defaultConfig: NextAppPathStrategyConfig<
   localeLabel: "lowercase",
   autoDetectLocale: "on",
   implicitDefaultLocale: "off",
+  localeCacheControl: "private",
 };
 
 export interface NextAppPathStrategyHelpers<L extends AnyLocale, PA extends AnyPathAtlas> extends StrategyHelpers<L> {

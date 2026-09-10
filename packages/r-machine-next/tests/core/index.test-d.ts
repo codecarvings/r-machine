@@ -15,7 +15,7 @@ import type {
   RMachineProxy,
   Segment,
 } from "../../src/core/index.js";
-import { buildPathAtlas } from "../../src/core/index.js";
+import { buildPathAtlas, localeHeaderName } from "../../src/core/index.js";
 
 // Barrel test: uses a single it() to verify export completeness only. Type shape tests belong in dedicated files.
 describe("core barrel exports", () => {
@@ -25,6 +25,8 @@ describe("core barrel exports", () => {
     expectTypeOf<HrefTranslator>().toBeObject();
 
     expectTypeOf(buildPathAtlas).toBeFunction();
+
+    expectTypeOf(localeHeaderName).toBeString();
 
     expectTypeOf<AnySegment>().toBeObject();
 

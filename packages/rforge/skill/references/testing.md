@@ -22,11 +22,35 @@ module and asserting `r` directly, or skip the test (the `localized(...)` type-c
 already guards the shape).
 
 **Where the plug lives.** A consumer does NOT export its plug; it attaches it to
-the function that calls `plug.useR()` (`CartButton.plug = plug`), mirroring a
+**each function that calls a plug** (`CartButton.plug = plug`), mirroring a
 resource's `r.plug`. So you never import a bare `plug` (no wall of identically
 named `plug` exports across test files) — you import the consumer/resource and
 hand it to `mockPlug`. `mockPlug` accepts either the carrier (`r`, `CartButton`)
 or a bare plug; the carrier is the norm.
+
+**One plug per function, so one mock per function.** A module that exports two
+consuming units declares two plugs (see
+[patterns/consume/server-plug.md](./patterns/consume/server-plug.md)), and each
+is mocked through its own carrier — a page's metadata is testable without
+rendering the page:
+
+```ts
+import { generateMetadata } from "@/app/[locale]/layout";
+
+it("builds the title from shell/common, without rendering the layout", async () => {
+  // generateMetadata.plug = ServerPlug("shell/common") — list form, so dep 0.
+  using _ctrl = mockPlug(generateMetadata).with({ 0: { title: "Shop" } });
+
+  const meta = await generateMetadata({
+    params: Promise.resolve({ locale: "en" }),
+  } as never);
+  expect(meta.title).toBe("Shop");
+});
+```
+
+Sharing one plug across both exports breaks this: `mockPlug` keys on the plug's
+identity, so the two units become one target and mocking both in a test throws
+`ERR_PLUG_ALREADY_MOCKED`. A function with no `.plug` cannot be mocked at all.
 
 **Never `mockPlug` a dependency's plug to test its consumer.** A unit is a black
 box over its deps: it declares them but must not know their internals or their
@@ -37,18 +61,29 @@ plug_ — by name (map form) or position (list form) — as shown below.
 
 ## Setup — tests are scaffolded by default
 
-When setting up a project (Section A), check whether a test framework already
-exists (`vitest.config.*`, a `vitest` devDependency, a `"test"` script). If none
-exists, **propose configuring vitest** (the suggested default) and, if accepted,
-generate the config + a baseline `verifyResourceAtlas` test. `@r-machine/testing`
-is already a devDependency in every setup.
+When setting up a project ([Mode A](./setup.md) A.4), check whether a test
+framework already exists (`vitest.config.*`, a `vitest` devDependency, a
+`"test"` script). If none exists, **propose configuring vitest, marked as
+strongly recommended** (see Mode A A.4 for the one-line reason to give) and, if
+accepted, generate the config + a baseline
+`verifyResourceAtlas` test. `@r-machine/testing` is already a devDependency in
+every setup.
 
 ### `vitest.config.ts` — per mode
+
+> **First, check `package.json` for `"type": "module"` — add it if missing.**
+> Every config below is ESM (`export default`, `import.meta.dirname`). Without
+> the field Node treats `.ts`/`.js` in the package as CommonJS, and Vite's
+> native config loader (a future default) warns today and will fail later.
+> `create-vite` already sets it; **`create-next-app` does not**, so a Next
+> project almost always needs it added. Only skip it if the project still
+> contains genuine CJS files (`require(`, `module.exports`) — then name the
+> config `vitest.config.mts` instead.
 
 **Standalone / Node:**
 
 ```ts
-import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { defineConfig, type ViteUserConfig } from "vitest/config";
 
 export default defineConfig({
@@ -56,7 +91,7 @@ export default defineConfig({
     // Mirror the tsconfig "@/*" -> "./src/*" path mapping (Vitest does not read
     // tsconfig paths). Resource modules import setup/atlas via this alias, so
     // without it `verifyResourceAtlas` cannot load them.
-    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+    alias: { "@": path.resolve(import.meta.dirname, "src") },
   },
   test: {
     environment: "node",
@@ -64,8 +99,9 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     // Inline so Vite — not Node's raw ESM loader — resolves `@r-machine/testing`
     // and `r-machine` to a SINGLE `plug.ts` instance. Otherwise mockPlug and the
-    // resolved plug live in two module instances and `getPlugResolve` reads
-    // `undefined`. (This is the consumer-side fix — NOT `#r-machine/*` aliases.)
+    // resolved plug live in two module instances, the plug's symbols don't match,
+    // and EVERY mockPlug call throws ERR_MOCK_TARGET_INVALID. Do not remove this
+    // line. (Consumer-side fix — NOT the `#r-machine/*` aliases.)
     server: { deps: { inline: ["@r-machine/testing"] } },
   },
 }) as ViteUserConfig;
@@ -74,14 +110,14 @@ export default defineConfig({
 **React (Vite):**
 
 ```ts
-import { fileURLToPath } from "node:url";
+import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type ViteUserConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+    alias: { "@": path.resolve(import.meta.dirname, "src") },
     dedupe: ["react", "react-dom"],
   },
   test: {
@@ -110,7 +146,7 @@ outside an RSC bundle:
 ```ts
   resolve: {
     alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@": path.resolve(import.meta.dirname, "src"),
       "server-only": "@r-machine/next/dev/no-op",
     },
     dedupe: ["react", "react-dom"],
@@ -121,7 +157,7 @@ outside an RSC bundle:
 assume source under `src/` (`@/*` → `./src/*`). A default `create-next-app` (and
 many Vite setups) keep source at the **repo root** with `@/*` → `./*`. Read the
 project's `tsconfig.json` `paths` and mirror it: when there's no `src/`, the alias
-becomes `"@": fileURLToPath(new URL(".", import.meta.url))` and every
+becomes `"@": path.resolve(import.meta.dirname)` and every
 `import.meta.resolve("../../src/r-machine/…")` in a test drops the `src/` segment
 (`"../../r-machine/setup.ts"`). The same applies to `proxy.ts`, which sits at the
 source root — repo root when there's no `src/`.
@@ -299,8 +335,14 @@ the shell, at the folder's level — not per-locale:
    and writes after resolve hit the live cell.
 
 **Every resolution override is a `DeepPartial` deep-merged over the real surface**
-— the same merge law as an action reducer and `ctrl.state`. Mock a single nested
-sub-key and its **siblings are inherited** from the real resource:
+— the same merge law as an action reducer and `ctrl.state`, including its four
+rules: read
+[patterns/outer.md § Action return semantics](./patterns/outer.md#action-return-semantics--the-deep-partial-merge)
+once. The one that bites in tests: **only plain objects merge**, so an array,
+`Date`, `Map`, `Set` or class instance in an override or a seed **replaces** the
+real value wholesale — never element-wise, even though `DeepPartial<T[]>` lets
+you write partial elements. Mock a single nested sub-key and its **siblings are
+inherited** from the real resource:
 
 ```ts
 // Override only views.intro.heading; every other key (blurb, other views, …)
@@ -331,8 +373,9 @@ expect(inst.getAppName()).toBe("xyz"); // re-read, not snapshotted
 An override getter is a **partial**, not a whole replacement: if a real dep getter
 derives from state (`foo → { a: <state>, b: 2 }`), mocking `{ foo: { b: 100 } }`
 and then driving `ctrl.deps.foo.state` yields `{ a: <new state>, b: 100 }` — `a`
-keeps tracking, `b` stays mocked. (On primitive leaves the deep-merge degrades to a
-plain replacement.)
+keeps tracking, `b` stays mocked. (On any non-plain-object leaf — a primitive, an
+array, a `Date`/`Map`/`Set`, a class instance — the deep-merge degrades to a plain
+replacement.)
 
 `.default()` is `.with({})` — enter test mode with no overrides (e.g. resolve a
 stateless gear, or resolve at the machine's default locale).
@@ -400,7 +443,7 @@ it("adds items and computes itemCount + subtotal", async () => {
 ```
 
 Seed the gear's **own** state directly with `ctrl.state` (deep-partial — other
-keys survive):
+keys survive; an array-valued key is replaced whole, not appended to):
 
 ```ts
 using ctrl = mockPlug(r).with({
@@ -550,10 +593,13 @@ const PRODUCT: Product = {
 };
 
 it("resolves via useR(params) and renders the product, price formatted server-side", async () => {
-  // ProductPage.plug = ServerPlug("inner/catalog", "shell/product", "shell/catalog") — list form.
-  // Override dep 0 (the catalog) THROUGH the page; the shells stay real.
+  // ProductPage.plug = ServerPlug({ catalog: "inner/catalog", sProduct: "shell/product",
+  //   sCatalog: "shell/catalog" }) — 3 deps, so map form: overrides are keyed by name.
+  // Override the `catalog` dep THROUGH the page; the shells stay real.
   using _ctrl = mockPlug(ProductPage).with({
-    0: { byId: (id: string) => (id === PRODUCT.id ? PRODUCT : undefined) },
+    catalog: {
+      byId: (id: string) => (id === PRODUCT.id ? PRODUCT : undefined),
+    },
   });
 
   const el = await ProductPage({
@@ -587,9 +633,17 @@ try {
 - **Single plug instance (the big one).** `mockPlug` and the resolved plug must
   share one `plug.ts` module instance. In a consumer project the fix is
   `server: { deps: { inline: ["@r-machine/testing"] } }` in `vitest.config.ts`
-  (plus `@r-machine/next` for Next). Without it, `getPlugResolve` reads
-  `undefined` and mocks silently do nothing. (The `#r-machine/*` source aliases
-  are a monorepo-internal concern — do NOT add them to a consumer project.)
+  (plus `@r-machine/next` for Next). (The `#r-machine/*` source aliases are a
+  monorepo-internal concern — do NOT add them to a consumer project.)
+
+  **How it shows up:** a plug's internals hang off module-local symbols, so two
+  instances mean two registries and the testing package reads `undefined` for a
+  perfectly valid plug. `mockPlug` guards for exactly that and **throws
+  `ERR_MOCK_TARGET_INVALID`** — on **every** call, including targets you know are
+  correct. So the tell is not one broken test: it is _every_ `mockPlug` in the
+  suite failing at once with a message about the target. Suspect the config, not
+  the target — see the `ERR_MOCK_TARGET_INVALID` bullet below.
+
 - **Drive a relay with a "tick", not a field-equal object.** An action that
   returns a new but field-equal object (`{ n: 1 }` twice) is collapsed by
   `deepPartialMerge` to the same reference, so an identity-based relay won't
@@ -600,10 +654,25 @@ try {
 - **`using` vs `reset()`.** Prefer `using ctrl = mockPlug(...)` (TS auto-dispose).
   A second mock on the same plug before reset throws `ERR_PLUG_ALREADY_MOCKED`.
   Use `resetMockPlugs()` in `afterEach` as a safety net.
+- **Name it `_ctrl` when you never read it.** Plenty of tests only need the mock
+  _active_ for the scope — the binding exists so `Symbol.dispose` runs at the end
+  of the block, and nothing reads it. That is correct code that looks unused, so
+  give it the `_` prefix: linters read the underscore, and a reader sees at a
+  glance that the value is deliberately unused. Keep the plain `ctrl` whenever you
+  do touch it (`ctrl.state`, `ctrl.createRes()`). A stock `create-next-app` ESLint
+  config does not ignore `^_` out of the box — see `./setup.md` A.4.
 - **Pass the carrier, not a bare `plug`.** A consumer attaches its plug
   (`Comp.plug = plug`); hand the consumer/resource to `mockPlug` (`mockPlug(Comp)`,
   `mockPlug(r)`). Passing something with no plug attached — a component that forgot
   its `.plug` line, or a stray value — throws `ERR_MOCK_TARGET_INVALID`.
+- **`ERR_MOCK_TARGET_INVALID` has three causes — check them in this order.** The
+  message only says the target looks wrong, so read it as "no plug was found
+  here", not "you passed the wrong thing":
+  1. **Every `mockPlug` in the suite throws** → the module-instance problem, not
+     the target. Add `server: { deps: { inline: … } }` (first bullet).
+  2. **One resource throws** → it is a **plain object** (`export const r = { … }`),
+     which has no plug at all. Assert `r` directly, or make it a factory.
+  3. **One consumer throws** → its `Fn.plug = plug` line is missing.
 
 ---
 

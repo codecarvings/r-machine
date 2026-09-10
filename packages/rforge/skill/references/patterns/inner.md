@@ -47,6 +47,7 @@ export type Inner_Catalog = RShape<typeof r>;
 ## Test it
 
 ```ts
+// tests/r-machine/prv/inner/catalog.test.ts — mirrors the source path
 import { mockPlug } from "@r-machine/testing";
 import { r } from "@/r-machine/prv/inner/catalog";
 
