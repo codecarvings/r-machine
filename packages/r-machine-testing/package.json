@@ -1,6 +1,6 @@
 {
   "name": "@r-machine/testing",
-  "version": "1.0.0-beta",
+  "version": "1.0.0-beta.0",
   "description": "Testing utilities for R-Machine — mockPlug, one typed override primitive for gears, shells and components.",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "Apache-2.0",
