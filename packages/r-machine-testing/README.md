@@ -35,6 +35,7 @@ And the same thing that orients an agent is what stops it. A dependency that doe
 R-Machine ships an agent skill that scaffolds a project and adds resources. Start from a fresh app and install it:
 
 ```bash
+# Next.js
 npm create next-app@latest my-app
 cd my-app
 npx rforge@latest skill
@@ -47,11 +48,23 @@ cd my-app
 npx rforge@latest skill
 ```
 
-Then prompt your agent: _"Install R-Machine in this project"_.
-
 > Using pnpm, yarn or bun? Replace `npx rforge@latest` with `pnpm dlx rforge@latest`,
 > `yarn dlx rforge@latest` or `bunx rforge@latest`. R-Machine itself has no package
 > manager preference — the skill installs the packages with whichever one your project uses.
+
+Then prompt your agent:
+
+```
+Install R-Machine in this project
+```
+
+Then describe a feature in plain words:
+
+```
+Add a counter to the home page: a label showing the current value,
+and two buttons, "Increase" and "Decrease".
+Disable "Decrease" when the value is 0.
+```
 
 A step-by-step quickstart is coming on rmachine.dev.
 
