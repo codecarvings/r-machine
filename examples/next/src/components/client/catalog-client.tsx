@@ -2,6 +2,7 @@
 
 import { ClientPlug, VertexFrame } from "@/r-machine/client-toolset";
 import type { Product } from "@/r-machine/prv/inner/catalog";
+import type { Category } from "@/r-machine/pub/base/store-config";
 import { CatalogFilterBar } from "./catalog-filter-bar";
 import { CatalogGrid } from "./catalog-grid";
 
@@ -10,7 +11,7 @@ import { CatalogGrid } from "./catalog-grid";
 // get its own independent vertex instance; with it, both read and write the same
 // reactive filter state.
 const plug = ClientPlug("vertex/catalog-filter");
-export function CatalogClient({ products, categories }: { products: Product[]; categories: readonly string[] }) {
+export function CatalogClient({ products, categories }: { products: Product[]; categories: readonly Category[] }) {
   const [filter] = plug.useR();
 
   return (

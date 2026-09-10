@@ -42,7 +42,7 @@ export function CatalogGrid({ products }: { products: Product[] }) {
           product={p}
           // Same canonical number, locale-aware currency/format.
           priceLabel={fmt.currency(p.price)}
-          categoryLabel={s.category[p.category as keyof typeof s.category]}
+          categoryLabel={s.category[p.category]}
           viewDetailsLabel={s.viewDetails}
           href={$.getPath("/product/[id]", { id: p.id })}
         />

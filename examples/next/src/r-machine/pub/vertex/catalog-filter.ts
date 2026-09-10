@@ -1,3 +1,4 @@
+import type { Category } from "@/r-machine/pub/base/store-config";
 import { OuterGear, type RShape } from "@/r-machine/setup";
 
 export type CatalogSort = "price-asc" | "price-desc" | "name";
@@ -8,7 +9,7 @@ export type CatalogSort = "price-asc" | "price-desc" | "name";
 // the catalog sort/category selection — it must NOT survive navigation the way
 // the cart does.
 export const r = OuterGear.withDeps("base/store-config")
-  .withState({ sort: "price-asc" as CatalogSort, category: null as string | null })
+  .withState({ sort: "price-asc" as CatalogSort, category: null as Category | null })
   .define((plugin, _) => {
     const [store, $] = plugin;
 
@@ -19,7 +20,7 @@ export const r = OuterGear.withDeps("base/store-config")
       sort: _.getter(() => $.state.sort),
       category: _.getter(() => $.state.category),
       setSort: _.action((sort: CatalogSort) => ({ sort })),
-      setCategory: _.action((category: string | null) => ({ category })),
+      setCategory: _.action((category: Category | null) => ({ category })),
     };
   });
 

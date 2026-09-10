@@ -1,3 +1,4 @@
+import type { Category } from "@/r-machine/pub/base/store-config";
 import type { RShape } from "@/r-machine/setup";
 
 // Plain-object shell (no `$` needed). The default-locale file can export the
@@ -11,13 +12,14 @@ export const r = {
     priceDesc: "Price: high to low",
     name: "Name",
   },
+  allProducts: "All products",
+  // Localized labels for the locale-neutral `Category` keys owned by `base/store-config`.
+  // `satisfies` makes the table exhaustive: a new category without a label fails to compile.
   category: {
-    all: "All products",
-    // Localized labels for the locale-neutral category keys owned by the catalog.
     peripherals: "Peripherals",
     displays: "Displays",
     audio: "Audio",
-  },
+  } satisfies Record<Category, string>,
   viewDetails: "View details",
 };
 

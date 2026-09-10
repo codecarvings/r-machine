@@ -1,12 +1,13 @@
 import "server-only";
 import { fetchProducts } from "@/lib/catalog-port";
+import type { Category } from "@/r-machine/pub/base/store-config";
 import { InnerGear, type RShape } from "@/r-machine/setup";
 
 export interface Product {
   id: string;
   /** Locale-neutral. Only the UI chrome and the formatted price are localized. */
   name: string;
-  category: string;
+  category: Category;
   /** Canonical price; formatted per-locale (USD/EUR) by `shell/lib/fmt`. */
   price: number;
   blurb: string;

@@ -25,7 +25,7 @@ export default async function ProductPage({ params }: PageProps<"/[locale]/produ
         </Link>
 
         <div className="space-y-3">
-          <Badge variant="secondary">{sCatalog.category[product.category as keyof typeof sCatalog.category]}</Badge>
+          <Badge variant="secondary">{sCatalog.category[product.category]}</Badge>
           <h1 className="text-3xl font-bold tracking-tight">{product.name}</h1>
           <p className="text-muted-foreground">{product.blurb}</p>
         </div>

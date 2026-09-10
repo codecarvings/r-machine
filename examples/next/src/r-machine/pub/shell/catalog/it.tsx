@@ -9,8 +9,8 @@ export const r = localized("shell/catalog", {
     priceDesc: "Prezzo: decrescente",
     name: "Nome",
   },
+  allProducts: "Tutti i prodotti",
   category: {
-    all: "Tutti i prodotti",
     peripherals: "Periferiche",
     displays: "Monitor",
     audio: "Audio",

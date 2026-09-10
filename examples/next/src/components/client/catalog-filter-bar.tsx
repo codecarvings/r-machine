@@ -2,14 +2,17 @@
 
 import { Button } from "@/components/ui/button";
 import { ClientPlug } from "@/r-machine/client-toolset";
+import type { Category } from "@/r-machine/pub/base/store-config";
 import type { CatalogSort } from "@/r-machine/pub/vertex/catalog-filter";
+
+const SORTS: readonly CatalogSort[] = ["price-asc", "price-desc", "name"];
 
 // Reads the same shared `vertex/catalog-filter` instance as <CatalogGrid>. Its
 // writes (setSort/setCategory) drive the grid's re-render — the two siblings
 // share one reactive vertex instance because the parent wraps them in a
 // <VertexFrame>.
 const plug = ClientPlug("vertex/catalog-filter", "shell/catalog");
-export function CatalogFilterBar({ categories }: { categories: readonly string[] }) {
+export function CatalogFilterBar({ categories }: { categories: readonly Category[] }) {
   const [filter, s] = plug.useR();
 
   return (
@@ -20,7 +23,7 @@ export function CatalogFilterBar({ categories }: { categories: readonly string[]
           size="sm"
           onClick={() => filter.setCategory(null)}
         >
-          {s.category.all}
+          {s.allProducts}
         </Button>
         {categories.map((c) => (
           <Button
@@ -29,7 +32,7 @@ export function CatalogFilterBar({ categories }: { categories: readonly string[]
             size="sm"
             onClick={() => filter.setCategory(c)}
           >
-            {s.category[c as keyof typeof s.category]}
+            {s.category[c]}
           </Button>
         ))}
       </div>
@@ -38,7 +41,13 @@ export function CatalogFilterBar({ categories }: { categories: readonly string[]
         <select
           className="border rounded-md px-2 py-1 bg-background text-foreground"
           value={filter.sort}
-          onChange={(e) => filter.setSort(e.target.value as CatalogSort)}
+          onChange={(e) => {
+            // The DOM hands back a `string`: narrow it by lookup, not by cast.
+            const sort = SORTS.find((option) => option === e.target.value);
+            if (sort) {
+              filter.setSort(sort);
+            }
+          }}
         >
           <option value="price-asc">{s.sort.priceAsc}</option>
           <option value="price-desc">{s.sort.priceDesc}</option>

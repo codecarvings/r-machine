@@ -11,3 +11,6 @@ export const r = BaseGear.define(() => ({
 }));
 
 export type Base_StoreConfig = RShape<typeof r>;
+
+// Derived from the resource itself, so `categories` stays the single source of truth.
+export type Category = Base_StoreConfig["categories"][number];
