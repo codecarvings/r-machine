@@ -337,6 +337,12 @@ export class RMachine<
     // next. Request scopes are unaffected (use `requestScope.dispose`). Reachable
     // from a resource's `r.plug` via `getPlugMachine` (see `@r-machine/testing`).
     disposeResources: () => this.resManager.disposeResources(),
+    // The resource generation every dispose advances, read by the React adapter
+    // off the `rMachine` it closes over to stop serving a wire it cached before a
+    // dispose. Read from the ResManager rather than counted here: not every
+    // dispose goes through this bridge (`create`'s dev singleton reuse calls the
+    // ResManager directly).
+    getResourceGeneration: () => this.resManager.getResourceGeneration(),
     // Per-instance test-mode controller. Toggled by `@r-machine/testing`'s
     // `mockPlug` (it reaches this via the Plug's `getPlugMachine` back-reference)
     // and read by the adapter guards off the `rMachine` they close over. Never

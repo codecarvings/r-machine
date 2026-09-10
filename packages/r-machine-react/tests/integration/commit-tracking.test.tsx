@@ -5,6 +5,7 @@ import {
   type BusHost,
   createCassetteRecorder,
   createOuterGearComposer,
+  PLUG_MACHINE_ACCESSOR,
   type PlugBody,
   type ResComposerConnector,
   ResLayoutResolver,
@@ -256,7 +257,8 @@ function buildRealEnv(layoutType: "gear:outer" | "gear:outer(vertex)" = "gear:ou
   // Fake machine surface: just what createReactBareToolset and useBareReactPlug
   // actually touch — validateLocale + defaultLocale + getWire +
   // resolveLayoutEntryType (used by the Plug factory to decide per-consumer vs
-  // shared wire caching).
+  // shared wire caching) + the resource generation (the wire cache's staleness
+  // key, backed by the real ResManager so a dispose advances it).
   const fakeMachine = {
     localeHelper: {
       validateLocale: () => null,
@@ -264,9 +266,10 @@ function buildRealEnv(layoutType: "gear:outer" | "gear:outer(vertex)" = "gear:ou
     },
     getWire: wm.getWire.bind(wm),
     resolveLayoutEntryType: (ns: string) => resolver.resolveLayoutEntryType(ns as never),
+    [PLUG_MACHINE_ACCESSOR]: { getResourceGeneration: () => rm.getResourceGeneration() },
   };
 
-  return { fakeMachine };
+  return { fakeMachine, rm };
 }
 
 describe("Counter — end-to-end via real RMachine + OuterGear stateful + Plug.useR()", () => {
@@ -447,5 +450,69 @@ describe("Counter — end-to-end via real RMachine + OuterGear stateful + Plug.u
       fireEvent.click(button);
     });
     expect(button.textContent).toBe("count: 1");
+  });
+
+  // Regression: `disposeResources()` — run by `mockPlug`'s reset when a test's
+  // `using ctrl` scope closes — tears down the slots a cached wire resolved
+  // against and drops its RM subscription without notifying it. The wire used to
+  // stay in the plug's cache, never dirty, so the NEXT test in the same file was
+  // handed its dead plugin: the previous test's state on screen, and a new mock's
+  // transform (hence its seeded state) never applied. Each "test" below ends the
+  // way a real one does: dispose while still mounted, then RTL's cleanup.
+  it("never reuses a wire resolved before disposeResources(): consecutive tests on one plug start fresh", async () => {
+    const { fakeMachine, rm } = buildRealEnv();
+    const { ReactRMachine, Plug } = await createReactBareToolset(fakeMachine as never, {} as never);
+    const CounterPlug = (Plug as any)("v/counter");
+
+    function Counter() {
+      const [counter] = (CounterPlug as any).useR() as [{ count: number; inc: () => unknown }];
+      return (
+        <button type="button" onClick={() => counter.inc()}>
+          count: {counter.count}
+        </button>
+      );
+    }
+    const mountCounter = async () => {
+      await act(async () => {
+        render(
+          <ReactRMachine locale="en">
+            <React.Suspense fallback={<div>loading</div>}>
+              <Counter />
+            </React.Suspense>
+          </ReactRMachine>
+        );
+      });
+      return screen.findByRole("button");
+    };
+    const endTest = () => {
+      rm.disposeResources();
+      cleanup();
+    };
+
+    // Test 1 leaves the state mutated.
+    const first = await mountCounter();
+    await act(async () => {
+      fireEvent.click(first);
+    });
+    expect(first.textContent).toBe("count: 1");
+    endTest();
+
+    // Test 2, no mock: fresh state, on a wire that is live (an action re-renders).
+    const second = await mountCounter();
+    expect(second.textContent).toBe("count: 0");
+    await act(async () => {
+      fireEvent.click(second);
+    });
+    expect(second.textContent).toBe("count: 1");
+    endTest();
+
+    // Test 3, mocked: an override registered after the dispose reaches the mount.
+    setPlugOverride(CounterPlug as PlugBody<AnyPlugHead>, {
+      transform: (plugin) => {
+        const arr = plugin as unknown[];
+        return [{ count: 99, inc: () => {} }, arr[arr.length - 1]];
+      },
+    });
+    expect((await mountCounter()).textContent).toBe("count: 99");
   });
 });

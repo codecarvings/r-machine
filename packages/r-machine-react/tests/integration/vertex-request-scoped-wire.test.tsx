@@ -24,6 +24,7 @@ import {
   createCassetteRecorder,
   createOuterGearComposer,
   createRequestScope,
+  PLUG_MACHINE_ACCESSOR,
   PROCESS_SCOPE_PROVIDER,
   type ResComposerConnector,
   ResLayoutResolver,
@@ -75,6 +76,9 @@ function buildVertexEnv() {
     resolveLayoutEntryType: (ns: string) => resolver.resolveLayoutEntryType(ns as never),
     // Present so the resolution wrapper's setOverride call doesn't throw.
     requestScope: { getProvider: () => PROCESS_SCOPE_PROVIDER },
+    // The wire cache's staleness key (see `getOrCreateWire`); backed by the real
+    // ResManager so a dispose advances it.
+    [PLUG_MACHINE_ACCESSOR]: { getResourceGeneration: () => rm.getResourceGeneration() },
   };
   return { fakeMachine };
 }

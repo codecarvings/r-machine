@@ -44,4 +44,25 @@ describe("ResManager.disposeResources", () => {
     env.rm.disposeResources();
     expect(() => env.rm.disposeResources()).not.toThrow();
   });
+
+  // The generation is the only trace of a dispose that a cache OUTSIDE the manager
+  // can observe (a dispose notifies no subscriber), so it must move on every
+  // dispose and on nothing else: a missed bump keeps orphaned wires in service,
+  // while a bump on resolve would make the React wire cache miss on every render.
+  it("advances the resource generation by one on every dispose, and not on resolve", async () => {
+    const env = buildResolveEnv(LAYOUT, {
+      "g/x": outerGearModule((composer) => (composer as any).define(() => ({ v: 1 }))),
+    });
+    const start = env.rm.getResourceGeneration();
+
+    await env.resolve("g/x" as AnyNamespace);
+    expect(env.rm.getResourceGeneration()).toBe(start);
+
+    env.rm.disposeResources();
+    expect(env.rm.getResourceGeneration()).toBe(start + 1);
+
+    // Even with no slot left to dispose: the subscriber index is still wiped.
+    env.rm.disposeResources();
+    expect(env.rm.getResourceGeneration()).toBe(start + 2);
+  });
 });

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ASYNC, createPlug, createRequestScope, setPlugOverride } from "#r-machine/core";
+import { ASYNC, createPlug, createRequestScope, PLUG_MACHINE_ACCESSOR, setPlugOverride } from "#r-machine/core";
 import { RMachineConfigError } from "#r-machine/errors";
 import type { AnyPlugHead } from "../../src/core/plug.js";
 import type { AnyNamespace } from "../../src/core/res-domain.js";
@@ -304,6 +304,30 @@ describe("RMachine.create — singleton caching", () => {
     });
     expect(second).toBe(first);
     expect(disposeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  // The reuse disposes through the ResManager directly, bypassing the plug-machine
+  // bridge — so the bridge must report the ResManager's generation rather than
+  // count its own calls, or this dispose would never reach the adapter wire
+  // caches keyed on it.
+  it("in dev, the reuse's dispose advances the resource generation the plug machine reports", () => {
+    vi.stubEnv("NODE_ENV", "development");
+
+    const first = RMachine.create({
+      instanceName: "block-c-singleton-generation",
+      locales: ["en"],
+      defaultLocale: "en",
+      ResourceAtlas,
+    });
+    const before = first[PLUG_MACHINE_ACCESSOR].getResourceGeneration();
+
+    RMachine.create({
+      instanceName: "block-c-singleton-generation",
+      locales: ["en"],
+      defaultLocale: "en",
+      ResourceAtlas,
+    });
+    expect(first[PLUG_MACHINE_ACCESSOR].getResourceGeneration()).toBe(before + 1);
   });
 });
 

@@ -246,7 +246,9 @@ export async function createReactBareToolset<
     // own its own wire; the old wire is disposed naturally when React
     // unmounts the old subtree (last `subscribe` returns → RM unsubscribe →
     // outer vertex slots disposed by genId).
-    type WireEntry = { wire: Wire; localeHolder: { current: L } };
+    // `generation`: the machine's resource generation the wire was created under
+    // (see the staleness check in `getOrCreateWire`).
+    type WireEntry = { wire: Wire; localeHolder: { current: L }; generation: number };
     // Module-level fallback cache for client-side (no request scope active).
     const fallbackWireCache = new Map<string, WireEntry>();
     // Per-consumer caches for plugs whose vertex deps are NOT covered by a
@@ -361,8 +363,17 @@ export async function createReactBareToolset<
       } else {
         wireCache = getWireCache(requestScope);
       }
+      // An entry from an older resource generation counts as absent.
+      // `disposeResources()` — run by `mockPlug`'s reset at the end of every test —
+      // tears down the slots a cached wire resolved against and drops its RM
+      // subscription WITHOUT notifying it, so that wire is never marked dirty and
+      // would keep handing out its dead plugin: the previous test's state, and a
+      // later mock's transform never applied. The orphan is not torn down here;
+      // any consumer still mounted on it releases it through its own wire-swap /
+      // unmount cleanup.
+      const generation = plugMachine.getResourceGeneration();
       let entry = wireCache.get(key);
-      if (!entry) {
+      if (!entry || entry.generation !== generation) {
         // localeHolder is now constant (locale is part of the cache key, so
         // each entry has a fixed locale for its lifetime). Kept as a holder
         // shape so augmentCtx's closure signature stays uniform with prior
@@ -400,7 +411,7 @@ export async function createReactBareToolset<
           vertexGearMap,
           body
         );
-        entry = { wire, localeHolder };
+        entry = { wire, localeHolder, generation };
         wireCache.set(key, entry);
       }
       return entry.wire;

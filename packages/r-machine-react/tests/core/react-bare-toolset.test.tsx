@@ -460,6 +460,36 @@ describe("createReactBareToolset › resource resolution via Plug", () => {
       )
     ).toThrow("getWire exploded");
   });
+
+  // The cache belongs to the plug, not to a mount, so a remount reuses the wire —
+  // until `disposeResources()` (the mock reset between tests) advances the
+  // machine's resource generation. That dispose orphans the wire without
+  // notifying it, so reusing it would serve the previous test's plugin.
+  it("reuses the cached wire across remounts, and builds a new one after disposeResources()", async () => {
+    const { mock, toolset } = make();
+    const t = await toolset;
+    const plug = (t.Plug as AnyPlug)("common");
+    function Consumer() {
+      plug.useR();
+      return null;
+    }
+    const mount = () =>
+      render(
+        <t.ReactRMachine locale="en">
+          <Consumer />
+        </t.ReactRMachine>
+      );
+
+    mount();
+    cleanup();
+    mount();
+    expect(spies(mock).getWire).toHaveBeenCalledTimes(1);
+
+    cleanup();
+    mock[PLUG_MACHINE_ACCESSOR].disposeResources();
+    mount();
+    expect(spies(mock).getWire).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("createReactBareToolset › React Compiler support (reactCompiler: true)", () => {

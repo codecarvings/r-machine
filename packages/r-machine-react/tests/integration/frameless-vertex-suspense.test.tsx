@@ -20,6 +20,7 @@ import {
   type BusHost,
   createCassetteRecorder,
   createOuterGearComposer,
+  PLUG_MACHINE_ACCESSOR,
   type ResComposerConnector,
   ResLayoutResolver,
   ResManager,
@@ -63,6 +64,9 @@ function buildVertexEnv() {
     localeHelper: { validateLocale: () => null, defaultLocale: "en" },
     getWire: wm.getWire.bind(wm),
     resolveLayoutEntryType: (ns: string) => resolver.resolveLayoutEntryType(ns as never),
+    // The wire cache's staleness key (see `getOrCreateWire`); backed by the real
+    // ResManager so a dispose advances it.
+    [PLUG_MACHINE_ACCESSOR]: { getResourceGeneration: () => rm.getResourceGeneration() },
   };
   return { fakeMachine, rm, wm };
 }

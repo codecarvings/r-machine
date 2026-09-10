@@ -3,6 +3,7 @@ import {
   type AnyResAtlas,
   type ExperimentalFlags,
   PLUG_MACHINE_ACCESSOR,
+  type PlugMachine,
   PROCESS_SCOPE_PROVIDER,
   type ResEquipment,
   type ResLayoutEntryType,
@@ -41,6 +42,21 @@ export interface CreateMockMachineOptions {
   readonly resolveLayoutEntryType?: (ns: string) => ResLayoutEntryType;
   /** Replace getWire wholesale (e.g. to inject a pending/controllable wire). */
   readonly getWire?: (...args: unknown[]) => Wire;
+}
+
+/**
+ * Plug-machine bridge that keeps the contract the adapter relies on: every
+ * `disposeResources()` advances the resource generation its wire cache keys on.
+ */
+function createMockPlugMachine(): PlugMachine {
+  let resourceGeneration = 0;
+  return {
+    disposeResources: vi.fn(() => {
+      resourceGeneration++;
+    }),
+    getResourceGeneration: () => resourceGeneration,
+    testMode: new TestMode(),
+  };
 }
 
 export function createMockMachine(
@@ -94,7 +110,7 @@ export function createMockMachine(
       ),
     },
     getWire: vi.fn(overrides.getWire ?? (defaultGetWire as never)),
-    [PLUG_MACHINE_ACCESSOR]: { disposeResources: vi.fn(), testMode: new TestMode() },
+    [PLUG_MACHINE_ACCESSOR]: createMockPlugMachine(),
     // Default to non-vertex so plugs in tests use the shared wireCache path.
     resolveLayoutEntryType: vi.fn(overrides.resolveLayoutEntryType ?? (() => "shell")),
     // No request scope on the client — return the process-default provider so

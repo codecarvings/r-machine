@@ -133,9 +133,12 @@ export const PLUG_MACHINE_ACCESSOR: unique symbol = Symbol.for("r-machine.PLUG_M
 // wide surface leaking onto the consumer Plug): the only things reachable from
 // a Plug are the seams `@r-machine/testing` uses — dropping all resolved
 // resource state (`disposeResources`) and toggling the machine's per-instance
-// test mode (reached via `getPlugMachine` from `mockPlug`).
+// test mode (reached via `getPlugMachine` from `mockPlug`) — plus the counter
+// that drop advances (`getResourceGeneration`), read by the React adapter to stop
+// serving wires it cached before a dispose.
 export interface PlugMachine {
   disposeResources(): void;
+  getResourceGeneration(): number;
   readonly testMode: TestMode;
 }
 
