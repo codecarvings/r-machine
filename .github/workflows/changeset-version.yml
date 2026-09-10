@@ -35,18 +35,20 @@ jobs:
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
-        uses: changesets/action@v1
+        # v2 is the line built on the Changesets v3 packages. v1 bundles the v2
+        # reader, which mistakes `.changeset/pre/` for a legacy changeset folder
+        # and fails on `pre/changes.md`. The token now defaults to `github.token`.
+        uses: changesets/action@v2
         with:
-          version: pnpm version-packages
-          publish: pnpm release
+          version-script: pnpm version-packages
+          publish-script: pnpm release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
 
       - name: Update npm dist-tags
         if: steps.changesets.outputs.published == 'true'
         run: |
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
-          npx tsx scripts/update-npm-dist-tags.ts '${{ steps.changesets.outputs.publishedPackages }}'
+          npx tsx scripts/update-npm-dist-tags.ts '${{ steps.changesets.outputs.published-packages }}'
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
