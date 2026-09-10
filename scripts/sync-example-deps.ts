@@ -3,7 +3,7 @@
 /**
  * Pins every examples/* package.json's R-Machine dependency ranges to the
  * current package version (read from packages/r-machine/package.json — kept in
- * lockstep with the other r-machine packages by changeset `linked`).
+ * lockstep with the other r-machine packages by changeset `fixed`).
  *
  * The examples declare real version ranges (not `workspace:*`) so they stay
  * installable as standalone projects once copied out of the monorepo. The
@@ -12,7 +12,7 @@
  * was built against — no hand-editing.
  *
  * Invoked from the root `version-packages` script (after `changeset version`),
- * which the release workflow runs via the changesets/action `version:` input.
+ * which the release workflow runs via the changesets/action `version-script:` input.
  */
 
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
