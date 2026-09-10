@@ -1,5 +1,31 @@
 # @r-machine/testing
 
+## 1.0.0-beta.0
+
+### Patch Changes
+
+- a1bc217: Loosen the inter-package peer ranges, declare a supported Node range, and stop shipping coverage artifacts.
+
+  **Peer ranges.** The R-Machine packages declared each other with `workspace:*`, which pnpm rewrites to an **exact** version at publish time — `@r-machine/react@1.0.0-alpha.15` required literally `r-machine@1.0.0-alpha.15`. Any drift between two installed R-Machine packages was therefore an `ERESOLVE` failure rather than a warning. They now use `workspace:^`, published as `^1.0.0-<version>`, which accepts later releases of the same line and the eventual stable `1.0.0`. The packages still version and publish in lockstep, so a matched set remains the expected install.
+
+  **`engines`.** All five packages now declare `"node": ">=20.9.0"`. This is the floor the codebase already assumed rather than a new restriction: `Symbol.dispose` (the resource-teardown convention) needs Node 20.4+, and `@r-machine/next` targets a Next.js version that itself requires 20.9+. Node 18 is end-of-life.
+
+  **Packaging.** The `files` globs (`**/*.js`, `**/*.d.ts`, …) matched anything anywhere in the package directory, so a local coverage run leaked `coverage/*.js` into the tarball. `files` now excludes `**/coverage/**`.
+
+- a1bc217: Relicense every R-Machine package from AGPL-3.0-only to Apache-2.0.
+
+  R-Machine was published under the GNU Affero General Public License with a commercial exception: open source projects could use it freely, anything proprietary required a separate arrangement. That trade-off is now gone. All five packages — `r-machine`, `@r-machine/react`, `@r-machine/next`, `@r-machine/testing` and `rforge` — are licensed under the **Apache License, Version 2.0**, which permits use, modification and redistribution in any project, proprietary software included, and carries an express patent grant.
+
+  Nothing is asked in return beyond what Apache-2.0 states: keep the copyright and licence notices, and note any significant changes you make to the files you redistribute.
+
+  This is a one-way loosening — no permission previously granted is withdrawn. Versions published before this release remain available under the terms they shipped with; from this release forward the licence is Apache-2.0. The per-file notice is now a short SPDX header, and the commercial-licensing contact is retired.
+
+- Updated dependencies [a1bc217]
+- Updated dependencies [a1bc217]
+- Updated dependencies [a1bc217]
+- Updated dependencies [a1bc217]
+  - r-machine@1.0.0-beta.0
+
 ## 1.0.0-alpha.15
 
 ### Patch Changes

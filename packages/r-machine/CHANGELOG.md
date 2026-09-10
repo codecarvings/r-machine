@@ -1,5 +1,47 @@
 # r-machine
 
+## 1.0.0-beta.0
+
+### Patch Changes
+
+- a1bc217: Loosen the inter-package peer ranges, declare a supported Node range, and stop shipping coverage artifacts.
+
+  **Peer ranges.** The R-Machine packages declared each other with `workspace:*`, which pnpm rewrites to an **exact** version at publish time — `@r-machine/react@1.0.0-alpha.15` required literally `r-machine@1.0.0-alpha.15`. Any drift between two installed R-Machine packages was therefore an `ERESOLVE` failure rather than a warning. They now use `workspace:^`, published as `^1.0.0-<version>`, which accepts later releases of the same line and the eventual stable `1.0.0`. The packages still version and publish in lockstep, so a matched set remains the expected install.
+
+  **`engines`.** All five packages now declare `"node": ">=20.9.0"`. This is the floor the codebase already assumed rather than a new restriction: `Symbol.dispose` (the resource-teardown convention) needs Node 20.4+, and `@r-machine/next` targets a Next.js version that itself requires 20.9+. Node 18 is end-of-life.
+
+  **Packaging.** The `files` globs (`**/*.js`, `**/*.d.ts`, …) matched anything anywhere in the package directory, so a local coverage run leaked `coverage/*.js` into the tarball. `files` now excludes `**/coverage/**`.
+
+- a1bc217: Fix a component rendering the previous test's state, and ignoring a new `mockPlug` controller, when one test file renders the same component more than once.
+
+  ### Fixed
+  - **`@r-machine/react` — a wire resolved before `disposeResources()` is no longer reused.** A consumer plug caches its wires outside React, for as long as the plug itself lives. `disposeResources()` — which `mockPlug`'s reset runs when a test's `using ctrl` scope closes — tears down the slots those wires resolved against and drops their subscriptions without notifying them, so a cached wire was never marked stale and the next mount of the same component, i.e. the next test in the file, got its dead plugin back. On screen: the previous test's final state. Through the new controller: nothing — the mock's transform never ran, so `ctrl.deps[i].state = …` was silently ignored and reading `ctrl.deps[i].state` threw `ERR_STATE_NOT_RESOLVED`. A test rendering the component with no mock at all, after a mocked one, was hit the same way. Every test still passed on its own, because Vitest gives each test file a fresh module registry — so the only workaround was folding all the checks into a single test. Cache entries now record the machine's resource generation and are rebuilt once a dispose has advanced it. Next.js client components share this toolset and get the same fix.
+
+  ### Added
+  - **`PlugMachine.getResourceGeneration()`** (`r-machine/core`) — a counter that every `disposeResources()` advances and nothing else does. Since a dispose notifies no subscriber, it is the only trace of one visible outside the machine; the React adapter keys its wire cache on it. `PlugMachine` is the bridge the adapters and `@r-machine/testing` reach through `PLUG_MACHINE_ACCESSOR`; application code does not implement it.
+
+- a1bc217: Relicense every R-Machine package from AGPL-3.0-only to Apache-2.0.
+
+  R-Machine was published under the GNU Affero General Public License with a commercial exception: open source projects could use it freely, anything proprietary required a separate arrangement. That trade-off is now gone. All five packages — `r-machine`, `@r-machine/react`, `@r-machine/next`, `@r-machine/testing` and `rforge` — are licensed under the **Apache License, Version 2.0**, which permits use, modification and redistribution in any project, proprietary software included, and carries an express patent grant.
+
+  Nothing is asked in return beyond what Apache-2.0 states: keep the copyright and licence notices, and note any significant changes you make to the files you redistribute.
+
+  This is a one-way loosening — no permission previously granted is withdrawn. Versions published before this release remain available under the terms they shipped with; from this release forward the licence is Apache-2.0. The per-file notice is now a short SPDX header, and the commercial-licensing contact is retired.
+
+- a1bc217: Retire the `experimental.outerGear` flag — `OuterGear` and `VertexFrame` are now unconditional.
+
+  `OuterGear` (and, on the React/Next side, `VertexFrame`) were withheld from the toolsets until `experimental: { outerGear: "on" }` was passed to `RMachine.create(...)`. The feature has stabilized, so the flag is gone and both are always part of the surface. The `experimental` option itself stays — it is the reserved namespace for the next opt-in feature — but no flag is defined right now.
+
+  ### Changed
+  - `OuterGear` is always present on `rMachine.createToolset()`, and `VertexFrame` on the React bare/standard toolsets and the Next client toolset. Remove `experimental: { outerGear: "on" }` from your `RMachine.create(...)` call — with no flag declared, `ExperimentalFlags` rejects every key, so leaving it in place is now a type error rather than a silently ignored option.
+  - A layout with `gear:outer` entries no longer needs an opt-in, so `validateRMachineConfig` no longer rejects one.
+
+  ### Removed
+  - `ERR_EXPERIMENTAL_OUTER_GEAR_REQUIRED` — the error it reported can no longer occur.
+
+  ### Added
+  - `ExperimentalTools<EF>` (exported from `r-machine/core`) — the type-level seam each toolset intersects with, so that a future flag contributes its tools to the surface it belongs to. With no flag declared it resolves to `{}` and toolset shapes are unchanged.
+
 ## 1.0.0-alpha.15
 
 ### Patch Changes

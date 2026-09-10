@@ -1,6 +1,6 @@
 {
   "name": "r-machine",
-  "version": "1.0.0-beta",
+  "version": "1.0.0-beta.0",
   "description": "A TypeScript resource layer for React and Next.js — uniformity under change, for humans and coding agents alike.",
   "author": "Sergio Turolla <hello@codecarvings.com>",
   "license": "Apache-2.0",
