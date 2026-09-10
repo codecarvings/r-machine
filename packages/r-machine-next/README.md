@@ -32,7 +32,7 @@ And the same thing that orients an agent is what stops it. A dependency that doe
 
 ## Getting started
 
-R-Machine ships an agent skill that scaffolds a project and adds resources. Start from a fresh app — or an existing one — and install it:
+R-Machine ships an agent skill that scaffolds a project and adds resources. Start from a fresh app and install it:
 
 ```bash
 npm create next-app@latest my-app

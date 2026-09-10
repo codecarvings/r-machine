@@ -32,7 +32,7 @@ And the same thing that orients an agent is what stops it. A dependency that doe
 
 ## Getting started
 
-Start from a fresh app — or an existing one — and install the skill that scaffolds a project and adds resources:
+Start from a fresh app and install the skill that scaffolds a project and adds resources:
 
 ```bash
 # Next.js
