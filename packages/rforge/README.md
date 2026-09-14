@@ -18,7 +18,7 @@ In R-Machine logic and state live in a `gear`, content in a `shell`, and a consu
 <details>
 <summary><strong>An agent promoting a global gear to per-instance state — 5 files, 7 insertions</strong></summary>
 
-<img src="https://raw.githubusercontent.com/codecarvings/r-machine/refs/heads/RM-beta-1/.github/assets/outer-to-vertex.png" width="600px" align="center" alt="An agent promoting a global gear to per-instance state: five files changed, seven insertions" />
+<img src="https://raw.githubusercontent.com/codecarvings/r-machine/refs/tags/r-machine%401.0.0-beta.0/.github/assets/outer-to-vertex.png" width="600px" align="center" alt="An agent promoting a global gear to per-instance state: five files changed, seven insertions" />
 
 </details>
 
