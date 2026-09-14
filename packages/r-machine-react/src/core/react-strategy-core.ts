@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AnyResAtlas, ExperimentalFlags, ResEquipment, SwitchableOption } from "r-machine/core";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags, SwitchableOption } from "r-machine/core";
 import type { AnyLocale } from "r-machine/locale";
 import { Strategy } from "r-machine/strategy";
 import type { ReactPlugKitMap } from "./react-plug.js";
@@ -35,7 +35,7 @@ const defaultConfig: ReactStrategyConfig<AnyResAtlas, typeof defaultKit> = {
 export abstract class ReactStrategyCore<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
+  E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
   C extends AnyReactStrategyConfig<RA>,
 > extends Strategy<RA, L, E, EF, C> {

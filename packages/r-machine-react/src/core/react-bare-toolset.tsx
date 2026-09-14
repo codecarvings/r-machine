@@ -14,6 +14,7 @@ import type {
   AnyNamespace,
   AnyPlugHead,
   AnyResAtlas,
+  AnyResEquipment,
   ExperimentalFlags,
   ExperimentalTools,
   HandleList,
@@ -22,7 +23,6 @@ import type {
   NamespaceList,
   PluginCtxAugmenter,
   RequestScope,
-  ResEquipment,
   Wire,
 } from "r-machine/core";
 import {
@@ -109,7 +109,7 @@ export interface CreateReactBareToolsetOptions {
 export async function createReactBareToolset<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
+  E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
   KM extends ReactPlugKitMap<RA>,
 >(

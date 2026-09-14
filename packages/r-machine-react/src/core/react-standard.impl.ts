@@ -4,7 +4,7 @@
  */
 
 import type { RMachine } from "r-machine";
-import type { AnyResAtlas, ExperimentalFlags, ResEquipment } from "r-machine/core";
+import type { AnyResAtlas, AnyResEquipment, ExperimentalFlags } from "r-machine/core";
 import { ERR_UNKNOWN_LOCALE, RMachineUsageError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import type { AnyReactStandardStrategyConfig } from "./react-standard-strategy-core.js";
@@ -13,7 +13,7 @@ import type { ReactImpl } from "./react-toolset.js";
 export async function createReactStandardImpl<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
+  E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
   C extends AnyReactStandardStrategyConfig<RA>,
 >(rMachine: RMachine<RA, L, E, EF>, strategyConfig: C): Promise<ReactImpl<L>> {
