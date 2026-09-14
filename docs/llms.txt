@@ -98,6 +98,6 @@ https://rmachine.dev/llms-full.txt
 
 ---
 
-rev 2026-09-14.032
+rev 2026-09-14.033
 Copyright (c) 2026 Sergio Turolla and R-Machine contributors
 https://rmachine.dev | https://codecarvings.com

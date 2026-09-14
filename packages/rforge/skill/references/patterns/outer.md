@@ -192,7 +192,7 @@ const setTheme = _.action((theme: string) => ({ user: { prefs: { theme } } }));
 // → prefs.lang and user.name are untouched. No spreading, no re-stating siblings.
 ```
 
-Four rules, none of them guessable:
+Six rules, none of them guessable:
 
 - **Only plain objects merge.** Anything else **replaces** wholesale — arrays,
   `Date`, `Map`, `Set`, `RegExp`, `URL`, class instances, primitives. So
@@ -213,10 +213,40 @@ Four rules, none of them guessable:
   //    typed `Line[]`. No compile error, no runtime error, corrupt state.
   ```
 
-  This is the one place in R-Machine where the compiler does not have your back:
-  an array in an action fragment (or a `ctrl.state` seed, or a mock override) is
-  **always a whole-array write**, so build it from `$.state` and return complete
-  elements.
+  The compiler does not have your back here: an array in an action fragment (or
+  a `ctrl.state` seed, or a mock override) is **always a whole-array write**, so
+  build it from `$.state` and return complete elements.
+
+- **A plain object never removes a key.** The merge walks only the keys you
+  **return**; every key you leave out survives. So `{ filters: {} }` is a
+  **no-op**, not a reset — the state keeps its identity and nothing is notified.
+  Returning the whole state does not help either: it is merged like any other
+  fragment. The consequence that bites is a **keyed collection**: with
+  `byId: Record<string, Item>`, **no action can delete an entry**. Model a
+  collection you remove from as an **array of complete elements** and filter it
+  — arrays replace wholesale:
+  `_.action((id: string) => ({ items: $.state.items.filter((i) => i.id !== id) }))`.
+  To reset a nested object, return every one of its leaves with its reset value.
+
+- **A fragment patches only what is already there.** Where the state holds a
+  plain object, the fragment is merged into it; where it holds **nothing** — a
+  key not yet in a `Record`, a field that is `null` or `undefined` — the fragment
+  is **written as-is**. The same fragment is a patch on one call and a whole
+  write on the next:
+
+  ```ts
+  // Item = { name: string; qty: number }
+  // state: { byId: { a: { name: "Apple", qty: 2 } } }
+  const setQty = _.action((id: string, qty: number) => ({
+    byId: { [id]: { qty } },
+  }));
+  setQty("a", 1); // ✅ byId.a is { name: "Apple", qty: 1 } — patched
+  setQty("b", 1); // ❌ byId.b is { qty: 1 } — no `name`, still typed `Item`
+  ```
+
+  Same type gap as arrays: `DeepPartial` makes every leaf optional at every
+  depth, so the compiler cannot tell a patch from an insert. Wherever the target
+  may be absent or `null`, return a **complete** value.
 
 - **`undefined` is a no-op, not a value.** A key whose value is `undefined` is
   **skipped** by the merge, so an action **cannot clear a field** that way —

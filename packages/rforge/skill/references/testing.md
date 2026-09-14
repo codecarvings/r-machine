@@ -338,8 +338,8 @@ the shell, at the folder's level — not per-locale:
    gear whose factory seeds itself.
 
 **Every resolution override is a `DeepPartial` deep-merged over the real surface**
-— the same merge law as an action reducer and `ctrl.state`, including its four
-rules: read
+— the same merge law as an action reducer and `ctrl.state`, including every one
+of its rules: read
 [patterns/outer.md § Action return semantics](./patterns/outer.md#action-return-semantics--the-deep-partial-merge)
 once. The one that bites in tests: **only plain objects merge**, so an array,
 `Date`, `Map`, `Set` or class instance in an override or a seed **replaces** the

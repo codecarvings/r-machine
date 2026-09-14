@@ -674,7 +674,7 @@ Inside an `OuterGear` factory, `_` (second argument) is the only way to declare 
 
 ### 6.1. `_.action(reducer?)` — `Action<F>`
 
-Synchronous state-mutating reducer. Returns `DeepPartial<S>`; runtime merges into current state.
+Synchronous state-mutating reducer. Returns `DeepPartial<S>`; runtime deep-merges it into current state — only plain objects merge (arrays replace), no key is ever removed, and a fragment lands verbatim where no object exists yet.
 
 ```ts
 const inc  = _.action(() => ({ n: $.state.n + 1 }));
@@ -1664,6 +1664,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-09-14.032
+rev 2026-09-14.033
 Copyright (c) 2026 Sergio Turolla and R-Machine contributors
 https://rmachine.dev | https://codecarvings.com
