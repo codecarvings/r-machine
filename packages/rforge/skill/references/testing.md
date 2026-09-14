@@ -332,7 +332,10 @@ the shell, at the folder's level — not per-locale:
 2. **State controller** (the live state cells) — read/written through the returned
    controller AFTER `.with(...)`: `ctrl.state`, `ctrl.deps[key].state`,
    `ctrl.kit[key].state`. Writes before resolve are deep-partial **seeds**; reads
-   and writes after resolve hit the live cell.
+   and writes after resolve hit the live cell. An own-state seed and a dependency
+   seed land at **different moments** — read
+   [§ Test an OuterGear](#test-an-outergear-state--ports--relay) before seeding a
+   gear whose factory seeds itself.
 
 **Every resolution override is a `DeepPartial` deep-merged over the real surface**
 — the same merge law as an action reducer and `ctrl.state`, including its four
@@ -455,6 +458,18 @@ ctrl.state = { count: 10 }; // seed before createRes(); `label` etc. preserved
 const inst = await ctrl.createRes();
 expect(inst.count).toBe(10);
 ```
+
+**When a seed lands — own state vs a dependency.** The two handles look alike but
+apply a pre-resolve seed at different moments:
+
+- `ctrl.state` sets the state the gear is **born with**: it is applied before the
+  factory body runs, and the factory runs on top of it. A factory that seeds
+  itself (`_.action()(await $.ports.loadCartSnapshot())`) therefore
+  **silently overwrites the keys it writes**; keys it doesn't write keep your
+  seed. For such a gear, mock the port (as `seedEmpty()` above does), or write
+  `ctrl.state` **after** `createRes()`.
+- `ctrl.deps[key].state` lands **after** the dependency is fully built, its own
+  self-seed included — so it wins, whether the consumer is a gear or a component.
 
 A relay's `onChange` runs for real — assert its side effect (here via a spy):
 

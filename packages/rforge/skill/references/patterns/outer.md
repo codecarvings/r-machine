@@ -434,6 +434,10 @@ export const r = OuterGear.withPorts({ loadCartSnapshot })
 export type Outer_Cart = RShape<typeof r>;
 ```
 
+To test a self-seeding gear, **mock the port**, not `ctrl.state`: a `ctrl.state`
+seed is applied before the factory runs, so this `_.action()(...)` overwrites it
+(see [../testing.md § Test an OuterGear](../testing.md#test-an-outergear-state--ports--relay)).
+
 ## Hidden members (`$`-prefix)
 
 A returned member whose key starts with `$` is **stripped from the public

@@ -32,6 +32,10 @@ ResourceAtlas.loader.register(["*"], async (path): Promise<AnyResModule> => {
           view: _.getter(() => ({ a: plugin.$.state.n, b: 2 })),
         })),
       } as unknown as AnyResModule;
+    case "outer/self-seeded":
+      // Also instantiated directly by the own-state suite: load the module so
+      // both paths share one definition.
+      return (await import("./outer-self-seeded.js")) as unknown as AnyResModule;
     default:
       throw new Error(`mock-plug fixture: unknown resource "${path}"`);
   }

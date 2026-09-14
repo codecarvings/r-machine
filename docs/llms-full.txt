@@ -1372,7 +1372,7 @@ Only stateful outer/vertex gears appear; everything else is absent from the type
 
 **Reading returns the full current state.** Since a write is a partial patch, the complete value exists only once resolved, so **reading `.state` before the plug resolves throws** `ERR_STATE_NOT_RESOLVED` (a loud "render/`createRes` first" rather than a misleading partial).
 
-**Seed before, drive after.** A write *before* resolution is queued and applied once the cell comes to life; writes *after* publish straight to the live cell. Order in a test: seed → render/`createRes` → drive and read.
+**Seed before, drive after.** A write *before* resolution is queued and applied once the cell comes to life; writes *after* publish straight to the live cell. Order in a test: seed → render/`createRes` → drive and read. The moment differs by handle: an own-state seed is applied *before* the factory body, so a self-seeding factory (`_.action()(await $.ports.…)`, §11.9) overwrites the keys it writes — mock the port instead, or write after `createRes`; a `ctrl.deps` seed lands *after* the dependency is built, and wins.
 
 ```ts
 using ctrl = mockPlug(counter).default();
@@ -1664,6 +1664,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-09-10.031
+rev 2026-09-14.032
 Copyright (c) 2026 Sergio Turolla and R-Machine contributors
 https://rmachine.dev | https://codecarvings.com

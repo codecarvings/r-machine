@@ -21,6 +21,9 @@ type ResourceMap = {
   // Stateful dep whose getter returns an object deriving from state: the
   // live-getter mock scenario (mock a sub-key, drive state, the sibling tracks).
   "outer/probe": { view: { a: number; b: number } };
+  // Stateful dep that seeds itself from a port in its factory: pins WHEN a
+  // controller seed lands (own state: before the factory; a dep: after it).
+  "outer/self-seeded": { lines: string[]; tag: string; bornTag: () => string };
 };
 
 export class ResourceAtlas extends folders<ResourceMap>() {}
