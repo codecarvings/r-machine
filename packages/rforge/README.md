@@ -58,7 +58,7 @@ Then prompt your agent:
 Install R-Machine in this project
 ```
 
-Then describe a feature in plain words:
+From there, just describe a feature in plain words:
 
 ```
 Add a counter to the home page: a label showing the current value,
@@ -165,7 +165,27 @@ export default function MyComponent() {
 MyComponent.plug = plug; // attached to the consumer for testing purposes with mockPlug
 ```
 
+### Testing
+
 For tests, `mockPlug( ... ).with({ ... })` is the **single** override primitive — uniform across gears, shells and consumers.
+
+```ts
+// tests/r-machine/pub/outer/counter.test.ts
+import { mockPlug } from "@r-machine/testing";
+import { describe, expect, it } from "vitest";
+import { r } from "@/r-machine/pub/outer/counter";
+
+describe("outer/counter", () => {
+  it("starts at 0 and increases", async () => {
+    using ctrl = mockPlug(r).with({ 0: { incValue: 1 } }); // base/config mocked
+    const counter = await ctrl.createRes();
+
+    expect(counter.count).toBe(0);
+    counter.inc();
+    expect(counter.count).toBe(1);
+  });
+});
+```
 
 ## Usage of rforge
 

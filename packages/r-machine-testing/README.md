@@ -58,7 +58,7 @@ Then prompt your agent:
 Install R-Machine in this project
 ```
 
-Then describe a feature in plain words:
+From there, just describe a feature in plain words:
 
 ```
 Add a counter to the home page: a label showing the current value,
