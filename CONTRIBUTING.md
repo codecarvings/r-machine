@@ -82,9 +82,9 @@ The "Build, Test and Check" job on your pull request is the sole gate, and
 
 Two things catch people out:
 
-- **Coverage is a global 100% gate with `all: true`.** A new source file with no
-  test fails CI at 0% — it does not slip through. Every `/* v8 ignore */` needs
-  an inline justification.
+- **Coverage is a global 100% gate.** Every source file counts, including those
+  no test imports, so a new file with no test fails CI at 0% — it does not slip
+  through. Every `/* v8 ignore */` needs an inline justification.
 - **`pnpm check:dry` fails on any formatting drift.** Run `pnpm check` before you
   push; the CI variant does not write. It also verifies the licence headers —
   `pnpm check` inserts a missing one for you, but a header that is present and

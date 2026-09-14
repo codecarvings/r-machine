@@ -24,7 +24,6 @@ interface TestResEquipment {
 function createSpyStrategyClass<RA extends AnyResAtlas, L extends AnyLocale, C>() {
   const validateConfigSpy = vi.fn();
   class SpyStrategy extends Strategy<RA, L, TestResEquipment, {}, C> {
-    // biome-ignore lint/complexity/noUselessConstructor: widens protected base ctor to public for tests
     constructor(rMachine: RMachine<RA, L, TestResEquipment, {}>, config: C) {
       super(rMachine, config);
     }
@@ -44,7 +43,6 @@ class ThrowingStrategy<RA extends AnyResAtlas, L extends AnyLocale, C> extends S
   {},
   C
 > {
-  // biome-ignore lint/complexity/noUselessConstructor: widens protected base ctor to public for tests
   constructor(rMachine: RMachine<RA, L, TestResEquipment, {}>, config: C) {
     super(rMachine, config);
   }
@@ -56,7 +54,6 @@ class ThrowingStrategy<RA extends AnyResAtlas, L extends AnyLocale, C> extends S
 }
 
 class DefaultStrategy<RA extends AnyResAtlas, L extends AnyLocale, C> extends Strategy<RA, L, TestResEquipment, {}, C> {
-  // biome-ignore lint/complexity/noUselessConstructor: widens protected base ctor to public for tests
   constructor(rMachine: RMachine<RA, L, TestResEquipment, {}>, config: C) {
     super(rMachine, config);
   }
@@ -67,7 +64,6 @@ class DefaultStrategy<RA extends AnyResAtlas, L extends AnyLocale, C> extends St
 // RMachine has a protected constructor; expose it via a test-only subclass so
 // we can build instances directly without going through RMachine.create().
 class TestRMachine extends RMachine<TestAtlas, string, TestResEquipment, {}> {
-  // biome-ignore lint/complexity/noUselessConstructor: widens protected base ctor to public for tests
   constructor(config: RMachineConfig<TestAtlas, string, TestResEquipment, {}>) {
     super(config);
   }

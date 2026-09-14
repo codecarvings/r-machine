@@ -2,7 +2,7 @@
 
 Internal engineering standard for the R-Machine test suites (runtime **and**
 type tests). The goal is a senior-level suite: zero tautological tests, 100%
-coverage locked by a ratchet, and one obvious way to write each kind of test.
+coverage enforced by a global gate, and one obvious way to write each kind of test.
 
 ## Layout & tooling
 
@@ -31,7 +31,7 @@ See `packages/r-machine/tests/locale/index.test-d.ts` for the canonical form.
 3. Runtime tests: behaviour, edge cases, error paths, invariants.
 4. Type tests (`*.test-d.ts`): the type contract — especially for gear/plug/
    composer surfaces. This project is type-driven; types are part of the API.
-5. Drive the namespace to 100% on all four metrics, then lock it in the ratchet.
+5. Drive the namespace to 100% on all four metrics — the global gate fails CI otherwise.
 6. `pnpm test` green (typecheck included) before moving on.
 
 ## What counts as tautological (delete these)
@@ -71,19 +71,19 @@ can't name the bug it catches, it's probably tautological.
 - `examples/*` resolve r-machine **types** to the built `dist`; run `pnpm build`
   before expecting new public exports to typecheck there.
 
-## Coverage ratchet
+## Coverage gate
 
-The global gate is off during the overhaul so unfinished namespaces don't red
-CI. Coverage lives in `vitest.config.ts` under `coverage.thresholds` as per-glob
-entries. When a namespace hits 100% on every metric, lock it:
+`vitest.config.ts` enforces a single global `100` threshold on all four metrics,
+across all five packages. `coverage.include` pulls in every matching source
+file — not just the ones a test imports — so a new file with no test fails CI at
+0% instead of slipping through.
 
-```ts
-// vitest.config.ts
-"r-machine/src/<namespace>/**": FULL,
-```
+The `include` globs match the whole path relative to the repo root, so keep the
+`packages/` prefix (`packages/r-machine/src/**`). A glob that matches nothing is
+not an error: its files silently drop out of the gate.
 
-The text reporter **hides files that are 100% on all four metrics**, so a
-namespace vanishing from the report means it's complete. To read true numbers:
+The text reporter **hides files that are 100% on all four metrics**, so the table
+lists only what is still missing. To read true numbers:
 
 ```sh
 pnpm vitest run --coverage --coverage.reporter=json-summary \
@@ -92,5 +92,3 @@ pnpm vitest run --coverage --coverage.reporter=json-summary \
 
 Every `/* v8 ignore */` must carry an inline justification and be defensible in
 review — it is the only sanctioned way to leave a line uncovered at 100%.
-
-When all namespaces are locked, restore a global `100` backstop in `thresholds`.

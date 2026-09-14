@@ -58,7 +58,6 @@ function createTestStrategy() {
   };
 
   class TestStrategy extends NextAppStrategyCore<TestAtlas, TestLocale, E, EF, TestConfig> {
-    // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
     constructor(machine: any, cfg: any) {
       super(machine, cfg);
     }

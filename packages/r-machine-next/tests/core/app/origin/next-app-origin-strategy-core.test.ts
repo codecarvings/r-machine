@@ -63,7 +63,6 @@ function createTestStrategy(configOverrides?: Partial<SimpleConfig>) {
     EF,
     SimpleConfig
   > {
-    // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
     constructor(machine: any, cfg: any) {
       super(machine, cfg);
     }
@@ -99,7 +98,6 @@ function createTranslatedStrategy(
     EF,
     TranslatedConfig
   > {
-    // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
     constructor(machine: any, cfg: any) {
       super(machine, cfg);
     }

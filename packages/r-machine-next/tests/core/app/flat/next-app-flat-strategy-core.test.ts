@@ -48,7 +48,6 @@ function createTestStrategy(configOverrides?: Partial<SimpleConfig>) {
     EF,
     SimpleConfig
   > {
-    // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
     constructor(machine: any, cfg: any) {
       super(machine, cfg);
     }
@@ -79,7 +78,6 @@ function createDynamicStrategy() {
     EF,
     DynamicConfig
   > {
-    // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
     constructor(machine: any, cfg: any) {
       super(machine, cfg);
     }
@@ -108,7 +106,6 @@ function createDynamicStrategyWithLocale(overrideDefaultLocale: TestLocale) {
     EF,
     DynamicConfig
   > {
-    // biome-ignore lint/complexity/noUselessConstructor: widens the protected base ctor to public for tests
     constructor(machine: any, cfg: any) {
       super(machine, cfg);
     }
