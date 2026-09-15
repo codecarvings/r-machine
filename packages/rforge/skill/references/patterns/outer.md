@@ -343,6 +343,7 @@ The exact behaviour matters, and most of it is not guessable:
 | -------------------------------------- | --------------------- |
 | pure state transition                  | `_.action` (reducer)  |
 | derived read-only value                | `_.getter` / `_.cell` |
+| async work a consumer triggers         | plain `async` member  |
 | must _happen_ when state changes       | `_.relay`             |
 | must happen once, at construction      | the factory body      |
 | must be undone when the gear goes away | `[Symbol.dispose]`    |
@@ -390,11 +391,23 @@ export const r = OuterGear.withPorts({ submitForm })
   .withState({ pending: false, error: null as string | null })
   .define((plugin, _) => {
     const { $ } = plugin;
+    const start = _.action(() => ({ pending: true, error: null }));
+    const settle = _.action((error: string | null) => ({
+      pending: false,
+      error,
+    }));
     return {
-      submit: _.action(async (data: FormData) => {
-        const result = await $.ports.submitForm(data);
-        return { error: result.error ?? null };
-      }),
+      // NOT an action: a plain async member that brackets the await with two
+      // synchronous actions.
+      submit: async (data: FormData) => {
+        start();
+        try {
+          const result = await $.ports.submitForm(data);
+          settle(result.error ?? null);
+        } catch (e) {
+          settle(e instanceof Error ? e.message : String(e));
+        }
+      },
       pending: _.getter(() => $.state.pending),
       error: _.getter(() => $.state.error),
     };
@@ -402,6 +415,26 @@ export const r = OuterGear.withPorts({ submitForm })
 
 export type Outer_Form = RShape<typeof r>;
 ```
+
+**Async work is never an action.** An action is a synchronous reducer (see
+[Action return semantics](#action-return-semantics--the-deep-partial-merge)), so
+`_.action(async …)` does not compile: a `Promise` is not a state fragment. Work
+the consumer triggers and has to await (a submit, a save, a fetch) goes in a
+**plain `async` member** that calls actions around the `await`. Outside a
+transaction, each action call flushes on its own, so `pending: true` is published
+before the port runs. Settle in a `catch` too, or a throwing port leaves
+`pending` stuck at `true`.
+
+**An async member resolves to nothing: `Promise<void>`.** In an OuterGear,
+`define` rejects any member whose return type is `Promise<T>` with a non-void
+`T`. The return type decides, not the `async` keyword: a passthrough such as
+`load: () => $.ports.load()` is rejected too. The result belongs in state: land
+it with an action and read it through a getter, where every consumer sees it,
+not only the caller that awaited it. The compiler names the member type, not the
+rule, and often anchors the error on `.define(` rather than on the member:
+`Type '() => Promise<number>' is not assignable to type 'never'`, on a stateful
+gear buried under "No overload matches this call". BaseGear and InnerGear have
+no such rule: an async member there may return a value.
 
 ## OuterGear — memoized cell (`_.cell`)
 
