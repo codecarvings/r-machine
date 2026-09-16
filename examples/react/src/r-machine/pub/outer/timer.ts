@@ -8,11 +8,11 @@ export const r = OuterGear.withDeps("base/config")
   .define((plugin, _) => {
     const [config, $] = plugin;
 
-    const $inc = _.action(() => ({ value: $.state.value + 1 }));
-    const intervalId = setInterval(() => $inc(), config.tickIntervalMs);
+    const add = _.action((n: number) => ({ value: $.state.value + n }));
+    const intervalId = setInterval(() => add(1), config.tickIntervalMs);
 
     const setIsOdd = _.action((isOdd: boolean) => ({ isOdd }));
-    _.relay({
+    const $relay = _.relay({
       select: () => $.state.value,
       onChange: (value) => _.cmd(setIsOdd, value % 2 === 1),
     });
@@ -21,7 +21,8 @@ export const r = OuterGear.withDeps("base/config")
       value: _.getter(() => $.state.value),
       isOdd: _.getter(() => $.state.isOdd),
       doubled: _.cell(() => $.state.value * 2),
-      add: _.action((n: number) => ({ value: $.state.value + n })),
+      add,
+      $relay,
       [Symbol.dispose]: () => clearInterval(intervalId),
     };
   });
