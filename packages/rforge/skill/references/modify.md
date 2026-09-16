@@ -1,7 +1,6 @@
 # R-Machine — Modify or evolve (Mode D)
 
-The mode where R-Machine earns its tagline, **Uniformity Under Change**. A
-namespace is a **stable contract**; the implementation behind it is the
+A namespace is a **stable contract**; the implementation behind it is the
 **volatile layer**. Consumers — including tests, mocks, and fixtures — depend on
 the namespace, not on where a value lives or how it is shaped. So the real
 question on any change is not "can it do X?" but **"how many files must change
@@ -140,9 +139,6 @@ instance** per `(namespace, locale)`, so every copy of the component shows the
 same value. The fix is a family change: `outer/counter` → `vertex/counter`. A
 vertex gear has the same composer and the same Surface — it is the _layout entry_
 that gives each consumer its own instance.
-
-This is the clearest demonstration of Uniformity Under Change in the skill: **the
-gear body is not touched at all.**
 
 **First, two preconditions that can block the move** — check them before editing:
 

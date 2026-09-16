@@ -7,29 +7,6 @@
 
 _A TypeScript resource layer for React and Next.js_
 
-## Uniformity Under Change
-
-A codebase evolves commit after commit, sprint after sprint, LLM iteration after LLM iteration.
-
-So _can it do X?_ is only half of what's worth asking about an architecture. The other half: _how far does a change travel?_ Move a resource from the server to the client, add a second locale, swap an implementation: count the files you touch. Count how many of them are tests that have nothing to do with what you changed.
-
-In R-Machine logic and state live in a `gear`, content in a `shell`, and a consumer reads a name and the shape behind it. Where the value lives, how it's built, whether it's localized — none of it is visible at the call site, so none of it is something a consumer can depend on. And there is no second way to write that call site: this isn't a pattern you have to remember to follow, it's the only form there is.
-
-<details>
-<summary><strong>An agent promoting a global gear to per-instance state — 5 files, 7 insertions</strong></summary>
-
-<img src="https://raw.githubusercontent.com/codecarvings/r-machine/refs/tags/r-machine%401.0.0-beta.0/.github/assets/outer-to-vertex.png" width="600px" align="center" alt="An agent promoting a global gear to per-instance state: five files changed, seven insertions" />
-
-</details>
-
-## A codebase with a north
-
-A human learns a project over months and carries the map in their head. An agent has no months — it has whatever fits in the window, and then it's gone.
-
-With R-Machine there is no map to keep up to date: the map is the codebase. The resources, the atlas, the dependencies. This holds for any R-Machine project, not just yours: the coordinates are the same everywhere. To an agent, your code might come across as boring in its predictability.
-
-And the same thing that orients an agent is what stops it. A dependency that doesn't match, a mock that no longer fits the shape the app mounts, a translation the new locale forgot: compile errors at the site that caused them. Not a green run and a surprise in production.
-
 ## Getting started
 
 R-Machine ships an agent skill that scaffolds a project and adds resources. Start from a fresh app and install it:
@@ -62,13 +39,13 @@ A step-by-step quickstart is coming on rmachine.dev.
 
 ### Packages
 
-|                | Package                                                                  | Description                                                                                           |
-| -------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-|                | [`r-machine`](https://www.npmjs.com/package/r-machine)                   | The core: atlas, composers, plugs. Every project needs it.                                            |
-|                | [`@r-machine/react`](https://www.npmjs.com/package/@r-machine/react)     | React integration. Install it in every project that renders React, Next.js included.                  |
-| _This package_ | **[`@r-machine/next`](https://www.npmjs.com/package/@r-machine/next)**   | **Next.js App Router on top of the above: three routing models, the locale proxy, path composition.** |
-|                | [`@r-machine/testing`](https://www.npmjs.com/package/@r-machine/testing) | `mockPlug` and `verifyResourceAtlas`. A dev dependency, and the recommended way to test resources.    |
-|                | [`rforge`](https://www.npmjs.com/package/rforge)                         | Command-line interface for R-Machine                                                                  |
+|                | Package                                                                  | Description                                                                                                                                                                                               |
+| -------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|                | [`r-machine`](https://www.npmjs.com/package/r-machine)                   | The core: atlas, composers, plugs. Every project needs it.                                                                                                                                                |
+|                | [`@r-machine/react`](https://www.npmjs.com/package/@r-machine/react)     | React integration. Install it in every project that renders React, Next.js included.                                                                                                                      |
+| _This package_ | **[`@r-machine/next`](https://www.npmjs.com/package/@r-machine/next)**   | **Next.js App Router on top of the above: three routing models, the locale proxy, path composition.**                                                                                                     |
+|                | [`@r-machine/testing`](https://www.npmjs.com/package/@r-machine/testing) | `mockPlug` and `verifyResourceAtlas`. A dev dependency, and the recommended way to test resources. _Warning: this package is still in active development — the API may change before the stable release._ |
+|                | [`rforge`](https://www.npmjs.com/package/rforge)                         | Command-line interface for R-Machine                                                                                                                                                                      |
 
 ```bash
 npm install r-machine @r-machine/react @r-machine/next
