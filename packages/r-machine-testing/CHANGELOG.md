@@ -1,5 +1,11 @@
 # @r-machine/testing
 
+## 1.0.0-beta.1
+
+### Patch Changes
+
+- r-machine@1.0.0-beta.1
+
 ## 1.0.0-beta.0
 
 ### Patch Changes

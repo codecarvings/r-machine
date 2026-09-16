@@ -1,5 +1,13 @@
 # @r-machine/next
 
+## 1.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [9633487]
+  - @r-machine/react@1.0.0-beta.1
+  - r-machine@1.0.0-beta.1
+
 ## 1.0.0-beta.0
 
 ### Patch Changes
