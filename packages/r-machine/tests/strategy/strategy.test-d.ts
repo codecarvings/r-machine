@@ -31,7 +31,6 @@ interface TestResEquipment {
 // expectTypeOf(...).toBeConstructibleWith / constructorParameters /
 // `new TestStrategy(...)` / `TestStrategy["rMachine"]` calls resolve correctly.
 class TestStrategy extends Strategy<TestAtlas, string, TestResEquipment, {}, TestConfig> {
-  // biome-ignore lint/complexity/noUselessConstructor: widens protected base ctor to public for tests
   constructor(rMachine: RMachine<TestAtlas, string, TestResEquipment, {}>, config: TestConfig) {
     super(rMachine, config);
   }

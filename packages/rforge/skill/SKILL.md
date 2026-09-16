@@ -135,11 +135,10 @@ resource — it decomposes into several. Section C plans that decomposition, the
 
 ## Section D — Modify or Evolve
 
-The mode where R-Machine earns **Uniformity Under Change**: a namespace is a
-stable contract, so a change behind it has a minimal, compiler-verifiable blast
-radius. Section D locates the owner(s), edits behind the namespace, and — the
-whole point — **reports the blast radius** back. It edits existing resources; a
-genuinely new piece it dispatches to Section B.
+A namespace is a stable contract, so a change behind it has a minimal,
+compiler-verifiable blast radius. Section D locates the owner(s), edits behind
+the namespace, and — the whole point — **reports the blast radius** back.
+It edits existing resources; a genuinely new piece it dispatches to Section B.
 
 1. **Read [`references/modify.md`](references/modify.md)** — the locate → classify
    → edit → report procedure and the kinds of change.

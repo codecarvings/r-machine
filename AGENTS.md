@@ -11,7 +11,7 @@ here:
 
 - [`README.md`](README.md) — what R-Machine is, the conceptual model, licensing.
 - [`TESTING.md`](TESTING.md) — the test standard (layout, what counts as
-  tautological, coverage ratchet). **Read it before writing any test.**
+  tautological, coverage gate). **Read it before writing any test.**
 
 This file covers the rest: the mechanics that are not guessable from the tree.
 
@@ -109,9 +109,10 @@ branches: `@r-machine/source` → `./src/…/index.ts`, `types` → the built `.
   the thrown value can be asserted richly. Helper: `captureResolveError`.
 - `mockPlug` is the single mocking primitive (gears, shells, vertex, React
   consumers alike); call `resetMockPlugs()` in `afterEach`.
-- Coverage is a **global 100% gate with `all: true`** — a new source file with no
-  test fails CI at 0%, it does not slip through. Every `/* v8 ignore */` needs an
-  inline justification.
+- Coverage is a **global 100% gate**: `coverage.include` pulls in every source
+  file, so a new file with no test fails CI at 0%, it does not slip through. Its
+  globs match the whole path from the repo root — keep the `packages/` prefix.
+  Every `/* v8 ignore */` needs an inline justification.
 - `makeAction`'s deep merge collapses field-equal objects to the same reference;
   drive relay re-runs with a numeric `tick` cell, not by re-setting an equal object.
 - Biome can relocate a `@ts-expect-error` inside generics when it re-wraps a line;

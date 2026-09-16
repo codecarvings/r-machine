@@ -25,6 +25,21 @@ describe("deepPartialMerge", () => {
     expect(next.items).toEqual([9]);
   });
 
+  it("an empty object partial removes nothing and keeps the prev reference", () => {
+    const prev = { byId: { a: 1, b: 2 } };
+    expect(deepPartialMerge(prev, {})).toBe(prev);
+    expect(deepPartialMerge(prev, { byId: {} })).toBe(prev);
+  });
+
+  it("writes the partial as-is where prev holds no plain object (missing key, null)", () => {
+    type Item = { name: string; qty: number };
+    const prev = { byId: { a: { name: "x", qty: 2 } } as Record<string, Item>, selected: null as Item | null };
+    const next = deepPartialMerge(prev, { byId: { b: { qty: 1 } }, selected: { qty: 1 } });
+    // Not completed from anywhere: the fragment lands verbatim, `name` absent.
+    expect(next.byId.b).toStrictEqual({ qty: 1 });
+    expect(next.selected).toStrictEqual({ qty: 1 });
+  });
+
   it("treats Date as atomic — replaces, does not recurse", () => {
     const d1 = new Date(1000);
     const d2 = new Date(2000);

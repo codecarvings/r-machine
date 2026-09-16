@@ -192,7 +192,7 @@ const setTheme = _.action((theme: string) => ({ user: { prefs: { theme } } }));
 // → prefs.lang and user.name are untouched. No spreading, no re-stating siblings.
 ```
 
-Four rules, none of them guessable:
+Six rules, none of them guessable:
 
 - **Only plain objects merge.** Anything else **replaces** wholesale — arrays,
   `Date`, `Map`, `Set`, `RegExp`, `URL`, class instances, primitives. So
@@ -213,10 +213,40 @@ Four rules, none of them guessable:
   //    typed `Line[]`. No compile error, no runtime error, corrupt state.
   ```
 
-  This is the one place in R-Machine where the compiler does not have your back:
-  an array in an action fragment (or a `ctrl.state` seed, or a mock override) is
-  **always a whole-array write**, so build it from `$.state` and return complete
-  elements.
+  The compiler does not have your back here: an array in an action fragment (or
+  a `ctrl.state` seed, or a mock override) is **always a whole-array write**, so
+  build it from `$.state` and return complete elements.
+
+- **A plain object never removes a key.** The merge walks only the keys you
+  **return**; every key you leave out survives. So `{ filters: {} }` is a
+  **no-op**, not a reset — the state keeps its identity and nothing is notified.
+  Returning the whole state does not help either: it is merged like any other
+  fragment. The consequence that bites is a **keyed collection**: with
+  `byId: Record<string, Item>`, **no action can delete an entry**. Model a
+  collection you remove from as an **array of complete elements** and filter it
+  — arrays replace wholesale:
+  `_.action((id: string) => ({ items: $.state.items.filter((i) => i.id !== id) }))`.
+  To reset a nested object, return every one of its leaves with its reset value.
+
+- **A fragment patches only what is already there.** Where the state holds a
+  plain object, the fragment is merged into it; where it holds **nothing** — a
+  key not yet in a `Record`, a field that is `null` or `undefined` — the fragment
+  is **written as-is**. The same fragment is a patch on one call and a whole
+  write on the next:
+
+  ```ts
+  // Item = { name: string; qty: number }
+  // state: { byId: { a: { name: "Apple", qty: 2 } } }
+  const setQty = _.action((id: string, qty: number) => ({
+    byId: { [id]: { qty } },
+  }));
+  setQty("a", 1); // ✅ byId.a is { name: "Apple", qty: 1 } — patched
+  setQty("b", 1); // ❌ byId.b is { qty: 1 } — no `name`, still typed `Item`
+  ```
+
+  Same type gap as arrays: `DeepPartial` makes every leaf optional at every
+  depth, so the compiler cannot tell a patch from an insert. Wherever the target
+  may be absent or `null`, return a **complete** value.
 
 - **`undefined` is a no-op, not a value.** A key whose value is `undefined` is
   **skipped** by the merge, so an action **cannot clear a field** that way —
@@ -313,6 +343,7 @@ The exact behaviour matters, and most of it is not guessable:
 | -------------------------------------- | --------------------- |
 | pure state transition                  | `_.action` (reducer)  |
 | derived read-only value                | `_.getter` / `_.cell` |
+| async work a consumer triggers         | plain `async` member  |
 | must _happen_ when state changes       | `_.relay`             |
 | must happen once, at construction      | the factory body      |
 | must be undone when the gear goes away | `[Symbol.dispose]`    |
@@ -360,11 +391,23 @@ export const r = OuterGear.withPorts({ submitForm })
   .withState({ pending: false, error: null as string | null })
   .define((plugin, _) => {
     const { $ } = plugin;
+    const start = _.action(() => ({ pending: true, error: null }));
+    const settle = _.action((error: string | null) => ({
+      pending: false,
+      error,
+    }));
     return {
-      submit: _.action(async (data: FormData) => {
-        const result = await $.ports.submitForm(data);
-        return { error: result.error ?? null };
-      }),
+      // NOT an action: a plain async member that brackets the await with two
+      // synchronous actions.
+      submit: async (data: FormData) => {
+        start();
+        try {
+          const result = await $.ports.submitForm(data);
+          settle(result.error ?? null);
+        } catch (e) {
+          settle(e instanceof Error ? e.message : String(e));
+        }
+      },
       pending: _.getter(() => $.state.pending),
       error: _.getter(() => $.state.error),
     };
@@ -372,6 +415,26 @@ export const r = OuterGear.withPorts({ submitForm })
 
 export type Outer_Form = RShape<typeof r>;
 ```
+
+**Async work is never an action.** An action is a synchronous reducer (see
+[Action return semantics](#action-return-semantics--the-deep-partial-merge)), so
+`_.action(async …)` does not compile: a `Promise` is not a state fragment. Work
+the consumer triggers and has to await (a submit, a save, a fetch) goes in a
+**plain `async` member** that calls actions around the `await`. Outside a
+transaction, each action call flushes on its own, so `pending: true` is published
+before the port runs. Settle in a `catch` too, or a throwing port leaves
+`pending` stuck at `true`.
+
+**An async member resolves to nothing: `Promise<void>`.** In an OuterGear,
+`define` rejects any member whose return type is `Promise<T>` with a non-void
+`T`. The return type decides, not the `async` keyword: a passthrough such as
+`load: () => $.ports.load()` is rejected too. The result belongs in state: land
+it with an action and read it through a getter, where every consumer sees it,
+not only the caller that awaited it. The compiler names the member type, not the
+rule, and often anchors the error on `.define(` rather than on the member:
+`Type '() => Promise<number>' is not assignable to type 'never'`, on a stateful
+gear buried under "No overload matches this call". BaseGear and InnerGear have
+no such rule: an async member there may return a value.
 
 ## OuterGear — memoized cell (`_.cell`)
 
@@ -433,6 +496,10 @@ export const r = OuterGear.withPorts({ loadCartSnapshot })
 
 export type Outer_Cart = RShape<typeof r>;
 ```
+
+To test a self-seeding gear, **mock the port**, not `ctrl.state`: a `ctrl.state`
+seed is applied before the factory runs, so this `_.action()(...)` overwrites it
+(see [../testing.md § Test an OuterGear](../testing.md#test-an-outergear-state--ports--relay)).
 
 ## Hidden members (`$`-prefix)
 

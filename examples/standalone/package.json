@@ -13,9 +13,9 @@
   },
   "devDependencies": {
     "@r-machine/testing": "^1.0.0-beta.0",
-    "@types/node": "^24.13.3",
+    "@types/node": "^24.13.4",
     "tsx": "^4.23.13",
     "typescript": "~6.0.3",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.0"
   }
 }

@@ -7,29 +7,6 @@
 
 *A TypeScript resource layer for React and Next.js*
 
-## Uniformity Under Change
-
-A codebase evolves commit after commit, sprint after sprint, LLM iteration after LLM iteration.
-
-So *can it do X?* is only half of what's worth asking about an architecture. The other half: *how far does a change travel?* Move a resource from the server to the client, add a second locale, swap an implementation: count the files you touch. Count how many of them are tests that have nothing to do with what you changed.
-
-In R-Machine logic and state live in a `gear`, content in a `shell`, and a consumer reads a name and the shape behind it. Where the value lives, how it's built, whether it's localized — none of it is visible at the call site, so none of it is something a consumer can depend on. And there is no second way to write that call site: this isn't a pattern you have to remember to follow, it's the only form there is.
-
-<details>
-<summary><strong>An agent promoting a global gear to per-instance state — 5 files, 7 insertions</strong></summary>
-
-<img src=".github/assets/outer-to-vertex.png" width="600px" align="center" alt="An agent promoting a global gear to per-instance state: five files changed, seven insertions" />
-
-</details>
-
-## A codebase with a north
-
-A human learns a project over months and carries the map in their head. An agent has no months — it has whatever fits in the window, and then it's gone.
-
-With R-Machine there is no map to keep up to date: the map is the codebase. The resources, the atlas, the dependencies. This holds for any R-Machine project, not just yours: the coordinates are the same everywhere. To an agent, your code might come across as boring in its predictability.
-
-And the same thing that orients an agent is what stops it. A dependency that doesn't match, a mock that no longer fits the shape the app mounts, a translation the new locale forgot: compile errors at the site that caused them. Not a green run and a surprise in production.
-
 ## Getting started
 
 R-Machine ships an agent skill that scaffolds a project and adds resources. Start from a fresh app and install it:
@@ -58,7 +35,7 @@ Then prompt your agent:
 Install R-Machine in this project
 ```
 
-Then describe a feature in plain words:
+From there, just describe a feature in plain words:
 
 ```
 Add a counter to the home page: a label showing the current value,
@@ -75,7 +52,7 @@ A step-by-step quickstart is coming on rmachine.dev.
 | [`r-machine`](./packages/r-machine) | [![npm](https://img.shields.io/npm/v/r-machine)](https://www.npmjs.com/package/r-machine) | The core: atlas, composers, plugs. Every project needs it. |
 | [`@r-machine/react`](./packages/r-machine-react) | [![npm](https://img.shields.io/npm/v/@r-machine/react)](https://www.npmjs.com/package/@r-machine/react) | React integration. Install it in every project that renders React, Next.js included. |
 | [`@r-machine/next`](./packages/r-machine-next) | [![npm](https://img.shields.io/npm/v/@r-machine/next)](https://www.npmjs.com/package/@r-machine/next) | Next.js App Router on top of the above: three routing models, the locale proxy, path composition. |
-| [`@r-machine/testing`](./packages/r-machine-testing) | [![npm](https://img.shields.io/npm/v/@r-machine/testing)](https://www.npmjs.com/package/@r-machine/testing) | `mockPlug` and `verifyResourceAtlas`. A dev dependency, and the recommended way to test resources. |
+| [`@r-machine/testing`](./packages/r-machine-testing) | [![npm](https://img.shields.io/npm/v/@r-machine/testing)](https://www.npmjs.com/package/@r-machine/testing) | `mockPlug` and `verifyResourceAtlas`. A dev dependency, and the recommended way to test resources. _Warning: this package is still in active development — the API may change before the stable release._ |
 | [`rforge`](./packages/rforge) | [![npm](https://img.shields.io/npm/v/rforge)](https://www.npmjs.com/package/rforge) | Command-line interface for R-Machine |
 
 ```bash
@@ -175,7 +152,27 @@ export default function MyComponent() {
 MyComponent.plug = plug; // attached to the consumer for testing purposes with mockPlug
 ```
 
+### Testing
+
 For tests, `mockPlug( ... ).with({ ... })` is the **single** override primitive — uniform across gears, shells and consumers.
+
+```ts
+// tests/r-machine/pub/outer/counter.test.ts
+import { mockPlug } from "@r-machine/testing";
+import { describe, expect, it } from "vitest";
+import { r } from "@/r-machine/pub/outer/counter";
+
+describe("outer/counter", () => {
+  it("starts at 0 and increases", async () => {
+    using ctrl = mockPlug(r).with({ 0: { incValue: 1 } }); // base/config mocked
+    const counter = await ctrl.createRes();
+
+    expect(counter.count).toBe(0);
+    counter.inc();
+    expect(counter.count).toBe(1);
+  });
+});
+```
 
 ## Monorepo Structure
 

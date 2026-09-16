@@ -22,7 +22,6 @@ type Cfg = ReactStandardStrategyConfig<TestAtlas, {}>;
 // public constructor just surfaces the (otherwise protected) base ctor for the
 // test instantiations.
 class ConcreteStandardStrategy extends ReactStandardStrategyCore<TestAtlas, AnyLocale, E, EF, Cfg> {
-  // biome-ignore lint/complexity/noUselessConstructor: surfaces the protected base ctor as public for `new` in tests
   constructor(rMachine: RMachine<TestAtlas, AnyLocale, E, EF>, config: Cfg) {
     super(rMachine, config);
   }

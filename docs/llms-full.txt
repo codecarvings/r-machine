@@ -1,8 +1,5 @@
 # R-Machine — API Reference
 
-> Uniformity Under Change
-> A stable namespace is the contract; the implementation behind it is free to change.
-
 R-Machine is a TypeScript resource layer for React and Next.js unifying state, DI, and i18n behind one consumer primitive over a stable string namespace.
 
 **Terms:** resource = a TS factory exposed under a namespace; gear = non-localized resource (inner=server-only, base=shared service, outer=stateful, vertex=per-component); shell = localized resource; plug = consumer read handle; port = injected external value; kit = cross-resource injection; atlas = namespace→resource map; blueprint = a resource's cached resolution.
@@ -10,25 +7,6 @@ R-Machine is a TypeScript resource layer for React and Next.js unifying state, D
 https://rmachine.dev
 
 https://github.com/codecarvings/r-machine/
-
----
-
-## Conceptual model: the namespace as a stable contract
-
-R-Machine is easier to reason about through one model than through a list of features. A codebase is a dynamic entity: it evolves sprint after sprint, refactor after refactor, generation after generation. A useful question when evaluating an architecture is not only *"can it do X?"* but *"how many files must change when X evolves?"* — production files, test files, mocks, fixtures, imports.
-
-R-Machine answers that question the way a DBMS does:
-
-| DBMS concept | R-Machine equivalent |
-|---|---|
-| Table name (`customers`) | Resource namespace (`outer/cart`, `shell/checkout`) |
-| Schema (column types) | TypeScript interface |
-| Query (`SELECT * FROM customers`) | `Plug` / `usePlug` |
-| Storage engine, indexes | Implementation body (gear or shell) |
-
-A database table has a stable name that consumers depend on. The storage engine can be replaced and indexes can change without forcing any consumer to update: the table name is the contract.
-
-R-Machine applies the same principle to application code. The resource namespace is the stable contract; the implementation behind it is the volatile layer. Consumers — including tests, mocks, and fixtures — depend on the namespace, not on where a value lives or how it is shaped, so a change to the implementation does not propagate to them.
 
 ---
 
@@ -674,7 +652,7 @@ Inside an `OuterGear` factory, `_` (second argument) is the only way to declare 
 
 ### 6.1. `_.action(reducer?)` — `Action<F>`
 
-Synchronous state-mutating reducer. Returns `DeepPartial<S>`; runtime merges into current state.
+Synchronous state-mutating reducer. Returns `DeepPartial<S>`; runtime deep-merges it into current state — only plain objects merge (arrays replace), no key is ever removed, and a fragment lands verbatim where no object exists yet.
 
 ```ts
 const inc  = _.action(() => ({ n: $.state.n + 1 }));
@@ -1372,7 +1350,7 @@ Only stateful outer/vertex gears appear; everything else is absent from the type
 
 **Reading returns the full current state.** Since a write is a partial patch, the complete value exists only once resolved, so **reading `.state` before the plug resolves throws** `ERR_STATE_NOT_RESOLVED` (a loud "render/`createRes` first" rather than a misleading partial).
 
-**Seed before, drive after.** A write *before* resolution is queued and applied once the cell comes to life; writes *after* publish straight to the live cell. Order in a test: seed → render/`createRes` → drive and read.
+**Seed before, drive after.** A write *before* resolution is queued and applied once the cell comes to life; writes *after* publish straight to the live cell. Order in a test: seed → render/`createRes` → drive and read. The moment differs by handle: an own-state seed is applied *before* the factory body, so a self-seeding factory (`_.action()(await $.ports.…)`, §11.9) overwrites the keys it writes — mock the port instead, or write after `createRes`; a `ctrl.deps` seed lands *after* the dependency is built, and wins.
 
 ```ts
 using ctrl = mockPlug(counter).default();
@@ -1664,6 +1642,6 @@ Full benchmark + methodology: https://github.com/codecarvings/r-machine/tree/mai
 
 ---
 
-rev 2026-09-10.031
+rev 2026-09-16.034
 Copyright (c) 2026 Sergio Turolla and R-Machine contributors
 https://rmachine.dev | https://codecarvings.com

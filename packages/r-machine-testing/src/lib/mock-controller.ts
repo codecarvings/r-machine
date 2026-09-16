@@ -109,6 +109,14 @@ export type MockListController<PH extends AnyListPlugHead> = MockController &
 // `get state` therefore THROWS before the plug is resolved: the queued seed is a
 // partial patch, not the full state `S`, so the full value only exists once the
 // cell is bound (default merged with the accumulated patches).
+//
+// WHEN the seed lands differs by entry, and it is observable. The OWN cell is
+// born in the resource's `augmentCtx`, i.e. during its plug resolve — BEFORE
+// the factory body runs — so the seed is the state the gear is born with, and a
+// factory that seeds itself (`_.action()(snapshot)`) overwrites the keys it
+// writes. A DEP (or kit) cell belongs to a resource already fully built, self-
+// seed included, by the time the consumer's plugin resolves, so its seed lands
+// last and wins.
 interface Entry {
   cell?: StateCell<unknown>;
   seed?: unknown;

@@ -4,7 +4,7 @@
  */
 
 import type { RMachine } from "r-machine";
-import { type AnyResAtlas, type ExperimentalFlags, getNamespaceMap, type ResEquipment } from "r-machine/core";
+import { type AnyResAtlas, type AnyResEquipment, type ExperimentalFlags, getNamespaceMap } from "r-machine/core";
 import type { RMachineTypeError } from "r-machine/errors";
 import type { AnyLocale } from "r-machine/locale";
 import {
@@ -30,14 +30,14 @@ export function convertReactStandardStrategyConfigParamsToConfig<
 export class ReactStandardStrategy<
   RA extends AnyResAtlas,
   L extends AnyLocale,
-  E extends ResEquipment<RA>,
+  E extends AnyResEquipment<RA>,
   EF extends ExperimentalFlags,
   KM extends ReactPlugKitMap<RA>,
 > extends ReactStandardStrategyCore<RA, L, E, EF, ReactStandardStrategyConfig<RA, KM>> {
   static create<
     RA extends AnyResAtlas,
     L extends AnyLocale,
-    E extends ResEquipment<RA>,
+    E extends AnyResEquipment<RA>,
     EF extends ExperimentalFlags,
     KM extends ReactPlugKitMap<RA> = {},
   >(

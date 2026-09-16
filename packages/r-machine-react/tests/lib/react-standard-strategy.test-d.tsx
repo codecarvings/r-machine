@@ -43,6 +43,21 @@ describe("ReactStandardStrategy.create — public factory", () => {
     expectTypeOf<CreateFn>().parameter(1).toEqualTypeOf<ReactStandardStrategyConfigParams<NoInnerAtlas, {}>>();
     expectTypeOf<ReturnType<CreateFn>>().toEqualTypeOf<Strat>();
   });
+
+  // Regression: the E constraint must stay as wide as RMachine's (`AnyResEquipment`).
+  // A bare `ResEquipment<RA>` pins the defaulted BGL to `[]`, so a machine created
+  // with `bridgeGears: ["base/config"]` was rejected at the `create` call site.
+  it("accepts a machine whose equipment carries non-empty bridgeGears", () => {
+    interface BridgeAtlas extends NoInnerAtlas {
+      readonly "shape@gear:base": { readonly "base/config": unknown };
+    }
+    type BridgedE = ResEquipment<BridgeAtlas, ["base/config"]>;
+    const rMachine = {} as RMachine<BridgeAtlas, AnyLocale, BridgedE, EF>;
+
+    expectTypeOf(ReactStandardStrategy.create(rMachine, {})).toEqualTypeOf<
+      ReactStandardStrategy<BridgeAtlas, AnyLocale, BridgedE, EF, {}>
+    >();
+  });
 });
 
 describe("ReactStandardStrategy — createToolset & defaultConfig", () => {

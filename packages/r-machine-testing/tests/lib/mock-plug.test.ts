@@ -15,6 +15,8 @@ import { r as kitConsumer } from "../fixtures/mock-plug/kit-consumer.js";
 import { r as listForm } from "../fixtures/mock-plug/list-form.js";
 import { r as mappedConsumer } from "../fixtures/mock-plug/mapped-consumer.js";
 import { r as counter } from "../fixtures/mock-plug/outer-counter.js";
+import { r as selfSeeded } from "../fixtures/mock-plug/outer-self-seeded.js";
+import { r as selfSeededConsumer } from "../fixtures/mock-plug/self-seeded-consumer.js";
 import { r as sharedConsumer } from "../fixtures/mock-plug/shared-consumer.js";
 
 // Both fixtures are built from the same fixture RMachine, so `getPlugMachine`
@@ -329,6 +331,35 @@ describe("mockPlug", () => {
       // Driving the dep's real action also updates what the controller reads.
       inst.bumpShared();
       expect(deps[0].state).toEqual({ n: 10 });
+    });
+
+    it("own-state seed is the state the gear is BORN with: a self-seeding factory overwrites the keys it writes", async () => {
+      // The own cell is born during the plug resolve, BEFORE the factory body:
+      // the factory sees the seed, then its `_.action()(snapshot)` publishes over
+      // it (deep-partial merge — keys the snapshot does not write keep the seed).
+      using ctrl = mockPlug(selfSeeded.plug).default();
+      ctrl.state = { lines: ["seed"], tag: "seed" };
+
+      const inst = await instantiateRes(selfSeeded);
+      expect(inst.bornTag()).toBe("seed"); // the factory body ran on top of the seed
+      expect(inst.lines()).toEqual(["port"]); // overwritten by the self-seed
+      expect(inst.tag()).toBe("seed"); // not written by the self-seed → survives
+
+      // A write AFTER resolve lands last: the way to drive such a gear's state.
+      ctrl.state = { lines: ["late"] };
+      expect(inst.lines()).toEqual(["late"]);
+    });
+
+    it("dep-state seed lands AFTER the dependency is built: it wins over the dep's self-seed", async () => {
+      // The dep (factory + self-seed included) is fully instantiated before the
+      // consumer's plugin resolves — which is when the controller binds its cell.
+      using ctrl = mockPlug(selfSeededConsumer.plug).default();
+      const deps = depsView<{ lines: string[]; tag: string }>(ctrl);
+      deps[0].state = { lines: ["seed"], tag: "seed" };
+
+      const inst = await instantiateRes(selfSeededConsumer);
+      expect(inst.depBornTag()).toBe("init"); // the dep's factory ran BEFORE the seed
+      expect(inst.lines()).toEqual(["seed"]); // the seed wins over the self-seed
     });
 
     it("reset() clears the controller (state throws again after reset)", async () => {

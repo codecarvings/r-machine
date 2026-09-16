@@ -4,9 +4,9 @@ packages:
   - benchmarks/*
 
 overrides:
-  react: 19.2.8
-  react-dom: 19.2.8
-  next: 16.3.4
+  react: 19.3.0
+  react-dom: 19.3.0
+  next: 16.3.5
 
 allowBuilds:
   esbuild: true
@@ -23,5 +23,7 @@ onlyBuiltDependencies:
 saveWorkspaceProtocol: false
 
 minimumReleaseAgeExclude:
-  - globals@17.12.0
-  - lucide-react@1.39.0
+  - '@changesets/apply-release-plan@8.1.1'
+  - '@changesets/cli@3.0.3'
+  - '@changesets/config@4.0.1'
+  - lucide-react@1.46.0
