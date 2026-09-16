@@ -132,10 +132,10 @@ importers:
   examples/next:
     dependencies:
       '@r-machine/next':
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine-next
       '@r-machine/react':
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine-react
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.24
@@ -159,7 +159,7 @@ importers:
         specifier: 16.3.5
         version: 16.3.5(@playwright/test@1.63.0)(@types/node@24.13.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       r-machine:
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine
       react:
         specifier: 19.3.0
@@ -172,7 +172,7 @@ importers:
         version: 3.7.0
     devDependencies:
       '@r-machine/testing':
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine-testing
       '@tailwindcss/postcss':
         specifier: ^4.3.3
@@ -220,10 +220,10 @@ importers:
   examples/next-with-app-flat-strategy:
     dependencies:
       '@r-machine/next':
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine-next
       '@r-machine/react':
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine-react
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.24
@@ -247,7 +247,7 @@ importers:
         specifier: 16.3.5
         version: 16.3.5(@playwright/test@1.63.0)(@types/node@24.13.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       r-machine:
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine
       react:
         specifier: 19.3.0
@@ -290,10 +290,10 @@ importers:
   examples/next-with-app-origin-strategy:
     dependencies:
       '@r-machine/next':
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine-next
       '@r-machine/react':
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine-react
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.24
@@ -317,7 +317,7 @@ importers:
         specifier: 16.3.5
         version: 16.3.5(@playwright/test@1.63.0)(@types/node@24.13.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       r-machine:
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine
       react:
         specifier: 19.3.0
@@ -360,10 +360,10 @@ importers:
   examples/next-with-app-path-strategy:
     dependencies:
       '@r-machine/next':
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine-next
       '@r-machine/react':
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine-react
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.24
@@ -387,7 +387,7 @@ importers:
         specifier: 16.3.5
         version: 16.3.5(@playwright/test@1.63.0)(@types/node@24.13.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       r-machine:
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine
       react:
         specifier: 19.3.0
@@ -430,10 +430,10 @@ importers:
   examples/next-with-app-path-strategy-no-proxy:
     dependencies:
       '@r-machine/next':
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine-next
       '@r-machine/react':
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine-react
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.24
@@ -457,7 +457,7 @@ importers:
         specifier: 16.3.5
         version: 16.3.5(@playwright/test@1.63.0)(@types/node@24.13.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       r-machine:
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine
       react:
         specifier: 19.3.0
@@ -500,7 +500,7 @@ importers:
   examples/react:
     dependencies:
       '@r-machine/react':
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine-react
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.24
@@ -521,7 +521,7 @@ importers:
         specifier: ^1.46.0
         version: 1.46.0(react@19.3.0)
       r-machine:
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine
       radix-ui:
         specifier: ^1.6.7
@@ -540,7 +540,7 @@ importers:
         version: 4.3.3
     devDependencies:
       '@r-machine/testing':
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine-testing
       '@shikijs/langs':
         specifier: ^4.4.3
@@ -591,11 +591,11 @@ importers:
   examples/standalone:
     dependencies:
       r-machine:
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine
     devDependencies:
       '@r-machine/testing':
-        specifier: ^1.0.0-beta.0
+        specifier: ^1.0.0-beta.1
         version: link:../../packages/r-machine-testing
       '@types/node':
         specifier: ^24.13.4
@@ -681,16 +681,8 @@ packages:
     resolution: {integrity: sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/helper-string-parser@7.27.1':
-    resolution: {integrity: sha512-qMlSxKbpRlAridDExk92nSobyDdpPijUq2DW6oDnUqd0iOGxmQjyqhMIihI9+zv4LPyZdRje2cavWPbCbWm3eA==}
-    engines: {node: '>=6.9.0'}
-
   '@babel/helper-string-parser@7.29.7':
     resolution: {integrity: sha512-Pb5ijPrZ89GDH8223L4UP8i6QApWxs04RbPQJTeWDV0/keR2E36MeKnyr6LYmUUvqRRI+Iv87SuF1W6ErINzYw==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/helper-validator-identifier@7.28.5':
-    resolution: {integrity: sha512-qSs4ifwzKJSV39ucNjsvc6WVHs6b7S03sOh2OcHF9UHfVPqWWALUsNUVzhSBiItjRZoLHx7nIarVjqKVusUZ1Q==}
     engines: {node: '>=6.9.0'}
 
   '@babel/helper-validator-identifier@7.29.7':
@@ -704,10 +696,6 @@ packages:
 
   '@babel/runtime@7.29.2':
     resolution: {integrity: sha512-JiDShH45zKHWyGe4ZNVRrCjBz8Nh9TMmZG1kh4QTK8hCBTWBi8Da+i7s1fJw7/lYpM4ccepSNfqzZ/QvABBi5g==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/types@7.29.0':
-    resolution: {integrity: sha512-LwdZHpScM4Qz8Xw2iKSzS+cfglZzJGvofQICy7W7v4caru4EaAmyUuO6BGrbyQ2mYV11W0U8j5mBhd14dd3B0A==}
     engines: {node: '>=6.9.0'}
 
   '@babel/types@7.29.8':
@@ -3863,15 +3851,11 @@ snapshots:
 
   '@babel/code-frame@7.29.0':
     dependencies:
-      '@babel/helper-validator-identifier': 7.28.5
+      '@babel/helper-validator-identifier': 7.29.7
       js-tokens: 4.0.0
       picocolors: 1.1.1
 
-  '@babel/helper-string-parser@7.27.1': {}
-
   '@babel/helper-string-parser@7.29.7': {}
-
-  '@babel/helper-validator-identifier@7.28.5': {}
 
   '@babel/helper-validator-identifier@7.29.7': {}
 
@@ -3880,11 +3864,6 @@ snapshots:
       '@babel/types': 7.29.8
 
   '@babel/runtime@7.29.2': {}
-
-  '@babel/types@7.29.0':
-    dependencies:
-      '@babel/helper-string-parser': 7.27.1
-      '@babel/helper-validator-identifier': 7.28.5
 
   '@babel/types@7.29.8':
     dependencies:
@@ -5571,7 +5550,7 @@ snapshots:
 
   babel-plugin-react-compiler@1.0.0:
     dependencies:
-      '@babel/types': 7.29.0
+      '@babel/types': 7.29.8
 
   baseline-browser-mapping@2.10.29: {}
 
